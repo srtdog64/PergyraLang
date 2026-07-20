@@ -176,10 +176,17 @@ llvm_world_sync_emit_frontier(const MIRDeclHeader *header,
         "world.derived.changed_any.addr");
     frontier_limit_val = LLVMConstInt(ctx->type_i32,
         (unsigned long long)
-            pgy_codegen_world_frontier_graph_pass_limit(stmt,
-                llvm_decl_node_name(stmt),
-                pgy_domain_world_transitive_frontier_pass_limit_from_counts(
-                    zone_count, state_count, embedded_frontier_count)),
+            (llvm_active_has_mir(ctx)
+                ? pgy_codegen_world_frontier_graph_pass_limit_from_header(
+                    header,
+                    llvm_decl_node_name(stmt),
+                    pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+                        zone_count, state_count, embedded_frontier_count))
+                : pgy_codegen_world_frontier_graph_pass_limit(
+                    stmt,
+                    llvm_decl_node_name(stmt),
+                    pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+                        zone_count, state_count, embedded_frontier_count))),
         0);
     limit_val = LLVMConstInt(ctx->type_i32,
         (unsigned long long)

@@ -238,6 +238,110 @@ mir_resource_record_borrow_fact(MIRResourceBorrowLoweringFact *facts,
 }
 
 static bool
+mir_resource_runtime_operation_has_row(const char *operation)
+{
+    if (operation == NULL)
+        return false;
+    return strcmp(operation, "Claim") == 0
+        || strcmp(operation, "Read") == 0
+        || strcmp(operation, "Write") == 0
+        || strcmp(operation, "Release") == 0
+        || strcmp(operation, "PinRead") == 0
+        || strcmp(operation, "PinWrite") == 0
+        || strcmp(operation, "PinReadInit") == 0
+        || strcmp(operation, "PinWriteInit") == 0
+        || strcmp(operation, "Unpin") == 0
+        || strcmp(operation, "UnpinCleanup") == 0
+        || strcmp(operation, "SubmitRead") == 0;
+}
+
+static bool
+mir_materialize_resource_runtime_fact(MIRRoutine *routine,
+                                      MIRInstruction *inst)
+{
+    const MIRResourceRuntimeRow *row;
+    const char *operation;
+
+    if (routine == NULL || inst == NULL || inst->abi_type_name == NULL)
+        return true;
+    operation = mir_machine_layer_runtime_operation(inst);
+    if (operation == NULL)
+        operation = inst->name;
+    if (!mir_resource_runtime_operation_has_row(operation)) {
+        return true;
+    }
+
+    row = mir_abi_resource_runtime_row_for_type_name(
+        inst->abi_type_name, operation);
+    if (row == NULL)
+        return true;
+
+    inst->resource_runtime_fact = *row;
+    inst->resource_runtime_fact.domain = pgy_arena_strdup(
+        &routine->scratch, row->domain);
+    inst->resource_runtime_fact.abi_type_name = pgy_arena_strdup(
+        &routine->scratch, row->abi_type_name);
+    inst->resource_runtime_fact.resource_op_name = pgy_arena_strdup(
+        &routine->scratch, row->resource_op_name);
+    inst->resource_runtime_fact.runtime_fn = pgy_arena_strdup(
+        &routine->scratch, row->runtime_fn);
+    inst->resource_runtime_fact.target_kind = pgy_arena_strdup(
+        &routine->scratch, row->target_kind);
+    inst->resource_runtime_fact.materialization = pgy_arena_strdup(
+        &routine->scratch, row->materialization);
+    inst->resource_runtime_fact.call_shape = pgy_arena_strdup(
+        &routine->scratch, row->call_shape);
+    if (inst->resource_runtime_fact.domain == NULL
+        || inst->resource_runtime_fact.abi_type_name == NULL
+        || inst->resource_runtime_fact.resource_op_name == NULL
+        || inst->resource_runtime_fact.runtime_fn == NULL
+        || inst->resource_runtime_fact.target_kind == NULL
+        || inst->resource_runtime_fact.materialization == NULL
+        || inst->resource_runtime_fact.call_shape == NULL) {
+        return false;
+    }
+    inst->resource_runtime_fact_present = true;
+    return true;
+}
+
+bool
+mir_link_resource_runtime_facts(MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ri = 0; ri < block->instruction_count; ri++) {
+            MIRInstruction *resource = &block->instructions[ri];
+            if (resource->kind != MIR_INST_RESOURCE_OP
+                || !resource->resource_runtime_fact_present) {
+                continue;
+            }
+            for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                MIRInstruction *consumer = &block->instructions[ii];
+                if (consumer == resource
+                    || consumer->kind == MIR_INST_RESOURCE_OP
+                    || !mir_instruction_consumes_resource_source(
+                        resource, consumer)) {
+                    continue;
+                }
+                if (consumer->resource_runtime_fact_present
+                    && (consumer->resource_runtime_fact.runtime_fn == NULL
+                        || strcmp(
+                            consumer->resource_runtime_fact.runtime_fn,
+                            resource->resource_runtime_fact.runtime_fn) != 0)) {
+                    return false;
+                }
+                consumer->resource_runtime_fact =
+                    resource->resource_runtime_fact;
+                consumer->resource_runtime_fact_present = true;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
 mir_add_resource_instruction(MIRRoutine *routine,
                              MIRBasicBlock *block,
                              const RIROp *op,
@@ -268,6 +372,9 @@ mir_add_resource_instruction(MIRRoutine *routine,
         claim_type_name = mir_claim_abi_type_name_from_ast(op->ast);
     if (op->kind == RIR_OP_AWAIT_LOCAL) {
         abi_type_name = "Future";
+    } else if (op->kind == RIR_OP_AWAIT_REMOTE
+               && mir_machine_layer_runtime_operation(&inst) != NULL) {
+        abi_type_name = resource_owner_abi_type_name;
     } else if (op->kind == RIR_OP_AWAIT_REMOTE) {
         abi_type_name = "RemoteFuture";
     } else {
@@ -287,6 +394,10 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.type_layout = resource_owner_layout != NULL
         ? resource_owner_layout
         : mir_abi_lookup(inst.abi_type_name);
+    if (!mir_materialize_resource_runtime_fact(routine, &inst)) {
+        free(claim_type_name);
+        return false;
+    }
     free(claim_type_name);
     return mir_commit_instruction(routine, block, &inst);
 }
@@ -377,7 +488,9 @@ mir_populate_instructions(MIRRoutine *routine)
         } else if (op->kind == RIR_OP_READ
                    || op->kind == RIR_OP_WRITE
                    || op->kind == RIR_OP_RELEASE
-                   || op->kind == RIR_OP_MOVE) {
+                   || op->kind == RIR_OP_MOVE
+                   || op->machine_contact_kind
+                        == RIR_MACHINE_CONTACT_SUBMIT_READ) {
             borrow_fact = mir_resource_borrow_fact_for_view(
                 borrow_facts, borrow_fact_count, op->subject);
             if (borrow_fact != NULL) {

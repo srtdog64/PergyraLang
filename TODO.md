@@ -66,6 +66,14 @@ and identifier auto-read now consume that same owner instead of local row
   explicitly `BRIDGE`.
   Gates: `abi-ownership-shape-test-smoke`, `backend-fail-closed-test-smoke`,
   `perf-contract-test-smoke`, and `tests/llvm_smoke.sh`.
+- Active C MIR resource operations now consume a lowered
+  `MIRInstruction.resource_runtime_fact`; constructed `Slot<T>` rows are
+  materialized once in MIR, validated fail-closed, serialized as
+  `runtime_call_abi`, and checked by the self-hosted MIR consumer before
+  evidence-only resource rows are suppressed. C pin/block/builtin/let-slot
+  emitters route through `transpiler_slot_runtime_row_for_operation`, while
+  LLVM's shared row helper and the remaining compatibility policy are still
+  `BRIDGE`.
 - P0 physical owner-module promotion: the flat `src/codegen` (420 C / 319 H),
   `src/compiler` (168 C / 99 H), and `src/semantic` (207 C / 52 H) roots are an
   active navigation and incremental-build debt. Execute `docs/92` B0-B5 in

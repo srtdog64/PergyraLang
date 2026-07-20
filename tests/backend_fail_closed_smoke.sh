@@ -162,7 +162,7 @@ grep -Fq "C backend: slot builtin expression formatting failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C backend: slot builtin expression allocation failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
@@ -176,7 +176,21 @@ grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "inst->resource_runtime_fact_present" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "C MIR resource op '%s' is missing its lowered runtime-call ABI row" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "if (!mir_active && fn == NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "resource_runtime_fact_present" \
+    "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+grep -Fq "resource op is missing lowered runtime-call ABI row fact" \
+    "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "llvm_slot_runtime_row_for_operation(" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "inst->resource_runtime_fact_present" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "LLVM MIR resource operation is missing its lowered runtime-call ABI row" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
@@ -455,7 +469,7 @@ if grep -F 'transpiler_format_slot_runtime_fn(' \
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
@@ -497,7 +511,7 @@ if grep -F 'pgy_secure_unpin_%s(&%s);' \
     echo "[backend-fail-closed] C MIR secure pin cleanup must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
@@ -632,7 +646,7 @@ if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
     echo "[backend-fail-closed] C slot methods must consume transpiler_slot_runtime_row" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"

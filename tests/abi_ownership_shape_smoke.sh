@@ -77,6 +77,17 @@ for rel in \
     require_file "$rel"
 done
 
+require_term "docs/semantics/proofs/SoTAuthority.v" "SFAbiRuntimeCallRows"
+require_term "docs/semantics/proofs/SoTAuthority.v" "SFAbiRuntimeCallRows => SOMirAbi"
+require_term "docs/semantics/sot_owner_spine_registry.md" "abi.runtime_call_rows | abi | RuntimeCallAbiId | SFAbiRuntimeCallRows | SOMirAbi"
+require_term "docs/semantics/sot_owner_spine_registry.md" "resource_runtime_abi_fact_owner.pgy | MirResourceRuntimeRowFactReady | abi.runtime_call_rows | local_view"
+require_term "docs/192_protocol_abi_api_registry.md" "registry:abi.runtime_call_rows"
+reject_term "docs/192_protocol_abi_api_registry.md" "UNREGISTERED:runtime-call-abi-row-authority"
+require_term "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerRuntimeCallAbiCompatibilityPolicy"
+require_term "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerRuntimeCallAbiCompatibilityReady"
+require_term "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "same_major_reject_unknown_fields_fail_closed"
+require_term "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" "runtime_call_abi_policy="
+
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int;"
 require_term "src/runtime/pgy_abi_spec.h" "Debug/release mode is a build policy, not an ABI type-name dimension."
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_token_int_rel"
@@ -182,7 +193,8 @@ reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_s
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release", suf)'
 require_term "src/compiler/mir_abi_layout.h" "MIRResourceAbiKind"
-require_term "src/compiler/mir_abi_layout.h" "typedef struct MIRResourceRuntimeRow"
+require_term "src/compiler/mir_abi.h" "typedef struct MIRResourceRuntimeRow"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_for_type_name"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_by_kind"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_kind"
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "llvm_slot_runtime_row_for_operation("
@@ -201,7 +213,7 @@ require_term "src/codegen/llvm_stmt_block.c" "llvm_slot_runtime_row_for_operatio
 require_term "src/codegen/llvm_runtime_internal.h" "llvm_slot_runtime_row_for_operation("
 require_term "src/codegen/llvm_runtime.c" "llvm_slot_runtime_expected_call_shape"
 require_term "src/codegen/llvm_runtime.c" "mir_machine_layer_fact_matches_runtime_operation"
-require_term "src/codegen/transpiler_slot_builtin_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_slot_builtin_emit.c" "transpiler_slot_runtime_row_for_operation("
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_by_kind("
@@ -220,7 +232,7 @@ reject_term "src/codegen/transpiler_generic_class_specialization_emit.c" "PGY_SE
 reject_term "src/codegen/transpiler_generic_class_specialization_emit.c" "PGY_BOX_DEFINE(%s, %s)"
 require_term "src/codegen/transpiler_expr_call_member_emit.c" "transpiler_slot_runtime_fn("
 reject_term "src/codegen/transpiler_expr_call_member_emit.c" "mir_abi_resource_runtime_fn_by_kind("
-require_term "src/codegen/transpiler_let_slot_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_let_slot_emit.c" "transpiler_slot_runtime_row_for_operation("
 require_term "src/codegen/transpiler_let_slot_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_let_slot_emit.c" "C let-slot %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_func_class_flow_emit.c" "transpiler_slot_runtime_fn("
@@ -419,7 +431,7 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_unp
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_read_init_##Suffix"
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_write_init_##Suffix"
 
-require_term "src/codegen/transpiler_mir_pin_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_slot_runtime_row_for_operation("
 require_term "src/codegen/transpiler_mir_pin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_slot_runtime_expected_call_shape"
 require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinRead"'
@@ -453,7 +465,7 @@ require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_a
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(%s)))"
-require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_block_emit.c" "transpiler_slot_runtime_row_for_operation("
 require_term "src/codegen/transpiler_block_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_block_emit.c" "transpiler_slot_runtime_expected_call_shape"
 require_term "src/codegen/transpiler_block_emit.c" '"PinRead"'

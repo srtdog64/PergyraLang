@@ -137,6 +137,12 @@ for contact in claim read write release submit-read; do
         exit 1
     }
 done
+for operation in Claim Read Write Release SubmitRead; do
+    grep -Fq -- "\"operation\":\"$operation\"" "$PROBE_JSON" || {
+        echo "[self-host-mir-machine-layer] self-host producer lost runtime ABI row: $operation" >&2
+        exit 1
+    }
+done
 pgy_replace_first_literal "$MACHINE_MANIFEST_JSON" \
     "$BAD_MACHINE_MANIFEST_JSON" \
     '"runtime_operation":"Claim"' '"runtime_operation":"BadClaim"'

@@ -1,0 +1,56 @@
+// MIR resource runtime-call row consumer for the self-hosted lowering lane.
+// The native MIR producer owns row materialization; this owner only validates
+// the carried fact before resource instructions are skipped by reconstruction.
+
+import "json_fact_read.pgy";
+import "machine_layer_fact_owner.pgy";
+
+func MirResourceRuntimeRowRequired(operation: String) -> Bool {
+    return operation == "Claim" || operation == "Read" ||
+        operation == "Write" || operation == "Release" ||
+        operation == "PinRead" || operation == "PinWrite" ||
+        operation == "PinReadInit" || operation == "PinWriteInit" ||
+        operation == "Unpin" || operation == "UnpinCleanup" ||
+        operation == "SubmitRead";
+}
+
+func MirResourceRuntimeRowFactReady(
+    json: String, inst_start: Int, inst_end: Int
+) -> Bool {
+    let operation: String = MirObjectStringFact(
+        json, inst_start, inst_end, "name");
+    let machine_operation: String =
+        MirMachineLayerInstructionRuntimeOperation(
+            json, inst_start, inst_end);
+    let expected_operation: String = operation;
+    if !MirResourceRuntimeRowRequired(expected_operation) {
+        expected_operation = machine_operation;
+    }
+    if !MirResourceRuntimeRowRequired(expected_operation) {
+        return true;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, MirFactObjectStart(json, inst_start), inst_end);
+    let row: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "runtime_call_abi");
+    if !JsonObjectFactTableReady(row) ||
+        !JsonObjectFactStringFieldEquals(row, "owner", "MIRResource") ||
+        !JsonObjectFactStringFieldEquals(
+            row, "operation", expected_operation) {
+        return false;
+    }
+    let required_fields: Array<String> = [
+        "domain", "type", "symbol", "target_kind", "materialization",
+        "call_shape"
+    ];
+    let i: Int = 0;
+    while i < ArrayLength(required_fields) {
+        let value: Option<String> = JsonObjectFactStringFieldOpt(
+            row, required_fields[i]);
+        if !IsSome(value) || StringLength(UnwrapOption(value)) == 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

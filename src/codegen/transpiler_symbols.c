@@ -267,6 +267,8 @@ lookup_slot_is_self_field(TranspilerCtx *ctx, const char *var_name)
 char *
 slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
 {
+    TypedVarEntry *typed_entry;
+
     if (slot_expr == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -276,6 +278,11 @@ slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
         return NULL;
     }
     if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
+        return pergyra_strdup(slot_expr);
+    typed_entry = slot_name != NULL
+        ? lookup_typed_entry(ctx, slot_name)
+        : NULL;
+    if (typed_entry != NULL && typed_entry->is_indirect_ref)
         return pergyra_strdup(slot_expr);
     return pergyra_strdup_printf("&%s", slot_expr);
 }

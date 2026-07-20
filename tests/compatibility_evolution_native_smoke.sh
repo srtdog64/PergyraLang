@@ -22,6 +22,17 @@ require_text src/compiler/driver_app.c \
     "driver_diag_compatibility_manifest_validate_file"
 require_text src/self_hosted/compiler/expected/compatibility_evolution.txt \
     "change|"
+for runtime_policy in \
+    "runtime_call_abi_schema=pgy.selfhost.runtime-call-compat.v1" \
+    "runtime_call_abi_protocol=pergyra.runtime-call-abi.v2" \
+    "runtime_call_abi_unknown_version=reject" \
+    "runtime_call_abi_unknown_field=reject" \
+    "runtime_call_abi_missing_fact=fail_closed" \
+    "runtime_call_abi_constructed_nominal=mir_materialize_once" \
+    "runtime_call_abi_policy=same_major_reject_unknown_fields_fail_closed"; do
+    require_text src/self_hosted/compiler/expected/compatibility_evolution.txt \
+        "$runtime_policy"
+done
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then

@@ -61,6 +61,9 @@ int         mir_instruction_source_statement_order_compare(
 bool        mir_instructions_share_source_statement(
                 const MIRInstruction *left,
                 const MIRInstruction *right);
+bool        mir_instruction_consumes_resource_source(
+                const MIRInstruction *resource,
+                const MIRInstruction *consumer);
 bool        mir_instruction_branch_requires_source_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_branch_payload_matches_shape(
@@ -150,10 +153,16 @@ const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 MIRParamCarriage mir_routine_param_carriage(const MIRRoutine *routine,
                                             size_t index);
+MIRParamResourceKind mir_routine_param_resource_kind(
+    const MIRRoutine *routine,
+    size_t index);
 bool mir_routine_param_passes_indirect(const MIRRoutine *routine,
                                        size_t index);
 MIRParamCarriage mir_param_carriage_from_source_mode(ParamMode mode);
+MIRParamResourceKind mir_param_resource_kind_from_type_name(
+    const char *type_name);
 const char *mir_param_carriage_name(MIRParamCarriage carriage);
+const char *mir_param_resource_kind_name(MIRParamResourceKind kind);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
 const MIRCallableSig *mir_routine_param_callable_sig(const MIRRoutine *routine,

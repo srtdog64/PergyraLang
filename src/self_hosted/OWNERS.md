@@ -367,6 +367,11 @@ inventory must not become a second fact-family owner registry.
 
 - `src/self_hosted/mir/program_fact_owner.pgy` -- flat declaration, routine,
   block, instruction, source-local, and use-row ownership.
+- `src/self_hosted/mir/runtime_call_abi_fact_owner.pgy` -- instruction-aligned
+  MIR resource runtime-call ABI facts; missing machine-operation rows fail
+  before JSON projection or backend consumption.
+- `src/self_hosted/mir/cfg_instruction_mutation_owner.pgy` -- canonical use-row
+  replacement and runtime-call ABI attachment state transformations.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
@@ -434,6 +439,10 @@ inventory must not become a second fact-family owner registry.
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
+- `src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy` -- nested
+  `runtime_call_abi` JSON projection from the instruction-owned fact row.
+- `src/self_hosted/mir/json_projection_support_owner.pgy` -- shared optional
+  scalar projection used by the MIR JSON facade.
 
 ## MIR Lower
 
@@ -484,6 +493,8 @@ inventory must not become a second fact-family owner registry.
   loop-flow index facts consumed by recursive CFG reconstruction.
 - `src/self_hosted/mir_lower/resource_flow_fact_owner.pgy` -- native
   ResourceFlowUniverse identity row parsing and count validation.
+- `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried
+  MIR resource runtime-call ABI row validation before self-host reconstruction.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
@@ -811,6 +822,9 @@ inventory must not become a second fact-family owner registry.
   projection over the ABI layout row owner for parity/golden comparison.
 - `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy` -- runtime helper
   and target-library call ABI row projection over the runtime ABI owners.
+- `src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy` --
+  typed native-resource projection consumed by the self-host MIR producer;
+  it does not parse the serialized row artifact back into facts.
 - `src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy` --
   checked abstract machine-layer contact/runtime projection; physical
   declaration literals are forbidden here.

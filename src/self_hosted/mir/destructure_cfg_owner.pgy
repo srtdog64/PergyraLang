@@ -37,7 +37,7 @@ func SelfMirCfgAttachLastDestructure(
             instructions.use_starts, instructions.use_counts,
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
-            destructure_facts
+            destructure_facts, instructions.runtime_call_abi
         )
     );
 }

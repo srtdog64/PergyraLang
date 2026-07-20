@@ -39,6 +39,25 @@ typedef struct
     const char               *niche_none_pattern;
 } MIRTypeLayout;
 
+/*
+ * Runtime-call ABI row carried by a lowered MIR resource instruction.
+ *
+ * The ABI owner may return a static table row or a constructed nominal row,
+ * but once lowering has admitted the operation this shape is copied into the
+ * routine-owned MIR arena.  Backends consume this fact; they do not recreate
+ * a runtime symbol from a source type or a generic suffix.
+ */
+typedef struct MIRResourceRuntimeRow
+{
+    const char *domain;
+    const char *abi_type_name;
+    const char *resource_op_name;
+    const char *runtime_fn;
+    const char *target_kind;
+    const char *materialization;
+    const char *call_shape;
+} MIRResourceRuntimeRow;
+
 typedef enum
 {
     MIR_PARAM_CARRIAGE_VALUE,
@@ -47,10 +66,19 @@ typedef enum
     MIR_PARAM_CARRIAGE_OWNER_HANDLE
 } MIRParamCarriage;
 
+typedef enum
+{
+    MIR_PARAM_RESOURCE_NONE,
+    MIR_PARAM_RESOURCE_SLOT,
+    MIR_PARAM_RESOURCE_SECURE_SLOT,
+    MIR_PARAM_RESOURCE_DEVICE_SLOT
+} MIRParamResourceKind;
+
 typedef struct
 {
-    MIRParamCarriage carriage;
-    bool             pass_indirect;
+    MIRParamCarriage    carriage;
+    MIRParamResourceKind resource_kind;
+    bool                pass_indirect;
 } MIRParamAbiFact;
 
 typedef enum MIRTextBuilderCallShape

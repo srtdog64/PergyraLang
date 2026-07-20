@@ -1,0 +1,13 @@
+// Shared optional-value JSON projection for self-host MIR facts.
+
+import "../lib/json_emit.pgy";
+
+func SelfMirOptionalString(value: String) -> Option<String> {
+    if value == "" { return None; }
+    return Some(value);
+}
+
+func SelfMirJsonOptionalString(value: Option<String>) -> String {
+    if !IsSome(value) { return "null"; }
+    return JsonStringLiteral(UnwrapOption(value));
+}

@@ -5,6 +5,7 @@
 #include "mir_json_expression_graph.h"
 #include "mir_json_generic_method_specialization.h"
 #include "mir_json_dump_internal.h"
+#include "mir_json_dump_runtime_abi.h"
 #include "mir_parallel_capture_facts.h"
 
 #include <stdio.h>
@@ -403,6 +404,9 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
         fputs(",\"carriage\":", out);
         mir_json_emit_str(out, mir_param_carriage_name(
             mir_routine_param_carriage(routine, p)));
+        fputs(",\"resource\":", out);
+        mir_json_emit_str(out, mir_param_resource_kind_name(
+            mir_routine_param_resource_kind(routine, p)));
         fputs(",\"pass\":", out);
         mir_json_emit_str(out,
             mir_routine_param_passes_indirect(routine, p)
@@ -469,7 +473,8 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_expr_or_null(out, inst->expr1);
     fputs(",\"expr1_graph\":", out);
     mir_json_emit_instruction_expression_graph(out, inst, 1);
-    if (inst->text_builder_runtime_row != NULL) {
+    if (!mir_json_emit_instruction_runtime_abi(out, inst)
+        && inst->text_builder_runtime_row != NULL) {
         const MIRTextBuilderRuntimeRow *row =
             inst->text_builder_runtime_row;
         fputs(",\"runtime_call_abi\":{\"owner\":\"TextBuilder\",\"source\":", out);

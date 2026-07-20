@@ -13,11 +13,16 @@
 
 #include <stddef.h>
 
+#include "../compiler/mir_decl.h"
 #include "../parser/ast.h"
 
 size_t pgy_codegen_world_frontier_graph_pass_limit(const ASTNode *world,
                                                    const char *world_name,
                                                    size_t count_floor);
+size_t pgy_codegen_world_frontier_graph_pass_limit_from_header(
+    const MIRDeclHeader *header,
+    const char *world_name,
+    size_t count_floor);
 size_t pgy_codegen_zone_frontier_graph_pass_limit(const ASTNode *zone,
                                                   const char *zone_name,
                                                   size_t count_floor);

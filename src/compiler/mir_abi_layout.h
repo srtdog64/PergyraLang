@@ -20,17 +20,6 @@ typedef struct MIRAbiTargetPolicy
     const char *fallback_reasons;
 } MIRAbiTargetPolicy;
 
-typedef struct MIRResourceRuntimeRow
-{
-    const char *domain;
-    const char *abi_type_name;
-    const char *resource_op_name;
-    const char *runtime_fn;
-    const char *target_kind;
-    const char *materialization;
-    const char *call_shape;
-} MIRResourceRuntimeRow;
-
 const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);
 const MIRAbiTargetPolicy *mir_abi_target_policy(const char *abi_name);
 const char *mir_abi_resource_runtime_fn(const MIRTypeLayout *layout,
@@ -44,6 +33,13 @@ const char *mir_abi_resource_runtime_fn_by_kind(
     const char *resource_op_name);
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_at(size_t index);
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_by_type_name(
+    const char *abi_type_name,
+    const char *resource_op_name);
+/* Resolve a canonical Slot/SecureSlot/DeviceSlot ABI type name.  Static rows
+ * are returned directly; an unknown nominal payload may receive a temporary
+ * constructed row owned by this ABI module.  MIR lowering must copy that row
+ * into its arena before the pointer is allowed to escape the call. */
+const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_for_type_name(
     const char *abi_type_name,
     const char *resource_op_name);
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_by_kind(

@@ -30,6 +30,27 @@ pgy_codegen_world_frontier_graph_pass_limit(const ASTNode *world,
 }
 
 size_t
+pgy_codegen_world_frontier_graph_pass_limit_from_header(
+    const MIRDeclHeader *header,
+    const char *world_name,
+    size_t count_floor)
+{
+    PropagationGraph *g = propagation_graph_create();
+    size_t limit = count_floor;
+
+    if (g != NULL
+        && propagation_graph_build_from_world_header(g, header)
+        && propagation_graph_schedule(g)
+        && g->pass_limit > limit) {
+        limit = g->pass_limit;
+    }
+    if (g != NULL && getenv("PGY_DUMP_PROPAGATION") != NULL)
+        propagation_graph_dump(g, stderr, world_name);
+    propagation_graph_destroy(g);
+    return limit;
+}
+
+size_t
 pgy_codegen_zone_frontier_graph_pass_limit(const ASTNode *zone,
                                            const char *zone_name,
                                            size_t count_floor)

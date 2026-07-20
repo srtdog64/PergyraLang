@@ -380,7 +380,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
         for (size_t param_index = 0; param_index < func_param_count;
              param_index++) {
             FuncParam *p = llvm_mir_routine_param(routine, param_index);
-            bool is_secure_slot = false;
+            MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
             const char *slot_inner;
             LLVMTypeRef pt;
             LLVMValueRef alloca;
@@ -394,14 +394,14 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             if (p == NULL || (is_method && llvm_param_is_implicit_self_local(p))) {
                 continue;
             }
-            slot_inner = param_type_name != NULL
-                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                    p,
-                    param_type_name,
-                    &is_secure_slot)
-                : llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
+            slot_inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, param_index, &resource_kind);
             if (p->name == NULL) {
-                emitted_index += (slot_inner != NULL && is_secure_slot) ? 2 : 1;
+                emitted_index +=
+                    (slot_inner != NULL
+                     && resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT)
+                        ? 2
+                        : 1;
                 continue;
             }
 
@@ -412,6 +412,15 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             if (ctx->has_error || pt == NULL)
                 return;
             if (slot_inner != NULL) {
+                if (resource_kind == MIR_PARAM_RESOURCE_DEVICE_SLOT) {
+                    alloca = LLVMGetParam(fn, (unsigned)emitted_index++);
+                    llvm_scope_declare(ctx, p->name, alloca, pt);
+                    llvm_register_typed_var_abi_binding(ctx, p->name, alloca,
+                        param_type_name);
+                    llvm_register_device_slot_var_binding(ctx, p->name,
+                        alloca, slot_inner);
+                    continue;
+                }
                 LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
                 alloca = LLVMBuildAlloca(ctx->builder, slot_ptr_ty, p->name);
                 LLVMBuildStore(ctx->builder,
@@ -422,8 +431,9 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                         param_type_name);
                 else
                     llvm_register_typed_var(ctx, p->name, p->type);
-                llvm_register_slot_var(ctx, p->name, slot_inner, is_secure_slot);
-                if (is_secure_slot) {
+                llvm_register_slot_var(ctx, p->name, slot_inner,
+                    resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT);
+                if (resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT) {
                     char token_name[256];
                     LLVMTypeRef token_ty = llvm_secure_token_type(ctx, slot_inner);
                     LLVMValueRef token_alloca;

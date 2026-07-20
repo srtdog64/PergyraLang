@@ -9,6 +9,9 @@ pgy_selfhost_driver_rung2_fixture_base() {
         tests/cases/backend_compare/device_slot_remote/main.pgy)
             printf '%s\n' "device_slot_remote"
             ;;
+        tests/cases/backend_compare/device_slot_routine/main.pgy)
+            printf '%s\n' "device_slot_routine"
+            ;;
         *)
             basename "$1" .pgy
             ;;
@@ -18,7 +21,8 @@ pgy_selfhost_driver_rung2_fixture_base() {
 pgy_selfhost_driver_rung2_is_machine_fixture() {
     case "$1" in
         tests/cases/backend_compare/device_slot_machine_layer/main.pgy | \
-            tests/cases/backend_compare/device_slot_remote/main.pgy)
+            tests/cases/backend_compare/device_slot_remote/main.pgy | \
+            tests/cases/backend_compare/device_slot_routine/main.pgy)
             return 0
             ;;
         *)
@@ -71,7 +75,8 @@ pgy_selfhost_verify_driver_rung2_machine_facts() {
             return 1
         }
     done
-    if [[ "$base" == "device_slot_machine_layer" ]]; then
+    if [[ "$base" == "device_slot_machine_layer" \
+        || "$base" == "device_slot_routine" ]]; then
         machine_fact='"machine_contact_kind":"read"'
     else
         machine_fact='"machine_contact_kind":"submit-read"'

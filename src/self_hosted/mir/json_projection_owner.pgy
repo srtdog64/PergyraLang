@@ -6,21 +6,9 @@ import "match_json_projection_owner.pgy";
 import "destructure_json_projection_owner.pgy";
 import "destructure_type_json_projection_owner.pgy";
 import "generic_specialization_json_projection_owner.pgy";
+import "runtime_call_abi_json_projection_owner.pgy";
+import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
-
-func SelfMirOptionalString(value: String) -> Option<String> {
-    if value == "" {
-        return None;
-    }
-    return Some(value);
-}
-
-func SelfMirJsonOptionalString(value: Option<String>) -> String {
-    if !IsSome(value) {
-        return "null";
-    }
-    return JsonStringLiteral(UnwrapOption(value));
-}
 
 func SelfMirJsonExpressionGraph(
     rows: SelfMirExpressionGraphRows,
@@ -210,6 +198,12 @@ func SelfMirJsonInstruction(
         ),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
+    let runtime_call_abi_field: String = SelfMirJsonRuntimeCallAbiField(
+        rows, instruction_index
+    );
+    if runtime_call_abi_field != "" {
+        ArrayPush(fields, runtime_call_abi_field);
+    }
     return JsonEmitObject(fields);
 }
 
@@ -279,6 +273,10 @@ func SelfMirJsonRoutine(
             ),
             JsonEmitFieldString(
                 "carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])
+            ),
+            JsonEmitFieldString(
+                "resource",
+                SelfMirParamResourceKindName(rows.param_resource_kinds[row])
             ),
             JsonEmitFieldString(
                 "pass", SelfMirParamPassName(rows.param_abi_kinds[row])

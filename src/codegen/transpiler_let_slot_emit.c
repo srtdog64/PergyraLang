@@ -9,6 +9,7 @@
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
 #include "transpiler_context.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
 #include "codegen_type_mapping.h"
@@ -46,7 +47,8 @@ transpiler_let_slot_runtime_fn(TranspilerCtx *ctx,
     const char *expected_shape =
         transpiler_let_slot_expected_call_shape(kind, operation);
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+        transpiler_slot_runtime_row_for_operation(
+            ctx, kind == MIR_RESOURCE_ABI_SECURE_SLOT, inner_type, operation);
     if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL &&
         (expected_shape == NULL ||
          strcmp(row->call_shape, expected_shape) == 0)) {

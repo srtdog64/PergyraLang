@@ -64,6 +64,25 @@ transpiler_mir_resource_expected_call_shape(bool secure,
     return NULL;
 }
 
+static bool
+transpiler_mir_resource_abi_type_is_slot_family(const char *abi_type_name)
+{
+    return abi_type_name != NULL
+        && (strncmp(abi_type_name, "Slot<", 5) == 0
+            || strncmp(abi_type_name, "SecureSlot<", 11) == 0
+            || strncmp(abi_type_name, "DeviceSlot<", 11) == 0);
+}
+
+static bool
+transpiler_mir_resource_operation_requires_runtime_row(const char *operation)
+{
+    return operation != NULL
+        && (strcmp(operation, "Claim") == 0
+            || strcmp(operation, "Read") == 0
+            || strcmp(operation, "Write") == 0
+            || strcmp(operation, "Release") == 0);
+}
+
 bool
 transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                 CodeBuf *out,
@@ -132,7 +151,42 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             effective_layout = mir_abi_lookup(abi_key);
     }
 
-    if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
+    if (mir_active && inst->resource_runtime_fact_present) {
+        runtime_row = &inst->resource_runtime_fact;
+        if (runtime_row->runtime_fn == NULL
+            || runtime_row->call_shape == NULL
+            || runtime_row->resource_op_name == NULL
+            || (op_name != NULL
+                && strcmp(runtime_row->resource_op_name, op_name) != 0)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C MIR resource op '%s' carries an invalid runtime-call ABI row",
+                op_name != NULL ? op_name : "<op>");
+            return false;
+        }
+        fn = runtime_row->runtime_fn;
+        suffix = transpiler_extract_type_suffix_from_fn(runtime_row->runtime_fn);
+    }
+    if (mir_active
+        && transpiler_mir_resource_abi_type_is_slot_family(
+            effective_abi_type_name)
+        && transpiler_mir_resource_operation_requires_runtime_row(op_name)
+        && !inst->resource_runtime_fact_present) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C MIR resource op '%s' is missing its lowered runtime-call ABI row",
+            op_name != NULL ? op_name : "<op>");
+        return false;
+    }
+
+    if (runtime_row == NULL
+        && effective_layout != NULL && effective_layout->runtime_fn != NULL) {
         if (effective_layout->abi_type_name != NULL)
             effective_abi_type_name = effective_layout->abi_type_name;
         if (effective_layout->abi_type_name != NULL) {
@@ -169,7 +223,8 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 inner_name = inner_name_buf;
         }
     }
-    if (fn == NULL && inner_name != NULL && effective_abi_type_name != NULL) {
+    if (!mir_active && fn == NULL && inner_name != NULL
+        && effective_abi_type_name != NULL) {
         MIRResourceAbiKind kind = MIR_RESOURCE_ABI_SLOT;
         bool has_resource_kind = false;
 
@@ -197,8 +252,13 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         }
     }
 
-    if (ctx != NULL && slot_anchor != NULL && mir_active)
+    if (ctx != NULL && slot_anchor != NULL && mir_active) {
+        TypedVarEntry *typed_entry;
         anchor_is_indirect = lookup_slot_is_indirect(ctx, slot_anchor);
+        typed_entry = lookup_typed_entry(ctx, slot_anchor);
+        if (typed_entry != NULL && typed_entry->is_indirect_ref)
+            anchor_is_indirect = true;
+    }
 
     if (fn == NULL && ctx != NULL && slot_anchor != NULL && !mir_active) {
         typed_name = lookup_typed_var(ctx, slot_anchor);

@@ -13,6 +13,12 @@ const char *transpiler_slot_runtime_fn(TranspilerCtx *ctx,
                                        const char *inner_type,
                                        const char *operation);
 
+const MIRResourceRuntimeRow *transpiler_slot_runtime_row_for_operation(
+    TranspilerCtx *ctx,
+    bool secure,
+    const char *inner_type,
+    const char *operation);
+
 void transpiler_emit_nominal_container_runtime_rows(CodeBuf *dst,
                                                     const char *type_name,
                                                     bool include_intro_comment);

@@ -6,6 +6,7 @@
 // text scan or backend operation inference is involved.
 
 import "../../mir/json_projection_owner.pgy";
+import "../../mir/cfg_instruction_mutation_owner.pgy";
 import "../../semantic/ast_expression_graph_build_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 
@@ -88,8 +89,23 @@ func MachineProbeAddCall(
         cfg, 0, id, kind, name, result, arg0, arg1, expression, "",
         source_type, uses
     );
-    return SelfMirCfgAttachLastExpr0Graph(
+    let projected: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
         added, MachineProbeCallGraph(target_name, expression), declaration
+    );
+    let instruction_index: Int = ArrayLength(projected.instructions.ids) - 1;
+    let operation: String =
+        projected.instructions.machine_layer_runtime_operations[
+            instruction_index
+        ];
+    let abi_fact: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            "DeviceSlot<Int>", operation
+        );
+    if !abi_fact.ok {
+        return projected;
+    }
+    return SelfMirCfgAttachLastRuntimeCallAbi(
+        projected, "DeviceSlot<Int>", operation, abi_fact
     );
 }
 
@@ -127,6 +143,7 @@ func MachineProbeFacts(
     let routines: SelfMirRoutineRows = SelfMirRoutineRows(
         [0], ["Main"], ["function"], [""], ["Void"],
         [0], [0], no_uses, [0], [0], no_uses, no_uses, no_ints,
+        no_ints,
         [0], [1], [0], [2], ["dev", "current"],
         ["DeviceSlot<Int>", "Int"],
         [0], [0], no_ints, no_uses, no_uses, no_ints,
@@ -163,6 +180,51 @@ func Main() -> Void {
     }
     if ArrayLength(args) != 1 {
         Log("usage: machine_layer_mir_projection_probe <machine-manifest-json-file>");
+        Exit(1);
+    }
+    // Exercise the same structured projection used by self-host MIR resource
+    // instructions for a constructed nominal, not only the scalar machine
+    // fixture below.  This is a negative-ratchet against silently falling back
+    // to the scalar row table.
+    let constructed: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource("Slot<Vec2>", "Write");
+    if !constructed.ok || constructed.domain != "constructed-resource" ||
+        constructed.operation != "Slot<Vec2>.Write" ||
+        constructed.symbol != "pgy_write_Vec2" ||
+        constructed.materialization !=
+            "constructed_resource_runtime_spelling" ||
+        constructed.call_shape != "container_ptr_value_to_void" {
+        Log("machine probe constructed runtime-call ABI projection failed");
+        Exit(1);
+    }
+    let nested: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            "SecureSlot<Array<Int>>", "PinRead"
+        );
+    if !nested.ok || nested.symbol != "pgy_secure_pin_read_Array_Int" ||
+        nested.call_shape != "container_ptr_token_ptr_to_pinned_view" {
+        Log("machine probe nested runtime-call ABI projection failed");
+        Exit(1);
+    }
+    let constructed_device: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            "DeviceSlot<Vec2>", "SubmitRead"
+        );
+    if !constructed_device.ok ||
+        constructed_device.operation != "DeviceSlot<Vec2>.SubmitRead" ||
+        constructed_device.symbol != "pgy_submit_device_read_Vec2" ||
+        constructed_device.call_shape != "container_ptr_to_task_handle" {
+        Log("machine probe constructed device runtime-call ABI projection failed");
+        Exit(1);
+    }
+    let invalid: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource("Slot<Void>", "Write");
+    let invalid_device_pin: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            "DeviceSlot<Int>", "PinRead"
+        );
+    if invalid.ok || invalid_device_pin.ok {
+        Log("machine probe accepted invalid constructed runtime-call ABI row");
         Exit(1);
     }
     let declaration: SelfHostMachineLayerDeclaration =

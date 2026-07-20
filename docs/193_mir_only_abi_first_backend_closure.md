@@ -31,7 +31,7 @@ consumer migration:
 3. Runtime-call ABI rows still had a constructed-resource spelling path for
    dynamic nominal types. That is a materialization seam, not a closed
    `RuntimeCallAbiId` owner.
-4. The protocol registry still marks the runtime-call row authority and the
+4. The protocol registry still marks runtime-call compatibility and the
    lowering API as bridge/open. The last consumers are wider than the bounded
    parity fixtures, so the SoT cannot be promoted by documentation alone.
 
@@ -146,12 +146,36 @@ external-helper paths fail closed with the existing MIR ABI diagnostic.
 The backend fail-closed gate also rejects any direct resource-row lookup in
 LLVM consumers outside the shared owner implementation.
 
-This is only a consumer migration. `pergyra.runtime-call-abi.v2` remains
-`BRIDGE` until the runtime-call row owner and compatibility policy are
-promoted in the protocol registry and the constructed nominal materialization
-edge is either carried as a typed MIR fact or rejected. The focused evidence
+The active C MIR resource-op path now has the corresponding producer seam:
+MIR lowering resolves the static or constructed `Slot<T>` family row once and
+copies it into `MIRInstruction.resource_runtime_fact`, including the runtime
+symbol, materialization, and call shape. C MIR resource emission consumes that
+fact and rejects a missing row instead of reconstructing a symbol from a type
+suffix. C pin/block/builtin/let-slot emitters now route through the same
+`transpiler_slot_runtime_row_for_operation` owner; its only direct kind lookup
+is the explicit non-MIR compatibility branch. The self-host MIR producer now
+attaches the same row to each machine-layer instruction from its carried
+operation plus the routine builder's semantic local/parameter type fact. It
+uses `runtime_call_abi_structured_fact_owner.pgy`; it does not parse a row
+string, reopen source text, or call the C oracle. The self-hosted `mir_lower`
+consumer validates the nested `runtime_call_abi` fact before it suppresses
+evidence-only resource rows.
+
+The runtime-call row now has one declared SoT owner: `SFAbiRuntimeCallRows`
+under `SOMirAbi`. The self-host `runtime_call_abi` artifact is a projection of
+that owner, not a second authority. `pergyra.runtime-call-abi.v2` remains
+`BRIDGE` until the constructed nominal materialization edge is consumed by
+every active backend and the complete aggregate/runtime compatibility corpus
+has migrated behind the same policy. The compatibility policy is no longer
+documentation-only: `driver_diag_compatibility_manifest_validate_file` now
+requires the seven `runtime_call_abi_*` rows, rejects duplicates/unknown keys,
+and fails closed on a changed policy value before native compilation starts.
+Self-host projection and C/LLVM row consumers still use the same declared
+policy; the remaining bridge is the wider artifact/consumer migration, not
+the existence of a policy string. The focused evidence
 is `abi-ownership-shape-test-smoke`, `backend-fail-closed-test-smoke`,
-`perf-contract-test-smoke`, the LLVM compiler link, and `tests/llvm_smoke.sh`.
+`machine-layer-pipeline-test-smoke`, and
+`tests/self_hosted/parity/mir_abi_first_lane.sh`.
 
 See also:
 
@@ -188,14 +212,16 @@ the native oracle artifact for comparison. It is not callable from
 `CompileSourceToMirJsonVerified` or `CompileSourceToCVerified`. If the self
 producer lacks a fact, the producer fails before canonicalization or emission.
 
-Machine-layer `DeviceSlot` and `RemoteFuture` programs are DRV-2 fixtures 78
-and 79. They require the target-owned declaration fixture
+Machine-layer `DeviceSlot`, `RemoteFuture`, and routine-parameter programs are
+DRV-2 fixtures 78 through 80. They require the target-owned declaration fixture
 `tests/self_hosted/fixtures/machine_layer_declaration.json` as an external ABI
 input, carry its physical grant together with self-produced contact rows into
-canonical MIR, and run through both self-driver backend builds. The C oracle
-does not generate this comparison input. Omitting the declaration is a
-negative fixture, and neither the C oracle nor native MIR may fill the missing
-row.
+canonical MIR, and run through both self-driver backend builds. Fixture 80
+also proves that `DeviceSlot<Int>` parameter carriage and concrete Read and
+Release instructions consume the self-produced ABI row. The C oracle does not
+generate this comparison input. Omitting the declaration or removing the
+concrete Read row is a negative fixture, and neither the C oracle nor native
+MIR may fill the missing row.
 
 The MIR-to-tree comparison bridge treats `resource-op` as evidence, not as a
 second executable statement. Executable `def`/`stmt` rows retain the machine

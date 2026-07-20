@@ -10,6 +10,34 @@ import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
+import "resource_runtime_abi_fact_owner.pgy";
+
+func RoutineParamResourceMatchesType(
+    resource_kind: String,
+    type_name: String
+) -> Bool {
+    if resource_kind == "none" {
+        return !(StringLength(type_name) >= 6 &&
+                 Substring(type_name, 0, 5) == "Slot<") &&
+            !(StringLength(type_name) >= 12 &&
+              Substring(type_name, 0, 11) == "SecureSlot<") &&
+            !(StringLength(type_name) >= 12 &&
+              Substring(type_name, 0, 11) == "DeviceSlot<");
+    }
+    if resource_kind == "slot" {
+        return StringLength(type_name) >= 6 &&
+            Substring(type_name, 0, 5) == "Slot<";
+    }
+    if resource_kind == "secure-slot" {
+        return StringLength(type_name) >= 12 &&
+            Substring(type_name, 0, 11) == "SecureSlot<";
+    }
+    if resource_kind == "device-slot" {
+        return StringLength(type_name) >= 12 &&
+            Substring(type_name, 0, 11) == "DeviceSlot<";
+    }
+    return false;
+}
 
 // ---------------------------------------------------------------------------
 // Control-flow reconstruction (CFG -> structured AST).
@@ -185,6 +213,11 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
         let kp: Int = inst_bounds[0];
         let inst_end: Int = inst_bounds[1];
         let ikind: String = BlockInstructionKind(json, kp, inst_end);
+        if !MirResourceRuntimeRowFactReady(json, kp, inst_end) {
+            MirLowerFailClosed(
+                "resource instruction or consumer is missing its lowered runtime-call ABI row"
+            );
+        }
         if ikind == "destructure" {
             let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             ArrayPush(chunks, RenderDestructureFromFacts(
@@ -500,13 +533,17 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
         let carriage: String = RoutineParamCarriageAt(
             json, rpos, header_end, param_row
         );
+        let resource_kind: String = RoutineParamResourceAt(
+            json, rpos, header_end, param_row
+        );
         let pass_shape: String = RoutineParamPassAt(
             json, rpos, header_end, param_row
         );
         if (carriage != "value" && carriage != "value-result" &&
             carriage != "owner-handle" && carriage != "readonly-ref") ||
             (pass_shape != "direct" && pass_shape != "indirect") ||
-            (pass_shape == "indirect" && carriage != "readonly-ref") {
+            (pass_shape == "indirect" && carriage != "readonly-ref") ||
+            !RoutineParamResourceMatchesType(resource_kind, ptype) {
             MirLowerFailClosed(Concat(
                 "routine parameter ABI fact is invalid: ", pname
             ));

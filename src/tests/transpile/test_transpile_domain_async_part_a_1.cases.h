@@ -23,9 +23,12 @@ test_roster_world_emit(void)
         sys_node.data.roster_decl.method_count = 0;
 
         MIRProgram *mir = mir_program_from_decl_for_test(&sys_node);
+        MIRDeclHeaderInventory header_inventory;
         g_last_mir = mir;
+        mir_decl_header_inventory_from_program(mir, &header_inventory);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_roster_decl(&sys_node, ctx);
+        emit_roster_decl_from_mir_header(
+            mir_decl_header_inventory_get(&header_inventory, 0), ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct CombatSystem");
         EXPECT_STR_CONTAINS(ctx->out->data, "DungeonTeam team1");
@@ -53,6 +56,9 @@ test_roster_world_emit(void)
 
         ASTNode *rosters[1] = { &ws };
         ASTNode *zones[1] = { &wz };
+        ASTNode zone_node; memset(&zone_node, 0, sizeof(zone_node));
+        zone_node.type = AST_ZONE_DECL;
+        zone_node.data.zone_decl.name = "BattleZone";
         world_node.data.world_decl.rosters = rosters;
         world_node.data.world_decl.roster_count = 1;
         world_node.data.world_decl.zones = zones;
@@ -62,10 +68,17 @@ test_roster_world_emit(void)
         world_node.data.world_decl.methods = NULL;
         world_node.data.world_decl.method_count = 0;
 
-        MIRProgram *mir = mir_program_from_decl_for_test(&world_node);
+        ASTNode program; memset(&program, 0, sizeof(program));
+        ASTNode *stmts[2] = { &zone_node, &world_node };
+        program.type = AST_PROGRAM;
+        program.data.program.statements = stmts;
+        program.data.program.count = 2;
+        MIRProgram *mir = mir_program_from_ast(&program);
         g_last_mir = mir;
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_world_decl(&world_node, ctx);
+        emit_world_decl_from_mir_header(
+            mir_find_decl_header_of_type(
+                mir, AST_WORLD_DECL, "GameWorld"), ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");
         EXPECT_STR_CONTAINS(ctx->out->data, "CombatSystem combat");

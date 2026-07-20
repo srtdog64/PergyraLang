@@ -78,9 +78,9 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 9 { return "transpiler_slot_runtime_fn("; }
     if index == 10 { return "transpiler_slot_runtime_fn("; }
     if index == 11 { return "transpiler_slot_runtime_fn("; }
-    if index == 12 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 12 { return "transpiler_slot_runtime_row_for_operation("; }
     if index == 13 { return "row->call_shape"; }
-    if index == 14 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 14 { return "transpiler_slot_runtime_row_for_operation("; }
     if index == 15 { return "row->call_shape"; }
     if index == 16 { return "llvm_slot_runtime_row_for_operation("; }
     if index == 17 { return "row->call_shape"; }
@@ -196,10 +196,13 @@ func CompilerBackendEmitterContractReady() -> Bool {
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/transpiler_mir_pin_emit.c",
-            "mir_abi_resource_runtime_row_by_kind(") &&
+            "transpiler_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/transpiler_mir_pin_emit.c",
             "row->call_shape") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/transpiler_block_emit.c",
+            "transpiler_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/transpiler_block_emit.c",
             "row->call_shape") &&

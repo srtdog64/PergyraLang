@@ -221,6 +221,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         bool handled = false;
         char *arg = NULL;
         MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         bool pass_indirect = false;
 
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
@@ -244,6 +245,11 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             pass_indirect = callee_has_mir_signature
                 && transpiler_mir_routine_param_passes_indirect(
                     callee_routine, i);
+            if (callee_has_mir_signature) {
+                resource_kind =
+                    transpiler_mir_routine_param_resource_kind(
+                        callee_routine, i);
+            }
         }
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
@@ -307,11 +313,13 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 param_type_owned = render_type_name_in_ctx(ctx, param->type);
                 param_type = param_type_owned;
             }
-            bool slot_param = param_type != NULL
-                && (strncmp(param_type, "Slot<", 5) == 0
-                    || strncmp(param_type, "SecureSlot<", 11) == 0);
-            bool secure_param = param_type != NULL
-                && strncmp(param_type, "SecureSlot<", 11) == 0;
+            if (!callee_has_mir_signature) {
+                resource_kind =
+                    mir_param_resource_kind_from_type_name(param_type);
+            }
+            bool slot_param = resource_kind != MIR_PARAM_RESOURCE_NONE;
+            bool secure_param =
+                resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
             if (slot_param) {
                 char inner_buf[128];
                 const char *slot_name = NULL;

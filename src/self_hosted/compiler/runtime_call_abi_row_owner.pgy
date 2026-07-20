@@ -1,9 +1,9 @@
-// Self-host compiler runtime-call ABI row owner.
+// Self-host compiler runtime-call ABI row projection.
 //
-// Projects runtime helper/target-library call spellings from the runtime ABI
-// owners into one stable row artifact. Backend participants may consume the
-// domain owners directly, but parity gates consume this row projection so the
-// call ABI does not become a shell or backend-local truth.
+// Projects runtime helper/target-library call spellings into one stable row
+// artifact. The native MIR ABI owner is the authority for MIR resource rows;
+// this file is a self-host projection consumed by parity and artifact gates,
+// never a second semantic owner.
 
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 import "../codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy";

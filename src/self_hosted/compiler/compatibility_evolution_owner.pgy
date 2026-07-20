@@ -178,6 +178,39 @@ func CompilerCompatibilityMissingObsoleteFinding() -> String { return "missing_o
 func CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() -> String { return "missing_obsolete_migration_envelope"; }
 func CompilerCompatibilityUnknownCodefixSelfTestStatus() -> String { return "unknown_codefix"; }
 
+// Runtime-call ABI compatibility is policy metadata, not another ABI row
+// producer. MIR ABI owns the row values; this owner fixes how a consumer may
+// accept, reject, and migrate the versioned projection.
+func CompilerRuntimeCallAbiCompatibilitySchema() -> String {
+    return "pgy.selfhost.runtime-call-compat.v1";
+}
+
+func CompilerRuntimeCallAbiProtocolId() -> String {
+    return "pergyra.runtime-call-abi.v2";
+}
+
+func CompilerRuntimeCallAbiUnknownVersionPolicy() -> String { return "reject"; }
+func CompilerRuntimeCallAbiUnknownFieldPolicy() -> String { return "reject"; }
+func CompilerRuntimeCallAbiMissingFactPolicy() -> String { return "fail_closed"; }
+func CompilerRuntimeCallAbiConstructedNominalPolicy() -> String {
+    return "mir_materialize_once";
+}
+
+func CompilerRuntimeCallAbiCompatibilityPolicy() -> String {
+    return "same_major_reject_unknown_fields_fail_closed";
+}
+
+func CompilerRuntimeCallAbiCompatibilityReady() -> Bool {
+    return CompilerRuntimeCallAbiCompatibilitySchema() != "" &&
+        CompilerRuntimeCallAbiProtocolId() == "pergyra.runtime-call-abi.v2" &&
+        CompilerRuntimeCallAbiUnknownVersionPolicy() == "reject" &&
+        CompilerRuntimeCallAbiUnknownFieldPolicy() == "reject" &&
+        CompilerRuntimeCallAbiMissingFactPolicy() == "fail_closed" &&
+        CompilerRuntimeCallAbiConstructedNominalPolicy() == "mir_materialize_once" &&
+        CompilerRuntimeCallAbiCompatibilityPolicy() ==
+            "same_major_reject_unknown_fields_fail_closed";
+}
+
 func CompilerCompatibilityChangeRow(
     surface: String,
     symbol: String,
@@ -335,5 +368,6 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityChangeRowForSurface(CompilerMirJsonCompatibilitySurface()) != "" &&
         CompilerCompatibilityChangeRowForSurface(CompilerRuntimeTraceCompatibilitySurface()) != "" &&
         CompilerCompatibilityChangeRowForSurface(CompilerCapabilityProfileCompatibilitySurface()) != "" &&
-        CompilerCompatibilityChangeRowForSurface(CompilerStdlibModuleCompatibilitySurface()) != "";
+        CompilerCompatibilityChangeRowForSurface(CompilerStdlibModuleCompatibilitySurface()) != "" &&
+        CompilerRuntimeCallAbiCompatibilityReady();
 }

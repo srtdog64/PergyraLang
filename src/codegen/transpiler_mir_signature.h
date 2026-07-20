@@ -40,6 +40,18 @@ bool transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
 bool transpiler_mir_routine_signature_supported_strict(
     TranspilerCtx *ctx,
     const MIRRoutine *routine);
+bool transpiler_mir_routine_param_is_boundary_resource(
+    const MIRRoutine *routine,
+    size_t param_index);
+bool transpiler_mir_routine_param_is_slot_family(
+    const MIRRoutine *routine,
+    size_t param_index);
+bool transpiler_mir_routine_param_is_secure_slot(
+    const MIRRoutine *routine,
+    size_t param_index);
+bool transpiler_mir_routine_param_is_device_slot(
+    const MIRRoutine *routine,
+    size_t param_index);
 bool transpiler_mir_or_ast_function_is_generic(const MIRRoutine *routine,
                                                const ASTNode *func_decl);
 bool transpiler_mir_function_signature_supported(TranspilerCtx *ctx,

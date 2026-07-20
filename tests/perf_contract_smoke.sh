@@ -1012,7 +1012,7 @@ if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*
     echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
@@ -1036,7 +1036,7 @@ grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 ! grep -Fq "pgy_secure_unpin_%s(&%s);" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "transpiler_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
@@ -2062,7 +2062,7 @@ grep -Fq "transpiler_resolve_device_slot_inner_copy_or_error" "$ROOT_DIR/src/cod
 grep -Fq "transpiler_resolve_slot_target_copy(ctx, slot_arg" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 ! grep -Fq "transpiler_resolve_slot_target(ctx, slot_arg" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 ! grep -Fq "transpiler_resolve_device_slot_inner_or_error(ctx, slot_arg" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "transpiler_slot_runtime_row_for_operation(" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "row->call_shape" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C source slot builtin %s requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 ! grep -Fq "pgy_write_%s(%s, %s)" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
@@ -3000,7 +3000,7 @@ grep -Fq "transpiler_slot_runtime_fn(" "$ROOT_DIR/src/codegen/transpiler_expr_ca
 ! grep -Fq "pgy_secure_read_%s(%s, &%s)" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 ! grep -Fq "pgy_release_%s(%s)" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 ! grep -Fq "pgy_secure_release_%s(%s, &%s)" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
+grep -Fq "transpiler_slot_runtime_row_for_operation(" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "row->call_shape" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "C let-slot %s requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 ! grep -Fq "pgy_claim_%s()" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"

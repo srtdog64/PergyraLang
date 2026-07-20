@@ -106,6 +106,23 @@ llvm_slot_runtime_expected_call_shape(MIRResourceAbiKind kind,
     return NULL;
 }
 
+static bool
+llvm_slot_runtime_operation_requires_lowered_row(const char *operation)
+{
+    return operation != NULL
+        && (strcmp(operation, "Claim") == 0
+            || strcmp(operation, "Read") == 0
+            || strcmp(operation, "Write") == 0
+            || strcmp(operation, "Release") == 0
+            || strcmp(operation, "PinRead") == 0
+            || strcmp(operation, "PinWrite") == 0
+            || strcmp(operation, "PinReadInit") == 0
+            || strcmp(operation, "PinWriteInit") == 0
+            || strcmp(operation, "Unpin") == 0
+            || strcmp(operation, "UnpinCleanup") == 0
+            || strcmp(operation, "SubmitRead") == 0);
+}
+
 const MIRResourceRuntimeRow *
 llvm_slot_runtime_row_for_operation(ASTNode *node,
                                     LLVMGenCtx *ctx,
@@ -113,10 +130,37 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
                                     const char *inner_type_name,
                                     const char *operation)
 {
-    const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner_type_name, operation);
+    const MIRInstruction *inst = ctx != NULL
+        ? ctx->current_mir_instruction
+        : NULL;
+    const MIRResourceRuntimeRow *row = NULL;
     const char *expected_shape =
         llvm_slot_runtime_expected_call_shape(kind, operation);
+
+    if (inst != NULL && inst->resource_runtime_fact_present) {
+        row = &inst->resource_runtime_fact;
+        if (row->resource_op_name == NULL
+            || operation == NULL
+            || strcmp(row->resource_op_name, operation) != 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR resource operation has a mismatched runtime-call ABI row");
+            return NULL;
+        }
+    } else if (inst != NULL && inst->kind == MIR_INST_RESOURCE_OP
+               && llvm_slot_runtime_operation_requires_lowered_row(operation)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR resource operation is missing its lowered runtime-call ABI row");
+        return NULL;
+    } else {
+        row = mir_abi_resource_runtime_row_by_kind(
+            kind, inner_type_name, operation);
+    }
 
     if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL)
         return NULL;

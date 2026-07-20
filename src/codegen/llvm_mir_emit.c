@@ -212,18 +212,15 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             const char *param_type_name =
                 llvm_mir_routine_param_type_name(routine, i);
             const char *slot_inner;
+            MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
             if (is_method && llvm_param_is_implicit_self_local(p)) {
                 continue;
             }
-            bool is_secure_slot = false;
-            slot_inner = param_type_name != NULL
-                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                    p,
-                    param_type_name,
-                    &is_secure_slot)
-                : llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
+            slot_inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
             if (slot_inner != NULL)
-                param_count += is_secure_slot ? 2 : 1;
+                param_count +=
+                    resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT ? 2 : 1;
             else
                 param_count++;
         }
@@ -304,7 +301,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 }
                 seen++;
             }
-            bool is_secure_slot = false;
+            MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
             const char *param_type_name =
                 source_param_index != (size_t)-1
                     ? llvm_mir_routine_param_type_name(routine,
@@ -317,12 +314,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             bool pass_indirect = source_param_index != (size_t)-1
                 && llvm_mir_routine_param_passes_indirect(routine,
                     source_param_index);
-            const char *slot_inner = param_type_name != NULL
-                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                    p,
-                    param_type_name,
-                    &is_secure_slot)
-                : llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
+            const char *slot_inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, source_param_index, &resource_kind);
             if (slot_inner != NULL) {
                 LLVMTypeRef slot_ty = param_type_name != NULL
                     ? pergyra_type_to_llvm(ctx, param_type_name)
@@ -330,7 +323,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 if (ctx->has_error || slot_ty == NULL)
                     return NULL;
                 param_types[i] = LLVMPointerType(slot_ty, 0);
-                if (is_secure_slot && i + 1 < param_count) {
+                if (resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT
+                    && i + 1 < param_count) {
                     param_types[++i] = llvm_secure_token_type(ctx, slot_inner);
                 }
             } else {

@@ -4357,12 +4357,16 @@ require_term "src/codegen/llvm_boundary_slot_param.h" \
     "llvm_boundary_slot_inner_name_from_type_name"
 require_term "src/codegen/llvm_boundary_slot_param.c" \
     "llvm_boundary_slot_inner_name_from_type_name"
+require_term "src/codegen/llvm_boundary_slot_param.h" \
+    "llvm_mir_boundary_resource_inner_name"
+require_term "src/codegen/llvm_boundary_slot_param.c" \
+    "llvm_mir_boundary_resource_inner_name"
 require_term "src/codegen/llvm_mir_emit.c" \
-    "llvm_boundary_slot_inner_name_from_type_name(ctx"
+    "llvm_mir_boundary_resource_inner_name("
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_mir_routine_param_type_name(routine, i)"
-require_term "src/codegen/llvm_mir_emit.c" \
-    "slot_inner = param_type_name != NULL"
+require_term "src/codegen/llvm_boundary_slot_param.c" \
+    "llvm_mir_routine_param_resource_kind("
 if grep -Fq "slot_inner != NULL && p != NULL && p->type != NULL" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
     fail "LLVM MIR function type construction must not require AST param->type before routine slot type-name metadata"
@@ -4397,12 +4401,8 @@ if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"; then
     fail "LLVM function declaration emission must use MIR signature facts whenever a routine exists"
 fi
-require_term "src/codegen/llvm_boundary_slot_param.h" \
-    "llvm_boundary_slot_inner_name_from_type_name"
-require_term "src/codegen/llvm_boundary_slot_param.c" \
-    "llvm_boundary_slot_inner_name_from_type_name"
 require_term "src/codegen/llvm_decl.c" \
-    "llvm_boundary_slot_inner_name_from_type_name(ctx"
+    "llvm_mir_boundary_resource_inner_name("
 require_term "src/codegen/llvm_decl_routines.c" \
     "llvm_forward_declare_func_from_mir(routine, NULL, ctx)"
 require_term "src/codegen/llvm_decl_routines.c" \
@@ -4430,7 +4430,7 @@ if grep -Fq "if (!llvm_mir_routine_has_signature" \
     fail "LLVM MIR parameter emission must consume llvm_mir_signature owner"
 fi
 for term in \
-    "llvm_boundary_slot_inner_name_from_type_name(ctx" \
+    "llvm_mir_boundary_resource_inner_name(" \
     "llvm_register_typed_var_abi_binding(ctx, p->name, alloca" \
     "llvm_register_var_class(ctx, p->name, param_type_name)"; do
     require_term "src/codegen/llvm_mir_param_emit.c" "$term"
@@ -5127,13 +5127,10 @@ reject_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "const char *compat_name = transpiler_decl_name_local(node)"
 reject_term "src/codegen/transpiler_roster_decl_emit.c" \
     "const char *compat_name = transpiler_decl_name_local(node)"
-for pair in \
-    "src/codegen/transpiler_zone_decl_dispatch.c|transpiler_emit_zone_decl_impl(node, header, name, ctx)" \
-    "src/codegen/transpiler_world_decl_dispatch.c|transpiler_emit_world_decl_impl(node, header, name, ctx)"; do
-    rel="${pair%%|*}"
-    term="${pair#*|}"
-    require_term "$rel" "$term"
-done
+require_term "src/codegen/transpiler_zone_decl_dispatch.c" \
+    "transpiler_emit_zone_decl_impl(node, header, name, ctx)"
+require_term "src/codegen/transpiler_world_decl_dispatch.c" \
+    "transpiler_emit_world_decl_impl(NULL, header, name, ctx)"
 reject_term "src/codegen/transpiler_zone_decl_emit.c" \
     "emit_zone_decl_from_mir_header("
 reject_term "src/codegen/transpiler_world_select_event_emit.c" \
@@ -6567,6 +6564,25 @@ for term in \
     "MIR-only C path world '%s' has inconsistent directive metadata count"; do
     require_term "src/codegen/transpiler_world_select_event_emit.c" "$term"
 done
+require_term "src/codegen/transpiler_world_decl_dispatch.c" \
+    "transpiler_emit_world_decl_impl(NULL, header, name, ctx)"
+if awk '
+    /emit_world_decl_from_mir_header\(/ { in_mir_dispatch = 1 }
+    in_mir_dispatch && /transpiler_find_named_decl_local/ { bad = 1 }
+    in_mir_dispatch && /^}/ { in_mir_dispatch = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_world_decl_dispatch.c"; then
+    fail "MIR world declaration dispatch must consume its header without reopening the AST declaration inventory"
+fi
+for term in \
+    "propagation_graph_build_from_world_header" \
+    "mir_decl_world_state_input_name(state, k)"; do
+    require_term "src/compiler/propagation_graph_build.c" "$term"
+done
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "pgy_codegen_world_frontier_graph_pass_limit_from_header("
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "pgy_codegen_world_frontier_graph_pass_limit_from_header("
 require_term "src/codegen/transpiler_world_derived_state_emit.c" \
     "transpiler_world_zone_slot_view_contains("
 reject_term "src/codegen/transpiler_world_derived_state_emit.c" \

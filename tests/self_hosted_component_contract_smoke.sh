@@ -1243,8 +1243,8 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryForbiddenPath(),"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryForbiddenTerm())"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "transpiler_slot_runtime_row_for_operation("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_slot_runtime_row_for_operation("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "row->call_shape"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/transpiler_mir_pin_emit.c"
@@ -1808,11 +1808,14 @@ reject_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity
 require_text "Makefile" "self-host-backend-abi-layout-contract-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh"
 require_file "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
+require_file "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
 require_file "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"
 require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "pgy.selfhost.runtime-call-abi-row.v2"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "struct CompilerRuntimeCallAbiRowInput"
@@ -1823,12 +1826,22 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "func Com
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiConcreteRowCount() > 0"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiRowAt(CompilerRuntimeCallAbiConcreteRowCount()) == \"\""
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiRowFor(\"native-resource\", \"DeviceSlot<String>.SubmitRead\")"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    'if n >= 13 && StringIndexOf(type_name, "DeviceSlot<") == 0'
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    'let prefix_len: Int = 11;'
+require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    'constructed_device.symbol != "pgy_submit_device_read_Vec2"'
 reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "func CompilerRuntimeCallAbiRow(domain: String"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CollectionRuntimeCNewFn(1)"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "HostIORuntimeCExitFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiMaterialMirResourceRow"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiNativeDeviceSubmitRowAt"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "struct CompilerRuntimeCallAbiFact"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "func CompilerRuntimeCallAbiFactForNativeResource"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 'import "runtime_call_abi_row_owner.pgy";'
+reject_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "Split("
 reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiConcreteRowCount() == 237"
 reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiRowAt(22) =="
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'import "runtime_call_abi_row_owner.pgy";'
@@ -3505,9 +3518,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 79;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 80;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 79'
+    'mir_fixture_rows[@]}" -ne 80'
 require_file "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3721,11 +3734,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 79;"
+    "return 80;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 79'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 80'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -8233,6 +8246,18 @@ require_text "src/self_hosted/mir_lower/decl_lower.pgy" "UnwrapOption(routine_po
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeRowRequired"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "JsonObjectFactStringFieldEquals"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirResourceRuntimeRowFactReady"
+require_file "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy"
+require_file "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy"
+require_file "src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy"
+require_text "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy" "SelfMirRuntimeCallAbiRowValidationError"
+require_text "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy" "SelfMirCfgAttachLastRuntimeCallAbi"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource"
+require_text "src/self_hosted/mir/json_projection_owner.pgy" "SelfMirJsonRuntimeCallAbiField"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_bindings\", 0)"

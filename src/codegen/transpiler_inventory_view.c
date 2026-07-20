@@ -109,6 +109,13 @@ transpiler_mir_routine_param_carriage(const MIRRoutine *routine, size_t index)
     return mir_routine_param_carriage(routine, index);
 }
 
+MIRParamResourceKind
+transpiler_mir_routine_param_resource_kind(const MIRRoutine *routine,
+                                            size_t index)
+{
+    return mir_routine_param_resource_kind(routine, index);
+}
+
 bool
 transpiler_mir_routine_param_passes_indirect(const MIRRoutine *routine,
                                              size_t index)

@@ -940,6 +940,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
                    $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
+                   $(COMPILER_DIR)/mir_json_dump_runtime_abi.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
                    $(COMPILER_DIR)/mir_program_inventory.c \
                    $(COMPILER_DIR)/mir_public_surface.c \
@@ -1506,6 +1507,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_iteration_type_facts.o \
                    $(BUILD_DIR)/compiler/mir_destructure_type_facts.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_flow.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump_runtime_abi.o \
                    $(BUILD_DIR)/compiler/mir_timing.o \
                    $(BUILD_DIR)/compiler/mir_parallel_capture_facts.o \
                    $(BUILD_DIR)/compiler/mir_generic_method_specialization.o \

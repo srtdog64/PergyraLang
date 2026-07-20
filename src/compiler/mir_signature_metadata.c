@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
@@ -22,6 +23,20 @@ mir_param_carriage_from_source_mode(ParamMode mode)
     default:
         return MIR_PARAM_CARRIAGE_VALUE;
     }
+}
+
+MIRParamResourceKind
+mir_param_resource_kind_from_type_name(const char *type_name)
+{
+    if (type_name == NULL)
+        return MIR_PARAM_RESOURCE_NONE;
+    if (strncmp(type_name, "Slot<", 5) == 0)
+        return MIR_PARAM_RESOURCE_SLOT;
+    if (strncmp(type_name, "SecureSlot<", 11) == 0)
+        return MIR_PARAM_RESOURCE_SECURE_SLOT;
+    if (strncmp(type_name, "DeviceSlot<", 11) == 0)
+        return MIR_PARAM_RESOURCE_DEVICE_SLOT;
+    return MIR_PARAM_RESOURCE_NONE;
 }
 
 /* Row 607: free a callable signature descriptor. */
@@ -178,6 +193,9 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
             if (param != NULL && param->type != NULL) {
                 routine->param_type_names[i] =
                     mir_capture_type_name(param->type, NULL);
+                routine->param_abi_facts[i].resource_kind =
+                    mir_param_resource_kind_from_type_name(
+                        routine->param_type_names[i]);
                 if (routine->param_abi_facts[i].carriage
                         == MIR_PARAM_CARRIAGE_READONLY_REF
                     && routine->param_type_names[i] != NULL) {

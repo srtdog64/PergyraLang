@@ -341,11 +341,31 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
         for (size_t j = 0;
              routine->has_signature && j < routine->param_count; j++) {
             MIRParamCarriage carriage = routine->param_abi_facts[j].carriage;
+            MIRParamResourceKind resource_kind =
+                routine->param_abi_facts[j].resource_kind;
+            MIRParamResourceKind expected_resource_kind =
+                mir_param_resource_kind_from_type_name(
+                    routine->param_type_names != NULL
+                        ? routine->param_type_names[j]
+                        : NULL);
             if (carriage < MIR_PARAM_CARRIAGE_VALUE
                 || carriage > MIR_PARAM_CARRIAGE_OWNER_HANDLE) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR routine '%s' parameter[%zu] has invalid carriage fact",
+                        routine->name != NULL
+                            ? routine->name
+                            : "(anonymous)",
+                        j);
+                }
+                return false;
+            }
+            if (resource_kind < MIR_PARAM_RESOURCE_NONE
+                || resource_kind > MIR_PARAM_RESOURCE_DEVICE_SLOT
+                || resource_kind != expected_resource_kind) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' parameter[%zu] has invalid resource ABI fact",
                         routine->name != NULL
                             ? routine->name
                             : "(anonymous)",

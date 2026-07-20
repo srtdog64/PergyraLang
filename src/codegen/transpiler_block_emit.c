@@ -85,10 +85,12 @@ transpiler_block_slot_runtime_row(TranspilerCtx *ctx,
                                   const char *operation,
                                   const char *message)
 {
+    (void)kind;
     const char *expected_shape =
         transpiler_slot_runtime_expected_call_shape(secure, operation);
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+        transpiler_slot_runtime_row_for_operation(
+            ctx, secure, inner_type, operation);
 
     if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL &&
         (expected_shape == NULL ||

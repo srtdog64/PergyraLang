@@ -113,10 +113,13 @@ runtime function consumer terms, and rejects old `_rel` alias or runtime-name
 synthesis terms. Its parity gate proves clean, missing-required, missing-input,
 and forbidden-hit paths across C/LLVM-built self-host tools under
 `self-host-backend-abi-layout-contract-parity-test-smoke`.
-`runtime_call_abi_row_owner.pgy` now also projects the native
+`runtime_call_abi_row_owner.pgy` is the self-host projection of the native
 Slot/SecureSlot/DeviceSlot MIR resource runtime-call table as `native-resource`
 rows, so backend resource helper spellings are visible in the same runnable
 runtime-call ABI artifact as the self-host runtime helper rows.
+Runtime-call compatibility policy is owned by
+`compatibility_evolution_owner.pgy`; the projection consumes that policy but
+does not define a second compatibility authority.
 The self-hosted projection consumes the same native MIR operation/call-shape
 rows and the native `pgy.machine-layer.declaration.v1` artifact consumed by
 `compiler/machine_layer_declaration_consumer.pgy`; it does not repeat the

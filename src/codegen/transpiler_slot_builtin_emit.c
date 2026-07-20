@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_slot_target.h"
 #include "transpiler_symbols.h"
 #include "../common/string_compat.h"
@@ -57,26 +58,15 @@ slot_builtin_runtime_row_by_kind(TranspilerCtx *ctx,
                                  const char *operation)
 {
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
-    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL)
-        if (ctx == NULL || ctx->active_mir_instruction == NULL
-            || !rir_machine_contact_kind_is_present(
-                ctx->active_mir_instruction->machine_contact_kind)
-            || mir_machine_layer_fact_matches_runtime_operation(
-                ctx->active_mir_instruction, row->resource_op_name))
-            return row;
-
-    if (row != NULL && ctx != NULL && ctx->active_mir_instruction != NULL
-        && rir_machine_contact_kind_is_present(
-            ctx->active_mir_instruction->machine_contact_kind)) {
-        transpiler_set_backend_error_with_hints(
-            ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "C slot builtin runtime row disagrees with machine-layer runtime operation");
-        return NULL;
-    }
+        transpiler_slot_runtime_row_for_operation(
+            ctx, kind == MIR_RESOURCE_ABI_SECURE_SLOT, inner_type, operation);
+    const char *expected_shape =
+        transpiler_slot_runtime_expected_call_shape(
+            kind == MIR_RESOURCE_ABI_SECURE_SLOT, operation);
+    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL
+        && (expected_shape == NULL
+            || strcmp(row->call_shape, expected_shape) == 0))
+        return row;
 
     transpiler_set_backend_error_with_hints(
         ctx,
@@ -195,6 +185,18 @@ slot_builtin_emit_slot_operand(TranspilerCtx *ctx,
     slot_expr = slot_builtin_emit_operand(ctx, expr, operation, "slot");
     ctx->suppress_slot_auto_read = saved_suppress;
     return slot_expr;
+}
+
+static char *
+slot_builtin_resource_ref(TranspilerCtx *ctx,
+                          ASTNode *slot_arg,
+                          const char *slot_expr)
+{
+    const char *slot_name = slot_arg != NULL
+        && slot_arg->type == AST_IDENTIFIER
+            ? ast_identifier_name(slot_arg)
+            : NULL;
+    return slot_ref_expr(ctx, slot_name, slot_expr);
 }
 
 char *
@@ -524,9 +526,15 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceWrite");
     if (slot_expr == NULL)
         return NULL;
+    char *slot_ref = slot_builtin_resource_ref(ctx, slot_arg, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *value_expr = slot_builtin_emit_operand(ctx,
         ast_call_argument(call, 1), "DeviceWrite", "value");
     if (value_expr == NULL) {
+        free(slot_ref);
         free(slot_expr);
         return NULL;
     }
@@ -534,13 +542,15 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
     const char *write_fn = slot_builtin_runtime_fn_by_kind(
         ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write");
     if (write_fn == NULL) {
+        free(slot_ref);
         free(slot_expr);
         free(value_expr);
         return NULL;
     }
 
     result = slot_builtin_heap_fmt(ctx,
-        "%s(&%s, %s)", write_fn, slot_expr, value_expr);
+        "%s(%s, %s)", write_fn, slot_ref, value_expr);
+    free(slot_ref);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -562,15 +572,22 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceRead");
     if (slot_expr == NULL)
         return NULL;
+    char *slot_ref = slot_builtin_resource_ref(ctx, slot_arg, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *result;
     const char *read_fn = slot_builtin_runtime_fn_by_kind(
         ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
     if (read_fn == NULL) {
+        free(slot_ref);
         free(slot_expr);
         return NULL;
     }
 
-    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", read_fn, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(%s)", read_fn, slot_ref);
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -592,15 +609,22 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
         slot_arg, "ReleaseDeviceSlot");
     if (slot_expr == NULL)
         return NULL;
+    char *slot_ref = slot_builtin_resource_ref(ctx, slot_arg, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *result;
     const char *release_fn = slot_builtin_runtime_fn_by_kind(
         ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
     if (release_fn == NULL) {
+        free(slot_ref);
         free(slot_expr);
         return NULL;
     }
 
-    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", release_fn, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(%s)", release_fn, slot_ref);
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -623,15 +647,22 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
         slot_arg, "SubmitDeviceRead");
     if (slot_expr == NULL)
         return NULL;
+    char *slot_ref = slot_builtin_resource_ref(ctx, slot_arg, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *result;
     const char *submit_fn = slot_builtin_runtime_fn_by_kind(
         ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
     if (submit_fn == NULL) {
+        free(slot_ref);
         free(slot_expr);
         return NULL;
     }
 
-    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", submit_fn, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(%s)", submit_fn, slot_ref);
+    free(slot_ref);
     free(slot_expr);
     return result;
 }

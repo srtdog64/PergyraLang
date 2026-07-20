@@ -1,6 +1,7 @@
 // Canonical state transformations for one bounded MIR routine build.
 
 import "program_fact_owner.pgy";
+import "cfg_instruction_mutation_owner.pgy";
 
 struct SelfMirRoutineBuild {
     ok: Bool;
@@ -120,6 +121,34 @@ func SelfMirRoutineAddInstruction(
     );
 }
 
+func SelfMirSsaBaseName(ssa_name: String) -> String {
+    let separator: Int = StringIndexOf(ssa_name, ".");
+    if separator < 0 { return ssa_name; }
+    return Substring(ssa_name, 0, separator);
+}
+
+func SelfMirRoutineResourceTypeForInstruction(
+    build: SelfMirRoutineBuild,
+    cfg: SelfMirCfgRows,
+    instruction_index: Int,
+    operation: String
+) -> String {
+    if operation == "Claim" {
+        return cfg.instructions.expr1s[instruction_index];
+    }
+    if cfg.instructions.use_counts[instruction_index] <= 0 {
+        return "";
+    }
+    let use_name: String = cfg.instructions.uses[
+        cfg.instructions.use_starts[instruction_index]
+    ];
+    let local_index: Option<Int> = SelfMirRoutineLocalIndex(
+        build, SelfMirSsaBaseName(use_name)
+    );
+    if !IsSome(local_index) { return ""; }
+    return build.local_types[UnwrapOption(local_index)];
+}
+
 func SelfMirRoutineAttachLastExpressionGraph(
     build: SelfMirRoutineBuild,
     view: SemanticExpressionGraphView,
@@ -139,6 +168,38 @@ func SelfMirRoutineAttachLastExpressionGraph(
         return SelfMirRoutineBuildError(
             build, "MIR expression graph attachment failed"
         );
+    }
+    let operation: String =
+        cfg.instructions.machine_layer_runtime_operations[instruction_index];
+    if operation != "" {
+        let resource_type: String = SelfMirRoutineResourceTypeForInstruction(
+            build, cfg, instruction_index, operation
+        );
+        if resource_type == "" {
+            return SelfMirRoutineBuildError(
+                build,
+                "MIR resource runtime-call ABI row is missing its type fact"
+            );
+        }
+        let abi_fact: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiFactForNativeResource(
+                resource_type, operation
+            );
+        if !abi_fact.ok {
+            return SelfMirRoutineBuildError(
+                build,
+                "MIR resource runtime-call ABI row is not declared"
+            );
+        }
+        cfg = SelfMirCfgAttachLastRuntimeCallAbi(
+            cfg, resource_type, operation, abi_fact
+        );
+        if cfg.instructions.runtime_call_abi.present[instruction_index] != 1 {
+            return SelfMirRoutineBuildError(
+                build,
+                "MIR resource runtime-call ABI row attachment failed"
+            );
+        }
     }
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, cfg, build.current_block,

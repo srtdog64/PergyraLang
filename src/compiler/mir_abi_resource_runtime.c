@@ -217,6 +217,54 @@ mir_abi_resource_runtime_row_by_type_name(const char *abi_type_name,
     return NULL;
 }
 
+const MIRResourceRuntimeRow *
+mir_abi_resource_runtime_row_for_type_name(const char *abi_type_name,
+                                           const char *resource_op_name)
+{
+    const char *prefix = NULL;
+    MIRResourceAbiKind kind;
+    size_t prefix_len;
+    size_t type_len;
+    size_t inner_len;
+    char inner_type_name[128];
+    const MIRResourceRuntimeRow *row;
+
+    if (abi_type_name == NULL || resource_op_name == NULL)
+        return NULL;
+
+    row = mir_abi_resource_runtime_row_by_type_name(
+        abi_type_name, resource_op_name);
+    if (row != NULL)
+        return row;
+
+    if (strncmp(abi_type_name, "Slot<", 5) == 0) {
+        prefix = "Slot<";
+        kind = MIR_RESOURCE_ABI_SLOT;
+    } else if (strncmp(abi_type_name, "SecureSlot<", 11) == 0) {
+        prefix = "SecureSlot<";
+        kind = MIR_RESOURCE_ABI_SECURE_SLOT;
+    } else if (strncmp(abi_type_name, "DeviceSlot<", 11) == 0) {
+        prefix = "DeviceSlot<";
+        kind = MIR_RESOURCE_ABI_DEVICE_SLOT;
+    } else {
+        return NULL;
+    }
+
+    prefix_len = strlen(prefix);
+    type_len = strlen(abi_type_name);
+    if (type_len <= prefix_len + 1
+        || abi_type_name[type_len - 1] != '>') {
+        return NULL;
+    }
+    inner_len = type_len - prefix_len - 1;
+    if (inner_len == 0 || inner_len >= sizeof(inner_type_name))
+        return NULL;
+    memcpy(inner_type_name, abi_type_name + prefix_len, inner_len);
+    inner_type_name[inner_len] = '\0';
+    return mir_abi_resource_runtime_row_by_kind(
+        kind, inner_type_name, resource_op_name);
+}
+
 const char *
 mir_abi_resource_runtime_row_domain(size_t index)
 {

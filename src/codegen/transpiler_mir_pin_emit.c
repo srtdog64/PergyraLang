@@ -123,17 +123,20 @@ transpiler_mir_pin_format_reason(char *reason, size_t reason_cap,
 }
 
 static const MIRResourceRuntimeRow *
-transpiler_mir_pin_runtime_row(MIRResourceAbiKind kind,
+transpiler_mir_pin_runtime_row(TranspilerCtx *ctx,
+                               MIRResourceAbiKind kind,
                                bool secure,
                                const char *inner_type,
                                const char *operation,
                                char *reason,
                                size_t reason_cap)
 {
+    (void)kind;
     const char *expected_shape =
         transpiler_slot_runtime_expected_call_shape(secure, operation);
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+        transpiler_slot_runtime_row_for_operation(
+            ctx, secure, inner_type, operation);
 
     if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
         transpiler_mir_reasonf(reason, reason_cap,
@@ -259,6 +262,7 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead";
     if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
         runtime_row = transpiler_mir_pin_runtime_row(
+            ctx,
             slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                             : MIR_RESOURCE_ABI_SLOT,
             slot->is_secure, slot->inner_type, pin_op, reason, reason_cap);
@@ -324,6 +328,7 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
     }
     if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
         runtime_row = transpiler_mir_pin_runtime_row(
+            ctx,
             slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                             : MIR_RESOURCE_ABI_SLOT,
             slot->is_secure, slot->inner_type, "Unpin", reason, reason_cap);

@@ -31,6 +31,45 @@ transpiler_mir_type_supported(const char *type_name)
 }
 
 bool
+transpiler_mir_routine_param_is_boundary_resource(
+    const MIRRoutine *routine,
+    size_t param_index)
+{
+    MIRParamCarriage carriage =
+        transpiler_mir_routine_param_carriage(routine, param_index);
+    return transpiler_mir_routine_param_resource_kind(routine, param_index)
+            != MIR_PARAM_RESOURCE_NONE
+        && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+            || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
+}
+
+bool
+transpiler_mir_routine_param_is_slot_family(const MIRRoutine *routine,
+                                             size_t param_index)
+{
+    MIRParamResourceKind kind =
+        transpiler_mir_routine_param_resource_kind(routine, param_index);
+    return kind == MIR_PARAM_RESOURCE_SLOT
+        || kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+}
+
+bool
+transpiler_mir_routine_param_is_secure_slot(const MIRRoutine *routine,
+                                             size_t param_index)
+{
+    return transpiler_mir_routine_param_resource_kind(routine, param_index)
+        == MIR_PARAM_RESOURCE_SECURE_SLOT;
+}
+
+bool
+transpiler_mir_routine_param_is_device_slot(const MIRRoutine *routine,
+                                             size_t param_index)
+{
+    return transpiler_mir_routine_param_resource_kind(routine, param_index)
+        == MIR_PARAM_RESOURCE_DEVICE_SLOT;
+}
+
+bool
 transpiler_mir_type_name_supported(TranspilerCtx *ctx, const char *type_name)
 {
     char c_type[256];

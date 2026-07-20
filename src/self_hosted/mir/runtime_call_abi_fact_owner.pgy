@@ -1,0 +1,192 @@
+// Runtime-call ABI facts attached to self-host MIR instruction rows.
+//
+// The compiler ABI projection supplies the structured row. This owner only
+// stores it beside the instruction that consumes it; it never reconstructs a
+// row from source text, emitted code, or backend spelling.
+
+import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+
+struct SelfMirRuntimeCallAbiRows {
+    present: Array<Int>;
+    owners: Array<String>;
+    domains: Array<String>;
+    type_names: Array<String>;
+    operations: Array<String>;
+    symbols: Array<String>;
+    target_kinds: Array<String>;
+    materializations: Array<String>;
+    call_shapes: Array<String>;
+}
+
+func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirRuntimeCallAbiRows(
+        ints, strings, strings, strings, strings, strings, strings, strings,
+        strings
+    );
+}
+
+func SelfMirRuntimeCallAbiRowsAppendInstruction(
+    rows: SelfMirRuntimeCallAbiRows
+) -> SelfMirRuntimeCallAbiRows {
+    let present: Array<Int> = rows.present;
+    let owners: Array<String> = rows.owners;
+    let domains: Array<String> = rows.domains;
+    let type_names: Array<String> = rows.type_names;
+    let operations: Array<String> = rows.operations;
+    let symbols: Array<String> = rows.symbols;
+    let target_kinds: Array<String> = rows.target_kinds;
+    let materializations: Array<String> = rows.materializations;
+    let call_shapes: Array<String> = rows.call_shapes;
+    ArrayPush(present, 0);
+    ArrayPush(owners, "");
+    ArrayPush(domains, "");
+    ArrayPush(type_names, "");
+    ArrayPush(operations, "");
+    ArrayPush(symbols, "");
+    ArrayPush(target_kinds, "");
+    ArrayPush(materializations, "");
+    ArrayPush(call_shapes, "");
+    return SelfMirRuntimeCallAbiRows(
+        present, owners, domains, type_names, operations, symbols,
+        target_kinds, materializations, call_shapes
+    );
+}
+
+func SelfMirRuntimeCallAbiRowsForInstructionCount(
+    instruction_count: Int
+) -> SelfMirRuntimeCallAbiRows {
+    let rows: SelfMirRuntimeCallAbiRows =
+        SelfMirRuntimeCallAbiRowsEmpty();
+    let i: Int = 0;
+    while i < instruction_count {
+        rows = SelfMirRuntimeCallAbiRowsAppendInstruction(rows);
+        i = i + 1;
+    }
+    return rows;
+}
+
+func SelfMirRuntimeCallAbiRowsAppendRows(
+    target: SelfMirRuntimeCallAbiRows,
+    source: SelfMirRuntimeCallAbiRows
+) -> SelfMirRuntimeCallAbiRows {
+    let present: Array<Int> = target.present;
+    let owners: Array<String> = target.owners;
+    let domains: Array<String> = target.domains;
+    let type_names: Array<String> = target.type_names;
+    let operations: Array<String> = target.operations;
+    let symbols: Array<String> = target.symbols;
+    let target_kinds: Array<String> = target.target_kinds;
+    let materializations: Array<String> = target.materializations;
+    let call_shapes: Array<String> = target.call_shapes;
+    let i: Int = 0;
+    while i < ArrayLength(source.present) {
+        ArrayPush(present, source.present[i]);
+        ArrayPush(owners, source.owners[i]);
+        ArrayPush(domains, source.domains[i]);
+        ArrayPush(type_names, source.type_names[i]);
+        ArrayPush(operations, source.operations[i]);
+        ArrayPush(symbols, source.symbols[i]);
+        ArrayPush(target_kinds, source.target_kinds[i]);
+        ArrayPush(materializations, source.materializations[i]);
+        ArrayPush(call_shapes, source.call_shapes[i]);
+        i = i + 1;
+    }
+    return SelfMirRuntimeCallAbiRows(
+        present, owners, domains, type_names, operations, symbols,
+        target_kinds, materializations, call_shapes
+    );
+}
+
+func SelfMirRuntimeCallAbiRowsAttachLast(
+    rows: SelfMirRuntimeCallAbiRows,
+    type_name: String,
+    operation: String,
+    fact: CompilerRuntimeCallAbiFact
+) -> SelfMirRuntimeCallAbiRows {
+    let index: Int = ArrayLength(rows.present) - 1;
+    if index < 0 || !fact.ok {
+        return rows;
+    }
+    let present: Array<Int> = rows.present;
+    let owners: Array<String> = rows.owners;
+    let domains: Array<String> = rows.domains;
+    let type_names: Array<String> = rows.type_names;
+    let operations: Array<String> = rows.operations;
+    let symbols: Array<String> = rows.symbols;
+    let target_kinds: Array<String> = rows.target_kinds;
+    let materializations: Array<String> = rows.materializations;
+    let call_shapes: Array<String> = rows.call_shapes;
+    ArraySet(present, index, 1);
+    ArraySet(owners, index, "MIRResource");
+    ArraySet(domains, index, fact.domain);
+    ArraySet(type_names, index, type_name);
+    ArraySet(operations, index, operation);
+    ArraySet(symbols, index, fact.symbol);
+    ArraySet(target_kinds, index, fact.symbol_kind);
+    ArraySet(materializations, index, fact.materialization);
+    ArraySet(call_shapes, index, fact.call_shape);
+    return SelfMirRuntimeCallAbiRows(
+        present, owners, domains, type_names, operations, symbols,
+        target_kinds, materializations, call_shapes
+    );
+}
+
+func SelfMirRuntimeCallAbiRowsReady(
+    rows: SelfMirRuntimeCallAbiRows,
+    instruction_count: Int
+) -> Bool {
+    return ArrayLength(rows.present) == instruction_count &&
+        ArrayLength(rows.owners) == instruction_count &&
+        ArrayLength(rows.domains) == instruction_count &&
+        ArrayLength(rows.type_names) == instruction_count &&
+        ArrayLength(rows.operations) == instruction_count &&
+        ArrayLength(rows.symbols) == instruction_count &&
+        ArrayLength(rows.target_kinds) == instruction_count &&
+        ArrayLength(rows.materializations) == instruction_count &&
+        ArrayLength(rows.call_shapes) == instruction_count;
+}
+
+func SelfMirRuntimeCallAbiRowValidationError(
+    rows: SelfMirRuntimeCallAbiRows,
+    instruction_index: Int,
+    expected_operation: String
+) -> String {
+    if expected_operation == "" {
+        if rows.present[instruction_index] != 0 ||
+            rows.owners[instruction_index] != "" ||
+            rows.domains[instruction_index] != "" ||
+            rows.type_names[instruction_index] != "" ||
+            rows.operations[instruction_index] != "" ||
+            rows.symbols[instruction_index] != "" ||
+            rows.target_kinds[instruction_index] != "" ||
+            rows.materializations[instruction_index] != "" ||
+            rows.call_shapes[instruction_index] != "" {
+            return "runtime-call ABI row is attached without an operation";
+        }
+        return "";
+    }
+    if rows.present[instruction_index] != 1 {
+        return "resource instruction is missing its runtime-call ABI row";
+    }
+    let type_name: String = rows.type_names[instruction_index];
+    let expected: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            type_name, expected_operation
+        );
+    if !expected.ok {
+        return "resource runtime-call ABI row has no declared projection";
+    }
+    if rows.owners[instruction_index] != "MIRResource" ||
+        rows.domains[instruction_index] != expected.domain ||
+        rows.operations[instruction_index] != expected_operation ||
+        rows.symbols[instruction_index] != expected.symbol ||
+        rows.target_kinds[instruction_index] != expected.symbol_kind ||
+        rows.materializations[instruction_index] !=
+            expected.materialization ||
+        rows.call_shapes[instruction_index] != expected.call_shape {
+        return "resource runtime-call ABI row differs from its owner";
+    }
+    return "";
+}

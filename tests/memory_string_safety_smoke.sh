@@ -176,7 +176,7 @@ require_literal "src/runtime/slot_manager_security_stats.c" \
 require_literal "src/runtime/slot_manager_security_stats.c" \
     "localtime_r(&now, out)"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
-    "mir_abi_resource_runtime_row_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/compiler/mir_abi_resource_runtime.c" \
     'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_literal "src/codegen/llvm_expr_array_calls.c" \
@@ -184,7 +184,7 @@ require_literal "src/codegen/llvm_expr_array_calls.c" \
 require_literal "src/codegen/llvm_expr_array_calls.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
     "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
@@ -202,7 +202,7 @@ require_literal "src/codegen/llvm_mir_pin_region.c" \
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "llvm_mir_pin_token_name"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
-    "mir_abi_resource_runtime_row_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "\"PinReadInit\""
 require_literal "src/codegen/llvm_mir_pin_region.c" \
@@ -314,11 +314,11 @@ reject_literal "src/codegen/llvm_runtime_channels.c" \
 reject_literal "src/codegen/llvm_runtime_channels.c" \
     "llvm_runtime_lane_channel_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
-    "mir_abi_resource_runtime_row_by_type_name"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "\"PinReadInit\""
 require_literal "src/codegen/llvm_runtime.c" \
-    "mir_abi_resource_runtime_row_by_type_name"
+    "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/llvm_runtime.c" \
     "llvm_runtime_export_name"
 require_literal "src/codegen/llvm_runtime.c" \
@@ -486,11 +486,11 @@ require_literal "src/codegen/llvm_stmt_zone_action.c" \
 require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_token_name"
 require_literal "src/codegen/llvm_stmt_let_resources.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_stmt_let_collections.c" \
     "llvm_stmt_collection_runtime_name"
 require_literal "src/codegen/llvm_stmt_block.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_stmt.c" \
     "llvm_stmt_format_bind_name"
 require_literal "src/codegen/llvm_stmt_let_helpers.c" \
@@ -500,7 +500,7 @@ require_literal "src/codegen/llvm_stmt_let_helpers.c" \
 require_literal "src/codegen/llvm_stmt_with.c" \
     "llvm_with_token_name"
 require_literal "src/codegen/llvm_stmt_with.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_expr_emit_support.c" \
     "llvm_expr_runtime_name"
 require_literal "src/codegen/llvm_expr_emit_support.c" \

@@ -370,6 +370,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                        mir_populate_stmt_instructions(&routine));
         MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
                        mir_enrich_machine_layer_facts(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
+                       mir_link_resource_runtime_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_SPECULATION,
                        mir_capture_speculation_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_USE_EDGES,

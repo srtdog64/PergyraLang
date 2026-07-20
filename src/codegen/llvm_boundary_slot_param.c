@@ -11,6 +11,7 @@
 
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
+#include "llvm_inventory_internal.h"
 
 const char *
 llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
@@ -97,6 +98,56 @@ llvm_boundary_slot_inner_name_from_type_name(LLVMGenCtx *ctx,
 
     if (is_secure_out != NULL)
         *is_secure_out = pgy_codegen_type_name_is_secure_slot(type_name);
+    return inner;
+}
+
+const char *
+llvm_mir_boundary_resource_inner_name(LLVMGenCtx *ctx,
+                                      const MIRRoutine *routine,
+                                      size_t param_index,
+                                      MIRParamResourceKind *resource_kind_out)
+{
+    char inner_name[256];
+    const char *inner;
+    const char *type_name;
+    MIRParamCarriage carriage;
+    MIRParamResourceKind resource_kind;
+
+    if (resource_kind_out != NULL)
+        *resource_kind_out = MIR_PARAM_RESOURCE_NONE;
+    if (ctx == NULL || routine == NULL)
+        return NULL;
+
+    carriage = llvm_mir_routine_param_carriage(routine, param_index);
+    resource_kind = llvm_mir_routine_param_resource_kind(
+        routine, param_index);
+    if (resource_kind == MIR_PARAM_RESOURCE_NONE
+        || (carriage != MIR_PARAM_CARRIAGE_OWNER_HANDLE
+            && carriage != MIR_PARAM_CARRIAGE_READONLY_REF)) {
+        return NULL;
+    }
+    type_name = llvm_mir_routine_param_type_name(routine, param_index);
+    if (type_name == NULL || type_name[0] == '\0'
+        || !llvm_constructed_arg_name_copy(type_name, 0,
+            inner_name, sizeof(inner_name))
+        || inner_name[0] == '\0'
+        || strcmp(inner_name, "Unknown") == 0) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR resource parameter[%zu] requires a concrete ABI type fact",
+            param_index);
+        return NULL;
+    }
+    inner = pgy_arena_strdup(&ctx->persistent, inner_name);
+    if (inner == NULL) {
+        llvm_set_error(ctx, "%s",
+            "out of memory copying LLVM MIR resource parameter type");
+        return NULL;
+    }
+    if (resource_kind_out != NULL)
+        *resource_kind_out = resource_kind;
     return inner;
 }
 

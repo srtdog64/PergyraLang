@@ -89,6 +89,22 @@ func MirMachineLayerInstructionReady(
         );
 }
 
+func MirMachineLayerInstructionRuntimeOperation(
+    json: String, start: Int, end: Int
+) -> String {
+    let value_bounds: Array<Int> = [0, 0];
+    if !MirObjectFieldValueBounds(
+        json, start, end, "machine_layer", value_bounds) {
+        return "";
+    }
+    if JsonCharCodeAt(json, StringLength(json), value_bounds[0]) !=
+        JsonAsciiCode("{") {
+        return "";
+    }
+    return MirObjectStringFact(
+        json, value_bounds[0], value_bounds[1], "runtime_operation");
+}
+
 // Validate all machine-layer objects without rebuilding the native manifest
 // or walking source/AST data.  Missing/null machine_layer is permitted for
 // non-contact instructions; a present malformed object is always fatal.

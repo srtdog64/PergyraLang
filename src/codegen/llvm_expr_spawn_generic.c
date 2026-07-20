@@ -211,7 +211,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 FuncParam *p = llvm_mir_routine_param(generic_routine, k);
                 const char *param_type_name =
                     llvm_mir_routine_param_type_name(generic_routine, k);
-                bool is_secure = false;
+                MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
                 const char *inner;
                 LLVMTypeRef pt;
 
@@ -219,10 +219,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     continue;
                 if (p == NULL || p->name == NULL)
                     continue;
-                inner = param_type_name != NULL
-                    ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                        p, param_type_name, &is_secure)
-                    : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+                inner = llvm_mir_boundary_resource_inner_name(
+                    ctx, generic_routine, k, &resource_kind);
                 pt = param_type_name != NULL
                     ? pergyra_type_to_llvm(ctx, param_type_name)
                     : llvm_spawn_required_param_type(ctx, generic_ast, p,
@@ -233,7 +231,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 }
                 ptypes[real_pc++] =
                     inner != NULL ? LLVMPointerType(pt, 0) : pt;
-                if (inner != NULL && is_secure)
+                if (inner != NULL
+                    && resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT)
                     ptypes[real_pc++] = llvm_secure_token_type(ctx, inner);
             }
 

@@ -175,6 +175,17 @@ mir_routine_param_carriage(const MIRRoutine *routine, size_t index)
     return routine->param_abi_facts[index].carriage;
 }
 
+MIRParamResourceKind
+mir_routine_param_resource_kind(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->param_abi_facts == NULL
+        || index >= routine->param_count) {
+        return MIR_PARAM_RESOURCE_NONE;
+    }
+    return routine->param_abi_facts[index].resource_kind;
+}
+
 bool
 mir_routine_param_passes_indirect(const MIRRoutine *routine, size_t index)
 {
@@ -182,6 +193,22 @@ mir_routine_param_passes_indirect(const MIRRoutine *routine, size_t index)
         && routine->param_abi_facts != NULL
         && index < routine->param_count
         && routine->param_abi_facts[index].pass_indirect;
+}
+
+const char *
+mir_param_resource_kind_name(MIRParamResourceKind kind)
+{
+    switch (kind) {
+    case MIR_PARAM_RESOURCE_SLOT:
+        return "slot";
+    case MIR_PARAM_RESOURCE_SECURE_SLOT:
+        return "secure-slot";
+    case MIR_PARAM_RESOURCE_DEVICE_SLOT:
+        return "device-slot";
+    case MIR_PARAM_RESOURCE_NONE:
+    default:
+        return "none";
+    }
 }
 
 const char *

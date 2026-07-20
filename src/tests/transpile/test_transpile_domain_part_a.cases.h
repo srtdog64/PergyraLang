@@ -297,9 +297,22 @@ test_party_emit(void)
         program.data.program.count = 2;
 
         MIRProgram *mir = mir_program_from_ast(&program);
+        MIRDeclHeaderInventory header_inventory;
+        const MIRDeclHeader *party_header = NULL;
         g_last_mir = mir;
+        mir_decl_header_inventory_from_program(mir, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_PARTY_DECL) {
+                party_header = header;
+                break;
+            }
+        }
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_party_decl(&party_node, ctx);
+        emit_party_decl_from_mir_header(party_header, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct DungeonTeam");
         EXPECT_STR_CONTAINS(ctx->out->data, "void *tank");

@@ -33,6 +33,13 @@ func Main() -> Void {
         Log(CompilerObsoleteMigrationManifestRowAt(obsolete_index));
         obsolete_index = obsolete_index + 1;
     }
+    Log(Concat("runtime_call_abi_schema=", CompilerRuntimeCallAbiCompatibilitySchema()));
+    Log(Concat("runtime_call_abi_protocol=", CompilerRuntimeCallAbiProtocolId()));
+    Log(Concat("runtime_call_abi_unknown_version=", CompilerRuntimeCallAbiUnknownVersionPolicy()));
+    Log(Concat("runtime_call_abi_unknown_field=", CompilerRuntimeCallAbiUnknownFieldPolicy()));
+    Log(Concat("runtime_call_abi_missing_fact=", CompilerRuntimeCallAbiMissingFactPolicy()));
+    Log(Concat("runtime_call_abi_constructed_nominal=", CompilerRuntimeCallAbiConstructedNominalPolicy()));
+    Log(Concat("runtime_call_abi_policy=", CompilerRuntimeCallAbiCompatibilityPolicy()));
     Log(Concat("change_count=", ToString(CompilerCompatibilityChangeCount())));
     let change_index: Int = 0;
     while change_index < CompilerCompatibilityChangeCount() {

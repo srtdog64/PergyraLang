@@ -94,6 +94,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         bool event_handler_param = false;
         const MIRCallableSig *param_callable = NULL;
         MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         bool pass_indirect = false;
 
         if (allow_ast_compat) {
@@ -112,6 +113,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             : transpiler_mir_routine_param_carriage(mir_routine, i);
         pass_indirect = !allow_ast_compat
             && transpiler_mir_routine_param_passes_indirect(mir_routine, i);
+        if (!allow_ast_compat) {
+            resource_kind = transpiler_mir_routine_param_resource_kind(
+                mir_routine, i);
+        }
         if (type_name != NULL) {
             ensure_type_specializations_from_type_name_to(
                 ctx,
@@ -159,12 +164,12 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             owned_type_name = render_type_name_in_ctx(ctx, p->type);
             type_name = owned_type_name;
         }
-        boundary_slot = type_name != NULL
-            && (strncmp(type_name, "Slot<", 5) == 0
-                || strncmp(type_name, "SecureSlot<", 11) == 0)
+        if (allow_ast_compat)
+            resource_kind = mir_param_resource_kind_from_type_name(type_name);
+        boundary_slot = resource_kind != MIR_PARAM_RESOURCE_NONE
             && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
                 || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
-        secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+        secure_slot = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
         if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
         } else if (boundary_slot) {

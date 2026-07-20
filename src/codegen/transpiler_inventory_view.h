@@ -43,8 +43,11 @@ const char *transpiler_mir_routine_param_type_name(
                 const MIRRoutine *routine,
                 size_t index);
 MIRParamCarriage transpiler_mir_routine_param_carriage(
-                const MIRRoutine *routine,
-                size_t index);
+    const MIRRoutine *routine,
+    size_t index);
+MIRParamResourceKind transpiler_mir_routine_param_resource_kind(
+    const MIRRoutine *routine,
+    size_t index);
 bool transpiler_mir_routine_param_passes_indirect(
                 const MIRRoutine *routine,
                 size_t index);

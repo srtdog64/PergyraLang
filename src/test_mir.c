@@ -630,6 +630,7 @@ test_mir_carries_function_param_flow_summary(void)
 #include "tests/mir/test_mir_lowering_part_h.cases.h"
 #include "tests/mir/test_mir_lowering_part_h_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
+#include "tests/mir/test_mir_runtime_call_abi.cases.h"
 
 static void
 test_mir_lowering(void)
@@ -647,6 +648,7 @@ test_mir_lowering(void)
     test_mir_lowering_part_h();
     test_mir_lowering_part_h_2();
     test_mir_lowering_part_i();
+    test_mir_runtime_call_abi_facts();
 }
 
 int

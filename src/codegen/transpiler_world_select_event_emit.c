@@ -69,8 +69,10 @@ transpiler_emit_world_decl_impl(ASTNode *node,
                                 TranspilerCtx *ctx)
 {
     size_t embedded_frontier_count;
+    size_t frontier_count_floor;
+    size_t frontier_pass_limit;
 
-    if (name == NULL || node == NULL) {
+    if (name == NULL || (node == NULL && header == NULL)) {
         transpiler_set_mir_inventory_missing(
             ctx, "C world emitter received incomplete declaration dispatch");
         return;
@@ -190,6 +192,15 @@ transpiler_emit_world_decl_impl(ASTNode *node,
             ctx);
     if (ctx->backend_error != NULL)
         return;
+
+    frontier_count_floor =
+        pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+            zone_count, state_count, embedded_frontier_count);
+    frontier_pass_limit = use_mir_world_states
+        ? pgy_codegen_world_frontier_graph_pass_limit_from_header(
+            world_header, name, frontier_count_floor)
+        : pgy_codegen_world_frontier_graph_pass_limit(
+            node, name, frontier_count_floor);
 
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -448,10 +459,7 @@ transpiler_emit_world_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass_limit = %zu;\n",
-        pgy_codegen_world_frontier_graph_pass_limit(node,
-            name,
-            pgy_domain_world_transitive_frontier_pass_limit_from_counts(
-                zone_count, state_count, embedded_frontier_count)));
+        frontier_pass_limit);
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_frontier_continue = true;\n");
     write_indent(ctx);

@@ -170,6 +170,12 @@ typedef struct
     ASTNode         *expr1;
     const char      *abi_type_name;
     const MIRTypeLayout *type_layout;
+    /* Lowering-owned runtime-call ABI row.  This is present on the resource
+     * operation and every concrete DEF/STMT consumer that emits its call.
+     * The row strings are routine-arena owned, so constructed nominal rows
+     * cannot be regenerated or invalidated by a backend lookup. */
+    bool             resource_runtime_fact_present;
+    MIRResourceRuntimeRow resource_runtime_fact;
     const MIRTextBuilderRuntimeRow *text_builder_runtime_row;
     /* Owner-directed machine contact fact. Backends must not infer this
      * boundary from the source call or ABI type alone. */

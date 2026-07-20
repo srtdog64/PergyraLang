@@ -140,6 +140,10 @@ test_mir_lowering_part_a(void)
             MIR_RESOURCE_ABI_DEVICE_SLOT, "Vec2", "Read");
         const char *nested_write = mir_abi_resource_runtime_fn_by_kind(
             MIR_RESOURCE_ABI_SLOT, "Array<Int>", "Write");
+        const char *device_pin = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_DEVICE_SLOT, "Int", "PinRead");
+        const char *void_write = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SLOT, "Void", "Write");
         const MIRResourceRuntimeRow *slot_row =
             mir_abi_resource_runtime_row_by_kind(
                 MIR_RESOURCE_ABI_SLOT, "Int", "Read");
@@ -153,6 +157,8 @@ test_mir_lowering_part_a(void)
                && secure_release != NULL
                && device_read != NULL
                && nested_write != NULL
+               && device_pin == NULL
+               && void_write == NULL
                && strcmp(slot_claim, "pgy_claim_Vec2") == 0
                && strcmp(slot_write, "pgy_write_Vec2") == 0
                && strcmp(secure_claim, "pgy_claim_secure_Vec2") == 0

@@ -161,6 +161,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         FuncParam *p;
         const char *param_type_name;
         const char *inner = NULL;
@@ -173,10 +174,13 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             param_type_name = llvm_mir_routine_param_type_name(routine, i);
         }
         emitted_count++;
-        inner = param_type_name != NULL
-            ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
-                param_type_name, &is_secure)
-            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        if (allow_ast_compat) {
+            inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        } else {
+            inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
+            is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+        }
         if (ctx->has_error)
             return NULL;
         if (inner != NULL && is_secure)
@@ -193,6 +197,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     unsigned emitted_idx = 0;
     for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
         bool is_secure = false;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         FuncParam *p;
         const char *param_type_name;
         const char *inner = NULL;
@@ -215,10 +220,13 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             pass_indirect = !allow_ast_compat
                 && llvm_mir_routine_param_passes_indirect(routine, i);
         }
-        inner = param_type_name != NULL
-            ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
-                param_type_name, &is_secure)
-            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        if (allow_ast_compat) {
+            inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        } else {
+            inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
+            is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+        }
         pointer_self = param_type_name != NULL
             ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
             : llvm_boundary_param_uses_pointer_self(ctx, p);

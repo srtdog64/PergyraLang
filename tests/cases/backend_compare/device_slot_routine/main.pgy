@@ -1,0 +1,12 @@
+func ConsumeDeviceValue(own dev: DeviceSlot<Int>) -> Int {
+    let value: Int = DeviceRead(dev);
+    ReleaseDeviceSlot(dev);
+    return value;
+}
+
+func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 17);
+    let current: Int = ConsumeDeviceValue(dev);
+    Log(current);
+}

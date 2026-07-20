@@ -148,3 +148,11 @@ mir_machine_layer_fact_matches_runtime_operation(
         && strcmp(inst->machine_layer_runtime_operation,
                   runtime_operation) == 0;
 }
+
+const char *
+mir_machine_layer_runtime_operation(const MIRInstruction *inst)
+{
+    return mir_machine_layer_fact_is_valid(inst)
+        ? inst->machine_layer_runtime_operation
+        : NULL;
+}

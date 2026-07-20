@@ -237,6 +237,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_remote/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/device_slot_routine/main.pgy"'
 require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "machine MIR producer accepted missing declaration"
@@ -245,13 +247,22 @@ require_file "tests/self_hosted/fixtures/machine_layer_declaration.json"
 forbid_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     '"$PGY" --machine-manifest-json'
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
-    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote"'
+    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote,device_slot_routine"'
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
     "abi_layout_row_manifest_parity.sh"
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
     "runtime_call_abi_row_manifest_parity.sh"
+require_file "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" \
+    "resource instruction or consumer is missing its lowered runtime-call ABI row"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    'ikind != "resource-op"'
+    "MirResourceRuntimeRowFactReady(json, kp, inst_end)"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "CompilerRuntimeCallAbiFactForNativeResource("
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    "SelfMirRuntimeCallAbiRowValidationError("
+forbid_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "Split("
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
 require_text "Makefile" "self-host-mir-abi-first-test-smoke"

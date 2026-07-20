@@ -221,6 +221,8 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     let no_match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsEmpty();
     let no_destructure_facts: SelfMirDestructureFactRows =
         SelfMirDestructureFactRowsEmpty();
+    let no_runtime_call_abi: SelfMirRuntimeCallAbiRows =
+        SelfMirRuntimeCallAbiRowsForInstructionCount(1);
     let member_target_graph: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRows(
             [1], [2], [0], [3],
@@ -235,7 +237,8 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
-        value_graph, target_graph, no_match_facts, no_destructure_facts
+        value_graph, target_graph, no_match_facts, no_destructure_facts,
+        no_runtime_call_abi
     );
     let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
@@ -243,21 +246,21 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses,
         simple_value_graph, simple_target_graph, no_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     let valid_member: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""],
         ["1"], ["base.text"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["base.1"], simple_value_graph, member_target_graph,
-        no_match_facts, no_destructure_facts
+        no_match_facts, no_destructure_facts, no_runtime_call_abi
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
         ["i.1", "j.1"], value_graph, target_graph, no_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
@@ -265,7 +268,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"], value_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     let missing_member_base_use: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -273,7 +276,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             ["1"], ["base.text"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses, simple_value_graph, member_target_graph,
-            no_match_facts, no_destructure_facts
+            no_match_facts, no_destructure_facts, no_runtime_call_abi
         );
     let missing_simple_target_graph: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -283,7 +286,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [0], [0], no_uses,
             simple_value_graph,
             SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-            no_destructure_facts
+            no_destructure_facts, no_runtime_call_abi
         );
     let scalar_match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
@@ -295,7 +298,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1), scalar_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     let missing_match: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["branch"], ["branch"], [""], [""], [""],
@@ -303,7 +306,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     let destructure_facts: SelfMirDestructureFactRows =
         SelfMirDestructureFactRowsAttach(
@@ -315,7 +318,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        destructure_facts
+        destructure_facts, no_runtime_call_abi
     );
     let missing_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["destructure"], ["destructure"], [""], [""], [""],
@@ -323,7 +326,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts
+        no_destructure_facts, no_runtime_call_abi
     );
     return SelfMirInstructionRowsReady(valid) &&
         SelfMirInstructionRowsReady(valid_simple) &&
@@ -458,6 +461,8 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelCount(count, rows.local_counts) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_abi_kinds) ||
+        ArrayLength(rows.param_names) !=
+            ArrayLength(rows.param_resource_kinds) ||
         ArrayLength(rows.local_names) != ArrayLength(rows.local_types) ||
         !SelfMirDestructureTypeFactRowsReady(
             rows.destructure_type_facts, count
@@ -524,7 +529,11 @@ func SelfMirRoutineRowsReady(
     let param_i: Int = 0;
     while param_i < ArrayLength(rows.param_abi_kinds) {
         if rows.param_abi_kinds[param_i] < 0 ||
-            rows.param_abi_kinds[param_i] > 4 {
+            rows.param_abi_kinds[param_i] > 4 ||
+            rows.param_resource_kinds[param_i] < 0 ||
+            rows.param_resource_kinds[param_i] > 3 ||
+            rows.param_resource_kinds[param_i] !=
+                SelfMirParamResourceKindForType(rows.param_types[param_i]) {
             return false;
         }
         param_i = param_i + 1;

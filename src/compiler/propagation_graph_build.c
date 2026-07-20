@@ -8,6 +8,7 @@
  */
 #include "propagation_graph.h"
 #include "propagation_graph_build.h"
+#include "mir_decl_headers.h"
 
 #include "../parser/ast_domain_api.h"
 
@@ -80,6 +81,27 @@ propagation_graph_build_from_world(PropagationGraph *g, const ASTNode *world)
         for (size_t k = 0; k < input_count; k++) {
             prop_add_named_edge(g,
                 ast_world_state_input_name(states[i], k), derived);
+        }
+    }
+    return true;
+}
+
+bool
+propagation_graph_build_from_world_header(PropagationGraph *g,
+                                          const MIRDeclHeader *header)
+{
+    if (g == NULL || header == NULL)
+        return false;
+
+    for (size_t i = 0; i < mir_decl_header_world_state_count(header); i++) {
+        const MIRDeclWorldState *state =
+            mir_decl_header_world_state(header, i);
+        const char *derived = mir_decl_world_state_name(state);
+        size_t input_count = mir_decl_world_state_input_count(state);
+
+        for (size_t k = 0; k < input_count; k++) {
+            prop_add_named_edge(g,
+                mir_decl_world_state_input_name(state, k), derived);
         }
     }
     return true;

@@ -46,6 +46,9 @@ func SelfMirInstructionRowsValidationError(
     if ArrayLength(rows.machine_layer_live_lease_required) != count {
         return "machine lease row count differs";
     }
+    if !SelfMirRuntimeCallAbiRowsReady(rows.runtime_call_abi, count) {
+        return "runtime-call ABI row count differs";
+    }
     if ArrayLength(rows.use_starts) != count {
         return "use-start row count differs";
     }
@@ -192,6 +195,14 @@ func SelfMirInstructionRowsValidationError(
             );
         if !SelfMirMachineLayerProjectionShapeReady(machine_row) {
             return Concat(row_prefix, " machine-layer projection is invalid");
+        }
+        let runtime_abi_error: String =
+            SelfMirRuntimeCallAbiRowValidationError(
+                rows.runtime_call_abi, i,
+                rows.machine_layer_runtime_operations[i]
+            );
+        if runtime_abi_error != "" {
+            return Concat(row_prefix, Concat(" ", runtime_abi_error));
         }
         use_cursor = use_cursor + rows.use_counts[i];
         i = i + 1;

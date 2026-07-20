@@ -46,8 +46,9 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares 15 architectural compiler-spine fact families plus thirteen
-bounded self-host closure facts and a total `spine_authority` mapping.
+The file also declares the architectural compiler-spine fact families, including
+the MIR-owned ABI layout rows and their runtime-call ABI row projection, plus
+the bounded self-host closure facts and a total `spine_authority` mapping.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
 total and functional. `declared_owner_does_not_imply_rung_closed` keeps the

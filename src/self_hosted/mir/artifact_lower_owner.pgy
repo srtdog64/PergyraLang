@@ -147,6 +147,11 @@ func SelfMirAppendCfg(
             target.instructions.expr1_graphs,
             source.instructions.expr1_graphs
         );
+    let runtime_call_abi: SelfMirRuntimeCallAbiRows =
+        SelfMirRuntimeCallAbiRowsAppendRows(
+            target.instructions.runtime_call_abi,
+            source.instructions.runtime_call_abi
+        );
     let match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsAppend(
         target.instructions.match_facts,
         source.instructions.match_facts,
@@ -171,7 +176,8 @@ func SelfMirAppendCfg(
             machine_layer_runtime_operations, machine_layer_hardware_adequate,
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
-            expr0_graphs, expr1_graphs, match_facts, destructure_facts
+            expr0_graphs, expr1_graphs, match_facts, destructure_facts,
+            runtime_call_abi
         )
     );
 }
@@ -208,6 +214,7 @@ func SelfMirAppendRoutine(
     let param_names: Array<String> = rows.param_names;
     let param_types: Array<String> = rows.param_types;
     let param_abi_kinds: Array<Int> = rows.param_abi_kinds;
+    let param_resource_kinds: Array<Int> = rows.param_resource_kinds;
     let block_starts: Array<Int> = rows.block_starts;
     let block_counts: Array<Int> = rows.block_counts;
     let local_starts: Array<Int> = rows.local_starts;
@@ -283,6 +290,10 @@ func SelfMirAppendRoutine(
             }
         }
         ArrayPush(param_abi_kinds, abi_kind);
+        ArrayPush(
+            param_resource_kinds,
+            SelfMirParamResourceKindForType(param_type)
+        );
         param_i = param_i + 1;
     }
     ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
@@ -331,7 +342,7 @@ func SelfMirAppendRoutine(
             node_ids, names, kinds, owners, return_types,
             generic_starts, generic_counts, generic_names,
             param_starts, param_counts, param_names, param_types,
-            param_abi_kinds,
+            param_abi_kinds, param_resource_kinds,
             block_starts, block_counts, local_starts, local_counts,
             local_names, local_types,
             iteration_starts, iteration_counts, iteration_node_ids,
@@ -410,7 +421,8 @@ func SelfMirCanonicalInstructionIds(
                 instructions.use_starts, instructions.use_counts,
                 instructions.uses,
                 instructions.expr0_graphs, instructions.expr1_graphs,
-                instructions.match_facts, instructions.destructure_facts
+                instructions.match_facts, instructions.destructure_facts,
+                instructions.runtime_call_abi
             )
         )
     );

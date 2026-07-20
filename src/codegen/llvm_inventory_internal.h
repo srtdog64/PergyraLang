@@ -74,7 +74,10 @@ const char *llvm_mir_routine_param_type_name(const MIRRoutine *routine,
 const MIRCallableSig *llvm_mir_routine_param_callable_sig(
     const MIRRoutine *routine, size_t index);
 MIRParamCarriage llvm_mir_routine_param_carriage(const MIRRoutine *routine,
-                                                  size_t index);
+                                                 size_t index);
+MIRParamResourceKind llvm_mir_routine_param_resource_kind(
+    const MIRRoutine *routine,
+    size_t index);
 bool llvm_mir_routine_param_passes_indirect(const MIRRoutine *routine,
                                             size_t index);
 ASTNode *llvm_mir_routine_return_type(const MIRRoutine *routine);

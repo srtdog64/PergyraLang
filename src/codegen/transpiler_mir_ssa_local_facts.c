@@ -505,6 +505,7 @@ transpiler_mir_ssa_local_register_base_type_fact(
 {
     char inner_buf[128];
     bool is_secure;
+    bool parameter_is_indirect_resource = false;
 
     if (ctx == NULL || base_name == NULL || type_name == NULL
         || type_name[0] == '\0' || strcmp(type_name, "Unknown") == 0) {
@@ -514,7 +515,32 @@ transpiler_mir_ssa_local_register_base_type_fact(
             versioned_name, base_name, type_name)) {
         return;
     }
+    for (size_t i = 0;
+         routine != NULL
+             && i < transpiler_mir_routine_param_count(routine); i++) {
+        FuncParam *param = transpiler_mir_routine_param(routine, i);
+        MIRParamResourceKind resource_kind;
+        MIRParamCarriage carriage;
+
+        if (param == NULL || param->name == NULL
+            || strcmp(param->name, base_name) != 0) {
+            continue;
+        }
+        resource_kind = transpiler_mir_routine_param_resource_kind(
+            routine, i);
+        carriage = transpiler_mir_routine_param_carriage(routine, i);
+        parameter_is_indirect_resource =
+            resource_kind != MIR_PARAM_RESOURCE_NONE
+            && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
+        break;
+    }
     register_typed_var(ctx, base_name, type_name);
+    if (parameter_is_indirect_resource) {
+        TypedVarEntry *entry = lookup_typed_entry(ctx, base_name);
+        if (entry != NULL)
+            entry->is_indirect_ref = true;
+    }
     is_secure = pgy_codegen_type_name_is_secure_slot(type_name);
     if (!is_secure && !pgy_codegen_type_name_is_slot(type_name))
         return;

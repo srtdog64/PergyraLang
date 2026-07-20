@@ -1,0 +1,46 @@
+// JSON projection for the MIR-owned runtime-call ABI instruction fact.
+
+import "program_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonRuntimeCallAbiField(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> String {
+    if rows.runtime_call_abi.present[instruction_index] != 1 {
+        return "";
+    }
+    return JsonEmitFieldRaw(
+        "runtime_call_abi",
+        JsonEmitObject([
+            JsonEmitFieldString(
+                "owner", rows.runtime_call_abi.owners[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "domain", rows.runtime_call_abi.domains[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "type", rows.runtime_call_abi.type_names[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "operation",
+                rows.runtime_call_abi.operations[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "symbol", rows.runtime_call_abi.symbols[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "target_kind",
+                rows.runtime_call_abi.target_kinds[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "materialization",
+                rows.runtime_call_abi.materializations[instruction_index]
+            ),
+            JsonEmitFieldString(
+                "call_shape",
+                rows.runtime_call_abi.call_shapes[instruction_index]
+            )
+        ])
+    );
+}

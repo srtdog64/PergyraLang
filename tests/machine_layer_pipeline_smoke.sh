@@ -329,13 +329,21 @@ for path in \
     grep -Fq -- "mir_machine_layer_fact_is_valid" "$path" ||
         fail "negative gate missing owner validation in $path"
 done
-for path in \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" \
-    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"; do
-    grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" "$path" ||
-        fail "runtime-operation identity gate missing in $path"
-done
+grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" ||
+    fail "runtime-operation identity gate missing in the MIR resource emitter"
+grep -Fq -- "transpiler_slot_runtime_row_for_operation" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" ||
+    fail "C slot builtin bypassed the shared runtime-row owner"
+grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c" ||
+    fail "C shared runtime-row owner lost machine-operation identity validation"
+grep -Fq -- "llvm_slot_runtime_row_for_operation" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" ||
+    fail "LLVM device-slot consumer bypassed the shared runtime-row owner"
+grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" ||
+    fail "LLVM shared runtime-row owner lost machine-operation identity validation"
 for path in \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"; do

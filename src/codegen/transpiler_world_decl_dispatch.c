@@ -25,7 +25,6 @@ emit_world_decl_from_mir_header(const MIRDeclHeader *header,
                                 TranspilerCtx *ctx)
 {
     const char *name;
-    ASTNode *node;
 
     if (header == NULL) {
         transpiler_set_mir_inventory_missing(
@@ -38,13 +37,5 @@ emit_world_decl_from_mir_header(const MIRDeclHeader *header,
             ctx, "MIR-only C path missing world declaration header name");
         return;
     }
-    node = transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, name);
-    if (node == NULL) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing AST compatibility surface for world '%s'",
-            name);
-        return;
-    }
-    transpiler_emit_world_decl_impl(node, header, name, ctx);
+    transpiler_emit_world_decl_impl(NULL, header, name, ctx);
 }

@@ -219,8 +219,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         bool event_handler_param = false;
         MIRParamCarriage carriage =
             transpiler_mir_routine_param_carriage(mir_routine, i);
-        bool pass_indirect =
-            transpiler_mir_routine_param_passes_indirect(mir_routine, i);
+        bool pass_indirect = transpiler_mir_routine_param_passes_indirect(mir_routine, i);
         /* Row 607: prefer the MIR-owned callable signature; the AST
            EventHandler node is only the fallback carrier. */
         const MIRCallableSig *param_callable =
@@ -285,12 +284,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             owned_type_name = render_type_name_in_ctx(ctx, p->type);
             type_name = owned_type_name;
         }
-        boundary_slot = type_name != NULL
-            && (strncmp(type_name, "Slot<", 5) == 0
-                || strncmp(type_name, "SecureSlot<", 11) == 0)
-            && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
-                || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
-        secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+        boundary_slot = transpiler_mir_routine_param_is_boundary_resource(
+            mir_routine, i);
+        secure_slot = transpiler_mir_routine_param_is_secure_slot(
+            mir_routine, i);
         if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
             transpiler_register_mut_ref_param(ctx, p->name, pt);
@@ -459,8 +456,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
     for (size_t i = 0; i < func_param_count; i++) {
         FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
-        MIRParamCarriage carriage =
-            transpiler_mir_routine_param_carriage(mir_routine, i);
         bool pass_indirect =
             transpiler_mir_routine_param_passes_indirect(mir_routine, i);
         const char *type_name =
@@ -486,10 +481,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (type_name == NULL)
             continue;
         if (type_name != NULL) {
-            bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
-                               || strncmp(type_name, "SecureSlot<", 11) == 0)
-                && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
-                    || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
+            bool boundary_slot =
+                transpiler_mir_routine_param_is_boundary_resource(
+                    mir_routine, i);
             register_typed_var(ctx, p->name, type_name);
             if (p->name != NULL && strcmp(p->name, "self") != 0
                 && (is_pointer_self_host_type_name(ctx, type_name)
@@ -498,10 +492,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (entry != NULL)
                     entry->is_indirect_ref = true;
             }
-            if (strncmp(type_name, "Slot<", 5) == 0
-                || strncmp(type_name, "SecureSlot<", 11) == 0) {
+            if (transpiler_mir_routine_param_is_slot_family(
+                    mir_routine, i)) {
                 char inner_buf[128];
-                bool secure_slot = strncmp(type_name, "SecureSlot<", 11) == 0;
+                bool secure_slot = transpiler_mir_routine_param_is_secure_slot(
+                    mir_routine, i);
                 if (!slot_inner_type_name_copy(type_name, inner_buf,
                         sizeof(inner_buf))) {
                     transpiler_set_backend_error_with_hints(
@@ -519,6 +514,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 }
                 register_slot_var(ctx, p->name, inner_buf, secure_slot,
                     boundary_slot);
+            } else if (transpiler_mir_routine_param_is_device_slot(
+                           mir_routine, i)
+                       && boundary_slot) {
+                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                if (entry != NULL)
+                    entry->is_indirect_ref = true;
             }
             free(owned_type_name);
         }

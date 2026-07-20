@@ -48,6 +48,22 @@ driver_diag_compatibility_status_known(const char *status)
             || strcmp(status, "no_codefix") == 0);
 }
 
+typedef struct {
+    const char *key;
+    const char *value;
+} DriverRuntimeCallAbiPolicy;
+
+static const DriverRuntimeCallAbiPolicy kDriverRuntimeCallAbiPolicies[] = {
+    {"runtime_call_abi_schema", "pgy.selfhost.runtime-call-compat.v1"},
+    {"runtime_call_abi_protocol", "pergyra.runtime-call-abi.v2"},
+    {"runtime_call_abi_unknown_version", "reject"},
+    {"runtime_call_abi_unknown_field", "reject"},
+    {"runtime_call_abi_missing_fact", "fail_closed"},
+    {"runtime_call_abi_constructed_nominal", "mir_materialize_once"},
+    {"runtime_call_abi_policy",
+     "same_major_reject_unknown_fields_fail_closed"},
+};
+
 bool
 driver_diag_compatibility_manifest_validate_file(const char *path,
                                                  char **error_message)
@@ -55,6 +71,11 @@ driver_diag_compatibility_manifest_validate_file(const char *path,
     char *text;
     size_t row_count = 0;
     char *seen_surfaces[16] = {0};
+    bool runtime_policy_seen[
+        sizeof(kDriverRuntimeCallAbiPolicies)
+            / sizeof(kDriverRuntimeCallAbiPolicies[0])
+    ] = {false};
+    bool runtime_policy_invalid = false;
 
     if (error_message != NULL)
         *error_message = NULL;
@@ -72,6 +93,38 @@ driver_diag_compatibility_manifest_validate_file(const char *path,
         size_t line_length = strlen(cursor);
         if (line_length > 0 && cursor[line_length - 1] == '\r')
             cursor[line_length - 1] = '\0';
+        if (strncmp(cursor, "runtime_call_abi_", 17) == 0) {
+            char *separator = strchr(cursor, '=');
+            size_t policy_index = 0;
+            bool policy_known = false;
+            if (separator == NULL || separator == cursor
+                || separator[1] == '\0'
+                || strchr(separator + 1, '|') != NULL) {
+                runtime_policy_invalid = true;
+            } else {
+                size_t key_length = (size_t)(separator - cursor);
+                for (policy_index = 0;
+                     policy_index < sizeof(kDriverRuntimeCallAbiPolicies)
+                                         / sizeof(kDriverRuntimeCallAbiPolicies[0]);
+                     policy_index++) {
+                    const DriverRuntimeCallAbiPolicy *policy =
+                        &kDriverRuntimeCallAbiPolicies[policy_index];
+                    if (strlen(policy->key) == key_length
+                        && strncmp(cursor, policy->key, key_length) == 0) {
+                        policy_known = true;
+                        if (runtime_policy_seen[policy_index]
+                            || strcmp(separator + 1, policy->value) != 0) {
+                            runtime_policy_invalid = true;
+                        } else {
+                            runtime_policy_seen[policy_index] = true;
+                        }
+                        break;
+                    }
+                }
+                if (!policy_known)
+                    runtime_policy_invalid = true;
+            }
+        }
         if (strncmp(cursor, "change|", 7) == 0) {
             char *fields[11] = {0};
             size_t field_count = 0;
@@ -142,6 +195,23 @@ driver_diag_compatibility_manifest_validate_file(const char *path,
     free(text);
     for (size_t i = 0; i < row_count; i++)
         free(seen_surfaces[i]);
+    if (runtime_policy_invalid) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "compatibility manifest contains an invalid runtime-call ABI policy");
+        return false;
+    }
+    for (size_t i = 0;
+         i < sizeof(kDriverRuntimeCallAbiPolicies)
+                 / sizeof(kDriverRuntimeCallAbiPolicies[0]);
+         i++) {
+        if (!runtime_policy_seen[i]) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "compatibility manifest is missing a runtime-call ABI policy");
+            return false;
+        }
+    }
     if (row_count != 9) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(

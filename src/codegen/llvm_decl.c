@@ -20,16 +20,14 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
+        MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         FuncParam *p;
-        const char *param_type_name;
         const char *slot_inner = NULL;
 
         if (allow_ast_compat) {
             p = ast_func_param(node, i);
-            param_type_name = NULL;
         } else {
             p = llvm_mir_routine_param(routine, i);
-            param_type_name = llvm_mir_routine_param_type_name(routine, i);
         }
         if (p == NULL || p->name == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
@@ -40,12 +38,13 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
             continue;
         }
         count++;
-        slot_inner = param_type_name != NULL
-            ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                p,
-                param_type_name,
-                &is_secure)
-            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        if (allow_ast_compat) {
+            slot_inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        } else {
+            slot_inner = llvm_mir_boundary_resource_inner_name(
+                ctx, routine, i, &resource_kind);
+            is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+        }
         if (slot_inner != NULL && is_secure)
             count++;
     }
@@ -196,6 +195,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
+            MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
             FuncParam *p;
             const char *param_type_name;
             const char *slot_inner = NULL;
@@ -238,12 +238,15 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
                 pt = LLVMPointerType(pt, 0);
             }
-            slot_inner = param_type_name != NULL
-                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
-                    p,
-                    param_type_name,
-                    &is_secure)
-                : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+            if (allow_ast_compat) {
+                slot_inner = llvm_boundary_slot_inner_name(ctx, p,
+                    &is_secure);
+            } else {
+                slot_inner = llvm_mir_boundary_resource_inner_name(
+                    ctx, routine, i, &resource_kind);
+                is_secure =
+                    resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
+            }
             if (slot_inner != NULL) {
                 param_types[pidx++] = LLVMPointerType(pt, 0);
                 if (is_secure) {

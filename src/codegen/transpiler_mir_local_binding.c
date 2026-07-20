@@ -240,8 +240,30 @@ transpiler_register_mir_source_local_bindings(TranspilerCtx *ctx,
             transpiler_mir_routine_source_local_name_at(routine, i);
         const char *type_name =
             transpiler_mir_routine_source_local_type_name_at(routine, i);
+        TypedVarEntry *existing_entry;
+        bool is_parameter = false;
         if (name == NULL || type_name == NULL || type_name[0] == '\0')
             continue;
+        for (size_t p = 0;
+             p < transpiler_mir_routine_param_count(routine); p++) {
+            FuncParam *param = transpiler_mir_routine_param(routine, p);
+            if (param != NULL && param->name != NULL
+                && strcmp(param->name, name) == 0) {
+                is_parameter = true;
+                break;
+            }
+        }
+        if (is_parameter)
+            continue;
+        existing_entry = lookup_typed_entry(ctx, name);
+        if (existing_entry != NULL
+            && strcmp(existing_entry->type_name, type_name) == 0) {
+            /* Parameters are registered from the MIR callable ABI facts before
+             * source-local inventory is consumed. Re-registering the same
+             * binding here would discard pointer-carriage metadata and could
+             * incorrectly turn DeviceSlot<T> into ordinary Slot<T> sugar. */
+            continue;
+        }
         register_typed_var(ctx, name, type_name);
         if (transpiler_type_name_is_slot_like(type_name)) {
             char slot_inner_buf[128];
