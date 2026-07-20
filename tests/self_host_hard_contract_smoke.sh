@@ -483,6 +483,28 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_self_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/action_outcome_dispatch/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/aggregate_param_loop_phi/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/and_or_mix_chain_branches/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/arith_grand_total/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/arithmetic_overflow_check/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/array_avg_class/main.pgy"'
+require_function_text "src/self_hosted/mir/routine_entry_owner.pgy" \
+    "SelfMirRoutineFromInput" \
+    "build, UnwrapOption(param_name), UnwrapOption(param_type), 0"
+forbid_function_text "src/self_hosted/mir/routine_entry_owner.pgy" \
+    "SelfMirRoutineFromInput" \
+    "build, UnwrapOption(param_name), UnwrapOption(param_type), 1"
+require_function_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" \
+    "StringRuntimeCStringCoreBlock" "StringRuntimeCBoolToStringFn()"
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "RewriteSemanticDirectCall" 'UnwrapOption(argument_type) == "Bool"'
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "RewriteSemanticDirectCall" "StringRuntimeCBoolToStringFn()"
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     'expected_member="Account_Deposit"'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \

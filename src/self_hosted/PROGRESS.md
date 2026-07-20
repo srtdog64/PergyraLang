@@ -1,5 +1,21 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/SoT delta: DRV-2 MIR fixtures 114 through 118
+are `aggregate_param_loop_phi`, `and_or_mix_chain_branches`,
+`arith_grand_total`, `arithmetic_overflow_check`, and `array_avg_class`.
+The aggregate loop exposed two owner defects before it could join the rung.
+Routine entry had seeded parameters at SSA version one even though the MIR
+entry contract and canonical verifier require parameter definitions at version
+zero; loop phi construction now consumes that same entry version. Separately,
+the semantic expression graph already carried the `Bool` argument type for
+`ToString(state.ok)`, but direct-call emission discarded it and selected the
+integer runtime ABI row. The graph call owner now selects the Bool runtime ABI
+symbol from that carried type, without parsing expression text. The
+Pergyra-built hard driver and independent C-built and LLVM-built self drivers
+passed focused canonical-MIR, emitted-C, host-compile, and runtime parity for
+all five fixtures; the aggregate output is `true|preserved`. The complete
+118-fixture matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth delta:
 `action_outcome_dispatch` is DRV-2 MIR fixture 113. This adds an enum match
 dispatch with nested branches, aggregate construction/return, member reads,

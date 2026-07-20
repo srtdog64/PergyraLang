@@ -86,6 +86,9 @@ inventory must not become a second fact-family owner registry.
   selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
 - `src/self_hosted/parser/stmt_if_owner.pgy` -- if/if-let statements.
+- `src/self_hosted/parser/stmt_call_graph_owner.pgy` -- parser-owned standalone
+  call-statement graph classification, including member-call identity without
+  dot-text recovery.
 - `src/self_hosted/parser/stmt_collection_graph_owner.pgy` -- parser-owned
   `ArrayPush` value and `ArraySet` index/value expression-graph roots.
 - `src/self_hosted/parser/stmt_destructure_owner.pgy` -- destructuring-let

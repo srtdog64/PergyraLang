@@ -398,11 +398,15 @@ func RewriteSemanticDirectCall(
         if UnwrapOption(argument_type) == "String" {
             return RewriteExprFromSemanticGraph(graph, argument_node, env);
         }
-        let tostring_symbol: Option<String> = RuntimeCallCName(source_name);
-        if !IsSome(tostring_symbol) {
-            Die("ToString runtime ABI row is missing");
+        if UnwrapOption(argument_type) == "Bool" {
+            call_symbol = StringRuntimeCBoolToStringFn();
+        } else {
+            let tostring_symbol: Option<String> = RuntimeCallCName(source_name);
+            if !IsSome(tostring_symbol) {
+                Die("ToString runtime ABI row is missing");
+            }
+            call_symbol = UnwrapOption(tostring_symbol);
         }
-        call_symbol = UnwrapOption(tostring_symbol);
     } else if source_name == "ArrayLength" {
         if ArrayLength(view.argument_nodes) != 1 {
             Die("ArrayLength call requires exactly one argument graph");

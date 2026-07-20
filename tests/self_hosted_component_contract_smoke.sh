@@ -3618,9 +3618,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 110;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 118;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 110'
+    'mir_fixture_rows[@]}" -ne 118'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3856,11 +3856,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 110;"
+    "return 118;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 110'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 118'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4603,8 +4603,16 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeTry() { return "try"; }'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'kind == "try"'
-require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
-require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'import "stmt_call_graph_owner.pgy";'
+require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
+    "TypedAstCallStatementKindForCallee("
+require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
+    "TypedAstKindBareCallStmtTag()"
+require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
+    "ParserExpressionCallStatementKindContractReady()"
+reject_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "TypedAstCallStatementKindForCallee("
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     "AstExpressionLaneAtom(), lhs_fact"
 reject_text "src/self_hosted/parser/stmt_owner.pgy" \
