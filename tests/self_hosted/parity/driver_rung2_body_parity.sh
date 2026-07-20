@@ -47,6 +47,13 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 pgy_prepend_windows_runtime_paths
 
+if [[ "$(pgy_selfhost_driver_rung2_fixture_base \
+    tests/cases/backend_compare/class_as_strategy/main.pgy)" != \
+    "class_as_strategy" ]]; then
+    echo "[self-host-parity:driver-rung2] backend-compare fixture identity owner drifted" >&2
+    exit 1
+fi
+
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
@@ -146,8 +153,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 93 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 93" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 108 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 108" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"

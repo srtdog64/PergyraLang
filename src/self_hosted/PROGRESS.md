@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: fifteen more class strategy, factory,
+aggregate, and composition programs are DRV-2 MIR fixtures 94 through 108.
+Current C-built and LLVM-built self drivers each matched the native oracle's
+canonical MIR, source/MIR C artifact, native C compile result, and runtime
+output for all fifteen. The fixture identity owner now derives a
+`backend_compare/*/main.pgy` identity from its parent directory instead of
+growing a per-fixture alias table. Three nearby probes remain fail-closed and
+are not counted: implicit owner-field assignment needs an assignment target
+binding fact, Bool logging needs a value-to-log ABI row, and the looped node
+member fixture loses an aggregate member expression graph during canonical
+consumption. The complete 108-fixture matrix was not rerun, and the
+released/default driver replacement remains 0%.
+
 2026-07-21 executable breadth delta: five additional class composition and
 method flows are DRV-2 MIR fixtures 89 through 93: `class_chain_methods`,
 `class_compose_factory`, `class_two_step_no_loop`,

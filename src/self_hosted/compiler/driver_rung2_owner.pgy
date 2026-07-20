@@ -212,12 +212,27 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/class_compose_factory/main.pgy",
         "tests/cases/backend_compare/class_two_step_no_loop/main.pgy",
         "tests/cases/backend_compare/class_three_params_clamp/main.pgy",
-        "tests/cases/backend_compare/class_field_method_chain/main.pgy"
+        "tests/cases/backend_compare/class_field_method_chain/main.pgy",
+        "tests/cases/backend_compare/class_as_strategy/main.pgy",
+        "tests/cases/backend_compare/class_bool_int_method_mix/main.pgy",
+        "tests/cases/backend_compare/class_bool_method_filter/main.pgy",
+        "tests/cases/backend_compare/class_compose_helper/main.pgy",
+        "tests/cases/backend_compare/class_factory_aggregate/main.pgy",
+        "tests/cases/backend_compare/class_factory_battle/main.pgy",
+        "tests/cases/backend_compare/class_factory_chained/main.pgy",
+        "tests/cases/backend_compare/class_factory_field_method/main.pgy",
+        "tests/cases/backend_compare/class_factory_in_let/main.pgy",
+        "tests/cases/backend_compare/class_factory_method_field/main.pgy",
+        "tests/cases/backend_compare/class_field_array_method/main.pgy",
+        "tests/cases/backend_compare/class_field_via_factory/main.pgy",
+        "tests/cases/backend_compare/class_holds_class/main.pgy",
+        "tests/cases/backend_compare/class_nested_construct_method/main.pgy",
+        "tests/cases/backend_compare/class_three_distinct/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 93;
+    return 108;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

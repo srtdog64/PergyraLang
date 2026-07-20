@@ -3,53 +3,8 @@
 
 pgy_selfhost_driver_rung2_fixture_base() {
     case "$1" in
-        tests/cases/backend_compare/device_slot_machine_layer/main.pgy)
-            printf '%s\n' "device_slot_machine_layer"
-            ;;
-        tests/cases/backend_compare/device_slot_remote/main.pgy)
-            printf '%s\n' "device_slot_remote"
-            ;;
-        tests/cases/backend_compare/device_slot_routine/main.pgy)
-            printf '%s\n' "device_slot_routine"
-            ;;
-        tests/cases/backend_compare/class_method_self_return/main.pgy)
-            printf '%s\n' "class_method_self_return"
-            ;;
-        tests/cases/backend_compare/class_method_self_chain/main.pgy)
-            printf '%s\n' "class_method_self_chain"
-            ;;
-        tests/cases/backend_compare/class_self_factory_chain/main.pgy)
-            printf '%s\n' "class_self_factory_chain"
-            ;;
-        tests/cases/backend_compare/class_self_field_method/main.pgy)
-            printf '%s\n' "class_self_field_method"
-            ;;
-        tests/cases/backend_compare/class_chained_factory_call/main.pgy)
-            printf '%s\n' "class_chained_factory_call"
-            ;;
-        tests/cases/backend_compare/class_param_return_chain/main.pgy)
-            printf '%s\n' "class_param_return_chain"
-            ;;
-        tests/cases/backend_compare/class_returning_class/main.pgy)
-            printf '%s\n' "class_returning_class"
-            ;;
-        tests/cases/backend_compare/class_nested_field_chain/main.pgy)
-            printf '%s\n' "class_nested_field_chain"
-            ;;
-        tests/cases/backend_compare/class_chain_methods/main.pgy)
-            printf '%s\n' "class_chain_methods"
-            ;;
-        tests/cases/backend_compare/class_compose_factory/main.pgy)
-            printf '%s\n' "class_compose_factory"
-            ;;
-        tests/cases/backend_compare/class_two_step_no_loop/main.pgy)
-            printf '%s\n' "class_two_step_no_loop"
-            ;;
-        tests/cases/backend_compare/class_three_params_clamp/main.pgy)
-            printf '%s\n' "class_three_params_clamp"
-            ;;
-        tests/cases/backend_compare/class_field_method_chain/main.pgy)
-            printf '%s\n' "class_field_method_chain"
+        tests/cases/backend_compare/*/main.pgy)
+            basename "$(dirname "$1")"
             ;;
         *)
             basename "$1" .pgy
