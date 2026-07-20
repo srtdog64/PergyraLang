@@ -130,6 +130,7 @@ src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | se
 src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy | SemanticExpressionGraphFacts | selfhost.expression_graph | bridge
 src/self_hosted/semantic/delimited_range_fact_owner.pgy | SemanticDelimitedRangeFacts | semantic.symbol_type_graph | local_view
 src/self_hosted/semantic/expression_operator_fact_owner.pgy | SemanticTopLevelOperatorFacts | selfhost.expression_surface | local_view
+src/self_hosted/semantic/expression_cast_fact_owner.pgy | SemanticOuterCastTargetType | selfhost.expression_surface | bridge
 src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy | SemanticAstGenericSpecializationFactsFromBody | selfhost.expression_surface | projection
 src/self_hosted/semantic/ast_destructure_binding_fact_owner.pgy | SemanticAstDestructureBindingFactsFromArtifact | selfhost.local_binding_statement_routing | projection
 src/self_hosted/semantic/ast_function_scope_fact_owner.pgy | SemanticAstFunctionScopeFacts | selfhost.node_kind_surface | local_view

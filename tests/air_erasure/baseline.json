@@ -24,6 +24,15 @@
       "phys_Abort_excess": 0,
       "reason": "The straight-line with-slot boundary is semantically retained as an execution boundary, but MIR proves and erases the physical slot machinery. Attribution pins the declared retain even when no runtime residue survives beyond the substrate floor."
     },
+    "03_secure_slot": {
+      "A_inh": 0,
+      "B_pol": 3,
+      "C_unprov": 0,
+      "phys_Axis": 0,
+      "phys_Sync_excess": 0,
+      "phys_Abort_excess": 0,
+      "reason": "The secure-slot claim, write, and release carry three policy-retain facts, while statically traceable token provenance lets the C optimizer erase their physical checks beyond the watchdog substrate floor."
+    },
     "04_channel_parallel": {
       "A_inh": 6,
       "B_pol": 0,

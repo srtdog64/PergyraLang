@@ -251,7 +251,7 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
-    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
+    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_set_inst_source_statement_fact(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
     require_literal "src/compiler/mir_call_fact.c" "inst->arg0 = ast_identifier_name(ast_call_callee(stmt))"
@@ -1626,7 +1626,7 @@ required_mir_owner_terms = {
         "mir_copy_resource_ops_for_stmt",
         "mir_assign_resource_op_source_statement_indices",
         "mir_resource_op_matches_source_stmt",
-        "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]",
+        "mir_set_inst_source_statement_fact(&new_insts[*new_count - 1]",
     ],
     "src/compiler/mir_stmt_source.c": [
         "mir_stmt_def_name",
