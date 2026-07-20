@@ -94,8 +94,9 @@ compatibility branch remains available only for the legacy AST-owned path.
 This closes a narrower but important ABI seam: the nominal layout's C type is
 now derived from the same MIR declaration row that owns the field identity,
 rather than from a second AST payload. The remaining declaration work is
-header-driven dispatch for the other domain emitters and their AST-only role
-implementation surfaces.
+header-driven dispatch for party/roster/zone/world emitters and their AST-only
+role implementation surfaces. Relation/effect dispatch now selects
+`emit_*_decl_from_mir_header` directly from the inventory.
 
 See also:
 
