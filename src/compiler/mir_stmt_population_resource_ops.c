@@ -6,25 +6,34 @@ static bool
 mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
                                     const ASTNode *stmt)
 {
-    const char *anchor;
-
     if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP)
         return false;
-    if (stmt->type == AST_WITH_STMT) {
-        anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
-        return mir_instruction_resource_op_is_claim(inst)
-            && anchor != NULL
-            && ast_with_alias(stmt) != NULL
-            && strcmp(anchor, ast_with_alias(stmt)) == 0;
-    }
-    if (mir_instruction_source_location_matches_node(inst, stmt))
-        return true;
-    if (stmt->type == AST_CALL
-        && mir_instruction_resource_op_is_read(inst)
-        && mir_instruction_source_line_matches_node(inst, stmt)) {
-        return true;
-    }
-    return false;
+    return inst->has_source_statement_stable_id
+        && inst->source_statement_stable_id != 0
+        && inst->source_statement_stable_id == ast_node_stable_id(stmt);
+}
+
+static bool
+mir_with_release_matches_body_tail(const MIRInstruction *inst,
+                                    const ASTNode *stmt)
+{
+    ASTNode *body;
+    ASTNode *tail;
+
+    if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP
+        || inst->name == NULL || strcmp(inst->name, "Release") != 0
+        || inst->ast == NULL || inst->ast->type != AST_WITH_STMT)
+        return false;
+    body = ast_with_body(inst->ast);
+    if (body == NULL || body->type != AST_BLOCK)
+        return false;
+    if (ast_block_statement_count(body) == 0)
+        return false;
+    tail = ast_block_statement(body,
+        ast_block_statement_count(body) - 1);
+    return tail != NULL
+        && ast_node_stable_id(tail) != 0
+        && ast_node_stable_id(tail) == ast_node_stable_id(stmt);
 }
 
 bool
@@ -45,6 +54,22 @@ mir_copy_resource_ops_for_stmt(MIRInstruction *new_insts,
     for (size_t r = 0; r < old_count; r++) {
         if (copied_flags[r])
             continue;
+        if (old_insts[r].name != NULL
+            && strcmp(old_insts[r].name, "Release") == 0
+            && old_insts[r].ast != NULL
+            && old_insts[r].ast->type == AST_WITH_STMT) {
+            if (!mir_with_release_matches_body_tail(&old_insts[r], stmt))
+                continue;
+            if (!mir_stmt_population_append(new_insts,
+                                            new_cap,
+                                            new_count,
+                                            old_insts[r]))
+                return false;
+            mir_set_inst_source_statement_fact(&new_insts[*new_count - 1],
+                                               stmt, source_statement_index);
+            copied_flags[r] = true;
+            continue;
+        }
         if (!mir_resource_op_matches_source_stmt(&old_insts[r], stmt))
             continue;
         if (!mir_stmt_population_append(new_insts,
@@ -52,11 +77,42 @@ mir_copy_resource_ops_for_stmt(MIRInstruction *new_insts,
                                         new_count,
                                         old_insts[r]))
             return false;
-        mir_set_inst_source_statement_index(&new_insts[*new_count - 1],
-                                            source_statement_index);
+        mir_set_inst_source_statement_fact(&new_insts[*new_count - 1], stmt,
+                                           source_statement_index);
         copied_flags[r] = true;
     }
     return true;
+}
+
+void
+mir_reorder_with_release_after_body_tail(MIRInstruction *insts,
+                                          size_t inst_count)
+{
+    if (insts == NULL || inst_count < 2)
+        return;
+
+    for (size_t i = 0; i < inst_count; i++) {
+        MIRInstruction release;
+        size_t tail = i;
+
+        if (!mir_instruction_source_is_with_slot_release(&insts[i])
+            || !mir_instruction_has_source_statement_order(&insts[i])) {
+            continue;
+        }
+        while (tail + 1 < inst_count
+               && mir_instruction_has_source_statement_order(&insts[tail + 1])
+               && insts[tail + 1].source_statement_index
+                   == insts[i].source_statement_index) {
+            tail++;
+        }
+        if (tail == i)
+            continue;
+
+        release = insts[i];
+        memmove(&insts[i], &insts[i + 1],
+                (tail - i) * sizeof(MIRInstruction));
+        insts[tail] = release;
+    }
 }
 
 void
@@ -75,7 +131,8 @@ mir_assign_resource_op_source_statement_indices(MIRInstruction *insts,
         }
         for (size_t s = 0; s < source_count; s++) {
             if (mir_resource_op_matches_source_stmt(&insts[i], source_items[s])) {
-                mir_set_inst_source_statement_index(&insts[i], s);
+                mir_set_inst_source_statement_fact(
+                    &insts[i], source_items[s], s);
                 break;
             }
         }

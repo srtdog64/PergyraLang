@@ -7,11 +7,13 @@
 #include "mir_abi_layout.h"
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
+#include "mir_destructure_type_facts.h"
 #include "mir_intent.h"
 #include "mir_machine_layer.h"
 #include "mir_non_cfg_stmt_population.h"
 #include "mir_stmt_population.h"
 #include "mir_type_helpers.h"
+#include "../common/string_compat.h"
 
 static ASTNode *
 mir_resource_write_value_expr_from_call(ASTNode *call)
@@ -67,6 +69,23 @@ mir_resource_abi_type_name_from_fact(MIRRoutine *routine, const RIRFact *fact)
         if (type_name == NULL)
             type_name = mir_claim_abi_type_name_from_ast(
                 ast_let_initializer(fact->ast));
+    } else if (fact->ast->type == AST_LET_DESTRUCTURE
+               && fact->name != NULL) {
+        const uint32_t destructure_id = ast_node_stable_id(fact->ast);
+        const size_t name_count = ast_let_destructure_name_count(fact->ast);
+        for (size_t i = 0; i < name_count; i++) {
+            const char *binding_name = ast_let_destructure_name(fact->ast, i);
+            const MIRDestructureTypeFact *binding_fact;
+            if (binding_name == NULL
+                || strcmp(binding_name, fact->name) != 0)
+                continue;
+            binding_fact = mir_routine_destructure_type_fact(
+                routine, destructure_id, i);
+            if (binding_fact != NULL
+                && binding_fact->binding_type_name != NULL)
+                type_name = pergyra_strdup(binding_fact->binding_type_name);
+            break;
+        }
     }
     else if (fact->ast->type == AST_CLASS_DECL && fact->name != NULL) {
         /* Field-slot resource fact: the owning class node is carried as the
@@ -190,6 +209,62 @@ mir_resource_layout_for_prior_claim(MIRRoutine *routine,
     return NULL;
 }
 
+static const MIRTypeLayout *
+mir_resource_layout_for_prior_destructure(const MIRRoutine *routine,
+                                          const char *slot_name,
+                                          const char **abi_type_name_out)
+{
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = NULL;
+    if (routine == NULL || slot_name == NULL || slot_name[0] == '\0')
+        return NULL;
+    for (size_t bi = routine->block_count; bi > 0; bi--) {
+        const MIRBasicBlock *block = &routine->blocks[bi - 1];
+        for (size_t ii = block->instruction_count; ii > 0; ii--) {
+            const MIRInstruction *inst = &block->instructions[ii - 1];
+            if (inst->kind != MIR_INST_DESTRUCTURE
+                || inst->abi_type_name == NULL)
+                continue;
+            for (size_t di = 0;
+                 di < mir_instruction_destructure_binding_count(inst); di++) {
+                const char *binding =
+                    mir_instruction_destructure_binding_name_at(inst, di);
+                if (binding == NULL || strcmp(binding, slot_name) != 0)
+                    continue;
+                if (abi_type_name_out != NULL)
+                    *abi_type_name_out = inst->abi_type_name;
+                return inst->type_layout;
+            }
+        }
+    }
+    return NULL;
+}
+
+static const MIRTypeLayout *
+mir_resource_layout_for_source_local(const MIRRoutine *routine,
+                                     const char *slot_name,
+                                     const char **abi_type_name_out)
+{
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = NULL;
+    if (routine == NULL || slot_name == NULL || slot_name[0] == '\0')
+        return NULL;
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *local = &routine->source_local_types[i];
+        if (local->name == NULL || local->type_name == NULL
+            || strcmp(local->name, slot_name) != 0)
+            continue;
+        if (strncmp(local->type_name, "Slot<", 5) != 0
+            && strncmp(local->type_name, "SecureSlot<", 11) != 0
+            && strncmp(local->type_name, "DeviceSlot<", 11) != 0)
+            continue;
+        if (abi_type_name_out != NULL)
+            *abi_type_name_out = local->type_name;
+        return mir_abi_lookup(local->type_name);
+    }
+    return NULL;
+}
+
 static const MIRResourceBorrowLoweringFact *
 mir_resource_borrow_fact_for_view(
     const MIRResourceBorrowLoweringFact *facts,
@@ -291,13 +366,16 @@ mir_materialize_resource_runtime_fact(MIRRoutine *routine,
         &routine->scratch, row->materialization);
     inst->resource_runtime_fact.call_shape = pgy_arena_strdup(
         &routine->scratch, row->call_shape);
+    inst->resource_runtime_fact.runtime_call_abi_id =
+        mir_abi_resource_runtime_row_id(&inst->resource_runtime_fact);
     if (inst->resource_runtime_fact.domain == NULL
         || inst->resource_runtime_fact.abi_type_name == NULL
         || inst->resource_runtime_fact.resource_op_name == NULL
         || inst->resource_runtime_fact.runtime_fn == NULL
         || inst->resource_runtime_fact.target_kind == NULL
         || inst->resource_runtime_fact.materialization == NULL
-        || inst->resource_runtime_fact.call_shape == NULL) {
+        || inst->resource_runtime_fact.call_shape == NULL
+        || inst->resource_runtime_fact.runtime_call_abi_id == 0) {
         return false;
     }
     inst->resource_runtime_fact_present = true;
@@ -311,31 +389,40 @@ mir_link_resource_runtime_facts(MIRRoutine *routine)
         return false;
     for (size_t bi = 0; bi < routine->block_count; bi++) {
         MIRBasicBlock *block = &routine->blocks[bi];
-        for (size_t ri = 0; ri < block->instruction_count; ri++) {
-            MIRInstruction *resource = &block->instructions[ri];
-            if (resource->kind != MIR_INST_RESOURCE_OP
-                || !resource->resource_runtime_fact_present) {
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            MIRInstruction *consumer = &block->instructions[ii];
+            MIRInstruction *source = NULL;
+            bool ambiguous = false;
+
+            if (consumer->kind == MIR_INST_RESOURCE_OP)
                 continue;
-            }
-            for (size_t ii = 0; ii < block->instruction_count; ii++) {
-                MIRInstruction *consumer = &block->instructions[ii];
-                if (consumer == resource
-                    || consumer->kind == MIR_INST_RESOURCE_OP
+            for (size_t ri = 0; ri < block->instruction_count; ri++) {
+                MIRInstruction *resource = &block->instructions[ri];
+                if (resource->kind != MIR_INST_RESOURCE_OP
+                    || !resource->resource_runtime_fact_present
                     || !mir_instruction_consumes_resource_source(
                         resource, consumer)) {
                     continue;
                 }
-                if (consumer->resource_runtime_fact_present
-                    && (consumer->resource_runtime_fact.runtime_fn == NULL
-                        || strcmp(
-                            consumer->resource_runtime_fact.runtime_fn,
-                            resource->resource_runtime_fact.runtime_fn) != 0)) {
-                    return false;
+                if (source != NULL) {
+                    ambiguous = true;
+                    break;
                 }
-                consumer->resource_runtime_fact =
-                    resource->resource_runtime_fact;
-                consumer->resource_runtime_fact_present = true;
+                source = resource;
             }
+            if (ambiguous || source == NULL)
+                continue;
+            if (consumer->resource_runtime_fact_present
+                && (consumer->resource_runtime_fact.runtime_fn == NULL
+                    || strcmp(consumer->resource_runtime_fact.runtime_fn,
+                              source->resource_runtime_fact.runtime_fn) != 0
+                    || consumer->resource_runtime_fact.runtime_call_abi_id == 0
+                    || consumer->resource_runtime_fact.runtime_call_abi_id
+                        != source->resource_runtime_fact.runtime_call_abi_id)) {
+                return false;
+            }
+            consumer->resource_runtime_fact = source->resource_runtime_fact;
+            consumer->resource_runtime_fact_present = true;
         }
     }
     return true;
@@ -363,6 +450,9 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    inst.has_source_statement_stable_id =
+        op->has_source_statement_syntax_id;
+    inst.source_statement_stable_id = op->source_statement_syntax_id;
     if (!mir_attach_machine_layer_fact(&inst, op))
         return false;
     mir_instruction_capture_source_provenance(&inst, op->ast);
@@ -394,6 +484,7 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.type_layout = resource_owner_layout != NULL
         ? resource_owner_layout
         : mir_abi_lookup(inst.abi_type_name);
+    inst.abi_layout_id = mir_abi_layout_id(inst.type_layout);
     if (!mir_materialize_resource_runtime_fact(routine, &inst)) {
         free(claim_type_name);
         return false;
@@ -506,6 +597,18 @@ mir_populate_instructions(MIRRoutine *routine)
                         mir_resource_layout_for_prior_claim(routine, rir_scope,
                             i, op->subject, &resource_owner_abi_type_name);
                 }
+                if (resource_owner_abi_type_name == NULL) {
+                    resource_owner_layout =
+                        mir_resource_layout_for_prior_destructure(
+                            routine, op->subject,
+                            &resource_owner_abi_type_name);
+                }
+                if (resource_owner_abi_type_name == NULL) {
+                    resource_owner_layout =
+                        mir_resource_layout_for_source_local(
+                            routine, op->subject,
+                            &resource_owner_abi_type_name);
+                }
             }
         }
         switch (op->kind) {
@@ -592,6 +695,5 @@ mir_populate_instructions(MIRRoutine *routine)
         if (!mir_append_non_cfg_body_statements(routine, entry))
             return false;
     }
-
     return true;
 }

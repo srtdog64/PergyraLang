@@ -66,6 +66,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
     }
     let ast_path: String = CodegenDefaultAstPath(args);
     let tree_text: String = CodegenReadAst(ast_path);
-    let c_source: String = GenerateC(tree_text);
+    let tree_artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let c_source: String = GenerateCFromAstArtifact(tree_artifact);
     Log(c_source);
 }

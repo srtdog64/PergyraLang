@@ -168,6 +168,7 @@ test_mir_lowering_part_h(void)
         MIRRoutine *routine = NULL;
         MIRInstruction *claim_inst = NULL;
         const MIRTypeLayout *saved_layout = NULL;
+        uint32_t saved_layout_id = 0;
         char *mir_error = NULL;
         bool rejected_missing_layout = false;
         bool rejected_invalid_layout = false;
@@ -192,7 +193,9 @@ test_mir_lowering_part_h(void)
         }
         if (claim_inst != NULL) {
             saved_layout = claim_inst->type_layout;
+            saved_layout_id = claim_inst->abi_layout_id;
             claim_inst->type_layout = NULL;
+            claim_inst->abi_layout_id = 0;
             rejected_missing_layout =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
@@ -202,12 +205,14 @@ test_mir_lowering_part_h(void)
             mir_error = NULL;
 
             claim_inst->type_layout = mir_abi_lookup("Future");
+            claim_inst->abi_layout_id = mir_abi_layout_id(claim_inst->type_layout);
             rejected_invalid_layout =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error,
                           "with-slot Claim resource op has invalid MIR ABI type layout fact") != NULL;
             claim_inst->type_layout = saved_layout;
+            claim_inst->abi_layout_id = saved_layout_id;
         }
         EXPECT(ok
                && routine != NULL

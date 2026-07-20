@@ -126,6 +126,79 @@ test_mir_lowering_part_a(void)
                && opt_string->niche_none_pattern == NULL);
     }
 
+    TEST("MIR ABI layout rows carry stable content identity");
+    {
+        const MIRTypeLayout *slot_int = mir_abi_lookup("Slot<Int>");
+        const MIRTypeLayout *slot_long = mir_abi_lookup("Slot<Long>");
+        const MIRTypeLayout *option_int = mir_abi_lookup("Option<Int>");
+        MIRTypeLayout changed = {0};
+        uint32_t slot_id;
+
+        if (slot_int != NULL)
+            changed = *slot_int;
+        slot_id = mir_abi_layout_id(slot_int);
+        if (slot_int != NULL)
+            changed.size_bytes++;
+        EXPECT(slot_int != NULL
+               && slot_long != NULL
+               && option_int != NULL
+               && slot_id != 0
+               && (slot_id & UINT32_C(0xf0000000))
+                    == UINT32_C(0x20000000)
+               && slot_id == mir_abi_layout_id(slot_int)
+               && slot_id != mir_abi_layout_id(slot_long)
+               && slot_id != mir_abi_layout_id(option_int)
+               && mir_abi_layout_id(slot_int) != mir_abi_layout_id(&changed));
+    }
+
+    TEST("MIR validator rejects missing ABI layout identity");
+    {
+        const char *src =
+            "func LayoutIdentity() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        Write(s, 1);\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *claim = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_identity = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "LayoutIdentity",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && claim == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_RESOURCE_OP
+                        && inst->name != NULL
+                        && strcmp(inst->name, "Claim") == 0) {
+                        claim = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (claim != NULL) {
+            claim->abi_layout_id = 0;
+            rejected_missing_identity =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "stable identity") != NULL;
+        }
+        EXPECT(ok && routine != NULL && claim != NULL
+               && rejected_missing_identity);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR ABI owner synthesizes constructed resource runtime spellings");
     {
         const char *slot_claim = mir_abi_resource_runtime_fn_by_kind(
@@ -345,6 +418,7 @@ test_mir_lowering_part_a(void)
         MIRRoutine *routine = NULL;
         MIRInstruction *local_inst = NULL;
         const MIRTypeLayout *saved_local_layout = NULL;
+        uint32_t saved_local_layout_id = 0;
         char *mir_error = NULL;
         bool local_layout_ok = false;
         bool remote_layout_ok = false;
@@ -376,13 +450,16 @@ test_mir_lowering_part_a(void)
         }
         if (local_inst != NULL) {
             saved_local_layout = local_inst->type_layout;
+            saved_local_layout_id = local_inst->abi_layout_id;
             local_inst->type_layout = mir_abi_lookup("RemoteFuture");
+            local_inst->abi_layout_id = mir_abi_layout_id(local_inst->type_layout);
             rejected_invalid_local_layout =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error,
                           "await resource op has invalid MIR ABI type layout fact") != NULL;
             local_inst->type_layout = saved_local_layout;
+            local_inst->abi_layout_id = saved_local_layout_id;
         }
         EXPECT(ok
                && mir_validate(mir, NULL)

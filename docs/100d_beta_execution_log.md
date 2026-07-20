@@ -1225,7 +1225,7 @@ on linux/windows/macos with garbage bytes between `[` and `]` for the
 empty `findings` array. Root cause traced to LLVM MIR-mode versioned-
 alloca binding; closure #88 (below) fixes it.
 
-- Closure #88 in `src/codegen/llvm_mir_block_emit.c`
+- Closure #88 in `src/codegen/llvm_mir_block_scope.c`
   (`llvm_mir_bind_versioned_local_scope`): when an MIR block's entry
   SSA-value list references a phi-result version (e.g. `findings.5`)
   but that version has no allocated alloca (because MIR routine

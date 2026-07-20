@@ -190,7 +190,7 @@ require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "transpiler_mir_slot_address_local"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
-    "mir_abi_resource_runtime_row_by_kind"
+    "transpiler_slot_runtime_row_for_operation"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "\"PinRead\""
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
@@ -317,7 +317,7 @@ require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "llvm_slot_runtime_row_for_operation"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "\"PinReadInit\""
-require_literal "src/codegen/llvm_runtime.c" \
+require_literal "src/codegen/llvm_runtime_row.c" \
     "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/llvm_runtime.c" \
     "llvm_runtime_export_name"
@@ -400,7 +400,7 @@ require_literal "src/codegen/transpiler_enum_decl_emit.c" \
 require_literal "src/codegen/transpiler_block_emit.c" \
     "transpiler_block_pin_address_too_long"
 require_literal "src/codegen/transpiler_block_emit.c" \
-    "mir_abi_resource_runtime_row_by_kind"
+    "transpiler_slot_runtime_row_for_operation"
 require_literal "src/codegen/transpiler_block_emit.c" \
     "\"UnpinCleanup\""
 require_literal "src/codegen/transpiler_block_emit.c" \

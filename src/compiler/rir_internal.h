@@ -63,6 +63,22 @@ bool add_op_with_machine_contact(RIRScope *scope,
                                  const char *arg1,
                                  RIRMachineContactKind machine_contact_kind,
                                  ASTNode *ast);
+bool add_op_with_source_statement(RIRScope *scope,
+                                  RIROpKind kind,
+                                  const char *subject,
+                                  const char *arg0,
+                                  const char *arg1,
+                                  ASTNode *ast,
+                                  uint32_t source_statement_syntax_id);
+bool add_op_with_machine_contact_source_statement(
+                                 RIRScope *scope,
+                                 RIROpKind kind,
+                                 const char *subject,
+                                 const char *arg0,
+                                 const char *arg1,
+                                 RIRMachineContactKind machine_contact_kind,
+                                 ASTNode *ast,
+                                 uint32_t source_statement_syntax_id);
 
 void rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *op);
 void rir_apply_op_to_state(RIRResourceKind resource_kind,

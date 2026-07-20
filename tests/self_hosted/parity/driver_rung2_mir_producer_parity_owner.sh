@@ -78,6 +78,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative \
             "$machine_fixture" "$backend" "$base" "$self_mir_json" \
             "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
+        pgy_selfhost_verify_driver_rung2_target_projection_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
         if [[ "$base" == "forloop" ]]; then
             grep -Fq '"loop_flow_summary_count":1' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend loop summary owner row was lost" >&2
@@ -134,15 +135,15 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_else_if_graph \
             "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "param_carriage" ]]; then
-            grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","pass":"indirect"' "$self_mir_json" || {
+            grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","resource":"none","pass":"indirect"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend readonly-ref aggregate ABI fact drifted" >&2
                 exit 1
             }
-            grep -Fq '"name":"value","type":"Int","carriage":"value-result","pass":"direct"' "$self_mir_json" || {
+            grep -Fq '"name":"value","type":"Int","carriage":"value-result","resource":"none","pass":"direct"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend value-result ABI fact drifted" >&2
                 exit 1
             }
-            grep -Fq '"name":"values","type":"Array<Int>","carriage":"owner-handle","pass":"direct"' "$self_mir_json" || {
+            grep -Fq '"name":"values","type":"Array<Int>","carriage":"owner-handle","resource":"none","pass":"direct"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend owner-handle ABI fact drifted" >&2
                 exit 1
             }

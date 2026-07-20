@@ -40,6 +40,8 @@ bool mir_copy_resource_ops_for_stmt(MIRInstruction *new_insts,
                                     bool *copied_flags,
                                     const ASTNode *stmt,
                                     size_t source_statement_index);
+void mir_reorder_with_release_after_body_tail(MIRInstruction *insts,
+                                               size_t inst_count);
 void mir_assign_resource_op_source_statement_indices(MIRInstruction *insts,
                                                      size_t inst_count,
                                                      ASTNode **source_items,

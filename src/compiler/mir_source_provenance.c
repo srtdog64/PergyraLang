@@ -172,54 +172,20 @@ mir_instruction_consumes_resource_source(
     const MIRInstruction *resource,
     const MIRInstruction *consumer)
 {
-    ASTNode *consumer_expr;
-    ASTNode *consumer_arg;
-    ASTNode *resource_callee;
-    ASTNode *consumer_callee;
-    const char *resource_callee_name;
-    const char *consumer_callee_name;
-    uint32_t resource_id;
-    uint32_t consumer_id;
-
-    if (resource == NULL || consumer == NULL || resource->ast == NULL)
+    if (resource == NULL || consumer == NULL)
         return false;
     if (mir_instructions_share_source_statement(resource, consumer))
         return true;
-    if (consumer->ast == resource->ast
-        || consumer->expr0 == resource->ast
-        || consumer->expr1 == resource->ast) {
+    if (resource->has_source_statement_stable_id
+        && consumer->has_source_statement_stable_id
+        && resource->source_statement_stable_id != 0
+        && resource->source_statement_stable_id
+            == consumer->source_statement_stable_id) {
         return true;
     }
-    consumer_expr = consumer->expr0 != NULL
-        ? consumer->expr0
-        : consumer->ast;
-    resource_id = ast_node_stable_id(resource->ast);
-    consumer_id = ast_node_stable_id(consumer_expr);
-    if (resource_id != 0 && resource_id == consumer_id)
+    if (resource->source_stable_id != 0
+        && resource->source_stable_id == consumer->source_stable_id) {
         return true;
-    if (consumer_expr == NULL || consumer_expr->type != AST_CALL
-        || resource->ast->type != AST_CALL
-        || resource->slot_anchor == NULL
-        || ast_call_arg_count(consumer_expr) == 0) {
-        return false;
     }
-    resource_callee = ast_call_callee(resource->ast);
-    consumer_callee = ast_call_callee(consumer_expr);
-    if (resource_callee == NULL || consumer_callee == NULL
-        || resource_callee->type != AST_IDENTIFIER
-        || consumer_callee->type != AST_IDENTIFIER) {
-        return false;
-    }
-    resource_callee_name = ast_identifier_name(resource_callee);
-    consumer_callee_name = ast_identifier_name(consumer_callee);
-    if (resource_callee_name == NULL || consumer_callee_name == NULL
-        || strcmp(resource_callee_name, consumer_callee_name) != 0) {
-        return false;
-    }
-    consumer_arg = ast_call_argument(consumer_expr, 0);
-    return consumer_arg != NULL
-        && consumer_arg->type == AST_IDENTIFIER
-        && ast_identifier_name(consumer_arg) != NULL
-        && strcmp(ast_identifier_name(consumer_arg),
-                  resource->slot_anchor) == 0;
+    return false;
 }

@@ -169,9 +169,47 @@ mir_attach_def_type_name_fact(MIRRoutine *routine,
     if (rendered == NULL)
         return;
     inst->abi_type_name = pgy_arena_strdup(&routine->scratch, rendered);
-    if (inst->abi_type_name != NULL)
+    if (inst->abi_type_name != NULL) {
         inst->type_layout = mir_abi_lookup(inst->abi_type_name);
+        inst->abi_layout_id = mir_abi_layout_id(inst->type_layout);
+    }
     free(rendered);
+}
+
+static void
+mir_attach_def_resource_runtime_owner(MIRRoutine *routine,
+                                      MIRInstruction *inst)
+{
+    const MIRResourceRuntimeRow *row;
+
+    if (routine == NULL || inst == NULL || inst->abi_type_name == NULL
+        || (strncmp(inst->abi_type_name, "Slot<", 5) != 0
+            && strncmp(inst->abi_type_name, "SecureSlot<", 11) != 0
+            && strncmp(inst->abi_type_name, "DeviceSlot<", 11) != 0))
+        return;
+    row = mir_abi_resource_runtime_row_for_type_name(
+        inst->abi_type_name, "Claim");
+    if (row == NULL)
+        return;
+    inst->resource_runtime_fact = *row;
+    inst->resource_runtime_fact.domain =
+        pgy_arena_strdup(&routine->scratch, row->domain);
+    inst->resource_runtime_fact.abi_type_name =
+        pgy_arena_strdup(&routine->scratch, row->abi_type_name);
+    inst->resource_runtime_fact.resource_op_name =
+        pgy_arena_strdup(&routine->scratch, row->resource_op_name);
+    inst->resource_runtime_fact.runtime_fn =
+        pgy_arena_strdup(&routine->scratch, row->runtime_fn);
+    inst->resource_runtime_fact.target_kind =
+        pgy_arena_strdup(&routine->scratch, row->target_kind);
+    inst->resource_runtime_fact.materialization =
+        pgy_arena_strdup(&routine->scratch, row->materialization);
+    inst->resource_runtime_fact.call_shape =
+        pgy_arena_strdup(&routine->scratch, row->call_shape);
+    inst->resource_runtime_fact.runtime_call_abi_id =
+        mir_abi_resource_runtime_row_id(&inst->resource_runtime_fact);
+    inst->resource_runtime_fact_present =
+        inst->resource_runtime_fact.runtime_call_abi_id != 0;
 }
 
 void
@@ -188,6 +226,7 @@ mir_attach_def_initializer_call_fact(MIRRoutine *routine,
         expr = ast_let_initializer(stmt);
         inst->expr1 = type_node;
         mir_attach_def_type_name_fact(routine, inst, type_node);
+        mir_attach_def_resource_runtime_owner(routine, inst);
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {

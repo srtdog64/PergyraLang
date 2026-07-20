@@ -16,6 +16,12 @@ func SelfMirJsonRuntimeCallAbiField(
             JsonEmitFieldString(
                 "owner", rows.runtime_call_abi.owners[instruction_index]
             ),
+            JsonEmitFieldNumber(
+                "id",
+                ToString(
+                    rows.runtime_call_abi.runtime_call_abi_ids[instruction_index]
+                )
+            ),
             JsonEmitFieldString(
                 "domain", rows.runtime_call_abi.domains[instruction_index]
             ),

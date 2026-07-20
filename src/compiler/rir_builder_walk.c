@@ -9,8 +9,26 @@
 #define expr_name rir_expr_name
 #define call_name rir_call_name
 
+static bool rir_walk_node_in_statement(RIRScope *scope,
+                                       ASTNode *node,
+                                       uint32_t source_statement_syntax_id);
+static bool rir_walk_block_node_in_statement(
+                                       RIRScope *scope,
+                                       ASTNode *node,
+                                       uint32_t source_statement_syntax_id);
+
+#define add_op(scope, kind, subject, arg0, arg1, ast) \
+    add_op_with_source_statement((scope), (kind), (subject), (arg0), (arg1), \
+                                 (ast), source_statement_syntax_id)
+#define add_op_with_machine_contact(scope, kind, subject, arg0, arg1, contact, ast) \
+    add_op_with_machine_contact_source_statement( \
+        (scope), (kind), (subject), (arg0), (arg1), (contact), (ast), \
+        source_statement_syntax_id)
+
 static bool
-rir_walk_call(RIRScope *scope, ASTNode *node)
+rir_walk_call(RIRScope *scope,
+              ASTNode *node,
+              uint32_t source_statement_syntax_id)
 {
     const char *name;
     bool member_slot_op_handled = false;
@@ -113,10 +131,13 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
         }
     }
 
-    if (!rir_walk_node(scope, ast_call_callee(node)))
+    if (!rir_walk_node_in_statement(
+            scope, ast_call_callee(node), source_statement_syntax_id))
         return false;
     for (size_t i = 0; i < ast_call_arg_count(node); i++) {
-        if (!rir_walk_node(scope, ast_call_argument(node, i)))
+        if (!rir_walk_node_in_statement(
+                scope, ast_call_argument(node, i),
+                source_statement_syntax_id))
             return false;
     }
     return true;
@@ -151,13 +172,24 @@ rir_await_subject_for_operand(ASTNode *operand)
 bool
 rir_walk_node(RIRScope *scope, ASTNode *node)
 {
+    return rir_walk_node_in_statement(
+        scope, node, ast_node_stable_id(node));
+}
+
+static bool
+rir_walk_node_in_statement(RIRScope *scope,
+                           ASTNode *node,
+                           uint32_t source_statement_syntax_id)
+{
     if (scope == NULL || node == NULL)
         return true;
 
     switch (node->type) {
         case AST_BLOCK:
             for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-                if (!rir_walk_node(scope, ast_block_statement(node, i)))
+                ASTNode *statement = ast_block_statement(node, i);
+                if (!rir_walk_node_in_statement(
+                        scope, statement, ast_node_stable_id(statement)))
                     return false;
             }
             return true;
@@ -218,7 +250,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                                    ast_node_stable_id(node),
                                    node))
                 return false;
-            return rir_walk_node(scope, initializer);
+            return rir_walk_node_in_statement(
+                scope, initializer, source_statement_syntax_id);
         }
 
         case AST_WITH_STMT:
@@ -235,7 +268,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                         NULL,
                         node))
                 return false;
-            if (!rir_walk_node(scope, ast_with_body(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_with_body(node), source_statement_syntax_id))
                 return false;
             return add_op(scope, RIR_OP_RELEASE,
                           ast_with_alias(node),
@@ -244,9 +278,12 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                           node);
 
         case AST_ASSIGNMENT:
-            if (!rir_walk_node(scope, ast_assignment_target(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_assignment_target(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_assignment_value(node));
+            return rir_walk_node_in_statement(
+                scope, ast_assignment_value(node), source_statement_syntax_id);
 
         case AST_AWAIT_EXPR:
             if (!add_op(scope,
@@ -257,15 +294,21 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                             ast_await_expression(node)),
                         NULL, NULL, node))
                 return false;
-            return rir_walk_node(scope, ast_await_expression(node));
+            return rir_walk_node_in_statement(
+                scope, ast_await_expression(node),
+                source_statement_syntax_id);
 
         case AST_SPAWN_EXPR:
             if (!add_op(scope, RIR_OP_SPAWN, "spawn", NULL, NULL, node))
                 return false;
-            if (!rir_walk_node(scope, ast_spawn_function(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_spawn_function(node),
+                    source_statement_syntax_id))
                 return false;
             for (size_t i = 0; i < ast_spawn_arg_count(node); i++) {
-                if (!rir_walk_node(scope, ast_spawn_argument(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_spawn_argument(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
             return true;
@@ -278,9 +321,13 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                         NULL,
                         node))
                 return false;
-            if (!rir_walk_node(scope, ast_channel_send_channel(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_channel_send_channel(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_channel_send_value(node));
+            return rir_walk_node_in_statement(
+                scope, ast_channel_send_value(node),
+                source_statement_syntax_id);
 
         case AST_CHANNEL_RECV:
             if (!add_op(scope,
@@ -290,111 +337,166 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                         NULL,
                         node))
                 return false;
-            return rir_walk_node(scope, ast_channel_recv_channel(node));
+            return rir_walk_node_in_statement(
+                scope, ast_channel_recv_channel(node),
+                source_statement_syntax_id);
 
         case AST_BINARY:
-            return rir_walk_node(scope, ast_binary_left(node))
-                && rir_walk_node(scope, ast_binary_right(node));
+            return rir_walk_node_in_statement(
+                       scope, ast_binary_left(node),
+                       source_statement_syntax_id)
+                && rir_walk_node_in_statement(
+                       scope, ast_binary_right(node),
+                       source_statement_syntax_id);
 
         case AST_UNARY:
-            return rir_walk_node(scope, ast_unary_operand(node));
+            return rir_walk_node_in_statement(
+                scope, ast_unary_operand(node), source_statement_syntax_id);
 
         case AST_MEMBER_ACCESS:
-            return rir_walk_node(scope, ast_member_object(node));
+            return rir_walk_node_in_statement(
+                scope, ast_member_object(node), source_statement_syntax_id);
 
         case AST_ARRAY_ACCESS:
-            return rir_walk_node(scope, ast_array_access_array(node))
-                && rir_walk_node(scope, ast_array_access_index(node));
+            return rir_walk_node_in_statement(
+                       scope, ast_array_access_array(node),
+                       source_statement_syntax_id)
+                && rir_walk_node_in_statement(
+                       scope, ast_array_access_index(node),
+                       source_statement_syntax_id);
 
         case AST_ARRAY_LITERAL:
             for (size_t i = 0; i < ast_array_literal_count(node); i++) {
-                if (!rir_walk_node(scope, ast_array_literal_element(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_array_literal_element(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
             return true;
 
         case AST_TUPLE_LITERAL:
             for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
-                if (!rir_walk_node(scope, ast_tuple_literal_element(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_tuple_literal_element(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
             return true;
 
         case AST_MAP_LITERAL:
             for (size_t i = 0; i < ast_map_literal_count(node); i++) {
-                if (!rir_walk_node(scope, ast_map_literal_key(node, i))
-                    || !rir_walk_node(scope,
-                        ast_map_literal_value(node, i))) {
+                if (!rir_walk_node_in_statement(
+                        scope, ast_map_literal_key(node, i),
+                        source_statement_syntax_id)
+                    || !rir_walk_node_in_statement(
+                        scope, ast_map_literal_value(node, i),
+                        source_statement_syntax_id)) {
                     return false;
                 }
             }
             return true;
 
         case AST_CAST:
-            return rir_walk_node(scope, ast_cast_operand(node));
+            return rir_walk_node_in_statement(
+                scope, ast_cast_operand(node), source_statement_syntax_id);
 
         case AST_TYPE_TEST:
-            return rir_walk_node(scope, ast_type_test_operand(node));
+            return rir_walk_node_in_statement(
+                scope, ast_type_test_operand(node),
+                source_statement_syntax_id);
 
         case AST_SELECT_STMT:
             if (!add_op(scope, RIR_OP_CHANNEL_SELECT, "select", NULL, NULL, node))
                 return false;
             for (size_t i = 0; i < ast_select_case_count(node); i++) {
-                if (!rir_walk_node(scope, ast_select_case(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_select_case(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
-            return rir_walk_node(scope, ast_select_default_case(node));
+            return rir_walk_node_in_statement(
+                scope, ast_select_default_case(node),
+                source_statement_syntax_id);
 
         case AST_CALL:
-            return rir_walk_call(scope, node);
+            return rir_walk_call(scope, node, source_statement_syntax_id);
 
         case AST_IF_STMT:
-            if (!rir_walk_node(scope, ast_if_condition(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_if_condition(node),
+                    source_statement_syntax_id))
                 return false;
-            if (!rir_walk_node(scope, ast_if_then_branch(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_if_then_branch(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_if_else_branch(node));
+            return rir_walk_node_in_statement(
+                scope, ast_if_else_branch(node), source_statement_syntax_id);
 
         case AST_FOR_LOOP:
-            if (!rir_walk_node(scope, ast_for_range_start(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_for_range_start(node),
+                    source_statement_syntax_id))
                 return false;
-            if (!rir_walk_node(scope, ast_for_range_end(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_for_range_end(node),
+                    source_statement_syntax_id))
                 return false;
-            if (!rir_walk_node(scope, ast_for_iterable(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_for_iterable(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_for_body(node));
+            return rir_walk_node_in_statement(
+                scope, ast_for_body(node), source_statement_syntax_id);
 
         case AST_WHILE_LOOP:
-            if (!rir_walk_node(scope, ast_while_condition(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_while_condition(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_while_body(node));
+            return rir_walk_node_in_statement(
+                scope, ast_while_body(node), source_statement_syntax_id);
 
         case AST_RETURN:
-            return rir_walk_node(scope, ast_return_value(node));
+            return rir_walk_node_in_statement(
+                scope, ast_return_value(node), source_statement_syntax_id);
 
         case AST_MATCH_STMT:
-            if (!rir_walk_node(scope, ast_match_subject(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_match_subject(node),
+                    source_statement_syntax_id))
                 return false;
             for (size_t i = 0; i < ast_match_case_count(node); i++) {
-                if (!rir_walk_node(scope, ast_match_case_at(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_match_case_at(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
-            if (!rir_walk_node(scope, ast_match_default_body(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_match_default_body(node),
+                    source_statement_syntax_id))
                 return false;
             return true;
 
         case AST_MATCH_CASE:
-            if (!rir_walk_node(scope, ast_match_case_pattern(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_match_case_pattern(node),
+                    source_statement_syntax_id))
                 return false;
-            if (!rir_walk_node(scope, ast_match_case_guard(node)))
+            if (!rir_walk_node_in_statement(
+                    scope, ast_match_case_guard(node),
+                    source_statement_syntax_id))
                 return false;
-            return rir_walk_node(scope, ast_match_case_body(node));
+            return rir_walk_node_in_statement(
+                scope, ast_match_case_body(node), source_statement_syntax_id);
 
         case AST_PARALLEL_BLOCK:
             if (!add_op(scope, RIR_OP_PARALLEL, "parallel", NULL, NULL, node))
                 return false;
             for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
-                if (!rir_walk_node(scope, ast_parallel_task(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_parallel_task(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
             return true;
@@ -403,7 +505,9 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
             if (!add_op(scope, RIR_OP_ASYNC, "async", NULL, NULL, node))
                 return false;
             for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
-                if (!rir_walk_node(scope, ast_async_block_statement(node, i)))
+                if (!rir_walk_node_in_statement(
+                        scope, ast_async_block_statement(node, i),
+                        source_statement_syntax_id))
                     return false;
             }
             return true;
@@ -416,38 +520,65 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
 bool
 rir_walk_block_node(RIRScope *scope, ASTNode *node)
 {
+    return rir_walk_block_node_in_statement(
+        scope, node, ast_node_stable_id(node));
+}
+
+static bool
+rir_walk_block_node_in_statement(RIRScope *scope,
+                                 ASTNode *node,
+                                 uint32_t source_statement_syntax_id)
+{
     if (scope == NULL || node == NULL)
         return true;
 
     switch (node->type) {
         case AST_IF_STMT:
-            return rir_walk_block_node(scope, ast_if_condition(node));
+            return rir_walk_block_node_in_statement(
+                scope, ast_if_condition(node), source_statement_syntax_id);
         case AST_FOR_LOOP:
-            return rir_walk_block_node(scope, ast_for_range_start(node))
-                   && rir_walk_block_node(scope, ast_for_range_end(node))
-                   && rir_walk_block_node(scope, ast_for_iterable(node));
+            return rir_walk_block_node_in_statement(
+                       scope, ast_for_range_start(node),
+                       source_statement_syntax_id)
+                   && rir_walk_block_node_in_statement(
+                       scope, ast_for_range_end(node),
+                       source_statement_syntax_id)
+                   && rir_walk_block_node_in_statement(
+                       scope, ast_for_iterable(node),
+                       source_statement_syntax_id);
         case AST_WHILE_LOOP:
-            return rir_walk_block_node(scope, ast_while_condition(node));
+            return rir_walk_block_node_in_statement(
+                scope, ast_while_condition(node),
+                source_statement_syntax_id);
         case AST_MATCH_STMT:
-            if (!rir_walk_block_node(scope, ast_match_subject(node)))
+            if (!rir_walk_block_node_in_statement(
+                    scope, ast_match_subject(node),
+                    source_statement_syntax_id))
                 return false;
             for (size_t i = 0; i < ast_match_case_count(node); i++) {
                 ASTNode *match_case = ast_match_case_at(node, i);
                 if (match_case == NULL)
                     continue;
-                if (!rir_walk_block_node(scope, ast_match_case_pattern(match_case))
-                    || !rir_walk_block_node(scope, ast_match_case_guard(match_case))) {
+                if (!rir_walk_block_node_in_statement(
+                        scope, ast_match_case_pattern(match_case),
+                        source_statement_syntax_id)
+                    || !rir_walk_block_node_in_statement(
+                        scope, ast_match_case_guard(match_case),
+                        source_statement_syntax_id)) {
                     return false;
                 }
             }
             return true;
         case AST_BLOCK:
             for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-                if (!rir_walk_block_node(scope, ast_block_statement(node, i)))
+                ASTNode *statement = ast_block_statement(node, i);
+                if (!rir_walk_block_node_in_statement(
+                        scope, statement, ast_node_stable_id(statement)))
                     return false;
             }
             return true;
         default:
-            return rir_walk_node(scope, node);
+            return rir_walk_node_in_statement(
+                scope, node, source_statement_syntax_id);
     }
 }

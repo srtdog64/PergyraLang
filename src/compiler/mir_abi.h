@@ -56,6 +56,10 @@ typedef struct MIRResourceRuntimeRow
     const char *target_kind;
     const char *materialization;
     const char *call_shape;
+    /* Stable logical identity for this row.  It is materialized into MIR
+     * after lookup; static/dynamic lookup rows themselves may leave this zero
+     * because the owner computes it from the canonical domain/type/op key. */
+    uint32_t    runtime_call_abi_id;
 } MIRResourceRuntimeRow;
 
 typedef enum

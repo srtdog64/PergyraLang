@@ -162,7 +162,7 @@ grep -Fq "C backend: slot builtin expression formatting failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C backend: slot builtin expression allocation failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
-grep -Fq "transpiler_slot_runtime_row_for_operation(" \
+grep -Fq "transpiler_slot_runtime_row_for_source_operation(" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
@@ -170,6 +170,18 @@ grep -Fq "C source slot builtin %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "MIR resource op '%s' is missing runtime ABI layout metadata" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "C MIR resource op '%s' is missing its lowered ABI layout fact" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "C MIR resource op '%s' carries a missing or mismatched ABI layout identity" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "C MIR source operation has no active instruction-owned runtime-call ABI row" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "C MIR source operation has a missing or mismatched ABI layout identity" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "LLVM MIR source operation has no active instruction-owned runtime-call ABI row" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
+grep -Fq "LLVM MIR source operation has a missing or mismatched ABI layout identity" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "mir_abi_resource_runtime_row_by_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
@@ -187,31 +199,35 @@ grep -Fq "resource_runtime_fact_present" \
 grep -Fq "resource op is missing lowered runtime-call ABI row fact" \
     "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "llvm_slot_runtime_row_for_operation(" \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "inst->resource_runtime_fact_present" \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "LLVM MIR resource operation is missing its lowered runtime-call ABI row" \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "row->call_shape" \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
+grep -Fq "mir_abi_resource_runtime_row_matches_owner(row)" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
+grep -Fq "mir_abi_resource_runtime_row_matches_owner(row)" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq '"returns_container"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_to_value"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_value_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"PinRead"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"PinWrite"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"PinReadInit"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"PinWriteInit"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"Unpin"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 if grep -F 'llvm_runtime_slot_name' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot runtime declarations must not synthesize runtime function names locally" >&2
@@ -222,11 +238,16 @@ if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
     echo "[backend-fail-closed] LLVM slot runtime declarations must consume runtime ABI row records, not symbol-only accessors" >&2
     exit 1
 fi
+if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM runtime-row selection must consume row records, not symbol-only accessors" >&2
+    exit 1
+fi
 llvm_direct_row_consumers="$({
     grep -RIlE --include='llvm_*.c' \
         'mir_abi_resource_runtime_row_by_(kind|type_name)\(' \
         "$ROOT_DIR/src/codegen" || true
-} | grep -v '/llvm_runtime.c$' || true)"
+} | grep -v '/llvm_runtime_row.c$' || true)"
 if [[ -n "$llvm_direct_row_consumers" ]]; then
     echo "[backend-fail-closed] LLVM runtime-row consumers must enter through llvm_slot_runtime_row_for_operation:" >&2
     printf '%s\n' "$llvm_direct_row_consumers" >&2
@@ -286,13 +307,13 @@ grep -Fq "llvm_slot_runtime_row_for_operation(" \
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"token_ptr_to_container"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_token_ptr_to_value"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_value_token_ptr_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"container_ptr_token_ptr_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"PinWrite"' \

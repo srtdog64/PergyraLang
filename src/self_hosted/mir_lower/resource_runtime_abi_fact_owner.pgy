@@ -4,6 +4,8 @@
 
 import "json_fact_read.pgy";
 import "machine_layer_fact_owner.pgy";
+import "../mir/runtime_call_abi_fact_owner.pgy";
+import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
 
 func MirResourceRuntimeRowRequired(operation: String) -> Bool {
     return operation == "Claim" || operation == "Read" ||
@@ -39,18 +41,34 @@ func MirResourceRuntimeRowFactReady(
             row, "operation", expected_operation) {
         return false;
     }
-    let required_fields: Array<String> = [
-        "domain", "type", "symbol", "target_kind", "materialization",
-        "call_shape"
-    ];
-    let i: Int = 0;
-    while i < ArrayLength(required_fields) {
-        let value: Option<String> = JsonObjectFactStringFieldOpt(
-            row, required_fields[i]);
-        if !IsSome(value) || StringLength(UnwrapOption(value)) == 0 {
-            return false;
-        }
-        i = i + 1;
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, "id");
+    let domain_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        row, "domain"
+    );
+    let type_opt: Option<String> = JsonObjectFactStringFieldOpt(row, "type");
+    if !IsSome(id_opt) || !IsSome(domain_opt) || !IsSome(type_opt) {
+        return false;
+    }
+    let id: Int = ToInt(UnwrapOption(id_opt));
+    let domain: String = UnwrapOption(domain_opt);
+    let type_name: String = UnwrapOption(type_opt);
+    if id <= 0 || id != CompilerRuntimeCallAbiRowId(
+        domain, type_name, expected_operation
+    ) {
+        return false;
+    }
+    let expected: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(
+            type_name, expected_operation);
+    if !expected.ok || domain != expected.domain ||
+        !JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "target_kind", expected.symbol_kind) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "materialization", expected.materialization) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "call_shape", expected.call_shape) {
+        return false;
     }
     return true;
 }

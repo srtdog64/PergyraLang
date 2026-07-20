@@ -8,7 +8,7 @@
 /* Runtime function spelling is payload carried by resource ABI rows. */
 #define ABI_RESOURCE_OP(type_name, op_name, runtime_fn, call_shape) \
     { "native-resource", (type_name), (op_name), (runtime_fn), \
-      "function", "mir_abi_resource_row", (call_shape) }
+      "function", "mir_abi_resource_row", (call_shape), 0 }
 
 #define ABI_RESOURCE_OPS(type_name, claim_fn, read_fn, write_fn, release_fn, \
                          claim_shape, read_shape, write_shape, release_shape) \
@@ -178,6 +178,27 @@ static const MIRResourceRuntimeRow k_abi_resource_runtime_fn_table[] = {
 #define PGY_ABI_RESOURCE_RUNTIME_FN_COUNT \
     (sizeof(k_abi_resource_runtime_fn_table) / sizeof(k_abi_resource_runtime_fn_table[0]))
 
+/* Runtime-call identities are logical owner handles, not table positions.
+ * Keep the small deterministic hash deliberately target-neutral: a symbol
+ * spelling or materialization policy may change without changing the logical
+ * operation identity.  The reserved high range keeps these IDs distinct from
+ * the legacy intent-observability ABI IDs. */
+#define ABI_RUNTIME_CALL_ID_MODULUS UINT64_C(0x10000000)
+#define ABI_RUNTIME_CALL_ID_BASE UINT32_C(0x40000000)
+static uint64_t
+abi_runtime_call_id_mix_text(uint64_t hash, const char *text)
+{
+    if (text == NULL)
+        return (hash * UINT64_C(131) + UINT64_C(1))
+            % ABI_RUNTIME_CALL_ID_MODULUS;
+    while (*text != '\0') {
+        hash = (hash * UINT64_C(131) + (unsigned char)*text)
+            % ABI_RUNTIME_CALL_ID_MODULUS;
+        text++;
+    }
+    return hash;
+}
+
 #undef ABI_RESOURCE_OPS
 #undef ABI_PIN_OPS
 #undef ABI_PLAIN_RESOURCE_OPS
@@ -198,6 +219,37 @@ mir_abi_resource_runtime_row_at(size_t index)
     if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
         return NULL;
     return &k_abi_resource_runtime_fn_table[index];
+}
+
+uint32_t
+mir_abi_resource_runtime_row_id(const MIRResourceRuntimeRow *row)
+{
+    uint64_t hash = UINT64_C(7);
+
+    if (row == NULL || row->domain == NULL || row->abi_type_name == NULL
+        || row->resource_op_name == NULL || row->domain[0] == '\0'
+        || row->abi_type_name[0] == '\0' || row->resource_op_name[0] == '\0') {
+        return 0;
+    }
+    hash = abi_runtime_call_id_mix_text(hash, row->domain);
+    hash = abi_runtime_call_id_mix_text(hash, "|");
+    hash = abi_runtime_call_id_mix_text(hash, row->abi_type_name);
+    hash = abi_runtime_call_id_mix_text(hash, "|");
+    hash = abi_runtime_call_id_mix_text(hash, row->resource_op_name);
+    return ABI_RUNTIME_CALL_ID_BASE
+        + (uint32_t)(hash % ABI_RUNTIME_CALL_ID_MODULUS);
+}
+
+bool
+mir_abi_resource_runtime_row_is_constructed_nominal(
+    const MIRResourceRuntimeRow *row)
+{
+    return row != NULL
+        && row->domain != NULL
+        && row->materialization != NULL
+        && strcmp(row->domain, "constructed-resource") == 0
+        && strcmp(row->materialization,
+                  "constructed_resource_runtime_spelling") == 0;
 }
 
 const MIRResourceRuntimeRow *
@@ -265,6 +317,35 @@ mir_abi_resource_runtime_row_for_type_name(const char *abi_type_name,
         kind, inner_type_name, resource_op_name);
 }
 
+bool
+mir_abi_resource_runtime_row_matches_owner(
+    const MIRResourceRuntimeRow *row)
+{
+    const MIRResourceRuntimeRow *expected;
+
+    if (row == NULL || row->abi_type_name == NULL
+        || row->resource_op_name == NULL || row->domain == NULL
+        || row->runtime_fn == NULL || row->target_kind == NULL
+        || row->materialization == NULL || row->call_shape == NULL
+        || row->runtime_call_abi_id == 0
+        || row->runtime_call_abi_id != mir_abi_resource_runtime_row_id(row)) {
+        return false;
+    }
+    expected = mir_abi_resource_runtime_row_for_type_name(
+        row->abi_type_name, row->resource_op_name);
+    return expected != NULL
+        && expected->domain != NULL
+        && expected->runtime_fn != NULL
+        && expected->target_kind != NULL
+        && expected->materialization != NULL
+        && expected->call_shape != NULL
+        && strcmp(row->domain, expected->domain) == 0
+        && strcmp(row->runtime_fn, expected->runtime_fn) == 0
+        && strcmp(row->target_kind, expected->target_kind) == 0
+        && strcmp(row->materialization, expected->materialization) == 0
+        && strcmp(row->call_shape, expected->call_shape) == 0;
+}
+
 const char *
 mir_abi_resource_runtime_row_domain(size_t index)
 {
@@ -313,284 +394,12 @@ mir_abi_resource_runtime_row_materialization(size_t index)
     return k_abi_resource_runtime_fn_table[index].materialization;
 }
 
-static const char *
-mir_abi_resource_runtime_call_shape(const char *type_name,
-                                    const char *resource_op_name)
-{
-    bool is_secure = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
-
-    if (resource_op_name == NULL)
-        return NULL;
-
-    if (strcmp(resource_op_name, "Claim") == 0)
-        return is_secure ? "token_ptr_to_container" : "returns_container";
-    if (strcmp(resource_op_name, "Read") == 0)
-        return is_secure ? "container_ptr_token_ptr_to_value"
-                         : "container_ptr_to_value";
-    if (strcmp(resource_op_name, "Release") == 0)
-        return is_secure ? "container_ptr_token_ptr_to_void"
-                         : "container_ptr_to_void";
-    if (strcmp(resource_op_name, "Write") == 0)
-        return is_secure ? "container_ptr_value_token_ptr_to_void"
-                         : "container_ptr_value_to_void";
-    if (strcmp(resource_op_name, "PinRead") == 0 ||
-        strcmp(resource_op_name, "PinWrite") == 0)
-        return is_secure ? "container_ptr_token_ptr_to_pinned_view"
-                         : "container_ptr_to_pinned_view";
-    if (strcmp(resource_op_name, "PinReadInit") == 0 ||
-        strcmp(resource_op_name, "PinWriteInit") == 0)
-        return is_secure ? "pinned_view_ptr_container_ptr_token_ptr_to_void"
-                         : "pinned_view_ptr_container_ptr_to_void";
-    if (strcmp(resource_op_name, "Unpin") == 0 ||
-        strcmp(resource_op_name, "UnpinCleanup") == 0)
-        return "pinned_view_ptr_to_void";
-    if (strcmp(resource_op_name, "SubmitRead") == 0)
-        return "container_ptr_to_task_handle";
-    return NULL;
-}
-
 const char *
 mir_abi_resource_runtime_row_call_shape(size_t index)
 {
     if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
         return NULL;
     return k_abi_resource_runtime_fn_table[index].call_shape;
-}
-
-static bool
-abi_runtime_suffix_copy(const char *type_name, char *buf, size_t buf_size)
-{
-    size_t out = 0;
-    size_t i = 0;
-    bool last_was_underscore = false;
-
-    if (buf == NULL || buf_size == 0)
-        return false;
-    buf[0] = '\0';
-    if (type_name == NULL || type_name[0] == '\0')
-        return false;
-    if (strcmp(type_name, "Unknown") == 0 || strcmp(type_name, "Void") == 0)
-        return false;
-
-    for (i = 0; type_name[i] != '\0' && out + 1 < buf_size; i++) {
-        unsigned char ch = (unsigned char)type_name[i];
-        if ((ch >= 'a' && ch <= 'z')
-            || (ch >= 'A' && ch <= 'Z')
-            || (ch >= '0' && ch <= '9')) {
-            buf[out++] = (char)ch;
-            last_was_underscore = false;
-        } else if (out > 0 && !last_was_underscore) {
-            buf[out++] = '_';
-            last_was_underscore = true;
-        }
-    }
-    if (type_name[i] != '\0') {
-        buf[0] = '\0';
-        return false;
-    }
-    while (out > 0 && buf[out - 1] == '_')
-        out--;
-    if (out == 0)
-        return false;
-    if (buf[0] >= '0' && buf[0] <= '9') {
-        if (out + 3 >= buf_size) {
-            buf[0] = '\0';
-            return false;
-        }
-        memmove(buf + 2, buf, out);
-        buf[0] = 'T';
-        buf[1] = '_';
-        out += 2;
-    }
-    buf[out] = '\0';
-    return true;
-}
-
-static const char *
-abi_constructed_resource_runtime_prefix(MIRResourceAbiKind kind,
-                                        const char *resource_op_name)
-{
-    if (resource_op_name == NULL)
-        return NULL;
-
-    switch (kind) {
-    case MIR_RESOURCE_ABI_SLOT:
-        if (strcmp(resource_op_name, "Claim") == 0)
-            return "pgy_claim_";
-        if (strcmp(resource_op_name, "Read") == 0)
-            return "pgy_read_";
-        if (strcmp(resource_op_name, "Write") == 0)
-            return "pgy_write_";
-        if (strcmp(resource_op_name, "Release") == 0)
-            return "pgy_release_";
-        if (strcmp(resource_op_name, "PinRead") == 0)
-            return "pgy_pin_read_";
-        if (strcmp(resource_op_name, "PinWrite") == 0)
-            return "pgy_pin_write_";
-        if (strcmp(resource_op_name, "PinReadInit") == 0)
-            return "pgy_pin_read_init_";
-        if (strcmp(resource_op_name, "PinWriteInit") == 0)
-            return "pgy_pin_write_init_";
-        if (strcmp(resource_op_name, "Unpin") == 0)
-            return "pgy_unpin_";
-        if (strcmp(resource_op_name, "UnpinCleanup") == 0)
-            return "pgy_unpin_cleanup_";
-        return NULL;
-    case MIR_RESOURCE_ABI_SECURE_SLOT:
-        if (strcmp(resource_op_name, "Claim") == 0)
-            return "pgy_claim_secure_";
-        if (strcmp(resource_op_name, "Read") == 0)
-            return "pgy_secure_read_";
-        if (strcmp(resource_op_name, "Write") == 0)
-            return "pgy_secure_write_";
-        if (strcmp(resource_op_name, "Release") == 0)
-            return "pgy_secure_release_";
-        if (strcmp(resource_op_name, "PinRead") == 0)
-            return "pgy_secure_pin_read_";
-        if (strcmp(resource_op_name, "PinWrite") == 0)
-            return "pgy_secure_pin_write_";
-        if (strcmp(resource_op_name, "PinReadInit") == 0)
-            return "pgy_secure_pin_read_init_";
-        if (strcmp(resource_op_name, "PinWriteInit") == 0)
-            return "pgy_secure_pin_write_init_";
-        if (strcmp(resource_op_name, "Unpin") == 0)
-            return "pgy_secure_unpin_";
-        if (strcmp(resource_op_name, "UnpinCleanup") == 0)
-            return "pgy_secure_unpin_cleanup_";
-        return NULL;
-    case MIR_RESOURCE_ABI_DEVICE_SLOT:
-        if (strcmp(resource_op_name, "Claim") == 0)
-            return "pgy_claim_device_";
-        if (strcmp(resource_op_name, "Read") == 0)
-            return "pgy_device_read_";
-        if (strcmp(resource_op_name, "Write") == 0)
-            return "pgy_device_write_";
-        if (strcmp(resource_op_name, "Release") == 0)
-            return "pgy_release_device_";
-        if (strcmp(resource_op_name, "SubmitRead") == 0)
-            return "pgy_submit_device_read_";
-        return NULL;
-    }
-
-    return NULL;
-}
-
-static const MIRResourceRuntimeRow *
-abi_constructed_resource_runtime_row(MIRResourceAbiKind kind,
-                                     const char *inner_type_name,
-                                     const char *resource_op_name)
-{
-    enum {
-        ABI_RUNTIME_ROW_RING_SIZE = 16,
-        ABI_RUNTIME_TYPE_BUF_SIZE = 96,
-        ABI_RUNTIME_FN_BUF_SIZE = 160
-    };
-    static _Thread_local MIRResourceRuntimeRow rows[ABI_RUNTIME_ROW_RING_SIZE];
-    static _Thread_local char type_names[ABI_RUNTIME_ROW_RING_SIZE]
-                                        [ABI_RUNTIME_TYPE_BUF_SIZE];
-    static _Thread_local char runtime_fns[ABI_RUNTIME_ROW_RING_SIZE]
-                                        [ABI_RUNTIME_FN_BUF_SIZE];
-    static _Thread_local size_t next_row;
-    const char *container_name;
-    const char *prefix;
-    const char *call_shape;
-    char suffix[96];
-    size_t row_index;
-    int written;
-
-    if (inner_type_name == NULL || resource_op_name == NULL)
-        return NULL;
-
-    switch (kind) {
-    case MIR_RESOURCE_ABI_SLOT:
-        container_name = "Slot";
-        break;
-    case MIR_RESOURCE_ABI_SECURE_SLOT:
-        container_name = "SecureSlot";
-        break;
-    case MIR_RESOURCE_ABI_DEVICE_SLOT:
-        container_name = "DeviceSlot";
-        break;
-    default:
-        return NULL;
-    }
-
-    prefix = abi_constructed_resource_runtime_prefix(kind, resource_op_name);
-    if (prefix == NULL)
-        return NULL;
-    if (!abi_runtime_suffix_copy(inner_type_name, suffix, sizeof(suffix)))
-        return NULL;
-
-    row_index = next_row++ % ABI_RUNTIME_ROW_RING_SIZE;
-    written = snprintf(type_names[row_index], ABI_RUNTIME_TYPE_BUF_SIZE,
-                       "%s<%s>", container_name, inner_type_name);
-    if (written < 0 || (size_t)written >= ABI_RUNTIME_TYPE_BUF_SIZE) {
-        type_names[row_index][0] = '\0';
-        return NULL;
-    }
-    written = snprintf(runtime_fns[row_index], ABI_RUNTIME_FN_BUF_SIZE,
-                       "%s%s", prefix, suffix);
-    if (written < 0 || (size_t)written >= ABI_RUNTIME_FN_BUF_SIZE) {
-        runtime_fns[row_index][0] = '\0';
-        return NULL;
-    }
-
-    call_shape = mir_abi_resource_runtime_call_shape(type_names[row_index],
-                                                     resource_op_name);
-    if (call_shape == NULL)
-        return NULL;
-
-    rows[row_index] = (MIRResourceRuntimeRow) {
-        "constructed-resource",
-        type_names[row_index],
-        resource_op_name,
-        runtime_fns[row_index],
-        "function",
-        "constructed_resource_runtime_spelling",
-        call_shape
-    };
-    return &rows[row_index];
-}
-
-const MIRResourceRuntimeRow *
-mir_abi_resource_runtime_row_by_kind(MIRResourceAbiKind kind,
-                                     const char *inner_type_name,
-                                     const char *resource_op_name)
-{
-    const char *container_name;
-    char abi_type_name[96];
-    const MIRResourceRuntimeRow *row;
-    int written;
-
-    if (inner_type_name == NULL || resource_op_name == NULL)
-        return NULL;
-
-    switch (kind) {
-    case MIR_RESOURCE_ABI_SLOT:
-        container_name = "Slot";
-        break;
-    case MIR_RESOURCE_ABI_SECURE_SLOT:
-        container_name = "SecureSlot";
-        break;
-    case MIR_RESOURCE_ABI_DEVICE_SLOT:
-        container_name = "DeviceSlot";
-        break;
-    default:
-        return NULL;
-    }
-
-    written = snprintf(abi_type_name, sizeof(abi_type_name), "%s<%s>",
-                       container_name, inner_type_name);
-    if (written < 0 || (size_t)written >= sizeof(abi_type_name))
-        return NULL;
-
-    row = mir_abi_resource_runtime_row_by_type_name(abi_type_name,
-                                                    resource_op_name);
-    if (row != NULL)
-        return row;
-
-    return abi_constructed_resource_runtime_row(kind, inner_type_name,
-                                                resource_op_name);
 }
 
 const char *

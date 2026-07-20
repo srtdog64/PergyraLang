@@ -1,6 +1,7 @@
 #include "mir_abi_layout.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "../runtime/pgy_abi_spec.h"
@@ -382,6 +383,79 @@ mir_abi_lookup(const char *pergyra_type_name)
         return NULL;
 
     return abi_type_lookup_by_name(pergyra_type_name);
+}
+
+static uint64_t
+mir_abi_layout_hash_u32(uint64_t hash, uint32_t value)
+{
+    /* Encode integers explicitly little-endian; do not hash host object
+     * bytes, or the identity would vary with the compiler's target endian. */
+    for (unsigned int i = 0; i < 4; i++) {
+        hash ^= (unsigned char)((value >> (i * 8)) & 0xffU);
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint64_t
+mir_abi_layout_hash_i32(uint64_t hash, int32_t value)
+{
+    return mir_abi_layout_hash_u32(hash, (uint32_t)value);
+}
+
+static uint64_t
+mir_abi_layout_hash_string(uint64_t hash, const char *text)
+{
+    const unsigned char *bytes = (const unsigned char *)
+        (text != NULL ? text : "");
+
+    while (*bytes != 0) {
+        hash ^= *bytes++;
+        hash *= UINT64_C(1099511628211);
+    }
+    /* Delimit variable-length strings so concatenation cannot alias. */
+    hash ^= 0xffU;
+    hash *= UINT64_C(1099511628211);
+    return hash;
+}
+
+uint32_t
+mir_abi_layout_id(const MIRTypeLayout *layout)
+{
+    /* Stable identity for a complete static MIR ABI layout row. */
+    uint64_t hash = UINT64_C(1469598103934665603);
+    uint32_t field_count;
+    uint32_t representation;
+
+    if (layout == NULL || layout->abi_type_name == NULL
+        || layout->field_count > MIR_MAX_TYPE_FIELDS) {
+        return 0;
+    }
+
+    hash = mir_abi_layout_hash_string(hash, layout->abi_type_name);
+    hash = mir_abi_layout_hash_u32(hash, layout->size_bytes);
+    hash = mir_abi_layout_hash_u32(hash, layout->align_bytes);
+    field_count = layout->field_count;
+    hash = mir_abi_layout_hash_u32(hash, field_count);
+    for (uint32_t i = 0; i < field_count; i++) {
+        const MIRFieldLayout *field = &layout->fields[i];
+        hash = mir_abi_layout_hash_string(hash, field->field_name);
+        hash = mir_abi_layout_hash_u32(hash, field->offset);
+        hash = mir_abi_layout_hash_u32(hash, field->field_size);
+        hash = mir_abi_layout_hash_u32(hash, field->field_align);
+    }
+    hash = mir_abi_layout_hash_string(hash, layout->runtime_fn);
+    hash = mir_abi_layout_hash_string(hash, layout->inner_c_type);
+    representation = (uint32_t)layout->representation;
+    hash = mir_abi_layout_hash_u32(hash, representation);
+    hash = mir_abi_layout_hash_string(hash, layout->discriminant_field_name);
+    hash = mir_abi_layout_hash_i32(hash, layout->primary_tag_value);
+    hash = mir_abi_layout_hash_i32(hash, layout->secondary_tag_value);
+    hash = mir_abi_layout_hash_string(hash, layout->niche_none_pattern);
+
+    /* Keep layout IDs in a distinct namespace from RuntimeCallAbiId. */
+    return UINT32_C(0x20000000)
+        + (uint32_t)(hash % UINT64_C(0x10000000));
 }
 
 const MIRAbiTargetPolicy *

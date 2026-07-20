@@ -31,6 +31,11 @@ transpiler_mir_inst_should_precede(const MIRInstruction *left,
                                    const MIRInstruction *right,
                                    size_t right_original_index)
 {
+    bool left_is_with_release =
+        mir_instruction_source_is_with_slot_release(left);
+    bool right_is_with_release =
+        mir_instruction_source_is_with_slot_release(right);
+
     if (left == NULL || right == NULL)
         return left_original_index < right_original_index;
 
@@ -38,6 +43,13 @@ transpiler_mir_inst_should_precede(const MIRInstruction *left,
         mir_instruction_source_statement_order_compare(left, right);
     if (source_order != 0)
         return source_order < 0;
+
+    /* A with-owned Release carries the body-tail source index so its owner
+     * remains tied to the body statement in MIR.  Resolve that intentional
+     * tie after the body's residual statement/resource consumers; otherwise
+     * the stable physical inventory order would release before Read/Print. */
+    if (left_is_with_release != right_is_with_release)
+        return !left_is_with_release;
 
     return left_original_index < right_original_index;
 }

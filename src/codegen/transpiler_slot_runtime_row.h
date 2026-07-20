@@ -18,6 +18,12 @@ const MIRResourceRuntimeRow *transpiler_slot_runtime_row_for_operation(
     bool secure,
     const char *inner_type,
     const char *operation);
+const MIRResourceRuntimeRow *transpiler_slot_runtime_row_for_source_operation(
+    TranspilerCtx *ctx,
+    const ASTNode *source_call,
+    bool secure,
+    const char *inner_type,
+    const char *operation);
 
 void transpiler_emit_nominal_container_runtime_rows(CodeBuf *dst,
                                                     const char *type_name,

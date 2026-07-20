@@ -176,6 +176,8 @@ mir_resource_runtime_fact_source_for_consumer(
     const MIRBasicBlock *block,
     const MIRInstruction *consumer)
 {
+    const MIRInstruction *match = NULL;
+
     if (block == NULL || consumer == NULL
         || consumer->kind == MIR_INST_RESOURCE_OP) {
         return NULL;
@@ -186,10 +188,12 @@ mir_resource_runtime_fact_source_for_consumer(
             && resource->resource_runtime_fact_present
             && mir_instruction_consumes_resource_source(
                 resource, consumer)) {
-            return resource;
+            if (match != NULL)
+                return NULL;
+            match = resource;
         }
     }
-    return NULL;
+    return match;
 }
 
 static bool
@@ -240,10 +244,34 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         const char *root_call_name = mir_instruction_root_call_name(inst);
         const MIRTextBuilderRuntimeRow *expected_text_builder_row =
             mir_text_builder_runtime_row_by_source_name(root_call_name);
+        if (inst->type_layout != NULL
+            && (inst->abi_layout_id == 0
+                || inst->abi_layout_id != mir_abi_layout_id(inst->type_layout))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] ABI layout fact has missing or mismatched stable identity",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (expected_text_builder_row != inst->text_builder_runtime_row) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] TextBuilder runtime-call ABI fact is missing or mismatched",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->resource_runtime_fact_present
+            && !mir_abi_resource_runtime_row_matches_owner(
+                &inst->resource_runtime_fact)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] carries an invalid runtime-call ABI row",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);
@@ -265,7 +293,11 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                 || strcmp(row->resource_op_name, operation) != 0
                 || row->runtime_fn == NULL
                 || row->materialization == NULL
-                || row->call_shape == NULL) {
+                || row->call_shape == NULL
+                || row->runtime_call_abi_id == 0
+                || row->runtime_call_abi_id
+                    != mir_abi_resource_runtime_row_id(row)
+                || !mir_abi_resource_runtime_row_matches_owner(row)) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR routine '%s' block[%zu] instruction[%zu] resource op is missing lowered runtime-call ABI row fact",
@@ -297,6 +329,9 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                     || expected->runtime_fn == NULL
                     || strcmp(actual->runtime_fn,
                               expected->runtime_fn) != 0
+                    || actual->runtime_call_abi_id == 0
+                    || actual->runtime_call_abi_id
+                        != expected->runtime_call_abi_id
                     || (rir_machine_contact_kind_is_present(
                             inst->machine_contact_kind)
                         && !mir_machine_layer_fact_matches_runtime_operation(

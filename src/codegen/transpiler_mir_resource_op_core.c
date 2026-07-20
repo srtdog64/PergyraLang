@@ -109,6 +109,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     TranspilerMIRResourceOp op;
     char anchor_expr_buf[128];
     const char *anchor_expr = NULL;
+    bool constructed_nominal = false;
     bool mir_active = transpiler_active_has_mir(ctx);
 
     if (out == NULL || inst == NULL)
@@ -142,13 +143,40 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     effective_abi_type_name = inst->abi_type_name;
     op_name = inst->name;
     op = transpiler_mir_resource_op_lookup(op_name);
+    constructed_nominal = inst->resource_runtime_fact_present
+        && mir_abi_resource_runtime_row_is_constructed_nominal(
+            &inst->resource_runtime_fact);
 
     if (effective_layout == NULL) {
+        if (mir_active && !constructed_nominal) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C MIR resource op '%s' is missing its lowered ABI layout fact",
+                op_name != NULL ? op_name : "<op>");
+            return false;
+        }
         const char *abi_key = effective_abi_type_name != NULL
             ? effective_abi_type_name
             : (inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor);
         if (abi_key != NULL)
             effective_layout = mir_abi_lookup(abi_key);
+    }
+
+    if (mir_active && !constructed_nominal
+        && (inst->type_layout == NULL
+            || inst->abi_layout_id == 0
+            || inst->abi_layout_id != mir_abi_layout_id(inst->type_layout))) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C MIR resource op '%s' carries a missing or mismatched ABI layout identity",
+            op_name != NULL ? op_name : "<op>");
+        return false;
     }
 
     if (mir_active && inst->resource_runtime_fact_present) {
@@ -164,6 +192,19 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_INSPECT_MIR_INVENTORY,
                 "C MIR resource op '%s' carries an invalid runtime-call ABI row",
+                op_name != NULL ? op_name : "<op>");
+            return false;
+        }
+        if (runtime_row->runtime_call_abi_id == 0
+            || runtime_row->runtime_call_abi_id
+                != mir_abi_resource_runtime_row_id(runtime_row)
+            || !mir_abi_resource_runtime_row_matches_owner(runtime_row)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C MIR resource op '%s' carries an invalid runtime-call ABI identity",
                 op_name != NULL ? op_name : "<op>");
             return false;
         }

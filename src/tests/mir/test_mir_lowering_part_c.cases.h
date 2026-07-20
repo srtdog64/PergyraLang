@@ -256,7 +256,9 @@ test_mir_lowering_part_c(void)
 
     TEST("MIR validator rejects invalid source-local type fact");
     {
-        MIRSourceLocalType facts[1] = { { "local", NULL } };
+        MIRSourceLocalType facts[1] = {
+            { .name = "local", .type_name = NULL }
+        };
         MIRRoutine routine = { 0 };
         MIRProgram mir = { 0 };
         char *mir_error = NULL;

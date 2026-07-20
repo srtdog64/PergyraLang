@@ -352,9 +352,10 @@ func CanonicalizeOracleMirJsonBridge(
     );
 }
 
-func CompileMirJsonTextToCVerified(
+func CompileMirJsonTextToCForTargetVerified(
     json: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact
 ) -> CompilerEmissionArtifact {
     if !MirMachineLayerFactsReady(json, machine_declaration) {
         Die("self-host C emission rejected invalid machine-layer facts");
@@ -395,7 +396,22 @@ func CompileMirJsonTextToCVerified(
     return CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
-            artifact, verified.analysis, body_types, machine_declaration
+            artifact, verified.analysis, body_types, machine_declaration,
+            target_projection
+        ),
+        target_projection.schema,
+        target_projection.projection
+    );
+}
+
+func CompileMirJsonTextToCVerified(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> CompilerEmissionArtifact {
+    return CompileMirJsonTextToCForTargetVerified(
+        json, machine_declaration,
+        CompilerTargetProjectionFactFromOwner(
+            CompilerTargetCpuCProjection()
         )
     );
 }
@@ -470,6 +486,22 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
         }
         Log(CompileMirJsonToCVerified(args[1], declaration).payload);
         return;
+    }
+    if ArrayLength(args) > 0 &&
+        args[0] == "--self-test-missing-target-projection" {
+        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
+            Die("missing-target-projection self-test requires MIR JSON and optional declaration path");
+        }
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        let json: String = MirJsonReadInput(args[1], declaration);
+        CompileMirJsonTextToCForTargetVerified(
+            json, declaration, CompilerTargetProjectionFactEmpty()
+        );
+        Die("missing target projection fact was accepted");
     }
     let source_path: String = ParserDefaultSourcePath(args);
     let declaration: SelfHostMachineLayerDeclaration =

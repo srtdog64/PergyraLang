@@ -104,6 +104,8 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
             continue;
         if (!mir_instructions_share_source_statement(resource_inst, stmt_inst))
             continue;
+        if (mir_instruction_source_is_with_slot_release(resource_inst))
+            continue;
         if (mir_instruction_resource_op_keeps_residual_statement_emit(
                 resource_inst)) {
             /*

@@ -226,6 +226,8 @@ typedef struct
     const char      *arg1;
     RIRMachineContactKind machine_contact_kind;
     ASTNode         *ast;
+    bool             has_source_statement_syntax_id;
+    uint32_t         source_statement_syntax_id;
 } RIROp;
 
 typedef struct

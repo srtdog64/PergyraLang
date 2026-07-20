@@ -255,6 +255,17 @@ require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
 require_file "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" \
     "resource instruction or consumer is missing its lowered runtime-call ABI row"
+require_file "src/self_hosted/compiler/target_projection_fact_owner.pgy"
+require_text "src/self_hosted/compiler/target_projection_fact_owner.pgy" \
+    "func CompilerTargetProjectionFactReadyFor("
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "CompilerTargetProjectionFactReadyFor("
+require_file "tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh" \
+    "self-host C emission target projection fact is missing or invalid"
+forbid_function_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "GenerateCFromVerifiedSemanticArtifact" \
+    "CompilerTargetCapabilityEnvelopeReady()"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirResourceRuntimeRowFactReady(json, kp, inst_end)"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \

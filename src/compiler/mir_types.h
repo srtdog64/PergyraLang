@@ -127,6 +127,8 @@ typedef struct
     uint32_t         source_line;
     uint32_t         source_column;
     uint32_t         source_stable_id;
+    bool             has_source_statement_stable_id;
+    uint32_t         source_statement_stable_id;
     ASTNodeType      source_node_type;
     char            *source_inline_text;
     HIRBlockTerminatorKind source_terminator_kind;
@@ -170,10 +172,13 @@ typedef struct
     ASTNode         *expr1;
     const char      *abi_type_name;
     const MIRTypeLayout *type_layout;
-    /* Lowering-owned runtime-call ABI row.  This is present on the resource
-     * operation and every concrete DEF/STMT consumer that emits its call.
-     * The row strings are routine-arena owned, so constructed nominal rows
-     * cannot be regenerated or invalidated by a backend lookup. */
+    /* Lowering-owned stable ABI layout identity.  Backends must not recover
+     * layout identity from the table address or row position. */
+    uint32_t         abi_layout_id;
+    /* Lowering-owned runtime-call ABI row.  It is always present on the
+     * resource operation and may be copied to an unambiguous DEF/STMT
+     * consumer. Multi-operation expressions consume the exact resource row
+     * through their stable source identity instead of collapsing rows here. */
     bool             resource_runtime_fact_present;
     MIRResourceRuntimeRow resource_runtime_fact;
     const MIRTextBuilderRuntimeRow *text_builder_runtime_row;

@@ -1,7 +1,9 @@
 // Public semantic and source entrypoints for the program emission core.
 
 import "program_emit.pgy";
+import "../text/text_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
+import "../../compiler/target_projection_fact_owner.pgy";
 
 func GenerateCUnitFromSemanticArtifact(
     artifact: AstTreeArtifact,
@@ -29,8 +31,14 @@ func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact
 ) -> String {
+    if !CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuCProjection()
+    ) {
+        Die("self-host C emission target projection fact is missing or invalid");
+    }
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, true, machine_declaration
     );
@@ -84,8 +92,4 @@ func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
 
 func GenerateCFromTypedAstArtifact(artifact: AstTreeArtifact) -> String {
     return GenerateCUnitFromTypedAstArtifact(artifact, true);
-}
-
-func GenerateC(tree_text: String) -> String {
-    return GenerateCUnit(tree_text, true);
 }

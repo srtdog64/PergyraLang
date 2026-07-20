@@ -53,13 +53,15 @@ slot_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 
 static const MIRResourceRuntimeRow *
 slot_builtin_runtime_row_by_kind(TranspilerCtx *ctx,
+                                 ASTNode *source_call,
                                  MIRResourceAbiKind kind,
                                  const char *inner_type,
                                  const char *operation)
 {
     const MIRResourceRuntimeRow *row =
-        transpiler_slot_runtime_row_for_operation(
-            ctx, kind == MIR_RESOURCE_ABI_SECURE_SLOT, inner_type, operation);
+        transpiler_slot_runtime_row_for_source_operation(
+            ctx, source_call, kind == MIR_RESOURCE_ABI_SECURE_SLOT,
+            inner_type, operation);
     const char *expected_shape =
         transpiler_slot_runtime_expected_call_shape(
             kind == MIR_RESOURCE_ABI_SECURE_SLOT, operation);
@@ -80,23 +82,26 @@ slot_builtin_runtime_row_by_kind(TranspilerCtx *ctx,
 
 static const char *
 slot_builtin_runtime_fn_by_kind(TranspilerCtx *ctx,
+                                ASTNode *source_call,
                                 MIRResourceAbiKind kind,
                                 const char *inner_type,
                                 const char *operation)
 {
     const MIRResourceRuntimeRow *row =
-        slot_builtin_runtime_row_by_kind(ctx, kind, inner_type, operation);
+        slot_builtin_runtime_row_by_kind(
+            ctx, source_call, kind, inner_type, operation);
     return row != NULL ? row->runtime_fn : NULL;
 }
 
 static const char *
 slot_builtin_runtime_fn(TranspilerCtx *ctx,
+                        ASTNode *source_call,
                         bool secure,
                         const char *inner_type,
                         const char *operation)
 {
     return slot_builtin_runtime_fn_by_kind(
-        ctx,
+        ctx, source_call,
         secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
         inner_type,
         operation);
@@ -104,9 +109,27 @@ slot_builtin_runtime_fn(TranspilerCtx *ctx,
 
 static bool
 slot_builtin_require_machine_fact(TranspilerCtx *ctx,
+                                  ASTNode *source_call,
                                   RIRMachineContactKind expected)
 {
     const MIRInstruction *inst = ctx != NULL ? ctx->active_mir_instruction : NULL;
+    if (ctx != NULL && ctx->active_mir_routine != NULL
+        && source_call != NULL) {
+        const MIRInstruction *source_inst =
+            mir_abi_resource_runtime_instruction_for_source(
+                ctx->active_mir_routine,
+                ast_node_stable_id(source_call));
+        if (source_inst == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C device operation is missing its lowered machine-layer fact");
+            return false;
+        }
+        inst = source_inst;
+    }
     if (!transpiler_machine_layer_projection_is_bound(ctx)) {
         transpiler_set_backend_error_with_hints(
             ctx,
@@ -214,7 +237,8 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_CLAIM))
+    if (!slot_builtin_require_machine_fact(
+            ctx, call, RIR_MACHINE_CONTACT_CLAIM))
         return NULL;
     (void)call;
     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
@@ -268,7 +292,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             free(value_expr);
             return NULL;
         }
-        write_fn = slot_builtin_runtime_fn(ctx, true, inner, "Write");
+        write_fn = slot_builtin_runtime_fn(ctx, call, true, inner, "Write");
         if (write_fn == NULL) {
             free(token_expr);
             free(slot_ref);
@@ -290,7 +314,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             free(value_expr);
             return NULL;
         }
-        write_fn = slot_builtin_runtime_fn(ctx, true, inner, "Write");
+        write_fn = slot_builtin_runtime_fn(ctx, call, true, inner, "Write");
         if (write_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -303,7 +327,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     } else {
         /* Plain slot: Write(slot, value) */
         const char *write_fn = slot_builtin_runtime_fn(
-            ctx, false, inner, "Write");
+            ctx, call, false, inner, "Write");
         if (write_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -372,7 +396,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        read_fn = slot_builtin_runtime_fn(ctx, true, inner, "Read");
+        read_fn = slot_builtin_runtime_fn(ctx, call, true, inner, "Read");
         if (read_fn == NULL) {
             free(token_expr);
             free(slot_ref);
@@ -392,7 +416,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        read_fn = slot_builtin_runtime_fn(ctx, true, inner, "Read");
+        read_fn = slot_builtin_runtime_fn(ctx, call, true, inner, "Read");
         if (read_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -402,7 +426,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             read_fn, slot_ref, token_name);
     } else {
         const char *read_fn = slot_builtin_runtime_fn(
-            ctx, false, inner, "Read");
+            ctx, call, false, inner, "Read");
         if (read_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -454,7 +478,8 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        release_fn = slot_builtin_runtime_fn(ctx, true, inner, "Release");
+        release_fn = slot_builtin_runtime_fn(
+            ctx, call, true, inner, "Release");
         if (release_fn == NULL) {
             free(token_expr);
             free(slot_ref);
@@ -474,7 +499,8 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        release_fn = slot_builtin_runtime_fn(ctx, true, inner, "Release");
+        release_fn = slot_builtin_runtime_fn(
+            ctx, call, true, inner, "Release");
         if (release_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -484,7 +510,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             release_fn, slot_ref, token_name);
     } else {
         const char *release_fn = slot_builtin_runtime_fn(
-            ctx, false, inner, "Release");
+            ctx, call, false, inner, "Release");
         if (release_fn == NULL) {
             free(slot_ref);
             free(slot_expr);
@@ -515,7 +541,8 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceWrite", 2))
         return NULL;
-    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_WRITE))
+    if (!slot_builtin_require_machine_fact(
+            ctx, call, RIR_MACHINE_CONTACT_WRITE))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
@@ -540,7 +567,7 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
     }
     char *result;
     const char *write_fn = slot_builtin_runtime_fn_by_kind(
-        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write");
+        ctx, call, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write");
     if (write_fn == NULL) {
         free(slot_ref);
         free(slot_expr);
@@ -561,7 +588,8 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceRead", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_READ))
+    if (!slot_builtin_require_machine_fact(
+            ctx, call, RIR_MACHINE_CONTACT_READ))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
@@ -579,7 +607,7 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
     }
     char *result;
     const char *read_fn = slot_builtin_runtime_fn_by_kind(
-        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
+        ctx, call, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
     if (read_fn == NULL) {
         free(slot_ref);
         free(slot_expr);
@@ -597,7 +625,8 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "ReleaseDeviceSlot", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_RELEASE))
+    if (!slot_builtin_require_machine_fact(
+            ctx, call, RIR_MACHINE_CONTACT_RELEASE))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
@@ -616,7 +645,7 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
     }
     char *result;
     const char *release_fn = slot_builtin_runtime_fn_by_kind(
-        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
+        ctx, call, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
     if (release_fn == NULL) {
         free(slot_ref);
         free(slot_expr);
@@ -634,7 +663,7 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "SubmitDeviceRead", 1))
         return NULL;
-    if (!slot_builtin_require_machine_fact(ctx,
+    if (!slot_builtin_require_machine_fact(ctx, call,
             RIR_MACHINE_CONTACT_SUBMIT_READ))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
@@ -654,7 +683,7 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
     }
     char *result;
     const char *submit_fn = slot_builtin_runtime_fn_by_kind(
-        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
+        ctx, call, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
     if (submit_fn == NULL) {
         free(slot_ref);
         free(slot_expr);

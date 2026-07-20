@@ -1,11 +1,13 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_runtime_internal.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 
 static const char *
 llvm_mir_claim_inner_type_name(const MIRInstruction *inst,
@@ -131,6 +133,86 @@ llvm_mir_emit_with_claim_only(const MIRInstruction *inst, LLVMGenCtx *ctx)
     }
     llvm_scope_declare(ctx, alias, alloca_val, slot_ty);
     llvm_register_slot_var(ctx, alias, inner, is_secure);
+}
+
+void
+llvm_mir_emit_with_release_only(const MIRInstruction *inst, LLVMGenCtx *ctx)
+{
+    const char *alias;
+    const char *inner;
+    bool is_secure;
+    const MIRResourceRuntimeRow *row;
+    LLVMFuncEntry *release_fn;
+    LLVMVarEntry slot_var;
+    char inner_buf[128];
+
+    if (inst == NULL || ctx == NULL
+        || !mir_instruction_source_is_with_slot_release(inst))
+        return;
+
+    alias = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
+    inner = alias != NULL ? llvm_lookup_slot_inner(ctx, alias) : NULL;
+    is_secure = alias != NULL && llvm_lookup_slot_is_secure(ctx, alias);
+    if (inner == NULL)
+        inner = llvm_mir_claim_inner_type_name(inst, inner_buf,
+                                               sizeof(inner_buf));
+    if (alias == NULL || inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR with-slot release requires owner slot metadata");
+        return;
+    }
+
+    row = llvm_slot_runtime_row_for_operation(
+        inst->ast, ctx,
+        is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        inner, "Release");
+    if (row == NULL || row->runtime_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR with-slot release requires MIR ABI runtime function row");
+        return;
+    }
+    release_fn = llvm_lookup_function(ctx, row->runtime_fn);
+    if (release_fn == NULL) {
+        llvm_required_runtime_function(ctx, inst->expr0,
+            is_secure ? "secure slot" : "slot", "with-release",
+            row->runtime_fn);
+        return;
+    }
+    if (!llvm_scope_lookup_snapshot(ctx, alias, &slot_var)) {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR with-slot release is missing slot binding '%s'",
+            alias);
+        return;
+    }
+    if (is_secure) {
+        LLVMVarEntry token_var;
+        if (!llvm_lookup_secure_token_var(ctx, alias, &token_var)) {
+            llvm_set_error_at_with_hints(ctx, inst->expr0,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR secure release requires paired token binding '%s_token'",
+                alias);
+            return;
+        }
+        LLVMValueRef args[] = { slot_var.alloca, token_var.alloca };
+        LLVMBuildCall2(ctx->builder, release_fn->fn_type, release_fn->fn,
+                       args, 2, "");
+    } else {
+        LLVMValueRef args[] = { slot_var.alloca };
+        LLVMBuildCall2(ctx->builder, release_fn->fn_type, release_fn->fn,
+                       args, 1, "");
+    }
+    llvm_mark_slot_released(ctx, alias);
 }
 
 #endif /* PGY_LLVM_ENABLED */

@@ -279,7 +279,10 @@ SENTINEL_MAX=0
 # one unreachable Option projection; no live failure path became a sentinel.
 # 2204 -> 2206 (2026-07-20): the assignment projection negative carries
 # Option<Int>/Some through the semantic call-target fact boundary.
-RESULT_USE_MIN=2206
+# 2206 -> 2254 (2026-07-20): constructed runtime-call ABI projection carries
+# kind, inner type, suffix, and prefix absence as Option facts instead of
+# empty-string and -1 sentinels.
+RESULT_USE_MIN=2254
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=18
 COMPILER_WORLD_MEMBERS_EXACT=18

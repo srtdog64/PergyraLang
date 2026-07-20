@@ -720,6 +720,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/stage_intents.pgy` -- derived compiler intent clusters.
 - `src/self_hosted/compiler/target_capability_owner.pgy` -- target acceptance
   and fallback fact envelope for backend projections.
+- `src/self_hosted/compiler/target_projection_fact_owner.pgy` -- derived
+  projection carriage consumed by the hard emitter; target vocabulary remains
+  owned by `target_capability_owner.pgy`.
 - `src/self_hosted/compiler/target_capability_manifest.pgy` -- runnable
   target-capability artifact projection over owner facts.
 - `src/self_hosted/compiler/sandbox_capability_owner.pgy` -- sandbox

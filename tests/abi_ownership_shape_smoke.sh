@@ -54,6 +54,8 @@ for rel in \
     "src/compiler/mir_types.h" \
     "src/compiler/mir_lower_population.c" \
     "src/codegen/llvm_runtime.c" \
+    "src/codegen/llvm_runtime_row.c" \
+    "src/compiler/mir_abi_resource_runtime_constructed.c" \
     "src/codegen/llvm_expr_allocator_calls.c" \
     "src/codegen/llvm_internal_api.h" \
     "src/codegen/llvm_mir_block_emit.c" \
@@ -150,20 +152,22 @@ require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_r
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "runtime_row->call_shape"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
-require_term "src/codegen/llvm_runtime.c" "llvm_slot_runtime_row_for_operation("
-require_term "src/codegen/llvm_runtime.c" "row->call_shape"
-require_term "src/codegen/llvm_runtime.c" '"returns_container"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_to_value"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_value_to_void"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_to_void"'
-require_term "src/codegen/llvm_runtime.c" '"PinRead"'
-require_term "src/codegen/llvm_runtime.c" '"PinWrite"'
-require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
-require_term "src/codegen/llvm_runtime.c" '"PinWriteInit"'
-require_term "src/codegen/llvm_runtime.c" '"Unpin"'
+require_term "src/codegen/llvm_runtime_row.c" "llvm_slot_runtime_row_for_operation("
+require_term "src/codegen/llvm_runtime_row.c" "row->call_shape"
+require_term "src/codegen/llvm_runtime_row.c" '"returns_container"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_to_value"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_value_to_void"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_to_void"'
+require_term "src/codegen/llvm_runtime_row.c" '"PinRead"'
+require_term "src/codegen/llvm_runtime_row.c" '"PinWrite"'
+require_term "src/codegen/llvm_runtime_row.c" '"PinReadInit"'
+require_term "src/codegen/llvm_runtime_row.c" '"PinWriteInit"'
+require_term "src/codegen/llvm_runtime_row.c" '"Unpin"'
 require_term "src/compiler/mir_abi_resource_runtime.c" '"UnpinCleanup"'
 reject_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name("
 reject_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
+reject_term "src/codegen/llvm_runtime_row.c" "mir_abi_resource_runtime_fn_by_type_name("
+reject_term "src/codegen/llvm_runtime_row.c" "llvm_runtime_slot_name"
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)'
@@ -177,10 +181,10 @@ reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_slot_runtime_row_for_operation("
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "row->call_shape"
-require_term "src/codegen/llvm_runtime.c" '"token_ptr_to_container"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_token_ptr_to_value"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_value_token_ptr_to_void"'
-require_term "src/codegen/llvm_runtime.c" '"container_ptr_token_ptr_to_void"'
+require_term "src/codegen/llvm_runtime_row.c" '"token_ptr_to_container"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_token_ptr_to_value"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_value_token_ptr_to_void"'
+require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_token_ptr_to_void"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinRead"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWrite"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
@@ -211,9 +215,9 @@ require_term "src/codegen/llvm_stmt_let_resources.c" "llvm_slot_runtime_row_for_
 require_term "src/codegen/llvm_stmt_with.c" "llvm_slot_runtime_row_for_operation("
 require_term "src/codegen/llvm_stmt_block.c" "llvm_slot_runtime_row_for_operation("
 require_term "src/codegen/llvm_runtime_internal.h" "llvm_slot_runtime_row_for_operation("
-require_term "src/codegen/llvm_runtime.c" "llvm_slot_runtime_expected_call_shape"
-require_term "src/codegen/llvm_runtime.c" "mir_machine_layer_fact_matches_runtime_operation"
-require_term "src/codegen/transpiler_slot_builtin_emit.c" "transpiler_slot_runtime_row_for_operation("
+require_term "src/codegen/llvm_runtime_row.c" "llvm_slot_runtime_expected_call_shape"
+require_term "src/codegen/llvm_runtime_row.c" "mir_machine_layer_fact_matches_runtime_operation"
+require_term "src/codegen/transpiler_slot_builtin_emit.c" "transpiler_slot_runtime_row_for_source_operation("
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_by_kind("
@@ -341,12 +345,58 @@ require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_resourc
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_resource_runtime_row_domain(0)"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_resource_runtime_row_materialization(0)"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_resource_runtime_row_call_shape(0)"
+require_term "src/compiler/mir_abi.h" "runtime_call_abi_id"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_id"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_matches_owner"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_pin_owner_for_mir"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_pin_row_for_mir"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_is_constructed_nominal"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_instruction_for_abi"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_for_mir_abi"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_layout_id"
+require_term "src/compiler/mir_abi_layout.c" "Stable identity for a complete static MIR ABI layout row"
+require_term "src/compiler/mir_abi_layout.c" "UINT32_C(0x20000000)"
+require_term "src/compiler/mir_abi_resource_runtime.c" "UINT32_C(0x40000000)"
+require_term "src/compiler/mir_abi_resource_runtime_constructed.c" "constructed_resource_runtime_spelling"
+require_term "src/compiler/mir_abi_resource_runtime_constructed.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/compiler/mir_types.h" "abi_layout_id"
+require_term "src/compiler/mir_fact_surface_validate.c" "runtime_call_abi_id == 0"
+require_term "src/compiler/mir_fact_surface_validate.c" "mir_abi_resource_runtime_row_matches_owner(row)"
+require_term "src/compiler/mir_fact_surface_validate.c" "ABI layout fact has missing or mismatched stable identity"
+require_term "src/compiler/mir_abi_resource_runtime_mir.c" "resource_runtime_fact_present"
+require_term "src/compiler/mir_abi_resource_runtime_mir.c" "mir_abi_resource_runtime_instruction_for_source"
+require_term "src/compiler/mir_abi_resource_runtime_mir.c" "mir_abi_resource_runtime_row_for_mir_abi"
+require_term "src/codegen/llvm_runtime_row.c" "llvm_slot_runtime_operation_is_synthetic_pin"
+require_term "src/codegen/llvm_runtime_row.c" "mir_abi_resource_runtime_row_matches_owner(row)"
+require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_matches_owner(row)"
+require_term "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_is_resource_view_alias"
+require_term "src/codegen/transpiler_slot_runtime_row.c" "C MIR source operation has no active instruction-owned runtime-call ABI row"
+require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_is_constructed_nominal"
+require_term "src/codegen/llvm_runtime_row.c" "LLVM MIR source operation is missing its lowered runtime-call ABI row"
+require_term "src/codegen/llvm_mir_source_def_copy.c" "ctx->current_mir_routine != NULL"
+require_term "src/codegen/llvm_mir_source_def_copy.c" "llvm_mir_source_local_type_fact"
+require_term "src/codegen/llvm_mir_source_def_copy.c" "type_ann = !mir_active"
+require_term "src/codegen/llvm_mir_source_def_copy.c" "!mir_active && type_ann != NULL"
+require_term "src/codegen/llvm_mir_source_def_copy.c" "mir_active && inst->abi_type_name != NULL"
+require_term "src/compiler/rir.h" "source_statement_syntax_id"
+require_term "src/compiler/mir_types.h" "source_statement_stable_id"
+require_term "src/compiler/mir_stmt_source_inventory.c" "mir_set_inst_source_statement_fact"
+require_term "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_fact(&def_inst, stmt"
+require_term "src/compiler/mir_non_cfg_stmt_population.c" "mir_set_inst_source_statement_fact(inst, stmt, i)"
+require_term "src/tests/mir/test_mir_runtime_call_abi.cases.h" "MIR ABI runtime-call identities are nonzero and unique"
+require_term "src/tests/mir/test_mir_runtime_call_abi.cases.h" "MIR keeps multiple resource runtime rows distinct within one statement"
+reject_term "src/compiler/mir_source_provenance.c" "ast_call_argument(consumer_expr"
+reject_term "src/compiler/mir_source_provenance.c" "ast_call_callee(resource->ast"
+reject_term "src/compiler/mir_source_provenance.c" "ast_node_stable_id(consumer->expr0)"
+reject_term "src/compiler/mir_source_provenance.c" "resource->source_line == consumer->source_line"
 require_term "src/test_mir.c" "runtime_call_abi_expected_native_rows_match"
 require_term "src/test_mir.c" "runtime_call_abi_rows.txt"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_lookup(\"Option<Float>\")"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_lookup(\"Option<Double>\")"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "niche_none_pattern == NULL"
+require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR ABI layout rows carry stable content identity"
+require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR validator rejects missing ABI layout identity"
 require_term "src/codegen/transpiler_specialization_registry.c" "strcmp(inner_type, \"Float\") == 0"
 require_term "src/codegen/transpiler_specialization_registry.c" "strcmp(inner_type, \"Double\") == 0"
 require_term "src/codegen/transpiler_specialization_registry.c" "PGY_LIST_DEFINE(%s, %s)"
@@ -458,6 +508,7 @@ require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "TypedVarEntry *v
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "strcmp(view_source_slot, expected_owner_slot) != 0"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "&& !mir_active"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "source_layout == NULL && !mir_active"
+require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "!transpiler_active_has_mir(ctx)"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "MIR view-backed resource op '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/llvm_internal_api.h" "bool          llvm_mir_emit_borrow_view_alias"
 require_term "src/codegen/llvm_mir_block_emit.c" "if (!llvm_mir_emit_borrow_view_alias(inst, ctx))"

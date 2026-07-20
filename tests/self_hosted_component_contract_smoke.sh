@@ -1302,8 +1302,8 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":21'
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":11'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":23'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":12'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
@@ -1839,6 +1839,8 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "HostIORu
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiMaterialMirResourceRow"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiNativeDeviceSubmitRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "struct CompilerRuntimeCallAbiFact"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "runtime_call_abi_id: Int"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "func CompilerRuntimeCallAbiRowId"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "func CompilerRuntimeCallAbiFactForNativeResource"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 'import "runtime_call_abi_row_owner.pgy";'
 reject_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "Split("
@@ -4548,7 +4550,9 @@ require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
-require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
+reject_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText(tree_text)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCFromAstArtifact(tree_artifact)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
@@ -8249,12 +8253,16 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeRowRequired"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "JsonObjectFactStringFieldEquals"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource("
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" 'JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol)'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirResourceRuntimeRowFactReady"
 require_file "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy"
 require_file "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy"
 require_file "src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy"
 require_text "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy" "SelfMirRuntimeCallAbiRowValidationError"
+require_text "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy" "runtime_call_abi_ids: Array<Int>"
+require_text "src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy" '"id"'
 require_text "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy" "SelfMirCfgAttachLastRuntimeCallAbi"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "SelfMirJsonRuntimeCallAbiField"

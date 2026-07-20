@@ -108,6 +108,19 @@ llvm_slot_builtin_require_machine_fact(ASTNode *node,
                                        LLVMValueRef *out)
 {
     const MIRInstruction *inst = ctx != NULL ? ctx->current_mir_instruction : NULL;
+    if (ctx != NULL && ctx->current_mir_routine != NULL && node != NULL) {
+        const MIRInstruction *source_inst =
+            mir_abi_resource_runtime_instruction_for_source(
+                ctx->current_mir_routine,
+                ast_node_stable_id(node));
+        if (source_inst == NULL) {
+            return llvm_slot_builtin_error_out(
+                node, ctx,
+                "LLVM device operation is missing its lowered machine-layer fact",
+                out);
+        }
+        inst = source_inst;
+    }
     if (!llvm_machine_layer_projection_is_bound(ctx)) {
         return llvm_slot_builtin_error_out(
             node, ctx,

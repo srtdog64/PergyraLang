@@ -93,8 +93,13 @@ transpiler_mir_find_prior_resource_layout_for_slot(TranspilerCtx *ctx,
                            && candidate->type_layout != NULL
                            && transpiler_mir_name_matches_slot(candidate->result_name, slot)) {
                     layout = candidate->type_layout;
-                } else if (candidate->kind == MIR_INST_DEF
+                } else if (!transpiler_active_has_mir(ctx)
+                           && candidate->kind == MIR_INST_DEF
                            && transpiler_mir_name_matches_slot(candidate->result_name, slot)) {
+                    /* The AST annotation is a legacy-only recovery path.
+                     * An active MIR routine must carry the complete layout
+                     * fact on the owning instruction; otherwise the caller
+                     * fails closed instead of reopening the AST type node. */
                     layout = transpiler_mir_layout_from_type_annotation(
                         ctx, transpiler_mir_def_type_annotation(candidate));
                 }
@@ -288,6 +293,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                     : (source_type_name != NULL
                     ? mir_abi_lookup(source_type_name)
                     : NULL);
+                inst_copy.abi_layout_id = mir_abi_layout_id(inst_copy.type_layout);
                 redirected_view_resource = true;
             }
         }

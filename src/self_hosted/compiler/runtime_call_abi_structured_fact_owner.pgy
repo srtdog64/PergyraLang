@@ -10,20 +10,44 @@ struct CompilerRuntimeCallAbiFact {
     symbol_kind: String;
     materialization: String;
     call_shape: String;
+    runtime_call_abi_id: Int;
 }
 
 func CompilerRuntimeCallAbiFactMissing() -> CompilerRuntimeCallAbiFact {
-    return CompilerRuntimeCallAbiFact(false, "", "", "", "", "", "");
+    return CompilerRuntimeCallAbiFact(false, "", "", "", "", "", "", 0);
+}
+
+// Must match mir_abi_resource_runtime_row_id in the native ABI owner.  The
+// key is domain|canonical ABI type|logical operation; target symbol spelling
+// and table position are deliberately excluded from identity.
+func CompilerRuntimeCallAbiRowId(
+    domain: String, type_name: String, operation: String
+) -> Int {
+    let modulus: Long = 268435456L;
+    let hash: Long = 7L;
+    let key: String = Concat(
+        Concat(Concat(domain, "|"), type_name),
+        Concat("|", operation)
+    );
+    let i: Int = 0;
+    let n: Int = StringLength(key);
+    while i < n {
+        hash = (hash * 131L + (CharCode(key, n, i) as Long)) % modulus;
+        i = i + 1;
+    }
+    return (1073741824L + hash) as Int;
 }
 
 // This is the self-host projection of the native constructed-resource spelling
 // rule.  The native MIR owner remains authoritative; keeping the same bounded
 // character walk here makes a self-host-produced row comparable without
 // rediscovering the type from the AST or accepting an arbitrary symbol.
-func CompilerRuntimeCallAbiConstructedSuffix(inner_type_name: String) -> String {
+func CompilerRuntimeCallAbiConstructedSuffix(
+    inner_type_name: String
+) -> Option<String> {
     let n: Int = StringLength(inner_type_name);
     if n == 0 || inner_type_name == "Unknown" || inner_type_name == "Void" {
-        return "";
+        return None;
     }
     let out: String = "";
     let i: Int = 0;
@@ -49,7 +73,7 @@ func CompilerRuntimeCallAbiConstructedSuffix(inner_type_name: String) -> String 
         out = Substring(out, 0, StringLength(out) - 1);
     }
     if StringLength(out) == 0 {
-        return "";
+        return None;
     }
     let first: Int = CharCode(out, StringLength(out), 0);
     if first >= 48 && first <= 57 {
@@ -58,87 +82,104 @@ func CompilerRuntimeCallAbiConstructedSuffix(inner_type_name: String) -> String 
     // The native owner rejects a suffix which would overflow its fixed
     // runtime-name buffer.  Keep the same effective limit for parity.
     if StringLength(out) >= 96 {
-        return "";
+        return None;
     }
-    return out;
+    return Some(out);
 }
 
-func CompilerRuntimeCallAbiConstructedKind(type_name: String) -> Int {
+func CompilerRuntimeCallAbiConstructedKind(type_name: String) -> Option<Int> {
     let n: Int = StringLength(type_name);
     if n >= 7 && StringIndexOf(type_name, "Slot<") == 0 &&
         Substring(type_name, n - 1, 1) == ">" {
-        return 0;
+        return Some(0);
     }
     if n >= 13 && StringIndexOf(type_name, "SecureSlot<") == 0 &&
         Substring(type_name, n - 1, 1) == ">" {
-        return 1;
+        return Some(1);
     }
     if n >= 13 && StringIndexOf(type_name, "DeviceSlot<") == 0 &&
         Substring(type_name, n - 1, 1) == ">" {
-        return 2;
+        return Some(2);
     }
-    return -1;
+    return None;
 }
 
-func CompilerRuntimeCallAbiConstructedInner(type_name: String, kind: Int) -> String {
+func CompilerRuntimeCallAbiConstructedInner(
+    type_name: String, kind: Int
+) -> Option<String> {
     let prefix_len: Int = 11;
     if kind == 0 {
         prefix_len = 5;
     }
     let n: Int = StringLength(type_name);
     if kind < 0 || n <= prefix_len + 1 {
-        return "";
+        return None;
     }
-    return Substring(type_name, prefix_len, n - prefix_len - 1);
+    return Some(Substring(type_name, prefix_len, n - prefix_len - 1));
 }
 
-func CompilerRuntimeCallAbiConstructedPrefix(kind: Int, operation: String) -> String {
+func CompilerRuntimeCallAbiConstructedPrefix(
+    kind: Int, operation: String
+) -> Option<String> {
     if kind == 0 {
-        if operation == "Claim" { return "pgy_claim_"; }
-        if operation == "Read" { return "pgy_read_"; }
-        if operation == "Write" { return "pgy_write_"; }
-        if operation == "Release" { return "pgy_release_"; }
-        if operation == "PinRead" { return "pgy_pin_read_"; }
-        if operation == "PinWrite" { return "pgy_pin_write_"; }
-        if operation == "PinReadInit" { return "pgy_pin_read_init_"; }
-        if operation == "PinWriteInit" { return "pgy_pin_write_init_"; }
-        if operation == "Unpin" { return "pgy_unpin_"; }
-        if operation == "UnpinCleanup" { return "pgy_unpin_cleanup_"; }
+        if operation == "Claim" { return Some("pgy_claim_"); }
+        if operation == "Read" { return Some("pgy_read_"); }
+        if operation == "Write" { return Some("pgy_write_"); }
+        if operation == "Release" { return Some("pgy_release_"); }
+        if operation == "PinRead" { return Some("pgy_pin_read_"); }
+        if operation == "PinWrite" { return Some("pgy_pin_write_"); }
+        if operation == "PinReadInit" { return Some("pgy_pin_read_init_"); }
+        if operation == "PinWriteInit" { return Some("pgy_pin_write_init_"); }
+        if operation == "Unpin" { return Some("pgy_unpin_"); }
+        if operation == "UnpinCleanup" { return Some("pgy_unpin_cleanup_"); }
     }
     if kind == 1 {
-        if operation == "Claim" { return "pgy_claim_secure_"; }
-        if operation == "Read" { return "pgy_secure_read_"; }
-        if operation == "Write" { return "pgy_secure_write_"; }
-        if operation == "Release" { return "pgy_secure_release_"; }
-        if operation == "PinRead" { return "pgy_secure_pin_read_"; }
-        if operation == "PinWrite" { return "pgy_secure_pin_write_"; }
-        if operation == "PinReadInit" { return "pgy_secure_pin_read_init_"; }
-        if operation == "PinWriteInit" { return "pgy_secure_pin_write_init_"; }
-        if operation == "Unpin" { return "pgy_secure_unpin_"; }
-        if operation == "UnpinCleanup" { return "pgy_secure_unpin_cleanup_"; }
+        if operation == "Claim" { return Some("pgy_claim_secure_"); }
+        if operation == "Read" { return Some("pgy_secure_read_"); }
+        if operation == "Write" { return Some("pgy_secure_write_"); }
+        if operation == "Release" { return Some("pgy_secure_release_"); }
+        if operation == "PinRead" { return Some("pgy_secure_pin_read_"); }
+        if operation == "PinWrite" { return Some("pgy_secure_pin_write_"); }
+        if operation == "PinReadInit" { return Some("pgy_secure_pin_read_init_"); }
+        if operation == "PinWriteInit" { return Some("pgy_secure_pin_write_init_"); }
+        if operation == "Unpin" { return Some("pgy_secure_unpin_"); }
+        if operation == "UnpinCleanup" { return Some("pgy_secure_unpin_cleanup_"); }
     }
     if kind == 2 {
-        if operation == "Claim" { return "pgy_claim_device_"; }
-        if operation == "Read" { return "pgy_device_read_"; }
-        if operation == "Write" { return "pgy_device_write_"; }
-        if operation == "Release" { return "pgy_release_device_"; }
-        if operation == "SubmitRead" { return "pgy_submit_device_read_"; }
+        if operation == "Claim" { return Some("pgy_claim_device_"); }
+        if operation == "Read" { return Some("pgy_device_read_"); }
+        if operation == "Write" { return Some("pgy_device_write_"); }
+        if operation == "Release" { return Some("pgy_release_device_"); }
+        if operation == "SubmitRead" { return Some("pgy_submit_device_read_"); }
     }
-    return "";
+    return None;
 }
 
 func CompilerRuntimeCallAbiFactForConstructedResource(
     type_name: String,
     operation: String
 ) -> CompilerRuntimeCallAbiFact {
-    let kind: Int = CompilerRuntimeCallAbiConstructedKind(type_name);
-    let inner: String = CompilerRuntimeCallAbiConstructedInner(type_name, kind);
-    let suffix: String = CompilerRuntimeCallAbiConstructedSuffix(inner);
-    let prefix: String = CompilerRuntimeCallAbiConstructedPrefix(kind, operation);
-    if kind < 0 || StringLength(inner) == 0 || StringLength(suffix) == 0 ||
-        StringLength(prefix) == 0 {
+    let kind_fact: Option<Int> =
+        CompilerRuntimeCallAbiConstructedKind(type_name);
+    if !IsSome(kind_fact) {
         return CompilerRuntimeCallAbiFactMissing();
     }
+    let kind: Int = UnwrapOption(kind_fact);
+    let inner_fact: Option<String> =
+        CompilerRuntimeCallAbiConstructedInner(type_name, kind);
+    if !IsSome(inner_fact) {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    let inner: String = UnwrapOption(inner_fact);
+    let suffix_fact: Option<String> =
+        CompilerRuntimeCallAbiConstructedSuffix(inner);
+    let prefix_fact: Option<String> =
+        CompilerRuntimeCallAbiConstructedPrefix(kind, operation);
+    if !IsSome(suffix_fact) || !IsSome(prefix_fact) {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    let suffix: String = UnwrapOption(suffix_fact);
+    let prefix: String = UnwrapOption(prefix_fact);
     let operation_key: String = Concat(Concat(type_name, "."), operation);
     let call_shape: String = CompilerRuntimeCallAbiNativeResourceCallShape(
         operation_key
@@ -153,7 +194,10 @@ func CompilerRuntimeCallAbiFactForConstructedResource(
         Concat(prefix, suffix),
         "function",
         "constructed_resource_runtime_spelling",
-        call_shape
+        call_shape,
+        CompilerRuntimeCallAbiRowId(
+            "constructed-resource", type_name, operation
+        )
     );
 }
 
@@ -185,6 +229,9 @@ func CompilerRuntimeCallAbiFactForNativeResource(
                             CompilerRuntimeCallAbiMaterialMirResourceRow(),
                             CompilerRuntimeCallAbiNativeResourceCallShape(
                                 operation_key
+                            ),
+                            CompilerRuntimeCallAbiRowId(
+                                "native-resource", type_name, operation
                             )
                         );
                     }
@@ -207,6 +254,9 @@ func CompilerRuntimeCallAbiFactForNativeResource(
                             CompilerRuntimeCallAbiMaterialMirResourceRow(),
                             CompilerRuntimeCallAbiNativeResourceCallShape(
                                 operation_key
+                            ),
+                            CompilerRuntimeCallAbiRowId(
+                                "native-resource", type_name, operation
                             )
                         );
                     }
@@ -225,6 +275,9 @@ func CompilerRuntimeCallAbiFactForNativeResource(
                         CompilerRuntimeCallAbiMaterialMirResourceRow(),
                         CompilerRuntimeCallAbiNativeResourceCallShape(
                             submit_operation
+                        ),
+                        CompilerRuntimeCallAbiRowId(
+                            "native-resource", type_name, operation
                         )
                     );
                 }

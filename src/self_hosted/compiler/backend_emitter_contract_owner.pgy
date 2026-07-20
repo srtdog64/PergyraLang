@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 21;
+    return 23;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -62,6 +62,8 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 18 { return "src/codegen/llvm_runtime.c"; }
     if index == 19 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
     if index == 20 { return "src/codegen/llvm_expr_identifier_slot_helpers.c"; }
+    if index == 21 { return "src/codegen/llvm_runtime_row.c"; }
+    if index == 22 { return "src/codegen/llvm_runtime_row.c"; }
     return "";
 }
 
@@ -87,6 +89,8 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 18 { return "row->call_shape"; }
     if index == 19 { return "row->call_shape"; }
     if index == 20 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 21 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 22 { return "row->call_shape"; }
     return "";
 }
 
@@ -111,7 +115,7 @@ func CompilerBackendEmitterPrimaryRequiredTerm() -> String {
 }
 
 func CompilerBackendEmitterForbiddenCount() -> Int {
-    return 11;
+    return 12;
 }
 
 func CompilerBackendEmitterForbiddenPathAt(index: Int) -> String {
@@ -126,6 +130,7 @@ func CompilerBackendEmitterForbiddenPathAt(index: Int) -> String {
     if index == 8 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
     if index == 9 { return "src/codegen/transpiler_class_decl_emit.c"; }
     if index == 10 { return "src/codegen/transpiler_expr_stdlib_builtin.c"; }
+    if index == 11 { return "src/codegen/llvm_runtime_row.c"; }
     return "";
 }
 
@@ -141,6 +146,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
     if index == 8 { return "mir_abi_resource_runtime_fn_by_kind("; }
     if index == 9 { return "mir_abi_resource_runtime_fn_by_kind("; }
     if index == 10 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    if index == 11 { return "llvm_runtime_slot_name"; }
     return "";
 }
 
@@ -186,6 +192,12 @@ func CompilerBackendEmitterContractReady() -> Bool {
             "src/codegen/llvm_runtime.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_runtime_row.c",
+            "llvm_slot_runtime_row_for_operation(") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_runtime_row.c",
+            "row->call_shape") &&
+        CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime_secure_slot_decl.c",
             "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
@@ -218,6 +230,9 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterForbiddenRowKnown(
             CompilerBackendEmitterPrimaryForbiddenPath(),
             CompilerBackendEmitterPrimaryForbiddenTerm()) &&
+        CompilerBackendEmitterForbiddenRowKnown(
+            "src/codegen/llvm_runtime_row.c",
+            "llvm_runtime_slot_name") &&
         CompilerBackendEmitterForbiddenRowKnown(
             "src/codegen/llvm_expr_call_methods_domain_slice.c",
             "llvm_domain_slot_format_runtime_name") &&

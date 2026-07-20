@@ -323,6 +323,8 @@ bool          llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
                                                 LLVMValueRef mir_alloca);
 void          llvm_mir_emit_with_claim_only(const MIRInstruction *inst,
                                             LLVMGenCtx *ctx);
+void          llvm_mir_emit_with_release_only(const MIRInstruction *inst,
+                                              LLVMGenCtx *ctx);
 bool          llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst,
                                               LLVMGenCtx *ctx);
 bool          llvm_mir_emit_pin_enter(const MIRBasicBlock *block,

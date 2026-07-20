@@ -358,8 +358,8 @@ add_op(RIRScope *scope,
        const char *arg1,
        ASTNode *ast)
 {
-    return add_op_with_machine_contact(scope, kind, subject, arg0, arg1,
-                                        RIR_MACHINE_CONTACT_NONE, ast);
+    return add_op_with_source_statement(scope, kind, subject, arg0, arg1, ast,
+                                         ast_node_stable_id(ast));
 }
 
 bool
@@ -371,6 +371,36 @@ add_op_with_machine_contact(RIRScope *scope,
                             RIRMachineContactKind machine_contact_kind,
                             ASTNode *ast)
 {
+    return add_op_with_machine_contact_source_statement(
+        scope, kind, subject, arg0, arg1, machine_contact_kind, ast,
+        ast_node_stable_id(ast));
+}
+
+bool
+add_op_with_source_statement(RIRScope *scope,
+                             RIROpKind kind,
+                             const char *subject,
+                             const char *arg0,
+                             const char *arg1,
+                             ASTNode *ast,
+                             uint32_t source_statement_syntax_id)
+{
+    return add_op_with_machine_contact_source_statement(
+        scope, kind, subject, arg0, arg1, RIR_MACHINE_CONTACT_NONE, ast,
+        source_statement_syntax_id);
+}
+
+bool
+add_op_with_machine_contact_source_statement(
+                            RIRScope *scope,
+                            RIROpKind kind,
+                            const char *subject,
+                            const char *arg0,
+                            const char *arg1,
+                            RIRMachineContactKind machine_contact_kind,
+                            ASTNode *ast,
+                            uint32_t source_statement_syntax_id)
+{
     RIROp op;
     memset(&op, 0, sizeof(op));
     op.kind = kind;
@@ -380,5 +410,7 @@ add_op_with_machine_contact(RIRScope *scope,
     op.arg1 = arg1;
     op.machine_contact_kind = machine_contact_kind;
     op.ast = ast;
+    op.has_source_statement_syntax_id = source_statement_syntax_id != 0;
+    op.source_statement_syntax_id = source_statement_syntax_id;
     return scope_add_op(scope, op);
 }

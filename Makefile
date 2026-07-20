@@ -962,6 +962,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/machine_layer_manifest.c \
                    $(COMPILER_DIR)/mir_machine_layer.c \
                    $(COMPILER_DIR)/mir_abi_resource_runtime.c \
+                   $(COMPILER_DIR)/mir_abi_resource_runtime_constructed.c \
+                   $(COMPILER_DIR)/mir_abi_resource_runtime_mir.c \
                    $(COMPILER_DIR)/mir_text_builder_abi.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/verified_projection_plan.c \
@@ -1076,6 +1078,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
+                          $(CODEGEN_DIR)/llvm_runtime_row.c \
                           $(CODEGEN_DIR)/llvm_runtime_attrs.c \
                           $(CODEGEN_DIR)/llvm_runtime_bitcode_freshness.c \
                           $(CODEGEN_DIR)/llvm_runtime_aggregate_return.c \
@@ -1092,6 +1095,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_await_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_bind_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_block_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_block_scope.c \
                         $(CODEGEN_DIR)/llvm_mir_lifecycle_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_host_field.c \
                         $(CODEGEN_DIR)/llvm_mir_pin_region.c \
@@ -1551,6 +1555,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/machine_layer_manifest.o \
                    $(BUILD_DIR)/compiler/mir_machine_layer.o \
                    $(BUILD_DIR)/compiler/mir_abi_resource_runtime.o \
+                   $(BUILD_DIR)/compiler/mir_abi_resource_runtime_constructed.o \
+                   $(BUILD_DIR)/compiler/mir_abi_resource_runtime_mir.o \
                    $(BUILD_DIR)/compiler/mir_text_builder_abi.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \

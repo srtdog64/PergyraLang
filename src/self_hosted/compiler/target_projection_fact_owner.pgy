@@ -1,0 +1,77 @@
+// Derived target projection fact consumed by the hard self-host emitter.
+//
+// The target capability envelope owns all vocabulary. This module only binds
+// one admitted projection to a carried row; it must not add target defaults.
+
+import "target_capability_owner.pgy";
+
+struct CompilerTargetProjectionFact {
+    ok: Bool;
+    schema: String;
+    projection: String;
+    required_facts: Array<String>;
+    fallback_reasons: Array<String>;
+}
+
+func CompilerTargetProjectionFactEmpty() -> CompilerTargetProjectionFact {
+    let facts: Array<String> = [];
+    let fallbacks: Array<String> = [];
+    return CompilerTargetProjectionFact(false, "", "", facts, fallbacks);
+}
+
+func CompilerTargetProjectionFactFromOwner(
+    projection: String
+) -> CompilerTargetProjectionFact {
+    if !CompilerTargetCapabilityEnvelopeReady() ||
+        !CompilerTargetProjectionKnown(projection) {
+        return CompilerTargetProjectionFactEmpty();
+    }
+    let facts: Array<String> = [];
+    let fact_i: Int = 0;
+    while fact_i < CompilerTargetFactCount() {
+        ArrayPush(facts, CompilerTargetFactAt(fact_i));
+        fact_i = fact_i + 1;
+    }
+    let fallbacks: Array<String> = [];
+    let fallback_i: Int = 0;
+    while fallback_i < CompilerTargetFallbackReasonCount() {
+        ArrayPush(
+            fallbacks, CompilerTargetFallbackReasonAt(fallback_i)
+        );
+        fallback_i = fallback_i + 1;
+    }
+    return CompilerTargetProjectionFact(
+        true, CompilerTargetCapabilitySchema(), projection, facts, fallbacks
+    );
+}
+
+func CompilerTargetProjectionFactReadyFor(
+    fact: CompilerTargetProjectionFact,
+    expected_projection: String
+) -> Bool {
+    if !fact.ok || !CompilerTargetCapabilityEnvelopeReady() ||
+        !CompilerTargetProjectionKnown(expected_projection) ||
+        fact.schema != CompilerTargetCapabilitySchema() ||
+        fact.projection != expected_projection ||
+        ArrayLength(fact.required_facts) != CompilerTargetFactCount() ||
+        ArrayLength(fact.fallback_reasons) !=
+            CompilerTargetFallbackReasonCount() {
+        return false;
+    }
+    let fact_i: Int = 0;
+    while fact_i < CompilerTargetFactCount() {
+        if fact.required_facts[fact_i] != CompilerTargetFactAt(fact_i) {
+            return false;
+        }
+        fact_i = fact_i + 1;
+    }
+    let fallback_i: Int = 0;
+    while fallback_i < CompilerTargetFallbackReasonCount() {
+        if fact.fallback_reasons[fallback_i] !=
+            CompilerTargetFallbackReasonAt(fallback_i) {
+            return false;
+        }
+        fallback_i = fallback_i + 1;
+    }
+    return true;
+}

@@ -119,7 +119,7 @@ mir_make_source_stmt_instruction(MIRRoutine *routine,
         inst.arg1 = ast_bind_statement_role_name(stmt);
     }
     mir_attach_statement_call_fact(&inst, stmt);
-    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    mir_set_inst_source_statement_fact(&inst, stmt, source_statement_index);
     return inst;
 }
 
@@ -145,8 +145,43 @@ mir_make_destructure_instruction(MIRRoutine *routine,
             if (claim_type_name != NULL) {
                 inst.abi_type_name =
                     pgy_arena_strdup(&routine->scratch, claim_type_name);
-                if (inst.abi_type_name != NULL)
+                if (inst.abi_type_name != NULL) {
                     inst.type_layout = mir_abi_lookup(inst.abi_type_name);
+                    inst.abi_layout_id = mir_abi_layout_id(inst.type_layout);
+                    {
+                        const MIRResourceRuntimeRow *row =
+                            mir_abi_resource_runtime_row_for_type_name(
+                                inst.abi_type_name, "Claim");
+                        if (row != NULL) {
+                            inst.resource_runtime_fact = *row;
+                            inst.resource_runtime_fact.domain =
+                                pgy_arena_strdup(&routine->scratch, row->domain);
+                            inst.resource_runtime_fact.abi_type_name =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->abi_type_name);
+                            inst.resource_runtime_fact.resource_op_name =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->resource_op_name);
+                            inst.resource_runtime_fact.runtime_fn =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->runtime_fn);
+                            inst.resource_runtime_fact.target_kind =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->target_kind);
+                            inst.resource_runtime_fact.materialization =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->materialization);
+                            inst.resource_runtime_fact.call_shape =
+                                pgy_arena_strdup(&routine->scratch,
+                                                 row->call_shape);
+                            inst.resource_runtime_fact.runtime_call_abi_id =
+                                mir_abi_resource_runtime_row_id(
+                                    &inst.resource_runtime_fact);
+                            inst.resource_runtime_fact_present =
+                                inst.resource_runtime_fact.runtime_call_abi_id != 0;
+                        }
+                    }
+                }
                 free(claim_type_name);
             }
         }
@@ -166,7 +201,7 @@ mir_make_destructure_instruction(MIRRoutine *routine,
         }
     }
     mir_attach_statement_call_fact(&inst, stmt);
-    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    mir_set_inst_source_statement_fact(&inst, stmt, source_statement_index);
     return inst;
 }
 
@@ -189,7 +224,7 @@ mir_make_assignment_instruction(MIRRoutine *routine,
         inst.expr1 = ast_assignment_value(stmt);
     }
     mir_attach_statement_call_fact(&inst, stmt);
-    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    mir_set_inst_source_statement_fact(&inst, stmt, source_statement_index);
     return inst;
 }
 
@@ -211,7 +246,7 @@ mir_make_loop_init_instruction(MIRRoutine *routine,
     inst.branch_shape = ast_for_iterable(stmt) != NULL
         ? MIR_BRANCH_FOR_IN
         : MIR_BRANCH_FOR_RANGE;
-    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    mir_set_inst_source_statement_fact(&inst, stmt, source_statement_index);
     if (ast_for_iterable(stmt) != NULL) {
         inst.expr0 = ast_for_iterable(stmt);
         inst.expr1 = ast_for_iterable(stmt);

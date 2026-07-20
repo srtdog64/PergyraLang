@@ -1,5 +1,37 @@
 # Self-Host Progress
 
+2026-07-20 executable MIR/ABI-first delta: runtime-call ABI rows now carry a
+stable `runtime_call_abi_id` derived from the canonical
+`domain|abi_type|operation` key. Native MIR, the self-host MIR producer, the
+self-host MIR consumer, C, and LLVM validate the same identity; removed or
+mutated IDs fail before emission. A statement containing several resource
+operations no longer collapses them into one consumer row. Each nested
+`Write`/`Read` consumes the exact MIR resource instruction selected by its
+source-stable identity, and a missing exact row fails instead of reopening a
+backend table lookup. The focused native C/LLVM comparison passes
+`while_loop_slot_read` and `three_slots_cross_update`, and the MIR suite passes
+149/149. RIR now owns the enclosing source-statement identity and MIR carries
+it to resource operations and statement consumers; source-line and call-argument
+recovery are negative-gated. Static layout IDs use the disjoint `0x2...`
+namespace and runtime-call IDs use `0x4...`. This closes the multi-operation
+carriage sub-rung, not all legacy
+non-MIR compatibility paths.
+
+The ID remains a stable logical key, not a content hash. Native MIR, C, LLVM,
+and the self-host MIR consumer separately compare the carried symbol, target
+kind, materialization, and call shape with the canonical owner. A valid ID with
+a mutated payload is covered by native and DRV-2 negative tests.
+
+The same DRV-2 rung now carries an explicit `CompilerTargetProjectionFact`
+from the target-capability owner into the final Pergyra C emitter. The emitted
+artifact records the capability schema and selected `cpu-c` projection, and a
+missing projection fact is a blocking negative fixture. C-built and
+LLVM-built Pergyra drivers both pass the focused `device_slot_routine`
+canonical-MIR, emitted-C, diagnostic, and runtime comparison. This is a hard
+projection-carriage result only. Native target fingerprint, concrete
+size/alignment/endian values, AIR evidence binding, and non-C projections are
+still bridge work, so `target.capability_profile` is not closed.
+
 2026-07-20 executable MIR/ABI-first delta: DRV-2 fixtures 78 and 79 are the
 `device_slot_machine_layer` and `device_slot_remote` programs. The Pergyra
 producer requires the target-owned declaration fixture, imports its physical

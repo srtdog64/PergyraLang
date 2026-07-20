@@ -10,7 +10,10 @@ mir_json_emit_instruction_runtime_abi(FILE *out,
         return false;
 
     const MIRResourceRuntimeRow *row = &inst->resource_runtime_fact;
-    fputs(",\"runtime_call_abi\":{\"owner\":\"MIRResource\",\"domain\":", out);
+    fputs(",\"runtime_call_abi\":{\"owner\":\"MIRResource\"", out);
+    fputs(",\"id\":", out);
+    fprintf(out, "%u", row->runtime_call_abi_id);
+    fputs(",\"domain\":", out);
     mir_json_emit_str_or_null(out, row->domain);
     fputs(",\"type\":", out);
     mir_json_emit_str_or_null(out, row->abi_type_name);

@@ -128,7 +128,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     mir_instruction_capture_source_provenance(inst, stmt);
                 }
                 mir_attach_def_initializer_call_fact(routine, inst, stmt);
-                mir_set_inst_source_statement_index(inst, i);
+                mir_set_inst_source_statement_fact(inst, stmt, i);
                 mir_mark_select_receive_statement_emit(entry, inst);
                 matched_def = true;
                 break;
