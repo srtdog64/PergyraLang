@@ -473,11 +473,39 @@ cannot be staged apart. `transpiler_expr_core_emit.c` (the `emit_binary`
 StringConcat site, the REG-1c consumer) is by contrast **clean** of user hunks.
 
 **Resumption (mechanical once the concurrent driver rework commits)**: add
-`verified_region_plan.c` to COMPILER_SOURCES; add a `const PgyRegionPlan *`
-field to the transpiler ctx and a param to the transpile entry beside
-`spawn_lane_plan`; in the driver, produce/carry/dispose beside the spawn-lane
+`verified_region_plan.c` + `region_escape_v1.c` to COMPILER_SOURCES; add a
+`const PgyRegionPlan *` field to the transpiler ctx and a param to the transpile
+entry beside `spawn_lane_plan`; in the driver, run the escape pass, feed
+`pgy_verified_region_plan_from_escape`, carry/dispose beside the spawn-lane
 plan. No inline-mode refusal (PgyRegion works in every materialization, unlike
 the movable lane).
+
+### A.2b REG-1c analysis half — LANDED verified (`region_escape_v1`)
+
+The emission consumer splits cleanly into an analysis (which certifies sites)
+and the emission itself (which rewrites the certified StringConcat sites). The
+analysis is **landed and verified**: `region_escape_v1.{h,c}` certifies the
+narrowest provably-sound class — a string concat that is a **direct
+Print/PrintLn argument** (its result is handed to a builtin that reads it
+synchronously and never retains it, so it cannot outlive the enclosing
+statement; a function-scope region trivially outlives every use). It walks the
+AST reading struct fields directly (no parser-object link), certifies the
+argument concat plus its nested left-spine concats, and allocates one region
+scope id per function. The walk is deliberately incomplete — a container it does
+not descend simply yields no certifications, keeping those sites HEAP — so it is
+sound by construction. Gate **`region-escape-unit-test-smoke`** (Print(a+b)→1,
+PrintLn(a+b+c)→2, non-Print→0, bare→0, distinct per-function scopes) passes under
+the project `-Wall -Wextra` flags. Its interface (produce an escape-site array)
+is independent of the driver rework, so it was safe to land now.
+
+**What remains for REG-1c is only the emission**, and it is small: at the (clean,
+user-untouched) `emit_binary` StringConcat site in
+`transpiler_expr_core_emit.c`, look up the node in the plan; when REGION, emit
+`pgy_region_string_concat(&__pgy_region_<scope>, a, b)`; and emit one
+`pgy_region_create/destroy` per certified function scope (a function-scope
+region, destroyed on every return via the MIR terminal-branch CFG facts). The
+LLVM string path is the parity twin. This waits only on the driver producing the
+plan into the ctx — the one entangled step.
 
 **Plan type** (`verified_region_plan.h`):
 ```

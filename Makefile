@@ -2496,6 +2496,22 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 	$(REGION_PLAN_UNIT_BIN)
 .PHONY: region-plan-unit-test-smoke
 
+# Region escape analysis v1 gate (WO-REG-1 REG-1c, docs/197): the sound
+# certification rule (a string concat that is a DIRECT Print/PrintLn argument
+# is region-safe, with its nested left-spine concats; everything else stays
+# HEAP) and per-function scope-id allocation, against hand-built AST nodes.
+# The pass reads AST fields directly, so it links with no parser object. Like
+# the plan subsystem it is not yet in COMPILER_SOURCES -- the driver call site
+# that runs it lands with the projection-plan threading rework (docs/197 App A).
+REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
+
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/compiler/region_escape_v1.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/compiler/region_escape_v1.c
+
+region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
+	$(REGION_ESCAPE_UNIT_BIN)
+.PHONY: region-escape-unit-test-smoke
+
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
 selfhost-reachability-contract-test-smoke: $(PGY)
