@@ -3618,9 +3618,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 118;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 128;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 118'
+    'mir_fixture_rows[@]}" -ne 128'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3856,11 +3856,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 118;"
+    "return 128;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 118'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 128'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

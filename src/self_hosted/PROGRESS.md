@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 119 through 128 are
+`array_avg_dev_chain`, `array_balanced_split`, `array_binary_search`,
+`array_cond_compound`, `array_count_above_avg`, `array_count_inversions`,
+`array_count_occurrences`, `array_count_ones_bits`, `array_count_pairs_sum`,
+and `array_count_sorted_pairs`. These programs exercise array parameters and
+indexing, nested loops, loop/branch phi rows, compound conditions, and several
+counting algorithms without adding source-text recovery or a C-owned fact
+fallback. The Pergyra-built hard driver and independent C-built and LLVM-built
+self drivers passed focused canonical-MIR, emitted-C, host-compile, and runtime
+parity for all ten fixtures. The complete 128-fixture matrix was not run, and
+released/default replacement remains 0%.
+
 2026-07-21 executable breadth/SoT delta: DRV-2 MIR fixtures 114 through 118
 are `aggregate_param_loop_phi`, `and_or_mix_chain_branches`,
 `arith_grand_total`, `arithmetic_overflow_check`, and `array_avg_class`.

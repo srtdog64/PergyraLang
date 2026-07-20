@@ -493,6 +493,20 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/arithmetic_overflow_check/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/array_avg_class/main.pgy"'
+for array_mir_fixture in \
+    array_avg_dev_chain \
+    array_balanced_split \
+    array_binary_search \
+    array_cond_compound \
+    array_count_above_avg \
+    array_count_inversions \
+    array_count_occurrences \
+    array_count_ones_bits \
+    array_count_pairs_sum \
+    array_count_sorted_pairs; do
+    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+        "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
+done
 require_function_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SelfMirRoutineFromInput" \
     "build, UnwrapOption(param_name), UnwrapOption(param_type), 0"
