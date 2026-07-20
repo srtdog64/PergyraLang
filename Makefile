@@ -2474,6 +2474,14 @@ selfhost-spawn-lane-plan-test-smoke: $(PGY)
 mn-executor-test-smoke:
 	"$(BASH)" tests/mn_executor_smoke.sh
 
+# PgyRegion chained-block allocator witness (WO-REG-1, docs/197): chained
+# growth with stable pointers, address alignment, region-owned string concat,
+# reset reuse, inline==extern materialization, and budget fail-closed. Pure C
+# harnesses against the real runtime headers; no pgy needed.
+region-arena-test-smoke:
+	"$(BASH)" tests/region_arena_smoke.sh
+.PHONY: region-arena-test-smoke
+
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
 selfhost-reachability-contract-test-smoke: $(PGY)

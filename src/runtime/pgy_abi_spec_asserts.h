@@ -235,6 +235,8 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_timer) >= 12,
                   timer_min_size_12);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_arena) >= 24,
                   arena_min_size_24);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_region) >= 24,
+                  region_min_size_24);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_allocator) >= 48,
                   allocator_min_size_48);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_future) >= 8,

@@ -175,6 +175,13 @@ pgy_arena_reset(PgyArena* arena)
     arena->offset = 0;
 }
 
+/* Region allocator (chained-block, growable) -- the runtime backing for the
+ * declared `region` lifetime scope (WO-REG-1, docs/197). Split into its own
+ * feature-owner header; the legacy fixed PgyArena above is retained only
+ * because the ABI layout registry (mir_abi_layout.c) still references its
+ * shape, and its removal is a separate REG cleanup. */
+#include "pgy_runtime_region_inline.h"
+
 #include "pgy_runtime_allocator_inline.h"
 
 /* =================================================================

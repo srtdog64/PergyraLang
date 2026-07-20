@@ -435,6 +435,27 @@ typedef struct {
 } pgy_abi_arena;
 
 /* ================================================================
+ * 13a. Region — Chained-Block Growable Allocator (WO-REG-1, docs/197)
+ *
+ * The live type is PgyRegion in pgy_runtime_memory_array_slot_inline.h; this
+ * mirror pins the emitted-code-visible head record. Blocks (PgyRegionBlock)
+ * are a separate malloc chain, not part of this head record. Unlike the fixed
+ * pgy_abi_arena above, a region grows by acquiring blocks and charges the
+ * allocation budget once per acquisition.
+ *
+ * Layout (head record): { current: PgyRegionBlock*, block_size: size_t,
+ *                         total_allocated: size_t }
+ * ================================================================ */
+
+typedef struct pgy_abi_region_block pgy_abi_region_block;
+
+typedef struct {
+    pgy_abi_region_block *current;
+    size_t                block_size;
+    size_t                total_allocated;
+} pgy_abi_region;
+
+/* ================================================================
  * 14. Allocator — Tracing/Pool Allocator Descriptor
  *
  * Layout: depends on PgyAllocatorKind enum + counters
