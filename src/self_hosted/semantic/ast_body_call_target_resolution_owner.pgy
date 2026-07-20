@@ -52,9 +52,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                         analysis.expression_surfaces,
                         analysis.signatures, surface_index
                     );
-                while ArrayLength(names) > 0 { ArrayPop(names); }
-                while ArrayLength(types) > 0 { ArrayPop(types); }
-                while ArrayLength(modes) > 0 { ArrayPop(modes); }
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
                 if !IsSome(function_node_id) ||
                     !SemanticAstExpressionSeedOwnerFields(
                         analysis.signatures, analysis.constructors,

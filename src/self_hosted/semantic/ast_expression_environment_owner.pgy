@@ -328,10 +328,14 @@ func SemanticAstExpressionSeedVisibleLocalModes(
     use_node_id: Int,
     inout modes: Array<String>
 ) -> Bool {
-    let i: Int = 0;
-    while i < SemanticAstLocalBindingCount(locals) {
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForFunction(locals, function_node_id);
+    if !range.ok {
+        return false;
+    }
+    let i: Int = range.start;
+    while i < range.end {
         if locals.node_ids[i] < use_node_id &&
-            locals.function_node_ids[i] == function_node_id &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[i], use_node_id
             ) {
@@ -340,6 +344,16 @@ func SemanticAstExpressionSeedVisibleLocalModes(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstExpressionEnvironmentClear(
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Void {
+    while ArrayLength(names) > 0 { ArrayPop(names); }
+    while ArrayLength(types) > 0 { ArrayPop(types); }
+    while ArrayLength(modes) > 0 { ArrayPop(modes); }
 }
 
 func SemanticAstExpressionSeedVisibleIterationRows(

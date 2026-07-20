@@ -14,6 +14,7 @@ func SemanticAstInitializerTypeFactsRefinedByIterations(
     locals: SemanticAstLocalBindingFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     statements: SemanticAstStatementFacts,
+    base_facts: SemanticAstInitializerTypeFacts,
     iterations: SemanticAstIterationTypeFacts
 ) -> SemanticAstInitializerTypeFacts {
     let count: Int = SemanticAstIterationTypeCount(iterations);
@@ -42,7 +43,8 @@ func SemanticAstInitializerTypeFactsRefinedByIterations(
     return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         artifact, signatures, constructors, locals, expression_surfaces,
         iterations.node_ids, function_node_ids, binding_names,
-        iterations.binding_type_names, iterations.verified
+        iterations.binding_type_names, iterations.verified,
+        base_facts, true
     );
 }
 
@@ -72,7 +74,7 @@ func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
     let refined: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsRefinedByIterations(
             artifact, signatures, constructors, locals, surfaces,
-            statements, iterations
+            statements, base, iterations
         );
     if !SemanticAstInitializerTypeFactsReadyProjection(
         artifact, locals, refined
@@ -113,7 +115,7 @@ func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
         SemanticAstInitializerTypeFactsRefinedByIterations(
             invalid, invalid_signatures, invalid_constructors,
             invalid_locals, invalid_surfaces, invalid_statements,
-            invalid_iterations
+            invalid_base, invalid_iterations
         );
     return invalid_iterations.verified[0] == 0 &&
         invalid_iterations.diagnostic_codes[0] ==

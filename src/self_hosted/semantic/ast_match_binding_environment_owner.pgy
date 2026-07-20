@@ -108,17 +108,8 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
-    if !AstTreeArtifactReady(artifact) ||
-        !SemanticAstExpressionSurfaceBorrowReady(
-            artifact, expression_surfaces
-        ) || use_node_id < 0 || use_node_id >= artifact.count {
-        return false;
-    }
-    let function_scopes: SemanticAstFunctionScopeFacts =
-        SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let enums: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !function_scopes.ok || !enums.ok {
+    if !AstTreeArtifactReady(artifact) || use_node_id < 0 ||
+        use_node_id >= artifact.count {
         return false;
     }
     let case_nodes: Array<Int> = [];
@@ -133,6 +124,19 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
         }
         cursor = TypedAstArenaParentId(artifact.arena, node_id);
         traversed = traversed + 1;
+    }
+    if ArrayLength(case_nodes) == 0 { return true; }
+    if !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, expression_surfaces
+    ) {
+        return false;
+    }
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !function_scopes.ok || !enums.ok {
+        return false;
     }
     let i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {

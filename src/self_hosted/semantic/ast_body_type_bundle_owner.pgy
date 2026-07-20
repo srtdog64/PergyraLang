@@ -43,7 +43,7 @@ func SemanticAstBodyTypeBundleFromAnalysis(
         SemanticAstInitializerTypeFactsRefinedByIterations(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces,
-            analysis.statements, iteration_types
+            analysis.statements, base_initializer_types, iteration_types
         );
     let expression_places_resolved: Bool =
         SemanticAstAnalysisResolveExpressionPlacesFromBody(

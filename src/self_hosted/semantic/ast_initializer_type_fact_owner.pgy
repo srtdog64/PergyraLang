@@ -62,7 +62,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     iteration_function_node_ids: Array<Int>,
     iteration_binding_names: Array<String>,
     iteration_binding_types: Array<String>,
-    iteration_verified: Array<Int>
+    iteration_verified: Array<Int>,
+    base_facts: SemanticAstInitializerTypeFacts,
+    reuse_unaffected: Bool
 ) -> SemanticAstInitializerTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -106,11 +108,40 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
+    if reuse_unaffected && (!base_facts.ok ||
+        SemanticAstInitializerTypeCount(base_facts) !=
+            SemanticAstLocalBindingCount(locals)) {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
+        if reuse_unaffected {
+            if !SemanticAstExpressionSeedVisibleIterationRows(
+                artifact, iteration_node_ids, iteration_function_node_ids,
+                iteration_binding_names, iteration_binding_types,
+                iteration_verified, locals.function_node_ids[i],
+                locals.node_ids[i], names, types, modes
+            ) {
+                return SemanticAstInitializerTypeStructuralError(artifact);
+            }
+            if ArrayLength(names) == 0 {
+                ArrayPush(node_ids, base_facts.node_ids[i]);
+                ArrayPush(expression_texts, base_facts.expression_texts[i]);
+                ArrayPush(inferred_type_names, base_facts.inferred_type_names[i]);
+                ArrayPush(verified, base_facts.verified[i]);
+                ArrayPush(diagnostic_codes, base_facts.diagnostic_codes[i]);
+                ArrayPush(diagnostic_messages, base_facts.diagnostic_messages[i]);
+                ArrayPush(binding_kinds, base_facts.binding_kinds[i]);
+                ArrayPush(binding_indices, base_facts.binding_indices[i]);
+                i = i + 1;
+                continue;
+            }
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
+        }
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
         ) || !SemanticAstExpressionSeedOwnerFields(
@@ -271,7 +302,8 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     let empty_strings: Array<String> = [];
     return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         artifact, signatures, constructors, locals, expression_surfaces,
-        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints
+        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
+        SemanticAstInitializerTypeStructuralError(artifact), false
     );
 }
 

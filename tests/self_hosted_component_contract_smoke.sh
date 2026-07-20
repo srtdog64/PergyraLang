@@ -2793,9 +2793,26 @@ require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedVisibleLocals"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionSeedVisibleIterationRows"
+require_text_count_at_least \
+    "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "SemanticAstLocalBindingRangeForFunction(locals, function_node_id);" 2
+reject_function_text \
+    "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedVisibleLocalModes(" \
+    "while i < SemanticAstLocalBindingCount(locals)"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionMemberRootNames("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedEnumValues("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "func SemanticAstExpressionEnvironmentClear("
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticAstExpressionEnvironmentClear(names, types, modes);"
+require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "SemanticAstExpressionEnvironmentClear(names, types, modes);"
+reject_function_text \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "func SemanticAstAnalysisResolveCallTargetsFromBody(" \
+    "while ArrayLength(names) > 0"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstExpressionSeedEnumValues("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 'environment_fact = "match_binding_environment";'
@@ -2828,6 +2845,10 @@ require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owne
     "func SemanticAstInitializerTypeFactsRefinedByIterations"
 require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "iterations.binding_type_names"
+require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
+    "base_facts, true"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "if reuse_unaffected {"
 reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "AstTreeArtifactFromText(source"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
@@ -3847,6 +3868,16 @@ require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedVisibleMatchBindings('
+match_binding_fast_path_order="$(awk '
+    /func SemanticAstExpressionSeedVisibleMatchBindings\(/ { active = 1 }
+    active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
+    active && /SemanticAstFunctionScopeFactsFromArtifact/ && !global { global = NR }
+    active && seen && /^func / { exit }
+    active { seen = 1 }
+    END { if (fast && global && fast < global) print "ok" }
+' "$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy")"
+[[ "$match_binding_fast_path_order" == "ok" ]] ||
+    fail "match-binding empty-case fast path must precede global fact construction"
 require_text "src/self_hosted/mir/match_fact_owner.pgy" \
     'func SelfMirMatchFactRowsAttachCase('
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
