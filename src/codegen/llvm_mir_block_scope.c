@@ -37,7 +37,10 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
                 llvm_mir_get_var_entry(vars, var_count, first_ver);
             if (base_entry != NULL && base_entry->alloca != NULL) {
                 llvm_mir_bind_base_local_scope(ctx, base_name,
-                    base_entry->alloca, base_entry->type, type_name);
+                    base_entry->alloca, base_entry->type,
+                    base_entry->abi_type_name != NULL
+                        ? base_entry->abi_type_name
+                        : type_name);
             }
         }
         return;
@@ -52,7 +55,8 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
         return;
     }
     llvm_mir_bind_base_local_scope(ctx, base_name, entry->alloca,
-        entry->type, type_name);
+        entry->type,
+        entry->abi_type_name != NULL ? entry->abi_type_name : type_name);
 }
 
 void

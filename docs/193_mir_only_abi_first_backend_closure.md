@@ -68,6 +68,15 @@ facts, and the single runtime-call ABI row authority. Each must retain the same
 AIR-bound admission and negative gate before the status can move from `PARTIAL`
 to `CLOSED`.
 
+The active C MIR function emitter now keeps that boundary fail-closed for
+parameter and local registration as well. Once strict MIR signature admission
+has succeeded, a missing parameter or local type-name fact cannot be repaired
+from the retained `FuncParam.type` AST node, including the generic-substitution
+and versioned-local setup paths. The legacy AST conversion remains available
+only before MIR admission. `tests/backend_fail_closed_smoke.sh` carries the
+negative source-shape checks, while the C/LLVM 75-fixture codegen parity and
+DRV-2 producer-first body/MIR parity gates exercise the owner-carried path.
+
 ### Declaration inventory sub-rungs
 
 The C backend's nominal forward-typedef pass is now MIR-owned. It reads the
@@ -128,6 +137,14 @@ link, `mir-declaration-inventory-test-smoke`, and `tests/llvm_smoke.sh` (which
 includes `event_system`). This is a bounded routine-declaration sub-rung, not
 full LLVM declaration/bootstrap closure: method/domain callable declarations,
 constructors, and runtime-call ABI rows remain separate open seams.
+
+The same `MIRCallableSig` owner now remains in force after declaration: LLVM
+function-body type construction and parameter alloca binding consume the
+carried callable row, and register callable names from its rendered parameter
+and return names. Active MIR cannot fall back to `ast_type_to_llvm` for an
+`EventHandler` slot; the signature metadata gate rejects a missing callable
+row before emission. This keeps AIR as the admission boundary while allowing
+C and LLVM to lower one MIR ABI row through backend-specific type builders.
 
 ### Runtime-call row consumer sub-rung (AIR-bound)
 

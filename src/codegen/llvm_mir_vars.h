@@ -7,6 +7,7 @@
 
 typedef struct {
     const char *mir_name;
+    const char *abi_type_name;
     LLVMValueRef alloca;
     LLVMTypeRef type;
 } LLVMMirVar;

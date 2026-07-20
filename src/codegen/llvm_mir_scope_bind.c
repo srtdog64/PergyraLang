@@ -29,6 +29,9 @@ llvm_mir_bind_base_local_scope(LLVMGenCtx *ctx,
         return;
     }
     llvm_scope_declare(ctx, owned_base, alloca, type);
+    if (type_name != NULL && type_name[0] != '\0')
+        llvm_register_typed_var_abi_binding(ctx, owned_base, alloca,
+            type_name);
     if (type_name != NULL && type_name[0] != '\0'
         && llvm_lookup_class(ctx, type_name) != NULL) {
         llvm_register_var_class(ctx, owned_base, type_name);

@@ -55,6 +55,13 @@ llvm_mir_routine_signature_metadata_complete_for(
                     : "MIR-only LLVM path missing function return type-name metadata for '%s'",
                 func_name);
             return false;
+        } else if (return_type != NULL
+                   && return_type->type == AST_EVENT_HANDLER_TYPE
+                   && llvm_mir_routine_return_callable_sig(routine) == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing callable return signature metadata for '%s'",
+                func_name);
+            return false;
         }
     }
 
@@ -71,6 +78,14 @@ llvm_mir_routine_signature_metadata_complete_for(
                     missing_param_type_fmt != NULL
                         ? missing_param_type_fmt
                         : "MIR-only LLVM path missing function parameter type-name metadata for '%s'",
+                    func_name);
+                return false;
+            } else if (param->type != NULL
+                       && param->type->type == AST_EVENT_HANDLER_TYPE
+                       && llvm_mir_routine_param_callable_sig(
+                              routine, i) == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing callable parameter signature metadata for '%s'",
                     func_name);
                 return false;
             }

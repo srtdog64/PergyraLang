@@ -240,7 +240,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     pt_buf, sizeof(pt_buf))) {
                 pt = pt_buf;
             }
-        } else if (!event_handler_param && p->type != NULL) {
+        } else if (!mir_active && !event_handler_param && p->type != NULL) {
             if (pergyra_ast_type_to_c_copy_in_ctx(
                     ctx, p->type, pt_buf, sizeof(pt_buf)))
                 pt = pt_buf;
@@ -253,7 +253,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 transpiler_mir_routine_owner_name(mir_routine));
             type_name = owned_type_name;
         }
-        if (ctx != NULL && ctx->generic_binding_count > 0
+        if (!mir_active && ctx != NULL && ctx->generic_binding_count > 0
             && !event_handler_param && p->type != NULL) {
             char pt_ast_buf[256];
             if (pergyra_ast_type_to_c_copy_in_ctx(ctx, p->type,
@@ -280,7 +280,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         if (params_sig->len > 0)
             codebuf_write(params_sig, ", ");
-        if (type_name == NULL && p->type != NULL) {
+        if (!mir_active && type_name == NULL && p->type != NULL) {
             owned_type_name = render_type_name_in_ctx(ctx, p->type);
             type_name = owned_type_name;
         }
@@ -465,7 +465,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             continue;
         if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
-        if (type_name == NULL && p->type != NULL) {
+        if (!mir_active && type_name == NULL && p->type != NULL) {
             owned_type_name = render_type_name_in_ctx(ctx, p->type);
             type_name = owned_type_name;
         }

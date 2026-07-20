@@ -126,12 +126,12 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
         ASTNode *init = inst->expr0;
         llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
             target->type, inst->arg1);
-        if (source_local_type_fact != NULL) {
-            llvm_mir_register_source_local_type_fact(ctx, base_name,
-                target->alloca, source_local_type_fact);
-        } else if (mir_active && inst->abi_type_name != NULL) {
+        if (mir_active && inst->abi_type_name != NULL) {
             llvm_register_typed_var_abi_binding(ctx, base_name,
                 target->alloca, inst->abi_type_name);
+        } else if (source_local_type_fact != NULL) {
+            llvm_mir_register_source_local_type_fact(ctx, base_name,
+                target->alloca, source_local_type_fact);
         } else if (type_ann != NULL) {
             llvm_register_typed_var_binding(ctx, base_name, target->alloca,
                 type_ann);
@@ -228,12 +228,12 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     llvm_mir_bind_base_local_scope(ctx, base_name, active_alloca,
         active_alloca == source.alloca ? source.type : target->type,
         inst->arg1);
-    if (source_local_type_fact != NULL) {
-        llvm_mir_register_source_local_type_fact(ctx, base_name,
-            active_alloca, source_local_type_fact);
-    } else if (mir_active && inst->abi_type_name != NULL) {
+    if (mir_active && inst->abi_type_name != NULL) {
         llvm_register_typed_var_abi_binding(ctx, base_name, active_alloca,
             inst->abi_type_name);
+    } else if (source_local_type_fact != NULL) {
+        llvm_mir_register_source_local_type_fact(ctx, base_name,
+            active_alloca, source_local_type_fact);
     } else if (type_ann != NULL)
         llvm_register_typed_var_binding(ctx, base_name, active_alloca,
             type_ann);

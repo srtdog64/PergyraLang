@@ -288,6 +288,7 @@ llvm_register_mir_param_ssa_aliases(const MIRRoutine *routine,
             return;
         }
         vars[count].mir_name = owned_name;
+        vars[count].abi_type_name = mir_routine_param_type_name(routine, i);
         vars[count].alloca = entry.alloca;
         vars[count].type = entry.type;
         count++;
@@ -386,6 +387,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             LLVMValueRef alloca;
             const char *param_type_name =
                 llvm_mir_routine_param_type_name(routine, param_index);
+            const MIRCallableSig *param_callable_sig =
+                llvm_mir_routine_param_callable_sig(routine, param_index);
             MIRParamCarriage carriage =
                 llvm_mir_routine_param_carriage(routine, param_index);
             bool pass_indirect =
@@ -405,7 +408,9 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 continue;
             }
 
-            pt = param_type_name != NULL
+            pt = param_callable_sig != NULL
+                ? llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)
+                : param_type_name != NULL
                 ? pergyra_type_to_llvm(ctx, param_type_name)
                 : llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
                     "function parameter");
@@ -473,12 +478,20 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
             }
             llvm_scope_declare(ctx, p->name, alloca, pt);
-            if (param_type_name != NULL)
+            if (param_callable_sig != NULL) {
+                llvm_register_callable_signature_names(ctx, p->name,
+                    param_callable_sig->param_count,
+                    (const char *const *)param_callable_sig->param_type_names,
+                    param_callable_sig->return_type_name);
+            } else if (param_type_name != NULL)
                 llvm_register_typed_var_abi_binding(ctx, p->name, alloca,
                     param_type_name);
             else
-                llvm_register_typed_var(ctx, p->name, p->type);
-            llvm_register_callable_param_if_needed(ctx, p);
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing parameter ABI type fact for '%s'",
+                    p->name);
+            if (param_callable_sig == NULL)
+                llvm_register_callable_param_if_needed(ctx, p);
             if (param_type_name != NULL)
                 llvm_register_var_class(ctx, p->name, param_type_name);
             else

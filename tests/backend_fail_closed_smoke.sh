@@ -1714,6 +1714,54 @@ grep -Fq "mir_decl_header_field_claim_abi_validate(" \
     "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"
 grep -Fq "transpiler_slot_runtime_fn_for_decl_claim(" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+grep -Fq "const char *abi_type_name;" \
+    "$ROOT_DIR/src/codegen/llvm_mir_vars.h"
+grep -Fq "vars[count].abi_type_name = mir_routine_param_type_name(routine, i);" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "entry->abi_type_name != NULL ? entry->abi_type_name : type_name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_scope.c"
+grep -Fq "base_entry->abi_type_name != NULL" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_scope.c"
+grep -Fq "llvm_register_typed_var_abi_binding(ctx, owned_base, alloca," \
+    "$ROOT_DIR/src/codegen/llvm_mir_scope_bind.c"
+grep -Fq "if (mir_active && inst->abi_type_name != NULL)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "llvm_register_callable_signature_names(ctx, p->name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "missing callable return signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_signature.c"
+grep -Fq "missing callable parameter signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_signature.c"
+if grep -F "llvm_mir_type_from_ast(ctx, return_type)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] active MIR LLVM return ABI must not recover callable/type shape from AST" >&2
+    exit 1
+fi
+grep -Fq "} else if (!mir_active && !event_handler_param && p->type != NULL)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+grep -Fq "if (!mir_active && ctx != NULL && ctx->generic_binding_count > 0" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+grep -Fq "if (!mir_active && type_name == NULL && p->type != NULL)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+if grep -F "if (type_name == NULL && p->type != NULL)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] active MIR local registration must not recover type names from AST" >&2
+    exit 1
+fi
+if grep -F "} else if (!event_handler_param && p->type != NULL)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] active MIR function parameters must not recover C types from AST" >&2
+    exit 1
+fi
+if grep -F "if (ctx != NULL && ctx->generic_binding_count > 0" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] active MIR generic parameter emission must not reopen AST substitution" >&2
+    exit 1
+fi
 grep -Fq "mir_source_local_type_append_callable(program, routine," \
     "$ROOT_DIR/src/compiler/mir_source_local_types.c"
 grep -Fq "!source_local_fact->is_callable" \

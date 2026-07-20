@@ -421,9 +421,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
 
                 if (!is_closure_local_decl
                     && mir_instruction_uses_source_local_decl_emit(inst)) {
-                    size_t source_def_count = has_base_name
-                        ? llvm_mir_source_local_def_count(routine, base_name)
-                        : 0;
                     source_local_fact = llvm_mir_local_source_fact(
                         routine, has_base_name ? base_name : inst->result_name);
                     if (source_local_fact != NULL)
@@ -432,8 +429,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         instruction_type_name != NULL
                         && instruction_type_name[0] != '\0'
                         && (source_local_fact == NULL
-                            || !source_local_fact->is_callable)
-                        && (!has_base_name || source_def_count != 1);
+                            || !source_local_fact->is_callable);
                     if (prefer_instruction_type_name)
                         source_local_type_name = instruction_type_name;
                     if (source_local_fact == NULL
@@ -590,6 +586,11 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     var_capacity = new_capacity;
                 }
                 vars[var_count].mir_name = inst->result_name;
+                vars[var_count].abi_type_name =
+                    instruction_type_name != NULL
+                        && instruction_type_name[0] != '\0'
+                    ? instruction_type_name
+                    : source_local_type_name;
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);

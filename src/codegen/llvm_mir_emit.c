@@ -14,6 +14,7 @@
 #include "llvm_mir_phi.h"
 #include "llvm_mir_signature.h"
 #include "llvm_mir_type_helpers.h"
+#include "llvm_backend_type_map_internal.h"
 
 static void
 llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
@@ -209,8 +210,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         size_t func_param_count = llvm_mir_routine_param_count(routine);
         for (size_t i = 0; i < func_param_count; i++) {
             FuncParam *p = llvm_mir_routine_param(routine, i);
-            const char *param_type_name =
-                llvm_mir_routine_param_type_name(routine, i);
             const char *slot_inner;
             MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
             if (is_method && llvm_param_is_implicit_self_local(p)) {
@@ -307,6 +306,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     ? llvm_mir_routine_param_type_name(routine,
                         source_param_index)
                     : NULL;
+            const MIRCallableSig *param_callable_sig =
+                source_param_index != (size_t)-1
+                    ? llvm_mir_routine_param_callable_sig(
+                        routine, source_param_index)
+                    : NULL;
             MIRParamCarriage carriage = source_param_index != (size_t)-1
                 ? llvm_mir_routine_param_carriage(routine,
                     source_param_index)
@@ -319,7 +323,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             if (slot_inner != NULL) {
                 LLVMTypeRef slot_ty = param_type_name != NULL
                     ? pergyra_type_to_llvm(ctx, param_type_name)
-                    : llvm_mir_type_from_ast(ctx, p->type);
+                    : llvm_mir_required_type_from_ast(ctx, func_decl,
+                        p != NULL ? p->type : NULL,
+                        "function parameter");
                 if (ctx->has_error || slot_ty == NULL)
                     return NULL;
                 param_types[i] = LLVMPointerType(slot_ty, 0);
@@ -328,7 +334,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     param_types[++i] = llvm_secure_token_type(ctx, slot_inner);
                 }
             } else {
-                if (param_type_name != NULL)
+                if (param_callable_sig != NULL)
+                    param_types[i] = llvm_mir_callable_sig_to_llvm(
+                        ctx, param_callable_sig);
+                else if (param_type_name != NULL)
                     param_types[i] = pergyra_type_to_llvm(ctx,
                         param_type_name);
                 else if (p != NULL && p->type != NULL)
@@ -340,9 +349,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
                 if (pass_indirect
-                    || (param_type_name != NULL
+                    || (param_callable_sig == NULL && param_type_name != NULL
                     ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-                    : (p != NULL && p->type != NULL
+                    : (param_callable_sig == NULL && p != NULL && p->type != NULL
                         && llvm_mir_param_uses_pointer_self(ctx, p->type)))) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
@@ -359,10 +368,19 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (!is_intent) {
         return_type_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
-        if (return_type_name != NULL)
+        const MIRCallableSig *return_callable_sig =
+            llvm_mir_routine_return_callable_sig(routine);
+        if (return_callable_sig != NULL)
+            ret_type = llvm_mir_callable_sig_to_llvm(ctx,
+                return_callable_sig);
+        else if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (return_type != NULL)
-            ret_type = llvm_mir_type_from_ast(ctx, return_type);
+        else if (return_type != NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing return ABI type fact for '%s'",
+                routine_name != NULL ? routine_name : "(anonymous)");
+            return NULL;
+        }
         else if (is_method)
             /* A method/action with no return-type metadata is Void, matching
              * the registered forward signature (which normalizes it to Void).

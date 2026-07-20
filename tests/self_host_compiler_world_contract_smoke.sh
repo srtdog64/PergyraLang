@@ -177,7 +177,8 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstAr
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromVerifiedSemanticArtifact("
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAstArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let emission: CompilerEmissionArtifact = CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return emission;"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" '"emitted-c",'
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC("
