@@ -9,6 +9,9 @@ bool mir_stmt_population_append(MIRInstruction *new_insts,
                                 MIRInstruction inst);
 bool mir_routine_has_def_for_name(const MIRRoutine *routine,
                                   const char *base_name);
+bool mir_assignment_requires_stmt_preservation(
+    const MIRRoutine *routine,
+    const ASTNode *stmt);
 void mir_consume_matching_def_instruction(MIRInstruction *old_insts,
                                           size_t old_count,
                                           size_t *def_cursor,

@@ -14,10 +14,4 @@ char *mir_render_substituted_type_name(ASTNode *type_node,
                                        char *const *actual_type_names,
                                        size_t binding_count);
 
-bool mir_assignment_requires_stmt_preservation(const ASTNode *func_decl,
-                                               ASTNode **statements,
-                                               size_t statement_count,
-                                               size_t stmt_index,
-                                               const ASTNode *stmt);
-
 #endif

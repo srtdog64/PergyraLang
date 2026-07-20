@@ -229,6 +229,8 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                                        size_t block_index,
                                        char **error_message)
 {
+    bool has_resource_runtime_facts = false;
+
     if (routine == NULL || block == NULL)
         return false;
 
@@ -238,6 +240,15 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                                                   "instruction surface usage validation",
                                                   error_message))
         return false;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind == MIR_INST_RESOURCE_OP
+            && inst->resource_runtime_fact_present) {
+            has_resource_runtime_facts = true;
+            break;
+        }
+    }
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
@@ -309,8 +320,9 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
         }
         {
-            const MIRInstruction *resource =
-                mir_resource_runtime_fact_source_for_consumer(block, inst);
+            const MIRInstruction *resource = has_resource_runtime_facts
+                ? mir_resource_runtime_fact_source_for_consumer(block, inst)
+                : NULL;
             if (resource != NULL) {
                 const MIRResourceRuntimeRow *expected =
                     &resource->resource_runtime_fact;

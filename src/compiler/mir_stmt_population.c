@@ -130,6 +130,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
         size_t inventory_count = mir_block_source_inventory_count(block);
+        bool has_resource_ops = false;
         if (block->is_cleanup)
             continue;
         if (inventory_count == 0)
@@ -143,6 +144,12 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             : NULL;
         if (old_count > 0 && copied_flags == NULL)
             return false;
+        for (size_t i = 0; i < old_count; i++) {
+            if (old_insts[i].kind == MIR_INST_RESOURCE_OP) {
+                has_resource_ops = true;
+                break;
+            }
+        }
         mir_assign_resource_op_source_statement_indices(
             old_insts,
             old_count,
@@ -252,7 +259,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
             if (mir_stmt_is_control_flow(stmt, block)) {
                 if (mir_stmt_is_inline_cfg_wrapper(stmt)) {
-                    if (!mir_copy_resource_ops_for_stmt(new_insts, new_cap,
+                    if (has_resource_ops
+                        && !mir_copy_resource_ops_for_stmt(new_insts, new_cap,
                                                         &new_count,
                                                         old_insts, old_count,
                                                         copied_flags, stmt, s)) {
@@ -266,7 +274,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     break;
                 continue;
             }
-            if (!mir_copy_resource_ops_for_stmt(new_insts, new_cap,
+            if (has_resource_ops
+                && !mir_copy_resource_ops_for_stmt(new_insts, new_cap,
                                                 &new_count,
                                                 old_insts, old_count,
                                                 copied_flags, stmt, s)) {
@@ -274,11 +283,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 free(new_insts);
                 return false;
             }
-            if (mir_assignment_requires_stmt_preservation(routine->ast,
-                                                          mir_block_source_inventory_items(block),
-                                                          inventory_count,
-                                                          s,
-                                                          stmt)) {
+            if (mir_assignment_requires_stmt_preservation(routine, stmt)) {
                 mir_consume_matching_def_instruction(old_insts,
                                                      old_count,
                                                      &def_cursor,

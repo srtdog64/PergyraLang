@@ -2445,6 +2445,12 @@ grep -Fq "mir_block_source_inventory_count(block)" "$ROOT_DIR/src/compiler/mir_s
 ! grep -Fq "source_hir_block;" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "mir_block_source_inventory_at(block, s)" "$ROOT_DIR/src/compiler/mir_stmt_population.c"
 grep -Fq "mir_block_source_inventory_items(block)" "$ROOT_DIR/src/compiler/mir_stmt_population.c"
+grep -Fq "mir_routine_source_local_type_name(routine, target_name)" \
+    "$ROOT_DIR/src/compiler/mir_stmt_population_source.c"
+! grep -Fq "mir_binding_name_is_slot_like" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c"
+! grep -Fq "mir_assignment_requires_stmt_preservation" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c"
 grep -Fq "mir_validate_statement_inventory" "$ROOT_DIR/src/compiler/mir_fact_validate.h"
 grep -Fq "source statement index %zu exceeds inventory count %zu" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "MIR validator rejects invalid statement inventory shape" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_b_1.cases.h"
@@ -2453,6 +2459,8 @@ grep -Fq "source payload without surface usage facts" "$ROOT_DIR/src/compiler/mi
 grep -Fq "missing MIR initializer expression fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "mir_def_source_requires_initializer_fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "mir_instruction_has_surface_payload_or_shape" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+grep -Fq "has_resource_runtime_facts" \
+    "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "requires_source_statement_emit" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "inst->expr1 = ast_assignment_target(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "requires_source_local_decl_emit" "$ROOT_DIR/src/compiler/mir_types.h"

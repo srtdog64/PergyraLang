@@ -82,11 +82,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             continue;
         if (mir_stmt_is_control_flow(stmt, entry))
             continue;
-        if (mir_assignment_requires_stmt_preservation(func_decl,
-                                                      statements,
-                                                      statement_count,
-                                                      i,
-                                                      stmt)) {
+        if (mir_assignment_requires_stmt_preservation(routine, stmt)) {
             MIRInstruction inst = mir_make_assignment_instruction(NULL,
                                                                   stmt,
                                                                   i);

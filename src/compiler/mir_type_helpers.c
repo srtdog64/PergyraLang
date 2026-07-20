@@ -111,24 +111,6 @@ mir_render_tuple_type_name(ASTNode *type_node,
     return result;
 }
 
-static bool
-mir_type_node_is_slot_like(const ASTNode *type_node)
-{
-    const char *name;
-
-    if (type_node == NULL)
-        return false;
-    name = ast_type_name(type_node);
-    if (name == NULL)
-        return false;
-    return strcmp(name, "Slot") == 0
-        || strcmp(name, "SecureSlot") == 0
-        || strcmp(name, "DeviceSlot") == 0
-        || strncmp(name, "Slot<", 5) == 0
-        || strncmp(name, "SecureSlot<", 11) == 0
-        || strncmp(name, "DeviceSlot<", 11) == 0;
-}
-
 typedef struct MIRClaimKindSpec {
     const char *callee;
     const char *abi_prefix;
@@ -150,88 +132,6 @@ mir_claim_kind_from_callee(const char *callee)
             return &specs[i];
     }
     return NULL;
-}
-
-static bool
-mir_expr_is_claim_like(const ASTNode *expr)
-{
-    const char *callee;
-
-    if (expr == NULL || expr->type != AST_CALL
-        || ast_call_callee(expr) == NULL
-        || ast_call_callee(expr)->type != AST_IDENTIFIER
-        || ast_identifier_name(ast_call_callee(expr)) == NULL)
-        return false;
-
-    callee = ast_identifier_name(ast_call_callee(expr));
-    return mir_claim_kind_from_callee(callee) != NULL;
-}
-
-static bool
-mir_binding_name_is_slot_like(const ASTNode *func_decl,
-                              ASTNode **statements,
-                              size_t statement_count,
-                              size_t stmt_index,
-                              const char *binding_name)
-{
-    if (binding_name == NULL || binding_name[0] == '\0')
-        return false;
-
-    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
-        for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
-            FuncParam *param = ast_func_param(func_decl, i);
-            if (param == NULL || param->name == NULL)
-                continue;
-            if (strcmp(param->name, binding_name) != 0)
-                continue;
-            return mir_type_node_is_slot_like(param->type);
-        }
-    }
-
-    if (statements == NULL || statement_count == 0)
-        return false;
-    if (stmt_index > statement_count)
-        stmt_index = statement_count;
-
-    for (size_t i = 0; i < stmt_index; i++) {
-        ASTNode *prior = statements[i];
-        const char *prior_name;
-        if (prior == NULL || prior->type != AST_LET_DECL
-            || ast_let_name(prior) == NULL)
-            continue;
-        prior_name = ast_let_name(prior);
-        if (strcmp(prior_name, binding_name) != 0)
-            continue;
-        if (mir_type_node_is_slot_like(ast_let_type(prior)))
-            return true;
-        if (mir_expr_is_claim_like(ast_let_initializer(prior)))
-            return true;
-    }
-
-    return false;
-}
-
-bool
-mir_assignment_requires_stmt_preservation(const ASTNode *func_decl,
-                                          ASTNode **statements,
-                                          size_t statement_count,
-                                          size_t stmt_index,
-                                          const ASTNode *stmt)
-{
-    const char *target_name;
-
-    if (stmt == NULL || stmt->type != AST_ASSIGNMENT
-        || ast_assignment_target(stmt) == NULL
-        || ast_assignment_target(stmt)->type != AST_IDENTIFIER
-        || ast_identifier_name(ast_assignment_target(stmt)) == NULL)
-        return false;
-
-    target_name = ast_identifier_name(ast_assignment_target(stmt));
-    return mir_binding_name_is_slot_like(func_decl,
-                                         statements,
-                                         statement_count,
-                                         stmt_index,
-                                         target_name);
 }
 
 static char *

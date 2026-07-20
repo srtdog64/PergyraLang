@@ -1,6 +1,7 @@
 #include "mir_stmt_population_internal.h"
 
 #include "mir_abi_layout.h"
+#include "mir_source_local_type_shape.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,27 @@ mir_routine_has_def_for_name(const MIRRoutine *routine, const char *base_name)
     }
 
     return false;
+}
+
+bool
+mir_assignment_requires_stmt_preservation(const MIRRoutine *routine,
+                                          const ASTNode *stmt)
+{
+    char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+    const char *target_name;
+    const char *type_name;
+
+    if (routine == NULL || stmt == NULL || stmt->type != AST_ASSIGNMENT
+        || ast_assignment_target(stmt) == NULL
+        || ast_assignment_target(stmt)->type != AST_IDENTIFIER) {
+        return false;
+    }
+    target_name = ast_identifier_name(ast_assignment_target(stmt));
+    if (target_name == NULL)
+        return false;
+    type_name = mir_routine_source_local_type_name(routine, target_name);
+    return mir_source_local_unwrap_slot_like_type(type_name, inner,
+                                                   sizeof(inner));
 }
 
 void
