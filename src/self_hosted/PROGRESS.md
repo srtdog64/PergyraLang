@@ -1,5 +1,15 @@
 # Self-Host Progress
 
+2026-07-21 executable SoT delta: `class_compare_return` is DRV-2 MIR fixture
+109. Statement-type evidence already classified each direct `Log` argument as
+`Bool`; the self-host emitter now consumes that carried type and the string
+runtime ABI owner supplies the sole `pgy_log_bool` spelling and implementation.
+The previous catch-all string-log fallback is no longer used for Bool values.
+Current C-built and LLVM-built self drivers matched canonical MIR,
+source/MIR C, native compilation, and runtime output for the fixture. The
+complete 109-fixture matrix was not rerun, and released/default replacement
+remains 0%.
+
 2026-07-21 executable breadth delta: fifteen more class strategy, factory,
 aggregate, and composition programs are DRV-2 MIR fixtures 94 through 108.
 Current C-built and LLVM-built self drivers each matched the native oracle's
@@ -8,9 +18,9 @@ output for all fifteen. The fixture identity owner now derives a
 `backend_compare/*/main.pgy` identity from its parent directory instead of
 growing a per-fixture alias table. Three nearby probes remain fail-closed and
 are not counted: implicit owner-field assignment needs an assignment target
-binding fact, Bool logging needs a value-to-log ABI row, and the looped node
-member fixture loses an aggregate member expression graph during canonical
-consumption. The complete 108-fixture matrix was not rerun, and the
+binding fact, and the looped node member fixture loses an aggregate member
+expression graph during canonical consumption. The complete 108-fixture
+matrix was not rerun, and the
 released/default driver replacement remains 0%.
 
 2026-07-21 executable breadth delta: five additional class composition and

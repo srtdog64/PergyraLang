@@ -2387,7 +2387,7 @@ require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "func LaneEx
 require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "func LaneExecutorContractReady"
 require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "definitely_missing_lane_executor_contract_term"
 require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "pgy_lane_dispatch(PgyExecutionLane lane"
-require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
+require_text "src/self_hosted/sea/lane_executor_contract_owner.pgy" "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion"
 require_file "src/self_hosted/sea/lane_executor_contract.pgy"
 require_file "src/self_hosted/sea/expected_executor_contract.txt"
 require_file "src/self_hosted/sea/expected_executor_contract_missing.txt"
@@ -2403,9 +2403,9 @@ reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "pgy.selfhost.lane-
 reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "depth=scaffold-synchronous"
 reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "definitely_missing_lane_executor_contract_term"
 reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "pgy_lane_dispatch(PgyExecutionLane lane"
-reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
+reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion"
 require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|Reject|(rejected)|fail_closed"
-require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
+require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion"
 require_text "src/self_hosted/sea/expected_executor_contract_missing.txt" "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term"
 
 # --- Parallel auto-chunk policy owner (docs/186 P-B3, docs/188 R2) ---
@@ -3618,9 +3618,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 88;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 109;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 88'
+    'mir_fixture_rows[@]}" -ne 109'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_self_chain/main.pgy"'
 for class_mir_fixture in \
@@ -3854,11 +3854,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 88;"
+    "return 109;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 88'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 109'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -5953,6 +5953,7 @@ require_file "src/self_hosted/codegen/fixture/nominal_record_array.pgy"
 require_file "src/self_hosted/codegen/expected/nominal_record_array_stdout.txt"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_bool || usage.uses_array ||"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "usage.uses_log ||"
 require_file "src/self_hosted/codegen/emission/array_value_emit_owner.pgy"
 require_file "src/self_hosted/codegen/emission/value_return_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func EmitArrayLiteralValue("

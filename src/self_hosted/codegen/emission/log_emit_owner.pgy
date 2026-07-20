@@ -47,6 +47,11 @@ func EmitLog(
             StringRuntimeCFloatLineFormat(), env
         );
     }
+    if inferred_type_name == "Bool" {
+        return Concat(StringRuntimeCBoolLogFn(), Concat("((bool)(", Concat(
+            rendered, "));"
+        )));
+    }
     return Concat(StringRuntimeCLogFn(), Concat("(", Concat(
         rendered, ");"
     )));
