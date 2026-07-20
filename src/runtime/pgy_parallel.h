@@ -180,9 +180,9 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
     }
     pgy_cancel_probe_install(pgy_parallel_cancel_probe);
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
-    task->result = pgy_cancel_is_requested(task->cancel_node)
-        ? NULL
-        : fn(arg);
+    /* Cooperative cancellation: an inherited cancel request does not skip the
+     * task — it runs and observes IsCancelled(), like every other lane. */
+    task->result = fn(arg);
     atomic_store_explicit(&task->state, PGY_TASK_DONE, memory_order_release);
     handle.task = task;
     return handle;
@@ -426,15 +426,13 @@ pgy_pool_run_task(PgyTask *task)
     PgyTask *prev;
     void    *result;
 
-    if (pgy_cancel_is_requested(task->cancel_node)) {
-        pthread_mutex_lock(&task->mutex);
-        task->result = NULL;
-        atomic_store_explicit(&task->state, PGY_TASK_DONE,
-                              memory_order_release);
-        pthread_cond_broadcast(&task->cond);
-        pthread_mutex_unlock(&task->mutex);
-        return;
-    }
+    /* Cancellation is COOPERATIVE on every lane: the task runs and observes
+     * the flag (IsCancelled) itself, exactly as the coroutine executor does.
+     * Dropping a cancel-requested task here (result=NULL, fn never runs) made
+     * await's outcome depend on scheduler timing — an unobservable branch the
+     * caller cannot distinguish from a run that produced NULL — and broke the
+     * lane facade's executor-invariance contract the moment spawns reached
+     * this lane (WO-PAR-NOVEL step 2). */
     atomic_store_explicit(&task->state, PGY_TASK_RUNNING,
                           memory_order_relaxed);
 
