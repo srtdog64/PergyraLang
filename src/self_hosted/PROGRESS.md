@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-20 executable delta: verified wrapper calls now preserve their
+argument-dependent receiver type after call-target carriage. The receiver-type
+owner consumes the carried `UnwrapOption`/`Unwrap` target before consulting a
+general callable return row, so `UnwrapOption(owner).name` derives the nominal
+payload and field type instead of collapsing to `Unknown`. The existing
+`option_struct_value_flow` fixture now includes the direct
+`UnwrapOption(built).left` chain. Focused C-built and LLVM-built DRV-2 drivers
+match canonical MIR, emitted C, negative mutations, and runtime output
+`7 / 11 / 5`. This closes the wrapper-payload receiver seam reached by the
+active rung; it does not change the released/default driver replacement from
+0% or claim the complete 82-fixture matrix.
+
 2026-07-20 executable delta: `class_method_self_chain` is DRV-2 MIR fixture
 82. Bare `val` and `limit` references inside `Builder` methods are resolved
 from the function-owner row plus the nominal declaration's ordered field rows.

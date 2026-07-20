@@ -480,6 +480,28 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
                 wrapper_member_fact.arena
             ), [0], 1
         );
+    let wrapper_member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(
+            wrapper_member_graph, wrapper_member_fact.root
+        );
+    if !wrapper_member.ok { return false; }
+    let wrapper_call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            wrapper_member_graph, wrapper_member.receiver_node
+        );
+    if !wrapper_call.ok { return false; }
+    let wrapper_target_kinds: Array<Int> =
+        wrapper_member_graph.arena.call_target_kinds;
+    let wrapper_target_names: Array<String> =
+        wrapper_member_graph.arena.call_target_names;
+    ArraySet(
+        wrapper_target_kinds,
+        wrapper_call.call_node, SemanticCallTargetDirect()
+    );
+    ArraySet(
+        wrapper_target_names,
+        wrapper_call.call_node, "UnwrapOption"
+    );
     let index_text: String = "stack[(ArrayLength(stack) - 1)]";
     let index_cursor: Array<Int> = [0];
     let index_fact: ParserExpressionFact = ParseExprFact(
@@ -543,7 +565,7 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             wrapper_member_graph, wrapper_member_fact.root, constructors,
-            ["owner"], ["Option<Outer>"], empty, empty
+            ["owner"], ["Option<Outer>"], ["UnwrapOption"], ["Unknown"]
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             graph, fact.root, constructors, ["i"], ["Int"], empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(

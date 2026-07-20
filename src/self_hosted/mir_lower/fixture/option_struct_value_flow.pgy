@@ -16,4 +16,5 @@ func Main() -> Void {
     let built: Option<Pair> = BuildPair(5);
     let unwrapped: Pair = UnwrapOption(built);
     Log(ToString(unwrapped.left + unwrapped.right));
+    Log(ToString(UnwrapOption(built).left));
 }

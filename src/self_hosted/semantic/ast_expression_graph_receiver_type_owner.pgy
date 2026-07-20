@@ -112,34 +112,26 @@ func SemanticExpressionGraphValueReceiverTypeName(
         graph.arena.call_target_kinds[call.call_node];
     let carried_name: String =
         graph.arena.call_target_names[call.call_node];
-    if carried_name != "" && (
-        carried_kind == SemanticCallTargetDirect() ||
-        carried_kind == SemanticCallTargetNamespace() ||
-        carried_kind == SemanticCallTargetMember()
-    ) {
-        let carried_target: Option<Int> = SemanticCallableIndex(
-            function_names, carried_name
-        );
-        if !IsSome(carried_target) { return None; }
-        let carried_return: String =
-            function_returns[UnwrapOption(carried_target)];
-        if carried_return == "" || carried_return == "Unknown" {
-            return None;
-        }
-        return Some(carried_return);
-    }
-    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, call.callee_node
-    );
-    let callee_name: Option<String> = SemanticExpressionGraphNodeText(
-        graph, call.callee_node
-    );
-    if !IsSome(callee_kind) || UnwrapOption(callee_kind) !=
-            AstExpressionNodeLeaf() || !IsSome(callee_name) {
+    let target_name: String = carried_name;
+    if carried_name != "" && carried_kind != SemanticCallTargetDirect() &&
+        carried_kind != SemanticCallTargetNamespace() &&
+        carried_kind != SemanticCallTargetMember() {
         return None;
     }
-    if (UnwrapOption(callee_name) == "UnwrapOption" ||
-        UnwrapOption(callee_name) == "Unwrap") &&
+    if target_name == "" {
+        let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, call.callee_node
+        );
+        let callee_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call.callee_node
+        );
+        if !IsSome(callee_kind) || UnwrapOption(callee_kind) !=
+                AstExpressionNodeLeaf() || !IsSome(callee_name) {
+            return None;
+        }
+        target_name = UnwrapOption(callee_name);
+    }
+    if (target_name == "UnwrapOption" || target_name == "Unwrap") &&
         ArrayLength(call.argument_nodes) == 1 {
         let wrapped: Option<String> =
             SemanticExpressionGraphValueReceiverTypeName(
@@ -154,7 +146,7 @@ func SemanticExpressionGraphValueReceiverTypeName(
         return ResultPayloadTypeOpt(UnwrapOption(wrapped));
     }
     let target: Option<Int> = SemanticCallableIndex(
-        function_names, UnwrapOption(callee_name)
+        function_names, target_name
     );
     if !IsSome(target) { return None; }
     let return_type: String = function_returns[UnwrapOption(target)];
