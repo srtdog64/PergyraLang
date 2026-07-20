@@ -92,6 +92,7 @@ transpiler_hosted_zone_layer_slot_view_from_decl(const TranspilerCtx *ctx,
         view.count = transpiler_decl_header_field_count_by_kind(
             header, MIR_DECL_FIELD_ZONE_LAYER_SLOT);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -234,6 +235,7 @@ transpiler_hosted_zone_state_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = mir_decl_header_zone_state_count(header);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -388,6 +390,9 @@ transpiler_hosted_domain_slot_view_from_decl(const TranspilerCtx *ctx,
         view.count = transpiler_decl_header_field_count_by_kind(
             header, MIR_DECL_FIELD_DOMAIN_SLOT);
         view.uses_mir_metadata = true;
+        /* The MIR header is the owner for domain-slot type names. A
+         * header-only call cannot use an AST compatibility row as a fallback. */
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -534,6 +539,7 @@ transpiler_hosted_world_zone_slot_view_from_decl(const TranspilerCtx *ctx,
         view.count = transpiler_decl_header_field_count_by_kind(
             header, MIR_DECL_FIELD_WORLD_ZONE_SLOT);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;

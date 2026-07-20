@@ -6,6 +6,7 @@
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "../compiler/mir_decl_headers.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -43,18 +44,37 @@ transpiler_relation_effect_surface_desc_too_long(TranspilerCtx *ctx,
         surface_kind != NULL ? surface_kind : "relation/effect");
 }
 
-void
-emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
+static void
+emit_relation_decl_impl(ASTNode *node,
+                        const MIRDeclHeader *mir_header,
+                        const char *mir_name,
+                        TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
+    const char *name = mir_name;
     ASTNode *inventory_decl;
 
-    if (name == NULL)
-        return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_RELATION_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    if (transpiler_active_has_mir(ctx)) {
+        if (mir_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing relation declaration header");
+            return;
+        }
+        name = mir_decl_header_name(mir_header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing relation declaration header name");
+            return;
+        }
+        node = NULL;
+    } else {
+        name = transpiler_decl_name_local(node);
+        if (name == NULL)
+            return;
+        inventory_decl = transpiler_find_named_decl_local(
+            ctx, AST_RELATION_DECL, name);
+        if (inventory_decl != NULL)
+            node = inventory_decl;
+    }
 
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
@@ -118,13 +138,28 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "relation slot");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx,
-                transpiler_hosted_domain_slot_view_type(&slot_view, i),
-                surface_desc,
-                ft,
-                sizeof(ft))) {
-            return;
+        {
+            const char *slot_type_name =
+                transpiler_hosted_domain_slot_view_type_name(&slot_view, i);
+            if (slot_type_name != NULL) {
+                if (!transpiler_require_type_name_c_type_copy(
+                        ctx, slot_type_name, surface_desc, ft, sizeof(ft)))
+                    return;
+            } else if (slot_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing relation slot type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-relation)",
+                    slot_name != NULL ? slot_name : "(anonymous)");
+                return;
+            } else if (!transpiler_require_ast_c_type_copy(
+                    ctx,
+                    transpiler_hosted_domain_slot_view_type(&slot_view, i),
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot_name);
         if (!transpiler_hosted_domain_slot_view_is_subject_like(
@@ -140,8 +175,8 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
-        ASTNode *shared_type =
-            transpiler_hosted_shared_field_view_type(&shared_view, i);
+        const MIRDeclField *shared_meta =
+            transpiler_hosted_shared_field_view_metadata(&shared_view, i);
         char ft[256];
         char surface_desc[256];
         if (shared_name == NULL) {
@@ -162,13 +197,28 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "relation shared field");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx,
-                shared_type,
-                surface_desc,
-                ft,
-                sizeof(ft))) {
-            return;
+        {
+            const char *shared_type_name =
+                transpiler_mir_decl_field_type_name(shared_meta);
+            if (shared_type_name != NULL) {
+                if (!transpiler_require_type_name_c_type_copy(
+                        ctx, shared_type_name, surface_desc, ft, sizeof(ft)))
+                    return;
+            } else if (shared_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing relation shared-field type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-relation)",
+                    shared_name);
+                return;
+            } else if (!transpiler_require_ast_c_type_copy(
+                    ctx,
+                    transpiler_hosted_shared_field_view_type(&shared_view, i),
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared_name);
     }
@@ -206,18 +256,37 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         "relation", &method_view, ctx);
 }
 
-void
-emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
+static void
+emit_effect_decl_impl(ASTNode *node,
+                      const MIRDeclHeader *mir_header,
+                      const char *mir_name,
+                      TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
+    const char *name = mir_name;
     ASTNode *inventory_decl;
 
-    if (name == NULL)
-        return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_EFFECT_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    if (transpiler_active_has_mir(ctx)) {
+        if (mir_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing effect declaration header");
+            return;
+        }
+        name = mir_decl_header_name(mir_header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing effect declaration header name");
+            return;
+        }
+        node = NULL;
+    } else {
+        name = transpiler_decl_name_local(node);
+        if (name == NULL)
+            return;
+        inventory_decl = transpiler_find_named_decl_local(
+            ctx, AST_EFFECT_DECL, name);
+        if (inventory_decl != NULL)
+            node = inventory_decl;
+    }
 
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
@@ -281,13 +350,28 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "effect slot");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx,
-                transpiler_hosted_domain_slot_view_type(&slot_view, i),
-                surface_desc,
-                ft,
-                sizeof(ft))) {
-            return;
+        {
+            const char *slot_type_name =
+                transpiler_hosted_domain_slot_view_type_name(&slot_view, i);
+            if (slot_type_name != NULL) {
+                if (!transpiler_require_type_name_c_type_copy(
+                        ctx, slot_type_name, surface_desc, ft, sizeof(ft)))
+                    return;
+            } else if (slot_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing effect slot type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-effect)",
+                    slot_name != NULL ? slot_name : "(anonymous)");
+                return;
+            } else if (!transpiler_require_ast_c_type_copy(
+                    ctx,
+                    transpiler_hosted_domain_slot_view_type(&slot_view, i),
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot_name);
         if (!transpiler_hosted_domain_slot_view_is_subject_like(
@@ -303,8 +387,8 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
-        ASTNode *shared_type =
-            transpiler_hosted_shared_field_view_type(&shared_view, i);
+        const MIRDeclField *shared_meta =
+            transpiler_hosted_shared_field_view_metadata(&shared_view, i);
         char ft[256];
         char surface_desc[256];
         if (shared_name == NULL) {
@@ -325,13 +409,28 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "effect shared field");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx,
-                shared_type,
-                surface_desc,
-                ft,
-                sizeof(ft))) {
-            return;
+        {
+            const char *shared_type_name =
+                transpiler_mir_decl_field_type_name(shared_meta);
+            if (shared_type_name != NULL) {
+                if (!transpiler_require_type_name_c_type_copy(
+                        ctx, shared_type_name, surface_desc, ft, sizeof(ft)))
+                    return;
+            } else if (shared_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing effect shared-field type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-effect)",
+                    shared_name);
+                return;
+            } else if (!transpiler_require_ast_c_type_copy(
+                    ctx,
+                    transpiler_hosted_shared_field_view_type(&shared_view, i),
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared_name);
     }
@@ -367,4 +466,40 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-effect)",
         "effect", &method_view, ctx);
+}
+
+void
+emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_relation_decl_impl(node, NULL, NULL, ctx);
+}
+
+void
+emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_effect_decl_impl(node, NULL, NULL, ctx);
+}
+
+void
+emit_relation_decl_from_mir_header(const MIRDeclHeader *header,
+                                   TranspilerCtx *ctx)
+{
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "MIR-only C path missing relation declaration header");
+        return;
+    }
+    emit_relation_decl_impl(NULL, header, mir_decl_header_name(header), ctx);
+}
+
+void
+emit_effect_decl_from_mir_header(const MIRDeclHeader *header,
+                                 TranspilerCtx *ctx)
+{
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "MIR-only C path missing effect declaration header");
+        return;
+    }
+    emit_effect_decl_impl(NULL, header, mir_decl_header_name(header), ctx);
 }

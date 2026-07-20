@@ -777,9 +777,6 @@ for term in \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_active_decl_header_of_type(" \
-    "transpiler_active_decl_header_inventory(ctx, &inventory)" \
-    "mir_decl_header_name(header)" \
-    "MIR nominal declaration header is missing its name" \
     "transpiler_can_forward_declare_type_name_after_zones"; do
     require_term "src/codegen/transpiler_func_forward_policy.c" "$term"
 done
@@ -5011,10 +5008,37 @@ for term in \
     "transpiler_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count)" \
     "transpiler_is_synthetic_executable_func(functions[i])" \
     "transpiler_active_decl_header_of_type(" \
+    "transpiler_active_decl_header_inventory(ctx, &inventory)" \
+    "mir_decl_header_name(header)" \
+    "MIR nominal declaration header is missing its name" \
+    "emit_class_decl_from_mir_header(header, ctx)" \
+    "emit_relation_decl_from_mir_header(header, ctx)" \
+    "emit_effect_decl_from_mir_header(header, ctx)" \
     "transpiler_active_has_main_function(ctx)" \
     "transpiler_active_has_top_level_exec(ctx)"; do
     require_term "src/codegen/transpiler.c" "$term"
 done
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "emit_class_decl_from_mir_header(const MIRDeclHeader *header"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "MIR-only C path missing class declaration header name"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "mir_decl_header_generic_param_count(mir_header)"
+for term in \
+    "emit_relation_decl_from_mir_header(const MIRDeclHeader *header" \
+    "emit_effect_decl_from_mir_header(const MIRDeclHeader *header" \
+    "MIR-only C path missing relation declaration header name" \
+    "MIR-only C path missing effect declaration header name"; do
+    require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
+done
+reject_term "src/codegen/transpiler_class_decl_emit.c" \
+    "const char *compat_name = transpiler_decl_name_local(node)"
+reject_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "const char *compat_name = transpiler_decl_name_local(node)"
+require_term "src/codegen/transpiler_decl_field_view.c" \
+    "header-only caller has no AST compatibility count"
+require_term "src/codegen/transpiler_decl_method_view.c" \
+    "Header-only MIR callers have no AST compatibility count"
 if sed -n '/emit_c_nominal_forward_decls/,/Program emitter/p' \
     "$ROOT_DIR/src/codegen/transpiler.c" \
     | grep -Eq 'ast_(class|party|roster|relation|effect|zone|world)_name\('; then
@@ -5792,7 +5816,7 @@ if grep -Fq "kTranspilerNominalHostLookupTypes" \
 fi
 if grep -RIn "pgy_host_decl_compat_name(" "$ROOT_DIR/src/codegen" \
     --include='*.c' --include='*.h' |
-    grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):'; then
+    grep -Ev '.*src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):'; then
     fail "backend consumers must use llvm_decl_node_name/transpiler_decl_name_local instead of direct host name compatibility"
 fi
 for term in \
@@ -8280,5 +8304,30 @@ if [[ -n "$raw_hits" ]]; then
     fail "raw MIR declaration inventory array access outside allowed owner files:
 $raw_hits"
 fi
+
+# Declaration type materialization: once a MIR header is selected, the C
+# backend must render field/slot types from MIR type-name rows. The AST type
+# access remains compatibility-only for the non-MIR path.
+for rel in \
+    "src/codegen/transpiler_decl_field_view.c" \
+    "src/codegen/transpiler_decl_slot_view.c" \
+    "src/codegen/transpiler_decl_role_roster_slot_view.c" \
+    "src/codegen/transpiler_decl_zone_refresh_view.c"; do
+    require_term "$rel" "view.requires_mir_metadata = true"
+done
+for term in \
+    "transpiler_hosted_domain_slot_view_type_name(&slot_view, i)" \
+    "transpiler_mir_decl_field_type_name(shared_meta)" \
+    "MIR-only C path missing relation slot type-name metadata" \
+    "MIR-only C path missing effect slot type-name metadata"; do
+    require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
+done
+for rel in \
+    "src/codegen/transpiler_domain_nominal_emit.c" \
+    "src/codegen/transpiler_roster_decl_emit.c" \
+    "src/codegen/transpiler_world_select_event_emit.c"; do
+    require_term "$rel" "transpiler_mir_decl_field_type_name(shared_meta)"
+    require_term "$rel" "transpiler_require_type_name_c_type_copy"
+done
 
 echo "[mir-decl-inventory] OK: C/LLVM declaration inventory use is helper-gated"

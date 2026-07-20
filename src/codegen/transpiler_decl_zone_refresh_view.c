@@ -38,6 +38,7 @@ transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = mir_decl_header_zone_refresh_count(header);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;

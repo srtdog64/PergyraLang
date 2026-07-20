@@ -96,6 +96,7 @@ transpiler_hosted_world_roster_slot_view_from_decl(const TranspilerCtx *ctx,
         view.count = transpiler_decl_header_field_count_by_kind(
             header, MIR_DECL_FIELD_WORLD_ROSTER_SLOT);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -181,6 +182,7 @@ transpiler_hosted_roster_slot_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = transpiler_decl_header_roster_slot_count(header);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -265,6 +267,7 @@ transpiler_hosted_role_slot_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = transpiler_decl_header_role_slot_count(header);
         view.uses_mir_metadata = true;
+        view.requires_mir_metadata = true;
     }
 
     return view;

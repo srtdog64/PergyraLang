@@ -37,6 +37,7 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "../compiler/mir_decl_headers.h"
+#include "transpiler_relation_effect_emit.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
@@ -318,10 +319,24 @@ emit_program(TranspilerCtx *ctx)
     }
 
     /* Pass 2: classes */
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *type_decl = types[i];
-        if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
-            emit_class_decl(type_decl, ctx);
+    if (transpiler_active_has_mir(ctx)) {
+        MIRDeclHeaderInventory header_inventory;
+        transpiler_active_decl_header_inventory(ctx, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_CLASS_DECL) {
+                emit_class_decl_from_mir_header(header, ctx);
+            }
+        }
+    } else {
+        for (size_t i = 0; i < type_count; i++) {
+            ASTNode *type_decl = types[i];
+            if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
+                emit_class_decl(type_decl, ctx);
+        }
     }
 
     /* Pass 2.5: extern declarations */
@@ -363,11 +378,36 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < roster_count; i++)
         emit_roster_decl(rosters[i], ctx);
 
-    /* Pass 3.75: relations and effects (must precede zones that reference them) */
-    for (size_t i = 0; i < relation_count; i++)
-        emit_relation_decl(relations[i], ctx);
-    for (size_t i = 0; i < effect_count; i++)
-        emit_effect_decl(effects[i], ctx);
+    /* Pass 3.75: relations and effects (must precede zones that reference
+     * them). Active MIR selects the declaration header directly; the AST
+     * inventory remains only for the legacy non-MIR path. */
+    if (transpiler_active_has_mir(ctx)) {
+        MIRDeclHeaderInventory header_inventory;
+        transpiler_active_decl_header_inventory(ctx, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header == NULL)
+                continue;
+            if (mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_RELATION_DECL)
+                emit_relation_decl_from_mir_header(header, ctx);
+        }
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header == NULL)
+                continue;
+            if (mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_EFFECT_DECL)
+                emit_effect_decl_from_mir_header(header, ctx);
+        }
+    } else {
+        for (size_t i = 0; i < relation_count; i++)
+            emit_relation_decl(relations[i], ctx);
+        for (size_t i = 0; i < effect_count; i++)
+            emit_effect_decl(effects[i], ctx);
+    }
 
     /* Pass 3.8: zones (struct + methods + sync helpers) */
     for (size_t i = 0; i < zone_count; i++)

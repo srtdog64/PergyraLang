@@ -189,13 +189,36 @@ emit_class_field_slot_initializer(TranspilerCtx *ctx, ASTNode *node,
     }
 }
 
-void
-emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
+static void
+emit_class_decl_impl(ASTNode *node,
+                     const MIRDeclHeader *mir_header,
+                     const char *mir_name,
+                     TranspilerCtx *ctx)
 {
-    if (transpiler_class_has_generic_params(node))
-        return;
+    const char *name = mir_name;
 
-    const char *name = transpiler_decl_name_local(node);
+    if (transpiler_active_has_mir(ctx)) {
+        if (mir_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing class declaration header");
+            return;
+        }
+        name = mir_decl_header_name(mir_header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing class declaration header name");
+            return;
+        }
+        if (mir_decl_header_generic_param_count(mir_header) > 0)
+            return;
+    } else {
+        if (transpiler_class_has_generic_params(node))
+            return;
+        name = transpiler_decl_name_local(node);
+    }
+
     if (name == NULL)
         return;
     TranspilerHostedFieldView field_view =
@@ -474,4 +497,22 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
         codebuf_write(ctx->out, "}\n");
     }
+}
+
+void
+emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_class_decl_impl(node, NULL, NULL, ctx);
+}
+
+void
+emit_class_decl_from_mir_header(const MIRDeclHeader *header,
+                                TranspilerCtx *ctx)
+{
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "MIR-only C path missing class declaration header");
+        return;
+    }
+    emit_class_decl_impl(NULL, header, mir_decl_header_name(header), ctx);
 }

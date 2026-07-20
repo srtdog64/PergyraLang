@@ -396,6 +396,8 @@ void emit_block(ASTNode *node, TranspilerCtx *ctx);
 /* Declarations */
 void emit_func_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_class_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_class_decl_from_mir_header(const MIRDeclHeader *header,
+                                     TranspilerCtx *ctx);
 void emit_extern_block(ASTNode *node, TranspilerCtx *ctx);
 void emit_let_decl(ASTNode *node, TranspilerCtx *ctx);
 

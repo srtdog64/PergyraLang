@@ -72,6 +72,8 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
+        const MIRDeclField *shared_meta =
+            transpiler_hosted_shared_field_view_metadata(&shared_view, i);
         char field_type[256];
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
@@ -82,13 +84,29 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "roster shared field");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx,
-                transpiler_hosted_shared_field_view_type(&shared_view, i),
-                surface_desc,
-                field_type,
-                sizeof(field_type))) {
-            return;
+        {
+            const char *shared_type_name =
+                transpiler_mir_decl_field_type_name(shared_meta);
+            if (shared_type_name != NULL) {
+                if (!transpiler_require_type_name_c_type_copy(
+                        ctx, shared_type_name, surface_desc,
+                        field_type, sizeof(field_type)))
+                    return;
+            } else if (shared_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing roster shared-field type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-roster)",
+                    shared_name != NULL ? shared_name : "(anonymous)");
+                return;
+            } else if (!transpiler_require_ast_c_type_copy(
+                    ctx,
+                    transpiler_hosted_shared_field_view_type(&shared_view, i),
+                    surface_desc,
+                    field_type,
+                    sizeof(field_type))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n",
             field_type, shared_name != NULL ? shared_name : "field");

@@ -37,6 +37,10 @@ transpiler_hosted_method_view(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = mir_decl_header_method_count(header);
         view.uses_mir_metadata = true;
+        /* Header-only MIR callers have no AST compatibility count. Keep the
+         * view fail-closed so method rows cannot fall back to declaration
+         * payloads when a MIR row is absent. */
+        view.requires_mir_metadata = true;
     }
 
     return view;

@@ -79,6 +79,10 @@ transpiler_hosted_class_field_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = mir_decl_header_field_count(header);
         view.uses_mir_metadata = true;
+        /* A header-only caller has no AST compatibility count. Once the
+         * owner is present, missing field type rows must still fail closed;
+         * otherwise the class emitter can silently reopen AST type recovery. */
+        view.requires_mir_metadata = true;
     }
 
     return view;
@@ -195,6 +199,10 @@ transpiler_hosted_shared_field_view_from_decl(const TranspilerCtx *ctx,
         view.decl_header = header;
         view.count = transpiler_decl_header_shared_field_count(header);
         view.uses_mir_metadata = true;
+        /* Header-only MIR callers do not have an AST compatibility count.
+         * Once the row owner is present, shared-field type recovery must stay
+         * on MIR metadata and fail closed instead of reopening AST payloads. */
+        view.requires_mir_metadata = true;
     }
 
     return view;

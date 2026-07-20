@@ -67,6 +67,36 @@ facts, and the single runtime-call ABI row authority. Each must retain the same
 AIR-bound admission and negative gate before the status can move from `PARTIAL`
 to `CLOSED`.
 
+### Declaration inventory sub-rungs
+
+The C backend's nominal forward-typedef pass is now MIR-owned. It reads the
+declaration kind and stable name from `MIRDeclHeaderInventory`; it no longer
+walks the AST declaration arrays or calls the AST declaration-name owner for
+classes, parties, rosters, relations, effects, zones, and worlds. A missing
+header name produces a MIR inventory diagnostic and stops emission. The
+`mir-declaration-inventory-test-smoke` gate and the MIR-only backend gate keep
+this AST path from being reopened.
+
+This is intentionally a sub-rung, not a claim that every domain emitter is
+AST-free. Class, relation, and effect dispatch now select their declaration
+from MIR headers. Party, roster, zone, and world dispatch, constructor
+consumers, and LLVM bootstrap remain declaration-side replacement seams.
+
+### Declaration type materialization sub-rung
+
+The declaration views now mark a selected MIR header as metadata-required even
+for header-only callers. C field/slot emitters for relation, effect, party,
+roster, and world declarations consume `MIRDeclField.type_name` through the
+bounded C type-name owner. If that row is absent, emission reports a MIR
+inventory diagnostic; it does not recover the AST type node. The non-MIR
+compatibility branch remains available only for the legacy AST-owned path.
+
+This closes a narrower but important ABI seam: the nominal layout's C type is
+now derived from the same MIR declaration row that owns the field identity,
+rather than from a second AST payload. The remaining declaration work is
+header-driven dispatch for the other domain emitters and their AST-only role
+implementation surfaces.
+
 See also:
 
 - `docs/180_compiler_logical_spine_handles_gates.md` for the owner/gate matrix;
