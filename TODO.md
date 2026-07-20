@@ -10830,6 +10830,16 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
     (런타임 null-핸들 패닉 아님). `pgy_spawn_lane_from_blocking` +
     소비자-0 이던 `pgy_lane_uses_blocking_executor` 퇴역, lane-policy owner 가
     emitter 내 재유도를 **forbid** 로 반전.
+  - **★flip 이 발굴한 잠복 결함 — 취소 의미론이 executor 마다 달랐다**: pool
+    실행 프로토콜(`pgy_pool_run_task`)은 취소-요청 task 를 **실행 없이 드롭**
+    (result=NULL), coroutine lane 은 **협조적**(실행하고 task 가 IsCancelled
+    관찰). spawn 이 coroutine 만 타던 동안 잠복 → flip 으로 도달되자
+    cancel_propagation 계열 2 fixture 가 await-null 패닉(compare 실측 19/21).
+    언어 계약=협조적(fixture 자체가 증거: Cancel 후 await 가 값 9 기대)이므로
+    pool·inline 경로를 협조 계약에 정렬(드롭 분기 제거 — §1.1 히든 분기이기도)
+    + `.bc` 트윈 재생성. 수리 후 양 leg `true/9` 동일, join 배터리(join-any
+    loser 은퇴 포함)·starvation 보상·bc/cext 계약 전부 GREEN. **facade 의
+    executor-invariance 가 이제 취소 축에서도 실측으로 성립.**
   - **행동 변화(실측)**: corpus census 30 spawn/20 fixture 전부 WorkerPool
     균일(가장 위험한 PinnedZone-inline/REJECT 케이스 0) → plain spawn 이
     LocalAsync→WorkerPool 로 flip, `spawn blocking` 은 BlockingPool 로 분류
