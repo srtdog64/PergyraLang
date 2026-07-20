@@ -299,6 +299,8 @@ require_text "Makefile" "self-host-mir-abi-first-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-parity-test-smoke"
+require_text "Makefile" \
+    "self-host-driver-bootstrap-test-smoke self-host-compiler"
 require_text "Makefile" "self-host-preparation-impact-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-changed-paths-test-smoke"
 require_text "Makefile" "self-host-completeness-smoke"
