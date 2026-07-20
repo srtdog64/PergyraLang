@@ -527,7 +527,7 @@ func GenerateCUnitFromSemanticFacts(
         TextBuilderAppend(output, TextBuilderRuntimeCBlock());
     }
     if uses_log {
-        TextBuilderAppend(output, StringRuntimeCLogBlock());
+        TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(usage.uses_machine_layer));
     }
     if uses_print {
         TextBuilderAppend(output, StringRuntimeCPrintBlock());

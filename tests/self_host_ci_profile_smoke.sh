@@ -26,7 +26,7 @@ for required in \
     'self-host-preparation-platform-test-smoke:' \
     'self-host-preparation-platform-parity-test-smoke:' \
     'self-host-preparation-exhaustive-parity-test-smoke:' \
-    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-compiler' \
+    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke' \
     'tests/self_hosted/parity/parser_parity.sh' \
     'tests/self_hosted/parity/semantic_parity.sh' \
     'tests/self_hosted/parity/codegen_parity.sh' \

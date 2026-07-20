@@ -6086,12 +6086,16 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringCompareFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCIntLineFormat"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCFloatLineFormat"
-require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogBlock"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringLogBlock"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCBoolLogBlock"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogMaterializationBlock"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "runtime_header_owns_bool_log"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCPrintBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringCoreBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCSplitBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinBlock"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCLogBlock()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCLogMaterializationBlock("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "usage.uses_machine_layer"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCPrintBlock()"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringCoreBlock()"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCSplitBlock()"
@@ -8810,7 +8814,7 @@ require_make_target_text \
     "self-host-driver-bootstrap-test-smoke" \
     "tests/self_hosted/parity/driver_bootstrap.sh"
 require_text "Makefile" \
-    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-compiler"
+    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke"
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'

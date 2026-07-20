@@ -64,6 +64,13 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:driver-rung2" "$PGY"
 
+PREBUILT_DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
+if [[ -n "$PREBUILT_DRIVER" ]]; then
+    PREBUILT_DRIVER="$(pgy_select_optional_exe_binary "$PREBUILT_DRIVER")"
+    pgy_require_runnable_binary_here \
+        "self-host-parity:driver-rung2:hard" "$PREBUILT_DRIVER" || exit 1
+fi
+
 CC="${CC:-cc}"
 if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-parity:driver-rung2] missing C compiler: $CC" >&2
@@ -186,7 +193,13 @@ BACKENDS="${PGY_SELFHOST_DRIVER_BACKENDS:-c llvm}"
 ran=0
 for backend in $BACKENDS; do
     DRIVER_BIN="$BUILD_DIR/driver_${backend}.exe"
-    if [[ "$backend" != "c" ]]; then
+    if [[ "$backend" == "hard" ]]; then
+        if [[ -z "$PREBUILT_DRIVER" ]]; then
+            echo "[self-host-parity:driver-rung2] hard lane has no Pergyra-built driver" >&2
+            exit 1
+        fi
+        DRIVER_BIN="$PREBUILT_DRIVER"
+    elif [[ "$backend" != "c" ]]; then
         set +e
         compile_driver "$backend" "$DRIVER_BIN"
         compile_rc=$?

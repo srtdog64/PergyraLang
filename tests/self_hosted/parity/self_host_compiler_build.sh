@@ -31,7 +31,7 @@ C_FILE="$BUILD_DIR/driver.c"
 STAMP="$BUILD_DIR/driver.build.key"
 EMIT_STAMP="$BUILD_DIR/driver.emit.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
-SOURCE_FINGERPRINT="${PGY_SELFHOST_SOURCE_FINGERPRINT_FILE:-$ROOT_DIR/.tmp/self_hosted/parser/source_set_fingerprint.txt}"
+AST_ERROR="$BUILD_DIR/driver.ast.err"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 
 case "$OUTPUT" in
@@ -67,14 +67,27 @@ mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 pgy_require_runnable_binary_here "self-host-compiler-build" "$PARSER_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
-[[ -s "$SOURCE_FINGERPRINT" ]] ||
-    fail "parser seed source fingerprint is missing; rebuild the bootstrap seed"
+
+# The composed AST is the parser owner's import-graph fact. Hashing a stale
+# parser-build inventory here allowed the installed driver to retain 76 MIR
+# fixtures after the live owner had reached 109. Parse first on every build;
+# the expensive codegen/host-compile legs remain fingerprint-cached.
+echo "[self-host-compiler-build] parsing DRV-2 composed source graph"
+rm -f "$AST_FILE" "$AST_ERROR"
+if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
+    "$PARSER_BIN" "$DRIVER_SOURCE" 2>"$AST_ERROR" \
+    | tr -d '\r' >"$AST_FILE"); then
+    tail -n 20 "$AST_FILE" "$AST_ERROR" >&2 || true
+    fail "Pergyra parser seed rejected the DRV-2 source graph"
+fi
+[[ -s "$AST_FILE" ]] || fail "Pergyra parser seed emitted an empty AST"
+ast_rel="${AST_FILE#"$ROOT_DIR"/}"
 
 printf '%s\n' \
-    "schema=pgy.selfhost.compiler-build.v1" \
+    "schema=pgy.selfhost.compiler-build.v2" \
     "parser=$(hash_file "$PARSER_BIN")" \
     "codegen=$(hash_file "$CODEGEN_BIN")" \
-    "sources=$(hash_file "$SOURCE_FINGERPRINT")" \
+    "composed_ast=$(hash_file "$AST_FILE")" \
     "cc=$($CC --version 2>/dev/null | head -1)" \
     >"$KEY_INPUT"
 build_key="$(hash_file "$KEY_INPUT")"
@@ -90,15 +103,6 @@ if [[ -s "$C_FILE" && -f "$EMIT_STAMP" ]] \
     && grep -Fxq "$build_key" "$EMIT_STAMP"; then
     echo "[self-host-compiler-build] reusing fingerprinted Pergyra-emitted driver C"
 else
-    echo "[self-host-compiler-build] parsing DRV-2 with the Pergyra parser seed"
-    if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
-        "$PARSER_BIN" "$DRIVER_SOURCE" | tr -d '\r' >"$AST_FILE"); then
-        tail -n 20 "$AST_FILE" >&2 || true
-        fail "Pergyra parser seed rejected the DRV-2 source graph"
-    fi
-    [[ -s "$AST_FILE" ]] || fail "Pergyra parser seed emitted an empty AST"
-
-    ast_rel="${AST_FILE#"$ROOT_DIR"/}"
     echo "[self-host-compiler-build] emitting DRV-2 with Pergyra-built gen2 codegen"
     if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
         "$CODEGEN_BIN" "$ast_rel" | tr -d '\r' >"$C_FILE"); then

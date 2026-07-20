@@ -1,5 +1,21 @@
 # Self-Host Progress
 
+2026-07-21 hard executable delta: the installed Pergyra-built DRV-2 is now a
+direct producer in focused parity instead of merely being smoke-run after its
+build. The compiler-build cache hashes the parser owner's freshly composed AST
+rather than a separately generated source-set fingerprint; this removed a
+stale-cache split where the installed hard driver exposed 76 MIR fixtures
+while the live owner exposed 109. The hard lane produced and consumed
+`class_compare_return`, `class_as_strategy`, `class_compose_factory`,
+`device_slot_routine`, and `defer_scope`, then matched the native oracle's
+canonical MIR, generated C, host compilation, and runtime result. This path
+also found and closed a real materialization seam: machine-runtime programs now
+consume the runtime header's `pgy_log_bool` ABI, while standalone programs
+materialize the self-host owner's local implementation. The focused hard lane
+is now required by self-host preparation CI. The complete 109-fixture hard
+matrix was not run, stage-0 seeds and the final host compilation remain
+C-owned bridges, and released/default replacement remains 0%.
+
 2026-07-21 hard substitution delta: `make self-host-compiler` no longer asks
 the native `pgy --backend=c` path to compile `driver_rung2_main.pgy` directly.
 The stage-0 parser seed now owns the composed source graph, the Pergyra-built

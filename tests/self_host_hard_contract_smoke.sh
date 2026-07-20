@@ -293,14 +293,24 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'Pergyra-built DRV-2 installed'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"composed_ast=$(hash_file "$AST_FILE")"'
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'PGY_SELFHOST_SOURCE_FINGERPRINT_FILE'
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"$PGY" "$DRIVER_SOURCE"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'PREBUILT_DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'if [[ "$backend" == "hard" ]]; then'
+require_text "Makefile" "self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler"
+require_text "Makefile" "self-host-hard-driver-rung2-parity-full-test-smoke: self-host-compiler"
 require_text "Makefile" "self-host-mir-abi-first-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-parity-test-smoke"
 require_text "Makefile" \
-    "self-host-driver-bootstrap-test-smoke self-host-compiler"
+    "self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-changed-paths-test-smoke"
 require_text "Makefile" "self-host-completeness-smoke"

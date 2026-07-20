@@ -112,16 +112,31 @@ func StringRuntimeCToStringFn() -> String {
     return "pgy_tostr";
 }
 
-func StringRuntimeCLogBlock() -> String {
+func StringRuntimeCStringLogBlock() -> String {
     let block: String = "";
     block = Concat(block, Concat("static void ", Concat(StringRuntimeCLogFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
     block = Concat(block, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
     block = Concat(block, "    fwrite(s, 1, (size_t)n, stdout);\n    putchar('\\n');\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCBoolLogBlock() -> String {
+    let block: String = "";
     block = Concat(block, Concat("static void ", Concat(
         StringRuntimeCBoolLogFn(), "(bool value)\n{\n"
     )));
     block = Concat(block, "    fputs(value ? \"true\\n\" : \"false\\n\", stdout);\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCLogMaterializationBlock(
+    runtime_header_owns_bool_log: Bool
+) -> String {
+    let block: String = StringRuntimeCStringLogBlock();
+    if !runtime_header_owns_bool_log {
+        block = Concat(block, StringRuntimeCBoolLogBlock());
+    }
     return block;
 }
 
