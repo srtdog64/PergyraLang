@@ -1676,9 +1676,10 @@ all: $(PGY) $(PGY_LSP)
 
 compiler: $(PGY)
 
-self-host-compiler: $(PGY)
-	@$(call pgy_mkdir_p,$(dir $(SELF_HOST_DRIVER)))
-	$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy --backend=c -o "$(SELF_HOST_DRIVER)")
+self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		PGY_SELFHOST_CC="$(CC)" \
+		"$(BASH)" tests/self_hosted/parity/self_host_compiler_build.sh
 
 dev-compiler:
 	$(MAKE) -j$(PGY_DEV_COMPILER_JOBS) LLVM_ENABLED=0 PGY_DEBUG_SYMBOLS=0 BUILD_DIR=$(PROJECT_ROOT_SLASH)/build-dev BIN_DIR=$(PROJECT_ROOT_SLASH)/bin-dev compiler

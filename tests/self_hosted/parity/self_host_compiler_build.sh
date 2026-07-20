@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# Builds the bounded DRV-2 compiler with the Pergyra parser/codegen seeds.
+# The native compiler may build stage-0 seeds, but it must not compile the
+# replacement driver source directly.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+export PATH
+
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*)
+        # Preserve repo-relative Pergyra paths for SelfHostPath. MSYS argv
+        # conversion would rewrite them before the program resolves imports.
+        PGY_ARG_CONV_EXCL="*"
+        ;;
+    *) PGY_ARG_CONV_EXCL="" ;;
+esac
+
+CC="${PGY_SELFHOST_CC:-gcc}"
+CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
+BUILD_DIR="${PGY_SELFHOST_COMPILER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/bootstrap}"
+PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"
+CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"
+DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"
+OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
+AST_FILE="$BUILD_DIR/driver.ast.txt"
+C_FILE="$BUILD_DIR/driver.c"
+STAMP="$BUILD_DIR/driver.build.key"
+EMIT_STAMP="$BUILD_DIR/driver.emit.key"
+KEY_INPUT="$BUILD_DIR/driver.build.key.input"
+SOURCE_FINGERPRINT="${PGY_SELFHOST_SOURCE_FINGERPRINT_FILE:-$ROOT_DIR/.tmp/self_hosted/parser/source_set_fingerprint.txt}"
+SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
+
+case "$OUTPUT" in
+    *.exe) ;;
+    *)
+        if pgy_binary_expects_windows_paths "$PARSER_BIN"; then
+            OUTPUT="${OUTPUT}.exe"
+        fi
+        ;;
+esac
+
+fail() {
+    echo "[self-host-compiler-build] $*" >&2
+    exit 1
+}
+
+hash_file() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d' ' -f1
+        return
+    fi
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | cut -d' ' -f1
+        return
+    fi
+    fail "no SHA-256 tool is available"
+}
+
+mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
+[[ -f "$ROOT_DIR/$DRIVER_SOURCE" ]] || fail "missing driver source"
+[[ -f "$PARSER_BIN" ]] || fail "missing parser seed: $PARSER_BIN"
+[[ -f "$CODEGEN_BIN" ]] || fail "missing Pergyra codegen seed: $CODEGEN_BIN"
+pgy_require_runnable_binary_here "self-host-compiler-build" "$PARSER_BIN" || exit 1
+pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
+command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+[[ -s "$SOURCE_FINGERPRINT" ]] ||
+    fail "parser seed source fingerprint is missing; rebuild the bootstrap seed"
+
+printf '%s\n' \
+    "schema=pgy.selfhost.compiler-build.v1" \
+    "parser=$(hash_file "$PARSER_BIN")" \
+    "codegen=$(hash_file "$CODEGEN_BIN")" \
+    "sources=$(hash_file "$SOURCE_FINGERPRINT")" \
+    "cc=$($CC --version 2>/dev/null | head -1)" \
+    >"$KEY_INPUT"
+build_key="$(hash_file "$KEY_INPUT")"
+
+if [[ -x "$OUTPUT" && -f "$STAMP" ]] \
+    && grep -Fxq "$build_key" "$STAMP" \
+    && pgy_binary_is_runnable_here "$OUTPUT"; then
+    echo "[self-host-compiler-build] reusing fingerprinted Pergyra-built driver"
+    exit 0
+fi
+
+if [[ -s "$C_FILE" && -f "$EMIT_STAMP" ]] \
+    && grep -Fxq "$build_key" "$EMIT_STAMP"; then
+    echo "[self-host-compiler-build] reusing fingerprinted Pergyra-emitted driver C"
+else
+    echo "[self-host-compiler-build] parsing DRV-2 with the Pergyra parser seed"
+    if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
+        "$PARSER_BIN" "$DRIVER_SOURCE" | tr -d '\r' >"$AST_FILE"); then
+        tail -n 20 "$AST_FILE" >&2 || true
+        fail "Pergyra parser seed rejected the DRV-2 source graph"
+    fi
+    [[ -s "$AST_FILE" ]] || fail "Pergyra parser seed emitted an empty AST"
+
+    ast_rel="${AST_FILE#"$ROOT_DIR"/}"
+    echo "[self-host-compiler-build] emitting DRV-2 with Pergyra-built gen2 codegen"
+    if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
+        "$CODEGEN_BIN" "$ast_rel" | tr -d '\r' >"$C_FILE"); then
+        fail "Pergyra-built codegen rejected the DRV-2 AST"
+    fi
+    if grep -q '^CODEGEN ERROR' "$C_FILE"; then
+        grep '^CODEGEN ERROR' "$C_FILE" | head -5 >&2
+        fail "DRV-2 is outside the Pergyra codegen subset"
+    fi
+    [[ -s "$C_FILE" ]] || fail "Pergyra-built codegen emitted empty C"
+    printf '%s\n' "$build_key" >"$EMIT_STAMP"
+fi
+
+tmp_output="${OUTPUT}.tmp"
+rm -f "$tmp_output"
+if ! "$CC" "$C_FILE" -o "$tmp_output" >"$BUILD_DIR/driver.compile.log" 2>&1; then
+    tail -n 40 "$BUILD_DIR/driver.compile.log" >&2 || true
+    fail "emitted DRV-2 C failed to compile"
+fi
+mv -f "$tmp_output" "$OUTPUT"
+
+if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$OUTPUT" \
+    src/self_hosted/semantic/fixture/valid_call_int.pgy \
+    --emit-c-verified >"$SMOKE_OUT"); then
+    fail "Pergyra-built DRV-2 failed its bounded source smoke"
+fi
+[[ -s "$SMOKE_OUT" ]] || fail "Pergyra-built DRV-2 emitted no smoke artifact"
+printf '%s\n' "$build_key" >"$STAMP"
+echo "[self-host-compiler-build] Pergyra-built DRV-2 installed: $OUTPUT"

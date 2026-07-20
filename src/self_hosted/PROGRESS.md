@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 hard substitution delta: `make self-host-compiler` no longer asks
+the native `pgy --backend=c` path to compile `driver_rung2_main.pgy` directly.
+The stage-0 parser seed now owns the composed source graph, the Pergyra-built
+gen2 codegen consumes that AST, and the host C compiler only compiles the
+resulting C artifact. The parser also binds imported expression rows once as
+`composed_rows` before executable/match partitioning; repeated extraction of
+the aggregate had made the full DRV-2 import graph fail while every individual
+owner parsed cleanly. Parser C parity remains 188/188 byte-equal. A hard-built
+DRV-2 compiled the bounded `valid_call_int` source successfully, and its
+source-set fingerprint reuses the installed driver on the next invocation.
+The native C compiler still builds stage-0 seeds and the final C artifact, and
+the default `pgy` driver remains C-owned, so released/default replacement is
+still 0%.
+
 2026-07-21 executable SoT delta: `class_compare_return` is DRV-2 MIR fixture
 109. Statement-type evidence already classified each direct `Log` argument as
 `Bool`; the self-host emitter now consumes that carried type and the string
@@ -1215,7 +1229,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 88 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixtures 83-88 passed focused C/LLVM canonical-MIR, MIR-consumed-C, and runtime parity, while the complete 88-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 109 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixture 109 passed focused C/LLVM canonical-MIR, source/MIR-C, native compile, and runtime parity, while the complete 109-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` now builds the bounded driver through Pergyra parser/codegen seeds. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -1235,9 +1249,10 @@ implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 Run `make self-host-progress-metric-test-smoke` to measure the current Pergyra
 frontend/backend and compiler-core LOC beside the C reference inventory.
 Implementation volume only proves that code exists.
-**Released/native replacement remains 0%** because native compile and the
-default path still use the C compiler. **Explicit bounded replacement: DRV-2 is
-live** through `make self-host-compiler` and
+**Released/native replacement remains 0%** because the default path still uses
+the C-owned compiler driver. Stage-0 seed creation and final emitted-C
+compilation also retain the native C toolchain. **Explicit bounded replacement:
+DRV-2 is live** through `make self-host-compiler` and
 `pgy --self-driver <source.pgy>`; unsupported inputs fail closed instead of
 falling back to the C pipeline.
 The verified component frontiers are the

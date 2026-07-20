@@ -66,6 +66,7 @@ require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "tests/self_host_hard_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
+require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 
 pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
     fail "compiler world path manifest is incomplete"
@@ -282,6 +283,18 @@ forbid_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy
     "Split("
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
+require_text "Makefile" "self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/self_host_compiler_build.sh"
+require_text "Makefile" 'PGY_SELFHOST_CC="$(CC)"'
+forbid_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'Pergyra-built DRV-2 installed'
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"$PGY" "$DRIVER_SOURCE"'
 require_text "Makefile" "self-host-mir-abi-first-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-contract-test-smoke"

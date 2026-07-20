@@ -3999,6 +3999,17 @@ reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckB
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
+require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "let composed_rows: AstExpressionGraphRows = expression_graphs[0];"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "ParserExpressionGraphsSelectMatchCases(composed_rows, false)"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "ParserExpressionGraphsSelectMatchCases(composed_rows, true)"
+reject_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "ParserExpressionGraphsSelectMatchCases(expression_graphs[0]"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 200
 require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
@@ -4015,6 +4026,12 @@ reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_driver.c" "system("
 require_file "tests/self_host_live_replacement_smoke.sh"
 require_text "Makefile" "self-host-compiler:"
+require_text "Makefile" "self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke"
+reject_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
+reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'export MSYS2_ARG_CONV_EXCL="*"'
 require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compiler"
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'

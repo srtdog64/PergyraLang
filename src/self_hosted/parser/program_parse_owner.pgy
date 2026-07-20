@@ -16,6 +16,11 @@ struct ParserProgramBuild {
     match_pattern_graphs: AstExpressionGraphRows;
 }
 
+func ParserProgramGraphFail(reason: String) -> Void {
+    Log(Concat("PARSER GRAPH ERROR: ", reason));
+    Exit(1);
+}
+
 func ParseProgramBuildWithImportPolicy(
     source_path: String,
     follow_imports: Bool
@@ -39,12 +44,22 @@ func ParseProgramBuildWithImportPolicy(
         content, i, cursor, "", false, src_dir, false, follow_imports, "",
         involve_types, import_paths, expression_graphs
     );
+    let composed_rows: AstExpressionGraphRows = expression_graphs[0];
+    if !AstExpressionGraphRowsReady(composed_rows) {
+        ParserProgramGraphFail(
+            "import composition produced invalid expression graph rows"
+        );
+    }
     let graph_rows: AstExpressionGraphRows =
-        ParserExpressionGraphsSelectMatchCases(expression_graphs[0], false);
+        ParserExpressionGraphsSelectMatchCases(composed_rows, false);
     let match_pattern_rows: AstExpressionGraphRows =
-        ParserExpressionGraphsSelectMatchCases(expression_graphs[0], true);
-    if !AstExpressionGraphRowsReady(graph_rows) ||
-        !AstExpressionGraphRowsReady(match_pattern_rows) { Exit(1); }
+        ParserExpressionGraphsSelectMatchCases(composed_rows, true);
+    if !AstExpressionGraphRowsReady(graph_rows) {
+        ParserProgramGraphFail("expression graph partition is invalid");
+    }
+    if !AstExpressionGraphRowsReady(match_pattern_rows) {
+        ParserProgramGraphFail("match-pattern graph partition is invalid");
+    }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
         return ParserProgramBuild(
