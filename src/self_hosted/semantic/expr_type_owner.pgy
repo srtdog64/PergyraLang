@@ -3,6 +3,7 @@
 import "text_scan_owner.pgy";
 import "env_owner.pgy";
 import "expression_normalization_owner.pgy";
+import "expression_cast_fact_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
@@ -38,6 +39,26 @@ func IsIntLiteral(text: String) -> Bool {
         return false;
     }
     while i < n {
+        if !IsDigit(CharAt(text, i)) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+func IsLongLiteral(text: String) -> Bool {
+    let i: Int = 0;
+    let n: Int = StringLength(text);
+    if n < 2 || CharAt(text, n - 1) != "L" {
+        return false;
+    }
+    if CharAt(text, 0) == "-" {
+        i = 1;
+    }
+    if i >= n - 1 {
+        return false;
+    }
+    while i < n - 1 {
         if !IsDigit(CharAt(text, i)) {
             return false;
         }
@@ -280,7 +301,8 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
             i = i + 1;
             continue;
         }
-        if depth == 0 && (c == "+" || c == "*" || c == "/") {
+        if depth == 0 &&
+            (c == "+" || c == "*" || c == "/" || c == "%") {
             split_idx = i;
             split_op = c;
             break;
@@ -468,6 +490,11 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
             return negated_type;
         }
     }
+    let cast_target: Option<String> =
+        SemanticOuterCastTargetType(text);
+    if IsSome(cast_target) {
+        return UnwrapOption(cast_target);
+    }
     let op_type: String = TopLevelOpType(text);
     if op_type == "Bool" {
         return "Bool";
@@ -484,6 +511,9 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     }
     if text == "true" || text == "false" {
         return "Bool";
+    }
+    if IsLongLiteral(text) {
+        return "Long";
     }
     if IsIntLiteral(text) {
         return "Int";

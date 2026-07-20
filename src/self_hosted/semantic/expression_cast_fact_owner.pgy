@@ -1,0 +1,66 @@
+// Semantic type fact for an outer source-level cast expression.
+
+import "text_scan_owner.pgy";
+import "expression_normalization_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "../parser/type_name_owner.pgy";
+
+func SemanticOuterCastTargetType(expression: String) -> Option<String> {
+    let text: String = SemanticStripOuterParens(expression);
+    let n: Int = StringLength(text);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let cast_index: Int = -1;
+    while i < n {
+        let c: Int = SourceByteAt(text, n, i);
+        if c == SourceByteOf("\"") {
+            i = SkipQuotedString(text, i, n);
+            continue;
+        }
+        if c == SourceByteOf("/") &&
+            SourceByteAt(text, n, i + 1) == SourceByteOf("/") {
+            i = SkipLineComment(text, i, n);
+            continue;
+        }
+        if c == SourceByteOf("/") &&
+            SourceByteAt(text, n, i + 1) == SourceByteOf("*") {
+            i = SkipBlockComment(text, i, n);
+            continue;
+        }
+        if c == SourceByteOf("(") || c == SourceByteOf("[") {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == SourceByteOf(")") || c == SourceByteOf("]") {
+            if depth > 0 { depth = depth - 1; }
+            i = i + 1;
+            continue;
+        }
+        let prior_is_word: Bool = i > 0 &&
+            SourceByteIsAlphaNum(SourceByteAt(text, n, i - 1));
+        if depth == 0 && !prior_is_word && MatchKeyword(text, i, "as") {
+            cast_index = i;
+            i = i + 2;
+            continue;
+        }
+        i = i + 1;
+    }
+    if cast_index < 0 { return None; }
+    let cursor: Array<Int> = [0];
+    let target: String = ReadType(text, cast_index + 2, cursor);
+    let end: Int = SkipWhitespaceAndComments(text, cursor[0]);
+    if target == "" || end != n { return None; }
+    return Some(SemanticCanonicalTypeName(target));
+}
+
+func SemanticExpressionCastFactContractReady() -> Bool {
+    let scalar: Option<String> =
+        SemanticOuterCastTargetType("value as Long");
+    let generic: Option<String> =
+        SemanticOuterCastTargetType("(value as Array<Int>)");
+    return IsSome(scalar) && UnwrapOption(scalar) == "Long" &&
+        IsSome(generic) && UnwrapOption(generic) == "Array<Int>" &&
+        !IsSome(SemanticOuterCastTargetType("value as Long + other")) &&
+        !IsSome(SemanticOuterCastTargetType("\" as \" + value"));
+}

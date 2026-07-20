@@ -308,6 +308,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
 - `src/self_hosted/semantic/expression_normalization_owner.pgy` -- semantic
   expression wrapper normalization shared before type and validation facts.
+- `src/self_hosted/semantic/expression_cast_fact_owner.pgy` -- parser-type-
+  owned target projection for a source expression whose outer operation is a
+  cast; arithmetic tails and string contents cannot be mistaken for casts.
 - `src/self_hosted/semantic/expression_operator_fact_owner.pgy` -- one
   string/parenthesis-aware top-level operator-position fact consumed by typing
   and logical/binary diagnostics.

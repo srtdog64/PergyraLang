@@ -1,0 +1,3 @@
+func Main() -> Long {
+    return 1L + L;
+}

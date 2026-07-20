@@ -1,0 +1,10 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: undefined_symbol
+Reason: identifier is used before a local binding is in scope
+Fix: declare the local before use or pass it as a parameter
+Span: none
+Facts:
+- name: L

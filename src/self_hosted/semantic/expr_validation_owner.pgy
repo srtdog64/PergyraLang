@@ -23,6 +23,7 @@ func CheckUndefinedIdentifiers(
     let escape: Int = SourceByteOf("\\");
     let dot: Int = SourceByteOf(".");
     let open_paren: Int = SourceByteOf("(");
+    let type_cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < n {
         let c: Int = SourceByteAt(text, n, i);
@@ -45,6 +46,17 @@ func CheckUndefinedIdentifiers(
             }
             let name: String = Substring(text, start, i - start);
             if name == "true" || name == "false" || name == "None" {
+                continue;
+            }
+            if name == "L" && start > 0 &&
+                SourceByteIsDigit(SourceByteAt(text, n, start - 1)) {
+                continue;
+            }
+            if name == "as" {
+                let cast_type: String = ReadTypeName(text, i, type_cursor);
+                if StringLength(cast_type) > 0 {
+                    i = type_cursor[0];
+                }
                 continue;
             }
             if start > 0 && SourceByteAt(text, n, start - 1) == dot {

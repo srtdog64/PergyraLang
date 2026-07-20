@@ -944,7 +944,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func Sema
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 111;"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 113;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
@@ -2814,6 +2814,12 @@ reject_function_text \
     "func SemanticAstAnalysisResolveCallTargetsFromBody(" \
     "while ArrayLength(names) > 0"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
+require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
+    "func SemanticOuterCastTargetType("
+require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
+    'ReadType(text, cast_index + 2, cursor);'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    "SemanticOuterCastTargetType(text);"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstExpressionSeedEnumValues("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 'environment_fact = "match_binding_environment";'
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 'environment_fact = "environment_row_count";'
@@ -8400,11 +8406,15 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 111 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 111"
-[[ "$semantic_expected_count" -eq 111 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 111"
-require_text "src/self_hosted/PROGRESS.md" "across 111 fixtures"
+[[ "$semantic_fixture_count" -eq 113 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 113"
+[[ "$semantic_expected_count" -eq 113 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 113"
+require_text "src/self_hosted/PROGRESS.md" "across 113 fixtures"
+require_file "src/self_hosted/semantic/fixture/valid_long_suffix.pgy"
+require_file "src/self_hosted/semantic/expected/valid_long_suffix.diag"
+require_file "src/self_hosted/semantic/fixture/bad_undefined_long_name.pgy"
+require_file "src/self_hosted/semantic/expected/bad_undefined_long_name.diag"
 require_file "src/self_hosted/semantic/fixture/valid_nested_generic_signature.pgy"
 require_file "src/self_hosted/semantic/expected/valid_nested_generic_signature.diag"
 require_file "src/self_hosted/semantic/fixture/valid_scalar_math_builtins.pgy"
