@@ -172,6 +172,9 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         let modes: Array<String> = [];
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
+        ) || !SemanticAstExpressionSeedOwnerFields(
+            signatures, constructors, assignments.function_node_ids[i],
+            names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
             signatures, assignments.function_node_ids[i], names, types
         ) || !SemanticAstExpressionSeedParameterModes(

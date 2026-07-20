@@ -4,12 +4,33 @@
 #include "parser/ast_api.h"
 
 static bool
+llvm_stmt_register_mir_callable_local(LLVMGenCtx *ctx, const char *name)
+{
+    const MIRSourceLocalType *fact;
+
+    if (ctx == NULL || ctx->current_mir_routine == NULL || name == NULL)
+        return false;
+    fact = mir_routine_source_local_type_fact(
+        ctx->current_mir_routine, name);
+    if (fact == NULL || !fact->is_callable) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing callable source-local fact for '%s'",
+            name);
+        return false;
+    }
+    llvm_register_callable_mir_signature(
+        ctx, name, fact->callable_param_count,
+        (const char *const *)fact->callable_param_type_names,
+        NULL, fact->callable_return_type_name, NULL);
+    return !ctx->has_error;
+}
+
+static bool
 llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
                                                const char *name,
                                                ASTNode *decl)
 {
     ASTNode **param_types = NULL;
-    ASTNode *return_type = NULL;
     size_t param_count = 0;
     bool extern_func;
     const MIRRoutine *routine = NULL;
@@ -43,22 +64,34 @@ llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
         }
         param_count = llvm_mir_routine_param_count(routine);
         if (param_count > 0) {
-            param_types = pgy_arena_calloc(&ctx->scratch,
-                param_count * sizeof(ASTNode *));
-            if (param_types == NULL) {
+            const char **param_type_names = pgy_arena_calloc(&ctx->scratch,
+                param_count * sizeof(char *));
+            const MIRCallableSig **param_callable_sigs =
+                pgy_arena_calloc(&ctx->scratch,
+                    param_count * sizeof(MIRCallableSig *));
+            if (param_type_names == NULL || param_callable_sigs == NULL) {
                 llvm_set_error(ctx,
-                    "out of memory registering function callable");
+                    "out of memory registering MIR function callable");
                 return false;
             }
             for (size_t i = 0; i < param_count; i++) {
-                FuncParam *p = llvm_mir_routine_param(routine, i);
-                param_types[i] = p != NULL ? p->type : NULL;
+                param_type_names[i] = llvm_mir_routine_param_type_name(
+                    routine, i);
+                param_callable_sigs[i] =
+                    llvm_mir_routine_param_callable_sig(routine, i);
             }
+            llvm_register_callable_mir_signature(
+                ctx, name, param_count, param_type_names,
+                param_callable_sigs,
+                llvm_mir_routine_return_type_name(routine),
+                llvm_mir_routine_return_callable_sig(routine));
+        } else {
+            llvm_register_callable_mir_signature(
+                ctx, name, 0, NULL, NULL,
+                llvm_mir_routine_return_type_name(routine),
+                llvm_mir_routine_return_callable_sig(routine));
         }
-        return_type = llvm_mir_routine_return_type(routine);
-        llvm_register_callable_signature(ctx, name,
-            param_count, param_types, return_type);
-        return true;
+        return !ctx->has_error;
     }
 
     if (generic_func || extern_func) {
@@ -97,8 +130,12 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
     init = ast_let_initializer(node);
 
     if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE) {
+        if (llvm_active_has_mir(ctx))
+            return llvm_stmt_register_mir_callable_local(ctx, name);
         llvm_register_callable_var(ctx, name, type_ann);
     } else if (init != NULL && init->type == AST_LAMBDA_EXPR) {
+        if (llvm_active_has_mir(ctx))
+            return llvm_stmt_register_mir_callable_local(ctx, name);
         ASTNode **param_types = NULL;
         size_t param_count = ast_lambda_param_count(init);
         if (param_count > 0) {
@@ -159,6 +196,15 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
                         "MIR-only LLVM path missing callable call-return return type-name metadata for '%s'",
                         "MIR-only LLVM path missing callable call-return parameter type-name metadata for '%s'")) {
                     return false;
+                }
+                {
+                    const MIRCallableSig *return_callable_sig =
+                        llvm_mir_routine_return_callable_sig(routine);
+                    if (return_callable_sig != NULL) {
+                        llvm_register_callable_mir_value(
+                            ctx, name, return_callable_sig);
+                        return !ctx->has_error;
+                    }
                 }
                 return_type = llvm_mir_routine_return_type(routine);
             } else if (generic_func || extern_func) {

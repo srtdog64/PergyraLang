@@ -276,6 +276,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
         let modes: Array<String> = [];
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
+        ) || !SemanticAstExpressionSeedOwnerFields(
+            signatures, constructors, UnwrapOption(function_node),
+            names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
             signatures, UnwrapOption(function_node), names, types
         ) || !SemanticAstExpressionSeedParameterModes(

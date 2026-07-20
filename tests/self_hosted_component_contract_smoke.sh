@@ -3001,6 +3001,24 @@ require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirExpressionGraphRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
+require_file "src/self_hosted/codegen/emission/function_binding_env_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" 140
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionOwnerFieldEnvRows("
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    'CompilerSymbolCBindingName("self")'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "CodegenFunctionOwnerFieldEnvRows(owner_name, base_env)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "func CodegenFunctionLocalEnvRows("
+require_file "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" 120
+require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedOwnerFields("
+require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    'ArrayPush(modes, "owner_field")'
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "SemanticAstExpressionOwnerFieldEnvironmentContractReady()"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
 require_file "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 300
@@ -3536,9 +3554,19 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 81;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 82;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 81'
+    'mir_fixture_rows[@]}" -ne 82'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_self_chain/main.pgy"'
+require_file "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_owner_field_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_owner_field'
+require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    'missing owner field was accepted'
 require_file "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3752,11 +3780,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 81;"
+    "return 82;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 81'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 82'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

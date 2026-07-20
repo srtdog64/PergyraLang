@@ -3,6 +3,7 @@
 #include "llvm_domain_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
@@ -81,6 +82,16 @@ llvm_stmt_callable_entry_return_type(LLVMGenCtx *ctx,
 
     if (ctx == NULL || entry == NULL)
         return NULL;
+    if (entry->value_callable_sig != NULL) {
+        const char *return_name =
+            entry->value_callable_sig->return_type_name;
+        return return_name != NULL
+            ? pergyra_type_to_llvm(ctx, return_name)
+            : ctx->type_void;
+    }
+    if (entry->return_callable_sig != NULL)
+        return llvm_mir_callable_sig_to_llvm(ctx,
+            entry->return_callable_sig);
     if (entry->type_node != NULL
         && entry->type_node->type == AST_EVENT_HANDLER_TYPE) {
         return_type = ast_event_handler_return_type(entry->type_node);

@@ -150,6 +150,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
+- `src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy`
+  -- implicit method-field bindings derived from the function owner and
+  nominal constructor field rows; source-text rewriting is forbidden.
 - `src/self_hosted/semantic/ast_match_binding_environment_owner.pgy` --
   case-scoped `Option<T>` payload bindings derived from the canonical pattern
   fact and typed scrutinee graph.
@@ -593,6 +596,9 @@ inventory must not become a second fact-family owner registry.
   separated from the still-explicit array-literal and `ArraySet` text bridges.
 - `src/self_hosted/codegen/emission/enum_emit_owner.pgy` -- enum declaration
   emission and semantic enum-value projection into the codegen environment.
+- `src/self_hosted/codegen/emission/function_binding_env_owner.pgy` --
+  function-local and implicit owner-field C binding rows derived from semantic
+  locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.

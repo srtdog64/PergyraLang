@@ -1,0 +1,78 @@
+// Implicit method-field bindings derived from signature and nominal facts.
+
+import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+
+func SemanticAstExpressionSeedOwnerFields(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    let signature_index: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index) ||
+        !SemanticAstNominalConstructorRowsReady(constructors) {
+        return false;
+    }
+    let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+        signatures, UnwrapOption(signature_index)
+    );
+    if !IsSome(owner) { return false; }
+    let owner_name: String = UnwrapOption(owner);
+    if owner_name == "" { return true; }
+
+    let constructor_index: Int = 0;
+    while constructor_index < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.names[constructor_index] == owner_name {
+            let field_index: Int = 0;
+            while field_index < constructors.param_counts[constructor_index] {
+                let field_name: Option<String> =
+                    SemanticAstNominalConstructorFieldNameAt(
+                        constructors, constructor_index, field_index
+                    );
+                let field_type: Option<String> =
+                    SemanticAstNominalConstructorFieldTypeAt(
+                        constructors, constructor_index, field_index
+                    );
+                if !IsSome(field_name) || !IsSome(field_type) {
+                    return false;
+                }
+                ArrayPush(names, UnwrapOption(field_name));
+                ArrayPush(types, UnwrapOption(field_type));
+                ArrayPush(modes, "owner_field");
+                field_index = field_index + 1;
+            }
+            return true;
+        }
+        constructor_index = constructor_index + 1;
+    }
+    // Ability/role-owned methods have no nominal constructor field rows.
+    // They are valid expression environments with zero implicit owner fields;
+    // only a matched nominal owner contributes field bindings.
+    return true;
+}
+
+func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n      value: Int\n      limit: Long\n    Methods:\n      Function: Read\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: value\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let function_node: Option<Int> = SemanticAstFunctionNodeAt(signatures, 0);
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    return IsSome(function_node) && SemanticAstExpressionSeedOwnerFields(
+        signatures, constructors, UnwrapOption(function_node),
+        names, types, modes
+    ) && ArrayLength(names) == 2 && names[0] == "value" &&
+        names[1] == "limit" && types[0] == "Int" && types[1] == "Long" &&
+        modes[0] == "owner_field" && modes[1] == "owner_field";
+}

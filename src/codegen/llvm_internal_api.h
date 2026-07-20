@@ -79,6 +79,15 @@ void llvm_register_callable_signature_names(LLVMGenCtx *ctx,
                                             size_t param_count,
                                             const char *const *param_type_names,
                                             const char *return_type_name);
+void llvm_register_callable_mir_signature(
+    LLVMGenCtx *ctx, const char *var_name, size_t param_count,
+    const char *const *param_type_names,
+    const MIRCallableSig *const *param_callable_sigs,
+    /* A NULL return name/signature is the carried MIR void return. */
+    const char *return_type_name,
+    const MIRCallableSig *return_callable_sig);
+void llvm_register_callable_mir_value(LLVMGenCtx *ctx, const char *var_name,
+                                      const MIRCallableSig *callable_sig);
 LLVMCallableVarEntry *llvm_lookup_callable_entry(LLVMGenCtx *ctx,
                                                  const char *var_name);
 void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,

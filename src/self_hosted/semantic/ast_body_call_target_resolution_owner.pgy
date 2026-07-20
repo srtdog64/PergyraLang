@@ -56,6 +56,10 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                 while ArrayLength(types) > 0 { ArrayPop(types); }
                 while ArrayLength(modes) > 0 { ArrayPop(modes); }
                 if !IsSome(function_node_id) ||
+                    !SemanticAstExpressionSeedOwnerFields(
+                        analysis.signatures, analysis.constructors,
+                        UnwrapOption(function_node_id), names, types, modes
+                    ) ||
                     !SemanticAstExpressionSeedParameters(
                         analysis.signatures, UnwrapOption(function_node_id),
                         names, types

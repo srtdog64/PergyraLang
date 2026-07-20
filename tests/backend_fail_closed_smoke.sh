@@ -1728,6 +1728,20 @@ grep -Fq "if (mir_active && inst->abi_type_name != NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
 grep -Fq "llvm_mir_callable_sig_to_llvm" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "llvm_register_callable_mir_signature" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "llvm_register_callable_mir_value" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "llvm_stmt_register_mir_callable_local" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "llvm_mir_routine_param_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "value_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+grep -Fq "return_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "MIR-only LLVM path missing callable source-local fact" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
 grep -Fq "const MIRCallableSig *param_callable_sig" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "const MIRCallableSig *return_callable_sig" \

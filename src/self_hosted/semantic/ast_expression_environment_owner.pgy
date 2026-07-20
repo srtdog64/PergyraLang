@@ -6,6 +6,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_expression_owner_field_environment_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
@@ -406,6 +407,9 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         function_names, function_returns, function_params
     ) || !SemanticAstExpressionSeedEnumValues(
         enums, names, types, modes
+    ) || !SemanticAstExpressionSeedOwnerFields(
+        signatures, constructors, locals.function_node_ids[0],
+        names, types, modes
     ) || !SemanticAstExpressionSeedParameters(
         signatures, locals.function_node_ids[0], names, types
     ) || !SemanticAstExpressionSeedParameterModes(
@@ -428,7 +432,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         ArrayLength(function_names) == 90 &&
         function_names[89] == "F" && function_returns[89] == "Void" &&
         function_params[89] == "Int" &&
-        SemanticAstExpressionEnumValueContractReady();
+        SemanticAstExpressionEnumValueContractReady() &&
+        SemanticAstExpressionOwnerFieldEnvironmentContractReady();
 }
 
 func SemanticAstExpressionEnumValueContractReady() -> Bool {

@@ -154,6 +154,17 @@ the source binding is untyped. A missing MIR source-local fact still fails
 closed. This closes the `device_slot_remote` path without adding an AST type
 recovery lane.
 
+Callable `let` bindings and function-reference values now use the same
+carriage rule. In an active MIR routine, an `EventHandler` annotation, lambda,
+or callable function declaration is registered from the MIR source-local row
+and its `MIRCallableSig` parameter/return rows. A callable value returned by a
+call carries the routine's nested callable row instead of retaining an AST
+return node. LLVM function-pointer construction and callable return inference
+consume those carried rows; a missing callable local, parameter, or return
+fact is a MIR inventory error and stops emission. The legacy AST registration
+APIs remain only on the non-MIR compatibility path, so this sub-rung does not
+create a second ABI owner.
+
 ### Expression call-target carriage sub-rung
 
 DRV-2 fixture 81, `class_method_self_return`, closes a bounded chained-member
@@ -170,6 +181,24 @@ diagnostics, and runtime output with both C-built and LLVM-built self drivers;
 its negative mutation removes only the `Stat_PromoteIf` target and must fail at
 the MIR expression-graph boundary. This is call-target carriage closure for the
 bounded fixture, not global expression or backend closure.
+
+### Method owner-field carriage sub-rung
+
+DRV-2 fixture 82, `class_method_self_chain`, closes implicit field bindings in
+method bodies without rewriting `val` or `limit` into source-level
+`self.<field>` text. The semantic environment owner joins the function's
+canonical owner row with the nominal declaration's ordered field rows. The
+codegen binding owner projects those same carried declaration facts into
+`self.val` and `self.limit` C bindings. Parameter and local rows are appended
+after owner fields so ordinary lexical shadowing remains deterministic.
+
+The negative gate mutates only the `val` declaration row in self-produced MIR;
+the expression graph still contains the bare `val` leaf. The self MIR consumer
+must reject it with the structured `undefined_symbol` diagnostic. It may not
+recover the field from source text, an AST root, or a backend-local class scan.
+Focused C-built and LLVM-built self-driver parity covers canonical MIR,
+emitted C, diagnostics, and runtime output. This closes one method-field
+carriage seam; it does not make DRV-2 the released default driver.
 
 ### Runtime-call row consumer sub-rung (AIR-bound)
 

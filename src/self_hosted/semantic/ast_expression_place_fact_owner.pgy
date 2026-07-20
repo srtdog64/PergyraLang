@@ -133,6 +133,9 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                 if !IsSome(function_node_id) ||
                     !SemanticAstExpressionSeedEnumValues(
                         analysis.enums, names, types, modes
+                    ) || !SemanticAstExpressionSeedOwnerFields(
+                        analysis.signatures, analysis.constructors,
+                        UnwrapOption(function_node_id), names, types, modes
                     ) || !SemanticAstExpressionSeedParameters(
                         analysis.signatures, UnwrapOption(function_node_id),
                         names, types

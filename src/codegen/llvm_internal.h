@@ -215,6 +215,9 @@ typedef struct
     ASTNode    *return_type;
     const char **param_type_names;
     const char  *return_type_name;
+    const MIRCallableSig **param_callable_sigs;
+    const MIRCallableSig *return_callable_sig;
+    const MIRCallableSig *value_callable_sig;
     bool        is_closure; /* var holds a closure value {fn,env} (docs/135) */
 } LLVMCallableVarEntry;
 

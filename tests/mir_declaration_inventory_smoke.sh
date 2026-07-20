@@ -4364,7 +4364,9 @@ require_term "src/codegen/llvm_boundary_slot_param.c" \
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_mir_boundary_resource_inner_name("
 require_term "src/codegen/llvm_mir_emit.c" \
-    "llvm_mir_routine_param_type_name(routine, i)"
+    "llvm_mir_routine_param_type_name(routine,"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "source_param_index"
 require_term "src/codegen/llvm_boundary_slot_param.c" \
     "llvm_mir_routine_param_resource_kind("
 if grep -Fq "slot_inner != NULL && p != NULL && p->type != NULL" \

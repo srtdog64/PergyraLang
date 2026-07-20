@@ -15,6 +15,9 @@ pgy_selfhost_driver_rung2_fixture_base() {
         tests/cases/backend_compare/class_method_self_return/main.pgy)
             printf '%s\n' "class_method_self_return"
             ;;
+        tests/cases/backend_compare/class_method_self_chain/main.pgy)
+            printf '%s\n' "class_method_self_chain"
+            ;;
         *)
             basename "$1" .pgy
             ;;

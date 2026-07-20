@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "codegen_scalar_arithmetic_policy.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
 
@@ -114,10 +115,16 @@ llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
 
     if (ctx == NULL || entry == NULL)
         return NULL;
+    if (entry->value_callable_sig != NULL)
+        return llvm_mir_callable_sig_to_llvm(ctx,
+            entry->value_callable_sig);
     if (entry->type_node != NULL)
         return llvm_function_signature_from_event_type(ctx, entry->type_node);
 
-    if (entry->return_type_name != NULL) {
+    if (entry->return_callable_sig != NULL) {
+        ret_type = llvm_mir_callable_sig_to_llvm(ctx,
+            entry->return_callable_sig);
+    } else if (entry->return_type_name != NULL) {
         ret_type = pergyra_type_to_llvm(ctx, entry->return_type_name);
     } else {
         ret_type = entry->return_type != NULL
@@ -138,7 +145,11 @@ llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
             return NULL;
         }
         for (size_t i = 0; i < entry->param_count; i++) {
-            param_types[i] = entry->param_type_names != NULL
+            param_types[i] = entry->param_callable_sigs != NULL
+                && entry->param_callable_sigs[i] != NULL
+                ? llvm_mir_callable_sig_to_llvm(ctx,
+                    entry->param_callable_sigs[i])
+                : entry->param_type_names != NULL
                 ? pergyra_type_to_llvm(ctx, entry->param_type_names[i])
                 : ast_type_to_llvm(ctx, entry->param_types[i]);
             if (ctx->has_error || param_types[i] == NULL)

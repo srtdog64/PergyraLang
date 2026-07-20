@@ -150,6 +150,10 @@ func SemanticAstStatementTypeFactsFromArtifact(
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
         ) { environment_fact = "enum_environment"; }
+        else if !SemanticAstExpressionSeedOwnerFields(
+            signatures, constructors, statements.function_node_ids[i],
+            names, types, modes
+        ) { environment_fact = "owner_field_environment"; }
         else if !SemanticAstExpressionSeedParameters(
             signatures, statements.function_node_ids[i], names, types
         ) { environment_fact = "parameter_environment"; }

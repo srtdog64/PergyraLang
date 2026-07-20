@@ -73,6 +73,9 @@ llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
     ctx->callable_vars[ctx->callable_var_count].return_type = NULL;
     ctx->callable_vars[ctx->callable_var_count].param_type_names = NULL;
     ctx->callable_vars[ctx->callable_var_count].return_type_name = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_callable_sigs = NULL;
+    ctx->callable_vars[ctx->callable_var_count].return_callable_sig = NULL;
+    ctx->callable_vars[ctx->callable_var_count].value_callable_sig = NULL;
     ctx->callable_var_count++;
 }
 
@@ -115,6 +118,9 @@ llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
     ctx->callable_vars[ctx->callable_var_count].return_type = return_type;
     ctx->callable_vars[ctx->callable_var_count].param_type_names = NULL;
     ctx->callable_vars[ctx->callable_var_count].return_type_name = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_callable_sigs = NULL;
+    ctx->callable_vars[ctx->callable_var_count].return_callable_sig = NULL;
+    ctx->callable_vars[ctx->callable_var_count].value_callable_sig = NULL;
     ctx->callable_var_count++;
 }
 
@@ -178,6 +184,122 @@ llvm_register_callable_signature_names(LLVMGenCtx *ctx,
     if (ctx->callable_vars[ctx->callable_var_count].return_type_name == NULL) {
         llvm_set_error(ctx,
             "out of memory registering callable return type name");
+        return;
+    }
+    ctx->callable_vars[ctx->callable_var_count].param_callable_sigs = NULL;
+    ctx->callable_vars[ctx->callable_var_count].return_callable_sig = NULL;
+    ctx->callable_vars[ctx->callable_var_count].value_callable_sig = NULL;
+    ctx->callable_var_count++;
+}
+
+void
+llvm_register_callable_mir_signature(
+    LLVMGenCtx *ctx, const char *var_name, size_t param_count,
+    const char *const *param_type_names,
+    const MIRCallableSig *const *param_callable_sigs,
+    const char *return_type_name,
+    const MIRCallableSig *return_callable_sig)
+{
+    const char **stored_param_type_names = NULL;
+    const MIRCallableSig **stored_param_callable_sigs = NULL;
+    const char *owned_var;
+    const char *owned_return_type_name = NULL;
+
+    if (ctx == NULL || var_name == NULL) {
+        if (ctx != NULL)
+            llvm_set_error(ctx, "missing MIR callable variable name");
+        return;
+    }
+    if (param_count > 0) {
+        stored_param_type_names = pgy_arena_calloc(&ctx->persistent,
+            param_count * sizeof(char *));
+        stored_param_callable_sigs = pgy_arena_calloc(&ctx->persistent,
+            param_count * sizeof(MIRCallableSig *));
+        if (stored_param_type_names == NULL
+            || stored_param_callable_sigs == NULL) {
+            llvm_set_error(ctx,
+                "out of memory registering MIR callable signature");
+            return;
+        }
+        for (size_t i = 0; i < param_count; i++) {
+            if (param_callable_sigs != NULL && param_callable_sigs[i] != NULL) {
+                stored_param_callable_sigs[i] = param_callable_sigs[i];
+            } else {
+                if (param_type_names == NULL || param_type_names[i] == NULL) {
+                    llvm_set_error(ctx,
+                        "missing MIR callable parameter signature metadata");
+                    return;
+                }
+                stored_param_type_names[i] = pgy_arena_strdup(
+                    &ctx->persistent, param_type_names[i]);
+                if (stored_param_type_names[i] == NULL) {
+                    llvm_set_error(ctx,
+                        "out of memory registering MIR callable parameter type name");
+                    return;
+                }
+            }
+        }
+    }
+    if (return_type_name != NULL) {
+        owned_return_type_name = pgy_arena_strdup(
+            &ctx->persistent, return_type_name);
+        if (owned_return_type_name == NULL) {
+            llvm_set_error(ctx,
+                "out of memory registering MIR callable return type name");
+            return;
+        }
+    }
+    owned_var = pgy_arena_strdup(&ctx->persistent, var_name);
+    if (owned_var == NULL) {
+        llvm_set_error(ctx,
+            "out of memory registering MIR callable variable name");
+        return;
+    }
+    PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
+                      ctx->callable_var_capacity, LLVMCallableVarEntry);
+    ctx->callable_vars[ctx->callable_var_count].var_name = owned_var;
+    ctx->callable_vars[ctx->callable_var_count].type_node = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_types = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_count = param_count;
+    ctx->callable_vars[ctx->callable_var_count].return_type = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_type_names =
+        stored_param_type_names;
+    ctx->callable_vars[ctx->callable_var_count].return_type_name =
+        owned_return_type_name;
+    ctx->callable_vars[ctx->callable_var_count].param_callable_sigs =
+        stored_param_callable_sigs;
+    ctx->callable_vars[ctx->callable_var_count].return_callable_sig =
+        return_callable_sig;
+    ctx->callable_vars[ctx->callable_var_count].value_callable_sig = NULL;
+    ctx->callable_var_count++;
+}
+
+void
+llvm_register_callable_mir_value(LLVMGenCtx *ctx, const char *var_name,
+                                 const MIRCallableSig *callable_sig)
+{
+    if (ctx == NULL || var_name == NULL || callable_sig == NULL
+        || !callable_sig->is_callable) {
+        if (ctx != NULL)
+            llvm_set_error(ctx, "missing MIR callable value signature metadata");
+        return;
+    }
+    PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
+                      ctx->callable_var_capacity, LLVMCallableVarEntry);
+    ctx->callable_vars[ctx->callable_var_count].var_name =
+        pgy_arena_strdup(&ctx->persistent, var_name);
+    ctx->callable_vars[ctx->callable_var_count].type_node = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_types = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_count = 0;
+    ctx->callable_vars[ctx->callable_var_count].return_type = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_type_names = NULL;
+    ctx->callable_vars[ctx->callable_var_count].return_type_name = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_callable_sigs = NULL;
+    ctx->callable_vars[ctx->callable_var_count].return_callable_sig = NULL;
+    ctx->callable_vars[ctx->callable_var_count].value_callable_sig =
+        callable_sig;
+    if (ctx->callable_vars[ctx->callable_var_count].var_name == NULL) {
+        llvm_set_error(ctx, "out of memory registering MIR callable value");
         return;
     }
     ctx->callable_var_count++;

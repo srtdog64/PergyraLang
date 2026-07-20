@@ -249,8 +249,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c \
             "$backend" "$base" "$self_actual"
-        pgy_selfhost_verify_driver_rung2_array_literal_emitted_c \
-            "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_array_literal_emitted_c "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_owner_field "$backend" "$base" "$self_mir_json" "$self_actual" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_assign_instruction_graph \
             "$backend" "$base" "$mir_json" "$self_mir_json" \
             "$self_actual" "$driver_bin"
