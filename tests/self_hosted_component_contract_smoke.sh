@@ -3004,6 +3004,8 @@ require_file "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy
 require_file "src/self_hosted/codegen/emission/function_binding_env_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" 140
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    'import "../runtime_abi/option_result_runtime_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionOwnerFieldEnvRows("
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'CompilerSymbolCBindingName("self")'
