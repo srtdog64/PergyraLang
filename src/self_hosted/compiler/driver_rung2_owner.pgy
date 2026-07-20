@@ -232,12 +232,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/class_compare_return/main.pgy",
         "tests/cases/backend_compare/class_node_field_access/main.pgy",
         "src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy",
-        "tests/cases/backend_compare/class_method_self_access/main.pgy"
+        "tests/cases/backend_compare/class_method_self_access/main.pgy",
+        "tests/cases/backend_compare/action_outcome_dispatch/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 112;
+    return 113;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

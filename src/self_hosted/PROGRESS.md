@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta:
+`action_outcome_dispatch` is DRV-2 MIR fixture 113. This adds an enum match
+dispatch with nested branches, aggregate construction/return, member reads,
+and direct calls without adding a compatibility parser or backend-owned fact.
+The Pergyra-built hard driver and an independent C-built self driver passed
+focused canonical-MIR, emitted-C, host compile, and runtime parity
+(`200`, `-1`, `50`, `50`, `-1`). A previously built independent LLVM self
+driver passed the same focused lane. A fresh LLVM self-driver rebuild was not
+counted because unrelated in-flight LLVM ABI-row work in the local workspace
+failed before fixture execution. The complete 113-fixture matrix was not run,
+and released/default replacement remains 0%.
+
 2026-07-21 executable member-call/SoT delta:
 `class_method_self_access` is DRV-2 MIR fixture 112. The parser expression
 graph now owns the distinction between a standalone member call and a plain
