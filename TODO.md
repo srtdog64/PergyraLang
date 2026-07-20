@@ -10435,15 +10435,24 @@ certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
   오브젝트 컴파일·`.bc` 재생성·header-size/bc-contract/cext-contract green.
   게이트 `region-arena-test-smoke`(target+독립 .PHONY). **CI aggregate 편입은
   보류**(그 aggregate 영역을 동시 세션이 미커밋 — 배선 시 엉킴; 착지 후 1줄).
-- **★REG-1b+c BLOCKED (2026-07-21)**: plan(REG-1b)만 착지하면 소비자 없는
-  mechanism = 제약 #4 위반 → plan+방출은 **한 열차**. 그런데 방출(REG-1c)은
-  `transpiler_expr_core_emit.c`·LLVM string 경로를, 드라이버(REG-1b)는
-  `compiler.c`/`compiler_llvm.c`/`verified_projection_plan.h` 를 수정하는데
-  **동시 세션이 109 파일 미커밋**(codegen 전체+driver+plan 헤더+arena.c 포함).
-  WO-0 위반이라 대기. **설계 동결 = docs/197 Appendix A**(house 분할 패턴대로
-  `verified_region_plan.{h,c}` 신설로 plan-헤더 충돌 회피, escape pass v1,
-  driver 격리 hunk, lazy 함수-스코프 방출, poison-on 게이트 — 재개 시 기계적
-  적용). 동시 세션 working set 커밋 후 재개.
+- **★REG-1b plan subsystem ✅ LANDED (2026-07-21, `b872d4d3`)**:
+  `verified_region_plan.{h,c}`(house 분할 — 사용자가 parallel-capture 를
+  별도 파일로 빼는 것과 동형이라 `verified_projection_plan.h` 충돌 회피).
+  PgyRegionPlan(site→HEAP기본/REGION-인증서), 생산자=AIR 인증서 게이트+null/
+  충돌 거절+중복 붕괴, lookup fail-closed. 게이트 `region-plan-unit-test-smoke`
+  (7 케이스, `-Wall -Wextra -Werror` 통과). **build path 확증**(109파일 tree 가
+  isolated mingw32-make 로 clean 빌드 — make→gcc 손자 채널이 anti-cheat 생존).
+  COMPILER_SOURCES 미등록(의도적, 유일 예외) = verified-but-unwired.
+- **★driver/escape/emission 통합 BLOCKED (verified 충돌, 2026-07-21)**:
+  driver 생산(compiler.c invoke_c_backend, compiler_llvm.c ×2, transpiler.h
+  ctx-필드+transpile 시그니처)을 **사용자가 sibling parallel-capture plan 을
+  동일 영역에 배선 중**(hunk 확인: compiler.c @@-68 +17줄, transpiler.h @@-153
+  ctx struct + @@-367 시그니처). 내 필드/produce 가 사용자 hunk 와 coalesce 돼
+  분리 불가 — 이건 과잉조심 아니라 구조적. `transpiler_expr_core_emit.c`
+  (emit_binary=REG-1c 소비자)는 clean. plan+방출은 한 열차(제약 #4)라 driver
+  가 막히면 emission 도 대기. 재개=사용자 driver rework 커밋 후 기계적
+  (docs/197 App A 재개 단계). escape pass v1(Print-인자 concat, sound)+poison-on
+  방출이 그 train.
 - **목표**: §1.2 의 소비자-0 런타임 arena 를 체인-블록으로 승격(ABI §13 개정
   — 소비자 0 인 지금이 유일하게 싼 시점) + 3-물질화/`.bc` + `PgyRegionPlan`
   (제3의 verified-projection 산출물: site→REGION|HEAP, 인증서 게이트, per-site
