@@ -17,6 +17,7 @@
 #include "llvm_domain_struct_fields.h"
 #include "llvm_domain_struct_register_fields.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 
 void
 llvm_register_domain_structs(LLVMGenCtx *ctx,
@@ -237,7 +238,29 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         stmt);
                 size_t zone_count = zone_view.count;
                 size_t state_count = 0;
-                (void) ast_world_states(stmt, &state_count);
+                const MIRDeclHeader *world_header =
+                    llvm_find_decl_header_in_context_of_type(
+                        ctx, AST_WORLD_DECL, decl_name);
+                if (llvm_active_has_mir(ctx)) {
+                    if (world_header == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing declaration header for world '%s'",
+                            decl_name != NULL ? decl_name : "<anonymous-world>");
+                        return;
+                    }
+                    state_count = mir_decl_header_world_state_count(
+                        world_header);
+                    if (state_count
+                        != mir_decl_header_world_state_declared_count(
+                            world_header)) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path world '%s' has inconsistent world-state metadata count",
+                            decl_name != NULL ? decl_name : "<anonymous-world>");
+                        return;
+                    }
+                } else {
+                    (void) ast_world_states(stmt, &state_count);
+                }
                 if (llvm_hosted_world_roster_slot_view_missing_mir_metadata(
                         &roster_view)) {
                     llvm_set_mir_inventory_missing(ctx,

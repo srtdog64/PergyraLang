@@ -9,6 +9,7 @@
 #include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 #include "parser/ast_api.h"
 
 typedef enum LLVMDomainQueryOp {
@@ -241,6 +242,9 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
     LLVMClassTypeEntry *cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
     const char *name = llvm_call_name_or_string_arg(node, 0);
     ASTNode *state_decl = NULL;
+    const MIRDeclWorldState *state_meta = NULL;
+    const MIRDeclHeader *world_header = NULL;
+    bool use_mir_world_states = llvm_active_has_mir(ctx);
     int field_idx = -1;
     LLVMValueRef base_ptr;
 
@@ -251,19 +255,58 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
         return true;
     }
 
-    state_decl = llvm_find_world_state_decl(ctx, world_decl, name);
-    if (state_decl != NULL) {
-        if (ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL
-            || ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ANY) {
+    if (use_mir_world_states) {
+        world_header = llvm_find_decl_header_in_context_of_type(
+            ctx, AST_WORLD_DECL, host_name);
+        if (world_header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declaration header for world query '%s'",
+                host_name != NULL ? host_name : "<anonymous-world>");
+            *out = NULL;
+            return true;
+        }
+        if (mir_decl_header_world_state_count(world_header)
+            != mir_decl_header_world_state_declared_count(world_header)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' has inconsistent world-state metadata count",
+                host_name != NULL ? host_name : "<anonymous-world>");
+            *out = NULL;
+            return true;
+        }
+        for (size_t i = 0; i < mir_decl_header_world_state_count(world_header);
+             i++) {
+            const MIRDeclWorldState *candidate =
+                mir_decl_header_world_state(world_header, i);
+            if (candidate != NULL
+                && mir_decl_world_state_name(candidate) != NULL
+                && strcmp(mir_decl_world_state_name(candidate), name) == 0) {
+                state_meta = candidate;
+                break;
+            }
+        }
+    } else {
+        state_decl = llvm_find_world_state_decl(ctx, world_decl, name);
+    }
+    if (state_meta != NULL || state_decl != NULL) {
+        WorldStateSourceKind source_kind = state_meta != NULL
+            ? mir_decl_world_state_source_kind(state_meta)
+            : ast_world_state_source_kind(state_decl);
+        if (source_kind == WORLD_STATE_SOURCE_ALL
+            || source_kind == WORLD_STATE_SOURCE_ANY) {
             LLVMValueRef result = LLVMConstInt(ctx->type_i1,
-                ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
+                source_kind == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
             base_ptr = llvm_current_self_base_ptr(ctx, cls);
             if (base_ptr == NULL) {
                 *out = llvm_domain_query_false(ctx);
                 return true;
             }
-            for (size_t i = 0; i < ast_world_state_input_count(state_decl); i++) {
-                const char *input_name = ast_world_state_input_name(state_decl, i);
+            size_t input_count = state_meta != NULL
+                ? mir_decl_world_state_input_count(state_meta)
+                : ast_world_state_input_count(state_decl);
+            for (size_t i = 0; i < input_count; i++) {
+                const char *input_name = state_meta != NULL
+                    ? mir_decl_world_state_input_name(state_meta, i)
+                    : ast_world_state_input_name(state_decl, i);
                 int input_idx = -1;
                 char field_name[256];
                 LLVMValueRef input_ptr;
@@ -284,7 +327,7 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
                     (unsigned)input_idx, llvm_tmp_name(ctx));
                 input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                     input_ptr, llvm_tmp_name(ctx));
-                if (ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL)
+                if (source_kind == WORLD_STATE_SOURCE_ALL)
                     result = LLVMBuildAnd(ctx->builder, result, input_val, llvm_tmp_name(ctx));
                 else
                     result = LLVMBuildOr(ctx->builder, result, input_val, llvm_tmp_name(ctx));

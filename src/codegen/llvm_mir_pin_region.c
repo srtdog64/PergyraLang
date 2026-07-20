@@ -8,47 +8,30 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_runtime_internal.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include "../compiler/mir_cfg_contract_pin.h"
-#include "../compiler/mir_abi_layout.h"
 #include "../common/string_compat.h"
-
-static const char *
-llvm_mir_pin_expected_call_shape(bool secure, const char *operation)
-{
-    if (operation == NULL)
-        return NULL;
-    if (strcmp(operation, "PinReadInit") == 0 ||
-        strcmp(operation, "PinWriteInit") == 0) {
-        return secure ? "pinned_view_ptr_container_ptr_token_ptr_to_void"
-                      : "pinned_view_ptr_container_ptr_to_void";
-    }
-    if (strcmp(operation, "Unpin") == 0)
-        return "pinned_view_ptr_to_void";
-    return NULL;
-}
 
 static const MIRResourceRuntimeRow *
 llvm_mir_pin_runtime_row(LLVMGenCtx *ctx,
                          MIRResourceAbiKind kind,
-                         bool secure,
                          const char *inner,
                          const char *operation,
                          const char *message)
 {
-    const char *expected_shape =
-        llvm_mir_pin_expected_call_shape(secure, operation);
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner, operation);
+        llvm_slot_runtime_row_for_operation(NULL, ctx, kind, inner, operation);
 
-    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL &&
-        (expected_shape == NULL ||
-         strcmp(row->call_shape, expected_shape) == 0)) {
+    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL) {
         return row;
     }
+
+    if (ctx != NULL && ctx->has_error)
+        return NULL;
 
     llvm_set_mir_topology_invalid(ctx,
         message != NULL
@@ -273,7 +256,7 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
         token_alloca = token_entry.alloca;
         const MIRResourceRuntimeRow *runtime_row =
             llvm_mir_pin_runtime_row(
-                ctx, MIR_RESOURCE_ABI_SECURE_SLOT, true, inner,
+                ctx, MIR_RESOURCE_ABI_SECURE_SLOT, inner,
                 block->pin_view_is_write ? "PinWriteInit" : "PinReadInit",
                 "LLVM MIR secure pin requires MIR ABI runtime function row");
         if (runtime_row == NULL)
@@ -389,7 +372,7 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
 
     const MIRResourceRuntimeRow *runtime_row =
         llvm_mir_pin_runtime_row(
-            ctx, MIR_RESOURCE_ABI_SECURE_SLOT, true, inner, "Unpin",
+            ctx, MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Unpin",
             "LLVM MIR pin cleanup requires MIR ABI runtime function row");
     if (runtime_row == NULL)
         return false;

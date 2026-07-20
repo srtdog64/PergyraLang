@@ -137,6 +137,38 @@ typedef struct
     bool        is_relation;
 } MIRDeclZoneState;
 
+/* MIR-owned world derived-state row. This is intentionally separate from
+ * MIRDeclZoneState: world states carry source composition and input identity,
+ * while zone states carry layer/left/right topology. */
+typedef struct
+{
+    const char          *owner_name;
+    char                *name;
+    char                *zone_slot_name;
+    WorldStateSourceKind source_kind;
+    char                *detail_name;
+    char               **input_names;
+    size_t               input_count;
+} MIRDeclWorldState;
+
+typedef enum
+{
+    MIR_DECL_WORLD_DIRECTIVE_ACTIVATE,
+    MIR_DECL_WORLD_DIRECTIVE_MAINTAIN,
+    MIR_DECL_WORLD_DIRECTIVE_DEACTIVATE
+} MIRDeclWorldDirectiveKind;
+
+/* MIR-owned world command row. A directive names either a concrete zone
+ * slot or a derived world-state name; backend consumers must not reopen the
+ * AST directive payload after MIR admission. */
+typedef struct
+{
+    const char                *owner_name;
+    MIRDeclWorldDirectiveKind  kind;
+    char                      *zone_slot_name;
+    char                      *state_name;
+} MIRDeclWorldDirective;
+
 typedef struct
 {
     const char   *name;
@@ -186,6 +218,12 @@ typedef struct
     size_t       zone_state_count;
     MIRDeclZoneState *zone_state_metadata;
     size_t       zone_state_metadata_count;
+    size_t       world_state_count;
+    MIRDeclWorldState *world_state_metadata;
+    size_t       world_state_metadata_count;
+    size_t       world_directive_count;
+    MIRDeclWorldDirective *world_directive_metadata;
+    size_t       world_directive_metadata_count;
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;

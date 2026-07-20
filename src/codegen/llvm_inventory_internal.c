@@ -207,6 +207,12 @@ llvm_mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
     return mir_routine_param_type_name(routine, index);
 }
 
+const MIRCallableSig *
+llvm_mir_routine_param_callable_sig(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param_callable_sig(routine, index);
+}
+
 MIRParamCarriage
 llvm_mir_routine_param_carriage(const MIRRoutine *routine, size_t index)
 {
@@ -230,6 +236,12 @@ const char *
 llvm_mir_routine_return_type_name(const MIRRoutine *routine)
 {
     return mir_routine_return_type_name(routine);
+}
+
+const MIRCallableSig *
+llvm_mir_routine_return_callable_sig(const MIRRoutine *routine)
+{
+    return mir_routine_return_callable_sig(routine);
 }
 
 const char *

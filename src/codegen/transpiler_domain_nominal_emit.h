@@ -14,5 +14,7 @@ void transpiler_domain_nominal_surface_desc_too_long(
     const char *surface_kind);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_party_decl_from_mir_header(const MIRDeclHeader *header,
+                                     TranspilerCtx *ctx);
 
 #endif /* PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H */

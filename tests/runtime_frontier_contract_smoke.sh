@@ -150,6 +150,8 @@ for rel in \
     "src/codegen/transpiler_zone_decl_emit.c" \
     "src/codegen/transpiler_zone_frontier_emit.c" \
     "src/codegen/transpiler_zone_frontier_emit.h" \
+    "src/codegen/transpiler_world_derived_state_emit.c" \
+    "src/codegen/transpiler_world_frontier_inputs.c" \
     "src/codegen/transpiler_world_select_event_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
@@ -204,6 +206,8 @@ cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_world_derived_state_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_world_frontier_inputs.c" \
     "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
     > "$c_frontier_text"
 
@@ -215,9 +219,12 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
     "PGY_PANIC" \
     "PGY_FRONTIER_REASON_ZONE_OVERFLOW"
 
-require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
+require_terms "C world frontier emitter" "$c_frontier_text" \
     "transpiler_frontier_zone_member_count" \
     "transpiler_frontier_world_zone_type_name" \
+    "if (!transpiler_active_has_mir(transpiler_ctx))" \
+    "&& !state_view.uses_mir_metadata" \
+    "&& !layer_view.uses_mir_metadata" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "transpiler_hosted_zone_state_view_from_decl" \
     "transpiler_hosted_zone_layer_slot_view_from_decl" \
@@ -244,6 +251,9 @@ require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_
 require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "llvm_world_frontier_zone_member_count" \
     "llvm_world_frontier_zone_type_name" \
+    "if (!llvm_active_has_mir(llvm_ctx))" \
+    "&& !state_view.uses_mir_metadata" \
+    "&& !layer_view.uses_mir_metadata" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "llvm_hosted_zone_state_view_from_decl" \
     "llvm_hosted_zone_layer_slot_view_from_decl" \

@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_boundary_slot_param.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_decl_authority.h"
 #include "llvm_mir_signature.h"
 
@@ -157,13 +158,17 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
     LLVMTypeRef ret_type = ctx->type_void;
     const char *return_type_name = NULL;
     ASTNode *return_type = NULL;
+    const MIRCallableSig *return_callable_sig = NULL;
     if (allow_ast_compat) {
         return_type = ast_func_return_type(node);
     } else {
         return_type_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
+        return_callable_sig = llvm_mir_routine_return_callable_sig(routine);
     }
-    if (return_type_name != NULL) {
+    if (return_callable_sig != NULL) {
+        ret_type = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+    } else if (return_type_name != NULL) {
         ret_type = pergyra_type_to_llvm(ctx, return_type_name);
     } else if (return_type != NULL) {
         ret_type = ast_type_to_llvm(ctx, return_type);
@@ -194,6 +199,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             FuncParam *p;
             const char *param_type_name;
             const char *slot_inner = NULL;
+            const MIRCallableSig *param_callable_sig = NULL;
             MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
             bool pass_indirect = false;
 
@@ -203,6 +209,8 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             } else {
                 p = llvm_mir_routine_param(routine, i);
                 param_type_name = llvm_mir_routine_param_type_name(routine, i);
+                param_callable_sig =
+                    llvm_mir_routine_param_callable_sig(routine, i);
             }
             if (p == NULL || p->name == NULL)
                 continue;
@@ -211,8 +219,10 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                 : llvm_mir_routine_param_carriage(routine, i);
             pass_indirect = !allow_ast_compat
                 && llvm_mir_routine_param_passes_indirect(routine, i);
-            LLVMTypeRef pt = llvm_decl_required_param_type_name_first(
-                ctx, node, p, param_type_name);
+            LLVMTypeRef pt = param_callable_sig != NULL
+                ? llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)
+                : llvm_decl_required_param_type_name_first(
+                    ctx, node, p, param_type_name);
             if (ctx->has_error || pt == NULL)
                 return;
             if (pass_indirect

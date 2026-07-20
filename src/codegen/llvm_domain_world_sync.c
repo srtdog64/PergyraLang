@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_domain_world_sync_internal.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 
 static bool
 llvm_world_sync_field_name(char *out,
@@ -79,6 +80,9 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         const char *world_name = llvm_decl_node_name(stmt);
         LLVMHostedWorldZoneSlotView zone_view =
             llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name, stmt);
+        const MIRDeclHeader *world_header =
+            llvm_find_decl_header_in_context_of_type(
+                ctx, AST_WORLD_DECL, world_name);
         size_t zone_count = zone_view.count;
         /* Per-zone "previously active" pointer cache populated during
          * world sync emission and consumed once before this function
@@ -106,6 +110,22 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing world zone-slot metadata for '%s'",
                 world_name != NULL ? world_name : "<anonymous>");
+            llvm_scope_pop(ctx);
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            ctx->current_function_ret_type = saved_function_ret;
+            ctx->current_return_type_name = saved_return_type_name;
+            ctx->current_return_callable_type = saved_return_callable_type;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+            llvm_restore_current_host_decl(ctx, saved_host_decl);
+            return;
+        }
+        if (llvm_active_has_mir(ctx) && world_header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declaration header for world '%s'",
+                world_name != NULL ? world_name : "(anonymous-world)");
             llvm_scope_pop(ctx);
             llvm_lexical_registry_restore(ctx, lexical_snapshot);
             ctx->current_function = saved_fn;
@@ -166,7 +186,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         }
 
         /* world command pass: directives */
-        llvm_world_sync_emit_directives(stmt, decl_cls, sync_fn, ctx);
+        llvm_world_sync_emit_directives(world_header, stmt, decl_cls,
+            sync_fn, ctx);
 
         for (size_t i = 0; i < zone_count; i++) {
             const char *slot_name;
@@ -222,7 +243,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             }
         }
 
-        llvm_world_sync_emit_frontier(stmt, decl_cls, sync_fn,
+        llvm_world_sync_emit_frontier(world_header, stmt, decl_cls, sync_fn,
             derived_dirty_addr, needs_derived_addr, derived_ptr, ctx);
 
         /* prev_active_addrs is ctx->scratch-owned. */

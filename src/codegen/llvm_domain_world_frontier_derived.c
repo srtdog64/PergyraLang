@@ -1,9 +1,11 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_domain_world_frontier_internal.h"
 #include "llvm_domain_world_sync_internal.h"
+#include "../compiler/mir_decl_headers.h"
 
 void
-llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
+llvm_world_frontier_emit_derived_state_pass(const MIRDeclHeader *header,
+                                            ASTNode *stmt,
                                             LLVMClassTypeEntry *decl_cls,
                                             LLVMValueRef sync_fn,
                                             ASTNode **states,
@@ -13,9 +15,30 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
                                             LLVMBasicBlockRef loop_check_bb,
                                             LLVMGenCtx *ctx)
 {
+    bool use_mir_world_states = llvm_active_has_mir(ctx);
+
+    if (use_mir_world_states && header == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world-state header during derived-state emission");
+        return;
+    }
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        const char *slot_name;
+        ASTNode *state = !use_mir_world_states && states != NULL
+            ? states[i] : NULL;
+        const MIRDeclWorldState *state_meta = use_mir_world_states
+            ? mir_decl_header_world_state(header, i) : NULL;
+        const char *state_name = use_mir_world_states
+            ? mir_decl_world_state_name(state_meta)
+            : ast_world_state_name(state);
+        const char *slot_name = use_mir_world_states
+            ? mir_decl_world_state_zone_slot_name(state_meta)
+            : ast_world_state_zone_slot_name(state);
+        WorldStateSourceKind source_kind = use_mir_world_states
+            ? mir_decl_world_state_source_kind(state_meta)
+            : ast_world_state_source_kind(state);
+        const char *detail_name = use_mir_world_states
+            ? mir_decl_world_state_detail_name(state_meta)
+            : ast_world_state_detail_name(state);
         char state_field[256];
         char active_field[256];
         int state_idx;
@@ -27,12 +50,16 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
         LLVMValueRef active_val = LLVMConstInt(ctx->type_i1, 0, 0);
         LLVMValueRef derived_val = NULL;
         LLVMValueRef changed_val;
-        if (state == NULL || state->type != AST_WORLD_STATE
-            || ast_world_state_name(state) == NULL)
+        if ((use_mir_world_states && state_meta == NULL)
+            || (!use_mir_world_states
+                && (state == NULL || state->type != AST_WORLD_STATE))
+            || state_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has incomplete world-state metadata row");
             continue;
-        slot_name = ast_world_state_zone_slot_name(state);
+        }
         if (!llvm_world_frontier_field_name(state_field, sizeof(state_field),
-                "zone_state", ast_world_state_name(state)))
+                "zone_state", state_name))
             continue;
         state_idx = llvm_class_field_index(decl_cls, state_field);
         if (state_idx < 0)
@@ -56,12 +83,18 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
         }
         derived_val = active_val;
 
-        if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
-            || ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ANY) {
+        if (source_kind == WORLD_STATE_SOURCE_ALL
+            || source_kind == WORLD_STATE_SOURCE_ANY) {
             derived_val = LLVMConstInt(ctx->type_i1,
-                ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
-            for (size_t input_i = 0; input_i < ast_world_state_input_count(state); input_i++) {
-                const char *input_name = ast_world_state_input_name(state, input_i);
+                source_kind == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
+            for (size_t input_i = 0;
+                 input_i < (use_mir_world_states
+                     ? mir_decl_world_state_input_count(state_meta)
+                     : ast_world_state_input_count(state));
+                 input_i++) {
+                const char *input_name = use_mir_world_states
+                    ? mir_decl_world_state_input_name(state_meta, input_i)
+                    : ast_world_state_input_name(state, input_i);
                 int input_idx = -1;
                 LLVMValueRef input_ptr;
                 LLVMValueRef input_val;
@@ -86,7 +119,7 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
                     self_ptr, (unsigned)input_idx, llvm_tmp_name(ctx));
                 input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                     input_ptr, llvm_tmp_name(ctx));
-                if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL)
+                if (source_kind == WORLD_STATE_SOURCE_ALL)
                     derived_val = LLVMBuildAnd(ctx->builder, derived_val, input_val,
                         llvm_tmp_name(ctx));
                 else
@@ -95,10 +128,10 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
             }
         }
 
-        if (ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ZONE
-            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ALL
-            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ANY
-            && ast_world_state_detail_name(state) != NULL) {
+        if (source_kind != WORLD_STATE_SOURCE_ZONE
+            && source_kind != WORLD_STATE_SOURCE_ALL
+            && source_kind != WORLD_STATE_SOURCE_ANY
+            && detail_name != NULL) {
             int zone_idx = llvm_class_field_index(decl_cls, slot_name);
             LLVMClassTypeEntry *zone_cls = NULL;
             if (zone_idx >= 0) {
@@ -114,23 +147,23 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
                 LLVMValueRef detail_ptr;
                 LLVMValueRef detail_val;
 
-                switch (ast_world_state_source_kind(state)) {
+                switch (source_kind) {
                 case WORLD_STATE_SOURCE_PROJECTION:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "projection_ready",
-                            ast_world_state_detail_name(state)))
+                            detail_name))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_LAYER:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "layer_active",
-                            ast_world_state_detail_name(state)))
+                            detail_name))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_STATE:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "state",
-                            ast_world_state_detail_name(state)))
+                            detail_name))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_ZONE:
@@ -167,7 +200,7 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
                 changed_val, llvm_tmp_name(ctx)),
             changed_any_addr);
         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone_state",
-            ast_world_state_name(state), PGY_PROP_CAUSE_WORLD_DERIVED);
+            state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
     }
     LLVMBuildBr(ctx->builder, loop_check_bb);
 }

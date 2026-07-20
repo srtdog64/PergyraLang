@@ -4,6 +4,7 @@
 #include "llvm_domain_world_frontier_internal.h"
 #include "llvm_domain_world_sync_internal.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 #include "domain_frontier_policy.h"
 #include "domain_frontier_graph.h"
 
@@ -46,14 +47,18 @@ llvm_world_frontier_zone_member_count(void *ctx, const char *zone_name)
     if (llvm_ctx == NULL || zone_name == NULL)
         return 0;
 
-    zone_decl = llvm_find_decl_in_active_inventory(
-        llvm_ctx, AST_ZONE_DECL, zone_name);
-    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
-        return 0;
+    zone_decl = NULL;
+    if (!llvm_active_has_mir(llvm_ctx)) {
+        zone_decl = llvm_find_decl_in_active_inventory(
+            llvm_ctx, AST_ZONE_DECL, zone_name);
+        if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+            return 0;
+    }
 
     state_view = llvm_hosted_zone_state_view_from_decl(
         llvm_ctx, zone_name, zone_decl);
-    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)
+    if ((llvm_active_has_mir(llvm_ctx) && !state_view.uses_mir_metadata)
+        || llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)
         || !llvm_hosted_zone_state_view_rows_complete(&state_view)) {
         llvm_set_mir_inventory_missing(llvm_ctx,
             "MIR-only LLVM path missing embedded zone state metadata for world frontier '%s'",
@@ -63,7 +68,8 @@ llvm_world_frontier_zone_member_count(void *ctx, const char *zone_name)
     state_count = state_view.count;
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(
         llvm_ctx, zone_name, zone_decl);
-    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+    if ((llvm_active_has_mir(llvm_ctx) && !layer_view.uses_mir_metadata)
+        || llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(llvm_ctx,
             "MIR-only LLVM path missing embedded zone layer-slot metadata for world frontier '%s'",
             zone_name);
@@ -83,7 +89,8 @@ llvm_world_frontier_zone_type_name(void *ctx, size_t index)
 }
 
 void
-llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
+llvm_world_sync_emit_frontier(const MIRDeclHeader *header,
+                              ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                               LLVMValueRef sync_fn,
                               LLVMValueRef derived_dirty_addr,
                               LLVMValueRef needs_derived_addr,
@@ -111,7 +118,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMBasicBlockRef derived_exit_bb;
     size_t zone_count = 0;
     size_t state_count = 0;
-    ASTNode **states;
+    ASTNode **states = NULL;
     size_t embedded_frontier_count;
     LLVMHostedWorldZoneSlotView zone_view;
     const char *world_name;
@@ -131,7 +138,23 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         return;
     }
     zone_count = zone_view.count;
-    states = ast_world_states(stmt, &state_count);
+    if (llvm_active_has_mir(ctx)) {
+        if (header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declaration header for world state frontier '%s'",
+                world_name != NULL ? world_name : "<anonymous-world>");
+            return;
+        }
+        state_count = mir_decl_header_world_state_count(header);
+        if (state_count != mir_decl_header_world_state_declared_count(header)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' has inconsistent world-state metadata count",
+                world_name != NULL ? world_name : "<anonymous-world>");
+            return;
+        }
+    } else {
+        states = ast_world_states(stmt, &state_count);
+    }
     embedded_frontier_count =
         pgy_domain_world_embedded_frontier_count_from_zone_types(
             zone_view.count,
@@ -265,7 +288,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
             pass_addr);
     }
-    llvm_world_frontier_emit_derived_state_pass(stmt, decl_cls, sync_fn,
+    llvm_world_frontier_emit_derived_state_pass(header, stmt, decl_cls, sync_fn,
         states, state_count, continue_addr, changed_any_addr, loop_check_bb, ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, done_bb);

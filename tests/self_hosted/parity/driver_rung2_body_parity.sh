@@ -14,6 +14,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh"
@@ -142,8 +143,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 77 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 77" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 79 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 79" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
@@ -154,7 +155,8 @@ if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
     for wanted_fixture in "${mir_fixture_filters[@]}"; do
         matched_fixture=""
         for fixture_rel in "${mir_fixture_rows[@]}"; do
-            if [[ "$(basename "$fixture_rel" .pgy)" == "$wanted_fixture" ]]; then
+            if [[ "$(pgy_selfhost_driver_rung2_fixture_base \
+                "$fixture_rel")" == "$wanted_fixture" ]]; then
                 matched_fixture="$fixture_rel"
                 break
             fi

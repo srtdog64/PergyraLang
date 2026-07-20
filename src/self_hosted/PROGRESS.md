@@ -1,5 +1,22 @@
 # Self-Host Progress
 
+2026-07-20 executable MIR/ABI-first delta: DRV-2 fixtures 78 and 79 are the
+`device_slot_machine_layer` and `device_slot_remote` programs. The Pergyra
+producer requires the target-owned declaration fixture, imports its physical
+grant as an explicit ABI input, owns the contact rows, and fails when that
+declaration is absent. The C oracle does not generate this comparison input.
+Focused C-built and LLVM-built self drivers matched native/self canonical MIR, MIR-consumed C,
+producer-first C, and runtime output for both fixtures. The oracle normalizer
+now erases MIR `resource-op` evidence rows from executable statement recovery
+instead of turning their `expr0` payload into an AST statement. This is a
+two-fixture machine/ABI replacement result, not a completed 79-fixture matrix
+or a default-driver replacement. `make self-host-mir-abi-first-test-smoke`
+owns the focused comparison bundle.
+The same turn's seed-only compiler-scale bootstrap attempt did not emit
+`gen1.c` and was stopped after about 15 minutes at 8.98 GB working set / 12.5
+GB private bytes. The focused lane is therefore executable evidence, while the
+codegen fixed point remains blocked by the existing string-amplification debt.
+
 2026-07-20 exhaustive-parity SoT closure: the assignment projection probe no
 longer passes parser-shaped call graphs directly to codegen. Its positive
 `Some`/`None` expressions now consume builtin callable identity from

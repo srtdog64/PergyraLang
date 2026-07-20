@@ -11,6 +11,7 @@
 #include "llvm_runtime_internal.h"
 
 #include "../compiler/mir_abi_layout.h"
+#include "../compiler/mir_machine_layer.h"
 
 #include <string.h>
 
@@ -21,22 +22,124 @@ llvm_runtime_resource_row_or_error(LLVMGenCtx *ctx,
     const char *expected_call_shape,
     const char *missing_message)
 {
+    MIRResourceAbiKind kind;
+    const char *inner_start;
+    const char *inner_end;
+    char inner_type_name[128];
+    size_t inner_len;
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation);
+        NULL;
+
+    if (abi_type_name == NULL)
+        goto missing;
+    if (strncmp(abi_type_name, "SecureSlot<", 11) == 0) {
+        kind = MIR_RESOURCE_ABI_SECURE_SLOT;
+    } else if (strncmp(abi_type_name, "DeviceSlot<", 11) == 0) {
+        kind = MIR_RESOURCE_ABI_DEVICE_SLOT;
+    } else if (strncmp(abi_type_name, "Slot<", 5) == 0) {
+        kind = MIR_RESOURCE_ABI_SLOT;
+    } else {
+        goto missing;
+    }
+    inner_start = strchr(abi_type_name, '<');
+    inner_end = strrchr(abi_type_name, '>');
+    if (inner_start == NULL || inner_end == NULL || inner_end <= inner_start + 1)
+        goto missing;
+    inner_start++;
+    inner_len = (size_t)(inner_end - inner_start);
+    if (inner_len >= sizeof(inner_type_name))
+        goto missing;
+    memcpy(inner_type_name, inner_start, inner_len);
+    inner_type_name[inner_len] = '\0';
+    row = llvm_slot_runtime_row_for_operation(
+        NULL, ctx, kind, inner_type_name, operation);
 
     if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
-        llvm_set_error(ctx, "%s", missing_message != NULL
-            ? missing_message
-            : "runtime ABI row is missing");
+        if (ctx != NULL && ctx->has_error)
+            return NULL;
+        goto missing;
+    }
+    (void)expected_call_shape;
+    return row;
+
+missing:
+    llvm_set_error(ctx, "%s", missing_message != NULL
+        ? missing_message
+        : "runtime ABI row is missing");
+    return NULL;
+}
+
+static const char *
+llvm_slot_runtime_expected_call_shape(MIRResourceAbiKind kind,
+                                      const char *operation)
+{
+    bool secure = kind == MIR_RESOURCE_ABI_SECURE_SLOT;
+
+    if (operation == NULL)
+        return NULL;
+    if (strcmp(operation, "Claim") == 0)
+        return secure ? "token_ptr_to_container" : "returns_container";
+    if (strcmp(operation, "Read") == 0)
+        return secure ? "container_ptr_token_ptr_to_value"
+                      : "container_ptr_to_value";
+    if (strcmp(operation, "Write") == 0)
+        return secure ? "container_ptr_value_token_ptr_to_void"
+                      : "container_ptr_value_to_void";
+    if (strcmp(operation, "Release") == 0)
+        return secure ? "container_ptr_token_ptr_to_void"
+                      : "container_ptr_to_void";
+    if (strcmp(operation, "SubmitRead") == 0)
+        return "container_ptr_to_task_handle";
+    if (strcmp(operation, "PinRead") == 0 ||
+        strcmp(operation, "PinWrite") == 0) {
+        return secure ? "container_ptr_token_ptr_to_pinned_view"
+                      : "container_ptr_to_pinned_view";
+    }
+    if (strcmp(operation, "PinReadInit") == 0 ||
+        strcmp(operation, "PinWriteInit") == 0) {
+        return secure ? "pinned_view_ptr_container_ptr_token_ptr_to_void"
+                      : "pinned_view_ptr_container_ptr_to_void";
+    }
+    if (strcmp(operation, "Unpin") == 0 ||
+        strcmp(operation, "UnpinCleanup") == 0)
+        return "pinned_view_ptr_to_void";
+    return NULL;
+}
+
+const MIRResourceRuntimeRow *
+llvm_slot_runtime_row_for_operation(ASTNode *node,
+                                    LLVMGenCtx *ctx,
+                                    MIRResourceAbiKind kind,
+                                    const char *inner_type_name,
+                                    const char *operation)
+{
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_kind(kind, inner_type_name, operation);
+    const char *expected_shape =
+        llvm_slot_runtime_expected_call_shape(kind, operation);
+
+    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL)
+        return NULL;
+    if (expected_shape != NULL &&
+        strcmp(row->call_shape, expected_shape) != 0) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM slot operation %s requires MIR ABI call shape %s",
+            operation != NULL ? operation : "<unknown>", expected_shape);
         return NULL;
     }
-    if (expected_call_shape == NULL ||
-        strcmp(row->call_shape, expected_call_shape) != 0) {
-        llvm_set_error(ctx,
-            "LLVM runtime declaration for %s %s requires MIR ABI call shape %s",
-            abi_type_name != NULL ? abi_type_name : "<unknown>",
-            operation != NULL ? operation : "<unknown>",
-            expected_call_shape != NULL ? expected_call_shape : "<missing>");
+    if (ctx != NULL && ctx->current_mir_instruction != NULL
+        && rir_machine_contact_kind_is_present(
+            ctx->current_mir_instruction->machine_contact_kind)
+        && !mir_machine_layer_fact_matches_runtime_operation(
+            ctx->current_mir_instruction, row->resource_op_name)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM slot runtime row disagrees with machine-layer runtime operation");
         return NULL;
     }
     return row;

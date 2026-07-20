@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
+#include "llvm_runtime_internal.h"
 #include "../compiler/mir_abi_layout.h"
 
 static bool
@@ -108,9 +109,18 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_block(ast_with_body(node), ctx);
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-            is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-            inner, "Release");
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_for_operation(node, ctx,
+                is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                          : MIR_RESOURCE_ABI_SLOT,
+                inner, "Release");
+        if (ctx->has_error) {
+            llvm_scope_pop(ctx);
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
+            return;
+        }
+        const char *runtime_fn = runtime_row != NULL
+            ? runtime_row->runtime_fn : NULL;
         LLVMFuncEntry *release_fn = NULL;
         if (runtime_fn != NULL)
             release_fn = llvm_lookup_function(ctx, runtime_fn);

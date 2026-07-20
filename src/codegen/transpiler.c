@@ -36,8 +36,12 @@
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
+#include "transpiler_world_select_event_emit.h"
+#include "transpiler_zone_decl_emit.h"
 #include "../compiler/mir_decl_headers.h"
+#include "transpiler_domain_nominal_emit.h"
 #include "transpiler_relation_effect_emit.h"
+#include "transpiler_roster_decl_emit.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
@@ -370,13 +374,34 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < role_count; i++)
         emit_role_decl(roles[i], ctx);
 
-    /* Pass 3.5: parties (struct + methods) */
-    for (size_t i = 0; i < party_count; i++)
-        emit_party_decl(parties[i], ctx);
-
-    /* Pass 3.7: rosters (struct + methods) */
-    for (size_t i = 0; i < roster_count; i++)
-        emit_roster_decl(rosters[i], ctx);
+    /* Pass 3.5/3.7: parties and rosters (struct + methods). Active MIR
+     * selects the header identity directly; the AST inventory remains only
+     * for the legacy non-MIR path. */
+    if (transpiler_active_has_mir(ctx)) {
+        MIRDeclHeaderInventory header_inventory;
+        transpiler_active_decl_header_inventory(ctx, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_PARTY_DECL)
+                emit_party_decl_from_mir_header(header, ctx);
+        }
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_ROSTER_DECL)
+                emit_roster_decl_from_mir_header(header, ctx);
+        }
+    } else {
+        for (size_t i = 0; i < party_count; i++)
+            emit_party_decl(parties[i], ctx);
+        for (size_t i = 0; i < roster_count; i++)
+            emit_roster_decl(rosters[i], ctx);
+    }
 
     /* Pass 3.75: relations and effects (must precede zones that reference
      * them). Active MIR selects the declaration header directly; the AST
@@ -409,9 +434,24 @@ emit_program(TranspilerCtx *ctx)
             emit_effect_decl(effects[i], ctx);
     }
 
-    /* Pass 3.8: zones (struct + methods + sync helpers) */
-    for (size_t i = 0; i < zone_count; i++)
-        emit_zone_decl(zones[i], ctx);
+    /* Pass 3.8: zones (struct + methods + sync helpers). Active MIR selects
+     * the declaration header directly; AST payloads remain only for the
+     * legacy path and explicit compatibility surfaces inside the emitter. */
+    if (transpiler_active_has_mir(ctx)) {
+        MIRDeclHeaderInventory header_inventory;
+        transpiler_active_decl_header_inventory(ctx, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_ZONE_DECL)
+                emit_zone_decl_from_mir_header(header, ctx);
+        }
+    } else {
+        for (size_t i = 0; i < zone_count; i++)
+            emit_zone_decl(zones[i], ctx);
+    }
 
     /* Pass 3.85: now that zones are declared, emit intent prototypes that
      * depend on zone types before world methods are emitted. */
@@ -438,9 +478,24 @@ emit_program(TranspilerCtx *ctx)
         emit_func_forward_decl(synthetic_executable_func, ctx->out, ctx);
     }
 
-    /* Pass 3.9: worlds (struct + methods) */
-    for (size_t i = 0; i < world_count; i++)
-        emit_world_decl(worlds[i], ctx);
+    /* Pass 3.9: worlds (struct + methods). Active MIR selects the
+     * declaration header directly; world state and command rows are consumed
+     * from that header and fail closed when incomplete. */
+    if (transpiler_active_has_mir(ctx)) {
+        MIRDeclHeaderInventory header_inventory;
+        transpiler_active_decl_header_inventory(ctx, &header_inventory);
+        for (size_t i = 0; i < header_inventory.count; i++) {
+            const MIRDeclHeader *header =
+                mir_decl_header_inventory_get(&header_inventory, i);
+            if (header != NULL
+                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                    == AST_WORLD_DECL)
+                emit_world_decl_from_mir_header(header, ctx);
+        }
+    } else {
+        for (size_t i = 0; i < world_count; i++)
+            emit_world_decl(worlds[i], ctx);
+    }
 
     for (size_t i = 0; i < event_count; i++)
         emit_event_decl(events[i], ctx);

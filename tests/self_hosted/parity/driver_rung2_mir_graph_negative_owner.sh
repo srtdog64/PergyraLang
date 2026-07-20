@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Owns fail-closed mutations for self-produced MIR expression graphs.
 pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
-    local backend="$1"
-    local base="$2"
-    local self_mir_json="$3"
-    local driver_bin="$4"
-    local missing_graph invalid_graph invalid_cast_target
+    local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
+    local machine_declaration="${5:-}" missing_graph invalid_graph
+    local invalid_cast_target
+    local -a consumer_command
 
     if ! grep -Fq '"expr0_graph":{' "$self_mir_json"; then
         return 0
@@ -14,8 +13,12 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     missing_graph="$BUILD_DIR/${base}_${backend}.missing-graph.mir.json"
     sed 's/"expr0_graph"/"expr0_graph_removed"/g' \
         "$self_mir_json" >"$missing_graph"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-        "$(pgy_selfhost_path_relative_to_root "$missing_graph")" \
+    consumer_command=("$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$missing_graph")")
+    if [[ -n "$machine_declaration" ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
+    if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$missing_graph.out" 2>"$missing_graph.err"); then
         echo "[self-host-parity:driver-rung2] $backend missing expression graph was accepted: $base" >&2
         exit 1
@@ -46,8 +49,12 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     invalid_graph="$BUILD_DIR/${base}_${backend}.invalid-graph.mir.json"
     sed 's/"root":[0-9][0-9]*/"root":999/g' \
         "$self_mir_json" >"$invalid_graph"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-        "$(pgy_selfhost_path_relative_to_root "$invalid_graph")" \
+    consumer_command=("$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$invalid_graph")")
+    if [[ -n "$machine_declaration" ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
+    if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$invalid_graph.out" 2>"$invalid_graph.err"); then
         echo "[self-host-parity:driver-rung2] $backend invalid expression graph was accepted: $base" >&2
         exit 1

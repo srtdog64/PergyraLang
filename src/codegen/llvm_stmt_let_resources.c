@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
+#include "llvm_runtime_internal.h"
 #include "llvm_stmt_let_names.h"
 #include "parser/ast_api.h"
 #include "../compiler/mir_abi_layout.h"
@@ -233,11 +234,17 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
     if (init != NULL) {
         LLVMValueRef val = llvm_emit_expression(init, ctx);
         if (val != NULL) {
-            const char *runtime_fn =
-                mir_abi_resource_runtime_fn_by_kind(
+            const MIRResourceRuntimeRow *runtime_row =
+                llvm_slot_runtime_row_for_operation(node, ctx,
                     is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                               : MIR_RESOURCE_ABI_SLOT,
                     inner, "Write");
+            if (ctx->has_error) {
+                free(inner);
+                return true;
+            }
+            const char *runtime_fn = runtime_row != NULL
+                ? runtime_row->runtime_fn : NULL;
             LLVMFuncEntry *fn = runtime_fn != NULL
                 ? llvm_lookup_function(ctx, runtime_fn)
                 : NULL;

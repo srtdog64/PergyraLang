@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
@@ -10,18 +11,37 @@
 #include "transpiler_hosted_method_body_emit.h"
 #include "transpiler_type_require.h"
 
-void
-emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
+static void
+emit_roster_decl_impl(ASTNode *node,
+                      const MIRDeclHeader *mir_header,
+                      const char *mir_name,
+                      TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
+    const char *name = mir_name;
     ASTNode *inventory_decl;
 
-    if (name == NULL)
-        return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_ROSTER_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    if (transpiler_active_has_mir(ctx)) {
+        if (mir_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing roster declaration header");
+            return;
+        }
+        name = mir_decl_header_name(mir_header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing roster declaration header name");
+            return;
+        }
+        node = NULL;
+    } else {
+        name = transpiler_decl_name_local(node);
+        if (name == NULL)
+            return;
+        inventory_decl = transpiler_find_named_decl_local(
+            ctx, AST_ROSTER_DECL, name);
+        if (inventory_decl != NULL)
+            node = inventory_decl;
+    }
 
     TranspilerHostedRosterSlotView roster_view =
         transpiler_hosted_roster_slot_view_from_decl(ctx, name, node);
@@ -132,4 +152,22 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-roster)",
         "roster", &method_view, ctx);
+}
+
+void
+emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_roster_decl_impl(node, NULL, NULL, ctx);
+}
+
+void
+emit_roster_decl_from_mir_header(const MIRDeclHeader *header,
+                                 TranspilerCtx *ctx)
+{
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "MIR-only C path missing roster declaration header");
+        return;
+    }
+    emit_roster_decl_impl(NULL, header, mir_decl_header_name(header), ctx);
 }

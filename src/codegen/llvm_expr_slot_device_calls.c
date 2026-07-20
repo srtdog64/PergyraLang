@@ -9,6 +9,7 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_internal_api.h"
+#include "llvm_runtime_internal.h"
 #include "parser/ast_api.h"
 #include "../compiler/mir_abi_layout.h"
 #include "../compiler/mir_machine_layer.h"
@@ -124,30 +125,6 @@ llvm_slot_builtin_require_machine_fact(ASTNode *node,
         out);
 }
 
-static const char *
-llvm_slot_runtime_expected_call_shape(MIRResourceAbiKind kind,
-                                      const char *operation)
-{
-    bool secure = kind == MIR_RESOURCE_ABI_SECURE_SLOT;
-
-    if (operation == NULL)
-        return NULL;
-    if (strcmp(operation, "Claim") == 0)
-        return secure ? "token_ptr_to_container" : "returns_container";
-    if (strcmp(operation, "Read") == 0)
-        return secure ? "container_ptr_token_ptr_to_value"
-                      : "container_ptr_to_value";
-    if (strcmp(operation, "Write") == 0)
-        return secure ? "container_ptr_value_token_ptr_to_void"
-                      : "container_ptr_value_to_void";
-    if (strcmp(operation, "Release") == 0)
-        return secure ? "container_ptr_token_ptr_to_void"
-                      : "container_ptr_to_void";
-    if (strcmp(operation, "SubmitRead") == 0)
-        return "container_ptr_to_task_handle";
-    return NULL;
-}
-
 static const MIRResourceRuntimeRow *
 llvm_slot_runtime_row_or_error(ASTNode *node,
                                LLVMGenCtx *ctx,
@@ -157,40 +134,11 @@ llvm_slot_runtime_row_or_error(ASTNode *node,
                                const char *missing_message,
                                LLVMValueRef *out)
 {
-    const char *expected_shape =
-        llvm_slot_runtime_expected_call_shape(kind, operation);
     const MIRResourceRuntimeRow *row =
-        mir_abi_resource_runtime_row_by_kind(kind, inner, operation);
+        llvm_slot_runtime_row_for_operation(node, ctx, kind, inner, operation);
 
     if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
         llvm_slot_builtin_error_out(node, ctx, missing_message, out);
-        return NULL;
-    }
-    if (expected_shape != NULL &&
-        strcmp(row->call_shape, expected_shape) != 0) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM slot builtin %s requires MIR ABI call shape %s",
-            operation != NULL ? operation : "<unknown>",
-            expected_shape);
-        if (out != NULL)
-            *out = NULL;
-        return NULL;
-    }
-    if (ctx != NULL && ctx->current_mir_instruction != NULL
-        && rir_machine_contact_kind_is_present(
-            ctx->current_mir_instruction->machine_contact_kind)
-        && !mir_machine_layer_fact_matches_runtime_operation(
-            ctx->current_mir_instruction, row->resource_op_name)) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM slot builtin runtime row disagrees with machine-layer runtime operation");
-        if (out != NULL)
-            *out = NULL;
         return NULL;
     }
     return row;

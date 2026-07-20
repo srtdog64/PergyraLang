@@ -13,6 +13,11 @@
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 LLVMTypeRef llvm_resolve_generic_formal_default(LLVMGenCtx *ctx,
                                                 const char *type_name);
+/* MIR owns callable (EventHandler) shape after signature lowering.  LLVM
+ * declaration consumers must use this row instead of reopening the retained
+ * AST event-handler node. */
+LLVMTypeRef llvm_mir_callable_sig_to_llvm(LLVMGenCtx *ctx,
+                                          const MIRCallableSig *sig);
 
 char *llvm_render_type_name(ASTNode *type_node);
 char *llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena);

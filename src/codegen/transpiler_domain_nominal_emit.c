@@ -177,18 +177,37 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
     emit_role_operator_aliases(node, ctx);
 }
 
-void
-emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
+static void
+emit_party_decl_impl(ASTNode *node,
+                     const MIRDeclHeader *mir_header,
+                     const char *mir_name,
+                     TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
+    const char *name = mir_name;
     ASTNode *inventory_decl;
 
-    if (name == NULL)
-        return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_PARTY_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    if (transpiler_active_has_mir(ctx)) {
+        if (mir_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing party declaration header");
+            return;
+        }
+        name = mir_decl_header_name(mir_header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx, "MIR-only C path missing party declaration header name");
+            return;
+        }
+        node = NULL;
+    } else {
+        name = transpiler_decl_name_local(node);
+        if (name == NULL)
+            return;
+        inventory_decl = transpiler_find_named_decl_local(
+            ctx, AST_PARTY_DECL, name);
+        if (inventory_decl != NULL)
+            node = inventory_decl;
+    }
 
     TranspilerHostedRoleSlotView role_view =
         transpiler_hosted_role_slot_view_from_decl(ctx, name, node);
@@ -399,4 +418,22 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             free(vtable_tag);
         }
     }
+}
+
+void
+emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_party_decl_impl(node, NULL, NULL, ctx);
+}
+
+void
+emit_party_decl_from_mir_header(const MIRDeclHeader *header,
+                                TranspilerCtx *ctx)
+{
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "MIR-only C path missing party declaration header");
+        return;
+    }
+    emit_party_decl_impl(NULL, header, mir_decl_header_name(header), ctx);
 }

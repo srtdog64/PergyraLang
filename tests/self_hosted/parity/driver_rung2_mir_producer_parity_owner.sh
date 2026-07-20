@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Owns DRV-2 source-to-MIR producer, consumer, artifact, and run parity.
+
 pgy_selfhost_prepare_driver_rung2_mir_oracles() {
     local fixture_rel fixture_abs base mir_json oracle_bin
+    pgy_selfhost_driver_rung2_machine_manifest_init
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         fixture_abs="$ROOT_DIR/$fixture_rel"
-        base="$(basename "$fixture_rel" .pgy)"
+        base="$(pgy_selfhost_driver_rung2_fixture_base "$fixture_rel")"
         mir_json="$BUILD_DIR/${base}.mir.json"
         oracle_bin="$BUILD_DIR/${base}.oracle.exe"
         [[ -f "$fixture_abs" ]] || {
@@ -38,8 +40,13 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local self_mir_json_arg oracle_canonical oracle_canonical_arg self_canonical
     local oracle_canonical_mode
     local actual err self_actual source_actual mir_baseline bare_call_missing_graph
+    local machine_fixture
     for fixture_rel in "${mir_fixture_rows[@]}"; do
-        base="$(basename "$fixture_rel" .pgy)"
+        base="$(pgy_selfhost_driver_rung2_fixture_base "$fixture_rel")"
+        machine_fixture=0
+        if pgy_selfhost_driver_rung2_is_machine_fixture "$fixture_rel"; then
+            machine_fixture=1
+        fi
         mir_json="$BUILD_DIR/${base}.mir.json"
         mir_json_arg="$(pgy_selfhost_path_relative_to_root "$mir_json")"
         self_mir_json="$BUILD_DIR/${base}_${backend}.self.mir.json"
@@ -49,9 +56,9 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         self_canonical="$BUILD_DIR/${base}_${backend}.self.canonical.mir.json"
         actual="$BUILD_DIR/${base}_${backend}.mir.c"
         err="$BUILD_DIR/${base}_${backend}.mir.err"
-        if ! (cd "$ROOT_DIR" && "$driver_bin" \
-            --emit-mir-json-verified "$fixture_rel" \
-            >"$self_mir_json.raw" 2>"$self_mir_json.err"); then
+        if ! pgy_selfhost_driver_rung2_produce_self_mir \
+            "$machine_fixture" "$backend" "$base" "$driver_bin" \
+            "$fixture_rel" "$self_mir_json"; then
             echo "[self-host-parity:driver-rung2] $backend MIR producer failed: $base" >&2
             cat "$self_mir_json.raw" "$self_mir_json.err" >&2
             exit 1
@@ -66,6 +73,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
+        pgy_selfhost_verify_driver_rung2_machine_facts \
+            "$machine_fixture" "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "forloop" ]]; then
             grep -Fq '"loop_flow_summary_count":1' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend loop summary owner row was lost" >&2
@@ -197,10 +206,12 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         if [[ "$base" == "array_index_assign" || "$base" == "defer_scope" ]]; then
             oracle_canonical_mode="--canonicalize-mir-json"
         fi
-        (cd "$ROOT_DIR" && "$driver_bin" "$oracle_canonical_mode" \
-            "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
-        (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
-            "$self_mir_json_arg" | tr -d '\r' >"$self_canonical")
+        pgy_selfhost_driver_rung2_canonicalize "$machine_fixture" \
+            "$driver_bin" "$oracle_canonical_mode" "$mir_json_arg" \
+            "$oracle_canonical"
+        pgy_selfhost_driver_rung2_canonicalize "$machine_fixture" \
+            "$driver_bin" --canonicalize-mir-json "$self_mir_json_arg" \
+            "$self_canonical"
         pgy_selfhost_verify_driver_rung2_try_graph \
             "$backend" "$base" "$oracle_canonical" "oracle-canonical"
         pgy_selfhost_verify_driver_rung2_try_graph \
@@ -208,9 +219,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
             "$oracle_canonical" "$self_canonical" "mir_json"
-        if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-            "$oracle_canonical_arg" \
-            >"$actual.raw" 2>"$err"); then
+        if ! pgy_selfhost_driver_rung2_consume_mir "$machine_fixture" \
+            "$driver_bin" "$oracle_canonical_arg" "$actual.raw" "$err"; then
             echo "[self-host-parity:driver-rung2] $backend MIR integration failed: $base" >&2
             cat "$actual.raw" "$err" >&2
             exit 1
@@ -218,8 +228,9 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         tr -d '\r' <"$actual.raw" >"$actual"
         rm -f "$actual.raw"
         self_actual="$BUILD_DIR/${base}_${backend}.self.mir.c"
-        if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-            "$self_mir_json_arg" >"$self_actual.raw" 2>"$self_actual.err"); then
+        if ! pgy_selfhost_driver_rung2_consume_mir "$machine_fixture" \
+            "$driver_bin" "$self_mir_json_arg" "$self_actual.raw" \
+            "$self_actual.err"; then
             echo "[self-host-parity:driver-rung2] $backend self MIR consumer failed: $base" >&2
             cat "$self_actual.raw" "$self_actual.err" >&2
             exit 1
@@ -239,14 +250,16 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_assign_instruction_graph \
             "$backend" "$base" "$mir_json" "$self_mir_json" \
             "$self_actual" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_mir_graph_negatives \
-            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_driver_rung2_verify_graph_negatives \
+            "$machine_fixture" "$backend" "$base" "$self_mir_json" \
+            "$driver_bin"
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:self-mir-c" "$BUILD_DIR" \
             "$actual" "$self_actual" "emitted_c"
         source_actual="$BUILD_DIR/${base}_${backend}.source.mir.c"
-        if ! (cd "$ROOT_DIR" && "$driver_bin" "$fixture_rel" \
-            --emit-c-verified >"$source_actual.raw" 2>"$source_actual.err"); then
+        if ! pgy_selfhost_driver_rung2_emit_source "$machine_fixture" \
+            "$driver_bin" "$fixture_rel" "$source_actual.raw" \
+            "$source_actual.err"; then
             echo "[self-host-parity:driver-rung2] $backend producer-first source path failed: $base" >&2
             cat "$source_actual.raw" "$source_actual.err" >&2
             exit 1
@@ -256,9 +269,9 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:source-mir-c" "$BUILD_DIR" \
             "$self_actual" "$source_actual" "emitted_c"
-        if ! "$CC" -x c -std=c11 "$actual" \
-            -o "$BUILD_DIR/${base}_${backend}.mir.exe" \
-            >"$BUILD_DIR/${base}_${backend}.mir.cc.log" 2>&1; then
+        if ! pgy_selfhost_driver_rung2_compile_emitted "$machine_fixture" \
+            "$actual" "$BUILD_DIR/${base}_${backend}.mir.exe" \
+            "$BUILD_DIR/${base}_${backend}.mir.cc.log"; then
             echo "[self-host-parity:driver-rung2] integrated MIR C compile failed: $backend/$base" >&2
             cat "$BUILD_DIR/${base}_${backend}.mir.cc.log" >&2
             exit 1

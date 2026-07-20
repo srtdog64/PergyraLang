@@ -167,6 +167,9 @@ for rel in \
     "src/compiler/mir_decl_header_generic_metadata.c" \
     "src/compiler/mir_decl_header_shape_validate.c" \
     "src/compiler/mir_decl_header_validate.c" \
+    "src/compiler/mir_decl_header_world_directive.c" \
+    "src/compiler/mir_decl_header_world_directive_access.c" \
+    "src/compiler/mir_decl_header_world_directive_validate.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
     "src/compiler/mir_lifecycle.c" \
@@ -2255,14 +2258,14 @@ require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "TranspilerHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i)"
-require_term "src/codegen/transpiler_world_select_event_emit.c" \
+require_term "src/codegen/transpiler_world_frontier_inputs.c" \
     "TranspilerHostedZoneStateView state_view"
-require_term "src/codegen/transpiler_world_select_event_emit.c" \
+require_term "src/codegen/transpiler_world_frontier_inputs.c" \
     "transpiler_hosted_zone_state_view_from_decl("
-require_term "src/codegen/transpiler_world_select_event_emit.c" \
+require_term "src/codegen/transpiler_world_frontier_inputs.c" \
     "transpiler_hosted_zone_state_view_missing_mir_metadata("
 if grep -Fq "ast_zone_states(zone_decl, &state_count)" \
-    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    "$ROOT_DIR/src/codegen/transpiler_world_frontier_inputs.c"; then
     fail "C embedded world frontier member counting must consume MIR zone-state metadata, not reopen AST_ZONE_STATE inventory"
 fi
 require_term "src/codegen/transpiler_projection.c" \
@@ -2351,8 +2354,69 @@ require_term "src/codegen/llvm_domain_world_sync_directives.c" \
     "LLVMHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/llvm_domain_world_sync_directives.c" \
     "llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name"
+for term in \
+    "llvm_world_sync_emit_directives(const MIRDeclHeader *header" \
+    "mir_decl_header_world_directive_count(header)" \
+    "mir_decl_header_world_directive_declared_count(header)" \
+    "llvm_world_sync_resolve_mir_zone_slot"; do
+    require_term "src/codegen/llvm_domain_world_sync_directives.c" "$term"
+done
+require_term "src/codegen/llvm_domain_world_sync.c" \
+    "llvm_world_sync_emit_directives(world_header, stmt"
+for term in \
+    "const MIRDeclWorldState *state_meta" \
+    "mir_decl_header_world_state_count(world_header)" \
+    "mir_decl_world_state_source_kind(state_meta)" \
+    "mir_decl_world_state_input_name(state_meta, i)"; do
+    require_term "src/codegen/llvm_expr_domain_query_calls.c" "$term"
+done
+for term in \
+    "transpiler_active_decl_header_of_type(" \
+    "mir_decl_header_world_state_count(world_header)" \
+    "MIR-only C path world '%s' has inconsistent world-state metadata count"; do
+    require_term "src/codegen/transpiler_expr_domain_query_builtin.c" "$term"
+done
 require_term "src/codegen/llvm_domain_world_frontier_derived.c" \
     "llvm_world_sync_has_zone_slot(ctx, stmt, input_name)"
+for term in \
+    "const MIRDeclHeader *header" \
+    "mir_decl_header_world_state_count(header)" \
+    "mir_decl_header_world_state_declared_count(header)" \
+    "if (!llvm_active_has_mir(llvm_ctx))" \
+    "&& !state_view.uses_mir_metadata"; do
+    require_term "src/codegen/llvm_domain_world_frontier.c" "$term"
+done
+for term in \
+    "llvm_world_frontier_emit_derived_state_pass(const MIRDeclHeader *header" \
+    "mir_decl_world_state_source_kind(state_meta)" \
+    "mir_decl_world_state_input_count(state_meta)" \
+    "mir_decl_world_state_detail_name(state_meta)"; do
+    require_term "src/codegen/llvm_domain_world_frontier_derived.c" "$term"
+done
+for term in \
+    "llvm_find_decl_header_in_context_of_type(" \
+    "mir_decl_header_world_state_count(world_header)" \
+    "MIR-only LLVM path world '%s' has inconsistent world-state metadata count"; do
+    require_term "src/codegen/llvm_domain_struct_register_fields.c" "$term"
+done
+for term in \
+    "llvm_find_decl_header_in_context_of_type(" \
+    "mir_decl_header_world_state_count(" \
+    "MIR-only LLVM path world '%s' has inconsistent world-state metadata count"; do
+    require_term "src/codegen/llvm_domain_struct_register.c" "$term"
+done
+if ! awk '
+    /states = ast_world_states\(stmt, &state_count\)/ {
+        found=1
+        for (i=1; i<=12 && NR-i>0; i++) {
+            if (prev[i] ~ /} else \{/) { guarded=1; break }
+        }
+    }
+    { for (i=12; i>1; i--) prev[i]=prev[i-1]; prev[1]=$0 }
+    END { exit !(found && guarded) }
+' "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c"; then
+    fail "LLVM world frontier AST state inventory must remain only in the non-MIR compatibility branch"
+fi
 for rel in \
     "src/codegen/llvm_domain_world_sync.c" \
     "src/codegen/llvm_domain_world_sync_directives.c"; do
@@ -2795,8 +2859,8 @@ for rel in \
     "src/codegen/transpiler_enum_decl_emit.c" \
     "src/codegen/transpiler_relation_effect_emit.c" \
     "src/codegen/transpiler_roster_decl_emit.c" \
-    "src/codegen/transpiler_world_select_event_emit.c" \
-    "src/codegen/transpiler_zone_decl_emit.c"; do
+    "src/codegen/transpiler_zone_decl_dispatch.c" \
+    "src/codegen/transpiler_world_decl_dispatch.c"; do
     require_term "$rel" "transpiler_decl_name_local(node)"
 done
 for rel in \
@@ -4319,6 +4383,16 @@ for term in \
     "llvm_mir_routine_return_type_name(routine)"; do
     require_term "src/codegen/llvm_decl.c" "$term"
 done
+for term in \
+    "llvm_mir_callable_sig_to_llvm" \
+    "llvm_mir_routine_return_callable_sig(routine)" \
+    "llvm_mir_routine_param_callable_sig(routine, i)"; do
+    require_term "src/codegen/llvm_decl.c" "$term"
+done
+require_term "src/codegen/llvm_backend_type_map_internal.h" \
+    "llvm_mir_callable_sig_to_llvm"
+require_term "src/codegen/llvm_backend_ast_type.c" \
+    "sig->param_type_names"
 if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"; then
     fail "LLVM function declaration emission must use MIR signature facts whenever a routine exists"
@@ -5014,6 +5088,10 @@ for term in \
     "emit_class_decl_from_mir_header(header, ctx)" \
     "emit_relation_decl_from_mir_header(header, ctx)" \
     "emit_effect_decl_from_mir_header(header, ctx)" \
+    "emit_party_decl_from_mir_header(header, ctx)" \
+    "emit_roster_decl_from_mir_header(header, ctx)" \
+    "emit_zone_decl_from_mir_header(header, ctx)" \
+    "emit_world_decl_from_mir_header(header, ctx)" \
     "transpiler_active_has_main_function(ctx)" \
     "transpiler_active_has_top_level_exec(ctx)"; do
     require_term "src/codegen/transpiler.c" "$term"
@@ -5031,10 +5109,35 @@ for term in \
     "MIR-only C path missing effect declaration header name"; do
     require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
 done
+for term in \
+    "emit_party_decl_from_mir_header(const MIRDeclHeader *header" \
+    "MIR-only C path missing party declaration header name"; do
+    require_term "src/codegen/transpiler_domain_nominal_emit.c" "$term"
+done
+for term in \
+    "emit_roster_decl_from_mir_header(const MIRDeclHeader *header" \
+    "MIR-only C path missing roster declaration header name"; do
+    require_term "src/codegen/transpiler_roster_decl_emit.c" "$term"
+done
 reject_term "src/codegen/transpiler_class_decl_emit.c" \
     "const char *compat_name = transpiler_decl_name_local(node)"
 reject_term "src/codegen/transpiler_relation_effect_emit.c" \
     "const char *compat_name = transpiler_decl_name_local(node)"
+reject_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "const char *compat_name = transpiler_decl_name_local(node)"
+reject_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "const char *compat_name = transpiler_decl_name_local(node)"
+for pair in \
+    "src/codegen/transpiler_zone_decl_dispatch.c|transpiler_emit_zone_decl_impl(node, header, name, ctx)" \
+    "src/codegen/transpiler_world_decl_dispatch.c|transpiler_emit_world_decl_impl(node, header, name, ctx)"; do
+    rel="${pair%%|*}"
+    term="${pair#*|}"
+    require_term "$rel" "$term"
+done
+reject_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "emit_zone_decl_from_mir_header("
+reject_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "emit_world_decl_from_mir_header("
 require_term "src/codegen/transpiler_decl_field_view.c" \
     "header-only caller has no AST compatibility count"
 require_term "src/codegen/transpiler_decl_method_view.c" \
@@ -5315,10 +5418,10 @@ if grep -Fq "return find_zone_decl(ctx, zone_type)" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
     fail "C world-zone projection resolution must consume typed declaration lookup instead of direct AST lookup"
 fi
-require_term "src/codegen/transpiler_world_select_event_emit.c" \
+require_term "src/codegen/transpiler_world_frontier_inputs.c" \
     "transpiler_ctx, AST_ZONE_DECL, zone_name)"
 if grep -Fq "return find_zone_decl((TranspilerCtx *)ctx, zone_name)" \
-    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    "$ROOT_DIR/src/codegen/transpiler_world_frontier_inputs.c"; then
     fail "C world frontier lookup must consume active inventory instead of direct AST lookup"
 fi
 require_term "src/codegen/transpiler_mir_ssa_names.c" \
@@ -5606,6 +5709,30 @@ for term in \
 done
 require_term "src/compiler/mir_decl.h" \
     "MIRAbilityRef"
+for term in \
+    "MIRDeclWorldState" \
+    "world_state_metadata"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+for term in \
+    "mir_decl_header_set_world_states" \
+    "mir_decl_header_free_world_states" \
+    "free(meta->name)" \
+    "free(meta->zone_slot_name)" \
+    "free(meta->detail_name)"; do
+    require_term "src/compiler/mir_decl_header_world_state.c" "$term"
+done
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "mir_decl_header_validate_world_states("
+for term in \
+    "mir_decl_header_validate_world_states(" \
+    "world_state_metadata_count != header->world_state_count"; do
+    require_term "src/compiler/mir_decl_header_world_state_validate.c" "$term"
+done
+require_term "src/tests/mir/test_mir_lowering_part_d_2.cases.h" \
+    "MIR declaration headers preserve world state metadata"
+require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
+    "MIR validator rejects world state metadata drift"
 require_term "src/compiler/mir_decl_header_fields.c" \
     "mir_ability_ref_capture"
 require_term "src/compiler/mir_decl_headers.h" \
@@ -6419,6 +6546,43 @@ require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "MIR-only C path has invalid method declaration metadata row for world"
+for term in \
+    "mir_decl_header_world_state_count(world_header)" \
+    "mir_decl_header_world_state_declared_count("; do
+    require_term "src/codegen/transpiler_world_select_event_emit.c" "$term"
+done
+for term in \
+    "mir_decl_header_world_state(world_header, i)" \
+    "mir_decl_world_state_name(state_meta)" \
+    "mir_decl_world_state_source_kind(state_meta)" \
+    "mir_decl_world_state_input_name(state_meta, input_i)" \
+    "MIR-only C path has incomplete world-state metadata"; do
+    require_term "src/codegen/transpiler_world_derived_state_emit.c" "$term"
+done
+for term in \
+    "mir_decl_header_world_directive_count(world_header)" \
+    "mir_decl_header_world_directive_declared_count(world_header)" \
+    "mir_decl_world_directive_kind(directive)" \
+    "transpiler_world_resolve_mir_directive_slot" \
+    "MIR-only C path world '%s' has inconsistent directive metadata count"; do
+    require_term "src/codegen/transpiler_world_select_event_emit.c" "$term"
+done
+require_term "src/codegen/transpiler_world_derived_state_emit.c" \
+    "transpiler_world_zone_slot_view_contains("
+reject_term "src/codegen/transpiler_world_derived_state_emit.c" \
+    "transpiler_world_has_zone_slot(ctx, node, input_name)"
+for term in \
+    "if (!transpiler_active_has_mir(transpiler_ctx))" \
+    "&& !state_view.uses_mir_metadata" \
+    "&& !layer_view.uses_mir_metadata"; do
+    require_term "src/codegen/transpiler_world_frontier_inputs.c" "$term"
+done
+if grep -Fq "ast_world_states(node, &state_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
+    && ! grep -Fq "use_mir_world_states" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    fail "C world derived-state emission must select MIR world-state metadata when MIR is active"
+fi
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -7703,6 +7867,36 @@ for term in \
     "zone state metadata count" \
     "zone state[%zu] has incomplete state metadata"; do
     require_term "src/compiler/mir_decl_header_zone_state_validate.c" "$term"
+done
+for term in \
+    "MIRDeclWorldDirective" \
+    "world_directive_metadata" \
+    "world_directive_metadata_count"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+for term in \
+    "mir_decl_header_set_world_directives" \
+    "ast_world_activations(decl, &activate_count)" \
+    "ast_world_maintained_zones(decl, &maintain_count)" \
+    "ast_world_deactivations(decl, &deactivate_count)" \
+    "ast_world_directive_zone_slot_name" \
+    "ast_world_directive_state_name"; do
+    require_term "src/compiler/mir_decl_header_world_directive.c" "$term"
+done
+for term in \
+    "mir_decl_header_world_directive_count" \
+    "mir_decl_header_world_directive_declared_count" \
+    "mir_decl_world_directive_kind" \
+    "mir_decl_world_directive_zone_slot_name" \
+    "mir_decl_world_directive_state_name"; do
+    require_term "src/compiler/mir_decl_header_world_directive_access.c" "$term"
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+done
+for term in \
+    "world directive metadata count" \
+    "has incomplete directive metadata" \
+    "references unknown state or zone slot"; do
+    require_term "src/compiler/mir_decl_header_world_directive_validate.c" "$term"
 done
 for term in \
     "TranspilerHostedZoneStateView" \

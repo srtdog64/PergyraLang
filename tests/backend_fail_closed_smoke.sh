@@ -176,7 +176,7 @@ grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
-grep -Fq "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
@@ -206,6 +206,15 @@ fi
 if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot runtime declarations must consume runtime ABI row records, not symbol-only accessors" >&2
+    exit 1
+fi
+llvm_direct_row_consumers="$({
+    rg -l 'mir_abi_resource_runtime_row_by_(kind|type_name)\(' \
+        "$ROOT_DIR/src/codegen" -g 'llvm_*.c' || true
+} | grep -v '/llvm_runtime.c$' || true)"
+if [[ -n "$llvm_direct_row_consumers" ]]; then
+    echo "[backend-fail-closed] LLVM runtime-row consumers must enter through llvm_slot_runtime_row_for_operation:" >&2
+    printf '%s\n' "$llvm_direct_row_consumers" >&2
     exit 1
 fi
 if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)' \
@@ -257,18 +266,18 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read
     echo "[backend-fail-closed] LLVM device slot submit-read declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"token_ptr_to_container"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"container_ptr_token_ptr_to_value"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"container_ptr_value_token_ptr_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"container_ptr_token_ptr_to_void"' \
-    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"PinWrite"' \
@@ -309,7 +318,7 @@ if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release"
     echo "[backend-fail-closed] LLVM secure slot release declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
@@ -317,25 +326,23 @@ grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "MIR_RESOURCE_ABI_DEVICE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
-    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
-grep -Fq "runtime_row->call_shape" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
 if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
@@ -545,7 +552,7 @@ if grep -F 'pgy_secure_release_%s(&%s, &%s_token);' \
     echo "[backend-fail-closed] C source secure auto-release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+grep -Fq "llvm_slot_runtime_row_for_operation(" \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"

@@ -160,6 +160,36 @@ const char *mir_decl_zone_state_left_or_target_slot_name(
 const char *mir_decl_zone_state_right_slot_name(
     const MIRDeclZoneState *state);
 bool mir_decl_zone_state_is_relation(const MIRDeclZoneState *state);
+size_t mir_decl_header_world_state_count(const MIRDeclHeader *header);
+size_t mir_decl_header_world_state_declared_count(
+    const MIRDeclHeader *header);
+const MIRDeclWorldState *mir_decl_header_world_state(
+    const MIRDeclHeader *header, size_t index);
+const char *mir_decl_world_state_owner_name(const MIRDeclWorldState *state);
+const char *mir_decl_world_state_name(const MIRDeclWorldState *state);
+const char *mir_decl_world_state_zone_slot_name(
+    const MIRDeclWorldState *state);
+WorldStateSourceKind mir_decl_world_state_source_kind(
+    const MIRDeclWorldState *state);
+const char *mir_decl_world_state_detail_name(
+    const MIRDeclWorldState *state);
+size_t mir_decl_world_state_input_count(const MIRDeclWorldState *state);
+const char *mir_decl_world_state_input_name(
+    const MIRDeclWorldState *state, size_t index);
+size_t mir_decl_header_world_directive_count(
+    const MIRDeclHeader *header);
+size_t mir_decl_header_world_directive_declared_count(
+    const MIRDeclHeader *header);
+const MIRDeclWorldDirective *mir_decl_header_world_directive(
+    const MIRDeclHeader *header, size_t index);
+const char *mir_decl_world_directive_owner_name(
+    const MIRDeclWorldDirective *directive);
+MIRDeclWorldDirectiveKind mir_decl_world_directive_kind(
+    const MIRDeclWorldDirective *directive);
+const char *mir_decl_world_directive_zone_slot_name(
+    const MIRDeclWorldDirective *directive);
+const char *mir_decl_world_directive_state_name(
+    const MIRDeclWorldDirective *directive);
 const char *mir_ability_ref_base_name(const MIRAbilityRef *ref);
 size_t mir_ability_ref_actual_arg_count(const MIRAbilityRef *ref);
 const char *mir_ability_ref_actual_arg_type_name(

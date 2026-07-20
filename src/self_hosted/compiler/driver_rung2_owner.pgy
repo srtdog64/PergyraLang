@@ -196,12 +196,14 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/array_param.pgy",
         "src/self_hosted/codegen/fixture/bool_logic.pgy",
         "src/self_hosted/codegen/fixture/defer_scope.pgy",
-        "src/self_hosted/codegen/fixture/else_if_chain.pgy"
+        "src/self_hosted/codegen/fixture/else_if_chain.pgy",
+        "tests/cases/backend_compare/device_slot_machine_layer/main.pgy",
+        "tests/cases/backend_compare/device_slot_remote/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 77;
+    return 79;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

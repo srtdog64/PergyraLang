@@ -225,10 +225,36 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CanonicalizeOracleMirJsonBridge" \
     "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
+forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CompileSourceToMirJsonVerified" \
+    "CanonicalizeOracleMirJsonBridge("
+forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CompileSourceToCVerified" \
+    "CanonicalizeOracleMirJsonBridge("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'args[0] == "--canonicalize-oracle-mir-json"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/device_slot_remote/main.pgy"'
+require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    "machine MIR producer accepted missing declaration"
+require_file "tests/self_hosted/parity/mir_abi_first_lane.sh"
+require_file "tests/self_hosted/fixtures/machine_layer_declaration.json"
+forbid_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    '"$PGY" --machine-manifest-json'
+require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
+    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote"'
+require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
+    "abi_layout_row_manifest_parity.sh"
+require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
+    "runtime_call_abi_row_manifest_parity.sh"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'ikind != "resource-op"'
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
+require_text "Makefile" "self-host-mir-abi-first-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-parity-test-smoke"

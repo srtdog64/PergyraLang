@@ -180,4 +180,199 @@ test_mir_lowering_part_g(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR validator rejects world state metadata drift");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *world = NULL;
+        size_t saved_state_metadata_count = 0;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "GameWorld") == 0) {
+                    world = header;
+                    saved_state_metadata_count =
+                        header->world_state_metadata_count;
+                    header->world_state_metadata_count = 0;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "world state metadata count") != NULL;
+        if (world != NULL)
+            world->world_state_metadata_count =
+                saved_state_metadata_count;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects world directive metadata drift");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "    activate inner\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *world = NULL;
+        size_t saved_directive_metadata_count = 0;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "GameWorld") == 0) {
+                    world = header;
+                    saved_directive_metadata_count =
+                        header->world_directive_metadata_count;
+                    header->world_directive_metadata_count = 0;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "world directive metadata count") != NULL;
+        if (world != NULL)
+            world->world_directive_metadata_count =
+                saved_directive_metadata_count;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects unknown world directive target");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "    activate inner\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *world = NULL;
+        MIRDeclWorldDirective *directive = NULL;
+        char *saved_state_name = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "GameWorld") == 0) {
+                    world = header;
+                    directive = header->world_directive_metadata_count == 1
+                        ? &header->world_directive_metadata[0] : NULL;
+                    break;
+                }
+            }
+        }
+        if (directive != NULL) {
+            saved_state_name = directive->state_name;
+            directive->state_name = "missing";
+            mutated = true;
+        }
+        rejected = ok
+                   && world != NULL
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "references unknown state or zone slot") != NULL;
+        if (directive != NULL)
+            directive->state_name = saved_state_name;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects unknown world state input reference");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "    state ready: any inner\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclWorldState *ready = NULL;
+        char *saved_input_name = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "GameWorld") == 0
+                    && header->world_state_metadata_count == 2) {
+                    ready = &header->world_state_metadata[1];
+                    if (ready->input_names != NULL
+                        && ready->input_count == 1) {
+                        saved_input_name = ready->input_names[0];
+                        ready->input_names[0] = "missing";
+                    }
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && saved_input_name != NULL
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "references unknown input 'missing'") != NULL;
+        if (ready != NULL && saved_input_name != NULL)
+            ready->input_names[0] = saved_input_name;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

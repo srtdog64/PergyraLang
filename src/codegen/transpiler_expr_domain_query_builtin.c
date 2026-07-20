@@ -14,9 +14,11 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "host_decl_compat.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
+#include "../compiler/mir_decl_headers.h"
 
 static char *
 domain_query_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
@@ -159,14 +161,49 @@ emit_builtin_has_zone(ASTNode *call, TranspilerCtx *ctx)
         ? host_decl
         : NULL;
     const char *name = domain_query_name_arg(arg0);
-    ASTNode *state_decl = world_decl != NULL
-        ? transpiler_find_world_state_decl(world_decl, name)
-        : NULL;
+    ASTNode *state_decl = NULL;
+    bool has_state = false;
+
+    if (world_decl != NULL && name != NULL
+        && transpiler_active_has_mir(ctx)) {
+        const char *world_name = transpiler_decl_name_local(world_decl);
+        const MIRDeclHeader *world_header =
+            transpiler_active_decl_header_of_type(
+                ctx, AST_WORLD_DECL, world_name);
+        if (world_header == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing declaration header for world query '%s'",
+                world_name != NULL ? world_name : "(anonymous-world)");
+            return domain_query_unsupported(ctx,
+                "C backend: HasZone requires MIR world-state metadata");
+        }
+        if (mir_decl_header_world_state_count(world_header)
+            != mir_decl_header_world_state_declared_count(world_header)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path world '%s' has inconsistent world-state metadata count",
+                world_name != NULL ? world_name : "(anonymous-world)");
+            return domain_query_unsupported(ctx,
+                "C backend: HasZone requires consistent MIR world-state metadata");
+        }
+        for (size_t i = 0; i < mir_decl_header_world_state_count(world_header);
+             i++) {
+            const MIRDeclWorldState *state =
+                mir_decl_header_world_state(world_header, i);
+            if (mir_decl_world_state_name(state) != NULL
+                && strcmp(mir_decl_world_state_name(state), name) == 0) {
+                has_state = true;
+                break;
+            }
+        }
+    } else if (world_decl != NULL) {
+        state_decl = transpiler_find_world_state_decl(world_decl, name);
+        has_state = state_decl != NULL;
+    }
 
     if (world_decl != NULL
         && ast_call_arg_count(call) >= 1
         && name != NULL) {
-        if (state_decl != NULL)
+        if (has_state)
             return domain_query_heap_fmt(ctx, "self->__zone_state_%s", name);
         if (transpiler_world_has_zone_slot(ctx, world_decl, name))
             return domain_query_heap_fmt(ctx, "self->__zone_active_%s", name);

@@ -1245,6 +1245,7 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_slot_runtime_row_for_operation("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "row->call_shape"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/transpiler_mir_pin_emit.c"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/llvm_mir_pin_region.c"
@@ -1301,7 +1302,7 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":20'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":21'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":11'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
@@ -3504,9 +3505,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 77;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 79;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 77'
+    'mir_fixture_rows[@]}" -ne 79'
 require_file "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3720,11 +3721,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 77;"
+    "return 79;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 77'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 79'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3889,6 +3890,12 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 300
+require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" 180
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_machine_mir_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    "machine MIR producer accepted missing declaration"
 require_file "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3926,7 +3933,7 @@ require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
     "missing namespace call target was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_prepare_driver_rung2_mir_oracles"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_run_driver_rung2_mir_producer_parity"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "--emit-mir-json-verified"
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" "--emit-mir-json-verified"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "--canonicalize-mir-json"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "self MIR reopened AST compatibility text"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \

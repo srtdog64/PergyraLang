@@ -8,6 +8,7 @@
 
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
+#include "llvm_runtime_internal.h"
 #include "parser/ast_api.h"
 #include "../compiler/mir_abi_layout.h"
 
@@ -143,9 +144,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        const char *runtime_fn =
-                            mir_abi_resource_runtime_fn_by_kind(
+                        const MIRResourceRuntimeRow *runtime_row =
+                            llvm_slot_runtime_row_for_operation(node, ctx,
                                 MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Write");
+                        if (ctx->has_error)
+                            return NULL;
+                        const char *runtime_fn = runtime_row != NULL
+                            ? runtime_row->runtime_fn : NULL;
                         LLVMFuncEntry *fn;
                         fn = runtime_fn != NULL
                             ? llvm_lookup_function(ctx, runtime_fn)
@@ -169,9 +174,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         }
                     }
                 } else {
-                    const char *runtime_fn =
-                        mir_abi_resource_runtime_fn_by_kind(
+                    const MIRResourceRuntimeRow *runtime_row =
+                        llvm_slot_runtime_row_for_operation(node, ctx,
                             MIR_RESOURCE_ABI_SLOT, inner, "Write");
+                    if (ctx->has_error)
+                        return NULL;
+                    const char *runtime_fn = runtime_row != NULL
+                        ? runtime_row->runtime_fn : NULL;
                     LLVMFuncEntry *fn;
                     fn = runtime_fn != NULL
                         ? llvm_lookup_function(ctx, runtime_fn)
@@ -204,9 +213,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        const char *runtime_fn =
-                            mir_abi_resource_runtime_fn_by_kind(
+                        const MIRResourceRuntimeRow *runtime_row =
+                            llvm_slot_runtime_row_for_operation(node, ctx,
                                 MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Read");
+                        if (ctx->has_error)
+                            return NULL;
+                        const char *runtime_fn = runtime_row != NULL
+                            ? runtime_row->runtime_fn : NULL;
                         LLVMFuncEntry *fn;
                         fn = runtime_fn != NULL
                             ? llvm_lookup_function(ctx, runtime_fn)
@@ -232,9 +245,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 }
 
                 {
-                    const char *runtime_fn =
-                        mir_abi_resource_runtime_fn_by_kind(
+                    const MIRResourceRuntimeRow *runtime_row =
+                        llvm_slot_runtime_row_for_operation(node, ctx,
                             MIR_RESOURCE_ABI_SLOT, inner, "Read");
+                    if (ctx->has_error)
+                        return NULL;
+                    const char *runtime_fn = runtime_row != NULL
+                        ? runtime_row->runtime_fn : NULL;
                     LLVMFuncEntry *fn;
                     fn = runtime_fn != NULL
                         ? llvm_lookup_function(ctx, runtime_fn)
@@ -265,9 +282,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        const char *runtime_fn =
-                            mir_abi_resource_runtime_fn_by_kind(
+                        const MIRResourceRuntimeRow *runtime_row =
+                            llvm_slot_runtime_row_for_operation(node, ctx,
                                 MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Release");
+                        if (ctx->has_error)
+                            return NULL;
+                        const char *runtime_fn = runtime_row != NULL
+                            ? runtime_row->runtime_fn : NULL;
                         LLVMFuncEntry *fn;
                         fn = runtime_fn != NULL
                             ? llvm_lookup_function(ctx, runtime_fn)
@@ -290,9 +311,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         }
                     }
                 } else {
-                    const char *runtime_fn =
-                        mir_abi_resource_runtime_fn_by_kind(
+                    const MIRResourceRuntimeRow *runtime_row =
+                        llvm_slot_runtime_row_for_operation(node, ctx,
                             MIR_RESOURCE_ABI_SLOT, inner, "Release");
+                    if (ctx->has_error)
+                        return NULL;
+                    const char *runtime_fn = runtime_row != NULL
+                        ? runtime_row->runtime_fn : NULL;
                     LLVMFuncEntry *fn;
                     fn = runtime_fn != NULL
                         ? llvm_lookup_function(ctx, runtime_fn)

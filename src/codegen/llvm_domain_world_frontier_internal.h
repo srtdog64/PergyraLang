@@ -8,6 +8,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl.h"
 
 bool llvm_world_frontier_field_name(char *out,
                                     size_t out_size,
@@ -23,7 +24,9 @@ void llvm_world_frontier_emit_zone_sync_pass(ASTNode *stmt,
                                              LLVMValueRef derived_ptr,
                                              const LLVMHostedWorldZoneSlotView *zone_view,
                                              LLVMGenCtx *ctx);
-void llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
+void llvm_world_frontier_emit_derived_state_pass(
+                                                 const MIRDeclHeader *header,
+                                                 ASTNode *stmt,
                                                  LLVMClassTypeEntry *decl_cls,
                                                  LLVMValueRef sync_fn,
                                                  ASTNode **states,

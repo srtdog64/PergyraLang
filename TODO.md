@@ -41,6 +41,31 @@ English anchor for tooling/doc gates:
   `ExecutionLane` negative regressions, AIR/backend access lint, and stdlib L2
   doctrine pass. These augment the five closure targets above and do not make
   beta complete.
+- LLVM world-state source-of-truth closure: world declaration headers now own
+  validated `MIRDeclWorldState` rows for LLVM struct-field registration and
+  world frontier/derived-state emission. When MIR is active those consumers
+  require the header and count agreement, read source kind/detail/input facts
+  through MIR accessors, and keep `ast_world_states(...)` only in the explicit
+  non-MIR compatibility branch. The C/LLVM world fixtures and full LLVM build
+  pass; `mir-declaration-inventory-test-smoke` now guards the path. This is a
+  bounded declaration bootstrap rung, not full constructor/bootstrap closure.
+- LLVM callable declaration sub-rung: routine forward declarations now consume
+  `MIRCallableSig` rows for `EventHandler` parameters/returns after AIR-bound
+  admission; missing rows fail through the MIR inventory diagnostic and the
+  LLVM declaration-inventory smoke guards the AST fallback from returning.
+  Focused object compilation, full LLVM compiler link, and `tests/llvm_smoke.sh`
+  (including `event_system`) pass. This does not close method/domain callable
+  declarations, constructors, or runtime-call ABI ownership.
+- LLVM Slot/SecureSlot resource consumers now use the shared
+  `llvm_slot_runtime_row_for_operation` MIR ABI-row owner, including call-shape
+  and machine-layer operation checks. LLVM MIR pin-region secure init/unpin
+and identifier auto-read now consume that same owner instead of local row
+  lookups; SecureSlot runtime declaration registration now does the same for
+  claim/read/write/release and pin rows. ABI ownership,
+  constructed nominal materialization, and compatibility policy remain
+  explicitly `BRIDGE`.
+  Gates: `abi-ownership-shape-test-smoke`, `backend-fail-closed-test-smoke`,
+  `perf-contract-test-smoke`, and `tests/llvm_smoke.sh`.
 - P0 physical owner-module promotion: the flat `src/codegen` (420 C / 319 H),
   `src/compiler` (168 C / 99 H), and `src/semantic` (207 C / 52 H) roots are an
   active navigation and incremental-build debt. Execute `docs/92` B0-B5 in

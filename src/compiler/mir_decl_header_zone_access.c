@@ -178,6 +178,72 @@ mir_decl_zone_state_is_relation(const MIRDeclZoneState *state)
     return state != NULL && state->is_relation;
 }
 
+size_t
+mir_decl_header_world_state_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->world_state_metadata_count : 0;
+}
+
+size_t
+mir_decl_header_world_state_declared_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->world_state_count : 0;
+}
+
+const MIRDeclWorldState *
+mir_decl_header_world_state(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->world_state_metadata == NULL
+        || index >= header->world_state_metadata_count)
+        return NULL;
+    return &header->world_state_metadata[index];
+}
+
+const char *
+mir_decl_world_state_owner_name(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->owner_name : NULL;
+}
+
+const char *
+mir_decl_world_state_name(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->name : NULL;
+}
+
+const char *
+mir_decl_world_state_zone_slot_name(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->zone_slot_name : NULL;
+}
+
+WorldStateSourceKind
+mir_decl_world_state_source_kind(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->source_kind : WORLD_STATE_SOURCE_ZONE;
+}
+
+const char *
+mir_decl_world_state_detail_name(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->detail_name : NULL;
+}
+
+size_t
+mir_decl_world_state_input_count(const MIRDeclWorldState *state)
+{
+    return state != NULL ? state->input_count : 0;
+}
+
+const char *
+mir_decl_world_state_input_name(const MIRDeclWorldState *state, size_t index)
+{
+    if (state == NULL || state->input_names == NULL
+        || index >= state->input_count)
+        return NULL;
+    return state->input_names[index];
+}
+
 const char *
 mir_ability_ref_base_name(const MIRAbilityRef *ref)
 {

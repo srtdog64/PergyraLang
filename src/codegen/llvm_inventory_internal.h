@@ -71,12 +71,16 @@ size_t llvm_mir_routine_param_count(const MIRRoutine *routine);
 FuncParam *llvm_mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *llvm_mir_routine_param_type_name(const MIRRoutine *routine,
                                               size_t index);
+const MIRCallableSig *llvm_mir_routine_param_callable_sig(
+    const MIRRoutine *routine, size_t index);
 MIRParamCarriage llvm_mir_routine_param_carriage(const MIRRoutine *routine,
                                                   size_t index);
 bool llvm_mir_routine_param_passes_indirect(const MIRRoutine *routine,
                                             size_t index);
 ASTNode *llvm_mir_routine_return_type(const MIRRoutine *routine);
 const char *llvm_mir_routine_return_type_name(const MIRRoutine *routine);
+const MIRCallableSig *llvm_mir_routine_return_callable_sig(
+    const MIRRoutine *routine);
 const char *llvm_mir_routine_within_zone(const MIRRoutine *routine);
 void llvm_active_domain_inventory(const LLVMGenCtx *ctx,
                                   LLVMDomainInventory *inventory);

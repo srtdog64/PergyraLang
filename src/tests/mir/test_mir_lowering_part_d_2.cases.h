@@ -129,6 +129,111 @@ test_mir_lowering_part_d_2(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve world state metadata");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "    state ready: any inner\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *world = NULL;
+        const MIRDeclWorldState *inner = NULL;
+        const MIRDeclWorldState *ready = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            world = mir_find_decl_header(mir, "GameWorld");
+        if (world != NULL) {
+            inner = mir_decl_header_world_state(world, 0);
+            ready = mir_decl_header_world_state(world, 1);
+        }
+        EXPECT(ok
+               && world != NULL
+               && mir_decl_header_world_state_count(world) == 2
+               && inner != NULL
+               && mir_decl_world_state_owner_name(inner) != NULL
+               && strcmp(mir_decl_world_state_owner_name(inner),
+                         "GameWorld") == 0
+               && mir_decl_world_state_name(inner) != NULL
+               && strcmp(mir_decl_world_state_name(inner), "inner") == 0
+               && mir_decl_world_state_source_kind(inner)
+                    == WORLD_STATE_SOURCE_ZONE
+               && mir_decl_world_state_zone_slot_name(inner) != NULL
+               && strcmp(mir_decl_world_state_zone_slot_name(inner),
+                         "battle") == 0
+               && ready != NULL
+               && mir_decl_world_state_source_kind(ready)
+                    == WORLD_STATE_SOURCE_ANY
+               && mir_decl_world_state_input_count(ready) == 1
+               && mir_decl_world_state_input_name(ready, 0) != NULL
+               && strcmp(mir_decl_world_state_input_name(ready, 0),
+                         "inner") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR declaration headers preserve world directive metadata");
+    {
+        const char *src =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state inner: zone battle\n"
+            "    activate inner\n"
+            "    maintain battle\n"
+            "    deactivate inner\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *world = NULL;
+        const MIRDeclWorldDirective *activate = NULL;
+        const MIRDeclWorldDirective *maintain = NULL;
+        const MIRDeclWorldDirective *deactivate = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            world = mir_find_decl_header(mir, "GameWorld");
+        if (world != NULL) {
+            activate = mir_decl_header_world_directive(world, 0);
+            maintain = mir_decl_header_world_directive(world, 1);
+            deactivate = mir_decl_header_world_directive(world, 2);
+        }
+        EXPECT(ok
+               && world != NULL
+               && mir_decl_header_world_directive_count(world) == 3
+               && mir_decl_header_world_directive_declared_count(world) == 3
+               && activate != NULL
+               && mir_decl_world_directive_kind(activate)
+                    == MIR_DECL_WORLD_DIRECTIVE_ACTIVATE
+               && mir_decl_world_directive_state_name(activate) != NULL
+               && strcmp(mir_decl_world_directive_state_name(activate),
+                         "inner") == 0
+               && mir_decl_world_directive_zone_slot_name(activate) == NULL
+               && maintain != NULL
+               && mir_decl_world_directive_kind(maintain)
+                    == MIR_DECL_WORLD_DIRECTIVE_MAINTAIN
+               && mir_decl_world_directive_zone_slot_name(maintain) == NULL
+               && mir_decl_world_directive_state_name(maintain) != NULL
+               && strcmp(mir_decl_world_directive_state_name(maintain),
+                         "battle") == 0
+               && deactivate != NULL
+               && mir_decl_world_directive_kind(deactivate)
+                    == MIR_DECL_WORLD_DIRECTIVE_DEACTIVATE
+               && mir_decl_world_directive_state_name(deactivate) != NULL
+               && strcmp(mir_decl_world_directive_state_name(deactivate),
+                         "inner") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

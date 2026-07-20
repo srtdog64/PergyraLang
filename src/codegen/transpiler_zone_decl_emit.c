@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "domain_frontier_policy.h"
 #include "domain_frontier_graph.h"
 #include "parser/ast_api.h"
@@ -17,17 +18,21 @@
 #include "transpiler_zone_frontier_emit.h"
 
 void
-emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
+transpiler_emit_zone_decl_impl(ASTNode *node,
+                               const MIRDeclHeader *header,
+                               const char *name,
+                               TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
-    ASTNode *inventory_decl;
-
-    if (name == NULL)
+    /* The dispatch owner passes the exact MIR header selected for this
+     * declaration.  The hosted views below resolve their rows through the
+     * active inventory, so keep the explicit parameter part of the contract
+     * while avoiding a second AST-derived authority. */
+    (void)header;
+    if (name == NULL || node == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "C zone emitter received incomplete declaration dispatch");
         return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_ZONE_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    }
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);

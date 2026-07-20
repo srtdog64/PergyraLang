@@ -14,6 +14,7 @@
 #include "../parser/ast_api.h"
 #include "llvm_domain_struct_fields.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 
 static bool
 llvm_domain_struct_register_field_name(char *out,
@@ -342,7 +343,28 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
     LLVMHostedSharedFieldView shared_view =
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     size_t state_count = 0;
-    ASTNode **states = ast_world_states(stmt, &state_count);
+    ASTNode **states = NULL;
+    const MIRDeclHeader *world_header =
+        llvm_find_decl_header_in_context_of_type(
+            ctx, AST_WORLD_DECL, decl_name);
+    if (llvm_active_has_mir(ctx)) {
+        if (world_header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declaration header for world '%s'",
+                decl_name != NULL ? decl_name : "<anonymous-world>");
+            return false;
+        }
+        state_count = mir_decl_header_world_state_count(world_header);
+        if (state_count != mir_decl_header_world_state_declared_count(
+                world_header)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' has inconsistent world-state metadata count",
+                decl_name != NULL ? decl_name : "<anonymous-world>");
+            return false;
+        }
+    } else {
+        states = ast_world_states(stmt, &state_count);
+    }
 
     entry->domain_kind = LLVM_DOMAIN_WORLD;
     if (llvm_hosted_world_roster_slot_view_missing_mir_metadata(
@@ -405,10 +427,20 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+        const MIRDeclWorldState *state_meta = llvm_active_has_mir(ctx)
+            ? mir_decl_header_world_state(world_header, j) : NULL;
+        const char *state_name = llvm_active_has_mir(ctx)
+            ? mir_decl_world_state_name(state_meta)
+            : ast_world_state_name(states[j]);
+        if (state_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' state field[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous-world>", j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state",
-                ast_world_state_name(state)))
+                state_name))
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
@@ -428,17 +460,37 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+        const MIRDeclWorldState *state_meta = llvm_active_has_mir(ctx)
+            ? mir_decl_header_world_state(world_header, j) : NULL;
+        const char *state_name = llvm_active_has_mir(ctx)
+            ? mir_decl_world_state_name(state_meta)
+            : ast_world_state_name(states[j]);
+        if (state_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' state epoch[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous-world>", j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state_epoch",
-                ast_world_state_name(state)))
+                state_name))
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+        const MIRDeclWorldState *state_meta = llvm_active_has_mir(ctx)
+            ? mir_decl_header_world_state(world_header, j) : NULL;
+        const char *state_name = llvm_active_has_mir(ctx)
+            ? mir_decl_world_state_name(state_meta)
+            : ast_world_state_name(states[j]);
+        if (state_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path world '%s' state cause[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous-world>", j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state_cause",
-                ast_world_state_name(state)))
+                state_name))
             return false;
     }
     llvm_class_add_field(entry, pergyra_strdup("__world_derived_dirty"),

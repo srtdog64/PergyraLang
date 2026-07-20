@@ -8,6 +8,66 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
 
+#include <limits.h>
+
+LLVMTypeRef
+llvm_mir_callable_sig_to_llvm(LLVMGenCtx *ctx, const MIRCallableSig *sig)
+{
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef ret_type;
+    LLVMTypeRef fn_type;
+
+    if (ctx == NULL || sig == NULL || !sig->is_callable)
+        return NULL;
+    if (sig->param_count > (size_t)UINT_MAX) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR callable signature parameter count exceeds LLVM ABI limits");
+        return NULL;
+    }
+    if (sig->return_type_name != NULL) {
+        ret_type = pergyra_type_to_llvm(ctx, sig->return_type_name);
+        if (ctx->has_error || ret_type == NULL)
+            return NULL;
+    } else {
+        ret_type = ctx->type_void;
+    }
+
+    if (sig->param_count > 0) {
+        if (sig->param_type_names == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR callable signature is missing parameter type-name rows");
+            return NULL;
+        }
+        param_types = pgy_arena_calloc(&ctx->scratch,
+            sig->param_count * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "LLVM MIR callable signature parameter allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < sig->param_count; i++) {
+            if (sig->param_type_names[i] == NULL
+                || sig->param_type_names[i][0] == '\0') {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR callable signature is missing parameter type-name row %llu",
+                    (unsigned long long)i);
+                return NULL;
+            }
+            param_types[i] = pergyra_type_to_llvm(
+                ctx, sig->param_type_names[i]);
+            if (ctx->has_error || param_types[i] == NULL)
+                return NULL;
+        }
+    }
+
+    fn_type = LLVMFunctionType(ret_type, param_types,
+        (unsigned)sig->param_count, 0);
+    return LLVMPointerType(fn_type, 0);
+}
+
 LLVMTypeRef
 ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
 {

@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "domain_frontier_policy.h"
@@ -14,69 +16,65 @@
 #include "transpiler_hosted_method_body_emit.h"
 #include "transpiler_projection.h"
 #include "transpiler_type_require.h"
-
-static size_t
-transpiler_frontier_zone_member_count(void *ctx, const char *zone_name)
-{
-    TranspilerCtx *transpiler_ctx = (TranspilerCtx *)ctx;
-    ASTNode *zone_decl;
-    size_t state_count;
-    TranspilerHostedZoneStateView state_view;
-    TranspilerHostedZoneLayerSlotView layer_view;
-
-    if (transpiler_ctx == NULL || zone_name == NULL)
-        return 0;
-
-    zone_decl = transpiler_find_named_decl_local(
-        transpiler_ctx, AST_ZONE_DECL, zone_name);
-    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
-        return 0;
-
-    state_view = transpiler_hosted_zone_state_view_from_decl(
-        transpiler_ctx, zone_name, zone_decl);
-    if (transpiler_hosted_zone_state_view_missing_mir_metadata(
-            &state_view)) {
-        transpiler_set_mir_inventory_missing(transpiler_ctx,
-            "MIR-only C path missing embedded zone state metadata for world frontier '%s'",
-            zone_name);
-        return 0;
-    }
-    state_count = state_view.count;
-    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
-        transpiler_ctx, zone_name, zone_decl);
-    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
-            &layer_view)) {
-        transpiler_set_mir_inventory_missing(transpiler_ctx,
-            "MIR-only C path missing embedded zone layer-slot metadata for world frontier '%s'",
-            zone_name);
-        return 0;
-    }
-
-    return pgy_frontier_embedded_zone_member_count(
-        state_count, layer_view.count);
-}
+#include "transpiler_world_derived_state_emit.h"
+#include "transpiler_world_frontier_inputs.h"
 
 static const char *
-transpiler_frontier_world_zone_type_name(void *ctx, size_t index)
+transpiler_world_resolve_mir_directive_slot(
+    TranspilerCtx *ctx,
+    const MIRDeclHeader *header,
+    const TranspilerHostedWorldZoneSlotView *zone_view,
+    const MIRDeclWorldDirective *directive,
+    const char *world_name)
 {
-    return transpiler_hosted_world_zone_slot_view_type_name(
-        (const TranspilerHostedWorldZoneSlotView *)ctx,
-        index);
+    const char *slot_name;
+    const char *state_name;
+
+    if (header == NULL || zone_view == NULL || directive == NULL)
+        return NULL;
+    slot_name = mir_decl_world_directive_zone_slot_name(directive);
+    state_name = mir_decl_world_directive_state_name(directive);
+    if (slot_name == NULL && state_name != NULL) {
+        for (size_t i = 0; i < mir_decl_header_world_state_count(header); i++) {
+            const MIRDeclWorldState *state =
+                mir_decl_header_world_state(header, i);
+            const char *state_decl_name = mir_decl_world_state_name(state);
+            if (state_decl_name != NULL
+                && strcmp(state_decl_name, state_name) == 0) {
+                slot_name = mir_decl_world_state_zone_slot_name(state);
+                break;
+            }
+        }
+        if (slot_name == NULL
+            && transpiler_world_zone_slot_view_contains(zone_view,
+                state_name)) {
+            slot_name = state_name;
+        }
+    }
+    if (slot_name == NULL
+        || !transpiler_world_zone_slot_view_contains(zone_view, slot_name)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path world '%s' directive has no validated zone slot",
+            world_name != NULL ? world_name : "(anonymous-world)");
+        return NULL;
+    }
+    return slot_name;
 }
 
 void
-emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
+transpiler_emit_world_decl_impl(ASTNode *node,
+                                const MIRDeclHeader *header,
+                                const char *name,
+                                TranspilerCtx *ctx)
 {
-    const char *name = transpiler_decl_name_local(node);
-    ASTNode *inventory_decl;
     size_t embedded_frontier_count;
 
-    if (name == NULL)
+    if (name == NULL || node == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx, "C world emitter received incomplete declaration dispatch");
         return;
-    inventory_decl = transpiler_find_named_decl_local(
-        ctx, AST_WORLD_DECL, name);
-    if (inventory_decl != NULL)
-        node = inventory_decl;
+    }
     TranspilerHostedWorldRosterSlotView roster_view =
         transpiler_hosted_world_roster_slot_view_from_decl(ctx, name, node);
     size_t roster_count = roster_view.count;
@@ -124,15 +122,64 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-world)")) {
         return;
     }
+    const MIRDeclHeader *world_header = header != NULL
+        ? header : transpiler_active_decl_header_of_type(
+            ctx, AST_WORLD_DECL, name);
+    bool use_mir_world_states = transpiler_active_has_mir(ctx);
+    if (use_mir_world_states && world_header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing declaration header for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
     size_t state_count = 0;
-    ASTNode **states = ast_world_states(node, &state_count);
+    ASTNode **states = NULL;
+    if (use_mir_world_states) {
+        state_count = mir_decl_header_world_state_count(world_header);
+        if (state_count != mir_decl_header_world_state_declared_count(
+                world_header)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path world '%s' has inconsistent world-state metadata count",
+                name != NULL ? name : "(anonymous-world)");
+            return;
+        }
+    } else {
+        states = ast_world_states(node, &state_count);
+    }
     size_t activate_count = 0;
-    ASTNode **activations = ast_world_activations(node, &activate_count);
+    ASTNode **activations = NULL;
     size_t maintained_zone_count = 0;
-    ASTNode **maintained_zones =
-        ast_world_maintained_zones(node, &maintained_zone_count);
+    ASTNode **maintained_zones = NULL;
     size_t deactivate_count = 0;
-    ASTNode **deactivations = ast_world_deactivations(node, &deactivate_count);
+    ASTNode **deactivations = NULL;
+    size_t directive_count = 0;
+    if (use_mir_world_states) {
+        directive_count = mir_decl_header_world_directive_count(world_header);
+        if (directive_count
+            != mir_decl_header_world_directive_declared_count(world_header)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path world '%s' has inconsistent directive metadata count",
+                name != NULL ? name : "(anonymous-world)");
+            return;
+        }
+        if (directive_count > 0) {
+            if (mir_decl_header_world_directive(world_header, 0) == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path world '%s' has no directive metadata storage",
+                    name != NULL ? name : "(anonymous-world)");
+                return;
+            }
+        }
+    } else {
+        activations = ast_world_activations(node, &activate_count);
+        maintained_zones = ast_world_maintained_zones(
+            node, &maintained_zone_count);
+        deactivations = ast_world_deactivations(node, &deactivate_count);
+    }
 
     embedded_frontier_count =
         pgy_domain_world_embedded_frontier_count_from_zone_types(
@@ -222,11 +269,36 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
+        const char *state_name;
+        if (use_mir_world_states) {
+            const MIRDeclWorldState *state_meta =
+                mir_decl_header_world_state(world_header, i);
+            state_name = mir_decl_world_state_name(state_meta);
+            if (state_name == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing world-state name metadata for world '%s'",
+                    name != NULL ? name : "(anonymous-world)");
+                return;
+            }
+        } else {
+            ASTNode *state = states[i];
+            state_name = ast_world_state_name(state);
+        }
+        if (state_name == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C backend: world '%s' state[%zu] is missing a name",
+                name != NULL ? name : "(anonymous-world)", i);
+            return;
+        }
         codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
-            ast_world_state_name(state));
+            state_name);
         emit_hidden_provenance_fields(ctx, "zone_state",
-            ast_world_state_name(state));
+            state_name);
     }
     codebuf_write(ctx->out, "    bool __world_derived_dirty;\n");
 
@@ -252,67 +324,106 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world command pass: directives */\n");
-    for (size_t i = 0; i < activate_count; i++) {
-        ASTNode *act = activations[i];
-        const char *slot_name = ast_world_directive_zone_slot_name(act);
-        if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
-            ASTNode *state = transpiler_find_world_state_decl(
-                node, ast_world_directive_state_name(act));
-            if (state != NULL)
-                slot_name = ast_world_state_zone_slot_name(state);
-            else if (transpiler_world_has_zone_slot(
-                         ctx, node, ast_world_directive_state_name(act))) {
-                slot_name = ast_world_directive_state_name(act);
+    if (use_mir_world_states) {
+        for (size_t i = 0; i < directive_count; i++) {
+            const MIRDeclWorldDirective *directive =
+                mir_decl_header_world_directive(world_header, i);
+            const char *slot_name =
+                transpiler_world_resolve_mir_directive_slot(
+                    ctx, world_header, &zone_view, directive, name);
+            bool active;
+            int cause;
+            if (directive == NULL || slot_name == NULL)
+                return;
+            switch (mir_decl_world_directive_kind(directive)) {
+            case MIR_DECL_WORLD_DIRECTIVE_ACTIVATE:
+                active = true;
+                cause = PGY_PROP_CAUSE_WORLD_ACTIVATE;
+                break;
+            case MIR_DECL_WORLD_DIRECTIVE_MAINTAIN:
+                active = true;
+                cause = PGY_PROP_CAUSE_WORLD_MAINTAIN;
+                break;
+            case MIR_DECL_WORLD_DIRECTIVE_DEACTIVATE:
+                active = false;
+                cause = PGY_PROP_CAUSE_WORLD_DEACTIVATE;
+                break;
+            default:
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path world '%s' has unknown directive kind",
+                    name != NULL ? name : "(anonymous-world)");
+                return;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__zone_active_%s = %s;\n",
+                slot_name, active ? "true" : "false");
+            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                cause);
+        }
+    } else {
+        for (size_t i = 0; i < activate_count; i++) {
+            ASTNode *act = activations[i];
+            const char *slot_name = ast_world_directive_zone_slot_name(act);
+            if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
+                ASTNode *state = transpiler_find_world_state_decl(
+                    node, ast_world_directive_state_name(act));
+                if (state != NULL)
+                    slot_name = ast_world_state_zone_slot_name(state);
+                else if (transpiler_world_has_zone_slot(
+                             ctx, node, ast_world_directive_state_name(act))) {
+                    slot_name = ast_world_directive_state_name(act);
+                }
+            }
+            if (slot_name != NULL) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__zone_active_%s = true;\n",
+                    slot_name);
+                emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                    PGY_PROP_CAUSE_WORLD_ACTIVATE);
             }
         }
-        if (slot_name != NULL) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__zone_active_%s = true;\n",
-                slot_name);
-            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
-                PGY_PROP_CAUSE_WORLD_ACTIVATE);
-        }
-    }
-    for (size_t i = 0; i < maintained_zone_count; i++) {
-        ASTNode *mnt = maintained_zones[i];
-        const char *slot_name = ast_world_directive_zone_slot_name(mnt);
-        if (slot_name == NULL && ast_world_directive_state_name(mnt) != NULL) {
-            ASTNode *state = transpiler_find_world_state_decl(
-                node, ast_world_directive_state_name(mnt));
-            if (state != NULL)
-                slot_name = ast_world_state_zone_slot_name(state);
-            else if (transpiler_world_has_zone_slot(
-                         ctx, node, ast_world_directive_state_name(mnt))) {
-                slot_name = ast_world_directive_state_name(mnt);
+        for (size_t i = 0; i < maintained_zone_count; i++) {
+            ASTNode *mnt = maintained_zones[i];
+            const char *slot_name = ast_world_directive_zone_slot_name(mnt);
+            if (slot_name == NULL && ast_world_directive_state_name(mnt) != NULL) {
+                ASTNode *state = transpiler_find_world_state_decl(
+                    node, ast_world_directive_state_name(mnt));
+                if (state != NULL)
+                    slot_name = ast_world_state_zone_slot_name(state);
+                else if (transpiler_world_has_zone_slot(
+                             ctx, node, ast_world_directive_state_name(mnt))) {
+                    slot_name = ast_world_directive_state_name(mnt);
+                }
+            }
+            if (slot_name != NULL) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__zone_active_%s = true;\n",
+                    slot_name);
+                emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                    PGY_PROP_CAUSE_WORLD_MAINTAIN);
             }
         }
-        if (slot_name != NULL) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__zone_active_%s = true;\n",
-                slot_name);
-            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
-                PGY_PROP_CAUSE_WORLD_MAINTAIN);
-        }
-    }
-    for (size_t i = 0; i < deactivate_count; i++) {
-        ASTNode *act = deactivations[i];
-        const char *slot_name = ast_world_directive_zone_slot_name(act);
-        if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
-            ASTNode *state = transpiler_find_world_state_decl(
-                node, ast_world_directive_state_name(act));
-            if (state != NULL)
-                slot_name = ast_world_state_zone_slot_name(state);
-            else if (transpiler_world_has_zone_slot(
-                         ctx, node, ast_world_directive_state_name(act))) {
-                slot_name = ast_world_directive_state_name(act);
+        for (size_t i = 0; i < deactivate_count; i++) {
+            ASTNode *act = deactivations[i];
+            const char *slot_name = ast_world_directive_zone_slot_name(act);
+            if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
+                ASTNode *state = transpiler_find_world_state_decl(
+                    node, ast_world_directive_state_name(act));
+                if (state != NULL)
+                    slot_name = ast_world_state_zone_slot_name(state);
+                else if (transpiler_world_has_zone_slot(
+                             ctx, node, ast_world_directive_state_name(act))) {
+                    slot_name = ast_world_directive_state_name(act);
+                }
             }
-        }
-        if (slot_name != NULL) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__zone_active_%s = false;\n",
-                slot_name);
-            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
-                PGY_PROP_CAUSE_WORLD_DEACTIVATE);
+            if (slot_name != NULL) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__zone_active_%s = false;\n",
+                    slot_name);
+                emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                    PGY_PROP_CAUSE_WORLD_DEACTIVATE);
+            }
         }
     }
     for (size_t i = 0; i < zone_count; i++) {
@@ -395,138 +506,11 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
     }
-    write_indent(ctx);
-    codebuf_write(ctx->out, "/* world derived pass */\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "if (_pgy_world_needs_derived) {\n");
-    ctx->indent++;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "size_t _pgy_world_pass = 0;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "size_t _pgy_world_pass_limit = %zu;\n",
-        pgy_domain_world_derived_frontier_pass_limit_from_count(state_count));
-    write_indent(ctx);
-    codebuf_write(ctx->out, "bool _pgy_world_continue = true;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out,
-        "while (_pgy_world_continue && _pgy_world_pass < _pgy_world_pass_limit) {\n");
-    ctx->indent++;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "_pgy_world_continue = false;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "_pgy_world_pass++;\n");
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        const char *expr_fmt = "self->__zone_active_%s";
-        const char *detail_name = ast_world_state_detail_name(state);
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "bool _pgy_prev_zone_state_%s = self->__zone_state_%s;\n",
-            ast_world_state_name(state), ast_world_state_name(state));
-        write_indent(ctx);
-        switch (ast_world_state_source_kind(state)) {
-        case WORLD_STATE_SOURCE_ALL:
-        case WORLD_STATE_SOURCE_ANY: {
-            bool first = true;
-            codebuf_write(ctx->out, "self->__zone_state_%s = ",
-                ast_world_state_name(state));
-            codebuf_write(ctx->out, "(");
-            for (size_t input_i = 0;
-                 input_i < ast_world_state_input_count(state);
-                 input_i++) {
-                const char *input_name =
-                    ast_world_state_input_name(state, input_i);
-                if (input_name == NULL)
-                    continue;
-                if (!first) {
-                    codebuf_write(ctx->out,
-                        ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
-                            ? " && " : " || ");
-                }
-                if (transpiler_world_has_zone_slot(ctx, node, input_name))
-                    codebuf_write(ctx->out, "self->__zone_active_%s", input_name);
-                else
-                    codebuf_write(ctx->out, "self->__zone_state_%s", input_name);
-                first = false;
-            }
-            if (first) {
-                codebuf_write(ctx->out,
-                    ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
-                        ? "true" : "false");
-            }
-            codebuf_write(ctx->out, ");\n");
-            break;
-        }
-        case WORLD_STATE_SOURCE_PROJECTION:
-            expr_fmt = "(self->__zone_active_%s && self->%s.__projection_ready_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ",
-                ast_world_state_name(state));
-            codebuf_write(ctx->out, expr_fmt,
-                ast_world_state_zone_slot_name(state),
-                ast_world_state_zone_slot_name(state),
-                detail_name != NULL ? detail_name : "");
-            codebuf_write(ctx->out, ";\n");
-            break;
-        case WORLD_STATE_SOURCE_LAYER:
-            expr_fmt = "(self->__zone_active_%s && self->%s.__layer_active_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ",
-                ast_world_state_name(state));
-            codebuf_write(ctx->out, expr_fmt,
-                ast_world_state_zone_slot_name(state),
-                ast_world_state_zone_slot_name(state),
-                detail_name != NULL ? detail_name : "");
-            codebuf_write(ctx->out, ";\n");
-            break;
-        case WORLD_STATE_SOURCE_STATE:
-            expr_fmt = "(self->__zone_active_%s && self->%s.__state_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ",
-                ast_world_state_name(state));
-            codebuf_write(ctx->out, expr_fmt,
-                ast_world_state_zone_slot_name(state),
-                ast_world_state_zone_slot_name(state),
-                detail_name != NULL ? detail_name : "");
-            codebuf_write(ctx->out, ";\n");
-            break;
-        case WORLD_STATE_SOURCE_ZONE:
-        default:
-            codebuf_write(ctx->out,
-                "self->__zone_state_%s = self->__zone_active_%s;\n",
-                ast_world_state_name(state),
-                ast_world_state_zone_slot_name(state));
-            break;
-        }
-        emit_hidden_provenance_stamp(ctx, "self", "zone_state",
-            ast_world_state_name(state), PGY_PROP_CAUSE_WORLD_DERIVED);
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "if (self->__zone_state_%s != _pgy_prev_zone_state_%s) {\n",
-            ast_world_state_name(state), ast_world_state_name(state));
-        ctx->indent++;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "_pgy_world_continue = true;\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "_pgy_world_derived_changed_any = true;\n");
-        ctx->indent--;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "}\n");
+    if (!transpiler_emit_world_derived_state_pass(
+            ctx, name, world_header, states, state_count,
+            use_mir_world_states, &zone_view)) {
+        return;
     }
-    ctx->indent--;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "}\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "if (_pgy_world_continue) {\n");
-    ctx->indent++;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "PGY_PANIC(\"%s\");\n",
-        PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW);
-    ctx->indent--;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "}\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "self->__world_derived_dirty = false;\n");
-    ctx->indent--;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "}\n");
     write_indent(ctx);
     codebuf_write(ctx->out,
         "if (_pgy_world_derived_changed_any || self->__world_derived_dirty");

@@ -4,17 +4,20 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../compiler/mir_decl.h"
 
 ASTNode *llvm_world_sync_find_state_decl(ASTNode *world_decl,
                                          const char *state_name);
 bool llvm_world_sync_has_zone_slot(LLVMGenCtx *ctx,
                                    ASTNode *world_decl,
                                    const char *slot_name);
-void llvm_world_sync_emit_directives(ASTNode *stmt,
+void llvm_world_sync_emit_directives(const MIRDeclHeader *header,
+                                     ASTNode *stmt,
                                      LLVMClassTypeEntry *decl_cls,
                                      LLVMValueRef sync_fn,
                                      LLVMGenCtx *ctx);
-void llvm_world_sync_emit_frontier(ASTNode *stmt,
+void llvm_world_sync_emit_frontier(const MIRDeclHeader *header,
+                                   ASTNode *stmt,
                                    LLVMClassTypeEntry *decl_cls,
                                    LLVMValueRef sync_fn,
                                    LLVMValueRef derived_dirty_addr,

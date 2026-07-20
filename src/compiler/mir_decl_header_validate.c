@@ -2,6 +2,8 @@
 #include "mir_fact_validate_internal.h"
 #include "mir_decl_header_role_validate.h"
 #include "mir_decl_header_shape_validate.h"
+#include "mir_decl_header_world_directive_validate.h"
+#include "mir_decl_header_world_state_validate.h"
 #include "mir_decl_header_zone_state_validate.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
@@ -392,6 +394,14 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     }
 
     if (!mir_decl_header_validate_zone_states(
+            header, header_index, error_message)) {
+        return false;
+    }
+    if (!mir_decl_header_validate_world_states(
+            header, header_index, error_message)) {
+        return false;
+    }
+    if (!mir_decl_header_validate_world_directives(
             header, header_index, error_message)) {
         return false;
     }

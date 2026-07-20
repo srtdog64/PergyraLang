@@ -6,8 +6,8 @@
 
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_runtime_internal.h"
 #include "../compiler/mir_decl_headers.h"
-#include "../compiler/mir_abi_layout.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -129,27 +129,15 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
             LLVMVarEntry var;
             if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
                 bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
-                const char *expected_shape = is_secure
-                    ? "container_ptr_token_ptr_to_value"
-                    : "container_ptr_to_value";
                 const MIRResourceRuntimeRow *runtime_row =
-                    mir_abi_resource_runtime_row_by_kind(
+                    llvm_slot_runtime_row_for_operation(node, ctx,
                         is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                                   : MIR_RESOURCE_ABI_SLOT,
                         inner, "Read");
+                if (ctx->has_error)
+                    return NULL;
                 const char *runtime_fn =
                     runtime_row != NULL ? runtime_row->runtime_fn : NULL;
-                if (runtime_row != NULL &&
-                    (runtime_row->call_shape == NULL ||
-                     strcmp(runtime_row->call_shape, expected_shape) != 0)) {
-                    llvm_set_error_at_with_hints(ctx, node,
-                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_FIX_INSPECT_MIR_INVENTORY,
-                        "LLVM slot auto-read requires MIR ABI call shape %s",
-                        expected_shape);
-                    return NULL;
-                }
                 fn = runtime_fn != NULL
                     ? llvm_lookup_function(ctx, runtime_fn)
                     : NULL;

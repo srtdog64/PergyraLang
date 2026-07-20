@@ -9,6 +9,7 @@
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "llvm_runtime_internal.h"
 #include "llvm_mir_local_expected_type.h"
 #include "../compiler/mir_abi_layout.h"
 
@@ -276,11 +277,15 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         const char *slot_inner = llvm_lookup_slot_inner(ctx, name);
         if (slot_inner != NULL) {
             bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
-            const char *runtime_fn =
-                mir_abi_resource_runtime_fn_by_kind(
+            const MIRResourceRuntimeRow *runtime_row =
+                llvm_slot_runtime_row_for_operation(node, ctx,
                     is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                               : MIR_RESOURCE_ABI_SLOT,
                     slot_inner, "Write");
+            if (ctx->has_error)
+                return NULL;
+            const char *runtime_fn = runtime_row != NULL
+                ? runtime_row->runtime_fn : NULL;
             LLVMFuncEntry *fn = runtime_fn != NULL
                 ? llvm_lookup_function(ctx, runtime_fn)
                 : NULL;

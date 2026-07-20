@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 20;
+    return 21;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -61,15 +61,16 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 17 { return "src/codegen/llvm_mir_pin_region.c"; }
     if index == 18 { return "src/codegen/llvm_runtime.c"; }
     if index == 19 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
+    if index == 20 { return "src/codegen/llvm_expr_identifier_slot_helpers.c"; }
     return "";
 }
 
 func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 0 { return "mir_abi_resource_runtime_row_by_type_name("; }
-    if index == 1 { return "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"; }
-    if index == 2 { return "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"; }
-    if index == 3 { return "mir_abi_resource_runtime_row_by_kind("; }
-    if index == 4 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    if index == 1 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 2 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 3 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 4 { return "llvm_slot_runtime_row_for_operation("; }
     if index == 5 { return "C source slot auto-release requires MIR ABI runtime function row"; }
     if index == 6 { return "transpiler_slot_runtime_fn("; }
     if index == 7 { return "C let-slot %s requires MIR ABI runtime function row"; }
@@ -81,10 +82,11 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 13 { return "row->call_shape"; }
     if index == 14 { return "mir_abi_resource_runtime_row_by_kind("; }
     if index == 15 { return "row->call_shape"; }
-    if index == 16 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 16 { return "llvm_slot_runtime_row_for_operation("; }
     if index == 17 { return "row->call_shape"; }
     if index == 18 { return "row->call_shape"; }
     if index == 19 { return "row->call_shape"; }
+    if index == 20 { return "llvm_slot_runtime_row_for_operation("; }
     return "";
 }
 
@@ -182,13 +184,16 @@ func CompilerBackendEmitterContractReady() -> Bool {
             CompilerBackendEmitterPrimaryRequiredTerm()) &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime.c",
-            "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)") &&
+            "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime_secure_slot_decl.c",
-            "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)") &&
+            "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_expr_slot_device_calls.c",
-            "mir_abi_resource_runtime_row_by_kind(") &&
+            "llvm_slot_runtime_row_for_operation(") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_expr_identifier_slot_helpers.c",
+            "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/transpiler_mir_pin_emit.c",
             "mir_abi_resource_runtime_row_by_kind(") &&
@@ -200,7 +205,7 @@ func CompilerBackendEmitterContractReady() -> Bool {
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_mir_pin_region.c",
-            "mir_abi_resource_runtime_row_by_kind(") &&
+            "llvm_slot_runtime_row_for_operation(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_mir_pin_region.c",
             "row->call_shape") &&

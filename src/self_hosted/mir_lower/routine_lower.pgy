@@ -190,7 +190,12 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
             ArrayPush(chunks, RenderDestructureFromFacts(
                 json, kp, inst_end, indent, d_expr0));
         }
-        if ikind != "branch" && ikind != "loop-init" {
+        // Resource-op rows are MIR evidence for an already-owned executable
+        // def/stmt row.  Re-emitting expr0 here would manufacture a second
+        // source statement (for example, a machine Write row becomes the bare
+        // expression `current`) and reopen AST inference during canonicalization.
+        if ikind != "branch" && ikind != "loop-init" &&
+            ikind != "resource-op" {
             let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             let expr1: String = MirObjectStringFact(json, kp, inst_end, "expr1");
             let arg0: String = MirObjectStringFact(json, kp, inst_end, "arg0");

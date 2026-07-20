@@ -800,15 +800,18 @@ deliberately deferred under the beta-blocker order (§4 item 5):
   returns NULL, so callable param/return signatures keep the retained AST node as
   their lossless carrier. A structured `MIRCallableSig` descriptor now carries the
   callable shape in MIR (2026-06-25): populated during signature capture and
-  consumed by the C supportedness check and the C param declarator emitter, with
-  the AST node retained only for the non-MIR / nested-unrenderable edge. **Why this
+  consumed by the C supportedness/parameter emitters and the LLVM routine
+  forward-declaration emitter, with the AST node retained only for the non-MIR /
+  nested-unrenderable edge. **Why this
   stays Partial (not closed):** docs/grammar/01_syntax.md §11 lists standalone
   EventHandler-type parameter syntax as currently unsupported, so a routine
   callable parameter/return is not reachable from real surface syntax today — the
-  path is exercised only synthetically. Removing the AST fallback and mirroring the
-  migration in LLVM is therefore defensive work that is low-value until the type is
-  surfaced, which is exactly why the retained-AST carrier was kept. The MIR carrier
-  + C consumers are landed so the foundation is ready when the type gets syntax.
+  path is exercised only synthetically. The active MIR C/LLVM declaration paths
+  now consume the structured row; the retained AST carrier is limited to the
+  explicit non-MIR or nested-unrenderable compatibility edge. The MIR carrier
+  + C/LLVM consumers are landed so the foundation is ready when the type gets
+  syntax, but the row remains Partial until callable syntax and the wider
+  method/domain declaration family are surfaced.
 - **F2 — pre-semantic declaration-field metadata layer.** Semantic runs *before*
   MIR, so the residual `ast_class_fields(...)` reads cannot be retargeted at MIR;
   closing requires a dedicated declaration-field metadata model produced between
@@ -1398,6 +1401,17 @@ struct type and field registration consume `LLVMHostedWorldZoneSlotView` over
 `MIR_DECL_FIELD_WORLD_ZONE_SLOT` rows, not `ast_world_zones(...)` scans.
 C world member type lookup, world constructor lowering, and world declaration
 emission consume `TranspilerHostedWorldZoneSlotView` for the same row kind.
+
+World command directives are a separate MIR-owned row family. `MIRDeclWorldDirective`
+captures the activate/maintain/deactivate kind and exactly one target spelling
+(state name or zone-slot name), validates the owner and target against the
+world header, and is freed with the declaration header. Active C and LLVM
+world layout, frontier/derived-state, query, and sync emitters consume these
+rows after AIR-bound admission; they do not reopen the AST world-state or
+directive arrays. A missing row, count mismatch, unknown kind, or unknown
+target is a hard MIR-inventory failure. The AST arrays remain only in the
+explicit non-MIR compatibility branch and are not an authority for the
+production path.
 
 ### Type-Resolution DAG
 
