@@ -194,6 +194,47 @@ test_async_task_cancel_propagates_to_spawned_children(void)
     EXPECT(pgy_await_take(parent, int32_t) == 17);
 }
 
+static atomic_int cancelled_pending_runs;
+
+static void *
+cancelled_pending_pool_task(void *arg)
+{
+    int32_t *out;
+
+    (void)arg;
+    atomic_fetch_add(&cancelled_pending_runs, 1);
+    out = (int32_t *)malloc(sizeof(int32_t));
+    if (out == NULL)
+        return NULL;
+    *out = pgy_task_is_cancelled() ? 23 : 0;
+    return out;
+}
+
+static void
+test_cancelled_pending_pool_task_runs_cooperatively(void)
+{
+    TEST("cancelled pending pool task runs cooperatively");
+
+    PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
+    PgyTaskHandle handle = {0};
+
+    EXPECT(task != NULL);
+    task->model = PGY_TASK_MODEL_THREAD;
+    task->lane = PGY_LANE_WORKER_POOL;
+    task->fn = cancelled_pending_pool_task;
+    atomic_init(&task->state, PGY_TASK_PENDING);
+    task->cancel_node = pgy_cancel_node_create(NULL);
+    EXPECT(pgy_task_sync_init(task, "cancelled-pending-test"));
+    handle.task = task;
+
+    atomic_store(&cancelled_pending_runs, 0);
+    pgy_cancel_request(task->cancel_node);
+    pgy_pool_run_task(task);
+
+    EXPECT(atomic_load(&cancelled_pending_runs) == 1);
+    EXPECT(pgy_await_take(handle, int32_t) == 23);
+}
+
 typedef struct {
     int32_t target;
 } StressDamageEffect;
@@ -339,6 +380,7 @@ main(void)
     test_channel_transfers_between_threads();
     test_async_task_cancel_is_visible_inside_task();
     test_async_task_cancel_propagates_to_spawned_children();
+    test_cancelled_pending_pool_task_runs_cooperatively();
     test_zone_has_layer_stress_across_spawned_workers();
 
     printf("Tests run: %d\n", tests_run);
