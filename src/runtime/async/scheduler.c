@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Scheduler implementation for Pergyra's SEA model
+ * PgyMnScheduler implementation for Pergyra's SEA model
  * BSD Style + C# naming conventions
  */
 
@@ -27,7 +27,7 @@
 #include "../pgy_runtime_panic_contract.h"
 
 /* Thread-local current scheduler */
-static __thread Scheduler* tlsCurrentScheduler = NULL;
+static __thread PgyMnScheduler* tlsCurrentScheduler = NULL;
 
 static bool
 scheduler_array_fits(size_t count, size_t elem_size)
@@ -36,7 +36,7 @@ scheduler_array_fits(size_t count, size_t elem_size)
 }
 
 static void
-scheduler_warn(const char* op, const char* reason, Scheduler* scheduler)
+scheduler_warn(const char* op, const char* reason, PgyMnScheduler* scheduler)
 {
     fprintf(stderr,
         "[pgy][scheduler] %s failed: %s (scheduler=%p)\n",
@@ -46,7 +46,7 @@ scheduler_warn(const char* op, const char* reason, Scheduler* scheduler)
 }
 
 static bool
-scheduler_workers_valid(Scheduler* scheduler, const char* op)
+scheduler_workers_valid(PgyMnScheduler* scheduler, const char* op)
 {
     if (scheduler == NULL)
         return false;
@@ -73,28 +73,28 @@ scheduler_stat_decrement_nonzero(atomic_uint_least64_t* counter)
 }
 
 /* Worker thread main function */
-static void* WorkerThreadMain(void* arg)
+static void* pgy_mn_worker_main(void* arg)
 {
-    WorkerThread* worker = (WorkerThread*)arg;
-    Scheduler* scheduler = worker->scheduler;
+    PgyMnWorker* worker = (PgyMnWorker*)arg;
+    PgyMnScheduler* scheduler = worker->scheduler;
     
     /* Set thread-local scheduler */
     tlsCurrentScheduler = scheduler;
     
     while (!atomic_load(&worker->shouldStop)) {
-        Fiber* fiber = NULL;
+        PgyMnFiber* fiber = NULL;
         
         /* Try local queue first */
-        fiber = (Fiber*)ConcurrentQueuePop(worker->localRunQueue);
+        fiber = (PgyMnFiber*)pgy_mn_queue_pop(worker->localRunQueue);
         
         /* If no local work, try global queue */
         if (fiber == NULL) {
-            fiber = (Fiber*)ConcurrentQueuePop(scheduler->globalRunQueue);
+            fiber = (PgyMnFiber*)pgy_mn_queue_pop(scheduler->globalRunQueue);
         }
         
         /* If still no work, try work stealing */
         if (fiber == NULL && scheduler->config.enableWorkStealing) {
-            if (SchedulerStealWork(worker)) {
+            if (pgy_mn_scheduler_steal_work(worker)) {
                 continue; /* Stolen work added to local queue */
             }
         }
@@ -129,17 +129,17 @@ static void* WorkerThreadMain(void* arg)
         fiber->state = FIBER_STATE_RUNNING;
         
         /* Context switch to fiber */
-        FiberContext schedulerContext;
-        FiberSwitchContext(&schedulerContext, &fiber->context);
+        PgyMnFiberContext schedulerContext;
+        pgy_mn_fiber_switch_context(&schedulerContext, &fiber->context);
         
-        /* Fiber yielded or completed */
+        /* PgyMnFiber yielded or completed */
         worker->currentFiber = NULL;
         
         /* Handle fiber state */
         switch (fiber->state) {
             case FIBER_STATE_READY:
                 /* Re-queue for execution */
-                if (!ConcurrentQueuePush(worker->localRunQueue, fiber)) {
+                if (!pgy_mn_queue_push(worker->localRunQueue, fiber)) {
                     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                                       "scheduler failed to requeue ready fiber");
                 }
@@ -153,11 +153,11 @@ static void* WorkerThreadMain(void* arg)
                 atomic_fetch_add(&worker->tasksExecuted, 1);
                 
                 /* Clean up fiber */
-                FiberDestroy(fiber);
+                pgy_mn_fiber_destroy(fiber);
                 break;
                 
             case FIBER_STATE_BLOCKED:
-                /* Fiber is waiting for I/O or timer */
+                /* PgyMnFiber is waiting for I/O or timer */
                 break;
                 
             default:
@@ -172,7 +172,7 @@ static void* WorkerThreadMain(void* arg)
 /* I/O worker thread (POSIX/Linux only — uses epoll) */
 static void* IoWorkerMain(void* arg)
 {
-    Scheduler* scheduler = (Scheduler*)arg;
+    PgyMnScheduler* scheduler = (PgyMnScheduler*)arg;
     struct epoll_event events[128];
 
     while (atomic_load(&scheduler->isRunning)) {
@@ -188,10 +188,10 @@ static void* IoWorkerMain(void* arg)
         
         /* Process I/O events */
         for (int i = 0; i < nEvents; i++) {
-            Fiber* fiber = (Fiber*)events[i].data.ptr;
+            PgyMnFiber* fiber = (PgyMnFiber*)events[i].data.ptr;
             if (fiber != NULL) {
                 /* Unblock the fiber */
-                SchedulerUnblock(fiber);
+                pgy_mn_scheduler_unblock(fiber);
             }
         }
     }
@@ -200,9 +200,9 @@ static void* IoWorkerMain(void* arg)
 }
 #endif /* !_WIN32 */
 
-Scheduler* SchedulerCreate(const SchedulerConfig* config)
+PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
 {
-    Scheduler* scheduler = (Scheduler*)calloc(1, sizeof(Scheduler));
+    PgyMnScheduler* scheduler = (PgyMnScheduler*)calloc(1, sizeof(PgyMnScheduler));
     if (scheduler == NULL) {
         scheduler_warn("create", "scheduler allocation failed", NULL);
         return NULL;
@@ -233,14 +233,14 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     }
     
     scheduler->numWorkers = scheduler->config.numWorkers;
-    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(WorkerThread))) {
+    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(PgyMnWorker))) {
         scheduler_warn("create", "worker array allocation size overflow", scheduler);
         free(scheduler);
         return NULL;
     }
     
     /* Initialize global queue */
-    scheduler->globalRunQueue = ConcurrentQueueCreate();
+    scheduler->globalRunQueue = pgy_mn_queue_create();
     if (scheduler->globalRunQueue == NULL) {
         scheduler_warn("create", "global run queue allocation failed", scheduler);
         free(scheduler);
@@ -252,7 +252,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     scheduler->epollFd = epoll_create1(EPOLL_CLOEXEC);
     if (scheduler->epollFd < 0) {
         scheduler_warn("create", "epoll initialization failed", scheduler);
-        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pgy_mn_queue_destroy(scheduler->globalRunQueue);
         free(scheduler);
         return NULL;
     }
@@ -264,7 +264,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
 #ifndef _WIN32
         close(scheduler->epollFd);
 #endif
-        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pgy_mn_queue_destroy(scheduler->globalRunQueue);
         free(scheduler);
         return NULL;
     }
@@ -273,31 +273,31 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
 #ifndef _WIN32
         close(scheduler->epollFd);
 #endif
-        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pgy_mn_queue_destroy(scheduler->globalRunQueue);
         pthread_mutex_destroy(&scheduler->parkMutex);
         free(scheduler);
         return NULL;
     }
     
     /* Allocate workers */
-    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(WorkerThread))) {
+    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(PgyMnWorker))) {
         scheduler_warn("create", "worker array size overflow", scheduler);
 #ifndef _WIN32
         close(scheduler->epollFd);
 #endif
-        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pgy_mn_queue_destroy(scheduler->globalRunQueue);
         pthread_mutex_destroy(&scheduler->parkMutex);
         pthread_cond_destroy(&scheduler->parkCondition);
         free(scheduler);
         return NULL;
     }
-    scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread));
+    scheduler->workers = (PgyMnWorker*)calloc(scheduler->numWorkers, sizeof(PgyMnWorker));
     if (scheduler->workers == NULL) {
         scheduler_warn("create", "worker array allocation failed", scheduler);
 #ifndef _WIN32
         close(scheduler->epollFd);
 #endif
-        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pgy_mn_queue_destroy(scheduler->globalRunQueue);
         pthread_mutex_destroy(&scheduler->parkMutex);
         pthread_cond_destroy(&scheduler->parkCondition);
         free(scheduler);
@@ -306,22 +306,22 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     
     /* Initialize workers */
     for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
-        WorkerThread* worker = &scheduler->workers[i];
+        PgyMnWorker* worker = &scheduler->workers[i];
         worker->id = i;
         worker->scheduler = scheduler;
-        worker->localRunQueue = ConcurrentQueueCreate();
+        worker->localRunQueue = pgy_mn_queue_create();
         
         if (worker->localRunQueue == NULL) {
             scheduler_warn("create", "worker local queue allocation failed", scheduler);
             /* Clean up and fail */
             for (uint32_t j = 0; j < i; j++) {
-                ConcurrentQueueDestroy(scheduler->workers[j].localRunQueue);
+                pgy_mn_queue_destroy(scheduler->workers[j].localRunQueue);
             }
             free(scheduler->workers);
 #ifndef _WIN32
             close(scheduler->epollFd);
 #endif
-            ConcurrentQueueDestroy(scheduler->globalRunQueue);
+            pgy_mn_queue_destroy(scheduler->globalRunQueue);
             pthread_mutex_destroy(&scheduler->parkMutex);
             pthread_cond_destroy(&scheduler->parkCondition);
             free(scheduler);
@@ -332,20 +332,20 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     return scheduler;
 }
 
-void SchedulerDestroy(Scheduler* scheduler)
+void pgy_mn_scheduler_destroy(PgyMnScheduler* scheduler)
 {
     if (scheduler == NULL) {
         return;
     }
     
     /* Stop the scheduler */
-    SchedulerStop(scheduler);
+    pgy_mn_scheduler_stop(scheduler);
     
     /* Destroy worker queues */
     for (uint32_t i = 0;
          scheduler->workers != NULL && i < scheduler->numWorkers;
          i++) {
-        ConcurrentQueueDestroy(scheduler->workers[i].localRunQueue);
+        pgy_mn_queue_destroy(scheduler->workers[i].localRunQueue);
     }
     
     /* Free workers */
@@ -357,7 +357,7 @@ void SchedulerDestroy(Scheduler* scheduler)
 #endif
     
     /* Destroy global queue */
-    ConcurrentQueueDestroy(scheduler->globalRunQueue);
+    pgy_mn_queue_destroy(scheduler->globalRunQueue);
     
     /* Destroy synchronization */
     pthread_mutex_destroy(&scheduler->parkMutex);
@@ -366,7 +366,7 @@ void SchedulerDestroy(Scheduler* scheduler)
     free(scheduler);
 }
 
-void SchedulerStart(Scheduler* scheduler)
+void pgy_mn_scheduler_start(PgyMnScheduler* scheduler)
 {
     uint32_t startedWorkers = 0;
 #ifndef _WIN32
@@ -391,8 +391,8 @@ void SchedulerStart(Scheduler* scheduler)
     
     /* Start worker threads */
     for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
-        WorkerThread* worker = &scheduler->workers[i];
-        if (pthread_create(&worker->osThread, NULL, WorkerThreadMain, worker) != 0) {
+        PgyMnWorker* worker = &scheduler->workers[i];
+        if (pthread_create(&worker->osThread, NULL, pgy_mn_worker_main, worker) != 0) {
             scheduler_warn("start", "worker thread creation failed", scheduler);
             goto startup_failed;
         }
@@ -430,7 +430,7 @@ startup_failed:
     scheduler_warn("start", "scheduler startup aborted", scheduler);
 }
 
-void SchedulerStop(Scheduler* scheduler)
+void pgy_mn_scheduler_stop(PgyMnScheduler* scheduler)
 {
     if (scheduler == NULL) {
         scheduler_warn("stop", "scheduler is null", scheduler);
@@ -471,18 +471,18 @@ void SchedulerStop(Scheduler* scheduler)
 #endif
 }
 
-Scheduler* SchedulerGetCurrent(void)
+PgyMnScheduler* pgy_mn_scheduler_get_current(void)
 {
     return tlsCurrentScheduler;
 }
 
-void SchedulerSetCurrent(Scheduler* scheduler)
+void pgy_mn_scheduler_set_current(PgyMnScheduler* scheduler)
 {
     tlsCurrentScheduler = scheduler;
 }
 
-void SchedulerRegisterIoEvent(Scheduler* scheduler, int fd, uint32_t events,
-                              Fiber* fiber)
+void pgy_mn_scheduler_register_io_event(PgyMnScheduler* scheduler, int fd, uint32_t events,
+                              PgyMnFiber* fiber)
 {
     if (scheduler == NULL || fiber == NULL || fd < 0) {
         scheduler_warn("register_io", "scheduler, fiber, or fd is invalid",
@@ -512,7 +512,7 @@ void SchedulerRegisterIoEvent(Scheduler* scheduler, int fd, uint32_t events,
 #endif
 }
 
-void SchedulerUnregisterIoEvent(Scheduler* scheduler, int fd)
+void pgy_mn_scheduler_unregister_io_event(PgyMnScheduler* scheduler, int fd)
 {
     if (scheduler == NULL || fd < 0) {
         scheduler_warn("unregister_io", "scheduler or fd is invalid", scheduler);
@@ -533,8 +533,8 @@ void SchedulerUnregisterIoEvent(Scheduler* scheduler, int fd)
 #endif
 }
 
-void SchedulerScheduleTimer(Scheduler* scheduler, uint64_t deadlineNs,
-                            Fiber* fiber)
+void pgy_mn_scheduler_schedule_timer(PgyMnScheduler* scheduler, uint64_t deadlineNs,
+                            PgyMnFiber* fiber)
 {
     (void)scheduler;
     (void)deadlineNs;
@@ -543,7 +543,7 @@ void SchedulerScheduleTimer(Scheduler* scheduler, uint64_t deadlineNs,
                       "scheduler timer support is not implemented");
 }
 
-void SchedulerSetDeterministicMode(Scheduler* scheduler, bool enabled,
+void pgy_mn_scheduler_set_deterministic_mode(PgyMnScheduler* scheduler, bool enabled,
                                    uint32_t seed)
 {
     if (scheduler == NULL) {
@@ -554,7 +554,7 @@ void SchedulerSetDeterministicMode(Scheduler* scheduler, bool enabled,
     scheduler->config.randomSeed = seed;
 }
 
-void SchedulerGetStats(Scheduler* scheduler, SchedulerStats* stats)
+void pgy_mn_scheduler_get_stats(PgyMnScheduler* scheduler, PgyMnSchedulerStats* stats)
 {
     uint64_t completed = 0;
     uint64_t stealAttempts = 0;

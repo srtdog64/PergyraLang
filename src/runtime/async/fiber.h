@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Fiber implementation for Pergyra's Structured Effect Async (SEA) model
+ * PgyMnFiber implementation for Pergyra's Structured Effect Async (SEA) model
  * BSD Style + C# naming conventions
  */
 
@@ -15,7 +15,7 @@
 
 #define FIBER_STACK_SIZE (1024 * 64) /* 64KB stack for each fiber */
 
-/* Fiber states */
+/* PgyMnFiber states */
 typedef enum {
     FIBER_STATE_NEW,
     FIBER_STATE_READY,
@@ -24,18 +24,18 @@ typedef enum {
     FIBER_STATE_BLOCKED,
     FIBER_STATE_DONE,
     FIBER_STATE_ERROR
-} FiberState;
+} PgyMnFiberState;
 
 /* Forward declarations */
-typedef struct Fiber Fiber;
-typedef struct Scheduler Scheduler;
+typedef struct PgyMnFiber PgyMnFiber;
+typedef struct PgyMnScheduler PgyMnScheduler;
 typedef struct Effect Effect;
 
-/* Fiber function signature */
-typedef void (*FiberStartRoutine)(void* arg);
+/* PgyMnFiber function signature */
+typedef void (*PgyMnFiberFn)(void* arg);
 
-/* Fiber context for platform-specific context switching */
-typedef struct FiberContext {
+/* PgyMnFiber context for platform-specific context switching */
+typedef struct PgyMnFiberContext {
     /* For prototyping with setjmp/longjmp */
     jmp_buf jmpBuf;
     
@@ -53,20 +53,20 @@ typedef struct FiberContext {
     
     /* Extended state */
     void* extendedState;    /* For SSE/AVX state if needed */
-} FiberContext;
+} PgyMnFiberContext;
 
-/* Fiber structure */
-struct Fiber {
+/* PgyMnFiber structure */
+struct PgyMnFiber {
     uint64_t id;
-    FiberState state;
+    PgyMnFiberState state;
     
     /* Context switching */
-    FiberContext context;
+    PgyMnFiberContext context;
     void* stackBase;
     size_t stackSize;
     
     /* Execution */
-    FiberStartRoutine startRoutine;
+    PgyMnFiberFn startRoutine;
     void* arg;
     void* result;
     
@@ -75,8 +75,8 @@ struct Fiber {
     int errorCode;
     
     /* Scheduling */
-    Scheduler* scheduler;
-    Fiber* next;            /* For scheduler queues */
+    PgyMnScheduler* scheduler;
+    PgyMnFiber* next;            /* For scheduler queues */
     uint32_t priority;
     
     /* Effect handling */
@@ -86,35 +86,35 @@ struct Fiber {
     bool isCancelled;
     
     /* Parent-child relationship for structured concurrency */
-    Fiber* parent;
-    Fiber* firstChild;
-    Fiber* nextSibling;
+    PgyMnFiber* parent;
+    PgyMnFiber* firstChild;
+    PgyMnFiber* nextSibling;
     
     /* Statistics */
     uint64_t switchCount;
     uint64_t cpuTimeNs;
 };
 
-/* Fiber management functions - BSD style with PascalCase */
-Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg);
-void FiberDestroy(Fiber* fiber);
+/* PgyMnFiber management functions - BSD style with PascalCase */
+PgyMnFiber* pgy_mn_fiber_create(PgyMnFiberFn startRoutine, void* arg);
+void pgy_mn_fiber_destroy(PgyMnFiber* fiber);
 
-/* Fiber control functions */
-void FiberYield(void);
-void FiberSuspend(Fiber* fiber);
-void FiberResume(Fiber* fiber);
-void FiberCancel(Fiber* fiber);
+/* PgyMnFiber control functions */
+void pgy_mn_fiber_yield(void);
+void pgy_mn_fiber_suspend(PgyMnFiber* fiber);
+void pgy_mn_fiber_resume(PgyMnFiber* fiber);
+void pgy_mn_fiber_cancel(PgyMnFiber* fiber);
 
 /* Context switching - Assembly implementation */
-void FiberSwitchContext(FiberContext* oldContext, FiberContext* newContext);
+void pgy_mn_fiber_switch_context(PgyMnFiberContext* oldContext, PgyMnFiberContext* newContext);
 
-/* Fiber query functions */
-Fiber* FiberGetCurrent(void);
-bool FiberIsCancelled(Fiber* fiber);
-FiberState FiberGetState(Fiber* fiber);
+/* PgyMnFiber query functions */
+PgyMnFiber* pgy_mn_fiber_get_current(void);
+bool pgy_mn_fiber_is_cancelled(PgyMnFiber* fiber);
+PgyMnFiberState pgy_mn_fiber_get_state(PgyMnFiber* fiber);
 
 /* Parent-child relationship */
-void FiberAttachChild(Fiber* parent, Fiber* child);
-void FiberDetachChild(Fiber* parent, Fiber* child);
+void pgy_mn_fiber_attach_child(PgyMnFiber* parent, PgyMnFiber* child);
+void pgy_mn_fiber_detach_child(PgyMnFiber* parent, PgyMnFiber* child);
 
 #endif /* PERGYRA_FIBER_H */

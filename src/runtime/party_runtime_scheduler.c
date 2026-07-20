@@ -110,7 +110,7 @@ GetSchedulerForTag(SchedulerTag tag)
     FiberScheduler* scheduler = NULL;
 
     if (tag == SCHEDULER_ANY)
-        return SchedulerGetCurrent();
+        return pgy_mn_scheduler_get_current();
 
     if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3) {
         pthread_mutex_lock(&g_schedulerRegistryMutex);
@@ -128,7 +128,7 @@ GetSchedulerForTag(SchedulerTag tag)
 void
 DumpFiberMaps(void)
 {
-    printf("=== Fiber Map Dump ===\n");
+    printf("=== PgyMnFiber Map Dump ===\n");
 
     pthread_mutex_lock(&g_schedulerRegistryMutex);
     printf("Registered Schedulers: %zu\n", g_schedulerCount);

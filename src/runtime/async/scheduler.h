@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Scheduler implementation for Pergyra's Structured Effect Async (SEA) model
+ * PgyMnScheduler implementation for Pergyra's Structured Effect Async (SEA) model
  * BSD Style + C# naming conventions
  */
 
@@ -17,26 +17,26 @@
 #include "fiber.h"
 #include "concurrent_queue.h"
 
-/* Scheduler configuration */
-typedef struct SchedulerConfig {
+/* PgyMnScheduler configuration */
+typedef struct PgyMnSchedulerConfig {
     uint32_t numWorkers;
     bool isDeterministic;      /* For testing */
     uint32_t randomSeed;       /* For deterministic mode */
     size_t stackSizeHint;
     bool enableWorkStealing;
-} SchedulerConfig;
+} PgyMnSchedulerConfig;
 
 /* Worker thread state */
-typedef struct WorkerThread {
+typedef struct PgyMnWorker {
     uint32_t id;
     pthread_t osThread;
-    struct Scheduler* scheduler;
+    struct PgyMnScheduler* scheduler;
     
     /* Local run queue for better cache locality */
-    ConcurrentQueue* localRunQueue;
+    PgyMnQueue* localRunQueue;
     
     /* Current fiber */
-    Fiber* currentFiber;
+    PgyMnFiber* currentFiber;
     
     /* Statistics */
     atomic_uint_least64_t tasksExecuted;
@@ -46,19 +46,19 @@ typedef struct WorkerThread {
     /* Worker state */
     atomic_bool shouldStop;
     atomic_bool isParked;      /* Sleeping due to no work */
-} WorkerThread;
+} PgyMnWorker;
 
-/* Scheduler structure */
-typedef struct Scheduler {
+/* PgyMnScheduler structure */
+typedef struct PgyMnScheduler {
     /* Configuration */
-    SchedulerConfig config;
+    PgyMnSchedulerConfig config;
     
     /* Workers */
     uint32_t numWorkers;
-    WorkerThread* workers;
+    PgyMnWorker* workers;
     
     /* Global queue for new fibers */
-    ConcurrentQueue* globalRunQueue;
+    PgyMnQueue* globalRunQueue;
     
     /* I/O and timer handling */
 #ifndef _WIN32
@@ -66,7 +66,7 @@ typedef struct Scheduler {
     pthread_t ioWorker;       /* Dedicated I/O thread */
 #endif
     
-    /* Scheduler state */
+    /* PgyMnScheduler state */
     atomic_bool isRunning;
     atomic_uint_least64_t totalFibers;
     atomic_uint_least64_t activeFibers;
@@ -78,51 +78,51 @@ typedef struct Scheduler {
     pthread_mutex_t parkMutex;
     pthread_cond_t parkCondition;
     atomic_uint_least32_t parkedWorkers;
-} Scheduler;
+} PgyMnScheduler;
 
-/* Scheduler lifecycle - BSD style with PascalCase */
-Scheduler* SchedulerCreate(const SchedulerConfig* config);
-void SchedulerDestroy(Scheduler* scheduler);
+/* PgyMnScheduler lifecycle - BSD style with PascalCase */
+PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config);
+void pgy_mn_scheduler_destroy(PgyMnScheduler* scheduler);
 
-/* Scheduler control */
-void SchedulerStart(Scheduler* scheduler);
-void SchedulerStop(Scheduler* scheduler);
+/* PgyMnScheduler control */
+void pgy_mn_scheduler_start(PgyMnScheduler* scheduler);
+void pgy_mn_scheduler_stop(PgyMnScheduler* scheduler);
 
-/* Fiber scheduling */
-void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg);
-void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine, void* arg, uint32_t priority);
-bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint32_t priority);
+/* PgyMnFiber scheduling */
+void pgy_mn_scheduler_spawn(PgyMnScheduler* scheduler, PgyMnFiberFn routine, void* arg);
+void pgy_mn_scheduler_spawn_with_priority(PgyMnScheduler* scheduler, PgyMnFiberFn routine, void* arg, uint32_t priority);
+bool pgy_mn_scheduler_enqueue_fiber_with_priority(PgyMnScheduler* scheduler, PgyMnFiber* fiber, uint32_t priority);
 
 /* Called by fibers */
-void SchedulerYield(void);
-void SchedulerBlock(Fiber* fiber);
-void SchedulerUnblock(Fiber* fiber);
+void pgy_mn_scheduler_yield(void);
+void pgy_mn_scheduler_block(PgyMnFiber* fiber);
+void pgy_mn_scheduler_unblock(PgyMnFiber* fiber);
 
 /* Work stealing */
-bool SchedulerStealWork(WorkerThread* thief);
+bool pgy_mn_scheduler_steal_work(PgyMnWorker* thief);
 
 /* I/O and timer integration */
-void SchedulerRegisterIoEvent(Scheduler* scheduler, int fd, uint32_t events, Fiber* fiber);
-void SchedulerUnregisterIoEvent(Scheduler* scheduler, int fd);
-void SchedulerScheduleTimer(Scheduler* scheduler, uint64_t deadlineNs, Fiber* fiber);
+void pgy_mn_scheduler_register_io_event(PgyMnScheduler* scheduler, int fd, uint32_t events, PgyMnFiber* fiber);
+void pgy_mn_scheduler_unregister_io_event(PgyMnScheduler* scheduler, int fd);
+void pgy_mn_scheduler_schedule_timer(PgyMnScheduler* scheduler, uint64_t deadlineNs, PgyMnFiber* fiber);
 
 /* Deterministic testing support */
-void SchedulerSetDeterministicMode(Scheduler* scheduler, bool enabled, uint32_t seed);
+void pgy_mn_scheduler_set_deterministic_mode(PgyMnScheduler* scheduler, bool enabled, uint32_t seed);
 
 /* Statistics */
-typedef struct SchedulerStats {
+typedef struct PgyMnSchedulerStats {
     uint64_t totalFibersCreated;
     uint64_t totalFibersCompleted;
     uint64_t totalContextSwitches;
     uint64_t totalStealAttempts;
     uint64_t totalStealSuccesses;
     uint64_t totalIoEvents;
-} SchedulerStats;
+} PgyMnSchedulerStats;
 
-void SchedulerGetStats(Scheduler* scheduler, SchedulerStats* stats);
+void pgy_mn_scheduler_get_stats(PgyMnScheduler* scheduler, PgyMnSchedulerStats* stats);
 
 /* Thread-local access to current scheduler and fiber */
-Scheduler* SchedulerGetCurrent(void);
-void SchedulerSetCurrent(Scheduler* scheduler);
+PgyMnScheduler* pgy_mn_scheduler_get_current(void);
+void pgy_mn_scheduler_set_current(PgyMnScheduler* scheduler);
 
 #endif /* PERGYRA_SCHEDULER_H */

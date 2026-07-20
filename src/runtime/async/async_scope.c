@@ -60,12 +60,12 @@ AsyncScope* AsyncScopeCreate(AsyncScope* parent)
     
     /* Initialize fiber list */
     scope->fiberCapacity = INITIAL_FIBER_CAPACITY;
-    if (scope->fiberCapacity > SIZE_MAX / sizeof(Fiber*)) {
+    if (scope->fiberCapacity > SIZE_MAX / sizeof(PgyMnFiber*)) {
         async_scope_warn("create", "fiber list allocation size overflow", parent);
         free(scope);
         return NULL;
     }
-    scope->fibers = (Fiber**)calloc(scope->fiberCapacity, sizeof(Fiber*));
+    scope->fibers = (PgyMnFiber**)calloc(scope->fiberCapacity, sizeof(PgyMnFiber*));
     if (scope->fibers == NULL) {
         async_scope_warn("create", "fiber list allocation failed", parent);
         free(scope);
@@ -136,7 +136,7 @@ void AsyncScopeDestroy(AsyncScope* scope)
 }
 
 /* Internal function to add fiber to scope */
-static bool AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
+static bool AsyncScopeAddFiber(AsyncScope* scope, PgyMnFiber* fiber)
 {
     bool added = false;
 
@@ -145,17 +145,17 @@ static bool AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
     /* Resize array if needed */
     if (scope->fiberCount >= scope->fiberCapacity) {
         size_t newCapacity;
-        Fiber** newFibers;
+        PgyMnFiber** newFibers;
 
         if (scope->fiberCapacity > SIZE_MAX / 2
-            || scope->fiberCapacity > SIZE_MAX / (2 * sizeof(Fiber*))) {
+            || scope->fiberCapacity > SIZE_MAX / (2 * sizeof(PgyMnFiber*))) {
             async_scope_warn("add_fiber", "fiber list capacity overflow", scope);
             pthread_mutex_unlock(&scope->fiberListMutex);
             return false;
         }
         newCapacity = scope->fiberCapacity * 2;
-        newFibers = (Fiber**)realloc(scope->fibers,
-                                     newCapacity * sizeof(Fiber*));
+        newFibers = (PgyMnFiber**)realloc(scope->fibers,
+                                     newCapacity * sizeof(PgyMnFiber*));
         
         if (newFibers != NULL) {
             scope->fibers = newFibers;
@@ -177,7 +177,7 @@ static bool AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
 }
 
 /* Internal function to remove fiber from scope */
-static void AsyncScopeRemoveFiber(AsyncScope* scope, Fiber* fiber)
+static void AsyncScopeRemoveFiber(AsyncScope* scope, PgyMnFiber* fiber)
 {
     pthread_mutex_lock(&scope->fiberListMutex);
     
@@ -207,7 +207,7 @@ static void AsyncScopeRemoveFiber(AsyncScope* scope, Fiber* fiber)
     pthread_mutex_unlock(&scope->fiberListMutex);
 }
 
-static void AsyncScopeForgetFiber(AsyncScope* scope, Fiber* fiber)
+static void AsyncScopeForgetFiber(AsyncScope* scope, PgyMnFiber* fiber)
 {
     pthread_mutex_lock(&scope->fiberListMutex);
     for (size_t i = 0; i < scope->fiberCount; i++) {
@@ -220,10 +220,10 @@ static void AsyncScopeForgetFiber(AsyncScope* scope, Fiber* fiber)
     pthread_mutex_unlock(&scope->fiberListMutex);
 }
 
-/* Fiber wrapper to track scope */
+/* PgyMnFiber wrapper to track scope */
 typedef struct ScopedFiberData {
     AsyncScope* scope;
-    FiberStartRoutine originalRoutine;
+    PgyMnFiberFn originalRoutine;
     void* originalArg;
 } ScopedFiberData;
 
@@ -231,9 +231,9 @@ static void ScopedFiberWrapper(void* arg)
 {
     ScopedFiberData* data = (ScopedFiberData*)arg;
     AsyncScope* scope;
-    FiberStartRoutine routine;
+    PgyMnFiberFn routine;
     void* originalArg;
-    Fiber* currentFiber;
+    PgyMnFiber* currentFiber;
 
     if (data == NULL)
         return;
@@ -245,7 +245,7 @@ static void ScopedFiberWrapper(void* arg)
     /* Free wrapper data */
     free(data);
 
-    currentFiber = FiberGetCurrent();
+    currentFiber = pgy_mn_fiber_get_current();
 
     /* Remove from scope on every exit path; cancel-before-start must not hang
      * AsyncScopeDestroy/WaitAll. */
@@ -255,16 +255,16 @@ static void ScopedFiberWrapper(void* arg)
     AsyncScopeRemoveFiber(scope, currentFiber);
 }
 
-Fiber* AsyncScopeSpawn(AsyncScope* scope, FiberStartRoutine work, void* arg)
+PgyMnFiber* AsyncScopeSpawn(AsyncScope* scope, PgyMnFiberFn work, void* arg)
 {
     return AsyncScopeSpawnWithPriority(scope, work, arg, 0);
 }
 
-Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, void* arg, uint32_t priority)
+PgyMnFiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, PgyMnFiberFn work, void* arg, uint32_t priority)
 {
-    Scheduler* scheduler;
+    PgyMnScheduler* scheduler;
     ScopedFiberData* data;
-    Fiber* fiber;
+    PgyMnFiber* fiber;
 
     if (scope == NULL || work == NULL) {
         if (scope == NULL) {
@@ -302,7 +302,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     data->originalArg = arg;
     
     /* Get current scheduler */
-    scheduler = SchedulerGetCurrent();
+    scheduler = pgy_mn_scheduler_get_current();
     if (scheduler == NULL) {
         async_scope_warn("spawn", "no current scheduler", scope);
         free(data);
@@ -311,7 +311,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     }
     
     /* Create fiber through scheduler */
-    fiber = FiberCreate(ScopedFiberWrapper, data);
+    fiber = pgy_mn_fiber_create(ScopedFiberWrapper, data);
     if (fiber == NULL) {
         async_scope_warn("spawn", "fiber creation failed", scope);
         free(data);
@@ -320,25 +320,25 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     }
     
     /* Set parent fiber for structured concurrency */
-    Fiber* currentFiber = FiberGetCurrent();
+    PgyMnFiber* currentFiber = pgy_mn_fiber_get_current();
     if (currentFiber != NULL) {
-        FiberAttachChild(currentFiber, fiber);
+        pgy_mn_fiber_attach_child(currentFiber, fiber);
     }
     
     /* Add to scope tracking before enqueueing the exact same fiber. */
     if (!AsyncScopeAddFiber(scope, fiber)) {
         async_scope_warn("spawn", "scope tracking failed", scope);
-        FiberDestroy(fiber);
+        pgy_mn_fiber_destroy(fiber);
         free(data);
         pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
     }
     
     /* Schedule the fiber */
-    if (!SchedulerEnqueueFiberWithPriority(scheduler, fiber, priority)) {
+    if (!pgy_mn_scheduler_enqueue_fiber_with_priority(scheduler, fiber, priority)) {
         async_scope_warn("spawn", "scheduler enqueue failed", scope);
         AsyncScopeForgetFiber(scope, fiber);
-        FiberDestroy(fiber);
+        pgy_mn_fiber_destroy(fiber);
         free(data);
         pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
@@ -361,7 +361,7 @@ void AsyncScopeCancel(AsyncScope* scope)
     pthread_mutex_lock(&scope->fiberListMutex);
     
     for (size_t i = 0; i < scope->fiberCount; i++) {
-        FiberCancel(scope->fibers[i]);
+        pgy_mn_fiber_cancel(scope->fibers[i]);
     }
     
     pthread_mutex_unlock(&scope->fiberListMutex);
@@ -408,7 +408,7 @@ void AsyncScopeWaitAll(AsyncScope* scope)
         }
         
         /* Yield to allow other fibers to run */
-        SchedulerYield();
+        pgy_mn_scheduler_yield();
     }
 }
 
@@ -445,7 +445,7 @@ bool AsyncScopeWaitAllWithTimeout(AsyncScope* scope, uint64_t timeoutNs)
         }
         
         /* Yield to allow other fibers to run */
-        SchedulerYield();
+        pgy_mn_scheduler_yield();
     }
 }
 

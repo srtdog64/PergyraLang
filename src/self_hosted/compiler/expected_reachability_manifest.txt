@@ -5,7 +5,7 @@ declared_only=3
 invariant|rows_well_formed|ok
 invariant|names_unique|ok
 invariant|both_polarities|ok
-reach|async_fiber_scheduler|SchedulerCreate|src/runtime/async/|src|declared_only
+reach|async_fiber_scheduler|pgy_mn_scheduler_create|src/runtime/async/|src|declared_only
 reach|lane_fact_in_codegen|pgy_verified_spawn_lane_plan_lookup|src/compiler/verified_projection_plan|src/codegen|live
 reach|lane_fact_in_air|pgy_classify_execution_lane|src/compiler/execution_lane|src/compiler|live
 reach|lane_spawn_dispatch|pgy_lane_spawn_dispatch|src/runtime/pgy_lane_scheduler|src/codegen|live
@@ -15,7 +15,7 @@ reach|capability_manifest_loader|pgy_cap_set_manifest_export|src/runtime/pgy_run
 reach|checked_float_to_int|pgy_checked_f2i_i32_export|src/runtime/|src/codegen|live
 reach|checked_add_i64|pgy_checked_add_i64_export|src/codegen/llvm_runtime_core_builtin_decl|src/codegen|declared_only
 reach|checked_mul_i64|pgy_checked_mul_i64_export|src/codegen/llvm_runtime_core_builtin_decl|src/codegen|declared_only
-note|async_fiber_scheduler|3k lines compiled into the compiler binary, no caller outside its own directory; pre-house PascalCase API, absent from the emitted-program runtime family; joining it as the MovableScheduler executor is board WO-MN-1. This row originally pinned pgy_scheduler_create, a symbol that does not exist -- the home-existence census check exists because of that discovery
+note|async_fiber_scheduler|3k lines compiled into the compiler binary; renamed into the pgy_mn_ house family (WO-MN-1 R0). The party runtime references the TLS getter, but nothing creates a scheduler, so the machine still never runs; joining it as the MovableScheduler executor is rungs R1-R2 of docs/194. This row originally pinned pgy_scheduler_create, a symbol that never existed -- the home-existence census check exists because of that discovery
 note|lane_fact_in_codegen|both spawn emitters consume the AIR-classified lane through the verified spawn-lane plan lookup; WO-PAR-NOVEL step 2 closed
 note|lane_fact_in_air|AIR verification consumes the classifier: air.c and air_execution_lane.c
 note|lane_spawn_dispatch|both spawn emitters hand the lane to the runtime facade

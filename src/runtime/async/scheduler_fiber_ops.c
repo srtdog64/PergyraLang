@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Scheduler fiber enqueue/yield/block operations.
+ * PgyMnScheduler fiber enqueue/yield/block operations.
  */
 
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #include "../pgy_runtime_panic_contract.h"
 
 static void
-scheduler_ops_warn(const char* op, const char* reason, Scheduler* scheduler)
+scheduler_ops_warn(const char* op, const char* reason, PgyMnScheduler* scheduler)
 {
     fprintf(stderr,
         "[pgy][scheduler] %s failed: %s (scheduler=%p)\n",
@@ -22,14 +22,14 @@ scheduler_ops_warn(const char* op, const char* reason, Scheduler* scheduler)
         (void*)scheduler);
 }
 
-void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg)
+void pgy_mn_scheduler_spawn(PgyMnScheduler* scheduler, PgyMnFiberFn routine, void* arg)
 {
-    SchedulerSpawnWithPriority(scheduler, routine, arg, 0);
+    pgy_mn_scheduler_spawn_with_priority(scheduler, routine, arg, 0);
 }
 
-void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine, void* arg, uint32_t priority)
+void pgy_mn_scheduler_spawn_with_priority(PgyMnScheduler* scheduler, PgyMnFiberFn routine, void* arg, uint32_t priority)
 {
-    Fiber* fiber;
+    PgyMnFiber* fiber;
 
     if (scheduler == NULL) {
         scheduler_ops_warn("spawn", "scheduler is null", scheduler);
@@ -44,17 +44,17 @@ void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine,
         return;
     }
     
-    fiber = FiberCreate(routine, arg);
+    fiber = pgy_mn_fiber_create(routine, arg);
     if (fiber == NULL) {
         scheduler_ops_warn("spawn", "fiber creation failed", scheduler);
         return;
     }
 
-    if (!SchedulerEnqueueFiberWithPriority(scheduler, fiber, priority))
-        FiberDestroy(fiber);
+    if (!pgy_mn_scheduler_enqueue_fiber_with_priority(scheduler, fiber, priority))
+        pgy_mn_fiber_destroy(fiber);
 }
 
-bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint32_t priority)
+bool pgy_mn_scheduler_enqueue_fiber_with_priority(PgyMnScheduler* scheduler, PgyMnFiber* fiber, uint32_t priority)
 {
     if (scheduler == NULL) {
         scheduler_ops_warn("enqueue", "scheduler is null", scheduler);
@@ -77,7 +77,7 @@ bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint3
     atomic_fetch_add(&scheduler->activeFibers, 1);
     
     /* Add to global queue */
-    if (!ConcurrentQueuePush(scheduler->globalRunQueue, fiber)) {
+    if (!pgy_mn_queue_push(scheduler->globalRunQueue, fiber)) {
         atomic_fetch_sub(&scheduler->totalFibers, 1);
         atomic_fetch_sub(&scheduler->activeFibers, 1);
         return false;
@@ -93,18 +93,18 @@ bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint3
     return true;
 }
 
-void SchedulerYield(void)
+void pgy_mn_scheduler_yield(void)
 {
-    Fiber* current = FiberGetCurrent();
+    PgyMnFiber* current = pgy_mn_fiber_get_current();
     if (current == NULL) {
         return;
     }
     
     current->state = FIBER_STATE_READY;
-    FiberYield();
+    pgy_mn_fiber_yield();
 }
 
-void SchedulerBlock(Fiber* fiber)
+void pgy_mn_scheduler_block(PgyMnFiber* fiber)
 {
     if (fiber == NULL) {
         return;
@@ -112,12 +112,12 @@ void SchedulerBlock(Fiber* fiber)
     
     fiber->state = FIBER_STATE_BLOCKED;
     
-    if (fiber == FiberGetCurrent()) {
-        FiberYield();
+    if (fiber == pgy_mn_fiber_get_current()) {
+        pgy_mn_fiber_yield();
     }
 }
 
-void SchedulerUnblock(Fiber* fiber)
+void pgy_mn_scheduler_unblock(PgyMnFiber* fiber)
 {
     if (fiber == NULL || fiber->state != FIBER_STATE_BLOCKED) {
         return;
@@ -126,13 +126,13 @@ void SchedulerUnblock(Fiber* fiber)
     fiber->state = FIBER_STATE_READY;
     
     /* Add to scheduler queue */
-    Scheduler* scheduler = fiber->scheduler;
+    PgyMnScheduler* scheduler = fiber->scheduler;
     if (scheduler != NULL) {
         if (scheduler->globalRunQueue == NULL) {
             scheduler_ops_warn("unblock", "scheduler global queue is null", scheduler);
             return;
         }
-        if (!ConcurrentQueuePush(scheduler->globalRunQueue, fiber)) {
+        if (!pgy_mn_queue_push(scheduler->globalRunQueue, fiber)) {
             PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                               "scheduler failed to unblock fiber");
         }
@@ -146,13 +146,13 @@ void SchedulerUnblock(Fiber* fiber)
     }
 }
 
-bool SchedulerStealWork(WorkerThread* thief)
+bool pgy_mn_scheduler_steal_work(PgyMnWorker* thief)
 {
     if (thief == NULL || thief->scheduler == NULL || thief->localRunQueue == NULL) {
         scheduler_ops_warn("steal", "worker or local queue is null", NULL);
         return false;
     }
-    Scheduler* scheduler = thief->scheduler;
+    PgyMnScheduler* scheduler = thief->scheduler;
     if (scheduler->numWorkers == 0 || scheduler->workers == NULL) {
         scheduler_ops_warn("steal", "scheduler worker array is not initialized", scheduler);
         return false;
@@ -164,16 +164,16 @@ bool SchedulerStealWork(WorkerThread* thief)
         victimId = (victimId + 1) % scheduler->numWorkers;
     }
     
-    WorkerThread* victim = &scheduler->workers[victimId];
+    PgyMnWorker* victim = &scheduler->workers[victimId];
     if (victim->localRunQueue == NULL) {
         scheduler_ops_warn("steal", "victim local queue is null", scheduler);
         return false;
     }
     
     /* Try to steal from victim's local queue */
-    void* stolen = ConcurrentQueuePop(victim->localRunQueue);
+    void* stolen = pgy_mn_queue_pop(victim->localRunQueue);
     if (stolen != NULL) {
-        if (!ConcurrentQueuePush(thief->localRunQueue, stolen)) {
+        if (!pgy_mn_queue_push(thief->localRunQueue, stolen)) {
             PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                               "scheduler failed to enqueue stolen fiber");
         }

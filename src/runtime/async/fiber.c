@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Fiber implementation for Pergyra's SEA model
+ * PgyMnFiber implementation for Pergyra's SEA model
  * BSD Style + C# naming conventions
  */
 
@@ -22,13 +22,13 @@
 #include "../pgy_runtime_panic_contract.h"
 
 /* Thread-local current fiber */
-static __thread Fiber* tlsCurrentFiber = NULL;
+static __thread PgyMnFiber* tlsCurrentFiber = NULL;
 
-/* Fiber ID counter */
+/* PgyMnFiber ID counter */
 static atomic_uint_least64_t fiberIdCounter = 0;
 
 static void
-fiber_warn(const char *op, const char *reason, Fiber *fiber)
+fiber_warn(const char *op, const char *reason, PgyMnFiber *fiber)
 {
     fprintf(stderr,
             "[pgy][fiber] %s failed: %s (fiber=%p)\n",
@@ -38,7 +38,7 @@ fiber_warn(const char *op, const char *reason, Fiber *fiber)
 }
 
 /* Internal fiber entry point wrapper */
-static void FiberEntryPoint(Fiber* fiber)
+static void pgy_mn_fiber_entry_point(PgyMnFiber* fiber)
 {
     if (fiber == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
@@ -62,21 +62,21 @@ static void FiberEntryPoint(Fiber* fiber)
     fiber->state = FIBER_STATE_DONE;
     
     /* Return control to scheduler */
-    SchedulerYield();
+    pgy_mn_scheduler_yield();
     
     /* Should never reach here */
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                       "fiber returned after completion");
 }
 
-Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
+PgyMnFiber* pgy_mn_fiber_create(PgyMnFiberFn startRoutine, void* arg)
 {
     if (startRoutine == NULL) {
         fiber_warn("create", "start routine is null", NULL);
         return NULL;
     }
     
-    Fiber* fiber = (Fiber*)calloc(1, sizeof(Fiber));
+    PgyMnFiber* fiber = (PgyMnFiber*)calloc(1, sizeof(PgyMnFiber));
     if (fiber == NULL) {
         fiber_warn("create", "fiber allocation failed", NULL);
         return NULL;
@@ -122,13 +122,13 @@ Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
         fiber->state = FIBER_STATE_READY;
     } else {
         /* Resumed - start execution */
-        FiberEntryPoint(fiber);
+        pgy_mn_fiber_entry_point(fiber);
     }
     
     return fiber;
 }
 
-void FiberDestroy(Fiber* fiber)
+void pgy_mn_fiber_destroy(PgyMnFiber* fiber)
 {
     if (fiber == NULL) {
         return;
@@ -138,19 +138,19 @@ void FiberDestroy(Fiber* fiber)
     if (fiber->state == FIBER_STATE_RUNNING ||
         fiber->state == FIBER_STATE_READY ||
         fiber->state == FIBER_STATE_SUSPENDED) {
-        FiberCancel(fiber);
+        pgy_mn_fiber_cancel(fiber);
     }
     
     /* Detach from parent */
     if (fiber->parent != NULL) {
-        FiberDetachChild(fiber->parent, fiber);
+        pgy_mn_fiber_detach_child(fiber->parent, fiber);
     }
     
     /* Cancel all children */
-    Fiber* child = fiber->firstChild;
+    PgyMnFiber* child = fiber->firstChild;
     while (child != NULL) {
-        Fiber* next = child->nextSibling;
-        FiberCancel(child);
+        PgyMnFiber* next = child->nextSibling;
+        pgy_mn_fiber_cancel(child);
         child = next;
     }
     
@@ -176,9 +176,9 @@ void FiberDestroy(Fiber* fiber)
     free(fiber);
 }
 
-void FiberYield(void)
+void pgy_mn_fiber_yield(void)
 {
-    Fiber* current = FiberGetCurrent();
+    PgyMnFiber* current = pgy_mn_fiber_get_current();
     if (current == NULL) {
         fiber_warn("yield", "no current fiber", NULL);
         return;
@@ -187,14 +187,14 @@ void FiberYield(void)
     /* Save current context and switch to scheduler */
     if (setjmp(current->context.jmpBuf) == 0) {
         /* Saved context - switch to scheduler */
-        SchedulerYield();
+        pgy_mn_scheduler_yield();
     } else {
         /* Resumed - continue execution */
         return;
     }
 }
 
-void FiberSuspend(Fiber* fiber)
+void pgy_mn_fiber_suspend(PgyMnFiber* fiber)
 {
     if (fiber == NULL || fiber->state != FIBER_STATE_RUNNING) {
         return;
@@ -202,12 +202,12 @@ void FiberSuspend(Fiber* fiber)
     
     fiber->state = FIBER_STATE_SUSPENDED;
     
-    if (fiber == FiberGetCurrent()) {
-        FiberYield();
+    if (fiber == pgy_mn_fiber_get_current()) {
+        pgy_mn_fiber_yield();
     }
 }
 
-void FiberResume(Fiber* fiber)
+void pgy_mn_fiber_resume(PgyMnFiber* fiber)
 {
     if (fiber == NULL || fiber->state != FIBER_STATE_SUSPENDED) {
         fiber_warn("resume", "fiber is null or not suspended", fiber);
@@ -217,15 +217,15 @@ void FiberResume(Fiber* fiber)
     fiber->state = FIBER_STATE_READY;
     
     /* Schedule for execution */
-    Scheduler* scheduler = fiber->scheduler;
+    PgyMnScheduler* scheduler = fiber->scheduler;
     if (scheduler != NULL) {
-        SchedulerUnblock(fiber);
+        pgy_mn_scheduler_unblock(fiber);
     } else {
         fiber_warn("resume", "fiber has no scheduler", fiber);
     }
 }
 
-void FiberCancel(Fiber* fiber)
+void pgy_mn_fiber_cancel(PgyMnFiber* fiber)
 {
     if (fiber == NULL) {
         return;
@@ -235,9 +235,9 @@ void FiberCancel(Fiber* fiber)
     fiber->isCancelled = true;
     
     /* Cancel all children recursively */
-    Fiber* child = fiber->firstChild;
+    PgyMnFiber* child = fiber->firstChild;
     while (child != NULL) {
-        FiberCancel(child);
+        pgy_mn_fiber_cancel(child);
         child = child->nextSibling;
     }
     
@@ -248,22 +248,22 @@ void FiberCancel(Fiber* fiber)
     }
 }
 
-Fiber* FiberGetCurrent(void)
+PgyMnFiber* pgy_mn_fiber_get_current(void)
 {
     return tlsCurrentFiber;
 }
 
-bool FiberIsCancelled(Fiber* fiber)
+bool pgy_mn_fiber_is_cancelled(PgyMnFiber* fiber)
 {
     return fiber != NULL && fiber->isCancelled;
 }
 
-FiberState FiberGetState(Fiber* fiber)
+PgyMnFiberState pgy_mn_fiber_get_state(PgyMnFiber* fiber)
 {
     return fiber != NULL ? fiber->state : FIBER_STATE_ERROR;
 }
 
-void FiberAttachChild(Fiber* parent, Fiber* child)
+void pgy_mn_fiber_attach_child(PgyMnFiber* parent, PgyMnFiber* child)
 {
     if (parent == NULL || child == NULL) {
         return;
@@ -277,7 +277,7 @@ void FiberAttachChild(Fiber* parent, Fiber* child)
     parent->firstChild = child;
 }
 
-void FiberDetachChild(Fiber* parent, Fiber* child)
+void pgy_mn_fiber_detach_child(PgyMnFiber* parent, PgyMnFiber* child)
 {
     if (parent == NULL || child == NULL || child->parent != parent) {
         return;
@@ -287,7 +287,7 @@ void FiberDetachChild(Fiber* parent, Fiber* child)
     if (parent->firstChild == child) {
         parent->firstChild = child->nextSibling;
     } else {
-        Fiber* prev = parent->firstChild;
+        PgyMnFiber* prev = parent->firstChild;
         while (prev != NULL && prev->nextSibling != child) {
             prev = prev->nextSibling;
         }
@@ -304,8 +304,8 @@ void FiberDetachChild(Fiber* parent, Fiber* child)
 /* Assembly implementation for context switching */
 #ifdef __x86_64__
 __asm__(
-    ".global FiberSwitchContext\n"
-    "FiberSwitchContext:\n"
+    ".global pgy_mn_fiber_switch_context\n"
+    "pgy_mn_fiber_switch_context:\n"
     "    # Save callee-saved registers\n"
     "    pushq %rbp\n"
     "    pushq %rbx\n"
@@ -333,7 +333,7 @@ __asm__(
 );
 #else
 /* Fallback to setjmp/longjmp for non-x86_64 platforms */
-void FiberSwitchContext(FiberContext* oldContext, FiberContext* newContext)
+void pgy_mn_fiber_switch_context(PgyMnFiberContext* oldContext, PgyMnFiberContext* newContext)
 {
     if (setjmp(oldContext->jmpBuf) == 0) {
         longjmp(newContext->jmpBuf, 1);

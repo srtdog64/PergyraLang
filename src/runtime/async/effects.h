@@ -15,7 +15,7 @@
 
 /* Forward declarations */
 typedef struct Channel Channel;
-typedef struct Fiber Fiber;
+typedef struct PgyMnFiber PgyMnFiber;
 
 /* Effect types */
 typedef enum {
@@ -34,7 +34,7 @@ typedef enum {
     EFFECT_TYPE_SLEEP,
     EFFECT_TYPE_TIMEOUT,
     
-    /* Fiber Effects */
+    /* PgyMnFiber Effects */
     EFFECT_TYPE_SPAWN,
     EFFECT_TYPE_JOIN,
     
@@ -88,15 +88,15 @@ typedef struct Effect {
             uint64_t nanoseconds;
         } time;
         
-        /* Fiber operations */
+        /* PgyMnFiber operations */
         struct {
             void (*routine)(void*);
             void* arg;
-            Fiber** fiberHandle;
+            PgyMnFiber** fiberHandle;
         } spawn;
         
         struct {
-            Fiber* fiber;
+            PgyMnFiber* fiber;
             void** result;
         } join;
         

@@ -14,37 +14,37 @@
 #include <stddef.h>
 
 /* Queue node */
-typedef struct QueueNode {
+typedef struct PgyMnQueueNode {
     void* data;
     atomic_intptr_t next;
-} QueueNode;
+} PgyMnQueueNode;
 
 /* Concurrent FIFO queue abstraction used by the async scheduler.
  * Current implementation is a mutex-backed FIFO queue. */
-typedef struct ConcurrentQueue {
+typedef struct PgyMnQueue {
     atomic_intptr_t head;
     atomic_intptr_t tail;
     atomic_size_t size;
-} ConcurrentQueue;
+} PgyMnQueue;
 
 /* Queue operations - BSD style with PascalCase */
-ConcurrentQueue* ConcurrentQueueCreate(void);
+PgyMnQueue* pgy_mn_queue_create(void);
 /* Destroy is quiescent-only: callers must stop producers/consumers first. */
-void ConcurrentQueueDestroy(ConcurrentQueue* queue);
+void pgy_mn_queue_destroy(PgyMnQueue* queue);
 
 /* Enqueue/Dequeue.
  * NULL payloads are rejected: Pop uses NULL as the empty/failure sentinel. */
-bool ConcurrentQueuePush(ConcurrentQueue* queue, void* data);
-void* ConcurrentQueuePop(ConcurrentQueue* queue);
-void* ConcurrentQueueTryPop(ConcurrentQueue* queue);
+bool pgy_mn_queue_push(PgyMnQueue* queue, void* data);
+void* pgy_mn_queue_pop(PgyMnQueue* queue);
+void* pgy_mn_queue_try_pop(PgyMnQueue* queue);
 
 /* Queue state */
-size_t ConcurrentQueueSize(ConcurrentQueue* queue);
-bool ConcurrentQueueIsEmpty(ConcurrentQueue* queue);
+size_t pgy_mn_queue_size(PgyMnQueue* queue);
+bool pgy_mn_queue_is_empty(PgyMnQueue* queue);
 
 /* Batch operations for efficiency.
  * PushBatch is all-or-nothing: allocation failure enqueues no items. */
-bool ConcurrentQueuePushBatch(ConcurrentQueue* queue, void** items, size_t count);
-size_t ConcurrentQueuePopBatch(ConcurrentQueue* queue, void** buffer, size_t maxCount);
+bool pgy_mn_queue_push_batch(PgyMnQueue* queue, void** items, size_t count);
+size_t pgy_mn_queue_pop_batch(PgyMnQueue* queue, void** buffer, size_t maxCount);
 
 #endif /* PERGYRA_CONCURRENT_QUEUE_H */

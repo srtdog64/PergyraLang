@@ -30,7 +30,7 @@ typedef struct ChannelElement {
 
 /* Waiting fiber queue */
 typedef struct WaitingFiber {
-    Fiber* fiber;
+    PgyMnFiber* fiber;
     void* buffer;
     size_t bufferSize;
     struct WaitingFiber* next;

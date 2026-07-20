@@ -15,9 +15,9 @@
 #include "async/fiber.h"
 #include "async/scheduler.h"
 
-typedef Scheduler FiberScheduler;
+typedef PgyMnScheduler FiberScheduler;
 
-/* ============= Scheduler Tags ============= */
+/* ============= PgyMnScheduler Tags ============= */
 
 typedef enum {
     SCHEDULER_MAIN_THREAD = 0,      /* UI/Game main thread */
@@ -33,7 +33,7 @@ typedef enum {
     SCHEDULER_ANY                   /* Let runtime decide */
 } SchedulerTag;
 
-/* Scheduler priority levels */
+/* PgyMnScheduler priority levels */
 typedef enum {
     PRIORITY_CRITICAL = 100,
     PRIORITY_HIGH = 75,
@@ -142,7 +142,7 @@ FiberMap* PartyContextGetFiberMap(PartyContext* context);
 
 /* Dispatcher configuration */
 typedef struct {
-    /* Scheduler pool limits */
+    /* PgyMnScheduler pool limits */
     uint32_t maxCpuFibers;
     uint32_t maxGpuFibers;
     uint32_t maxIoFibers;
@@ -241,7 +241,7 @@ void* ContextGetShared(
     const char* fieldName
 );
 
-/* ============= Scheduler Integration ============= */
+/* ============= PgyMnScheduler Integration ============= */
 
 /* Register custom scheduler */
 bool RegisterScheduler(
@@ -255,7 +255,7 @@ FiberScheduler* GetSchedulerForTag(SchedulerTag tag);
 
 /* ============= Debugging & Profiling ============= */
 
-/* Fiber execution statistics */
+/* PgyMnFiber execution statistics */
 typedef struct {
     const char* roleId;
     uint64_t totalExecutions;

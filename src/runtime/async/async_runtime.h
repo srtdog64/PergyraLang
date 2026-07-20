@@ -34,13 +34,13 @@ bool AsyncRuntimeIsInitialized(void);
 
 /* async/await pattern helpers */
 typedef struct AsyncTask {
-    Fiber* fiber;
+    PgyMnFiber* fiber;
     void* result;
     bool completed;
     char* error;
 } AsyncTask;
 
-AsyncTask* AsyncTaskRun(FiberStartRoutine routine, void* arg);
+AsyncTask* AsyncTaskRun(PgyMnFiberFn routine, void* arg);
 void* AsyncTaskAwait(AsyncTask* task);
 void AsyncTaskCancel(AsyncTask* task);
 void AsyncTaskDestroy(AsyncTask* task);
@@ -59,7 +59,7 @@ typedef struct AsyncIterator {
 
 /* Timer utilities */
 void AsyncSleep(uint64_t milliseconds);
-AsyncTask* AsyncAfter(uint64_t milliseconds, FiberStartRoutine routine, void* arg);
+AsyncTask* AsyncAfter(uint64_t milliseconds, PgyMnFiberFn routine, void* arg);
 
 /* Error handling patterns */
 typedef struct AsyncResult {
@@ -68,13 +68,13 @@ typedef struct AsyncResult {
     char* error;
 } AsyncResult;
 
-AsyncResult AsyncTry(FiberStartRoutine routine, void* arg);
+AsyncResult AsyncTry(PgyMnFiberFn routine, void* arg);
 
 /* Async state machine support for compiler */
 typedef struct AsyncStateMachine {
     int state;
     void* locals;
-    Fiber* fiber;
+    PgyMnFiber* fiber;
     void (*moveNext)(struct AsyncStateMachine* self);
 } AsyncStateMachine;
 
@@ -115,7 +115,7 @@ typedef enum {
 } AsyncLogLevel;
 
 void AsyncLog(AsyncLogLevel level, const char* format, ...);
-void AsyncLogFiber(Fiber* fiber, AsyncLogLevel level, const char* format, ...);
+void AsyncLogFiber(PgyMnFiber* fiber, AsyncLogLevel level, const char* format, ...);
 
 /* Performance monitoring */
 typedef struct AsyncPerfStats {

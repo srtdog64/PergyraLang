@@ -27,8 +27,8 @@ typedef struct CancellationToken {
 
 /* AsyncScope - manages lifetime of child fibers */
 struct AsyncScope {
-    /* Fiber management */
-    Fiber** fibers;
+    /* PgyMnFiber management */
+    PgyMnFiber** fibers;
     size_t fiberCount;
     size_t fiberCapacity;
     pthread_mutex_t fiberListMutex;
@@ -57,9 +57,9 @@ struct AsyncScope {
 AsyncScope* AsyncScopeCreate(AsyncScope* parent);
 void AsyncScopeDestroy(AsyncScope* scope);
 
-/* Fiber spawning within scope */
-Fiber* AsyncScopeSpawn(AsyncScope* scope, FiberStartRoutine work, void* arg);
-Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, void* arg, uint32_t priority);
+/* PgyMnFiber spawning within scope */
+PgyMnFiber* AsyncScopeSpawn(AsyncScope* scope, PgyMnFiberFn work, void* arg);
+PgyMnFiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, PgyMnFiberFn work, void* arg, uint32_t priority);
 
 /* Cancellation */
 void AsyncScopeCancel(AsyncScope* scope);
@@ -81,7 +81,7 @@ AsyncScope* AsyncScopeCreateNested(AsyncScope* parent);
 
 /* Execute multiple tasks in parallel and wait for all */
 typedef struct ParallelTask {
-    FiberStartRoutine routine;
+    PgyMnFiberFn routine;
     void* arg;
 } ParallelTask;
 
@@ -89,7 +89,7 @@ void AsyncScopeParallelFor(AsyncScope* scope, ParallelTask* tasks, size_t taskCo
 
 /* Execute tasks and return when first completes */
 typedef struct RaceTask {
-    FiberStartRoutine routine;
+    PgyMnFiberFn routine;
     void* arg;
     void* result;
     bool completed;

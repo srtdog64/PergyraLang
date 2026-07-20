@@ -60,7 +60,7 @@ func ReachabilityNameAt(index: Int) -> String {
 // The entry symbol whose consumers are counted. Word-boundary matched, so a
 // longer name that merely contains this one does not count as a consumer.
 func ReachabilitySymbolAt(index: Int) -> String {
-    if index == 0 { return "SchedulerCreate"; }
+    if index == 0 { return "pgy_mn_scheduler_create"; }
     if index == 1 { return "pgy_verified_spawn_lane_plan_lookup"; }
     if index == 2 { return "pgy_classify_execution_lane"; }
     if index == 3 { return "pgy_lane_spawn_dispatch"; }
@@ -125,7 +125,7 @@ func ReachabilityStatusAt(index: Int) -> String {
 // record: what it would take to make it live, and who owns that decision.
 func ReachabilityNoteAt(index: Int) -> String {
     if index == 0 {
-        return "3k lines compiled into the compiler binary, no caller outside its own directory; pre-house PascalCase API, absent from the emitted-program runtime family; joining it as the MovableScheduler executor is board WO-MN-1. This row originally pinned pgy_scheduler_create, a symbol that does not exist -- the home-existence census check exists because of that discovery";
+        return "3k lines compiled into the compiler binary; renamed into the pgy_mn_ house family (WO-MN-1 R0). The party runtime references the TLS getter, but nothing creates a scheduler, so the machine still never runs; joining it as the MovableScheduler executor is rungs R1-R2 of docs/194. This row originally pinned pgy_scheduler_create, a symbol that never existed -- the home-existence census check exists because of that discovery";
     }
     if index == 1 {
         return "both spawn emitters consume the AIR-classified lane through the verified spawn-lane plan lookup; WO-PAR-NOVEL step 2 closed";

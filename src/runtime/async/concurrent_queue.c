@@ -13,14 +13,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct ConcurrentQueueState {
+typedef struct PgyMnQueueState {
     pthread_mutex_t mutex;
-    QueueNode *head;
-    QueueNode *tail;
-} ConcurrentQueueState;
+    PgyMnQueueNode *head;
+    PgyMnQueueNode *tail;
+} PgyMnQueueState;
 
 static void
-concurrent_queue_warn(const char *op, const char *reason, ConcurrentQueue *queue)
+concurrent_queue_warn(const char *op, const char *reason, PgyMnQueue *queue)
 {
     fprintf(stderr,
             "[pgy][concurrent-queue] %s failed: %s (queue=%p)\n",
@@ -29,19 +29,19 @@ concurrent_queue_warn(const char *op, const char *reason, ConcurrentQueue *queue
             (void *)queue);
 }
 
-static ConcurrentQueueState *
-queue_state(ConcurrentQueue *queue)
+static PgyMnQueueState *
+queue_state(PgyMnQueue *queue)
 {
     if (queue == NULL)
         return NULL;
-    return (ConcurrentQueueState *)(intptr_t)
+    return (PgyMnQueueState *)(intptr_t)
         atomic_load_explicit(&queue->head, memory_order_acquire);
 }
 
-static QueueNode *
+static PgyMnQueueNode *
 queue_node_create(void *data)
 {
-    QueueNode *node = (QueueNode *)calloc(1, sizeof(QueueNode));
+    PgyMnQueueNode *node = (PgyMnQueueNode *)calloc(1, sizeof(PgyMnQueueNode));
     if (node == NULL)
         return NULL;
     node->data = data;
@@ -50,7 +50,7 @@ queue_node_create(void *data)
 }
 
 static void
-queue_size_increment(ConcurrentQueue *queue)
+queue_size_increment(PgyMnQueue *queue)
 {
     size_t current;
 
@@ -67,7 +67,7 @@ queue_size_increment(ConcurrentQueue *queue)
 }
 
 static void
-queue_size_increment_by(ConcurrentQueue *queue, size_t count)
+queue_size_increment_by(PgyMnQueue *queue, size_t count)
 {
     size_t current;
     size_t next;
@@ -84,7 +84,7 @@ queue_size_increment_by(ConcurrentQueue *queue, size_t count)
 }
 
 static void
-queue_size_decrement(ConcurrentQueue *queue)
+queue_size_decrement(PgyMnQueue *queue)
 {
     size_t current;
 
@@ -101,29 +101,29 @@ queue_size_decrement(ConcurrentQueue *queue)
 }
 
 static void
-queue_node_destroy_chain(QueueNode *node)
+queue_node_destroy_chain(PgyMnQueueNode *node)
 {
     while (node != NULL) {
-        QueueNode *next = (QueueNode *)(intptr_t)
+        PgyMnQueueNode *next = (PgyMnQueueNode *)(intptr_t)
             atomic_load_explicit(&node->next, memory_order_acquire);
         free(node);
         node = next;
     }
 }
 
-ConcurrentQueue *
-ConcurrentQueueCreate(void)
+PgyMnQueue *
+pgy_mn_queue_create(void)
 {
-    ConcurrentQueue *queue = (ConcurrentQueue *)calloc(1, sizeof(ConcurrentQueue));
-    ConcurrentQueueState *state;
-    QueueNode *sentinel;
+    PgyMnQueue *queue = (PgyMnQueue *)calloc(1, sizeof(PgyMnQueue));
+    PgyMnQueueState *state;
+    PgyMnQueueNode *sentinel;
 
     if (queue == NULL) {
         concurrent_queue_warn("create", "queue allocation failed", NULL);
         return NULL;
     }
 
-    state = (ConcurrentQueueState *)calloc(1, sizeof(ConcurrentQueueState));
+    state = (PgyMnQueueState *)calloc(1, sizeof(PgyMnQueueState));
     if (state == NULL) {
         concurrent_queue_warn("create", "state allocation failed", queue);
         free(queue);
@@ -155,10 +155,10 @@ ConcurrentQueueCreate(void)
 }
 
 void
-ConcurrentQueueDestroy(ConcurrentQueue *queue)
+pgy_mn_queue_destroy(PgyMnQueue *queue)
 {
-    ConcurrentQueueState *state = queue_state(queue);
-    QueueNode *node;
+    PgyMnQueueState *state = queue_state(queue);
+    PgyMnQueueNode *node;
 
     if (queue == NULL)
         return;
@@ -172,7 +172,7 @@ ConcurrentQueueDestroy(ConcurrentQueue *queue)
     pthread_mutex_lock(&state->mutex);
     node = state->head;
     while (node != NULL) {
-        QueueNode *next = (QueueNode *)(intptr_t)
+        PgyMnQueueNode *next = (PgyMnQueueNode *)(intptr_t)
             atomic_load_explicit(&node->next, memory_order_acquire);
         free(node);
         node = next;
@@ -189,10 +189,10 @@ ConcurrentQueueDestroy(ConcurrentQueue *queue)
 }
 
 bool
-ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
+pgy_mn_queue_push(PgyMnQueue *queue, void *data)
 {
-    ConcurrentQueueState *state = queue_state(queue);
-    QueueNode *node;
+    PgyMnQueueState *state = queue_state(queue);
+    PgyMnQueueNode *node;
 
     if (state == NULL) {
         concurrent_queue_warn("push", "queue state is null", queue);
@@ -224,11 +224,11 @@ ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
 }
 
 void *
-ConcurrentQueuePop(ConcurrentQueue *queue)
+pgy_mn_queue_pop(PgyMnQueue *queue)
 {
-    ConcurrentQueueState *state = queue_state(queue);
-    QueueNode *sentinel;
-    QueueNode *next;
+    PgyMnQueueState *state = queue_state(queue);
+    PgyMnQueueNode *sentinel;
+    PgyMnQueueNode *next;
     void *data;
 
     if (state == NULL) {
@@ -244,7 +244,7 @@ ConcurrentQueuePop(ConcurrentQueue *queue)
         return NULL;
     }
     next = sentinel != NULL
-        ? (QueueNode *)(intptr_t)atomic_load_explicit(&sentinel->next, memory_order_acquire)
+        ? (PgyMnQueueNode *)(intptr_t)atomic_load_explicit(&sentinel->next, memory_order_acquire)
         : NULL;
     if (next == NULL) {
         pthread_mutex_unlock(&state->mutex);
@@ -263,13 +263,13 @@ ConcurrentQueuePop(ConcurrentQueue *queue)
 }
 
 void *
-ConcurrentQueueTryPop(ConcurrentQueue *queue)
+pgy_mn_queue_try_pop(PgyMnQueue *queue)
 {
-    return ConcurrentQueuePop(queue);
+    return pgy_mn_queue_pop(queue);
 }
 
 size_t
-ConcurrentQueueSize(ConcurrentQueue *queue)
+pgy_mn_queue_size(PgyMnQueue *queue)
 {
     if (queue == NULL) {
         concurrent_queue_warn("size", "queue is null", queue);
@@ -279,17 +279,17 @@ ConcurrentQueueSize(ConcurrentQueue *queue)
 }
 
 bool
-ConcurrentQueueIsEmpty(ConcurrentQueue *queue)
+pgy_mn_queue_is_empty(PgyMnQueue *queue)
 {
-    return ConcurrentQueueSize(queue) == 0;
+    return pgy_mn_queue_size(queue) == 0;
 }
 
 bool
-ConcurrentQueuePushBatch(ConcurrentQueue *queue, void **items, size_t count)
+pgy_mn_queue_push_batch(PgyMnQueue *queue, void **items, size_t count)
 {
-    ConcurrentQueueState *state = queue_state(queue);
-    QueueNode *first = NULL;
-    QueueNode *last = NULL;
+    PgyMnQueueState *state = queue_state(queue);
+    PgyMnQueueNode *first = NULL;
+    PgyMnQueueNode *last = NULL;
 
     if (queue == NULL) {
         concurrent_queue_warn("push-batch", "queue is null", queue);
@@ -307,7 +307,7 @@ ConcurrentQueuePushBatch(ConcurrentQueue *queue, void **items, size_t count)
         return true;
 
     for (size_t i = 0; i < count; i++) {
-        QueueNode *node;
+        PgyMnQueueNode *node;
 
         if (items[i] == NULL) {
             queue_node_destroy_chain(first);
@@ -344,7 +344,7 @@ ConcurrentQueuePushBatch(ConcurrentQueue *queue, void **items, size_t count)
 }
 
 size_t
-ConcurrentQueuePopBatch(ConcurrentQueue *queue, void **buffer, size_t maxCount)
+pgy_mn_queue_pop_batch(PgyMnQueue *queue, void **buffer, size_t maxCount)
 {
     size_t count = 0;
 
@@ -358,7 +358,7 @@ ConcurrentQueuePopBatch(ConcurrentQueue *queue, void **buffer, size_t maxCount)
     }
 
     while (count < maxCount) {
-        void *item = ConcurrentQueuePop(queue);
+        void *item = pgy_mn_queue_pop(queue);
         if (item == NULL)
             break;
         buffer[count++] = item;
