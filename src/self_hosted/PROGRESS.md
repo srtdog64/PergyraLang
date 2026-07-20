@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable call-target/SoT delta: DRV-2 MIR fixtures 129 and 130
+are `array_elem_class_literal` and `array_elem_class_method`. Their loop bodies
+call `p.V()` where `p: P` is introduced by `for p in b`. Call-target fixpoint
+resolution previously ran before iteration-type facts existed, so it could not
+resolve the member target without reopening source text. The iteration-type
+fact owner now runs first, and the call-target resolver consumes its visible
+loop binding directly. Both fixtures carry the canonical member target `P_V`.
+Removing that target from the MIR expression graph is rejected by the MIR
+consumer instead of falling back to source syntax. The Pergyra-built hard
+driver and independent C-built and LLVM-built self drivers passed focused
+canonical-MIR, emitted-C, host-compile, negative-mutation, and runtime parity
+for both fixtures. The complete 130-fixture matrix was not run, and
+released/default replacement remains 0%.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 119 through 128 are
 `array_avg_dev_chain`, `array_balanced_split`, `array_binary_search`,
 `array_cond_compound`, `array_count_above_avg`, `array_count_inversions`,

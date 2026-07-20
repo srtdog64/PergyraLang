@@ -9,10 +9,15 @@ pgy_selfhost_verify_driver_rung2_call_target() {
     local missing_target
 
     if [[ "$base" == "class_method_self_return" ||
-        "$base" == "class_method_self_access" ]]; then
+        "$base" == "class_method_self_access" ||
+        "$base" == "array_elem_class_literal" ||
+        "$base" == "array_elem_class_method" ]]; then
         local expected_member="Stat_PromoteIf"
         if [[ "$base" == "class_method_self_access" ]]; then
             expected_member="Account_Deposit"
+        elif [[ "$base" == "array_elem_class_literal" ||
+            "$base" == "array_elem_class_method" ]]; then
+            expected_member="P_V"
         fi
         grep -Fq "\"call_target_kind\":\"member\",\"call_target_name\":\"$expected_member\"" \
             "$self_mir_json" || {

@@ -1,12 +1,14 @@
 // Body-fixpoint resolution of canonical expression call-target rows.
 
 import "ast_artifact_verdict_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 
 func SemanticAstAnalysisResolveCallTargetsFromBody(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
-    inferred_types: Array<String>
+    inferred_types: Array<String>,
+    iteration_types: SemanticAstIterationTypeFacts
 ) -> Bool {
     if !SemanticAstExpressionSurfaceBorrowReady(
         artifact, analysis.expression_surfaces
@@ -71,6 +73,10 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                     ) || !SemanticAstExpressionSeedVisibleLocalModes(
                         artifact, analysis.local_bindings,
                         UnwrapOption(function_node_id), use_node_id, modes
+                    ) || !SemanticAstIterationSeedVisibleBindings(
+                        artifact, analysis.statements, iteration_types,
+                        UnwrapOption(function_node_id), use_node_id,
+                        names, types, modes
                     ) || !SemanticAstExpressionSeedVisibleMatchBindings(
                         artifact, analysis.expression_surfaces,
                         UnwrapOption(function_node_id), use_node_id,

@@ -507,6 +507,12 @@ for array_mir_fixture in \
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/array_elem_class_literal/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/array_elem_class_method/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
+    'expected_member="P_V"'
 require_function_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SelfMirRoutineFromInput" \
     "build, UnwrapOption(param_name), UnwrapOption(param_type), 0"
@@ -519,6 +525,10 @@ require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_
     "RewriteSemanticDirectCall" 'UnwrapOption(argument_type) == "Bool"'
 require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "RewriteSemanticDirectCall" "StringRuntimeCBoolToStringFn()"
+require_function_text \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "SemanticAstIterationSeedVisibleBindings("
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     'expected_member="Account_Deposit"'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \

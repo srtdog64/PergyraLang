@@ -2,7 +2,6 @@
 //
 // Driver and codegen consume this bundle. Neither may independently rebuild
 // initializer, iteration, assignment, or statement type rows.
-
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
@@ -28,16 +27,17 @@ func SemanticAstBodyTypeBundleFromAnalysis(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces
         );
-    let call_targets_resolved: Bool =
-        SemanticAstAnalysisResolveCallTargetsFromBody(
-            artifact, analysis, base_initializer_types.inferred_type_names
-        );
     let iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, base_initializer_types,
             analysis.statements,
             analysis.expression_surfaces
+        );
+    let call_targets_resolved: Bool =
+        SemanticAstAnalysisResolveCallTargetsFromBody(
+            artifact, analysis, base_initializer_types.inferred_type_names,
+            iteration_types
         );
     let initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsRefinedByIterations(
