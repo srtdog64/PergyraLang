@@ -68,6 +68,32 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         return 1;
     }
 
+    /* The legacy inline runtime carries no M:N materialization, so a movable
+     * spawn-lane row is refused HERE, before codegen -- compile-time
+     * fail-closed (docs/194 R1), not a runtime null-handle panic. */
+    {
+        /* Same predicate as the link step below: inline iff the opt-out is
+         * exactly "1". */
+        const char *force_inline_env = getenv("PGY_RUNTIME_INLINE");
+        bool runtime_inline = force_inline_env != NULL
+            && force_inline_env[0] == '1';
+        if (runtime_inline) {
+            for (size_t i = 0; i < spawn_lane_plan.row_count; i++) {
+                if (spawn_lane_plan.rows[i].lane
+                    != PGY_LANE_MOVABLE_SCHEDULER) {
+                    continue;
+                }
+                pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
+                if (error_message != NULL) {
+                    *error_message = pergyra_strdup(
+                        "movable execution lane requires the extern runtime; "
+                        "unset PGY_RUNTIME_INLINE");
+                }
+                return 1;
+            }
+        }
+    }
+
     transpile_result = transpile_from_mir_with_projection_plan(
         bundle->mir, &projection_plan, &spawn_lane_plan, output_c_path);
     pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);

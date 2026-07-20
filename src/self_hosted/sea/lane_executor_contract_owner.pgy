@@ -53,7 +53,7 @@ func LaneExecutorRuntimeHPath() -> String {
 }
 
 func LaneExecutorRequiredCount() -> Int {
-    return 14;
+    return 16;
 }
 
 func LaneExecutorRequiredPathAt(index: Int) -> String {
@@ -77,6 +77,11 @@ func LaneExecutorRequiredTermAt(index: Int) -> String {
     if index == 11 { return "pgy_lane_await(PgyTaskHandle handle)"; }
     if index == 12 { return "pgy_lane_detach(PgyTaskHandle handle)"; }
     if index == 13 { return "detach requires LocalAsync execution lane"; }
+    // WO-MN-1 R2: the movable lane is backed by the M:N executor in the
+    // linked-runtime materializations, and stays fail-closed in the inline
+    // one. Both facts are load-bearing and pinned.
+    if index == 14 { return "pgy_mn_executor_submit(fn, arg);"; }
+    if index == 15 { return "movable lane requires the extern runtime"; }
     return "";
 }
 
@@ -91,7 +96,7 @@ func LaneExecutorLaneRowAt(index: Int) -> String {
     if index == 3 { return "lane|BlockingPool|BlockingExecutor|worker_join_scaffold"; }
     if index == 4 { return "lane|LocalAsync|LocalCoroutineExecutor|worker_join_scaffold"; }
     if index == 5 { return "lane|WorkerPool|WorkerPoolExecutor|worker_join_scaffold"; }
-    if index == 6 { return "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"; }
+    if index == 6 { return "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion"; }
     return "";
 }
 
@@ -120,12 +125,13 @@ func LaneExecutorContractReady() -> Bool {
         LaneExecutorMissingSelfTestTerm() != "" &&
         LaneExecutorRuntimeCPath() == "src/runtime/pgy_lane_scheduler.c" &&
         LaneExecutorRuntimeHPath() == "src/runtime/pgy_lane_scheduler.h" &&
-        LaneExecutorRequiredCount() == 14 &&
+        LaneExecutorRequiredCount() == 16 &&
         LaneExecutorRequiredPathAt(0) == LaneExecutorRuntimeCPath() &&
         LaneExecutorRequiredPathAt(9) == LaneExecutorRuntimeHPath() &&
         LaneExecutorRequiredTermAt(0) == "pgy_lane_dispatch(PgyExecutionLane lane" &&
         LaneExecutorRequiredTermAt(13) == "detach requires LocalAsync execution lane" &&
+        LaneExecutorRequiredTermAt(15) == "movable lane requires the extern runtime" &&
         LaneExecutorLaneCount() == 7 &&
         LaneExecutorLaneRowAt(0) == "lane|Reject|(rejected)|fail_closed" &&
-        LaneExecutorLaneRowAt(6) == "lane|MovableScheduler|MovableExecutor|worker_join_scaffold";
+        LaneExecutorLaneRowAt(6) == "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion";
 }

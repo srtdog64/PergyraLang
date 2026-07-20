@@ -108,7 +108,7 @@ func ReachabilityScopeAt(index: Int) -> String {
 }
 
 func ReachabilityStatusAt(index: Int) -> String {
-    if index == 0 { return ReachabilityStatusDeclaredOnly(); }
+    if index == 0 { return ReachabilityStatusLive(); }
     if index == 1 { return ReachabilityStatusLive(); }
     if index == 2 { return ReachabilityStatusLive(); }
     if index == 3 { return ReachabilityStatusLive(); }
@@ -125,7 +125,7 @@ func ReachabilityStatusAt(index: Int) -> String {
 // record: what it would take to make it live, and who owns that decision.
 func ReachabilityNoteAt(index: Int) -> String {
     if index == 0 {
-        return "3k lines compiled into the compiler binary; renamed into the pgy_mn_ house family (WO-MN-1 R0). The party runtime references the TLS getter, but nothing creates a scheduler, so the machine still never runs; joining it as the MovableScheduler executor is rungs R1-R2 of docs/194. This row originally pinned pgy_scheduler_create, a symbol that never existed -- the home-existence census check exists because of that discovery";
+        return "joined as the MovableScheduler lane executor (docs/194 R1-R2): the linked-runtime materializations create and drive the scheduler, at run-to-completion depth (the setjmp/unseeded-asm context core measured as never-runnable; the real context layer is WO-MN-2). This row originally pinned pgy_scheduler_create, a symbol that never existed -- the home-existence census check exists because of that discovery";
     }
     if index == 1 {
         return "both spawn emitters consume the AIR-classified lane through the verified spawn-lane plan lookup; WO-PAR-NOVEL step 2 closed";
@@ -206,8 +206,8 @@ func ReachabilityContractReady() -> Bool {
         ReachabilityRowsWellFormed() &&
         ReachabilityNamesUnique() &&
         ReachabilityHasBothPolarities() &&
-        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 3 &&
-        ReachabilityCountWithStatus(ReachabilityStatusLive()) == 7 &&
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 2 &&
+        ReachabilityCountWithStatus(ReachabilityStatusLive()) == 8 &&
         ReachabilityStatusAt(ReachabilityRowCount()) == "" &&
         !ReachabilityStatusIsKnown("") &&
         ReachabilityMissingSelfTestSymbol() != "";

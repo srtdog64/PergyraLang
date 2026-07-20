@@ -105,8 +105,11 @@ void pgy_mn_fiber_suspend(PgyMnFiber* fiber);
 void pgy_mn_fiber_resume(PgyMnFiber* fiber);
 void pgy_mn_fiber_cancel(PgyMnFiber* fiber);
 
-/* Context switching - Assembly implementation */
-void pgy_mn_fiber_switch_context(PgyMnFiberContext* oldContext, PgyMnFiberContext* newContext);
+/* Context switching is intentionally ABSENT (run-to-completion depth,
+ * docs/194 WO-MN-1 R2): workers run routines directly. The WO-MN-2 context
+ * layer reintroduces a switch built on the platform fiber APIs, seeded with
+ * a real entry trampoline -- referencing a switch before that rung lands is
+ * a compile error by design. */
 
 /* PgyMnFiber query functions */
 PgyMnFiber* pgy_mn_fiber_get_current(void);

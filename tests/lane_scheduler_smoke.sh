@@ -27,12 +27,29 @@ COMPILE_OUT="$OUT.compile.out"
 COMPILE_ERR="$OUT.compile.err"
 ORIGINAL_PATH="$PATH"
 PATH="$COMPILE_PATH"
-if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -std=c11 \
+# The test TU compiles in the PRODUCTION extern shape (PGY_RUNTIME_DECLS_ONLY)
+# and links the cext runtime materialization, so the facade proof covers the
+# real per-lane executors -- including the M:N movable executor (docs/194 R2),
+# which the legacy inline shape deliberately fail-closes instead of running.
+RT_OBJ="$OUT.cext.o"
+if ! "${CC_CMD[@]}" -Wall -std=c11 -O1 -fwrapv -fno-strict-aliasing -pthread \
+    -I"$ROOT_DIR/src" \
+    -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_cext_lib.c" \
+    -o "$RT_OBJ" >"$COMPILE_OUT" 2>"$COMPILE_ERR"; then
+    PATH="$ORIGINAL_PATH"
+    cat "$COMPILE_OUT" >&2 || true
+    cat "$COMPILE_ERR" >&2 || true
+    fail "cext runtime object compile failed"
+fi
+if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -Wno-unused-function -std=c11 \
+    -DPGY_RUNTIME_DECLS_ONLY \
     -I"$ROOT_DIR/src" \
     -I"$ROOT_DIR/src/runtime" \
     "$ROOT_DIR/src/tests/lane_scheduler_test.c" \
     "$ROOT_DIR/src/runtime/pgy_lane_scheduler.c" \
     "$ROOT_DIR/src/compiler/execution_lane.c" \
+    "$RT_OBJ" \
     -lpthread \
     -o "$OUT" >"$COMPILE_OUT" 2>"$COMPILE_ERR"; then
     PATH="$ORIGINAL_PATH"

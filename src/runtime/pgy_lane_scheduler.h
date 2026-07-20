@@ -46,6 +46,17 @@ pgy_lane_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg,
  * It is available when pgy_parallel.h has already defined the task-handle ABI.
  */
 #ifdef PERGYRA_RUNTIME_PGY_PARALLEL_H
+/* The M:N executor materializes exactly where the LINKED runtime bodies do:
+   the LLVM-leg object/bitcode TU (PGY_RUNTIME_LIB_INTERNAL) and the C-leg
+   cext object TU (PGY_RUNTIME_EXTERN_DEFS). The legacy inline TU is neither,
+   and gets the declared fail-closed branch below instead. */
+#if defined(PGY_RUNTIME_LIB_INTERNAL) || defined(PGY_RUNTIME_EXTERN_DEFS)
+#define PGY_RUNTIME_MN_MATERIALIZED 1
+/* Defined later in the same TU (pgy_runtime_lib_mn_exports.h); the
+   prototype keeps include order free. */
+PgyTaskHandle pgy_mn_executor_submit(void *(*fn)(void *), void *arg);
+#endif
+
 PGY_RT_DECL PgyTaskHandle
 pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
 
@@ -78,9 +89,24 @@ pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
             break;
 
         case PGY_LANE_WORKER_POOL:
-        case PGY_LANE_MOVABLE_SCHEDULER:
             handle = pgy_spawn(fn, arg);
             break;
+
+        case PGY_LANE_MOVABLE_SCHEDULER:
+#ifdef PGY_RUNTIME_MN_MATERIALIZED
+            /* Dedicated M:N executor (WO-MN-1 R2): evidence-gated migration
+               gets the work-stealing fiber scheduler, not the bounded pool. */
+            handle = pgy_mn_executor_submit(fn, arg);
+            break;
+#else
+            /* The legacy inline runtime carries no M:N materialization. The
+               driver refuses movable spawn-lane rows before codegen in that
+               mode; this branch is the declared defence-in-depth backstop
+               (null handle -> the emitted spawn guard panics observably). */
+            pgy_parallel_warn("lane-spawn",
+                "movable lane requires the extern runtime");
+            return handle;
+#endif
 
         default:
             pgy_parallel_warn("lane-spawn", "unknown execution lane");

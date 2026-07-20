@@ -22,5 +22,6 @@
 #include "pgy_runtime_lib_std_exports.h"
 #include "pgy_runtime_lib_channel_quantum_exports.h"
 #include "pgy_runtime_lib_quantum_exports.h"
+#include "pgy_runtime_lib_mn_exports.h"
 
 #endif /* PGY_LLVM_ENABLED */

@@ -124,25 +124,36 @@ static void* pgy_mn_worker_main(void* arg)
             continue;
         }
         
-        /* Execute the fiber */
+        /* Execute the fiber.
+         *
+         * Run-to-completion depth (docs/194 WO-MN-1): a submitted movable
+         * task never yields mid-body, so the worker runs the routine directly
+         * on its own stack -- the work-stealing M:N worker set is real, the
+         * per-fiber context switch is not engaged. The assembly
+         * pgy_mn_fiber_switch_context this replaced restored a context that
+         * create() never seeded (no entry trampoline on the fiber stack), so
+         * the first switch jumped to garbage; a real context layer that can
+         * START a new fiber on its own stack is the WO-MN-2 rung. Until it
+         * lands, a fiber that reports READY again after running (a yield)
+         * would be an internal invariant violation, handled below. */
         worker->currentFiber = fiber;
         fiber->state = FIBER_STATE_RUNNING;
-        
-        /* Context switch to fiber */
-        PgyMnFiberContext schedulerContext;
-        pgy_mn_fiber_switch_context(&schedulerContext, &fiber->context);
-        
-        /* PgyMnFiber yielded or completed */
+        if (fiber->startRoutine == NULL) {
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "scheduler dequeued a fiber with no routine");
+        }
+        fiber->startRoutine(fiber->arg);
+        if (fiber->state == FIBER_STATE_RUNNING)
+            fiber->state = FIBER_STATE_DONE;
         worker->currentFiber = NULL;
         
         /* Handle fiber state */
         switch (fiber->state) {
             case FIBER_STATE_READY:
-                /* Re-queue for execution */
-                if (!pgy_mn_queue_push(worker->localRunQueue, fiber)) {
-                    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                                      "scheduler failed to requeue ready fiber");
-                }
+                /* A yield without the WO-MN-2 context layer: fail closed
+                 * rather than requeue a frame that cannot be resumed. */
+                PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                                  "fiber yielded but the context layer is not landed");
                 break;
                 
             case FIBER_STATE_DONE:

@@ -37,38 +37,6 @@ fiber_warn(const char *op, const char *reason, PgyMnFiber *fiber)
             (void *)fiber);
 }
 
-/* Internal fiber entry point wrapper */
-static void pgy_mn_fiber_entry_point(PgyMnFiber* fiber)
-{
-    if (fiber == NULL) {
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                          "fiber entry received null fiber");
-    }
-    if (fiber->startRoutine == NULL) {
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                          "fiber entry received null start routine");
-    }
-    
-    /* Set current fiber */
-    tlsCurrentFiber = fiber;
-    
-    /* Update state */
-    fiber->state = FIBER_STATE_RUNNING;
-    
-    /* Execute the fiber function */
-    fiber->startRoutine(fiber->arg);
-    
-    /* Mark as done */
-    fiber->state = FIBER_STATE_DONE;
-    
-    /* Return control to scheduler */
-    pgy_mn_scheduler_yield();
-    
-    /* Should never reach here */
-    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                      "fiber returned after completion");
-}
-
 PgyMnFiber* pgy_mn_fiber_create(PgyMnFiberFn startRoutine, void* arg)
 {
     if (startRoutine == NULL) {
@@ -115,16 +83,15 @@ PgyMnFiber* pgy_mn_fiber_create(PgyMnFiberFn startRoutine, void* arg)
     
     /* Initialize stack pointer to top of stack (stacks grow down) */
     fiber->context.stackPointer = (char*)fiber->stackBase + fiber->stackSize;
-    
-    /* Setup initial context */
-    if (setjmp(fiber->context.jmpBuf) == 0) {
-        /* First time - will be resumed later */
-        fiber->state = FIBER_STATE_READY;
-    } else {
-        /* Resumed - start execution */
-        pgy_mn_fiber_entry_point(fiber);
-    }
-    
+
+    /* Run-to-completion depth (docs/194 WO-MN-1): the fiber is READY and the
+     * worker runs its routine directly on the worker stack. The setjmp dance
+     * this replaced saved a context in THIS frame and "resumed" it after the
+     * frame had returned -- measured as an immediate segfault the first time
+     * the machine ever ran. Seeding fiber->context so the assembly switch can
+     * start a NEW fiber on its own stack is the WO-MN-2 context layer. */
+    fiber->state = FIBER_STATE_READY;
+
     return fiber;
 }
 
@@ -301,42 +268,14 @@ void pgy_mn_fiber_detach_child(PgyMnFiber* parent, PgyMnFiber* child)
     child->nextSibling = NULL;
 }
 
-/* Assembly implementation for context switching */
-#ifdef __x86_64__
-__asm__(
-    ".global pgy_mn_fiber_switch_context\n"
-    "pgy_mn_fiber_switch_context:\n"
-    "    # Save callee-saved registers\n"
-    "    pushq %rbp\n"
-    "    pushq %rbx\n"
-    "    pushq %r12\n"
-    "    pushq %r13\n"
-    "    pushq %r14\n"
-    "    pushq %r15\n"
-    "    \n"
-    "    # Save old stack pointer\n"
-    "    movq %rsp, 8(%rdi)\n"   /* oldContext->stackPointer */
-    "    \n"
-    "    # Load new stack pointer\n"
-    "    movq 8(%rsi), %rsp\n"   /* newContext->stackPointer */
-    "    \n"
-    "    # Restore callee-saved registers\n"
-    "    popq %r15\n"
-    "    popq %r14\n"
-    "    popq %r13\n"
-    "    popq %r12\n"
-    "    popq %rbx\n"
-    "    popq %rbp\n"
-    "    \n"
-    "    # Return to new context\n"
-    "    ret\n"
-);
-#else
-/* Fallback to setjmp/longjmp for non-x86_64 platforms */
-void pgy_mn_fiber_switch_context(PgyMnFiberContext* oldContext, PgyMnFiberContext* newContext)
-{
-    if (setjmp(oldContext->jmpBuf) == 0) {
-        longjmp(newContext->jmpBuf, 1);
-    }
-}
-#endif
+/* The context switch was DELETED with the run-to-completion landing
+ * (docs/194 WO-MN-1 R2). Three independent reasons, each sufficient:
+ *   - it had no caller once workers run routines directly;
+ *   - create() never seeded an entry frame on the fiber stack, so switching
+ *     to a fresh fiber jumped to garbage (measured segfault on first run);
+ *   - as module-level global assembly it survived the bitcode twin's
+ *     internalize pass verbatim and collided with the runtime cache object
+ *     at native link ("multiple definition of pgy_mn_fiber_switch_context").
+ * The WO-MN-2 context layer replaces it with the platform fiber APIs the
+ * coroutine layer already proves in-house (CreateFiber/SwitchToFiber /
+ * ucontext), seeded with a real entry trampoline. */

@@ -78,8 +78,8 @@ grep -Fq "negative_parallel_raw_channel_requires_movability|Reject" "$GOLDEN" \
     || fail "golden must pin raw-channel+movability rejection from boundary-local evidence"
 grep -Fq "lane|Reject|(rejected)|fail_closed" "$EXEC_GOLDEN" \
     || fail "executor golden must pin Reject fail-closed behavior"
-grep -Fq "lane|MovableScheduler|MovableExecutor|worker_join_scaffold" "$EXEC_GOLDEN" \
-    || fail "executor golden must honestly pin current MovableScheduler scaffold depth"
+grep -Fq "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion" "$EXEC_GOLDEN" \
+    || fail "executor golden must honestly pin the MovableScheduler M:N run-to-completion depth (docs/194 R2)"
 grep -Fq "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term" "$EXEC_MISSING_GOLDEN" \
     || fail "executor missing-term golden must pin fail-closed missing evidence"
 

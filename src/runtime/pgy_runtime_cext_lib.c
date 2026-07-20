@@ -34,3 +34,7 @@
 #include "pgy_parallel.h"
 #include "pgy_lane_scheduler.h"
 #include "pgy_channel.h"
+
+/* The M:N movable-lane executor (WO-MN-1 R1/R2): materialized in this
+ * linked-runtime TU exactly like the LLVM-leg object/bitcode twin. */
+#include "pgy_runtime_lib_mn_exports.h"

@@ -1,8 +1,26 @@
 # M:N scheduler join blueprint (WO-MN-1)
 
-Status: DESIGN — measured inventory + rung ladder. No rung has landed.
-Mandate: BDFL 2026-07-21 ("빈부분 알아서 채우자 합류 시키고"); board entry
-WO-PAR-NOVEL → 합류 착수 records the discoveries that bounded this document.
+Status: R0–R2 LANDED 2026-07-21 (rename; materialization into both
+linked-runtime objects and the bitcode twin; MovableScheduler dispatch backed
+by the M:N worker set at run-to-completion depth). R3 remains a surface
+decision. Mandate: BDFL 2026-07-21 ("전부 시작해").
+
+**Measured correction from the first run (2026-07-21):** the fiber context
+core was never runnable. `pgy_mn_fiber_create` saved a setjmp context in its
+own stack frame and "resumed" it after the frame had returned, and the
+assembly `pgy_mn_fiber_switch_context` restored a context that create never
+seeded (no entry trampoline on the allocated fiber stack) — the first
+dispatch segfaulted immediately. The census claim "a completed M:N scheduler
+with no caller" therefore inverts on one axis: the queues, workers, stealing,
+parking, and lifecycle were real; the per-fiber context switch was a design
+document in code. R2 landed at **run-to-completion depth**: workers run each
+submitted routine directly on the worker stack (submitted movable tasks never
+yield mid-body), the unseeded context switch is no longer engaged, and a
+fiber that reports a yield fails closed. **WO-MN-2 — the context layer** — is
+the follow-on rung: seed a real entry trampoline (the in-house precedent is
+the coroutine layer's CreateFiber/SwitchToFiber path) so fibers can start on
+their own stacks and yield; only then do Blocked/Suspended become schedulable
+states and the io/timer surfaces become reachable.
 
 ## Destination
 
