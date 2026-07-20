@@ -209,6 +209,37 @@ strictly underneath.
   program-wide `inherent_concurrency_count` saw spawn/channel/parallel sites
   while `AIRBoundaryNode` rows stayed empty outside intents.
 
+**Landed — codegen consumes the AIR lane fact (2026-07-20, WO-PAR-NOVEL
+step 2):**
+- The declared `spawn blocking` marker now enters AIR as boundary-local
+  evidence (`has_declared_blocking_evidence` on `AIRBoundaryNode`, set at
+  boundary discovery) and feeds `BoundaryCaptureFact.has_io_or_ffi_effect`
+  for parallel boundaries. A blocking spawn therefore classifies to
+  `BlockingPool` through the same rule (2) as any other blocking effect —
+  the classifier decides, not a backend branch. Before this, the AIR fact for
+  a blocking spawn was under-informed (`LocalAsync`) and only the backend
+  shortcut kept the runtime correct.
+- The classified lane now travels to both backends through the **verified
+  spawn-lane plan** (`PgySpawnLanePlan` in
+  `src/compiler/verified_projection_plan.{h,c}`): the driver copies
+  `(spawn AST site, execution_lane)` rows out of certified AIR next to the
+  projection-plan row, and both spawn emitters take the lane from
+  `pgy_verified_spawn_lane_plan_lookup` — fail-closed per site, entry-gated
+  per compile. The producer refuses a `Reject`-classified spawn boundary, so
+  contradictory capture/movability evidence fails the compile instead of
+  surfacing as a runtime null-handle panic.
+- `pgy_spawn_lane_from_blocking` is retired (the lane-policy owner now
+  *forbids* it in emitters), and plain spawns carry their real classification:
+  the corpus census (30 spawn sites, 20 fixtures) is uniformly `WorkerPool`
+  (value-only + movability evidence), which moves them from the cooperative
+  executor onto the worker pool. Backend-compare and the runtime batteries
+  pin behavioural equivalence; `tests/cases/backend_compare/
+  spawn_blocking_lane/` pins the `BlockingPool` path end-to-end.
+- Reachability from codegen is now five of seven lanes (all but `Inline`,
+  impossible for a concurrent spawn boundary, and `Reject`, which fail-closes
+  the compile) — pinned in the lane-policy owner golden and promoted to
+  `live` in the reachability contract.
+
 **Remaining — Precise capture plumbing (deep fill, not a quick slice):**
 - **Precise value-capture producer coverage.** `has_mir_value_capture_evidence`
   is part of the classifier contract and parity matrix, and the MIR evidence
@@ -233,13 +264,15 @@ strictly underneath.
 - **Full AIR JSON lane matrix.** The policy proof and self-host parity proof
   cover `Inline`, `PinnedZone`, `BlockingPool`, `LocalAsync`, `WorkerPool`,
   `MovableScheduler`, and `Reject`. Clean AIR JSON now covers real intent
-  zone/world rows plus routine-level channel/spawn rows. It still cannot
-  produce every lane: `BlockingPool`, `MovableScheduler`, and `Reject` require
-  valid source fixtures whose HIR/RIR/MIR evidence proves IO/FFI, pure movable
-  authority crossing, or raw-resource movability contradictions. The JSON
-  golden must expand only when a valid source fixture produces the new row
-  through HIR/RIR/MIR evidence and a source location. Synthetic AIR state is
-  reserved for unit tests and must not be used to claim AIR JSON lane coverage.
+  zone/world rows plus routine-level channel/spawn rows, and `BlockingPool`
+  has a real source fixture (declared `spawn blocking` in the SEA golden and
+  in `backend_compare/spawn_blocking_lane`). It still cannot produce every
+  lane: `MovableScheduler` and `Reject` require valid source fixtures whose
+  HIR/RIR/MIR evidence proves pure movable authority crossing or raw-resource
+  movability contradictions. The JSON golden must expand only when a valid
+  source fixture produces the new row through HIR/RIR/MIR evidence and a
+  source location. Synthetic AIR state is reserved for unit tests and must not
+  be used to claim AIR JSON lane coverage.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same

@@ -376,6 +376,16 @@ test_parallel_execution_emit(void)
         spawn->data.spawn_expr.function = make_identifier("Work", 1);
         spawn->data.spawn_expr.arguments = NULL;
         spawn->data.spawn_expr.arg_count = 0;
+        /* The spawn emitter consumes the AIR-carried lane fact per site. */
+        static PgySpawnLaneFactRow cancel_lane_rows[1];
+        static PgySpawnLanePlan cancel_lane_plan;
+        cancel_lane_rows[0].site = spawn;
+        cancel_lane_rows[0].lane = PGY_LANE_WORKER_POOL;
+        cancel_lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
+        cancel_lane_plan.rows = cancel_lane_rows;
+        cancel_lane_plan.row_count = 1;
+        cancel_lane_plan.verified = true;
+        ctx->spawn_lane_plan = &cancel_lane_plan;
         emit_statement(make_let("pending", NULL, spawn, 1), ctx);
 
         ASTNode *args[1] = { make_identifier("pending", 2) };

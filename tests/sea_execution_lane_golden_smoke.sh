@@ -58,6 +58,7 @@ func RoutineBoundaryAir() -> Void {
     ch <- 7;
     let v: Int = <-ch;
     let task: Future<Int> = spawn Inc(v);
+    let blocked: Future<Int> = spawn blocking Inc(v);
 }
 EOF
 

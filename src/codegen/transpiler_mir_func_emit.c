@@ -86,6 +86,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ASTNode *resolved_host_decl = NULL;
     ASTNode *return_type = NULL;
     size_t func_param_count = 0;
+    bool mir_active = transpiler_active_has_mir(ctx);
 
     if (ctx != NULL && transpiler_active_has_mir(ctx) && mir_routine == NULL) {
         transpiler_set_mir_inventory_missing(
@@ -96,13 +97,19 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         return;
     }
 
-    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-            mir_routine,
-            node,
-            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
-            "MIR-only C path missing function body signature metadata for '%s'",
-            "MIR-only C path missing function body return type-name metadata for '%s'",
-            "MIR-only C path missing function body parameter type-name metadata for '%s'")) {
+    if (mir_active) {
+        if (!transpiler_mir_routine_signature_supported_strict(ctx,
+                mir_routine)) {
+            codebuf_destroy(params_sig);
+            return;
+        }
+    } else if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                   mir_routine,
+                   node,
+                   TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
+                   "MIR-only C path missing function body signature metadata for '%s'",
+                   "MIR-only C path missing function body return type-name metadata for '%s'",
+                   "MIR-only C path missing function body parameter type-name metadata for '%s'")) {
         codebuf_destroy(params_sig);
         return;
     }
@@ -168,13 +175,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     return_type = transpiler_mir_routine_return_type(mir_routine);
     const char *return_type_name =
         transpiler_mir_routine_return_type_name(mir_routine);
+    const MIRCallableSig *return_callable_sig =
+        transpiler_mir_routine_return_callable_sig(mir_routine);
     if (return_type_name != NULL) {
         transpiler_set_current_return_type_local(ctx, return_type_name);
     } else if (return_type != NULL) {
         char *rendered = render_type_name_in_ctx(ctx, return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
         free(rendered);
-    } else {
+    } else if (return_callable_sig == NULL) {
         transpiler_set_current_return_type_local(ctx, "Void");
     }
     ctx->current_return_callable_type =
@@ -224,7 +233,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         event_handler_param =
             param_callable != NULL
-            || (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE);
+            || (!mir_active
+                && p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE);
         if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",
@@ -362,6 +372,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         header_decl = pergyra_strdup_printf("%s %s(%s)",
             return_c_type,
             name != NULL ? name : "value",
+            params_sig != NULL ? params_sig->data : "void");
+    } else if (return_callable_sig != NULL) {
+        header_decl = pergyra_func_signature_declarator_from_callable_sig_in_ctx(
+            ctx, return_callable_sig, name,
             params_sig != NULL ? params_sig->data : "void");
     } else {
         header_decl = pergyra_func_signature_declarator_in_ctx(ctx,

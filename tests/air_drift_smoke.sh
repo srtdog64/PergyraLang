@@ -782,12 +782,17 @@ for required in [
     "air_walk_step_expr_boundaries",
     "air_walk_expr_boundaries",
     "ctx->append",
+    "boundary->ast != NULL && boundary->ast->type == AST_SPAWN_EXPR",
 ]:
     if required not in air_boundary_walk:
         raise SystemExit(
             "AIR boundary walker no longer uses a single count/append traversal: "
             + required
         )
+if "node->type == AST_SPAWN_EXPR && ast_spawn_is_blocking(node)" in air_boundary_walk:
+    raise SystemExit(
+        "AIR boundary walker reintroduced null-unsafe blocking evidence read"
+    )
 missing_evidence_terms = [term for term in shared_walker_terms if term not in air_evidence]
 if missing_evidence_terms:
     raise SystemExit(

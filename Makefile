@@ -2050,8 +2050,13 @@ perf-summary:
 perf-contract-test-smoke:
 	"$(BASH)" tests/perf_contract_smoke.sh
 
-backend-fail-closed-test-smoke:
+backend-fail-closed-test-smoke: mir-only-signature-test-smoke
 	"$(BASH)" tests/backend_fail_closed_smoke.sh
+
+mir-only-signature-test-smoke:
+	"$(BASH)" tests/mir_only_signature_smoke.sh
+
+.PHONY: mir-only-signature-test-smoke
 
 worker-boundary-ub-test-smoke:
 	"$(BASH)" tests/worker_boundary_ub_smoke.sh

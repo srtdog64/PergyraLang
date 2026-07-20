@@ -282,9 +282,9 @@ func EmitProductionHeaderSizePaths() -> Void {
     }
 }
 
-func EmitDriverRung0Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRungPathCount() { Log(CompilerHarnessDriverRung0PathAt(i)); i = i + 1; } }
-func EmitDriverRung1Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRungPathCount() { Log(CompilerHarnessDriverRung1PathAt(i)); i = i + 1; } }
-func EmitDriverRung2Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRungPathCount() { Log(CompilerHarnessDriverRung2PathAt(i)); i = i + 1; } }
+func EmitDriverRung0Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung0PathCount() { Log(CompilerHarnessDriverRung0PathAt(i)); i = i + 1; } }
+func EmitDriverRung1Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung1PathCount() { Log(CompilerHarnessDriverRung1PathAt(i)); i = i + 1; } }
+func EmitDriverRung2Paths() -> Void { let i: Int = 0; while i < CompilerHarnessDriverRung2PathCount() { Log(CompilerHarnessDriverRung2PathAt(i)); i = i + 1; } }
 
 func EmitLspDiagnosticsPaths() -> Void {
     let i: Int = 0;

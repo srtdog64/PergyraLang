@@ -33,6 +33,13 @@ bool transpiler_mir_routine_signature_metadata_complete_for(
 bool transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
                                                 const MIRRoutine *routine,
                                                 const ASTNode *func_decl);
+/* Active MIR backend admission.  This variant is deliberately AST-free:
+ * every non-void return and parameter shape must be carried by MIR-owned
+ * type-name/callable facts.  The legacy API above remains for source-AST
+ * compatibility callers that have not crossed the MIR admission boundary. */
+bool transpiler_mir_routine_signature_supported_strict(
+    TranspilerCtx *ctx,
+    const MIRRoutine *routine);
 bool transpiler_mir_or_ast_function_is_generic(const MIRRoutine *routine,
                                                const ASTNode *func_decl);
 bool transpiler_mir_function_signature_supported(TranspilerCtx *ctx,

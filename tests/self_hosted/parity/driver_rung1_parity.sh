@@ -3,8 +3,8 @@
 #
 # Oracle shape:
 #   - AST text: self-parser <source>
-#   - emitted C: current self-host codegen tool compiled by the C oracle and fed
-#     the same AST text
+#   - emitted C: the C-built in-process driver, preserving parser-owned graph
+#     facts through the semantic and codegen stages
 #   - stdout and `-o` file output are both compared through the Pergyra-owned
 #     backend output comparator.
 
@@ -56,16 +56,15 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:driver-rung1] TestHarness manifest expected 3 driver paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 2 ]]; then
+    echo "[self-host-parity:driver-rung1] TestHarness manifest expected 2 driver paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
-CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"
 
-for path in "$DRIVER_SOURCE" "$PARSER_SOURCE" "$CODEGEN_SOURCE"; do
+for path in "$DRIVER_SOURCE" "$PARSER_SOURCE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:driver-rung1] missing TestHarness input: $path" >&2
         exit 1
@@ -92,15 +91,16 @@ compile_tool() {
     fi
 }
 
+DRIVER_ORACLE_BIN="$BUILD_DIR/driver_rung1_oracle.exe"
+
 read_driver_fixture_manifest() {
-    local manifest_bin="$BUILD_DIR/driver_rung1_manifest.exe"
     local manifest_err="$BUILD_DIR/driver_rung1_manifest.err"
     local line
 
-    compile_tool "driver-rung1-manifest" "$DRIVER_SOURCE" c "$manifest_bin"
+    compile_tool "driver-rung1-oracle" "$DRIVER_SOURCE" c "$DRIVER_ORACLE_BIN"
 
     FIXTURES=()
-    if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest \
+    if ! (cd "$ROOT_DIR" && "$DRIVER_ORACLE_BIN" --fixture-manifest \
         >"$DRIVER_FIXTURE_MANIFEST_FILE" \
         2>"$manifest_err"); then
         echo "[self-host-parity:driver-rung1] fixture manifest emission failed" >&2
@@ -150,10 +150,8 @@ compare_artifact() {
         "$label" "$BUILD_DIR" "$expected_file" "$actual_file" "$artifact_kind"
 }
 
-CODEGEN_BIN="$BUILD_DIR/codegen_oracle.exe"
 PARSER_BIN="$BUILD_DIR/parser_ast_producer.exe"
 compile_tool "parser-ast-producer" "$PARSER_SOURCE" c "$PARSER_BIN"
-compile_tool "codegen-oracle" "$CODEGEN_SOURCE" c "$CODEGEN_BIN"
 read_driver_fixture_manifest
 
 BACKENDS="${PGY_SELFHOST_DRIVER_BACKENDS:-c llvm}"
@@ -207,9 +205,8 @@ for backend in $BACKENDS; do
         }
         compare_artifact "driver-rung1:ast-file:$backend:$base" "$expected_ast" "$driver_ast_file" "ast_text"
 
-        ast_rel="${expected_ast#"$ROOT_DIR"/}"
-        capture_tool "codegen oracle $fixture_rel" "$expected_c" "$BUILD_DIR/${base}_expected_c.err" \
-            "$CODEGEN_BIN" "$ast_rel"
+        capture_tool "C driver oracle $fixture_rel" "$expected_c" "$BUILD_DIR/${base}_expected_c.err" \
+            "$DRIVER_ORACLE_BIN" "$fixture_rel" --emit-c
         capture_tool "driver $backend --emit-c stdout $fixture_rel" "$driver_c_stdout" "$BUILD_DIR/${base}_${backend}_driver_c_stdout.err" \
             "$DRIVER_BIN" "$fixture_rel" --emit-c
         compare_artifact "driver-rung1:c-stdout:$backend:$base" "$expected_c" "$driver_c_stdout" "emitted_c"

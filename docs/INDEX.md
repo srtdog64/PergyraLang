@@ -23,6 +23,8 @@ not own status, decisions, or completion claims.
 | [`100d_beta_execution_log.md`](100d_beta_execution_log.md) | Immediate execution order and historical progress log |
 | [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) | Compiler source-of-truth ownership spine to stop A -> B -> A refactoring loops |
 | [`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md) | Current/target compiler graph, stable handle spine, movable ownership boundaries, migration protocol, and gate map |
+| [`192_protocol_abi_api_registry.md`](192_protocol_abi_api_registry.md) | Protocol/ABI/API owner registry, consumer status, compatibility policy, and SoT closure blockers |
+| [`193_mir_only_abi_first_backend_closure.md`](193_mir_only_abi_first_backend_closure.md) | AIR-bound MIR-only backend meaning, closure blockers, and the strict routine-signature rung |
 | [`184_legacy_slot_interprocedural_hash_lookup.md`](184_legacy_slot_interprocedural_hash_lookup.md) | Legacy slot interprocedural root cause, host-index and demanded-summary closure, measured self-host effect, research basis, and symbol-sparsification next rung |
 | [`185_sot_gate_catalog.md`](185_sot_gate_catalog.md) | Canonical SoT gate inventory, authority-edge rules, execution budgets, closure evidence, and next executable migrations |
 | [`191_memory_safety_adversarial_corpus.md`](191_memory_safety_adversarial_corpus.md) | UAF, dangling, stale-handle, borrow-escape, concurrency, FFI, and sandbox adversarial corpus with separated semantic and sanitizer oracle roles |

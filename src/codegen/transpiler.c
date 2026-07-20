@@ -19,6 +19,7 @@
 #include "transpiler_enum.h"
 #include "transpiler_extern.h"
 #include "transpiler_func_forward_helpers.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_log_normalize.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
@@ -35,6 +36,7 @@
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
@@ -63,52 +65,67 @@ emit_c_nominal_forward_typedef(CodeBuf *out, const char *name)
     codebuf_write(out, "typedef struct %s %s;\n", name, name);
 }
 
-static void
-emit_c_nominal_forward_decls(TranspilerCtx *ctx,
-                             ASTNode **types,
-                             size_t type_count,
-                             ASTNode **parties,
-                             size_t party_count,
-                             ASTNode **rosters,
-                             size_t roster_count,
-                             ASTNode **relations,
-                             size_t relation_count,
-                             ASTNode **effects,
-                             size_t effect_count,
-                             ASTNode **zones,
-                             size_t zone_count,
-                             ASTNode **worlds,
-                             size_t world_count)
+static bool
+emit_c_nominal_forward_decls_for_kind(
+    TranspilerCtx *ctx,
+    const MIRDeclHeaderInventory *inventory,
+    ASTNodeType decl_type)
 {
     CodeBuf *out = ctx != NULL ? ctx->out : NULL;
 
-    if (out == NULL)
-        return;
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *type_decl = types[i];
-        if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
-            emit_c_nominal_forward_typedef(
-                out, transpiler_decl_name_local(type_decl));
+    if (out == NULL || inventory == NULL)
+        return false;
+    for (size_t i = 0; i < inventory->count; i++) {
+        const MIRDeclHeader *header =
+            mir_decl_header_inventory_get(inventory, i);
+        ASTNodeType header_type = mir_decl_header_ast_type_or(
+            header, AST_PROGRAM);
+        const char *name;
+
+        if (header == NULL || header_type != decl_type)
+            continue;
+        name = mir_decl_header_name(header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR nominal declaration header is missing its name for type %d",
+                (int)decl_type);
+            return false;
+        }
+        emit_c_nominal_forward_typedef(out, name);
     }
-    for (size_t i = 0; i < party_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(parties[i]));
-    for (size_t i = 0; i < roster_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(rosters[i]));
-    for (size_t i = 0; i < relation_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(relations[i]));
-    for (size_t i = 0; i < effect_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(effects[i]));
-    for (size_t i = 0; i < zone_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(zones[i]));
-    for (size_t i = 0; i < world_count; i++)
-        emit_c_nominal_forward_typedef(
-            out, transpiler_decl_name_local(worlds[i]));
-    codebuf_write(out, "\n");
+    return true;
+}
+
+static bool
+emit_c_nominal_forward_decls(TranspilerCtx *ctx)
+{
+    MIRDeclHeaderInventory inventory;
+
+    if (ctx == NULL || ctx->out == NULL)
+        return false;
+    transpiler_active_decl_header_inventory(ctx, &inventory);
+    /* Keep the historical category order, but source every name and kind
+     * from the MIR declaration-header owner. No AST declaration payload is
+     * needed for this pass. */
+    if (!emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_CLASS_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_PARTY_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_ROSTER_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_RELATION_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_EFFECT_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_ZONE_DECL)
+        || !emit_c_nominal_forward_decls_for_kind(
+            ctx, &inventory, AST_WORLD_DECL)) {
+        return false;
+    }
+    codebuf_write(ctx->out, "\n");
+    return true;
 }
 
 static const char *
@@ -284,21 +301,8 @@ emit_program(TranspilerCtx *ctx)
      */
 
     /* Pass 0.5: nominal forward typedefs used by ability signatures. */
-    emit_c_nominal_forward_decls(ctx,
-                                 types,
-                                 type_count,
-                                 parties,
-                                 party_count,
-                                 rosters,
-                                 roster_count,
-                                 relations,
-                                 relation_count,
-                                 effects,
-                                 effect_count,
-                                 zones,
-                                 zone_count,
-                                 worlds,
-                                 world_count);
+    if (!emit_c_nominal_forward_decls(ctx))
+        return;
 
     /* Pass 1: abilities (vtable typedefs) */
     for (size_t i = 0; i < ability_count; i++)

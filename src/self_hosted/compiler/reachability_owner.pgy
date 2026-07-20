@@ -9,7 +9,10 @@
 // documented, but that nothing downstream actually consumes. Those do not rot
 // loudly. They rot by having the docs describe the DESIGN while the binary
 // exhibits the BEHAVIOUR, and the gap only shows up when someone re-reads the
-// call graph. Two are live right now and both are recorded below.
+// call graph. The open gaps are recorded below as declared_only rows; the
+// lane-fact gap this table originally recorded was closed by WO-PAR-NOVEL
+// step 2 (the verified spawn-lane plan), and that closure had to edit this
+// row -- which is the contract working.
 //
 // Each row declares a mechanism, its entry symbol, the home it is defined in,
 // the scope that is supposed to consume it, and which of two states it is in:
@@ -58,7 +61,7 @@ func ReachabilityNameAt(index: Int) -> String {
 // longer name that merely contains this one does not count as a consumer.
 func ReachabilitySymbolAt(index: Int) -> String {
     if index == 0 { return "pgy_scheduler_create"; }
-    if index == 1 { return "pgy_classify_execution_lane"; }
+    if index == 1 { return "pgy_verified_spawn_lane_plan_lookup"; }
     if index == 2 { return "pgy_classify_execution_lane"; }
     if index == 3 { return "pgy_lane_spawn_dispatch"; }
     if index == 4 { return "pgy_parallel_chunk_count"; }
@@ -73,7 +76,7 @@ func ReachabilitySymbolAt(index: Int) -> String {
 // Where the mechanism is defined. Files under this prefix are NOT consumers.
 func ReachabilityHomeAt(index: Int) -> String {
     if index == 0 { return "src/runtime/async/"; }
-    if index == 1 { return "src/compiler/execution_lane"; }
+    if index == 1 { return "src/compiler/verified_projection_plan"; }
     if index == 2 { return "src/compiler/execution_lane"; }
     if index == 3 { return "src/runtime/pgy_lane_scheduler"; }
     if index == 4 { return "src/runtime/pgy_parallel_chunk"; }
@@ -106,7 +109,7 @@ func ReachabilityScopeAt(index: Int) -> String {
 
 func ReachabilityStatusAt(index: Int) -> String {
     if index == 0 { return ReachabilityStatusDeclaredOnly(); }
-    if index == 1 { return ReachabilityStatusDeclaredOnly(); }
+    if index == 1 { return ReachabilityStatusLive(); }
     if index == 2 { return ReachabilityStatusLive(); }
     if index == 3 { return ReachabilityStatusLive(); }
     if index == 4 { return ReachabilityStatusLive(); }
@@ -125,7 +128,7 @@ func ReachabilityNoteAt(index: Int) -> String {
         return "3k lines compiled into the binary, no symbol referenced outside its own directory; M:N lane has no caller";
     }
     if index == 1 {
-        return "codegen re-derives the lane from ast_spawn_is_blocking and drops the AIR fact; board WO-PAR-NOVEL step 2";
+        return "both spawn emitters consume the AIR-classified lane through the verified spawn-lane plan lookup; WO-PAR-NOVEL step 2 closed";
     }
     if index == 2 {
         return "AIR verification consumes the classifier: air.c and air_execution_lane.c";
@@ -203,8 +206,8 @@ func ReachabilityContractReady() -> Bool {
         ReachabilityRowsWellFormed() &&
         ReachabilityNamesUnique() &&
         ReachabilityHasBothPolarities() &&
-        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 4 &&
-        ReachabilityCountWithStatus(ReachabilityStatusLive()) == 6 &&
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 3 &&
+        ReachabilityCountWithStatus(ReachabilityStatusLive()) == 7 &&
         ReachabilityStatusAt(ReachabilityRowCount()) == "" &&
         !ReachabilityStatusIsKnown("") &&
         ReachabilityMissingSelfTestSymbol() != "";

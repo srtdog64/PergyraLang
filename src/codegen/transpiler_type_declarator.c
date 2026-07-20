@@ -241,15 +241,17 @@ pergyra_func_pointer_declarator_from_type_names_in_ctx(
 {
     CodeBuf *params = NULL;
     char ret_type_buf[256];
-    const char *ret_type = NULL;
+    const char *ret_type = "void";
     char *result = NULL;
 
-    if (!transpiler_require_type_name_c_type_copy(ctx, return_type_name,
-            "function pointer return type", ret_type_buf,
-            sizeof(ret_type_buf))) {
-        return NULL;
+    if (return_type_name != NULL && return_type_name[0] != '\0') {
+        if (!transpiler_require_type_name_c_type_copy(ctx, return_type_name,
+                "function pointer return type", ret_type_buf,
+                sizeof(ret_type_buf))) {
+            return NULL;
+        }
+        ret_type = ret_type_buf;
     }
-    ret_type = ret_type_buf;
 
     params = codebuf_create();
     if (params == NULL) {
@@ -284,6 +286,79 @@ pergyra_func_pointer_declarator_from_type_names_in_ctx(
     result = declarator_heap_fmt(ctx, "%s (*%s)(%s)", ret_type,
         name != NULL ? name : "value", params->data);
     codebuf_destroy(params);
+    return result;
+}
+
+char *
+pergyra_func_signature_declarator_from_callable_sig_in_ctx(
+    TranspilerCtx *ctx,
+    const MIRCallableSig *return_sig,
+    const char *name,
+    const char *params_sig)
+{
+    CodeBuf *handler_params = NULL;
+    char ret_type_buf[256];
+    const char *ret_type = "void";
+    const char *outer_params =
+        params_sig != NULL && params_sig[0] != '\0' ? params_sig : "void";
+    char *result;
+
+    if (return_sig == NULL || !return_sig->is_callable)
+        return NULL;
+    if (return_sig->return_type_name != NULL) {
+        if (!transpiler_require_type_name_c_type_copy(
+                ctx, return_sig->return_type_name,
+                "returned callable return type",
+                ret_type_buf, sizeof(ret_type_buf)))
+            return NULL;
+        ret_type = ret_type_buf;
+    }
+    if (return_sig->param_count > 0
+        && return_sig->param_type_names == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend returned callable signature is missing parameter type facts");
+        return NULL;
+    }
+
+    handler_params = codebuf_create();
+    if (handler_params == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend callable return declarator parameter buffer allocation failed");
+        return NULL;
+    }
+    if (return_sig->param_count == 0) {
+        codebuf_write(handler_params, "void");
+    } else {
+        for (size_t i = 0; i < return_sig->param_count; i++) {
+            char param_buf[256];
+            if (i > 0)
+                codebuf_write(handler_params, ", ");
+            if (return_sig->param_type_names[i] == NULL
+                || !transpiler_require_type_name_c_type_copy(
+                    ctx, return_sig->param_type_names[i],
+                    "returned callable parameter type",
+                    param_buf, sizeof(param_buf))) {
+                codebuf_destroy(handler_params);
+                return NULL;
+            }
+            codebuf_write(handler_params, "%s", param_buf);
+        }
+    }
+
+    result = declarator_heap_fmt(ctx, "%s (*%s(%s))(%s)",
+        ret_type,
+        name != NULL ? name : "value",
+        outer_params,
+        handler_params->data);
+    codebuf_destroy(handler_params);
     return result;
 }
 

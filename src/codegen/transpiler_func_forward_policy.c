@@ -106,13 +106,16 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
                 : "(anonymous)");
         return false;
     }
-    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-            routine,
-            func,
-            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
-            "MIR-only C path missing function forward signature metadata for '%s'",
-            "MIR-only C path missing function forward return type-name metadata for '%s'",
-            "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
+    if (transpiler_active_has_mir(ctx)) {
+        if (!transpiler_mir_routine_signature_supported_strict(ctx, routine))
+            return false;
+    } else if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                   routine,
+                   func,
+                   TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
+                   "MIR-only C path missing function forward signature metadata for '%s'",
+                   "MIR-only C path missing function forward return type-name metadata for '%s'",
+                   "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
         return false;
     }
     if (transpiler_mir_or_ast_function_is_generic(routine, func))
@@ -218,13 +221,16 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                 : "(anonymous)");
         return false;
     }
-    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-            routine,
-            func,
-            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
-            "MIR-only C path missing function forward signature metadata for '%s'",
-            "MIR-only C path missing function forward return type-name metadata for '%s'",
-            "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
+    if (transpiler_active_has_mir(ctx)) {
+        if (!transpiler_mir_routine_signature_supported_strict(ctx, routine))
+            return false;
+    } else if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                   routine,
+                   func,
+                   TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
+                   "MIR-only C path missing function forward signature metadata for '%s'",
+                   "MIR-only C path missing function forward return type-name metadata for '%s'",
+                   "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
         return false;
     }
     if (transpiler_mir_or_ast_function_is_generic(routine, func))

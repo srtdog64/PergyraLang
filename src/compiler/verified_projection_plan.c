@@ -1,7 +1,9 @@
 #include "verified_projection_plan.h"
 
+#include <stdlib.h>
 #include <string.h>
 
+#include "air.h"
 #include "mir_surface_usage.h"
 #include "air_evidence_certificate.h"
 #include "machine_layer_manifest.h"
@@ -275,4 +277,116 @@ pgy_verified_projection_plan_intent_observability_with_air(
     row_out->projection_plan_digest =
         pgy_verified_projection_plan_digest(row_out);
     return true;
+}
+
+static bool
+spawn_lane_boundary_is_spawn_site(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && boundary->ast != NULL
+        && boundary->ast->type == AST_SPAWN_EXPR;
+}
+
+bool
+pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
+                                      PgySpawnLanePlan *plan_out,
+                                      const char **error_out)
+{
+    const char *certificate_error = NULL;
+    size_t spawn_count = 0;
+
+    if (error_out != NULL)
+        *error_out = NULL;
+    if (plan_out == NULL) {
+        if (error_out != NULL)
+            *error_out = "verified spawn-lane plan: missing output plan";
+        return false;
+    }
+    memset(plan_out, 0, sizeof(*plan_out));
+    if (!pgy_air_evidence_certificate_ready(air, &certificate_error)) {
+        if (error_out != NULL)
+            *error_out = certificate_error != NULL
+                ? certificate_error
+                : "verified spawn-lane plan: AIR evidence certificate is missing";
+        return false;
+    }
+
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        if (spawn_lane_boundary_is_spawn_site(air_boundary_node_at(air, i)))
+            spawn_count++;
+    }
+    if (spawn_count > 0) {
+        plan_out->rows = calloc(spawn_count, sizeof(*plan_out->rows));
+        if (plan_out->rows == NULL) {
+            if (error_out != NULL)
+                *error_out = "verified spawn-lane plan: row allocation failed";
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        bool duplicate = false;
+
+        if (!spawn_lane_boundary_is_spawn_site(boundary))
+            continue;
+        /* A rejected lane means contradictory evidence (e.g. a pinned capture
+           on a movable executor).  It must fail the compile here, observably,
+           not surface as a runtime null-handle panic. */
+        if (boundary->execution_lane == PGY_LANE_REJECT) {
+            pgy_verified_spawn_lane_plan_dispose(plan_out);
+            if (error_out != NULL)
+                *error_out =
+                    "verified spawn-lane plan: a spawn boundary classifies to the rejected lane (contradictory capture/movability evidence)";
+            return false;
+        }
+        for (size_t j = 0; j < plan_out->row_count; j++) {
+            if (plan_out->rows[j].site != boundary->ast)
+                continue;
+            if (plan_out->rows[j].lane != boundary->execution_lane) {
+                pgy_verified_spawn_lane_plan_dispose(plan_out);
+                if (error_out != NULL)
+                    *error_out =
+                        "verified spawn-lane plan: conflicting lane facts for one spawn site";
+                return false;
+            }
+            duplicate = true;
+            break;
+        }
+        if (duplicate)
+            continue;
+        plan_out->rows[plan_out->row_count].site = boundary->ast;
+        plan_out->rows[plan_out->row_count].lane = boundary->execution_lane;
+        plan_out->row_count++;
+    }
+
+    plan_out->revision = PGY_SPAWN_LANE_PLAN_REVISION;
+    plan_out->verified = true;
+    return true;
+}
+
+void
+pgy_verified_spawn_lane_plan_dispose(PgySpawnLanePlan *plan)
+{
+    if (plan == NULL)
+        return;
+    free(plan->rows);
+    memset(plan, 0, sizeof(*plan));
+}
+
+bool
+pgy_verified_spawn_lane_plan_lookup(const PgySpawnLanePlan *plan,
+                                    const struct ASTNode *site,
+                                    PgyExecutionLane *lane_out)
+{
+    if (plan == NULL || !plan->verified || site == NULL)
+        return false;
+    for (size_t i = 0; i < plan->row_count; i++) {
+        if (plan->rows[i].site == site) {
+            if (lane_out != NULL)
+                *lane_out = plan->rows[i].lane;
+            return true;
+        }
+    }
+    return false;
 }

@@ -29,9 +29,16 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
         return compiler_error(projection_error != NULL
             ? projection_error : "verified projection plan failed");
     }
+    PgySpawnLanePlan spawn_lane_plan;
+    if (!pgy_verified_spawn_lane_plan_from_air(air, &spawn_lane_plan,
+            &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified spawn-lane plan failed");
+    }
 
     LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plan(
-        bundle->mir, &projection_plan, module_name);
+        bundle->mir, &projection_plan, &spawn_lane_plan, module_name);
+    pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -85,9 +92,16 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
         return compiler_error(projection_error != NULL
             ? projection_error : "verified projection plan failed");
     }
+    PgySpawnLanePlan spawn_lane_plan;
+    if (!pgy_verified_spawn_lane_plan_from_air(air, &spawn_lane_plan,
+            &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified spawn-lane plan failed");
+    }
 
     LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plan(
-        bundle->mir, &projection_plan, module_name);
+        bundle->mir, &projection_plan, &spawn_lane_plan, module_name);
+    pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -153,16 +167,23 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error(projection_error != NULL
             ? projection_error : "verified projection plan failed");
     }
+    PgySpawnLanePlan spawn_lane_plan;
+    if (!pgy_verified_spawn_lane_plan_from_air(air, &spawn_lane_plan,
+            &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified spawn-lane plan failed");
+    }
     if (verbose)
         printf("pgy: LLVM codegen -> %s\n", output_obj_path);
 
     compiler_debug_llvm_host_stage("codegen_begin");
     phase_start = compiler_now_seconds();
     LLVMGenResult *gen = llvm_codegen_to_object_from_mir_with_projection_plan(
-        bundle->mir, &projection_plan,
+        bundle->mir, &projection_plan, &spawn_lane_plan,
         "pergyra_module",
         output_obj_path,
         opt_profile == PGY_OPT_RELEASE);
+    pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     if (gen == NULL)
         return compiler_error("Out of memory");
 

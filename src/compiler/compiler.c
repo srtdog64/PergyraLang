@@ -57,8 +57,20 @@ invoke_c_backend(const CompilerIRBundle *bundle,
     if (projection_plan_out != NULL)
         *projection_plan_out = projection_plan;
 
+    PgySpawnLanePlan spawn_lane_plan;
+    if (!pgy_verified_spawn_lane_plan_from_air(air, &spawn_lane_plan,
+            &projection_error)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                projection_error != NULL
+                    ? projection_error
+                    : "verified spawn-lane plan failed");
+        return 1;
+    }
+
     transpile_result = transpile_from_mir_with_projection_plan(
-        bundle->mir, &projection_plan, output_c_path);
+        bundle->mir, &projection_plan, &spawn_lane_plan, output_c_path);
+    pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;

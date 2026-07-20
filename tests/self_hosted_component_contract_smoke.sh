@@ -2459,7 +2459,7 @@ require_file "src/self_hosted/parallel/expected_lane_policy_manifest.txt"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "schema=pgy.selfhost.parallel-lane-policy.v1"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "lane|pin_must_move|0|Reject"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "invariant|order_is_contract|ok"
-require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "reachable|MovableScheduler|no"
+require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "reachable|MovableScheduler|yes"
 
 # Mechanism reachability contract: no mechanism without a consumer.
 # Both polarities must stay present or the census stops testing half of itself.
@@ -2774,6 +2774,8 @@ require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "fu
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstExpressionSeedEnumValues("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 'environment_fact = "match_binding_environment";'
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 'environment_fact = "environment_row_count";'
 require_file "src/self_hosted/codegen/emission/enum_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
@@ -6917,7 +6919,11 @@ require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "fun
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0PathAt"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1PathAt"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung2PathAt"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0PathCount"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1PathCount"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung2PathCount"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverPathsReady"
+reject_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "CompilerHarnessDriverCodegenSourcePath"
 require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
@@ -8675,10 +8681,13 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_rea
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"driver-rung0-paths"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'DRIVER_ORACLE_BIN="$BUILD_DIR/driver_rung0_oracle.exe"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "read_driver_fixture_manifest"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$DRIVER_ORACLE_BIN" --fixture-manifest'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$DRIVER_ORACLE_BIN" "$fixture_rel" --emit-c'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" "CODEGEN_SOURCE"
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" "CODEGEN_BIN"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "fixture manifest is empty"
@@ -8700,10 +8709,13 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "pgy_selfhost_rea
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"driver-rung1-paths"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'DRIVER_ORACLE_BIN="$BUILD_DIR/driver_rung1_oracle.exe"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "read_driver_fixture_manifest"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" --fixture-manifest'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$DRIVER_ORACLE_BIN" --fixture-manifest'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$DRIVER_ORACLE_BIN" "$fixture_rel" --emit-c'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" "CODEGEN_SOURCE"
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" "CODEGEN_BIN"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'

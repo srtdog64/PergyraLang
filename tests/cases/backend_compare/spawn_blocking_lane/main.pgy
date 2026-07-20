@@ -1,0 +1,9 @@
+async func Work(x: Int) -> Int {
+    return x * 3;
+}
+
+async func Main() -> Void {
+    let t: Future<Int> = spawn blocking Work(14);
+    let v: Int = await t;
+    Log(v);
+}

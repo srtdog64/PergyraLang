@@ -297,6 +297,7 @@ typedef struct LLVMGenCtx
 {
     const MIRProgram *mir;  /* MIR-based emission support */
     const PgyVerifiedProjectionPlanRow *projection_plan;
+    const PgySpawnLanePlan *spawn_lane_plan; /* AIR-carried spawn lane facts */
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;

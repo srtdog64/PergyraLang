@@ -10815,7 +10815,33 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
   임계구역은 이미 작고, 이득이 필요한 축(중첩 fork-join)은 노드당 chunk_count=2 라
   배치해도 락 1회 절약뿐. range-parallel 은 이미 auto-chunk 로 상각됨. 측정 근거
   없이 착수하지 않는다.
-- **② 미착수**(codegen 이 AIR lane fact 를 나르게 = 컴파일러 변경, 별도 범위).
+- **✅ ② 착지 (2026-07-20)**: codegen 이 AIR lane fact 를 나른다. 진단이 하나
+  뒤집혔다 — "codegen 이 fact 를 버린다"의 전모는 **fact 채널 자체가 미완**
+  이었다는 것: AIR 의 spawn boundary 는 선언된 `spawn blocking` 마커를 증거로
+  안 받아서 blocking spawn 을 LocalAsync 로 **오분류**했고, 그동안 런타임은
+  백엔드 shortcut 덕에만 옳았다. 수술 두 다리:
+  - **다리 1 — 증거 완성**: `AIRBoundaryNode.has_declared_blocking_evidence`
+    (boundary 발견 시 spawn 노드에서 직접) → PARALLEL capture fact 의
+    `has_io_or_ffi_effect` → 분류 규칙 (2)가 결정. 선언이 fact 로 (thesis 그대로).
+  - **다리 2 — verified 운반**: `PgySpawnLanePlan`(verified_projection_plan
+    자매 아티팩트, per-site `(spawn AST, lane)` rows) 을 driver 가 인증된 AIR
+    에서 복사해 양 백엔드에 전달. emitter 는 `..._lookup` 으로만 lane 을 받고
+    (per-site fail-closed), REJECT boundary 는 **생산자가 컴파일을 거절**
+    (런타임 null-핸들 패닉 아님). `pgy_spawn_lane_from_blocking` +
+    소비자-0 이던 `pgy_lane_uses_blocking_executor` 퇴역, lane-policy owner 가
+    emitter 내 재유도를 **forbid** 로 반전.
+  - **행동 변화(실측)**: corpus census 30 spawn/20 fixture 전부 WorkerPool
+    균일(가장 위험한 PinnedZone-inline/REJECT 케이스 0) → plain spawn 이
+    LocalAsync→WorkerPool 로 flip, `spawn blocking` 은 BlockingPool 로 분류
+    유지. 검증: sea lane golden 6-boundary(BlockingPool row 신규),
+    lane-policy 게이트(도달 3/7→**5/7**, 핀 13+forbid 4), reachability
+    `lane_fact_in_codegen` **declared_only→live 승격**(7 live/3 declared —
+    게이트가 강제한 same-commit 승격), 35/35 lane parity, test-transpile
+    922/0, backend-compare spawn·cancel 21케이스, blocking fixture 신규
+    `backend_compare/spawn_blocking_lane`(양 백엔드 42). docs/146 3차 슬라이스
+    + docs/36 현재-상태 절 갱신. 잔여 = ② 후반(index-disjoint 정적 분할·
+    readonly 동기화 생략·PinnedZone 실제 고정)은 evidence 생산자 커버리지
+    (docs/146 Remaining) 뒤의 별도 슬라이스.
 - **✅ Coq 병렬 모델 2코어 착지 `bcc221bc`** (BDFL "우리 모델이 맞는지 보자").
   `docs/semantics/proofs/ParallelSchedulingCore.v` + `ParallelReductionCore.v`,
   해설 `ParallelModelCores.md`. **축 예산 무변**(SlotCalculus 2개 그대로),

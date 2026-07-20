@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "../compiler/execution_lane.h"
+#include "../compiler/verified_projection_plan.h"
 
 #include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
@@ -375,6 +376,22 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->wrappers, "    return result;\n");
     codebuf_write(ctx->wrappers, "}\n");
 
+    /* SEA: spawn lowering consumes the verified ExecutionLane fact carried
+       from AIR (the spawn-lane plan). The backend does not recover the lane
+       from source spelling; the lane scheduler facade owns the executor
+       mapping. A spawn site the plan does not cover is fail-closed. */
+    PgyExecutionLane spawn_lane = PGY_LANE_REJECT;
+    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+            &spawn_lane)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend: spawn at line %d has no verified execution-lane fact in the AIR spawn-lane plan",
+            node->line);
+        return NULL;
+    }
+
     CodeBuf *expr = codebuf_create();
     if (expr == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -386,11 +403,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     {
-        /* SEA: spawn lowering consumes the ExecutionLane fact. The generated
-           program no longer chooses a concrete executor export; the lane
-           scheduler facade owns that mapping. */
-        const char *lane_symbol = transpiler_spawn_lane_symbol(
-            pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)));
+        const char *lane_symbol = transpiler_spawn_lane_symbol(spawn_lane);
         if (args_type_name == NULL) {
             codebuf_write(expr,
                 "({ PgyTaskHandle _pgy_spawn_h = pgy_lane_spawn_dispatch(%s, %s, NULL); "

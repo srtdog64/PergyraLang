@@ -195,6 +195,11 @@ typedef struct
     bool            has_rir_raw_slot_capture_evidence;
     bool            has_rir_raw_channel_capture_evidence;
     bool            has_mir_value_capture_evidence;
+    /* Surface-declared `spawn blocking` marker (parser fact, docs/146). A
+       declaration, not an inference: it feeds the IO/FFI/blocking effect
+       evidence so the blocking lane is decided by the classifier, never by a
+       backend-side branch on source spelling. */
+    bool            has_declared_blocking_evidence;
     const char     *hir_routine_evidence_name;
     const char     *rir_boundary_evidence_scope;
     const char     *rir_authority_evidence_name;

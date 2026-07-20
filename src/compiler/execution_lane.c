@@ -64,25 +64,6 @@ pgy_classify_execution_lane(const BoundaryCaptureFact *e)
     return PGY_LANE_LOCAL_ASYNC;
 }
 
-PgyExecutionLane
-pgy_spawn_lane_from_blocking(bool is_blocking)
-{
-    BoundaryCaptureFact e = {0};
-    e.is_concurrent_site = true;
-    /* A blocking spawn is exactly the IO/FFI/OS-blocking evidence the policy
-       routes to BlockingPool; a non-blocking spawn falls to LocalAsync. Richer
-       evidence (pure-value capture, authority) would promote the non-blocking
-       case to Worker/Movable through the same policy. */
-    e.has_io_or_ffi_effect = is_blocking;
-    return pgy_classify_execution_lane(&e);
-}
-
-bool
-pgy_lane_uses_blocking_executor(PgyExecutionLane lane)
-{
-    return lane == PGY_LANE_BLOCKING_POOL;
-}
-
 const char *
 pgy_execution_lane_name(PgyExecutionLane lane)
 {

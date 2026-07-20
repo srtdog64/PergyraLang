@@ -19,14 +19,14 @@ invariant|contradiction_rejects|ok
 invariant|order_is_contract|ok
 invariant|movable_needs_full_evidence|ok
 invariant|empty_evidence_is_inline|ok
-reachable_lanes=3
+reachable_lanes=5
 reachable|Reject|no
 reachable|Inline|no
-reachable|PinnedZone|no
+reachable|PinnedZone|yes
 reachable|BlockingPool|yes
 reachable|LocalAsync|yes
 reachable|WorkerPool|yes
-reachable|MovableScheduler|no
+reachable|MovableScheduler|yes
 require|src/common/execution_lane_kind.h|PGY_LANE_REJECT = 0,
 require|src/common/execution_lane_kind.h|PGY_LANE_MOVABLE_SCHEDULER
 require|src/compiler/execution_lane.h|pgy_classify_execution_lane(const BoundaryCaptureFact *fact);
@@ -34,11 +34,13 @@ require|src/compiler/execution_lane.c|pgy_classify_execution_lane(const Boundary
 require|src/compiler/execution_lane.c|return PGY_LANE_REJECT;
 require|src/compiler/execution_lane.c|return PGY_LANE_PINNED_ZONE;
 require|src/compiler/execution_lane.c|return PGY_LANE_MOVABLE_SCHEDULER;
-require|src/compiler/execution_lane.c|pgy_spawn_lane_from_blocking(bool is_blocking)
+require|src/compiler/verified_projection_plan.c|pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
 require|src/codegen/transpiler_spawn_channel_emit.c|transpiler_spawn_lane_symbol(
 require|src/codegen/transpiler_spawn_channel_emit.c|pgy_lane_spawn_dispatch(
 require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_lane_spawn_dispatch_export
-require|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))
-require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))
+require|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
 forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_blocking
 forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_blocking
+forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking
+forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_lane_from_blocking

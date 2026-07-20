@@ -138,6 +138,16 @@ test_program_emit_head(void)
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
+        /* The spawn emitter consumes the AIR-carried lane fact per site. */
+        static PgySpawnLaneFactRow spawn_lane_rows[1];
+        static PgySpawnLanePlan spawn_lane_plan;
+        spawn_lane_rows[0].site = spawn;
+        spawn_lane_rows[0].lane = PGY_LANE_WORKER_POOL;
+        spawn_lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
+        spawn_lane_plan.rows = spawn_lane_rows;
+        spawn_lane_plan.row_count = 1;
+        spawn_lane_plan.verified = true;
+        ctx->spawn_lane_plan = &spawn_lane_plan;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "IdentityInt");

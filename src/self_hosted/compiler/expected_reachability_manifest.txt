@@ -1,12 +1,12 @@
 schema=pgy.selfhost.reachability-contract.v1
 rows=10
-live=6
-declared_only=4
+live=7
+declared_only=3
 invariant|rows_well_formed|ok
 invariant|names_unique|ok
 invariant|both_polarities|ok
 reach|async_fiber_scheduler|pgy_scheduler_create|src/runtime/async/|src|declared_only
-reach|lane_fact_in_codegen|pgy_classify_execution_lane|src/compiler/execution_lane|src/codegen|declared_only
+reach|lane_fact_in_codegen|pgy_verified_spawn_lane_plan_lookup|src/compiler/verified_projection_plan|src/codegen|live
 reach|lane_fact_in_air|pgy_classify_execution_lane|src/compiler/execution_lane|src/compiler|live
 reach|lane_spawn_dispatch|pgy_lane_spawn_dispatch|src/runtime/pgy_lane_scheduler|src/codegen|live
 reach|chunk_policy_emit|pgy_parallel_chunk_count|src/runtime/pgy_parallel_chunk|src/codegen|live
@@ -16,7 +16,7 @@ reach|checked_float_to_int|pgy_checked_f2i_i32_export|src/runtime/|src/codegen|l
 reach|checked_add_i64|pgy_checked_add_i64_export|src/codegen/llvm_runtime_core_builtin_decl|src/codegen|declared_only
 reach|checked_mul_i64|pgy_checked_mul_i64_export|src/codegen/llvm_runtime_core_builtin_decl|src/codegen|declared_only
 note|async_fiber_scheduler|3k lines compiled into the binary, no symbol referenced outside its own directory; M:N lane has no caller
-note|lane_fact_in_codegen|codegen re-derives the lane from ast_spawn_is_blocking and drops the AIR fact; board WO-PAR-NOVEL step 2
+note|lane_fact_in_codegen|both spawn emitters consume the AIR-classified lane through the verified spawn-lane plan lookup; WO-PAR-NOVEL step 2 closed
 note|lane_fact_in_air|AIR verification consumes the classifier: air.c and air_execution_lane.c
 note|lane_spawn_dispatch|both spawn emitters hand the lane to the runtime facade
 note|chunk_policy_emit|the C join emitter calls the chunk-count policy

@@ -17,6 +17,7 @@
 static TranspileResult *
 transpile_mir_only(const MIRProgram *mir,
                    const PgyVerifiedProjectionPlanRow *projection_plan,
+                   const PgySpawnLanePlan *spawn_lane_plan,
                    const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
@@ -35,6 +36,7 @@ transpile_mir_only(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->spawn_lane_plan = spawn_lane_plan;
     if (projection_plan == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
             "%s", "C backend: verified projection plan required");
@@ -42,6 +44,13 @@ transpile_mir_only(const MIRProgram *mir,
                || projection_plan->target != PGY_PROJECTION_TARGET_C) {
         transpiler_set_mir_inventory_missing(ctx, "%s",
             "C backend: projection plan is not verified for C");
+    } else if (!pgy_verified_projection_plan_identity_ready(projection_plan)) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: verified projection plan identity is invalid");
+    } else if (projection_plan->air_certificate_schema == NULL
+               || projection_plan->air_certificate_fingerprint == 0) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: AIR evidence certificate is missing from projection plan");
     } else if (projection_plan->target_capability_fingerprint == 0) {
         transpiler_set_mir_inventory_missing(ctx, "%s",
             "C backend: target capability fingerprint is missing");
@@ -51,6 +60,10 @@ transpile_mir_only(const MIRProgram *mir,
     } else if (projection_plan->machine_layer_physical_manifest_fingerprint == 0) {
         transpiler_set_mir_inventory_missing(ctx, "%s",
             "C backend: physical machine declaration fingerprint is missing");
+    } else if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
+               || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: verified spawn-lane plan required");
     } else {
         observability_plan = *projection_plan;
         ctx->uses_intent_observability =
@@ -91,16 +104,18 @@ transpile_mir_only(const MIRProgram *mir,
 TranspileResult *
 transpile_from_mir(const MIRProgram *mir, const char *output_path)
 {
-    return transpile_mir_only(mir, NULL, output_path);
+    return transpile_mir_only(mir, NULL, NULL, output_path);
 }
 
 TranspileResult *
 transpile_from_mir_with_projection_plan(
     const MIRProgram *mir,
     const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
     const char *output_path)
 {
-    return transpile_mir_only(mir, projection_plan, output_path);
+    return transpile_mir_only(mir, projection_plan, spawn_lane_plan,
+                              output_path);
 }
 
 TranspileResult *
@@ -115,7 +130,7 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
         }
         return result;
     }
-    return transpile_mir_only(mir, NULL, output_path);
+    return transpile_mir_only(mir, NULL, NULL, output_path);
 }
 
 void

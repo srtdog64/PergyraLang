@@ -67,17 +67,12 @@ PgyExecutionLane pgy_classify_execution_lane(const BoundaryCaptureFact *fact);
 const char *pgy_execution_lane_name(PgyExecutionLane lane);
 
 /*
- * SEA spawn-site convenience: the lane for a spawn whose only distinguishing
- * evidence today is whether it is a blocking call. A blocking spawn is the
- * BlockingPool lane; a non-blocking spawn is cooperative LocalAsync until richer
- * capture/authority evidence promotes it. Both codegen backends route their
- * spawn-executor choice through this so the decision has ONE source (the policy),
- * not an independent `is_blocking ? ... : ...` branch per backend.
+ * Spawn sites carry no shortcut here anymore: the declared `spawn blocking`
+ * marker enters BoundaryCaptureFact as IO/blocking effect evidence during AIR
+ * boundary discovery, the classifier above decides the lane, and the verified
+ * spawn-lane plan (verified_projection_plan.h) carries the per-site fact into
+ * both backends. Deriving a lane from source spelling in an emitter is the
+ * drift that plan exists to remove.
  */
-PgyExecutionLane pgy_spawn_lane_from_blocking(bool is_blocking);
-
-/* Whether a lane runs on the dedicated blocking executor (vs the async path).
-   The single fact the spawn emitters branch on to pick the runtime export. */
-bool pgy_lane_uses_blocking_executor(PgyExecutionLane lane);
 
 #endif /* PERGYRA_EXECUTION_LANE_H */

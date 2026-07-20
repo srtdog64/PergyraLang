@@ -91,6 +91,13 @@ issue_test_c_projection_plan(const MIRProgram *mir,
             &air, mir, PGY_PROJECTION_TARGET_C, plan, error);
 }
 
+/* Tests that never reach a spawn site cross the verified spawn-lane boundary
+ * with an empty, verified plan; a case that does emit a spawn must register
+ * its spawn nodes in its own plan (the emitter is fail-closed per site). */
+static const PgySpawnLanePlan test_empty_spawn_lane_plan = {
+    PGY_SPAWN_LANE_PLAN_REVISION, NULL, 0, true
+};
+
 static TranspileResult *
 transpile_mir_with_test_evidence(const MIRProgram *mir,
                                  const char *output_path)
@@ -107,7 +114,8 @@ transpile_mir_with_test_evidence(const MIRProgram *mir,
         }
         return result;
     }
-    return transpile_from_mir_with_projection_plan(mir, &plan, output_path);
+    return transpile_from_mir_with_projection_plan(mir, &plan,
+        &test_empty_spawn_lane_plan, output_path);
 }
 
 static bool
@@ -125,6 +133,7 @@ bind_test_c_projection_plan(TranspilerCtx *ctx, const MIRProgram *mir)
         return false;
     }
     ctx->projection_plan = &plan;
+    ctx->spawn_lane_plan = &test_empty_spawn_lane_plan;
     return true;
 }
 

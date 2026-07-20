@@ -18,11 +18,12 @@
 #      each backend made its own lane decision);
 #   5. self-test: the pin check must be able to report absence.
 #
-# The reachable| rows are deliberately part of the golden. Codegen currently
-# re-derives the lane from a syntactic blocking flag instead of carrying the
-# AIR ExecutionLaneFact, so PinnedZone/MovableScheduler/Reject never reach a
-# backend. Wiring that (board WO-PAR-NOVEL step 2) MUST change this golden --
-# that is the point: the gap cannot close silently, and it cannot widen either.
+# The reachable| rows are deliberately part of the golden. Since WO-PAR-NOVEL
+# step 2, both spawn emitters consume the AIR-classified lane through the
+# verified spawn-lane plan, so every classifier verdict except Inline (a spawn
+# is always concurrent) and Reject (the plan producer fail-closes the compile)
+# can reach a backend. Changing that reachability again MUST change this
+# golden -- it can neither widen nor narrow silently.
 #
 # Usage: PGY_BIN=bin/pgy.exe bash tests/selfhost_parallel_lane_policy_smoke.sh
 

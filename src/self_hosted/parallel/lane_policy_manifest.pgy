@@ -99,7 +99,8 @@ func Main() -> Void {
     Log(ParallelLaneInvariantRow(
         "empty_evidence_is_inline", ParallelLaneEmptyEvidenceIsInline()));
 
-    // The declared gap: only three of seven lanes survive codegen today.
+    // Reachability: five of seven lanes survive codegen (Inline is impossible
+    // for a concurrent spawn boundary; Reject fail-closes the compile).
     Log(Concat("reachable_lanes=", ToString(ParallelLaneReachableCount())));
     let lane: Int = 0;
     while lane < ParallelLaneCount() {

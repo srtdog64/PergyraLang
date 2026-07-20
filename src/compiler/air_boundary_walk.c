@@ -64,6 +64,11 @@ air_append_current_boundary(AIRBoundaryWalkCtx *ctx,
         ? node
         : ctx->step->ast;
     boundary->sync_class = air_boundary_sync_from_kind(kind);
+    /* The `spawn blocking` marker is boundary-local declared evidence: read it
+       from the spawn node itself at discovery so the classifier sees it. */
+    boundary->has_declared_blocking_evidence =
+        boundary->ast != NULL && boundary->ast->type == AST_SPAWN_EXPR
+        && ast_spawn_is_blocking(boundary->ast);
     /* ExecutionLane is classified in one finalization pass in air_synthesize,
        after all boundary evidence is set (docs/146) — not per-builder here. */
     (*ctx->boundary_index)++;

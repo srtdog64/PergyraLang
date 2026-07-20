@@ -565,6 +565,7 @@ main() {
         "tests/cases/backend_compare/entry_lowercase_main"
         "tests/cases/backend_compare/extern_fn"
         "tests/cases/backend_compare/extern_spawn"
+        "tests/cases/backend_compare/spawn_blocking_lane"
         "tests/cases/backend_compare/parallel_backpressure_witness"
         "tests/cases/backend_compare/parallel_disjoint_split_write"
         "tests/cases/backend_compare/parallel_join_collection"

@@ -270,9 +270,12 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
         return false;
     }
     /* cleanup blocks are now fully supported - removed restriction */
-    if (!transpiler_mir_routine_signature_supported((TranspilerCtx *)ctx,
-            routine,
-            func_decl)) {
+    if (transpiler_active_has_mir(ctx)
+        ? !transpiler_mir_routine_signature_supported_strict(
+              (TranspilerCtx *)ctx, routine)
+        : !transpiler_mir_routine_signature_supported((TranspilerCtx *)ctx,
+              routine,
+              func_decl)) {
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap, "function %s has unsupported MIR signature", ast_declaration_name(func_decl));
         return false;

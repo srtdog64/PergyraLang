@@ -146,30 +146,41 @@ func SemanticAstStatementTypeFactsFromArtifact(
         let names: Array<String> = [];
         let types: Array<String> = [];
         let modes: Array<String> = [];
+        let environment_fact: String = "";
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
-        ) || !SemanticAstExpressionSeedParameters(
+        ) { environment_fact = "enum_environment"; }
+        else if !SemanticAstExpressionSeedParameters(
             signatures, statements.function_node_ids[i], names, types
-        ) || !SemanticAstExpressionSeedParameterModes(
+        ) { environment_fact = "parameter_environment"; }
+        else if !SemanticAstExpressionSeedParameterModes(
             signatures, statements.function_node_ids[i], modes
-        ) || !SemanticAstExpressionSeedVisibleLocals(
+        ) { environment_fact = "parameter_mode_environment"; }
+        else if !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types
-        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+        ) { environment_fact = "local_environment"; }
+        else if !SemanticAstExpressionSeedVisibleLocalModes(
             artifact, locals, statements.function_node_ids[i],
             statements.node_ids[i], modes
-        ) || !SemanticAstIterationSeedVisibleBindings(
+        ) { environment_fact = "local_mode_environment"; }
+        else if !SemanticAstIterationSeedVisibleBindings(
             artifact, statements, iteration_types,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
-        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+        ) { environment_fact = "iteration_environment"; }
+        else if !SemanticAstExpressionSeedVisibleMatchBindings(
             artifact, expression_surfaces,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
-        ) || ArrayLength(names) != ArrayLength(modes) {
+        ) { environment_fact = "match_binding_environment"; }
+        else if ArrayLength(names) != ArrayLength(modes) {
+            environment_fact = "environment_row_count";
+        }
+        if environment_fact != "" {
             return SemanticAstStatementTypeStructuralError(
-                artifact, "expression_environment"
+                artifact, environment_fact
             );
         }
 

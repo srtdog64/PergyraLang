@@ -28,6 +28,7 @@
 #include "../common/arena.h"
 
 typedef struct PgyVerifiedProjectionPlanRow PgyVerifiedProjectionPlanRow;
+typedef struct PgySpawnLanePlan PgySpawnLanePlan;
 
 /* -----------------------------------------------------------------
  * Output buffer: grows dynamically.
@@ -152,6 +153,7 @@ typedef struct
     bool              in_parallel;  /* inside a Parallel block       */
     const MIRProgram *mir;          /* MIR program (required)        */
     const PgyVerifiedProjectionPlanRow *projection_plan;
+    const PgySpawnLanePlan *spawn_lane_plan; /* AIR-carried spawn lane facts */
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
@@ -362,6 +364,7 @@ TranspileResult *transpile_from_mir(const MIRProgram *mir,
 TranspileResult *transpile_from_mir_with_projection_plan(
     const MIRProgram *mir,
     const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
     const char *output_path);
 TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const MIRProgram *mir,

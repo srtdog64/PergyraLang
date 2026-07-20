@@ -30,12 +30,24 @@ test_parallel_family_emit(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
+        /* The emitter consumes the AIR-carried lane fact per spawn site;
+           the unit test supplies the fact for its hand-built node. */
+        static PgySpawnLaneFactRow lane_rows[1];
+        static PgySpawnLanePlan lane_plan;
+        lane_rows[0].site = spawn_node;
+        lane_rows[0].lane = PGY_LANE_WORKER_POOL;
+        lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
+        lane_plan.rows = lane_rows;
+        lane_plan.row_count = 1;
+        lane_plan.verified = true;
+        ctx->spawn_lane_plan = &lane_plan;
         emit_program(ctx);
 
         EXPECT(ctx->out->data != NULL);
         EXPECT(strstr(ctx->out->data, "spawn") != NULL);
         EXPECT(strstr(ctx->out->data, "pgy_spawn_wrapper") != NULL);
         EXPECT(strstr(ctx->wrappers->data, "DoWork") != NULL);
+        EXPECT(strstr(ctx->out->data, "PGY_LANE_WORKER_POOL") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

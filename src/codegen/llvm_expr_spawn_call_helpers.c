@@ -9,6 +9,7 @@
 #include "llvm_expr_spawn_worker_boundary.h"
 #include "llvm_mir_signature.h"
 #include "../compiler/execution_lane.h"
+#include "../compiler/verified_projection_plan.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -221,9 +222,19 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
-    /* SEA: LLVM spawn lowering emits the ExecutionLane fact.
-       The runtime facade owns the concrete executor mapping. */
-    spawn_lane = pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node));
+    /* SEA: LLVM spawn lowering consumes the verified ExecutionLane fact
+       carried from AIR (the spawn-lane plan); the backend does not recover
+       the lane from source spelling. The runtime facade owns the concrete
+       executor mapping. A spawn site the plan does not cover is fail-closed. */
+    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+            &spawn_lane)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM spawn expression has no verified execution-lane fact in the AIR spawn-lane plan");
+        return NULL;
+    }
     const char *spawn_export_name = "pgy_lane_spawn_dispatch_export";
     spawn_fn = llvm_lookup_function(ctx, spawn_export_name);
     malloc_fn = llvm_lookup_function(ctx, "malloc");

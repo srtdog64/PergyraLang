@@ -49,6 +49,10 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
 
         case AIR_BOUNDARY_PARALLEL:
             fact.is_concurrent_site = true;
+            /* Declared `spawn blocking` is exactly the OS-blocking effect the
+               policy routes to BlockingPool before any movability rule. */
+            fact.has_io_or_ffi_effect =
+                boundary->has_declared_blocking_evidence;
             fact.is_await_heavy_local =
                 boundary->has_rir_await_local_evidence;
             fact.requires_movability =

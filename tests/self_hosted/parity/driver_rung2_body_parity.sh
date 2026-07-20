@@ -84,7 +84,7 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && semantic_paths+=("$line")
 done <"$SEMANTIC_PATHS"
-if [[ "${#driver_paths[@]}" -ne 3 || "${#semantic_paths[@]}" -ne 7 ]]; then
+if [[ "${#driver_paths[@]}" -ne 1 || "${#semantic_paths[@]}" -ne 7 ]]; then
     echo "[self-host-parity:driver-rung2] TestHarness path cardinality mismatch" >&2
     exit 1
 fi

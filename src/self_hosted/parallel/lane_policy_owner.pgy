@@ -14,13 +14,18 @@
 // help-first progress rests on spawn-tree awaits, which is why a channel-style
 // wait cannot share the join lane's mechanism.
 //
-// ** Honest reachability. ** Codegen does NOT consume the AIR ExecutionLaneFact
-// today: both spawn emitters call pgy_spawn_lane_from_blocking(
-// ast_spawn_is_blocking(node)) and re-derive the lane from a syntactic flag,
-// so PinnedZone, MovableScheduler and Reject are unreachable in emitted code
-// even though the classifier computes them for AIR verification. That gap is
-// board WO-PAR-NOVEL step 2. It is declared below rather than left implicit,
-// so closing it is a visible edit here instead of a silent change of meaning.
+// ** Reachability (WO-PAR-NOVEL step 2 landed). ** Both spawn emitters now
+// consume the AIR-classified lane through the verified spawn-lane plan
+// (pgy_verified_spawn_lane_plan_lookup over src/compiler/
+// verified_projection_plan.c) instead of re-deriving it from a syntactic
+// blocking flag, and the declared `spawn blocking` marker enters the
+// classifier as IO/blocking effect evidence during AIR boundary discovery.
+// A spawn site can therefore carry every classifier verdict except Inline
+// (a spawn boundary is always a concurrent site) and Reject (the plan
+// producer fail-closes the compile on a rejected boundary). The parallel-
+// block / async-block / channel emitters still pass structurally-fixed
+// constant lanes that AGREE with the classifier for those shapes; they are
+// pinned below so that agreement cannot drift silently.
 //
 // Registration is pinned by src/self_hosted/OWNERS.md,
 // tests/self_hosted_component_contract_smoke.sh, and the standalone
@@ -203,17 +208,21 @@ func ParallelLaneEmptyEvidenceIsInline() -> Bool {
     return ParallelLaneClassify(empty) == ParallelLaneInline();
 }
 
-// ---- current codegen reachability (the declared gap) ----------------------
+// ---- current codegen reachability ----------------------------------------
 //
-// Which lanes emitted code can actually reach today. The classifier above runs
-// in AIR verification; codegen re-derives from a syntactic blocking flag, so
-// the pinned/movable/reject verdicts never reach a backend. When
-// WO-PAR-NOVEL step 2 lands, this table and the forbid row below change
-// together.
+// Which lanes emitted code can actually reach. Since the verified spawn-lane
+// plan carries the AIR classification into both backends, a spawn site can
+// reach every lane the classifier can produce for a concurrent boundary:
+// PinnedZone, BlockingPool, LocalAsync, WorkerPool, MovableScheduler. Inline
+// stays unreachable (a spawn boundary is always concurrent) and Reject stays
+// unreachable in EMITTED code because the plan producer fails the compile on
+// a rejected boundary -- fail-closed at build time, not a runtime panic.
 func ParallelLaneReachableFromCodegen(lane: Int) -> Bool {
+    if lane == ParallelLanePinnedZone() { return true; }
     if lane == ParallelLaneBlockingPool() { return true; }
     if lane == ParallelLaneLocalAsync() { return true; }
     if lane == ParallelLaneWorkerPool() { return true; }
+    if lane == ParallelLaneMovableScheduler() { return true; }
     return false;
 }
 
@@ -255,6 +264,10 @@ func ParallelLaneLlvmEmitterPath() -> String {
     return "src/codegen/llvm_expr_spawn_call_helpers.c";
 }
 
+func ParallelLanePlanSourcePath() -> String {
+    return "src/compiler/verified_projection_plan.c";
+}
+
 func ParallelLaneRequiredCount() -> Int {
     return 13;
 }
@@ -262,7 +275,8 @@ func ParallelLaneRequiredCount() -> Int {
 func ParallelLaneRequiredPathAt(index: Int) -> String {
     if index <= 1 { return ParallelLaneKindPath(); }
     if index == 2 { return ParallelLanePolicyHeaderPath(); }
-    if index <= 7 { return ParallelLanePolicySourcePath(); }
+    if index <= 6 { return ParallelLanePolicySourcePath(); }
+    if index == 7 { return ParallelLanePlanSourcePath(); }
     if index <= 9 { return ParallelLaneCEmitterPath(); }
     if index == 10 { return ParallelLaneLlvmEmitterPath(); }
     if index == 11 { return ParallelLaneCEmitterPath(); }
@@ -278,37 +292,45 @@ func ParallelLaneRequiredTermAt(index: Int) -> String {
     if index == 4 { return "return PGY_LANE_REJECT;"; }
     if index == 5 { return "return PGY_LANE_PINNED_ZONE;"; }
     if index == 6 { return "return PGY_LANE_MOVABLE_SCHEDULER;"; }
-    if index == 7 { return "pgy_spawn_lane_from_blocking(bool is_blocking)"; }
+    // The verified bridge: AIR classification is copied into the spawn-lane
+    // plan by this producer; it is the only sanctioned lane path to codegen.
+    if index == 7 { return "pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,"; }
     // Both backends must hand the lane to the runtime facade rather than name
     // an executor: one lane decision, two consumers.
     if index == 8 { return "transpiler_spawn_lane_symbol("; }
     if index == 9 { return "pgy_lane_spawn_dispatch("; }
     if index == 10 { return "pgy_lane_spawn_dispatch_export"; }
-    // The two sites that currently RE-DERIVE the lane from a syntactic flag
-    // instead of carrying the AIR fact. Pinned so the declared gap stays
-    // visible; when WO-PAR-NOVEL step 2 lands, these two rows are what change.
-    if index == 11 { return "pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))"; }
-    if index == 12 { return "pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))"; }
+    // WO-PAR-NOVEL step 2: both spawn emitters consume the AIR-carried fact
+    // through the plan lookup -- the re-derivation these rows used to pin is
+    // retired, and these pins keep the consumption seam from drifting back.
+    if index == 11 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,"; }
+    if index == 12 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,"; }
     return "";
 }
 
-// Forbidden projection: no emitter may name a concrete executor export. That
-// is the pre-SEA shape, and it gives each backend its own private lane
-// decision instead of one policy with two consumers. pgy_spawn_blocking is
-// legitimate inside the runtime facade -- it must not appear in codegen.
+// Forbidden projections: no emitter may name a concrete executor export
+// (the pre-SEA shape where each backend made its own lane decision;
+// pgy_spawn_blocking is legitimate inside the runtime facade only), and no
+// emitter may re-derive the lane from source spelling now that the verified
+// spawn-lane plan carries the AIR fact -- the retired
+// pgy_spawn_lane_from_blocking shortcut must not return.
 func ParallelLaneForbiddenCount() -> Int {
-    return 2;
+    return 4;
 }
 
 func ParallelLaneForbiddenPathAt(index: Int) -> String {
     if index == 0 { return ParallelLaneCEmitterPath(); }
     if index == 1 { return ParallelLaneLlvmEmitterPath(); }
+    if index == 2 { return ParallelLaneCEmitterPath(); }
+    if index == 3 { return ParallelLaneLlvmEmitterPath(); }
     return "";
 }
 
 func ParallelLaneForbiddenTermAt(index: Int) -> String {
     if index == 0 { return "pgy_spawn_blocking"; }
     if index == 1 { return "pgy_spawn_blocking"; }
+    if index == 2 { return "pgy_spawn_lane_from_blocking"; }
+    if index == 3 { return "pgy_spawn_lane_from_blocking"; }
     return "";
 }
 
@@ -327,11 +349,13 @@ func ParallelLanePolicyReady() -> Bool {
         ParallelLaneOrderIsContract() &&
         ParallelLaneMovableNeedsFullEvidence() &&
         ParallelLaneEmptyEvidenceIsInline() &&
-        ParallelLaneReachableCount() == 3 &&
-        !ParallelLaneReachableFromCodegen(ParallelLaneMovableScheduler()) &&
+        ParallelLaneReachableCount() == 5 &&
+        ParallelLaneReachableFromCodegen(ParallelLanePinnedZone()) &&
+        ParallelLaneReachableFromCodegen(ParallelLaneMovableScheduler()) &&
         !ParallelLaneReachableFromCodegen(ParallelLaneReject()) &&
+        !ParallelLaneReachableFromCodegen(ParallelLaneInline()) &&
         ParallelLaneRequiredCount() == 13 &&
-        ParallelLaneForbiddenCount() == 2 &&
+        ParallelLaneForbiddenCount() == 4 &&
         ParallelLaneRequiredPathAt(0) == ParallelLaneKindPath() &&
         ParallelLaneRequiredPathAt(12) == ParallelLaneLlvmEmitterPath() &&
         ParallelLaneRequiredTermAt(0) != "" &&

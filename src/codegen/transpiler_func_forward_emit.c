@@ -26,6 +26,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     char *header_decl = NULL;
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
     bool allow_ast_compat = false;
+    bool mir_active = transpiler_active_has_mir(ctx);
     bool generic_func =
         transpiler_mir_or_ast_function_is_generic(mir_routine, node);
     bool extern_func = mir_routine == NULL
@@ -39,13 +40,20 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_destroy(params_sig);
         return;
     }
-    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-            mir_routine,
-            node,
-            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
-            "MIR-only C path missing function forward signature metadata for '%s'",
-            "MIR-only C path missing function forward return type-name metadata for '%s'",
-            "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
+    if (mir_active) {
+        if (!transpiler_mir_routine_signature_supported_strict(ctx,
+                mir_routine)) {
+            if (params_sig != NULL)
+                codebuf_destroy(params_sig);
+            return;
+        }
+    } else if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                   mir_routine,
+                   node,
+                   TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
+                   "MIR-only C path missing function forward signature metadata for '%s'",
+                   "MIR-only C path missing function forward return type-name metadata for '%s'",
+                   "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
         if (params_sig != NULL)
             codebuf_destroy(params_sig);
         return;
@@ -54,6 +62,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         && (generic_func || extern_func);
     ASTNode *return_type;
     const char *return_type_name = NULL;
+    const MIRCallableSig *return_callable_sig = NULL;
     size_t param_count;
     if (allow_ast_compat) {
         return_type = ast_func_return_type(node);
@@ -61,6 +70,8 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     } else {
         return_type = transpiler_mir_routine_return_type(mir_routine);
         return_type_name = transpiler_mir_routine_return_type_name(mir_routine);
+        return_callable_sig =
+            transpiler_mir_routine_return_callable_sig(mir_routine);
         param_count = transpiler_mir_routine_param_count(mir_routine);
     }
     if (return_type_name != NULL) {
@@ -81,6 +92,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         bool boundary_slot = false;
         bool secure_slot = false;
         bool event_handler_param = false;
+        const MIRCallableSig *param_callable = NULL;
         MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
         bool pass_indirect = false;
 
@@ -90,6 +102,8 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         } else {
             p = transpiler_mir_routine_param(mir_routine, i);
             type_name = transpiler_mir_routine_param_type_name(mir_routine, i);
+            param_callable = transpiler_mir_routine_param_callable_sig(
+                mir_routine, i);
         }
         if (p == NULL)
             continue;
@@ -106,8 +120,9 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         } else if (p->type != NULL) {
             ensure_type_specializations_from_ast(ctx, p->type);
         }
-        event_handler_param =
-            p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+        event_handler_param = param_callable != NULL
+            || (!mir_active
+                && p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE);
         if (!event_handler_param && type_name != NULL) {
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
@@ -174,7 +189,17 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
         } else if (event_handler_param) {
-            decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type, p->name);
+            if (param_callable != NULL) {
+                decl = pergyra_func_pointer_declarator_from_type_names_in_ctx(
+                    ctx,
+                    param_callable->return_type_name,
+                    param_callable->param_count,
+                    param_callable->param_type_names,
+                    p->name);
+            } else {
+                decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type,
+                    p->name);
+            }
             if (decl == NULL) {
                 free(owned_type_name);
                 if (params_sig != NULL)
@@ -215,6 +240,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             return_c_type,
             name != NULL ? name : "value",
             params_text);
+    } else if (return_callable_sig != NULL) {
+        header_decl =
+            pergyra_func_signature_declarator_from_callable_sig_in_ctx(
+                ctx, return_callable_sig, name, params_text);
     } else {
         header_decl = pergyra_func_signature_declarator_in_ctx(ctx,
             return_type,

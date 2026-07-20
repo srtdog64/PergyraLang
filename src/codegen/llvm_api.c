@@ -49,6 +49,17 @@ llvm_apply_intent_observability_projection_plan(LLVMGenCtx *ctx)
             "LLVM backend: projection plan is not verified for LLVM");
         return false;
     }
+    if (!pgy_verified_projection_plan_identity_ready(&row)) {
+        llvm_set_mir_inventory_missing(ctx, "%s",
+            "LLVM backend: verified projection plan identity is invalid");
+        return false;
+    }
+    if (row.air_certificate_schema == NULL
+        || row.air_certificate_fingerprint == 0) {
+        llvm_set_mir_inventory_missing(ctx, "%s",
+            "LLVM backend: AIR evidence certificate is missing from projection plan");
+        return false;
+    }
     if (row.target_capability_fingerprint == 0) {
         llvm_set_mir_inventory_missing(ctx, "%s",
             "LLVM backend: target capability fingerprint is missing");
@@ -422,6 +433,7 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 static LLVMGenResult *
 llvm_codegen_mir_only(const MIRProgram *mir,
                       const PgyVerifiedProjectionPlanRow *projection_plan,
+                      const PgySpawnLanePlan *spawn_lane_plan,
                       const char *module_name)
 {
     llvm_debug_stage("codegen_with_mir:ctx_create");
@@ -433,6 +445,13 @@ llvm_codegen_mir_only(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->spawn_lane_plan = spawn_lane_plan;
+    if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
+        || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
+        llvm_ctx_destroy(ctx);
+        return llvm_result_error(
+            "LLVM backend: verified spawn-lane plan required");
+    }
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
@@ -485,21 +504,24 @@ llvm_codegen_mir_only(const MIRProgram *mir,
 LLVMGenResult *
 llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, NULL, module_name);
+    return llvm_codegen_mir_only(mir, NULL, NULL, module_name);
 }
 
 LLVMGenResult *
 llvm_codegen_from_mir_with_projection_plan(
     const MIRProgram *mir,
     const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
     const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, projection_plan, module_name);
+    return llvm_codegen_mir_only(mir, projection_plan, spawn_lane_plan,
+                                 module_name);
 }
 
 static LLVMGenResult *
 llvm_codegen_to_object_core(const MIRProgram *mir,
                             const PgyVerifiedProjectionPlanRow *projection_plan,
+                            const PgySpawnLanePlan *spawn_lane_plan,
                             const char *module_name,
                             const char *output_path,
                             bool release_opt)
@@ -517,6 +539,13 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->spawn_lane_plan = spawn_lane_plan;
+    if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
+        || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
+        llvm_ctx_destroy(ctx);
+        return llvm_result_error(
+            "LLVM backend: verified spawn-lane plan required");
+    }
 
     llvm_debug_stage("codegen_to_object:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
@@ -622,20 +651,21 @@ llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                 const char *output_path,
                                 bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, NULL, module_name, output_path,
-                                       release_opt);
+    return llvm_codegen_to_object_core(mir, NULL, NULL, module_name,
+                                       output_path, release_opt);
 }
 
 LLVMGenResult *
 llvm_codegen_to_object_from_mir_with_projection_plan(
                                          const MIRProgram *mir,
                                          const PgyVerifiedProjectionPlanRow *projection_plan,
+                                         const PgySpawnLanePlan *spawn_lane_plan,
                                          const char *module_name,
                                          const char *output_path,
                                          bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, projection_plan, module_name, output_path,
-                                       release_opt);
+    return llvm_codegen_to_object_core(mir, projection_plan, spawn_lane_plan,
+                                       module_name, output_path, release_opt);
 }
 
 void

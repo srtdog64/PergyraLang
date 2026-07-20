@@ -1,6 +1,6 @@
 # Pergyra IR 파이프라인 설계
 
-마지막 업데이트: 2026-04-06
+마지막 업데이트: 2026-07-20 (현재 상태 절 갱신 — MIR-only 이주와 Verified Projection Plan 반영)
 
 이 문서는 "현재 저장소가 이미 그렇게 동작한다"는 설명이 아니라, 앞으로 Pergyra 컴파일러가 정리돼야 할 IR 계층 구조를 적는다.
 
@@ -144,41 +144,49 @@ RIR는 단순 "맵"이 아니다. 최소한 아래 연산은 표면 sugar가 아
 
 ## 현재 상태
 
-현재 저장소는 완전히 이 구조로 넘어간 상태가 아니다.
-
-- AST / Semantic / HIR / DIR / RIR / MIR / Backend dispatch는 실제로 동작 중
-- 현재 구현 HIR는 목표 HIR 전체를 다 먹은 상태는 아니고, semantic typed AST 위의 indexed/pass-friendly view에 더 가깝다
-- HIR는 이제 단순 bucket classifier를 넘어서 CFG/dominance/phi-skeleton까지 갖고 있음
-- DIR는 `--dir`로 domain declaration graph를 볼 수 있고, compile driver는 backend dispatch 전에 항상 structural validation까지 수행한다.
-- RIR는 `--rir`로 explicit resource op, static fact, normalized state summary, branch/join `flow-block[...]` lattice summary를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/enrich/validation을 수행한다. 최근에는 `relation/effect/zone/world` nominal handle을 function param, intent participant, `using`, `transfer` 경로에서 explicit fact/op로 정규화한다.
-- MIR는 `--mir`로 routine/block/instruction/cleanup 구조를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/validation을 수행한다. 최근 패스로 phi materialization, instruction-level `def/use`, block entry/exit SSA version, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value/use-def summary, 그리고 instruction/value summary의 `slot_anchor`까지 올라왔고, lowering 안에서 실제 liveness 재계산과 dead `def/phi` 제거 DCE pass도 돈다. C backend에는 simple top-level function CFG subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔다. cleanup/resource op는 현재 intent exceptional CFG에서 no-op runtime hook 호출로 직접 emit되며, 일반 function의 full slot/resource body emission은 아직 더 넓혀야 한다.
-
-즉 현재 구현 현실은:
+2026-07 기준 실제 구현 파이프라인은 다음과 같다:
 
 ```text
-AST
+AST (parse)
 -> Semantic typed AST
--> HIR
--> DIR
--> RIR
--> MIR
--> Backend dispatch
+-> HIR / DIR / RIR
+-> AIR (evidence DAG 검증)
+-> MIR lowering / validation
+-> AIR에 MIR evidence 결합 / 재검증 (lane fact 등 최종 분류)
+-> Verified Projection Plan (검증된 사실의 유일한 백엔드 운반체)
+-> C / LLVM backend
 ```
 
-양쪽 백엔드 모두 `CompilerIRBundle`에서 HIR과 MIR을 함께 수신한다. 함수 본문 코드 생성은 MIR CFG/SSA 기반이며 (`transpile_with_mir`, `llvm_codegen_with_mir`), 도메인 선언(zone/world/relation/effect)과 intent step 로직은 HIR 기반 fallback으로 emit된다. 즉 현재 구조는 **MIR 주도 + HIR 보조** 하이브리드다.
+- **MIR-only 이주는 완료됐다 (2026-06-23).** 비-MIR AST-compat 선언 fallback
+  3패밀리(decl/methods/slots)는 폐기됐고, driver는 `mir==NULL`이면 hard-fail
+  한다. codegen 디렉터리는 HIR 프로그램을 소비하지 않는다 — 과거의
+  "MIR 주도 + HIR 보조 하이브리드" 기술은 이 시점 이전의 상태다.
+- **AIR는 off-path 검증 IR이다** (IRMinimality.v: codegen 최소 척추는
+  HIR→RIR→MIR 3층). AIR는 boundary/evidence/intent 사실을 HIR·RIR에서
+  수집해 DAG로 검증하고, MIR lowering 후 MIR evidence를 결합해 재검증한다
+  (`air_collect_mir_evidence`, `air_refresh_execution_lane_facts`).
+- **검증된 사실이 백엔드로 가는 유일한 통로는 Verified Projection Plan이다**
+  (`src/compiler/verified_projection_plan.{h,c}`). driver가 인증된 AIR와 MIR로
+  plan row(관측성 축 + machine-layer/target fingerprint)와 **spawn-lane
+  plan**(per-site ExecutionLane fact, 2026-07-20)을 만들어 양 백엔드에 값으로
+  넘긴다. 백엔드는 이 운반체 밖에서 AIR를 읽거나 source spelling에서 사실을
+  재유도할 수 없다 (emitter 금지 pin + reachability 계약이 강제).
+- DIR/RIR/MIR는 각각 `--dir`/`--rir`/`--mir`로 관찰 가능하고, compile driver는
+  backend dispatch 전에 항상 lowering/validation을 수행한다. AIR는
+  `--air-json`(pgy.air.graph.v1)으로 관찰 가능하다.
 
-장기 목표 구조는:
+목표 구조와의 남은 거리:
 
 ```text
-AST
--> HIR
--> DIR
--> RIR
--> MIR
--> Backend
+AST -> HIR -> DIR -> RIR -> MIR -> Backend
 ```
 
-이다.
+- HIR가 목표 HIR 전체(문법 노이즈 제거·이름 바인딩·타입 부착의 단일 홈)를
+  다 먹지는 않았다 — semantic typed AST 위의 indexed/pass-friendly view에
+  더 가깝고, semantic 단계가 여전히 별도 층으로 산다 (F2: pre-semantic
+  declaration-field metadata layer가 docs/125의 남은 feature-work).
+- evidence fact의 생산자 커버리지(정밀 capture plumbing)는 docs/146의
+  Remaining 절이 원장이다. 소비 축은 reachability 계약이 감시한다.
 
 ## 왜 HIR 하나로는 부족한가
 

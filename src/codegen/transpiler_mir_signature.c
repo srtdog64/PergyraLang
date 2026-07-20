@@ -170,15 +170,108 @@ transpiler_mir_callable_sig_supported(TranspilerCtx *ctx,
 {
     if (sig == NULL)
         return true;
+    if (!sig->is_callable)
+        return false;
     if (sig->return_type_name != NULL
         && !transpiler_mir_type_name_supported(ctx, sig->return_type_name))
         return false;
-    if (sig->param_type_names != NULL) {
-        for (size_t i = 0; i < sig->param_count; i++) {
-            if (sig->param_type_names[i] != NULL
-                && !transpiler_mir_type_name_supported(ctx,
-                       sig->param_type_names[i]))
+    if (sig->param_count > 0 && sig->param_type_names == NULL)
+        return false;
+    for (size_t i = 0; i < sig->param_count; i++) {
+        if (sig->param_type_names[i] == NULL
+            || !transpiler_mir_type_name_supported(ctx,
+                   sig->param_type_names[i]))
+            return false;
+    }
+    return true;
+}
+
+bool
+transpiler_mir_routine_signature_supported_strict(
+    TranspilerCtx *ctx,
+    const MIRRoutine *routine)
+{
+    const char *name;
+
+    if (routine == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "%s",
+            "MIR-only C path missing routine signature metadata");
+        return false;
+    }
+    name = mir_routine_name(routine);
+    if (!mir_routine_has_signature(routine)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function signature metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        return false;
+    }
+
+    /* A null return type is the MIR representation of Void.  Any non-null
+     * source return shape must have a concrete MIR name or callable row. */
+    if (mir_routine_return_type_name(routine) != NULL) {
+        if (!transpiler_mir_type_name_supported(
+                ctx, mir_routine_return_type_name(routine))) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has unsupported function return type-name metadata for '%s'",
+                name != NULL ? name : "(anonymous)");
+            return false;
+        }
+    } else if (mir_routine_return_callable_sig(routine) != NULL) {
+        if (!transpiler_mir_callable_sig_supported(
+                ctx, mir_routine_return_callable_sig(routine))) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has incomplete function return callable metadata for '%s'",
+                name != NULL ? name : "(anonymous)");
+            return false;
+        }
+    } else if (mir_routine_return_type(routine) != NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function return type-name metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        return false;
+    }
+
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        const char *type_name = mir_routine_param_type_name(routine, i);
+        const MIRCallableSig *callable =
+            mir_routine_param_callable_sig(routine, i);
+
+        /* Method self may be represented by owner metadata rather than a
+         * duplicate source type slot.  It is not a recoverable user type. */
+        if (param == NULL || param->name == NULL
+            || (type_name == NULL && callable == NULL
+                && strcmp(param->name, "self") != 0)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing function parameter type-name metadata for '%s' at argument %llu",
+                name != NULL ? name : "(anonymous)",
+                (unsigned long long)i);
+            return false;
+        }
+        if (type_name != NULL) {
+            if (!transpiler_mir_type_name_supported(ctx, type_name)) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has unsupported function parameter type-name metadata for '%s' at argument %llu",
+                    name != NULL ? name : "(anonymous)",
+                    (unsigned long long)i);
                 return false;
+            }
+        } else if (callable != NULL
+                   && !transpiler_mir_callable_sig_supported(ctx, callable)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has incomplete function parameter callable metadata for '%s' at argument %llu",
+                name != NULL ? name : "(anonymous)",
+                (unsigned long long)i);
+            return false;
         }
     }
     return true;

@@ -2,10 +2,12 @@
 #define PERGYRA_VERIFIED_PROJECTION_PLAN_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "mir.h"
 #include "air_evidence_certificate.h"
+#include "../common/execution_lane_kind.h"
 
 typedef enum PgyProjectionTarget {
     PGY_PROJECTION_TARGET_C,
@@ -79,5 +81,39 @@ bool pgy_verified_projection_plan_intent_observability_with_air(
     PgyProjectionTarget target,
     PgyVerifiedProjectionPlanRow *row_out,
     const char **error_out);
+
+/*
+ * Per-site spawn execution-lane plan: the second verified projection artifact.
+ * AIR classifies every spawn boundary through the SEA decision table
+ * (capture/effect/movability evidence, docs/146); this plan carries the
+ * classified lane per spawn AST site into the backends.  Emitters must take
+ * the lane from pgy_verified_spawn_lane_plan_lookup — recovering a lane from
+ * source spelling inside a backend is the drift this artifact removes.
+ */
+typedef struct PgySpawnLaneFactRow {
+    const struct ASTNode *site;   /* the AST_SPAWN_EXPR node (AIR boundary key) */
+    PgyExecutionLane      lane;   /* classified lane; never the rejected lane */
+} PgySpawnLaneFactRow;
+
+typedef struct PgySpawnLanePlan {
+    uint32_t             revision;
+    PgySpawnLaneFactRow *rows;      /* owned; released by ..._dispose */
+    size_t               row_count;
+    bool                 verified;
+} PgySpawnLanePlan;
+
+#define PGY_SPAWN_LANE_PLAN_REVISION UINT32_C(1)
+
+/* Fail-closed producer: requires a certified AIR verification, refuses a
+ * rejected-lane spawn boundary, and refuses conflicting lanes for one site. */
+bool pgy_verified_spawn_lane_plan_from_air(
+    const PgyAirVerification *air,
+    PgySpawnLanePlan *plan_out,
+    const char **error_out);
+void pgy_verified_spawn_lane_plan_dispose(PgySpawnLanePlan *plan);
+bool pgy_verified_spawn_lane_plan_lookup(
+    const PgySpawnLanePlan *plan,
+    const struct ASTNode *site,
+    PgyExecutionLane *lane_out);
 
 #endif /* PERGYRA_VERIFIED_PROJECTION_PLAN_H */

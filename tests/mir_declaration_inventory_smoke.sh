@@ -777,6 +777,9 @@ for term in \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_active_decl_header_of_type(" \
+    "transpiler_active_decl_header_inventory(ctx, &inventory)" \
+    "mir_decl_header_name(header)" \
+    "MIR nominal declaration header is missing its name" \
     "transpiler_can_forward_declare_type_name_after_zones"; do
     require_term "src/codegen/transpiler_func_forward_policy.c" "$term"
 done
@@ -5017,8 +5020,6 @@ if sed -n '/emit_c_nominal_forward_decls/,/Program emitter/p' \
     | grep -Eq 'ast_(class|party|roster|relation|effect|zone|world)_name\('; then
     fail "C nominal forward declarations must consume the host declaration name owner"
 fi
-require_term "src/codegen/transpiler.c" \
-    "transpiler_decl_name_local(type_decl)"
 for term in \
     "host_name = pgy_host_decl_compat_name(decl)" \
     "stmt_name = transpiler_decl_name_local(stmt)" \
