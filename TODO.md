@@ -10443,16 +10443,24 @@ certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
   (7 케이스, `-Wall -Wextra -Werror` 통과). **build path 확증**(109파일 tree 가
   isolated mingw32-make 로 clean 빌드 — make→gcc 손자 채널이 anti-cheat 생존).
   COMPILER_SOURCES 미등록(의도적, 유일 예외) = verified-but-unwired.
-- **★driver/escape/emission 통합 BLOCKED (verified 충돌, 2026-07-21)**:
-  driver 생산(compiler.c invoke_c_backend, compiler_llvm.c ×2, transpiler.h
-  ctx-필드+transpile 시그니처)을 **사용자가 sibling parallel-capture plan 을
-  동일 영역에 배선 중**(hunk 확인: compiler.c @@-68 +17줄, transpiler.h @@-153
-  ctx struct + @@-367 시그니처). 내 필드/produce 가 사용자 hunk 와 coalesce 돼
-  분리 불가 — 이건 과잉조심 아니라 구조적. `transpiler_expr_core_emit.c`
-  (emit_binary=REG-1c 소비자)는 clean. plan+방출은 한 열차(제약 #4)라 driver
-  가 막히면 emission 도 대기. 재개=사용자 driver rework 커밋 후 기계적
-  (docs/197 App A 재개 단계). escape pass v1(Print-인자 concat, sound)+poison-on
-  방출이 그 train.
+- **★REG-1c escape 분석 ✅ LANDED (2026-07-21, `b916828b`)**:
+  `region_escape_v1.{h,c}` — 가장 좁은 증명가능 sound 클래스(문자열 concat 이
+  **Print/PrintLn 직접 인자**: 결과가 동기 소비 builtin 에 넘어가 statement 밖
+  못 나감 → 함수-스코프 region 이 사용을 덮음)를 certify. AST 필드 직접 접근
+  (parser 링크 불필요), 인자 concat + 좌-spine 중첩 concat certify, 함수당 scope
+  id. **의도적 불완전**(미하강 컨테이너는 certify 0 = HEAP 유지 = sound).
+  게이트 `region-escape-unit-test-smoke`(Print(a+b)→1·PrintLn(a+b+c)→2·
+  non-Print→0·bare→0·함수별 distinct scope, `-Wall -Wextra` 통과). 인터페이스
+  (escape-site 배열)가 driver rework 와 독립이라 지금 검증 착지.
+- **★REG-1c emission + driver 배선만 남음 (verified 충돌 대기)**: emission =
+  clean `emit_binary` StringConcat 사이트에서 plan lookup→REGION 이면
+  `pgy_region_string_concat` + 함수당 region create/destroy(전 return 경로, MIR
+  terminal-branch CFG fact) + LLVM twin. **유일 blocker** = plan 을 emitter ctx
+  로 넣는 driver 배선인데, 사용자가 **sibling parallel-capture plan 을 동일
+  영역에 배선 중**(hunk: compiler.c @@-68 +17줄, transpiler.h @@-153 ctx struct +
+  @@-367 시그니처 — 사용자는 `_plans` 복수 overload 신설 중이라 지금 내 배선은
+  그 restructure 와 싸움). emit_binary 자체는 clean 이나 ctx->region_plan 이
+  배선 없이는 없음. 재개=사용자 restructure 커밋 후 기계적(docs/197 App A.2b).
 - **목표**: §1.2 의 소비자-0 런타임 arena 를 체인-블록으로 승격(ABI §13 개정
   — 소비자 0 인 지금이 유일하게 싼 시점) + 3-물질화/`.bc` + `PgyRegionPlan`
   (제3의 verified-projection 산출물: site→REGION|HEAP, 인증서 게이트, per-site
