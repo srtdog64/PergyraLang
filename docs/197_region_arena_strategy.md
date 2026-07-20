@@ -386,3 +386,127 @@ allocations, regions bound the remaining ones; order-independent), docs/15
 docs/118 §2.1 (lifetime-annotation ban), docs/121 (types as domain medium),
 docs/190 (linkage/state twin regime), MachineLayerCore.v + machine-layer
 vertical slice (WO-REG-4 substrate).
+
+---
+
+## Appendix A. Execution log + refined blueprint (2026-07-21)
+
+### A.1 REG-1a — LANDED (`f17b60f4`)
+
+The runtime foundation is in, verified, and byte-identity-preserving (no
+emitted consumer yet). What actually shipped, refining §5.1:
+
+- **New type is `PgyRegion`, not a rehabilitated `PgyArena`.** Census found the
+  legacy fixed `PgyArena` is still referenced by the ABI layout registry
+  (`mir_abi_layout.c` pins buffer/capacity/offset) and `test_abi_spec.c`, so an
+  in-place mutation carried ABI-coupling churn for no benefit. `PgyRegion` /
+  `pgy_region_*` was a free symbol space (the machine layer uses `PgyMachine*`),
+  matches the surface concept name, and let the legacy arena stay untouched.
+  The legacy fixed arena's removal is a separate REG cleanup (not scheduled).
+- **File**: `src/runtime/pgy_runtime_region_inline.h` (header-only static
+  inline; no export TU — no global state). Included from the memory header;
+  split into its own feature-owner header to stay under the 600-line
+  production-header cap.
+- **API**: `pgy_region_create(block_size)` / `_destroy` / `_alloc(size,align)`
+  / `_alloc_array` / `_reset` (reuse: keep blocks, drop contents) /
+  `_strdup` / `_string_concat(region,a,b)` (the arena twin of `StringConcat`,
+  region-owned, OOM=panic not silent-empty). `PGY_REGION_ALLOC[_ARRAY]` macros.
+- **Alignment** is by real address (not offset), so a block's malloc base
+  alignment is irrelevant — any power-of-two request is honoured.
+- **Budget**: block acquisition charges `PGY_BUDGET_ALLOC_COUNT` (1) and
+  `PGY_BUDGET_ALLOC_BYTES` (block capacity) via `pgy_budget_charge_export`,
+  exactly like the sibling allocator; the bump fast path carries no atomic.
+- **ABI**: new §13a `pgy_abi_region` head-record mirror + `region>=24` assert;
+  §13 `pgy_abi_arena` untouched.
+- **Verified** via the make→gcc direct channel (the smoke's own bash→gcc path
+  dies under the local kernel anti-cheat; make→gcc as grandparent survives):
+  chained growth with stable pointers, alignment, region concat, reset reuse —
+  all identical inline vs extern; budget fail-closed on a low ceiling; both
+  linked-runtime objects compile; ABI asserts hold; `.bc` regenerated; the
+  header-size / runtime-bc-contract / runtime-cext-contract gates green.
+- **Gate**: `region-arena-test-smoke` (Makefile target + standalone `.PHONY`).
+  CI-aggregate membership (into `redteam-repair-contract-test-smoke`) was
+  **deferred** — the concurrent session holds that aggregate region uncommitted;
+  wiring it now would entangle. Add one line to the aggregate once that lands.
+
+### A.2 REG-1b + REG-1c — BLOCKED (concurrent working set), design frozen here
+
+**Why blocked, not skipped**: constraint #4 forbids landing the plan (REG-1b)
+without its emission consumer (REG-1c) — an unconsumed plan is exactly the
+§1.2 anti-pattern. REG-1c edits the emitters (`transpiler_expr_core_emit.c`
+StringConcat lowering, the LLVM string path) and REG-1b edits the driver
+(`compiler.c`, `compiler_llvm.c`) and `verified_projection_plan.h`. At
+2026-07-21 the concurrent session holds **109 files uncommitted**, including
+every one of those plus the entire `src/codegen/` tree and `src/common/arena.c`.
+WO-0 forbids modifying a concurrently-edited file. So the plan+emission train
+waits for that working set to land. The design below is frozen so the resumption
+is a mechanical apply.
+
+**Follow the house split pattern**: the concurrent session is itself moving the
+parallel-capture plan into its own file (`verified_parallel_capture_plan.c`).
+Mirror it — put the region plan in **new files** `verified_region_plan.{h,c}`,
+NOT inside `verified_projection_plan.{h,c}` (which the other session holds).
+This removes the plan-header collision; only the driver call sites remain
+shared, and those get isolated hunks (spawn-lane-plan produce/dispose is the
+adjacency template).
+
+**Plan type** (`verified_region_plan.h`):
+```
+typedef enum { PGY_REGION_SITE_HEAP, PGY_REGION_SITE_REGION } PgyRegionDisposition;
+typedef struct PgyRegionFactRow {
+    const struct ASTNode *site;    /* the allocation-expr AST node (AIR key)   */
+    PgyRegionDisposition  disp;    /* REGION only under an escape certificate  */
+    uint32_t              scope_id;/* function-scope region id (lazy, per fn)  */
+} PgyRegionFactRow;
+typedef struct PgyRegionPlan {
+    uint32_t revision; PgyRegionFactRow *rows; size_t row_count; bool verified;
+} PgyRegionPlan;
+#define PGY_REGION_PLAN_REVISION UINT32_C(1)
+```
+Producer `pgy_verified_region_plan_from_air` mirrors
+`pgy_verified_spawn_lane_plan_from_air`: certificate-ready gate; a site with no
+escape certificate defaults to HEAP (never REGION-without-proof); conflicting
+dispositions for one site → refuse; duplicates collapse. `_lookup(plan, site,
+&disp,&scope)` fail-closed (absent → HEAP). `_dispose` frees rows.
+
+**Escape pass v1** (string temporaries only): a `pgy_region_escape_v1` pass
+over RIR/MIR reusing the own/ref + value-capture machinery. Certify a string
+concat/temporary site REGION iff its whole expression tree is statement-local
+and the result is not: bound to an out-of-scope name; returned; captured
+(closure/spawn/channel/slot/global); passed to a non-borrow-safe callee
+(whitelist Print/len/compare). Default deny → HEAP. No cross-statement liveness
+in v1.
+
+**Driver wiring** (isolated hunks in `compiler.c` + `compiler_llvm.c` ×3, right
+beside the spawn-lane produce/dispose): produce the region plan from AIR after
+the spawn-lane plan; pass it into the transpile/LLVM contexts; dispose after.
+Inline-mode note: unlike the movable lane, regions work in every
+materialization (PgyRegion is header-only), so no inline-mode refusal.
+
+**Emission** (REG-1c):
+- Lazy **function-scope** region: on the first REGION-certified site in a
+  function, emit `PgyRegion __pgy_region = pgy_region_create(0);` at entry;
+  emit `pgy_region_destroy(&__pgy_region);` on **every** return path (use the
+  MIR terminal-branch CFG facts already carried — the same ones that place the
+  M:N join). Zero certified sites ⇒ zero region ops (byte-identity with today).
+- A certified `StringConcat(a,b)` site lowers to
+  `pgy_region_string_concat(&__pgy_region, a, b)` instead of the heap
+  `StringConcat`; nested certified concats compose (region owns every
+  intermediate — closes the §1.4 chained-concat leak). Both backends translate
+  the same plan row; the parity gate extends to region fixtures.
+
+**Gates for the REG-1b+c train**: region backend-compare fixtures with
+`PGY_REGION_POISON` on in both backends (a wrong certificate crashes
+deterministically — the region analogue of the UAF fixtures), including an
+early-return + match-arm function that witnesses destroy on every path; a
+memory-boundedness witness (the leaking chained-concat fixture's RSS
+plateaus); C==LLVM output equality; reachability rows for the PgyRegion family
+flipped to **live in the same commit** (until then they stay declared/honest).
+
+### A.3 REG-1d — origin surface, unblocked-but-dependent
+
+`region_plan_owner.pgy` (+ manifest + golden + smoke) owning the producer
+refusal rules / duplicate collapse / per-site fail-closed lookup /
+driver-produces-backends-consume forbids, plus artifact-zone kind #29. New
+files (no collision), but it documents the REG-1b contract, so it lands with
+the REG-1b+c train, not before.

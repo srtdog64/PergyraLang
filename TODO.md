@@ -10421,8 +10421,29 @@ canon 제약 8종(수명 주석 금지·raw 핸들 API 금지·축 예산 2 불�
 producer+consumer 동시 착지·plan-주도(ambient allocator 금지)·
 certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
 
-#### WO-REG-1 — 런타임 arena 재활 + 첫 생산 소비자 (문자열 임시) — 대기: BDFL 승인
+#### WO-REG-1 — 런타임 arena 재활 + 첫 생산 소비자 (문자열 임시) — 진행 (BDFL "전부 시작해")
 
+- **★REG-1a ✅ CLOSED (2026-07-21, `f17b60f4`)**: 런타임 기반 착지. 실측으로
+  정제된 결정 — 옛 고정 `PgyArena` 는 `mir_abi_layout.c`+`test_abi_spec.c` 가
+  필드 소비 중이라 in-place 개정은 ABI churn → 대신 **새 `PgyRegion`**
+  (`pgy_runtime_region_inline.h`, header-only static inline, `pgy_region_*`
+  심볼 자유·표면 개념 일치). 체인-블록(안정 포인터)·주소기반 정렬·block 획득
+  budget 부과·OOM=panic·region concat(StringConcat twin, silent-empty 대신
+  panic). ABI §13a 미러+`region>=24` assert(§13 불변). 검증=**make→gcc 직접**
+  (smoke 자체 bash→gcc 는 로컬 anti-cheat 하에서 사망, make 손자로는 생존):
+  연쇄성장/정렬/concat/reset **inline==extern**·budget fail-closed·양 물질화
+  오브젝트 컴파일·`.bc` 재생성·header-size/bc-contract/cext-contract green.
+  게이트 `region-arena-test-smoke`(target+독립 .PHONY). **CI aggregate 편입은
+  보류**(그 aggregate 영역을 동시 세션이 미커밋 — 배선 시 엉킴; 착지 후 1줄).
+- **★REG-1b+c BLOCKED (2026-07-21)**: plan(REG-1b)만 착지하면 소비자 없는
+  mechanism = 제약 #4 위반 → plan+방출은 **한 열차**. 그런데 방출(REG-1c)은
+  `transpiler_expr_core_emit.c`·LLVM string 경로를, 드라이버(REG-1b)는
+  `compiler.c`/`compiler_llvm.c`/`verified_projection_plan.h` 를 수정하는데
+  **동시 세션이 109 파일 미커밋**(codegen 전체+driver+plan 헤더+arena.c 포함).
+  WO-0 위반이라 대기. **설계 동결 = docs/197 Appendix A**(house 분할 패턴대로
+  `verified_region_plan.{h,c}` 신설로 plan-헤더 충돌 회피, escape pass v1,
+  driver 격리 hunk, lazy 함수-스코프 방출, poison-on 게이트 — 재개 시 기계적
+  적용). 동시 세션 working set 커밋 후 재개.
 - **목표**: §1.2 의 소비자-0 런타임 arena 를 체인-블록으로 승격(ABI §13 개정
   — 소비자 0 인 지금이 유일하게 싼 시점) + 3-물질화/`.bc` + `PgyRegionPlan`
   (제3의 verified-projection 산출물: site→REGION|HEAP, 인증서 게이트, per-site
