@@ -10840,6 +10840,38 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
     + `.bc` 트윈 재생성. 수리 후 양 leg `true/9` 동일, join 배터리(join-any
     loser 은퇴 포함)·starvation 보상·bc/cext 계약 전부 GREEN. **facade 의
     executor-invariance 가 이제 취소 축에서도 실측으로 성립.**
+  - **✅ 합류 착수 (2026-07-20, BDFL "빈부분 알아서 채우자 합류 시키고")** —
+    M:N 편입 조사가 낸 실측 3건 + 즉시수리 2건 + WO 개설:
+    - **★행 오지정 발견·수리**: reachability 행이 `pgy_scheduler_create` 를
+      pin 했는데 **그 심볼은 실존하지 않는다**(실제 진입점=PascalCase
+      `SchedulerCreate`). 즉 "소비자 0" 판정이 지금까지 공허하게 참이었다.
+      → 행 수리 + **게이트에 home-실존 검사 신설**(심볼이 home 아래 C 소스에
+      없으면 malformed row → FAIL) + **소비자 census 에서 테스트 하니스 제외**
+      (src/tests/·src/test_* — 테스트는 생산 소비자가 아님; 테스트 하나 써서
+      행을 live 로 뒤집는 게임 차단) + 자기시험 양방향 확장. 강화 후 GREEN:
+      진짜 심볼로도 소비자 0 = declared_only 가 **처음으로 실질 검증됨**.
+    - **★Movable 생산자 막힘 실측**: 유일한 선언 authority 표면(intent step
+      `authorized by:`)은 spawn 을 못 품는다 — **intent 절에서 spawn/await 는
+      언어 설계상 금지**(실측: "cannot contain 'spawn'... control-transfer
+      constructs out of intent clauses"). authority 는 zone/world boundary 에만
+      실리고 expr-walk boundary 에는 안 실린다(air.c:514/552). 따라서
+      MovableScheduler 의 실소스 생산자는 배관이 아니라 **표면 결정**
+      (docs/181 `on(lane)` R3)에 걸려 있다. 게임하지 않고 잔여로 명시.
+    - **WO-MN-1 개설 — M:N 스케줄러 편입(합류) 워크스트림**: 종착지 =
+      `src/runtime/async/`(scheduler/fiber/concurrent_queue, _WIN32 경로 실존)
+      가 방출-프로그램 런타임의 **MovableScheduler 전용 executor** 가 되는 것.
+      실측 인벤토리: (a) 현재 컴파일러-바이너리 오브젝트에만 링크, 방출
+      런타임은 **3-물질화**(단일 pgy_runtime_lib.o 공유 + `.bc` 모드 + inline
+      opt-out 모드)라 편입은 오브젝트 레시피 확장+build_runtime_bc llvm-link+
+      inline 모드 처리(심볼 참조만으로 링크 깨짐 → 설계 필요)를 전부 통과해야
+      함, (b) PascalCase→하우스 개명 + 싱글턴 단일-홈(docs/190 A-클래스), (c)
+      트래픽 전제 = 위 표면 결정. **C14 급 별도 워크스트림 — 세션 꼬리로
+      반쯤 얹으면 docs/190 반쯤-상태 클래스 재생산이라 오늘 통편입은 기각**,
+      rung: R0 개명·역내정리 → R1 오브젝트 물질화 → R2 dispatch MOVABLE
+      배선+lane_executor_contract drift → R3 표면 증거(on(lane))와 접속.
+    - checked add/mul i64 2행은 **C2 wrap 판정 전까지 declared 가 정직한
+      상태로 유지**(런타임 내부 소비자 후보(할당 곱셈 가드)는 검토 후 기각 —
+      배열 count 가 i32 라 size_t 경로에서 도달 불가한 가드 = 연극).
   - **행동 변화(실측)**: corpus census 30 spawn/20 fixture 전부 WorkerPool
     균일(가장 위험한 PinnedZone-inline/REJECT 케이스 0) → plain spawn 이
     LocalAsync→WorkerPool 로 flip, `spawn blocking` 은 BlockingPool 로 분류

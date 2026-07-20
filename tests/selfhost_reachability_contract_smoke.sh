@@ -94,9 +94,13 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
 assert_llvm_leg "$LABEL" "$TOOL_ARG" "$BUILD_DIR"
 
 # 3) the census
-# Files under $scope, excluding those under $home, that mention $symbol as a
-# whole word. -w matters: pgy_parallel_chunk_count must not be satisfied by
-# pgy_parallel_chunk_count_export, which is a different symbol.
+# Files under $scope, excluding those under $home AND excluding the test
+# harness (src/tests/, src/test_*.c), that mention $symbol as a whole word.
+# -w matters: pgy_parallel_chunk_count must not be satisfied by
+# pgy_parallel_chunk_count_export, which is a different symbol. The harness
+# exclusion matters because a unit test exercising a mechanism is not a
+# production consumer -- counting it would let a consumer-less mechanism go
+# "live" by writing a test for it.
 consumer_count() { # $1 = symbol, $2 = home prefix, $3 = scope prefix
     local symbol="$1" home="$2" scope="$3" hits n
     if [[ ! -d "$ROOT_DIR/$scope" ]]; then
@@ -117,7 +121,27 @@ consumer_count() { # $1 = symbol, $2 = home prefix, $3 = scope prefix
         echo 0
         return 0
     fi
-    n="$(printf '%s\n' "$hits" | sed "s|^$ROOT_DIR/||" | grep -cv "^$home" || true)"
+    n="$(printf '%s\n' "$hits" | sed "s|^$ROOT_DIR/||" \
+        | grep -v "^src/tests/" | grep -v "^src/test_" \
+        | grep -cv "^$home" || true)"
+    echo "${n:-0}" | tr -d '[:space:]'
+}
+
+# A row must name a mechanism that EXISTS: its entry symbol has to appear in
+# C sources under its declared home. Without this check a row whose symbol is
+# misspelled (or renamed away) censuses zero consumers forever and its
+# declared_only status passes vacuously -- which is exactly how this table
+# carried `pgy_scheduler_create` for a scheduler whose real entrypoint is
+# `SchedulerCreate`.
+home_presence_count() { # $1 = symbol, $2 = home prefix
+    local symbol="$1" home="$2" hits n
+    hits="$(grep -rlw --include=*.c --include=*.h -- "$symbol" "$ROOT_DIR/src" \
+        2>/dev/null || true)"
+    if [[ -z "$hits" ]]; then
+        echo 0
+        return 0
+    fi
+    n="$(printf '%s\n' "$hits" | sed "s|^$ROOT_DIR/||" | grep -c "^$home" || true)"
     echo "${n:-0}" | tr -d '[:space:]'
 }
 
@@ -129,6 +153,14 @@ while IFS='|' read -r kind name symbol home scope status || [[ -n "${kind:-}" ]]
     [[ "$kind" == "reach" ]] || continue
     if [[ -z "$name" || -z "$symbol" || -z "$home" || -z "$scope" || -z "$status" ]]; then
         echo "[$LABEL] malformed reach row: $kind|$name|$symbol|$home|$scope|$status" >&2
+        exit 1
+    fi
+    home_count="$(home_presence_count "$symbol" "$home")"
+    if [[ "$home_count" -lt 1 ]]; then
+        echo "[$LABEL] '$name' names a symbol that does not exist under its home." >&2
+        echo "[$LABEL]   symbol $symbol, home $home" >&2
+        echo "[$LABEL]   a row for a nonexistent mechanism passes every census" >&2
+        echo "[$LABEL]   vacuously; fix the symbol or retire the row." >&2
         exit 1
     fi
     count="$(consumer_count "$symbol" "$home" "$scope")"
@@ -197,6 +229,20 @@ if [[ "$nonzero_probe" -lt 1 ]]; then
     echo "[$LABEL] self-test broken: a symbol known to have consumers reported zero;" >&2
     echo "[$LABEL] the census is not actually searching (every live row would pass" >&2
     echo "[$LABEL] or fail for the wrong reason)." >&2
+    exit 1
+fi
+# The home-existence probe must also be able to answer zero (an absent symbol)
+# and non-zero (a symbol that certainly lives at its home).
+home_zero_probe="$(home_presence_count "$SENTINEL" "src/runtime/")"
+if [[ "$home_zero_probe" -ne 0 ]]; then
+    echo "[$LABEL] self-test broken: the home-existence check reported a nonexistent" >&2
+    echo "[$LABEL] symbol as present -- misspelled rows would pass vacuously again." >&2
+    exit 1
+fi
+home_nonzero_probe="$(home_presence_count "pgy_spawn" "src/runtime/")"
+if [[ "$home_nonzero_probe" -lt 1 ]]; then
+    echo "[$LABEL] self-test broken: the home-existence check cannot find a symbol" >&2
+    echo "[$LABEL] that certainly lives at its home; every row would be malformed." >&2
     exit 1
 fi
 

@@ -269,10 +269,18 @@ step 2):**
   in `backend_compare/spawn_blocking_lane`). It still cannot produce every
   lane: `MovableScheduler` and `Reject` require valid source fixtures whose
   HIR/RIR/MIR evidence proves pure movable authority crossing or raw-resource
-  movability contradictions. The JSON golden must expand only when a valid
-  source fixture produces the new row through HIR/RIR/MIR evidence and a
-  source location. Synthetic AIR state is reserved for unit tests and must not
-  be used to claim AIR JSON lane coverage.
+  movability contradictions. **The Movable dead-end is now measured, not
+  assumed (2026-07-20)**: the only declared authority surface today is the
+  intent-step `authorized by:` clause, authority names attach only to
+  zone/world boundaries (air.c), and intent clauses reject `spawn`/`await`
+  outright as control-transfer constructs — so no plumbing change can produce
+  a Movable spawn from real source. Unblocking it is a SURFACE decision (the
+  docs/181 `on (lane)` reactive-block rung R3 or an equivalent declared
+  authority marker on spawn sites), which is also the traffic prerequisite
+  for the M:N executor join (board WO-MN-1). The JSON golden must expand only
+  when a valid source fixture produces the new row through HIR/RIR/MIR
+  evidence and a source location. Synthetic AIR state is reserved for unit
+  tests and must not be used to claim AIR JSON lane coverage.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
