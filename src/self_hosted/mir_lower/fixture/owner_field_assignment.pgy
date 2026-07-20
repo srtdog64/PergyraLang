@@ -1,0 +1,14 @@
+class Account {
+    let id: Int;
+    let balance: Int;
+
+    func Deposit(self, amount: Int) -> Int {
+        balance = balance + amount;
+        return balance;
+    }
+}
+
+func Main() -> Void {
+    let acc: Account = Account(101, 50);
+    Log(acc.Deposit(25));
+}

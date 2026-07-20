@@ -433,6 +433,7 @@ func SelfMirProgramFactsFromArtifact(
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
+    assignment_types: SemanticAstAssignmentTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
@@ -449,6 +450,13 @@ func SelfMirProgramFactsFromArtifact(
         artifact, analysis.local_bindings, initializer_types
     ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
         artifact, analysis.statements, iteration_types
+    ) || !SemanticAstAssignmentTypeFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, initializer_types, analysis.statements,
+        analysis.expression_surfaces, iteration_types,
+        analysis.assignments, assignment_types
+    ) || !SelfMirAssignmentRowsReady(
+        SelfMirAssignmentRowsFromSemantic(assignment_types)
     ) || !SemanticAstGenericSpecializationFactsReady(
         generic_specializations
     ) || !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
@@ -505,6 +513,7 @@ func SelfMirProgramFactsFromArtifact(
         artifact, analysis,
         SelfMirInitializerRowsFromSemantic(initializer_types),
         SelfMirIterationRowsFromSemantic(iteration_types),
+        SelfMirAssignmentRowsFromSemantic(assignment_types),
         machine_declaration
     );
     let i: Int = 0;

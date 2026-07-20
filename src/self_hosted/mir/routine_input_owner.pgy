@@ -2,6 +2,7 @@
 
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
+import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 
 struct SelfMirInitializerRows {
@@ -18,12 +19,61 @@ struct SelfMirIterationRows {
     collection_hoists: Array<Int>;
 }
 
+struct SelfMirAssignmentRows {
+    node_ids: Array<Int>;
+    target_type_names: Array<String>;
+    target_binding_modes: Array<String>;
+    verified: Array<Int>;
+}
+
 struct SelfMirRoutineInput {
     artifact: AstTreeArtifact;
     analysis: SemanticAstArtifactAnalysis;
     initializers: SelfMirInitializerRows;
     iterations: SelfMirIterationRows;
+    assignments: SelfMirAssignmentRows;
     machine_declaration: SelfHostMachineLayerDeclaration;
+}
+
+func SelfMirAssignmentRowsFromSemantic(
+    facts: SemanticAstAssignmentTypeFacts
+) -> SelfMirAssignmentRows {
+    return SelfMirAssignmentRows(
+        facts.node_ids, facts.target_type_names,
+        facts.target_binding_modes, facts.verified
+    );
+}
+
+func SelfMirAssignmentRowsReady(rows: SelfMirAssignmentRows) -> Bool {
+    let n: Int = ArrayLength(rows.node_ids);
+    if ArrayLength(rows.target_type_names) != n ||
+        ArrayLength(rows.target_binding_modes) != n ||
+        ArrayLength(rows.verified) != n { return false; }
+    let i: Int = 0;
+    while i < n {
+        if rows.node_ids[i] < 0 || rows.target_type_names[i] == "" ||
+            rows.target_type_names[i] == "Unknown" ||
+            rows.target_binding_modes[i] == "" ||
+            rows.target_binding_modes[i] == "unknown" ||
+            rows.verified[i] != 1 ||
+            (i > 0 && rows.node_ids[i] <= rows.node_ids[i - 1]) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirAssignmentRowForNode(
+    rows: SelfMirAssignmentRows, node_id: Int
+) -> Option<Int> {
+    if !SelfMirAssignmentRowsReady(rows) { return None; }
+    let i: Int = 0;
+    while i < ArrayLength(rows.node_ids) {
+        if rows.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
 }
 
 func SelfMirInitializerRowsFromSemantic(

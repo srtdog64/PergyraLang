@@ -457,6 +457,20 @@ target_attach_count="$(grep -Fc -- \
     "$ROOT_DIR/src/self_hosted/mir/routine_assignment_owner.pgy")"
 [[ "$target_attach_count" -eq 1 ]] ||
     fail "routine assignment target graph must be attached exactly once"
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    "target_binding_modes: Array<String>;"
+require_function_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "SelfMirLowerAssignmentFromArtifact" 'binding_mode == "owner_field"'
+require_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "EmitAssign" 'LookupKindType(env, name, "cbind")'
+forbid_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "EmitAssign" "CompilerSymbolCBindingName(name)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    '"uses":["balance.0","amount.1"]'
+require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    '"name":"missing_balance","type":"Int"'
 array_set_index_attach_count="$(grep -Fc -- \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
     "$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy")"

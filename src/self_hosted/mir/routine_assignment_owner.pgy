@@ -24,37 +24,71 @@ func SelfMirLowerAssignmentFromArtifact(
         input.analysis.assignments.target_root_names[assignment_index];
     let target_text: String =
         input.analysis.assignments.target_texts[assignment_index];
+    let binding_row_opt: Option<Int> = SelfMirAssignmentRowForNode(
+        input.assignments, node_id
+    );
+    if !IsSome(binding_row_opt) {
+        return SelfMirRoutineBuildError(
+            build, "MIR assignment target binding fact is missing"
+        );
+    }
+    let binding_row: Int = UnwrapOption(binding_row_opt);
+    let binding_mode: String =
+        input.assignments.target_binding_modes[binding_row];
     let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
+    if !IsSome(local_opt) && binding_mode == "owner_field" {
+        build = SelfMirRoutineAddLocal(
+            build, target,
+            input.assignments.target_type_names[binding_row], 0
+        );
+        local_opt = SelfMirRoutineLocalIndex(build, target);
+    }
     if !IsSome(local_opt) {
         return SelfMirRoutineBuildError(
             build, Concat("MIR assignment target is unknown: ", target)
         );
     }
     let local_index: Int = UnwrapOption(local_opt);
+    if build.local_types[local_index] !=
+        input.assignments.target_type_names[binding_row] {
+        return SelfMirRoutineBuildError(
+            build, "MIR assignment target binding type drifted"
+        );
+    }
     let expression: String =
         input.analysis.assignments.value_texts[assignment_index];
+    let value_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        );
+    let target_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        );
     let uses: Array<String> = [];
+    if binding_mode == "owner_field" &&
+        SelfMirExpressionGraphContainsLeafBinding(value_graph, target) {
+        SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
+    }
     if target_text != target {
+        if binding_mode == "owner_field" &&
+            SelfMirExpressionGraphContainsLeafBinding(target_graph, target) {
+            SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
+        }
         let target_uses: Array<String> =
             SelfMirExpressionUses(build, target_text);
         let target_use_i: Int = 0;
         while target_use_i < ArrayLength(target_uses) {
-            ArrayPush(uses, target_uses[target_use_i]);
+            SelfMirUsesAppendUnique(uses, target_uses[target_use_i]);
             target_use_i = target_use_i + 1;
         }
     }
     let value_uses: Array<String> = SelfMirExpressionUses(build, expression);
     let value_use_i: Int = 0;
     while value_use_i < ArrayLength(value_uses) {
-        let already_present: Bool = false;
-        let use_i: Int = 0;
-        while use_i < ArrayLength(uses) {
-            if uses[use_i] == value_uses[value_use_i] {
-                already_present = true;
-            }
-            use_i = use_i + 1;
-        }
-        if !already_present { ArrayPush(uses, value_uses[value_use_i]); }
+        SelfMirUsesAppendUnique(uses, value_uses[value_use_i]);
         value_use_i = value_use_i + 1;
     }
     build = SelfMirRoutineAdvanceLocalVersion(build, local_index);
@@ -64,16 +98,10 @@ func SelfMirLowerAssignmentFromArtifact(
         target, "", expression, target_text, "AST_ASSIGNMENT", uses
     );
     build = SelfMirRoutineAttachLastExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneValue()
-        ), input.machine_declaration
+        build, value_graph, input.machine_declaration
     );
     build = SelfMirRoutineAttachLastSecondaryExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneAtom()
-        )
+        build, target_graph
     );
     return build;
 }

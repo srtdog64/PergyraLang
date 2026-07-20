@@ -1,5 +1,22 @@
 # Self-Host Progress
 
+2026-07-21 executable assignment-binding/SoT delta:
+`owner_field_assignment` is DRV-2 MIR fixture 111. Semantic assignment typing
+now carries the winning binding mode together with the verified target type;
+MIR input admits that row explicitly and seeds SSA version zero only when the
+semantic owner classified the target as an implicit owner field. The first
+`balance = balance + amount` therefore preserves `balance.0 -> balance.1`
+without rewriting the source to `self.balance` or asking a backend to infer a
+field from its spelling. C emission consumes the existing function-scoped
+`cbind` row and emits `self.balance`. Removing only the `balance` declaration
+row while retaining the expression graph fails with `undefined_symbol`
+instead of recovering from text. The Pergyra-built hard driver and independent
+C-built/LLVM-built self drivers passed focused canonical-MIR, emitted-C, host
+compile, negative mutation, and runtime parity (`75`) for this fixture. The
+complete 111-fixture matrix was not run; standalone member-call statements in
+the broader `class_method_self_access` probe remain the next bounded gap, and
+released/default replacement remains 0%.
+
 2026-07-21 executable CFG/SoT delta: `class_node_field_access` is DRV-2 MIR
 fixture 110. In a loop-local `if` whose true arm returns, cyclic reachability
 made that terminal true block look like its own structural merge. The MIR

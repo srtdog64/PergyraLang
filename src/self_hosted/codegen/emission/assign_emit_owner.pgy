@@ -70,13 +70,15 @@ func EmitAssign(
         return Concat(array_fact.c_set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
             Concat(idx_expr, Concat(", ", Concat(rhs, ");")))))));
     }
-    let c_name: String = CompilerSymbolCBindingName(name);
+    let c_name: String = LookupKindType(env, name, "cbind");
     if target_kind_value == AstExpressionNodeMemberAccess() {
         c_name = RewriteExprFromSemanticGraph(
             target_graph.graph, target_graph.root_id, env
         );
     } else if target_kind_value != AstExpressionNodeLeaf() {
         Die("assignment target graph kind is unsupported");
+    } else if c_name == "" {
+        Die("assignment target C binding fact is missing");
     }
     if expected_type == "String" || expected_type == "Float" ||
         expected_type == "Long" {

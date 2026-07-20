@@ -2,6 +2,43 @@
 
 import "routine_build_owner.pgy";
 
+func SelfMirExpressionGraphContainsLeafBinding(
+    view: SemanticExpressionGraphView, name: String
+) -> Bool {
+    if !view.ok || name == "" { return false; }
+    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+        view.graph, view.root_id
+    );
+    if !IsSome(start_opt) { return false; }
+    let node: Int = UnwrapOption(start_opt);
+    while node <= view.root_id {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            view.graph, node
+        );
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            view.graph, node
+        );
+        if IsSome(kind) && IsSome(text) &&
+            UnwrapOption(kind) == AstExpressionNodeLeaf() &&
+            UnwrapOption(text) == name {
+            return true;
+        }
+        node = node + 1;
+    }
+    return false;
+}
+
+func SelfMirUsesAppendUnique(
+    inout uses: Array<String>, use_name: String
+) -> Void {
+    let i: Int = 0;
+    while i < ArrayLength(uses) {
+        if uses[i] == use_name { return; }
+        i = i + 1;
+    }
+    ArrayPush(uses, use_name);
+}
+
 func SelfMirExpressionUses(
     build: SelfMirRoutineBuild,
     expression: String
