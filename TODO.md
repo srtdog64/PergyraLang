@@ -10902,6 +10902,14 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
       반쯤 얹으면 docs/190 반쯤-상태 클래스 재생산이라 오늘 통편입은 기각**,
       rung: R0 개명·역내정리 → R1 오브젝트 물질화 → R2 dispatch MOVABLE
       배선+lane_executor_contract drift → R3 표면 증거(on(lane))와 접속.
+      **설계도 = docs/194**(inline-모드 결정 포함 rung 별 exit gate 명세).
+    - **✅ 부수 착지: spawn-lane plan 의 origin-surface 등록** —
+      `spawn_lane_plan_owner.pgy`+manifest+golden+게이트
+      (`selfhost-spawn-lane-plan-test-smoke`, parallel-production aggregate
+      편입): 생산자 거절 규칙(REJECT/충돌)·중복 붕괴·spawn-필터·per-site
+      fail-closed lookup·driver-생산/backend-소비 분리를 Pergyra 위트니스
+      7종으로 소유, 핀 12+forbid 2(백엔드의 생산자 호출 금지). artifact-zone
+      kind 28번째 등록, 양 leg artifact-equal.
     - checked add/mul i64 2행은 **C2 wrap 판정 전까지 declared 가 정직한
       상태로 유지**(런타임 내부 소비자 후보(할당 곱셈 가드)는 검토 후 기각 —
       배열 count 가 i32 라 size_t 경로에서 도달 불가한 가드 = 연극).

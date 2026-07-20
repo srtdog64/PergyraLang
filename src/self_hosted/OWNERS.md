@@ -700,13 +700,29 @@ inventory must not become a second fact-family owner registry.
   decision table, the in-language invariants it exists to guarantee
   (contradictory evidence rejects, rule order is the contract, the movable
   M:N lane needs its full conjunction), the declared codegen reachability
-  (only three of seven lanes survive lowering today -- board WO-PAR-NOVEL
-  step 2), and the pin list for every C projection site.
+  (five of seven lanes since WO-PAR-NOVEL step 2 landed; Inline is
+  impossible for a concurrent spawn boundary and Reject fail-closes the
+  compile), and the pin list for every C projection site.
 - `src/self_hosted/parallel/lane_policy_manifest.pgy` -- runnable projection
   over the lane policy owner: prints the canonical lane/invariant/reachable
   table and the require rows for the expected-artifact diff on both compiler
   legs (`src/self_hosted/parallel/expected_lane_policy_manifest.txt`, gate
   `tests/selfhost_parallel_lane_policy_smoke.sh`).
+- `src/self_hosted/parallel/spawn_lane_plan_owner.pgy` -- verified spawn-lane
+  plan bridge SoT (docs/146 WO-PAR-NOVEL step 2): how AIR-classified lanes
+  TRAVEL to the backends. Owns the plan artifact contract (revision, legal
+  row lanes -- never Reject or Inline), the producer's fail-closed refusals
+  (a Reject-classified spawn boundary refuses the compile; conflicting lanes
+  for one site refuse; duplicates collapse), the AST_SPAWN_EXPR filter,
+  per-site fail-closed lookup, and the driver-produces / backend-consumes
+  split. The decision table stays in lane_policy_owner (imported for lane
+  tags -- one source).
+- `src/self_hosted/parallel/spawn_lane_plan_manifest.pgy` -- runnable
+  projection over the spawn-lane plan owner: prints the contract, re-runs the
+  producer witnesses, and emits the require/forbid rows for the
+  expected-artifact diff on both compiler legs
+  (`src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt`, gate
+  `tests/selfhost_spawn_lane_plan_smoke.sh`).
 
 ## Compiler World
 

@@ -1,0 +1,30 @@
+schema=pgy.selfhost.spawn-lane-plan.v1
+revision=1
+legal_row_lane|Reject|no
+legal_row_lane|Inline|no
+legal_row_lane|PinnedZone|yes
+legal_row_lane|BlockingPool|yes
+legal_row_lane|LocalAsync|yes
+legal_row_lane|WorkerPool|yes
+legal_row_lane|MovableScheduler|yes
+invariant|reject_refuses_compile|ok
+invariant|conflict_refuses_compile|ok
+invariant|duplicate_collapses|ok
+invariant|non_spawn_boundaries_skipped|ok
+invariant|empty_plan_is_verified|ok
+invariant|lookup_fails_closed|ok
+invariant|row_lanes_are_bounded|ok
+require|src/compiler/verified_projection_plan.h|typedef struct PgySpawnLanePlan {
+require|src/compiler/verified_projection_plan.h|#define PGY_SPAWN_LANE_PLAN_REVISION UINT32_C(1)
+require|src/compiler/verified_projection_plan.h|bool pgy_verified_spawn_lane_plan_from_air(
+require|src/compiler/verified_projection_plan.h|bool pgy_verified_spawn_lane_plan_lookup(
+require|src/compiler/verified_projection_plan.c|pgy_air_evidence_certificate_ready(air
+require|src/compiler/verified_projection_plan.c|AST_SPAWN_EXPR
+require|src/compiler/verified_projection_plan.c|classifies to the rejected lane
+require|src/compiler/verified_projection_plan.c|conflicting lane facts for one spawn site
+require|src/compiler/compiler.c|pgy_verified_spawn_lane_plan_from_air(air
+require|src/compiler/compiler.c|pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)
+require|src/compiler/compiler_llvm.c|pgy_verified_spawn_lane_plan_from_air(air
+require|src/compiler/compiler_llvm.c|pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)
+forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_from_air
+forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_from_air

@@ -1,0 +1,367 @@
+// Verified spawn-lane plan owner (docs/146 WO-PAR-NOVEL step 2, docs/36).
+//
+// SoT for the BRIDGE contract that carries the AIR-classified ExecutionLane
+// per spawn site into both backends: `PgySpawnLanePlan` in
+// src/compiler/verified_projection_plan.{h,c}. The lane DECISION table is
+// owned by lane_policy_owner.pgy (imported below, one source for lane tags);
+// this owner declares how the decided facts travel:
+//
+//   - the producer copies (spawn AST site, classified lane) rows out of a
+//     CERTIFIED AIR verification -- it is the only sanctioned lane path from
+//     verification to codegen;
+//   - a Reject-classified spawn boundary refuses the COMPILE (fail-closed at
+//     build time, never a runtime null-handle panic);
+//   - conflicting lanes for one site refuse; a duplicate of the same fact
+//     collapses to one row;
+//   - Inline can never appear in a plan row (a spawn boundary is always a
+//     concurrent site), so plan rows range over exactly the five
+//     runnable-from-spawn lanes;
+//   - lookup is per-site and fail-closed: a miss means the emitter must
+//     refuse the spawn site, not guess a lane;
+//   - backends CONSUME the plan (lookup); only the driver PRODUCES it. The
+//     forbid rows below keep the producer out of the emitters.
+//
+// The consumption seam itself (both spawn emitters call the lookup) is pinned
+// by lane_policy_owner.pgy; the rows here pin the plan artifact and the
+// producer's refusal behaviour, so one truth has one pin home.
+//
+// Registration is pinned by src/self_hosted/OWNERS.md,
+// tests/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/selfhost_spawn_lane_plan_smoke.sh gate.
+
+import "lane_policy_owner.pgy";
+
+func SpawnLanePlanSchema() -> String {
+    return "pgy.selfhost.spawn-lane-plan.v1";
+}
+
+// Mirrors PGY_SPAWN_LANE_PLAN_REVISION. Backends refuse a plan whose
+// revision does not match the contract they were built against.
+func SpawnLanePlanRevision() -> Int { return 1; }
+
+// A site that exists in no plan. Site identities are opaque and positive in
+// this model (the C artifact keys rows by the spawn AST node).
+func SpawnLanePlanNoSite() -> Int { return 0; }
+
+// Which lanes may appear in a produced plan row. Reject is refused by the
+// producer and Inline is impossible for a concurrent spawn boundary.
+func SpawnLanePlanRowLaneLegal(lane: Int) -> Bool {
+    if lane == ParallelLanePinnedZone() { return true; }
+    if lane == ParallelLaneBlockingPool() { return true; }
+    if lane == ParallelLaneLocalAsync() { return true; }
+    if lane == ParallelLaneWorkerPool() { return true; }
+    if lane == ParallelLaneMovableScheduler() { return true; }
+    return false;
+}
+
+// ---- the producer, modelled over a bounded boundary table --------------
+//
+// The C producer walks every AIR boundary; this model walks up to four,
+// which is enough to witness every refusal and collapse rule with each
+// scenario visible in the golden. `used` marks a populated slot; `is_spawn`
+// mirrors the AST_SPAWN_EXPR filter (zone/channel/await boundaries are not
+// plan rows).
+
+struct SpawnLaneBoundary {
+    used: Bool;
+    is_spawn: Bool;
+    site: Int;
+    lane: Int;
+}
+
+struct SpawnLanePlanOutcome {
+    verified: Bool;
+    refused_reject: Bool;
+    refused_conflict: Bool;
+    row_count: Int;
+    row0_site: Int;
+    row0_lane: Int;
+    row1_site: Int;
+    row1_lane: Int;
+}
+
+func SpawnLaneBoundaryEmpty() -> SpawnLaneBoundary {
+    return SpawnLaneBoundary(false, false, SpawnLanePlanNoSite(), ParallelLaneReject());
+}
+
+func SpawnLaneBoundaryAt(
+    b0: SpawnLaneBoundary,
+    b1: SpawnLaneBoundary,
+    b2: SpawnLaneBoundary,
+    b3: SpawnLaneBoundary,
+    index: Int
+) -> SpawnLaneBoundary {
+    if index == 0 { return b0; }
+    if index == 1 { return b1; }
+    if index == 2 { return b2; }
+    return b3;
+}
+
+func SpawnLanePlanRefusal(reject: Bool, conflict: Bool) -> SpawnLanePlanOutcome {
+    return SpawnLanePlanOutcome(false, reject, conflict, 0,
+        SpawnLanePlanNoSite(), ParallelLaneReject(),
+        SpawnLanePlanNoSite(), ParallelLaneReject());
+}
+
+// The produce algorithm, rule for rule with pgy_verified_spawn_lane_plan_
+// from_air: filter to spawn sites, refuse Reject, refuse conflicting lanes
+// for one site, collapse duplicates, then mark the plan verified.
+func SpawnLanePlanProduce(
+    b0: SpawnLaneBoundary,
+    b1: SpawnLaneBoundary,
+    b2: SpawnLaneBoundary,
+    b3: SpawnLaneBoundary
+) -> SpawnLanePlanOutcome {
+    let row0_site: Int = SpawnLanePlanNoSite();
+    let row0_lane: Int = ParallelLaneReject();
+    let row1_site: Int = SpawnLanePlanNoSite();
+    let row1_lane: Int = ParallelLaneReject();
+    let row_count: Int = 0;
+    let index: Int = 0;
+    while index < 4 {
+        let boundary: SpawnLaneBoundary = SpawnLaneBoundaryAt(b0, b1, b2, b3, index);
+        index = index + 1;
+        if !boundary.used { continue; }
+        if !boundary.is_spawn { continue; }
+        if boundary.lane == ParallelLaneReject() {
+            return SpawnLanePlanRefusal(true, false);
+        }
+        if row_count > 0 && row0_site == boundary.site {
+            if row0_lane != boundary.lane {
+                return SpawnLanePlanRefusal(false, true);
+            }
+            continue;
+        }
+        if row_count > 1 && row1_site == boundary.site {
+            if row1_lane != boundary.lane {
+                return SpawnLanePlanRefusal(false, true);
+            }
+            continue;
+        }
+        if row_count == 0 {
+            row0_site = boundary.site;
+            row0_lane = boundary.lane;
+        }
+        if row_count == 1 {
+            row1_site = boundary.site;
+            row1_lane = boundary.lane;
+        }
+        row_count = row_count + 1;
+    }
+    return SpawnLanePlanOutcome(true, false, false, row_count,
+        row0_site, row0_lane, row1_site, row1_lane);
+}
+
+// Per-site fail-closed lookup: an unverified plan answers nothing, and a
+// missing site is a MISS the emitter must refuse -- never a default lane.
+func SpawnLanePlanLookupFound(outcome: SpawnLanePlanOutcome, site: Int) -> Bool {
+    if !outcome.verified { return false; }
+    if outcome.row_count > 0 && outcome.row0_site == site { return true; }
+    if outcome.row_count > 1 && outcome.row1_site == site { return true; }
+    return false;
+}
+
+func SpawnLanePlanLookupLane(outcome: SpawnLanePlanOutcome, site: Int) -> Int {
+    if outcome.row_count > 0 && outcome.row0_site == site {
+        return outcome.row0_lane;
+    }
+    if outcome.row_count > 1 && outcome.row1_site == site {
+        return outcome.row1_lane;
+    }
+    return ParallelLaneReject();
+}
+
+// ---- in-language invariant witnesses -----------------------------------
+
+// A Reject-classified spawn boundary refuses the whole plan, regardless of
+// how many healthy rows surround it.
+func SpawnLanePlanRejectRefuses() -> Bool {
+    let healthy: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 11, ParallelLaneWorkerPool());
+    let rejected: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 12, ParallelLaneReject());
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        healthy, rejected, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
+    return !outcome.verified && outcome.refused_reject &&
+        !outcome.refused_conflict;
+}
+
+// Two different lanes for one site are contradictory facts: refuse, do not
+// pick either.
+func SpawnLanePlanConflictRefuses() -> Bool {
+    let first: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 21, ParallelLaneWorkerPool());
+    let second: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 21, ParallelLaneBlockingPool());
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        first, second, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
+    return !outcome.verified && outcome.refused_conflict &&
+        !outcome.refused_reject;
+}
+
+// The same fact twice is one row, not two.
+func SpawnLanePlanDuplicateCollapses() -> Bool {
+    let fact: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 31, ParallelLaneBlockingPool());
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        fact, fact, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
+    return outcome.verified && outcome.row_count == 1 &&
+        outcome.row0_lane == ParallelLaneBlockingPool();
+}
+
+// Non-spawn boundaries (zone, channel, await) never become plan rows, even
+// when they carry a classified lane.
+func SpawnLanePlanSkipsNonSpawnBoundaries() -> Bool {
+    let zone_like: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, false, 41, ParallelLanePinnedZone());
+    let spawn_like: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 42, ParallelLaneWorkerPool());
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        zone_like, spawn_like, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
+    return outcome.verified && outcome.row_count == 1 &&
+        outcome.row0_site == 42;
+}
+
+// A program with no spawn site produces an EMPTY verified plan -- absence of
+// spawns is not an error, and the emitters simply never look anything up.
+func SpawnLanePlanEmptyIsVerified() -> Bool {
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty(),
+        SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
+    return outcome.verified && outcome.row_count == 0;
+}
+
+// A missing site is a miss, and an unverified (refused) plan answers no
+// lookup at all -- the emitter's only move on either is to fail closed.
+func SpawnLanePlanLookupFailsClosed() -> Bool {
+    let fact: SpawnLaneBoundary =
+        SpawnLaneBoundary(true, true, 51, ParallelLaneLocalAsync());
+    let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
+        fact, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty(),
+        SpawnLaneBoundaryEmpty());
+    let refused: SpawnLanePlanOutcome = SpawnLanePlanRefusal(true, false);
+    return SpawnLanePlanLookupFound(outcome, 51) &&
+        SpawnLanePlanLookupLane(outcome, 51) == ParallelLaneLocalAsync() &&
+        !SpawnLanePlanLookupFound(outcome, 52) &&
+        !SpawnLanePlanLookupFound(refused, 51);
+}
+
+// Every lane a produced row can carry is one of the five runnable-from-spawn
+// lanes; Reject is refused above and Inline is structurally impossible.
+func SpawnLanePlanRowLanesAreBounded() -> Bool {
+    return SpawnLanePlanRowLaneLegal(ParallelLanePinnedZone()) &&
+        SpawnLanePlanRowLaneLegal(ParallelLaneBlockingPool()) &&
+        SpawnLanePlanRowLaneLegal(ParallelLaneLocalAsync()) &&
+        SpawnLanePlanRowLaneLegal(ParallelLaneWorkerPool()) &&
+        SpawnLanePlanRowLaneLegal(ParallelLaneMovableScheduler()) &&
+        !SpawnLanePlanRowLaneLegal(ParallelLaneReject()) &&
+        !SpawnLanePlanRowLaneLegal(ParallelLaneInline());
+}
+
+// ---- required-term pins -------------------------------------------------
+//
+// Pin doctrine (docs/188 R2): stable identifiers and load-bearing refusal
+// strings only. The emitters' lookup consumption is pinned by
+// lane_policy_owner.pgy -- not repeated here.
+
+func SpawnLanePlanHeaderPath() -> String {
+    return "src/compiler/verified_projection_plan.h";
+}
+
+func SpawnLanePlanSourcePath() -> String {
+    return "src/compiler/verified_projection_plan.c";
+}
+
+func SpawnLanePlanCDriverPath() -> String {
+    return "src/compiler/compiler.c";
+}
+
+func SpawnLanePlanLlvmDriverPath() -> String {
+    return "src/compiler/compiler_llvm.c";
+}
+
+func SpawnLanePlanCEmitterPath() -> String {
+    return "src/codegen/transpiler_spawn_channel_emit.c";
+}
+
+func SpawnLanePlanLlvmEmitterPath() -> String {
+    return "src/codegen/llvm_expr_spawn_call_helpers.c";
+}
+
+func SpawnLanePlanRequiredCount() -> Int {
+    return 12;
+}
+
+func SpawnLanePlanRequiredPathAt(index: Int) -> String {
+    if index <= 3 { return SpawnLanePlanHeaderPath(); }
+    if index <= 7 { return SpawnLanePlanSourcePath(); }
+    if index <= 9 { return SpawnLanePlanCDriverPath(); }
+    if index <= 11 { return SpawnLanePlanLlvmDriverPath(); }
+    return "";
+}
+
+func SpawnLanePlanRequiredTermAt(index: Int) -> String {
+    // The artifact: struct, revision, and the three entrypoints.
+    if index == 0 { return "typedef struct PgySpawnLanePlan {"; }
+    if index == 1 { return "#define PGY_SPAWN_LANE_PLAN_REVISION UINT32_C(1)"; }
+    if index == 2 { return "bool pgy_verified_spawn_lane_plan_from_air("; }
+    if index == 3 { return "bool pgy_verified_spawn_lane_plan_lookup("; }
+    // The producer's behaviour: certified input, the spawn-site filter, and
+    // both refusal strings (they are diagnostics users see; drifting them
+    // silently would orphan documentation and tests).
+    if index == 4 { return "pgy_air_evidence_certificate_ready(air"; }
+    if index == 5 { return "AST_SPAWN_EXPR"; }
+    if index == 6 { return "classifies to the rejected lane"; }
+    if index == 7 { return "conflicting lane facts for one spawn site"; }
+    // Both drivers produce next to the projection plan and dispose after
+    // codegen -- the plan's lifetime is the driver's, not the backend's.
+    if index == 8 { return "pgy_verified_spawn_lane_plan_from_air(air"; }
+    if index == 9 { return "pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)"; }
+    if index == 10 { return "pgy_verified_spawn_lane_plan_from_air(air"; }
+    if index == 11 { return "pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan)"; }
+    return "";
+}
+
+// Forbidden projection: backends consume the plan; they never produce it.
+// A backend that calls the producer would re-open a private lane decision
+// (and a second AIR read) inside codegen.
+func SpawnLanePlanForbiddenCount() -> Int {
+    return 2;
+}
+
+func SpawnLanePlanForbiddenPathAt(index: Int) -> String {
+    if index == 0 { return SpawnLanePlanCEmitterPath(); }
+    if index == 1 { return SpawnLanePlanLlvmEmitterPath(); }
+    return "";
+}
+
+func SpawnLanePlanForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_verified_spawn_lane_plan_from_air"; }
+    if index == 1 { return "pgy_verified_spawn_lane_plan_from_air"; }
+    return "";
+}
+
+func SpawnLanePlanMissingSelfTestTerm() -> String {
+    return "definitely_missing_spawn_lane_plan_term";
+}
+
+func SpawnLanePlanReady() -> Bool {
+    return SpawnLanePlanSchema() != "" &&
+        SpawnLanePlanRevision() == 1 &&
+        SpawnLanePlanRejectRefuses() &&
+        SpawnLanePlanConflictRefuses() &&
+        SpawnLanePlanDuplicateCollapses() &&
+        SpawnLanePlanSkipsNonSpawnBoundaries() &&
+        SpawnLanePlanEmptyIsVerified() &&
+        SpawnLanePlanLookupFailsClosed() &&
+        SpawnLanePlanRowLanesAreBounded() &&
+        SpawnLanePlanRequiredCount() == 12 &&
+        SpawnLanePlanForbiddenCount() == 2 &&
+        SpawnLanePlanRequiredPathAt(0) == SpawnLanePlanHeaderPath() &&
+        SpawnLanePlanRequiredPathAt(11) == SpawnLanePlanLlvmDriverPath() &&
+        SpawnLanePlanRequiredTermAt(0) != "" &&
+        SpawnLanePlanRequiredTermAt(11) != "" &&
+        SpawnLanePlanForbiddenPathAt(1) == SpawnLanePlanLlvmEmitterPath() &&
+        SpawnLanePlanForbiddenTermAt(0) != "" &&
+        SpawnLanePlanMissingSelfTestTerm() != "";
+}

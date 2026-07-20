@@ -1,0 +1,77 @@
+// Runnable projection over spawn_lane_plan_owner.pgy: prints the plan
+// contract (revision, legal row lanes), re-runs the producer refusal and
+// collapse witnesses in-language, and emits the required/forbidden pin rows
+// the smoke greps against the C projections.
+
+import "spawn_lane_plan_owner.pgy";
+
+func SpawnLanePlanLegalRow(lane: Int) -> String {
+    let row0: String = Concat("legal_row_lane|", ParallelLaneName(lane));
+    let row1: String = Concat(row0, "|");
+    if SpawnLanePlanRowLaneLegal(lane) {
+        return Concat(row1, "yes");
+    }
+    return Concat(row1, "no");
+}
+
+func SpawnLanePlanInvariantRow(label: String, holds: Bool) -> String {
+    let row0: String = Concat("invariant|", label);
+    let row1: String = Concat(row0, "|");
+    if holds { return Concat(row1, "ok"); }
+    return Concat(row1, "BROKEN");
+}
+
+func SpawnLanePlanRequiredRow(index: Int) -> String {
+    let row0: String = Concat("require|", SpawnLanePlanRequiredPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, SpawnLanePlanRequiredTermAt(index));
+}
+
+func SpawnLanePlanForbiddenRow(index: Int) -> String {
+    let row0: String = Concat("forbid|", SpawnLanePlanForbiddenPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, SpawnLanePlanForbiddenTermAt(index));
+}
+
+func Main() -> Void {
+    if !SpawnLanePlanReady() {
+        Log("SPAWN_LANE_PLAN ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", SpawnLanePlanSchema()));
+    Log(Concat("revision=", ToString(SpawnLanePlanRevision())));
+
+    // Which lanes a produced plan row may carry, over the full lane space.
+    let lane: Int = 0;
+    while lane < ParallelLaneCount() {
+        Log(SpawnLanePlanLegalRow(lane));
+        lane = lane + 1;
+    }
+
+    Log(SpawnLanePlanInvariantRow(
+        "reject_refuses_compile", SpawnLanePlanRejectRefuses()));
+    Log(SpawnLanePlanInvariantRow(
+        "conflict_refuses_compile", SpawnLanePlanConflictRefuses()));
+    Log(SpawnLanePlanInvariantRow(
+        "duplicate_collapses", SpawnLanePlanDuplicateCollapses()));
+    Log(SpawnLanePlanInvariantRow(
+        "non_spawn_boundaries_skipped", SpawnLanePlanSkipsNonSpawnBoundaries()));
+    Log(SpawnLanePlanInvariantRow(
+        "empty_plan_is_verified", SpawnLanePlanEmptyIsVerified()));
+    Log(SpawnLanePlanInvariantRow(
+        "lookup_fails_closed", SpawnLanePlanLookupFailsClosed()));
+    Log(SpawnLanePlanInvariantRow(
+        "row_lanes_are_bounded", SpawnLanePlanRowLanesAreBounded()));
+
+    let required_index: Int = 0;
+    while required_index < SpawnLanePlanRequiredCount() {
+        Log(SpawnLanePlanRequiredRow(required_index));
+        required_index = required_index + 1;
+    }
+    let forbidden_index: Int = 0;
+    while forbidden_index < SpawnLanePlanForbiddenCount() {
+        Log(SpawnLanePlanForbiddenRow(forbidden_index));
+        forbidden_index = forbidden_index + 1;
+    }
+}

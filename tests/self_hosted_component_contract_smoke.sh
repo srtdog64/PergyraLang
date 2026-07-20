@@ -2485,6 +2485,41 @@ require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "lane|
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "invariant|order_is_contract|ok"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "reachable|MovableScheduler|yes"
 
+# Verified spawn-lane plan bridge: how AIR-classified lanes travel to the
+# backends (WO-PAR-NOVEL step 2). The decision table stays in the lane policy
+# owner; this owner pins the plan artifact, the producer's refusals, and the
+# driver-produces / backend-consumes split.
+require_file "src/self_hosted/parallel/spawn_lane_plan_owner.pgy"
+require_max_lines "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/parallel/spawn_lane_plan_owner.pgy"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" 'import "lane_policy_owner.pgy";'
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "pgy.selfhost.spawn-lane-plan.v1"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanProduce"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanRowLaneLegal"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanRejectRefuses"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanConflictRefuses"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanLookupFailsClosed"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanRequiredPathAt"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanForbiddenTermAt"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "func SpawnLanePlanReady"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "definitely_missing_spawn_lane_plan_term"
+require_text "src/self_hosted/parallel/spawn_lane_plan_owner.pgy" "src/compiler/verified_projection_plan.c"
+require_file "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy"
+require_max_lines "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy"
+require_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" 'import "spawn_lane_plan_owner.pgy";'
+require_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "SpawnLanePlanReady()"
+require_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "SpawnLanePlanRequiredCount()"
+require_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "SpawnLanePlanForbiddenCount()"
+reject_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "pgy.selfhost.spawn-lane-plan.v1"
+reject_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "definitely_missing_spawn_lane_plan_term"
+reject_text "src/self_hosted/parallel/spawn_lane_plan_manifest.pgy" "src/compiler/verified_projection_plan.c"
+require_file "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt"
+require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "schema=pgy.selfhost.spawn-lane-plan.v1"
+require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "legal_row_lane|Reject|no"
+require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "invariant|reject_refuses_compile|ok"
+require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "invariant|lookup_fails_closed|ok"
+
 # Mechanism reachability contract: no mechanism without a consumer.
 # Both polarities must stay present or the census stops testing half of itself.
 require_file "src/self_hosted/compiler/reachability_owner.pgy"
