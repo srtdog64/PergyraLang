@@ -10,6 +10,7 @@ import "error_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
+import "stmt_call_graph_owner.pgy";
 import "stmt_collection_graph_owner.pgy";
 import "stmt_destructure_owner.pgy";
 import "stmt_if_owner.pgy";
@@ -444,12 +445,8 @@ func ParseOneStmt(
         content, head_start, cursor_out
     );
     if !expr_fact.ok { Exit(1); }
-    let callee: Option<String> =
-        ParserExpressionDirectCallCalleeName(expr_fact);
-    if IsSome(callee) {
-        let owner_kind: Int = TypedAstCallStatementKindForCallee(
-            UnwrapOption(callee)
-        );
+    let owner_kind: Int = ParserExpressionCallStatementKind(expr_fact);
+    if owner_kind != TypedAstKindUnknownTag() {
         if owner_kind == TypedAstKindLogStmtTag() {
             let log_argument: ParserExpressionFact =
                 ParserExpressionNamedSingleCallArgument(expr_fact, "Log");

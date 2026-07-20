@@ -70,6 +70,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !ParserExpressionNamedSingleCallArgumentContractReady() { return "parser_named_single_arg"; }
     if !ParserExpressionNamedCallArgumentAtContractReady() { return "parser_named_arg"; }
     if !ParserExpressionDirectCallCalleeContractReady() { return "parser_direct_callee"; }
+    if !ParserExpressionCallStatementKindContractReady() { return "parser_call_statement_kind"; }
     if !SemanticExpressionCallTargetFactContractReady() { return "call_target_fact"; }
     if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
     if !SelfMirAssignmentTargetGraphContractReady() {
@@ -230,12 +231,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/class_three_distinct/main.pgy",
         "tests/cases/backend_compare/class_compare_return/main.pgy",
         "tests/cases/backend_compare/class_node_field_access/main.pgy",
-        "src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy"
+        "src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy",
+        "tests/cases/backend_compare/class_method_self_access/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 111;
+    return 112;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

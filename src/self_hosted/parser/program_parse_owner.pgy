@@ -5,6 +5,7 @@
 
 import "../lib/path.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_expression_owner_kind_binding.pgy";
 import "../hir/ast_destructure_graph_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
@@ -87,5 +88,7 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
         artifact.tree_text, artifact.arena, artifact.count,
         build.expression_graphs, build.match_pattern_graphs
     );
-    return AstTreeArtifactBindDestructurePayloads(typed);
+    let owner_bound: AstTreeArtifact =
+        AstTreeArtifactBindExpressionOwnerKinds(typed);
+    return AstTreeArtifactBindDestructurePayloads(owner_bound);
 }

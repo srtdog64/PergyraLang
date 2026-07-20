@@ -115,6 +115,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Continue" {
         return TypedAstKindContinueStmtTag();
     }
+    if StartsWith(text, "Call: ") {
+        return TypedAstKindBareCallStmtTag();
+    }
     if IsSingleCall(text) {
         let open: Int = StringIndexOf(text, "(");
         return TypedAstCallStatementKindForCallee(
@@ -253,6 +256,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         return Substring(text, 6, StringLength(text) - 6);
     }
     if kind == TypedAstKindBareCallStmtTag() {
+        if StartsWith(text, "Call: ") {
+            return Substring(text, 6, StringLength(text) - 6);
+        }
         return text;
     }
     return "";

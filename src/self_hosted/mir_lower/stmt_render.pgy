@@ -130,5 +130,9 @@ func RenderStmtFromFacts(kind: String, source_type: String,
         }
         return Concat("Assign: ", value);
     }
+    if kind == "stmt" && source_type == "AST_CALL" && arg0 == "" &&
+        value != "" {
+        return Concat("Call: ", value);
+    }
     return StmtToTreeLine(value);
 }

@@ -1,0 +1,95 @@
+// Projects parser-owned expression statement kinds onto the transitional
+// text-backed AST arena without re-parsing source or provenance text.
+
+import "ast_text_arena_projection_owner.pgy";
+
+func AstExpressionOwnerKindBindingInvalid(
+    artifact: AstTreeArtifact
+) -> AstTreeArtifact {
+    let invalid: AstExpressionGraphRows = AstExpressionGraphRows(
+        false, artifact.expression_graphs.root_owner_kinds,
+        artifact.expression_graphs.root_lanes,
+        artifact.expression_graphs.roots,
+        artifact.expression_graphs.arena
+    );
+    return AstTreeArtifact(
+        artifact.tree_text, artifact.arena, artifact.count,
+        invalid, artifact.match_pattern_graphs
+    );
+}
+
+func AstTreeArtifactBindExpressionOwnerKinds(
+    artifact: AstTreeArtifact
+) -> AstTreeArtifact {
+    if !AstTreeArtifactReady(artifact) {
+        return AstExpressionOwnerKindBindingInvalid(artifact);
+    }
+    let arena: AstArena = artifact.arena;
+    let kinds: Array<Int> = arena.kinds;
+    let atoms: Array<Int> = arena.atoms;
+    let has_atoms: Array<Int> = arena.has_atoms;
+    let atom_table: Array<String> = arena.atom_table;
+    let node_cursor: Int = 0;
+    let root_index: Int = 0;
+    while root_index < ArrayLength(artifact.expression_graphs.roots) {
+        if artifact.expression_graphs.root_owner_kinds[root_index] !=
+                TypedAstKindBareCallStmtTag() ||
+            artifact.expression_graphs.root_lanes[root_index] !=
+                AstExpressionLaneAtom() {
+            root_index = root_index + 1;
+            continue;
+        }
+        let root: Int = artifact.expression_graphs.roots[root_index];
+        if root < 0 || root >= AstExpressionArenaNodeCount(
+            artifact.expression_graphs.arena
+        ) {
+            return AstExpressionOwnerKindBindingInvalid(artifact);
+        }
+        let graph_text: String =
+            artifact.expression_graphs.arena.node_texts[root];
+        let found: Bool = false;
+        while node_cursor < artifact.count && !found {
+            let provenance: Option<String> = TypedAstArenaProvenanceText(
+                arena, node_cursor
+            );
+            let kind: Int = kinds[node_cursor];
+            if IsSome(provenance) && UnwrapOption(provenance) == graph_text &&
+                (kind == TypedAstKindBareCallStmtTag() ||
+                    kind == TypedAstKindUnknownTag()) {
+                if kind == TypedAstKindUnknownTag() {
+                    ArraySet(
+                        kinds, node_cursor, TypedAstKindBareCallStmtTag()
+                    );
+                    ArrayPush(atom_table, graph_text);
+                    ArraySet(atoms, node_cursor, ArrayLength(atom_table) - 1);
+                    ArraySet(has_atoms, node_cursor, 1);
+                } else {
+                    let atom: Option<String> = TypedAstArenaAtomText(
+                        arena, node_cursor
+                    );
+                    if !IsSome(atom) || UnwrapOption(atom) != graph_text {
+                        return AstExpressionOwnerKindBindingInvalid(artifact);
+                    }
+                }
+                found = true;
+            }
+            node_cursor = node_cursor + 1;
+        }
+        if !found {
+            return AstExpressionOwnerKindBindingInvalid(artifact);
+        }
+        root_index = root_index + 1;
+    }
+    let bound: AstArena = AstArena(
+        kinds, arena.nominal_subkinds, atoms, has_atoms,
+        arena.type_names, arena.has_type_names,
+        arena.values, arena.has_values,
+        arena.aux_values, arena.has_aux_values, arena.modes,
+        arena.first_children, arena.child_counts, arena.parents,
+        arena.indents, arena.provenance_texts, arena.children, atom_table
+    );
+    return AstTreeArtifact(
+        artifact.tree_text, bound, artifact.count,
+        artifact.expression_graphs, artifact.match_pattern_graphs
+    );
+}

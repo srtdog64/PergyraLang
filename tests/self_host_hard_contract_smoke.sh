@@ -471,6 +471,24 @@ require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
     '"uses":["balance.0","amount.1"]'
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
     '"name":"missing_balance","type":"Int"'
+require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParseOneStmt" "ParserExpressionCallStatementKind(expr_fact)"
+require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy" \
+    "AstTreeArtifactBindExpressionOwnerKinds" \
+    "kind == TypedAstKindUnknownTag()"
+require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy" \
+    "AstTreeArtifactBindExpressionOwnerKinds" \
+    "UnwrapOption(provenance) == graph_text"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_self_access/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
+    'expected_member="Account_Deposit"'
+require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "RenderStmtFromFacts" 'source_type == "AST_CALL"'
+require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "RenderStmtFromFacts" 'return Concat("Call: ", value)'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'StartsWith(text, "Call: ")'
 array_set_index_attach_count="$(grep -Fc -- \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
     "$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy")"

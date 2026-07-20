@@ -8,14 +8,19 @@ pgy_selfhost_verify_driver_rung2_call_target() {
     local driver_bin="$4"
     local missing_target
 
-    if [[ "$base" == "class_method_self_return" ]]; then
-        grep -Fq '"call_target_kind":"member","call_target_name":"Stat_PromoteIf"' \
+    if [[ "$base" == "class_method_self_return" ||
+        "$base" == "class_method_self_access" ]]; then
+        local expected_member="Stat_PromoteIf"
+        if [[ "$base" == "class_method_self_access" ]]; then
+            expected_member="Account_Deposit"
+        fi
+        grep -Fq "\"call_target_kind\":\"member\",\"call_target_name\":\"$expected_member\"" \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend chained member call target fact drifted" >&2
             exit 1
         }
         missing_target="${self_mir_json%.json}.missing-member-target.mir.json"
-        sed 's/"call_target_kind":"member","call_target_name":"Stat_PromoteIf"/"call_target_kind":"none","call_target_name":""/g' \
+        sed "s/\"call_target_kind\":\"member\",\"call_target_name\":\"$expected_member\"/\"call_target_kind\":\"none\",\"call_target_name\":\"\"/g" \
             "$self_mir_json" >"$missing_target"
         if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_target")" \

@@ -1,0 +1,50 @@
+// Graph-owned classification for expression statements that are calls.
+
+func ParserExpressionCallStatementKind(
+    fact: ParserExpressionFact
+) -> Int {
+    if !fact.ok { return TypedAstKindUnknownTag(); }
+    let direct: Option<String> =
+        ParserExpressionDirectCallCalleeName(fact);
+    if IsSome(direct) {
+        return TypedAstCallStatementKindForCallee(UnwrapOption(direct));
+    }
+    let call: Int = fact.root;
+    while fact.arena.node_kinds[call] ==
+        AstExpressionNodeCallArgument() {
+        call = fact.arena.left_children[call];
+    }
+    if fact.arena.node_kinds[call] != AstExpressionNodeCall() {
+        return TypedAstKindUnknownTag();
+    }
+    let callee: Int = fact.arena.left_children[call];
+    while fact.arena.node_kinds[callee] ==
+        AstExpressionNodeGenericCallee() {
+        callee = fact.arena.left_children[callee];
+    }
+    if fact.arena.node_kinds[callee] == AstExpressionNodeMemberAccess() {
+        return TypedAstKindBareCallStmtTag();
+    }
+    return TypedAstKindUnknownTag();
+}
+
+func ParserExpressionCallStatementKindContractReady() -> Bool {
+    let direct_cursor: Array<Int> = [0];
+    let direct: ParserExpressionFact = ParseExprFact(
+        "Mutate(value)", 0, direct_cursor
+    );
+    let member_cursor: Array<Int> = [0];
+    let member: ParserExpressionFact = ParseExprFact(
+        "acc.Deposit(25)", 0, member_cursor
+    );
+    let value_cursor: Array<Int> = [0];
+    let value: ParserExpressionFact = ParseExprFact(
+        "acc.balance", 0, value_cursor
+    );
+    return ParserExpressionCallStatementKind(direct) ==
+            TypedAstKindBareCallStmtTag() &&
+        ParserExpressionCallStatementKind(member) ==
+            TypedAstKindBareCallStmtTag() &&
+        ParserExpressionCallStatementKind(value) ==
+            TypedAstKindUnknownTag();
+}

@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable member-call/SoT delta:
+`class_method_self_access` is DRV-2 MIR fixture 112. The parser expression
+graph now owns the distinction between a standalone member call and a plain
+member value, and the HIR artifact binds that owner kind through exact parser
+provenance instead of inspecting dot syntax. The oracle-MIR bridge separately
+preserves `AST_CALL` as the internal `Call:` tree projection, so neither the
+source path nor canonicalization has to recover a call from expression text.
+The Pergyra-built hard driver and independent C-built/LLVM-built self drivers
+passed focused canonical-MIR, emitted-C, host compile, and runtime parity
+(`101:50`, then `50`). Removing the `Account_Deposit` member-target fact is
+rejected by the MIR consumer instead of falling back to AST text. The complete
+112-fixture matrix was not run, the next non-manifest fixture has not yet been
+selected, and released/default replacement remains 0%.
+
 2026-07-21 executable assignment-binding/SoT delta:
 `owner_field_assignment` is DRV-2 MIR fixture 111. Semantic assignment typing
 now carries the winning binding mode together with the verified target type;
