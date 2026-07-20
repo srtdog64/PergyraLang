@@ -70,10 +70,13 @@ PgyMnFiber* pgy_mn_fiber_create(PgyMnFiberFn startRoutine, void* arg)
         return NULL;
     }
 #else
+    int mapFlags = MAP_PRIVATE | MAP_ANONYMOUS;
+#ifdef MAP_STACK
+    mapFlags |= MAP_STACK;
+#endif
     fiber->stackBase = mmap(NULL, fiber->stackSize,
                            PROT_READ | PROT_WRITE,
-                           MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK,
-                           -1, 0);
+                           mapFlags, -1, 0);
     if (fiber->stackBase == MAP_FAILED) {
         fiber_warn("create", "stack allocation failed", fiber);
         free(fiber);

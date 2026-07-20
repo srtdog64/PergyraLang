@@ -61,7 +61,7 @@ typedef struct PgyMnScheduler {
     PgyMnQueue* globalRunQueue;
     
     /* I/O and timer handling */
-#ifndef _WIN32
+#if defined(__linux__)
     int epollFd;              /* Linux epoll */
     pthread_t ioWorker;       /* Dedicated I/O thread */
 #endif

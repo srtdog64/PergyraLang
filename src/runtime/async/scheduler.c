@@ -18,7 +18,9 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#if defined(__linux__)
 #include <sys/epoll.h>
+#endif
 #endif
 
 #include "scheduler.h"
@@ -179,8 +181,8 @@ static void* pgy_mn_worker_main(void* arg)
     return NULL;
 }
 
-#ifndef _WIN32
-/* I/O worker thread (POSIX/Linux only — uses epoll) */
+#if defined(__linux__)
+/* I/O worker thread (Linux only -- uses epoll). */
 static void* IoWorkerMain(void* arg)
 {
     PgyMnScheduler* scheduler = (PgyMnScheduler*)arg;
@@ -209,7 +211,7 @@ static void* IoWorkerMain(void* arg)
     
     return NULL;
 }
-#endif /* !_WIN32 */
+#endif /* __linux__ */
 
 PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
 {
@@ -258,7 +260,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
         return NULL;
     }
     
-#ifndef _WIN32
+#if defined(__linux__)
     /* Initialize epoll for I/O (Linux only) */
     scheduler->epollFd = epoll_create1(EPOLL_CLOEXEC);
     if (scheduler->epollFd < 0) {
@@ -272,7 +274,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
     /* Initialize parking */
     if (pthread_mutex_init(&scheduler->parkMutex, NULL) != 0) {
         scheduler_warn("create", "park mutex initialization failed", scheduler);
-#ifndef _WIN32
+#if defined(__linux__)
         close(scheduler->epollFd);
 #endif
         pgy_mn_queue_destroy(scheduler->globalRunQueue);
@@ -281,7 +283,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
     }
     if (pthread_cond_init(&scheduler->parkCondition, NULL) != 0) {
         scheduler_warn("create", "park condition initialization failed", scheduler);
-#ifndef _WIN32
+#if defined(__linux__)
         close(scheduler->epollFd);
 #endif
         pgy_mn_queue_destroy(scheduler->globalRunQueue);
@@ -293,7 +295,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
     /* Allocate workers */
     if (!scheduler_array_fits(scheduler->numWorkers, sizeof(PgyMnWorker))) {
         scheduler_warn("create", "worker array size overflow", scheduler);
-#ifndef _WIN32
+#if defined(__linux__)
         close(scheduler->epollFd);
 #endif
         pgy_mn_queue_destroy(scheduler->globalRunQueue);
@@ -305,7 +307,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
     scheduler->workers = (PgyMnWorker*)calloc(scheduler->numWorkers, sizeof(PgyMnWorker));
     if (scheduler->workers == NULL) {
         scheduler_warn("create", "worker array allocation failed", scheduler);
-#ifndef _WIN32
+#if defined(__linux__)
         close(scheduler->epollFd);
 #endif
         pgy_mn_queue_destroy(scheduler->globalRunQueue);
@@ -329,7 +331,7 @@ PgyMnScheduler* pgy_mn_scheduler_create(const PgyMnSchedulerConfig* config)
                 pgy_mn_queue_destroy(scheduler->workers[j].localRunQueue);
             }
             free(scheduler->workers);
-#ifndef _WIN32
+#if defined(__linux__)
             close(scheduler->epollFd);
 #endif
             pgy_mn_queue_destroy(scheduler->globalRunQueue);
@@ -362,7 +364,7 @@ void pgy_mn_scheduler_destroy(PgyMnScheduler* scheduler)
     /* Free workers */
     free(scheduler->workers);
     
-#ifndef _WIN32
+#if defined(__linux__)
     /* Close epoll */
     close(scheduler->epollFd);
 #endif
@@ -380,7 +382,7 @@ void pgy_mn_scheduler_destroy(PgyMnScheduler* scheduler)
 void pgy_mn_scheduler_start(PgyMnScheduler* scheduler)
 {
     uint32_t startedWorkers = 0;
-#ifndef _WIN32
+#if defined(__linux__)
     bool ioStarted = false;
 #endif
 
@@ -410,7 +412,7 @@ void pgy_mn_scheduler_start(PgyMnScheduler* scheduler)
         startedWorkers++;
     }
     
-#ifndef _WIN32
+#if defined(__linux__)
     /* Start I/O worker */
     if (pthread_create(&scheduler->ioWorker, NULL, IoWorkerMain, scheduler) != 0) {
         scheduler_warn("start", "io worker creation failed", scheduler);
@@ -433,7 +435,7 @@ startup_failed:
             scheduler_warn("start", "worker thread rollback join failed", scheduler);
         }
     }
-#ifndef _WIN32
+#if defined(__linux__)
     if (ioStarted && pthread_join(scheduler->ioWorker, NULL) != 0) {
         scheduler_warn("start", "io worker rollback join failed", scheduler);
     }
@@ -474,7 +476,7 @@ void pgy_mn_scheduler_stop(PgyMnScheduler* scheduler)
         }
     }
     
-#ifndef _WIN32
+#if defined(__linux__)
     /* Stop I/O worker */
     if (pthread_join(scheduler->ioWorker, NULL) != 0) {
         scheduler_warn("stop", "io worker join failed", scheduler);
@@ -500,7 +502,7 @@ void pgy_mn_scheduler_register_io_event(PgyMnScheduler* scheduler, int fd, uint3
             scheduler);
         return;
     }
-#ifndef _WIN32
+#if defined(__linux__)
     if (scheduler->epollFd < 0) {
         scheduler_warn("register_io", "epoll is not initialized", scheduler);
         return;
@@ -518,7 +520,7 @@ void pgy_mn_scheduler_register_io_event(PgyMnScheduler* scheduler, int fd, uint3
     }
 #else
     (void)events;
-    scheduler_warn("register_io", "I/O event registration is unavailable on Windows",
+    scheduler_warn("register_io", "I/O event registration is unavailable on this platform",
         scheduler);
 #endif
 }
@@ -529,7 +531,7 @@ void pgy_mn_scheduler_unregister_io_event(PgyMnScheduler* scheduler, int fd)
         scheduler_warn("unregister_io", "scheduler or fd is invalid", scheduler);
         return;
     }
-#ifndef _WIN32
+#if defined(__linux__)
     if (scheduler->epollFd < 0) {
         scheduler_warn("unregister_io", "epoll is not initialized", scheduler);
         return;
@@ -539,7 +541,7 @@ void pgy_mn_scheduler_unregister_io_event(PgyMnScheduler* scheduler, int fd)
         scheduler_warn("unregister_io", "epoll_ctl delete failed", scheduler);
     }
 #else
-    scheduler_warn("unregister_io", "I/O event registration is unavailable on Windows",
+    scheduler_warn("unregister_io", "I/O event registration is unavailable on this platform",
         scheduler);
 #endif
 }

@@ -41,6 +41,27 @@ trap 'rm -rf "$WORK"' EXIT
 CFLAGS=(-std=c11 -O1 -fwrapv -fno-strict-aliasing -pthread
         -I"$ROOT_DIR/src/runtime" -I"$ROOT_DIR/src" -DPGY_LLVM_ENABLED)
 
+# Linux-only acceleration must not be inferred from "not Windows". The M:N
+# worker core is portable pthread code; epoll and MAP_STACK are optional
+# machine capabilities. This ratchet keeps macOS on the core path without
+# pretending that the Linux I/O integration exists there.
+grep -Fq '#ifdef MAP_STACK' "$ROOT_DIR/src/runtime/async/fiber.c" || {
+    echo "[$LABEL] MAP_STACK is not capability-gated" >&2
+    exit 1
+}
+for source in \
+    "$ROOT_DIR/src/runtime/async/scheduler.c" \
+    "$ROOT_DIR/src/runtime/async/scheduler.h"; do
+    if grep -Eq '^#ifndef[[:space:]]+_WIN32' "$source"; then
+        echo "[$LABEL] $source treats not-Windows as epoll capability" >&2
+        exit 1
+    fi
+    grep -Fq '#if defined(__linux__)' "$source" || {
+        echo "[$LABEL] $source does not declare the Linux epoll boundary" >&2
+        exit 1
+    }
+done
+
 # ---- runtime objects (both linked-runtime materializations) ---------------
 # The C-leg cext object is what emitted extern programs actually link; the
 # LLVM-leg lib object is the bitcode twin's source. Both must carry the core.
