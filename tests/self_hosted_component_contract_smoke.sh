@@ -3583,11 +3583,21 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 82;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 88;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 82'
+    'mir_fixture_rows[@]}" -ne 88'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_self_chain/main.pgy"'
+for class_mir_fixture in \
+    class_self_factory_chain \
+    class_self_field_method \
+    class_chained_factory_call \
+    class_param_return_chain \
+    class_returning_class \
+    class_nested_field_chain; do
+    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+        "\"tests/cases/backend_compare/$class_mir_fixture/main.pgy\""
+done
 require_file "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3809,11 +3819,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 82;"
+    "return 88;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 82'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 88'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: six class call/value flows are DRV-2 MIR
+fixtures 83 through 88: `class_self_factory_chain`,
+`class_self_field_method`, `class_chained_factory_call`,
+`class_param_return_chain`, `class_returning_class`, and
+`class_nested_field_chain`. The Pergyra producer already carried sufficient
+nominal constructor, receiver, return, and nested field facts for all six; no
+C-owned fact fallback or new semantic reconstruction was added. Focused
+C-built and LLVM-built DRV-2 drivers matched the native oracle's canonical
+MIR, MIR-consumed C, and runtime output for all six fixtures. The complete
+88-fixture matrix was not rerun in this slice, and the released/default driver
+replacement remains 0%.
+
 2026-07-20 executable delta: verified wrapper calls now preserve their
 argument-dependent receiver type after call-target carriage. The receiver-type
 owner consumes the carried `UnwrapOption`/`Unwrap` target before consulting a
@@ -1170,7 +1182,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 82 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixture 82 passed focused C/LLVM canonical-MIR, emitted-C, diagnostic, and runtime parity, while the complete 82-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 88 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixtures 83-88 passed focused C/LLVM canonical-MIR, MIR-consumed-C, and runtime parity, while the complete 88-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
