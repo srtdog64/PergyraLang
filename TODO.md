@@ -10405,6 +10405,59 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 
 ---
 
+### Region/Arena 트랙 (docs/197 전체 전략, 2026-07-21)
+
+계기(BDFL "우리 언어에 메모리 아레나가 있나? 아니면 넣어야하나?" →
+"전략 자체를 전부 작성해놔"): census 실측 = arena 는 **두 번 선언되고 한 번도
+소비되지 않았다** — 컴파일러는 내부적으로 arena 를 전면 dogfood(23 파일,
+계측 포함)하고, 런타임엔 완전한 `PgyArena` 패밀리가 **소비자 0**으로 존재
+(`pgy_runtime_memory_array_slot_inline.h:87`, reachability 미등록 맹점)하며,
+ABI 스펙 §13 이 레이아웃까지 핀(+zone-채널 arena 소유 설계가 주석으로만).
+한편 방출 코드의 연쇄 concat 은 중첩 `StringConcat` 호출이라 **중간 결과가
+프로세스-수명 누수**(회수 정책 자체가 부재). 전략 = "arena 추가"가 아니라
+**수명 증거를 executor 합류와 같은 배관(verified projection plan)으로
+allocator 까지 운반** 후 표면화. 상세/제약/게이트 전부 docs/197 이 SoT.
+canon 제약 8종(수명 주석 금지·raw 핸들 API 금지·축 예산 2 불변·
+producer+consumer 동시 착지·plan-주도(ambient allocator 금지)·
+certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
+
+#### WO-REG-1 — 런타임 arena 재활 + 첫 생산 소비자 (문자열 임시) — 대기: BDFL 승인
+
+- **목표**: §1.2 의 소비자-0 런타임 arena 를 체인-블록으로 승격(ABI §13 개정
+  — 소비자 0 인 지금이 유일하게 싼 시점) + 3-물질화/`.bc` + `PgyRegionPlan`
+  (제3의 verified-projection 산출물: site→REGION|HEAP, 인증서 게이트, per-site
+  fail-closed lookup, driver-생산/backend-소비 forbid) + escape pass v1
+  (문장-지역 문자열 임시: 연쇄 concat 중간값·출력 인자) + lazy 함수-스코프
+  region 방출(모든 return 경로에 destroy — MIR terminal-branch CFG fact 사용)
+  + origin surface(`region_plan_owner.pgy`)/artifact kind 29/reachability
+  live 승격 **동일 커밋열**.
+- **게이트**: region 트윈 smoke·poison-on backend-compare(이른 return/match
+  arm destroy 목격 포함)·**메모리 유계 witness**(누수 fixture RSS 플래토)·
+  parity 확장·erasure 행·축 예산 formal guard·best-of-N 동세션 측정(주장
+  헤드라인은 속도 아닌 **유계 메모리** — 오늘 baseline 은 누수라 정직 비교
+  2종 병기).
+- **DoD**: 게이트 전부 + docs/197 상태 갱신 + 본 행 CLOSED.
+- **금지**: 소비자 없는 런타임 착지(§1.2 재생산), spill-to-heap fallback
+  (무음 fallback), ambient current-allocator, 인증서 없는 REGION 행.
+
+#### WO-REG-2 — 인증 클래스 확장 (표면 무변경)
+
+- spawn arg pack → task-부착 region(fine-grain 태스크당 malloc 2 실측 직격,
+  협조취소는 정상 return 경유라 destroy 배치 무영향) → 배열 임시 →
+  interpolation 버퍼. 각 확장 = plan 행 + 동일 게이트 배터리, **측정 후 다음**.
+  interproc region(callee가 caller region 에 할당)은 명시 non-goal(R3 후 +
+  표면 불가시 조건).
+
+#### WO-REG-3 — 표면 `region` — 대기: BDFL 문법 결정 (docs/197 §5.3)
+
+- 권고 = 이름 블록 `region frame { ... }`. 선언 region 내 escape 는 **컴파일
+  에러**(무음 heap 강등 금지) + 명시 move-out; region-밖 복사는 ADVISORY
+  squiggle(컴파일러 arena `cross_stage_copies` 계측과 동개념). `limit` 유계
+  (R6 정량 축 — sandbox 비전의 메모리 다리)와 zone-rider 는 분리 가능한
+  후속 결정. WO-REG-4(machine-layer grant 백엔드)는 연구 rung 으로만 기록.
+
+---
+
 ### 병렬 런타임 트랙 (docs/186 전체 계획, 2026-07-17)
 
 docs/186이 상위 계획(P-A~P-D). 여기는 세션-단위 실행 블록만. WO-RT-1(런타임
