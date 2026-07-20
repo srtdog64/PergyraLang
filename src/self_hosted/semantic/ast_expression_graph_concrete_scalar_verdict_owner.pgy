@@ -75,7 +75,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     if !call.ok { return false; }
     let target_fact: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
-            graph, node_id, constructors, names, types, function_names
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
         );
     if !target_fact.ok { return false; }
     let target: Option<Int> = SemanticCallableIndex(
@@ -234,7 +235,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
     let callee: String = UnwrapOption(callee_text);
     let target_fact: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
-            graph, node_id, constructors, names, types, function_names
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
         );
     if !target_fact.ok {
         return SemanticError1(

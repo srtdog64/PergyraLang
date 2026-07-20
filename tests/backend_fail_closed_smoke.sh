@@ -1726,12 +1726,18 @@ grep -Fq "llvm_register_typed_var_abi_binding(ctx, owned_base, alloca," \
     "$ROOT_DIR/src/codegen/llvm_mir_scope_bind.c"
 grep -Fq "if (mir_active && inst->abi_type_name != NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
-grep -Fq "llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)" \
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
-grep -Fq "llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig)" \
+grep -Fq "const MIRCallableSig *param_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "const MIRCallableSig *return_callable_sig" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "llvm_register_callable_signature_names(ctx, p->name" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "llvm_mir_async_fact_future_inner_from_source_local" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
+grep -Fq "bool mir_is_remote = false" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
 grep -Fq "missing callable return signature metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_signature.c"
 grep -Fq "missing callable parameter signature metadata" \

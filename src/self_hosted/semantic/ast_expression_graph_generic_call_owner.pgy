@@ -72,7 +72,8 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
 ) -> SemanticExpressionGraphGenericCallFact {
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
-            graph, root_id, constructors, names, types, function_names
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
         );
     if !target.ok {
         return SemanticExpressionGraphGenericCallNotApplicable();

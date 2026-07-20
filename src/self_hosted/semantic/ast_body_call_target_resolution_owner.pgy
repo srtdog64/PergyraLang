@@ -83,7 +83,8 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                                 SemanticExpressionGraphResolvedCallTarget(
                                     analysis.expression_surfaces.expression_graph,
                                     node_id, analysis.constructors,
-                                    names, types, function_names
+                                    names, types, function_names,
+                                    function_returns
                                 );
                             if !target.ok {
                                 valid = false;

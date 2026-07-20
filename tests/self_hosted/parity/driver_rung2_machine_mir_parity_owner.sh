@@ -12,6 +12,9 @@ pgy_selfhost_driver_rung2_fixture_base() {
         tests/cases/backend_compare/device_slot_routine/main.pgy)
             printf '%s\n' "device_slot_routine"
             ;;
+        tests/cases/backend_compare/class_method_self_return/main.pgy)
+            printf '%s\n' "class_method_self_return"
+            ;;
         *)
             basename "$1" .pgy
             ;;

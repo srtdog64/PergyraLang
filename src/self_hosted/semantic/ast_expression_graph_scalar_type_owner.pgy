@@ -168,7 +168,8 @@ func SemanticExpressionGraphScalarTypeName(
         if !call.ok { return "Unknown"; }
         let target_fact: SemanticExpressionCallTargetFact =
             SemanticExpressionGraphResolvedCallTarget(
-                graph, root_id, constructors, names, types, function_names
+                graph, root_id, constructors, names, types,
+                function_names, function_returns
             );
         if !target_fact.ok { return "Unknown"; }
         let callee: String = target_fact.name;

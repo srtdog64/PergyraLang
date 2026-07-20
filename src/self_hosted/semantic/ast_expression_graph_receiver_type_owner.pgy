@@ -108,6 +108,26 @@ func SemanticExpressionGraphValueReceiverTypeName(
             ArrayLength(function_returns) {
         return None;
     }
+    let carried_kind: Int =
+        graph.arena.call_target_kinds[call.call_node];
+    let carried_name: String =
+        graph.arena.call_target_names[call.call_node];
+    if carried_name != "" && (
+        carried_kind == SemanticCallTargetDirect() ||
+        carried_kind == SemanticCallTargetNamespace() ||
+        carried_kind == SemanticCallTargetMember()
+    ) {
+        let carried_target: Option<Int> = SemanticCallableIndex(
+            function_names, carried_name
+        );
+        if !IsSome(carried_target) { return None; }
+        let carried_return: String =
+            function_returns[UnwrapOption(carried_target)];
+        if carried_return == "" || carried_return == "Unknown" {
+            return None;
+        }
+        return Some(carried_return);
+    }
     let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, call.callee_node
     );

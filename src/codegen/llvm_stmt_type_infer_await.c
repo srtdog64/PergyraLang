@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_stmt_type_infer_helpers.h"
+#include "llvm_mir_async_fact.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +36,8 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     const char *future_name;
     const char *inner;
     LLVMTypeRef inner_ty;
+    char inner_from_mir[256];
+    bool is_remote;
 
     if (ctx == NULL)
         return NULL;
@@ -64,7 +67,21 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "operand identifier is missing a Future<T> binding name");
 
+    inner_from_mir[0] = '\0';
+    is_remote = llvm_lookup_future_is_remote(ctx, future_name);
     inner = llvm_lookup_future_inner(ctx, future_name);
+    if (inner == NULL || inner[0] == '\0') {
+        bool mir_is_remote = false;
+        if (llvm_mir_async_fact_future_inner_from_source_local(
+                ctx->current_mir_routine,
+                future_name,
+                inner_from_mir,
+                sizeof(inner_from_mir),
+                &mir_is_remote)) {
+            inner = inner_from_mir;
+            is_remote = mir_is_remote;
+        }
+    }
     if (inner == NULL || inner[0] == '\0') {
         char reason[256];
         int written = snprintf(reason, sizeof(reason),
@@ -76,7 +93,7 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
 
     if (strcmp(inner, "Void") == 0) {
-        if (!llvm_lookup_future_is_remote(ctx, future_name))
+        if (!is_remote)
             return ctx->type_void;
         llvm_set_error_at_with_hints(ctx, expr,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -90,7 +107,7 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     inner_ty = pergyra_type_to_llvm(ctx, inner);
     if (ctx->has_error || inner_ty == NULL)
         return NULL;
-    if (!llvm_lookup_future_is_remote(ctx, future_name))
+    if (!is_remote)
         return inner_ty;
 
     return llvm_stmt_remote_await_result_type(ctx, inner_ty);

@@ -46,8 +46,14 @@ func SemanticExpressionGraphResolvedCallTarget(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>
+    function_names: Array<String>,
+    function_returns: Array<String>
 ) -> SemanticExpressionCallTargetFact {
+    if ArrayLength(function_names) != ArrayLength(function_returns) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
     );
@@ -119,8 +125,9 @@ func SemanticExpressionGraphResolvedCallTarget(
         );
     }
     let receiver_type: Option<String> =
-        SemanticExpressionGraphReceiverTypeName(
-            graph, member.receiver_node, constructors, names, types
+        SemanticExpressionGraphValueReceiverTypeName(
+            graph, member.receiver_node, constructors, names, types,
+            function_names, function_returns
         );
     if !IsSome(receiver_type) {
         return SemanticExpressionCallTargetFact(

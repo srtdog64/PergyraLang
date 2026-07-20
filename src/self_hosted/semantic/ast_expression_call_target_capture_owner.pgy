@@ -97,6 +97,11 @@ func SemanticExpressionCallTargetExpected(
             );
         }
     }
+    if require_carried {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetMember(), "", 1
+        );
+    }
     return SemanticExpressionCallTargetFact(
         true, SemanticCallTargetNone(), "", 0
     );

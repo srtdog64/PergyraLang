@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-20 executable delta: `class_method_self_return` is DRV-2 MIR fixture
+81. A member call whose receiver is another call now resolves that receiver
+from the carried direct-call target plus the callable return-type row; it does
+not infer the type from expression text. The MIR JSON consumer requires every
+call node to retain its canonical call-target kind and name before semantic
+body analysis. Removing only `Stat_PromoteIf` from the carried graph now fails
+at the MIR expression-graph boundary instead of being repaired by the semantic
+fixpoint. Focused C-built and LLVM-built self drivers match native canonical
+MIR, emitted C, diagnostics, and runtime output for the fixture. This closes
+the bounded chained-member call-target carriage seam, not the default driver
+or the remaining declaration/runtime consumers.
+
 2026-07-20 executable MIR/ABI-first delta: runtime-call ABI rows now carry a
 stable `runtime_call_abi_id` derived from the canonical
 `domain|abi_type|operation` key. Native MIR, the self-host MIR producer, the

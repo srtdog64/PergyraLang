@@ -146,6 +146,31 @@ and return names. Active MIR cannot fall back to `ast_type_to_llvm` for an
 row before emission. This keeps AIR as the admission boundary while allowing
 C and LLVM to lower one MIR ABI row through backend-specific type builders.
 
+The generic LLVM await-type consumer follows the same owner direction. When
+the backend future registry has not yet materialized a binding, active MIR
+await inference reads the `Future<T>`/`RemoteFuture<T>` source-local fact from
+the current `MIRRoutine`; it does not treat the registry miss as proof that
+the source binding is untyped. A missing MIR source-local fact still fails
+closed. This closes the `device_slot_remote` path without adding an AST type
+recovery lane.
+
+### Expression call-target carriage sub-rung
+
+DRV-2 fixture 81, `class_method_self_return`, closes a bounded chained-member
+case. The semantic expression-graph owner resolves the receiver type of
+`MakeStat(...).PromoteIf(...)` from the carried `MakeStat` call target and its
+callable return-type row. Expression text is not a type owner.
+
+The MIR JSON consumer is the last legitimate admission consumer for those
+call-target rows. It now rejects an expression graph unless every call node
+has a canonical direct, namespace, or member target with a nonempty name.
+Semantic body analysis cannot repair a missing target after admission. The
+focused producer-first gate compares native and self canonical MIR, emitted C,
+diagnostics, and runtime output with both C-built and LLVM-built self drivers;
+its negative mutation removes only the `Stat_PromoteIf` target and must fail at
+the MIR expression-graph boundary. This is call-target carriage closure for the
+bounded fixture, not global expression or backend closure.
+
 ### Runtime-call row consumer sub-rung (AIR-bound)
 
 The active LLVM Slot/SecureSlot consumers now enter through the single

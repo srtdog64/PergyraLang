@@ -1,6 +1,7 @@
 // MIR JSON expression graph facts bound to reconstructed artifact NodeIds.
 
 import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
@@ -255,7 +256,13 @@ func MirExpressionGraphFactsForArtifact(
     if sequence_i != ArrayLength(sequence.roots) {
         valid = false;
     }
-    return SemanticExpressionGraphFacts(
+    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         valid, roots, has_roots, sequence.arena
     );
+    if !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
+        return SemanticExpressionGraphFacts(
+            false, roots, has_roots, sequence.arena
+        );
+    }
+    return facts;
 }

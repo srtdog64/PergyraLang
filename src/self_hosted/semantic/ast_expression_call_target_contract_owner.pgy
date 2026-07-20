@@ -143,7 +143,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let derived_member: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             wrong_member, member_build.root_id, constructors,
-            ["box"], ["Box"], ["Box_Get", "Other_Get"]
+            ["box"], ["Box"], ["Box_Get", "Other_Get"], ["Int", "Int"]
         );
     if !derived_member.ok ||
         derived_member.kind != SemanticCallTargetMember() ||
@@ -163,7 +163,43 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         SemanticExpressionGraphCallTargetsFromSignatures(
             member_carried, signatures, constructors, true
         );
-    return member_verified.ok &&
+    let chain_kinds: Array<Int> = [];
+    let chain_texts: Array<String> = [];
+    let chain_left: Array<Int> = [];
+    let chain_right: Array<Int> = [];
+    let chain_target_kinds: Array<Int> = [];
+    let chain_target_names: Array<String> = [];
+    let chain_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            chain_kinds, chain_texts, chain_left, chain_right,
+            chain_target_kinds, chain_target_names, "MakeBox().Get()"
+        );
+    let chain_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            chain_build.ok, [chain_build.root_id], [chain_build.ok],
+            SemanticExpressionGraphArenaUnclassified(
+                chain_kinds, chain_texts, chain_left, chain_right,
+                chain_target_kinds, chain_target_names
+            )
+        );
+    let empty_names: Array<String> = [];
+    let empty_types: Array<String> = [];
+    let missing_returns: Array<String> = [];
+    let chain_target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            chain_graph, chain_build.root_id, constructors,
+            empty_names, empty_types,
+            ["MakeBox", "Box_Get"], ["Box", "Int"]
+        );
+    let missing_return_target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            chain_graph, chain_build.root_id, constructors,
+            empty_names, empty_types,
+            ["MakeBox", "Box_Get"], missing_returns
+        );
+    return member_verified.ok && chain_build.ok && chain_target.ok &&
+        chain_target.kind == SemanticCallTargetMember() &&
+        chain_target.name == "Box_Get" && !missing_return_target.ok &&
         member_verified.arena.call_target_names[member_call.call_node] ==
             "Box_Get";
 }
