@@ -144,6 +144,39 @@ half-state. A rung that cannot meet its exit gate does not land.
 - No M:N-by-default: rule (5) of the lane policy stays the strictest gate —
   M:N remains an evidence-unlocked optimization, never a default.
 
+## Appendix — R3 surface proposal (BDFL decision, 2026-07-21 draft)
+
+The traffic prerequisite is a DECLARED surface from which the classifier can
+derive `crosses_authority_boundary` for a spawn site. Canon constraint
+(docs/181): the user declares **authority**, never a lane — `spawn movable`
+would be manual placement and is rejected up front. Three shapes were
+compared:
+
+- **(A) Role reactive block** (`parallel on (lane) { every(d) ... }`,
+  docs/181): the destination surface. The role is itself an
+  authority-bearing participant, so the block supplies both the declared
+  eligibility AND the authority context; the classifier still verifies the
+  body's capture evidence (declaration is checked, not trusted). Cost: rides
+  the docs/181 rung ladder (duration literals, virtual clock, every/
+  continuous) — not a quick slice.
+- **(B) Spawn authority clause — recommended first producer:**
+  `spawn F(x) by <participant>` (vocabulary mirrors the intent step's
+  `authorized by:`). Declares the authority participant at the spawn site;
+  AIR copies it onto the spawn boundary exactly as intent steps do for
+  zone/world boundaries; rule (5) then requires the FULL conjunction as
+  today (declared authority alone never reaches Movable without value-only
+  capture evidence — the declaration adds a conjunct, it cannot override
+  one). Parser cost is one optional suffix clause; no new evidence rules.
+- **(C) Zone-scoped inheritance** (spawns inside an authority-bearing zone
+  inherit its authority): no new syntax, but implicit propagation to every
+  spawn in the zone is the same over-pin family docs/146 already rejected
+  for routine-level correlation. Rejected.
+
+Recommendation: land **B** as the minimal Movable producer (unblocks real-
+source traffic, the lane golden, and a backend-compare fixture through the
+M:N executor), keep **A** as the destination that subsumes B for reactive
+workloads. Syntax is a BDFL call; nothing here lands without it.
+
 ## Contract owners this workstream touches
 
 | Owner | Drift expected at |

@@ -10903,6 +10903,24 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
       rung: R0 개명·역내정리 → R1 오브젝트 물질화 → R2 dispatch MOVABLE
       배선+lane_executor_contract drift → R3 표면 증거(on(lane))와 접속.
       **설계도 = docs/194**(inline-모드 결정 포함 rung 별 exit gate 명세).
+      **★R0~R2 착지 (2026-07-21, BDFL "전부 시작해"; b080a227+907bfd0e)**:
+      개명(52 식별자, party TLS-getter 참조 2건 포함) → 양 linked-runtime
+      물질화(lib/cext 공통 mn exports, `.bc` 재생성) → dispatch MOVABLE →
+      `pgy_mn_executor_submit`(pgy_spawn 과 동일 구성 프로토콜 + ONE run
+      protocol = 협조취소 그대로). inline 모드는 driver 가 movable row 를
+      codegen 전 거절 + dispatch backstop. **첫 가동 실측 2건**: ① fiber
+      문맥 코어는 **한 번도 실행 가능했던 적이 없음**(create 가 자기 반환
+      프레임에 setjmp / asm 스위치는 시딩 없는 문맥 복원 → 즉시 세그폴트) —
+      run-to-completion 깊이로 착지, 문맥층=WO-MN-2(coroutine 층의
+      CreateFiber 선례로). ② 모듈-asm 은 `.bc` internalize 를 그대로
+      통과해 캐시 오브젝트와 중복 정의 — asm 스위치 삭제(호출자 0+시딩
+      불가+링크 파괴 3진). 검증: mn witness(물질화 2종+invariance+협조취소+
+      inline backstop)·lane-scheduler 를 생산 extern 형상으로 승격(movable
+      실 142)·compare 21/21·join/starvation·bc/cext·parity 35/35·
+      reachability **8 live/2 declared**(M:N 행 live 승격)·executor-contract
+      depth=`mn_workers_run_to_completion`. R3 표면 제안(spawn `by` 절 권고,
+      canon: 선언은 authority지 lane 아님)은 docs/194 부록 — **문법 확정은
+      BDFL**.
     - **✅ 부수 착지: spawn-lane plan 의 origin-surface 등록** —
       `spawn_lane_plan_owner.pgy`+manifest+golden+게이트
       (`selfhost-spawn-lane-plan-test-smoke`, parallel-production aggregate
