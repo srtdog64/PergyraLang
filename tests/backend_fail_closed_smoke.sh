@@ -209,8 +209,9 @@ if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
     exit 1
 fi
 llvm_direct_row_consumers="$({
-    rg -l 'mir_abi_resource_runtime_row_by_(kind|type_name)\(' \
-        "$ROOT_DIR/src/codegen" -g 'llvm_*.c' || true
+    grep -RIlE --include='llvm_*.c' \
+        'mir_abi_resource_runtime_row_by_(kind|type_name)\(' \
+        "$ROOT_DIR/src/codegen" || true
 } | grep -v '/llvm_runtime.c$' || true)"
 if [[ -n "$llvm_direct_row_consumers" ]]; then
     echo "[backend-fail-closed] LLVM runtime-row consumers must enter through llvm_slot_runtime_row_for_operation:" >&2

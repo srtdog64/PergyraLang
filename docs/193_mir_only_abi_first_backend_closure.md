@@ -143,6 +143,8 @@ longer call the symbol-only
 `mir_abi_resource_runtime_fn_by_kind` API. A missing row is still observable
 as `NULL` so the explicitly bounded nominal/structural lowering path can run;
 external-helper paths fail closed with the existing MIR ABI diagnostic.
+The backend fail-closed gate also rejects any direct resource-row lookup in
+LLVM consumers outside the shared owner implementation.
 
 This is only a consumer migration. `pergyra.runtime-call-abi.v2` remains
 `BRIDGE` until the runtime-call row owner and compatibility policy are
