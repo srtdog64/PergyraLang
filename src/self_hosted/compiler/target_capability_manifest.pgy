@@ -1,6 +1,7 @@
 // Runnable target-capability envelope projection.
 
 import "target_capability_owner.pgy";
+import "target_projection_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func CompilerTargetCapabilityProjectionManifestRowAt(index: Int) -> String {
@@ -55,10 +56,33 @@ func RunCompilerTargetCapabilityMissingFactSelfTest() -> Void {
     }
 }
 
+func CompilerTargetCapabilityFingerprintMutationSelfTestMode() -> String {
+    return "--self-test-fingerprint-mutation";
+}
+
+func RunCompilerTargetCapabilityFingerprintMutationSelfTest() -> Void {
+    let fact: CompilerTargetProjectionFact =
+        CompilerTargetProjectionFactFromOwner(CompilerTargetCpuCProjection());
+    fact.target_capability_fingerprint =
+        fact.target_capability_fingerprint + 1;
+    if CompilerTargetProjectionFactReadyFor(
+        fact, CompilerTargetCpuCProjection()
+    ) {
+        Log("target_fingerprint_mutation_accepted");
+        Exit(1);
+    }
+    Log("target_fingerprint_mutation_rejected");
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == CompilerTargetCapabilityMissingFactSelfTestMode() {
         RunCompilerTargetCapabilityMissingFactSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 &&
+        args[0] == CompilerTargetCapabilityFingerprintMutationSelfTestMode() {
+        RunCompilerTargetCapabilityFingerprintMutationSelfTest();
         return;
     }
 
@@ -69,6 +93,9 @@ func Main() -> Void {
     }
 
     Log(Concat("schema=", CompilerTargetCapabilitySchema()));
+    Log(Concat(
+        "target_fingerprint=", ToString(CompilerTargetCapabilityFingerprint())
+    ));
     Log(Concat("projection_count=", ToString(CompilerTargetProjectionCount())));
     let projection_index: Int = 0;
     while projection_index < CompilerTargetProjectionCount() {

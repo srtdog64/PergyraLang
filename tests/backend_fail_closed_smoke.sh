@@ -192,6 +192,13 @@ grep -Fq "inst->resource_runtime_fact_present" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "C MIR resource op '%s' is missing its lowered runtime-call ABI row" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+if grep -E 'transpiler_mir_find_prior_(borrow_source_for_view|resource_layout_for_slot)|transpiler_mir_layout_from_type_annotation' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] active C MIR view hooks must consume carried owner facts, not inventory or AST recovery" >&2
+    exit 1
+fi
+grep -Fq "inst->resource_owner_slot_anchor" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
 grep -Fq "if (!mir_active && fn == NULL" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "resource_runtime_fact_present" \
@@ -1701,5 +1708,15 @@ if grep -F 'pgy_lane_channel_recv_val_' \
 fi
 grep -Fq "pgy_lane_channel_runtime_name(out, out_size, op, inner)" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_names.c"
+grep -Fq "mir_decl_field_claim_abi_capture(" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_fields.c"
+grep -Fq "mir_decl_header_field_claim_abi_validate(" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"
+grep -Fq "transpiler_slot_runtime_fn_for_decl_claim(" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+grep -Fq "mir_source_local_type_append_callable(program, routine," \
+    "$ROOT_DIR/src/compiler/mir_source_local_types.c"
+grep -Fq "!source_local_fact->is_callable" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

@@ -971,6 +971,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_ability_ref.c \
+                   $(COMPILER_DIR)/mir_decl_field_claim_abi.c \
                    $(COMPILER_DIR)/mir_decl_header_authority.c \
                    $(COMPILER_DIR)/mir_decl_header_generic_metadata.c \
                    $(COMPILER_DIR)/mir_decl_header_refresh.c \
@@ -1574,6 +1575,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_state_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_world_state_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_shape.o \
+                   $(BUILD_DIR)/compiler/mir_decl_field_claim_abi.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_fields.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_role_validate.o \

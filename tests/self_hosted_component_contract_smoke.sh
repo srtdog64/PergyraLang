@@ -1099,6 +1099,9 @@ require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func Compil
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetProjectionKnown"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFactKnown"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFallbackReasonKnown"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCapabilityFingerprintHashString"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCapabilityFingerprint"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "return (1073741824L + hash) as Int"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(CompilerTargetProjectionCount()) == \"\""
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(CompilerTargetFactCount()) == \"\""
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(CompilerTargetFallbackReasonCount()) == \"\""
@@ -1137,9 +1140,14 @@ require_text "src/self_hosted/compiler/target_capability_manifest.pgy" 'import "
 require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityProjectionManifestRowAt"
 require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFactManifestRowAt"
 require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFallbackManifestRowAt"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFingerprint()"
 require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityMissingFactSelfTestMode"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" 'import "target_projection_fact_owner.pgy";'
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFingerprintMutationSelfTestMode"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "target_fingerprint_mutation_rejected"
 require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "missing_required_target_fact"
 require_text "src/self_hosted/compiler/expected/target_capability.txt" "schema=pgy.selfhost.target-capability-envelope.v1"
+require_text "src/self_hosted/compiler/expected/target_capability.txt" "target_fingerprint=1203473943"
 require_text "src/self_hosted/compiler/expected/target_capability.txt" "projection|2|self-hosted"
 require_text "src/self_hosted/compiler/expected/target_capability.txt" "fact|2|authority_evidence"
 require_text "src/self_hosted/compiler/expected/target_capability.txt" "fallback|3|missing_authority_evidence"
@@ -2919,7 +2927,7 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileS
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "struct CompilerEmissionArtifact"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let emission: CompilerEmissionArtifact = CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" '"emitted-c",'
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC("
@@ -3176,6 +3184,12 @@ require_text "tests/self_host_compiler_world_contract_smoke.sh" "pgy_selfhost_co
 reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'cmp -s'
 reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'diff -u'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileMirJsonToCVerified"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "target_capability_fingerprint: Int;"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompilerEmissionArtifactReady"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "self-host C emission artifact target fingerprint is missing or invalid"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "target_projection.target_capability_fingerprint"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "target_projection.target_capability_fingerprint"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompilerEmissionArtifactReady(emission)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
 require_file "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
@@ -4551,8 +4565,8 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 reject_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText(tree_text)"
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCFromAstArtifact(tree_artifact)"
+reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText(tree_text)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(tree_text, true)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"

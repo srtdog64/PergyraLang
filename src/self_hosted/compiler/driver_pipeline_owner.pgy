@@ -17,6 +17,17 @@ struct CompilerEmissionArtifact {
     payload: String;
     target_capability_schema: String;
     target_projection: String;
+    target_capability_fingerprint: Int;
+}
+
+func CompilerEmissionArtifactReady(artifact: CompilerEmissionArtifact) -> Bool {
+    return artifact.kind == "emitted-c" &&
+        StringLength(artifact.payload) > 0 &&
+        artifact.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        artifact.target_projection == CompilerTargetCpuCProjection() &&
+        artifact.target_capability_fingerprint != 0 &&
+        artifact.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint();
 }
 
 func CompilerDriverPipelineReady() -> Bool {
@@ -65,15 +76,20 @@ func CompileAstArtifactToC(
         CompilerTargetProjectionFactFromOwner(
             CompilerTargetCpuCProjection()
         );
-    return CompilerEmissionArtifact(
+    let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
             artifact, semantic_analysis, body_types,
             SelfHostMachineLayerDeclarationEmpty(), target_projection
         ),
         target_projection.schema,
-        target_projection.projection
+        target_projection.projection,
+        target_projection.target_capability_fingerprint
     );
+    if !CompilerEmissionArtifactReady(emission) {
+        Die("self-host C emission artifact target fingerprint is missing or invalid");
+    }
+    return emission;
 }
 
 func CompileSourceToCArtifact(

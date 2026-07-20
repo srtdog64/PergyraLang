@@ -176,6 +176,61 @@ func CompilerTargetFallbackReasonKnown(reason: String) -> Bool {
     return false;
 }
 
+// The self-host projection carries a bounded positive fingerprint so the
+// derived row can be checked after it leaves this owner.  The native owner
+// keeps its full-width FNV fingerprint; both implementations hash this same
+// ordered envelope (schema, projections, facts, fallback reasons), while the
+// bounded self-host representation remains safe for Pergyra Int carriage.
+func CompilerTargetCapabilityFingerprintHashString(
+    hash: Long, value: String, modulus: Long
+) -> Long {
+    let length: Int = StringLength(value);
+    let next: Long = (hash * 131L + (length as Long)) % modulus;
+    let i: Int = 0;
+    let out: Long = next;
+    while i < length {
+        out = (out * 131L + (CharCode(value, length, i) as Long)) % modulus;
+        i = i + 1;
+    }
+    return out;
+}
+
+func CompilerTargetCapabilityFingerprint() -> Int {
+    if !CompilerTargetCapabilityEnvelopeReady() {
+        return 0;
+    }
+    let modulus: Long = 268435456L;
+    let hash: Long = 7L;
+    hash = CompilerTargetCapabilityFingerprintHashString(
+        hash, CompilerTargetCapabilitySchema(), modulus
+    );
+    hash = (hash * 131L + (CompilerTargetProjectionCount() as Long)) % modulus;
+    let projection_i: Int = 0;
+    while projection_i < CompilerTargetProjectionCount() {
+        hash = CompilerTargetCapabilityFingerprintHashString(
+            hash, CompilerTargetProjectionAt(projection_i), modulus
+        );
+        projection_i = projection_i + 1;
+    }
+    hash = (hash * 131L + (CompilerTargetFactCount() as Long)) % modulus;
+    let fact_i: Int = 0;
+    while fact_i < CompilerTargetFactCount() {
+        hash = CompilerTargetCapabilityFingerprintHashString(
+            hash, CompilerTargetFactAt(fact_i), modulus
+        );
+        fact_i = fact_i + 1;
+    }
+    hash = (hash * 131L + (CompilerTargetFallbackReasonCount() as Long)) % modulus;
+    let fallback_i: Int = 0;
+    while fallback_i < CompilerTargetFallbackReasonCount() {
+        hash = CompilerTargetCapabilityFingerprintHashString(
+            hash, CompilerTargetFallbackReasonAt(fallback_i), modulus
+        );
+        fallback_i = fallback_i + 1;
+    }
+    return (1073741824L + hash) as Int;
+}
+
 func CompilerTargetCapabilityEnvelopeReady() -> Bool {
     return CompilerTargetProjectionCount() > 0 &&
         CompilerTargetProjectionAt(CompilerTargetProjectionCount()) == "" &&

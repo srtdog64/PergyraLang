@@ -1,4 +1,5 @@
 schema=pgy.selfhost.target-capability-envelope.v1
+target_fingerprint=1203473943
 projection_count=3
 projection|0|cpu-c
 projection|1|cpu-llvm

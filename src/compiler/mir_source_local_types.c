@@ -349,17 +349,29 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             && closure_init->type == AST_LAMBDA_EXPR
             && ast_lambda_capture_count(closure_init) > 0) {
             char clo_type[64];
+            char *closure_type_name;
             size_t before = routine->source_local_type_count;
             snprintf(clo_type, sizeof(clo_type), "pgy_lambda_clo_%u",
                 (unsigned) closure_init->stable_id);
-            if (!mir_source_local_type_append_name(program, routine,
+            if (type_node != NULL
+                && type_node->type == AST_EVENT_HANDLER_TYPE) {
+                if (!mir_source_local_type_append_callable(program, routine,
+                        ast_let_name(node), type_node)) {
+                    return false;
+                }
+            } else if (!mir_source_local_type_append_name(program, routine,
                     ast_let_name(node), clo_type)) {
                 return false;
             }
             if (routine->source_local_type_count > before) {
-                routine->source_local_types[
-                    routine->source_local_type_count - 1].is_closure_local =
-                    true;
+                MIRSourceLocalType *entry = &routine->source_local_types[
+                    routine->source_local_type_count - 1];
+                closure_type_name = pergyra_strdup(clo_type);
+                if (closure_type_name == NULL)
+                    return false;
+                free(entry->type_name);
+                entry->type_name = closure_type_name;
+                entry->is_closure_local = true;
             }
             return true;
         }

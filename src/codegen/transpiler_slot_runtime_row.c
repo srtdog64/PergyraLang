@@ -1,5 +1,6 @@
 #include "transpiler_slot_runtime_row.h"
 
+#include "../compiler/mir_decl_field_claim_abi.h"
 #include "../compiler/mir_abi_layout.h"
 #include "../compiler/mir_machine_layer.h"
 #include "../semantic/diag_codes.h"
@@ -254,6 +255,22 @@ transpiler_slot_runtime_fn(TranspilerCtx *ctx,
         transpiler_slot_runtime_row_for_operation(
             ctx, secure, inner_type, operation);
     return row != NULL ? row->runtime_fn : NULL;
+}
+
+const char *
+transpiler_slot_runtime_fn_for_decl_claim(TranspilerCtx *ctx,
+                                          const MIRDeclFieldClaim *claim)
+{
+    if (!mir_decl_field_claim_abi_validate(claim)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C MIR class field claim is missing its declaration-owned runtime-call ABI row");
+        return NULL;
+    }
+    return claim->runtime_call_abi.runtime_fn;
 }
 
 void

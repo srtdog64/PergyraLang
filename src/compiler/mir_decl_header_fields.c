@@ -1,6 +1,7 @@
 #include "mir_decl_header_fields.h"
 
 #include "mir_ability_ref.h"
+#include "mir_decl_field_claim_abi.h"
 #include "mir_decl_header_shape.h"
 #include "mir_type_helpers.h"
 #include "decl_field_model.h"
@@ -45,6 +46,7 @@ mir_decl_field_claim_clear(MIRDeclFieldClaim *claim)
 {
     if (claim == NULL)
         return;
+    mir_decl_field_claim_abi_clear(claim);
     free(claim->inner_type_name);
     claim->inner_type_name = NULL;
 }
@@ -296,7 +298,8 @@ mir_decl_field_claim_capture(MIRDeclFieldClaim *claim,
     } else {
         claim->inner_type_name = mir_capture_type_name(NULL, "Int");
     }
-    return claim->slot_name != NULL && claim->inner_type_name != NULL;
+    return claim->slot_name != NULL && claim->inner_type_name != NULL
+        && mir_decl_field_claim_abi_capture(claim);
 }
 
 static bool
@@ -325,11 +328,14 @@ mir_decl_header_set_class_field_claims(MIRDeclHeader *header, ASTNode *decl)
         if (!mir_class_field_claim_shape(group, NULL))
             continue;
         if (!mir_decl_field_claim_capture(
-                &header->field_claim_metadata[out++], header, group)) {
+                &header->field_claim_metadata[out], header, group)) {
+            header->field_claim_metadata_count = out + 1;
+            mir_decl_header_free_fields(header);
             return false;
         }
+        out++;
+        header->field_claim_metadata_count = out;
     }
-    header->field_claim_metadata_count = out;
     return out == claim_count;
 }
 

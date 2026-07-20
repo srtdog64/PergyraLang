@@ -1,6 +1,7 @@
 #include "mir_fact_validate.h"
 #include "mir_fact_validate_internal.h"
 #include "mir_decl_header_role_validate.h"
+#include "mir_decl_field_claim_abi.h"
 #include "mir_decl_header_shape_validate.h"
 #include "mir_decl_header_world_directive_validate.h"
 #include "mir_decl_header_world_state_validate.h"
@@ -101,6 +102,11 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 header->field_metadata_count,
                 header->field_count);
         }
+        return false;
+    }
+
+    if (!mir_decl_header_field_claim_abi_validate(
+            header, header_index, error_message)) {
         return false;
     }
 

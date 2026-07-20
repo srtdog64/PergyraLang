@@ -12,6 +12,9 @@ const char *transpiler_slot_runtime_fn(TranspilerCtx *ctx,
                                        bool secure,
                                        const char *inner_type,
                                        const char *operation);
+const char *transpiler_slot_runtime_fn_for_decl_claim(
+    TranspilerCtx *ctx,
+    const MIRDeclFieldClaim *claim);
 
 const MIRResourceRuntimeRow *transpiler_slot_runtime_row_for_operation(
     TranspilerCtx *ctx,

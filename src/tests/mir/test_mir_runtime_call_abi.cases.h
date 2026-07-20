@@ -458,4 +458,93 @@ test_mir_runtime_call_abi_facts(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR declaration field claims own their runtime-call ABI row");
+    {
+        const char *src =
+            "class Vault {\n"
+            "    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>(2)\n"
+            "    public func Run() -> Void {\n"
+            "        Write(_coinSlot, 100, _coinToken)\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *vault = NULL;
+        MIRDeclFieldClaim *claim = NULL;
+        uint32_t saved_id = 0;
+        char *mir_error = NULL;
+        bool rejected_missing = false;
+        bool rejected_id_drift = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok && mir != NULL)
+            vault = (MIRDeclHeader *)mir_find_decl_header(mir, "Vault");
+        if (vault != NULL && vault->field_claim_metadata_count == 1)
+            claim = &vault->field_claim_metadata[0];
+        if (claim != NULL) {
+            claim->runtime_call_abi_present = false;
+            rejected_missing = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                    "field-claim[0] has invalid runtime-call ABI ownership") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            claim->runtime_call_abi_present = true;
+            saved_id = claim->runtime_call_abi.runtime_call_abi_id;
+            claim->runtime_call_abi.runtime_call_abi_id = saved_id + 1;
+            rejected_id_drift = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                    "field-claim[0] has invalid runtime-call ABI ownership") != NULL;
+            claim->runtime_call_abi.runtime_call_abi_id = saved_id;
+        }
+        EXPECT(ok && vault != NULL && claim != NULL
+               && claim->runtime_call_abi_present
+               && strcmp(claim->runtime_call_abi.resource_op_name,
+                         "Claim") == 0
+               && strcmp(claim->runtime_call_abi.runtime_fn,
+                         "pgy_claim_secure_Int") == 0
+               && claim->abi_layout_id != 0
+               && rejected_missing && rejected_id_drift
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR captured closure locals retain callable signature facts");
+    {
+        const char *src =
+            "func Main() -> Void {\n"
+            "    let offset: Long = 7L;\n"
+            "    let bump: func(Long) -> Long = (x: Long) => x + offset;\n"
+            "    Log(bump(6));\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *main_routine = NULL;
+        const MIRSourceLocalType *fact = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok)
+            main_routine = find_mir_routine(
+                mir, "Main", MIR_SCOPE_FUNCTION);
+        if (main_routine != NULL)
+            fact = mir_routine_source_local_type_fact(main_routine, "bump");
+        EXPECT(ok && main_routine != NULL && fact != NULL
+               && fact->is_closure_local && fact->is_callable
+               && fact->type_name != NULL
+               && strncmp(fact->type_name, "pgy_lambda_clo_", 15) == 0
+               && fact->callable_param_count == 1
+               && strcmp(fact->callable_param_type_names[0], "Long") == 0
+               && strcmp(fact->callable_return_type_name, "Long") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

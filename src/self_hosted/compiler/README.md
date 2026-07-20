@@ -51,7 +51,11 @@ the fallback reasons (`unsupported_shape`, `forbidden_loss_budget`,
 envelope as a stable artifact, and
 `self-host-target-capability-envelope-parity-test-smoke` requires the C and
 LLVM-built self-host tool to agree on both the clean artifact and the
-missing-fact fail-closed case. That keeps CPU fallback or future accelerator
+missing-fact fail-closed case. The derived DRV-2 projection row also carries a
+bounded target fingerprint; the parity gate mutates that field and requires
+the final emitter to reject it. AIR remains upstream verification evidence for
+the native `VerifiedProjectionPlan`, not a backend-local fallback or a second
+target-capability authority. That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
 
 `SandboxCapabilityZone` owns the capability and frame-budget vocabulary that

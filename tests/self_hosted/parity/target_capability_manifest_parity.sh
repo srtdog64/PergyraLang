@@ -102,6 +102,20 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$C_NEG_OUT" \
     "run_output"
 
+C_FP_MUTATION_OUT="$BUILD_DIR/target_capability_c_fingerprint_mutation.out"
+C_FP_MUTATION_ERR="$BUILD_DIR/target_capability_c_fingerprint_mutation.err"
+set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-fingerprint-mutation \
+    >"$C_FP_MUTATION_OUT" 2>"$C_FP_MUTATION_ERR")
+C_FP_MUTATION_RC=$?
+set -e
+if [[ "$C_FP_MUTATION_RC" -ne 0 ]] || \
+    ! grep -Fq -- "target_fingerprint_mutation_rejected" "$C_FP_MUTATION_OUT"; then
+    echo "[self-host-parity:target-capability] C fingerprint mutation was accepted" >&2
+    cat "$C_FP_MUTATION_OUT" "$C_FP_MUTATION_ERR" >&2
+    exit 1
+fi
+
 assert_llvm_leg "self-host-parity:target-capability" "$TOOL_ARG" "$BUILD_DIR"
 
 LLVM_NEG_BIN="$BUILD_DIR/target_capability_llvm_negative.exe"
@@ -133,6 +147,20 @@ else
         "$NEGATIVE_EXPECTED_FILE" \
         "$LLVM_NEG_OUT" \
         "run_output"
+
+    LLVM_FP_MUTATION_OUT="$BUILD_DIR/target_capability_llvm_fingerprint_mutation.out"
+    LLVM_FP_MUTATION_ERR="$BUILD_DIR/target_capability_llvm_fingerprint_mutation.err"
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-fingerprint-mutation \
+        >"$LLVM_FP_MUTATION_OUT" 2>"$LLVM_FP_MUTATION_ERR")
+    LLVM_FP_MUTATION_RC=$?
+    set -e
+    if [[ "$LLVM_FP_MUTATION_RC" -ne 0 ]] || \
+        ! grep -Fq -- "target_fingerprint_mutation_rejected" "$LLVM_FP_MUTATION_OUT"; then
+        echo "[self-host-parity:target-capability] LLVM fingerprint mutation was accepted" >&2
+        cat "$LLVM_FP_MUTATION_OUT" "$LLVM_FP_MUTATION_ERR" >&2
+        exit 1
+    fi
 fi
 
 echo "[self-host-parity:target-capability] parity ok"

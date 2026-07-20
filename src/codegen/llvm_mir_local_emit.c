@@ -448,6 +448,21 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 }
 
                 if (is_closure_local_decl) {
+                    source_local_fact = llvm_mir_local_source_fact(
+                        routine, has_base_name ? base_name : inst->result_name);
+                    if (source_local_fact == NULL
+                        || !source_local_fact->is_callable
+                        || !source_local_fact->is_closure_local) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing closure callable metadata for '%s'",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
+                        return;
+                    }
+                }
+
+                if (is_closure_local_decl) {
                     alloca_type = llvm_closure_struct_type(ctx, value_expr,
                         NULL, NULL);
                     if (ctx->has_error || alloca_type == NULL) {

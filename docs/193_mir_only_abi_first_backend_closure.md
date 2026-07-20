@@ -189,6 +189,14 @@ operation matches the requested operation. An implicit Write sharing the same
 source node as Claim must reject the mismatched exact row and continue through
 the MIR-owned same-type operation projection; it cannot treat Claim as Write.
 
+Class field Claim groups occur outside a routine instruction stream, so their
+ABI truth lives on `MIRDeclFieldClaim`, not in an active-instruction lookup.
+The declaration row carries the Claim runtime-call row, `RuntimeCallAbiId`,
+layout pointer, and `LayoutId`; declaration validation rejects a missing or
+mutated row. The C class emitter consumes that row directly and cannot recover
+the runtime symbol from `inner_type_name`. This is a distinct declaration
+owner, not an exception that reopens the static ABI table in the backend.
+
 One executable statement may contain more than one resource operation, for
 example `Write(a, Read(b) + Read(c))`. Such a statement cannot own one
 meaningful runtime-call row. Lowering therefore keeps the authoritative row on
@@ -302,17 +310,33 @@ branch remains explicitly legacy-only; an active MIR instruction with neither
 owner fact reaches the existing typed-metadata failure later in the LLVM MIR
 consumer instead of recovering a type from source syntax.
 
-The view-backed C hook follows the same boundary. Its prior-instruction scan
-may reuse an already carried `MIRTypeLayout`, but its AST type-annotation
-lookup (`transpiler_mir_layout_from_type_annotation`) is now explicitly
-legacy-only. An active MIR routine with no owner-carried layout reaches the
-existing missing-owner/layout diagnostic instead of reopening the AST node.
+Captured closure locals carry two different facts in one source-local row:
+`type_name` identifies the closure storage struct, while the callable return
+and parameter fields preserve the declared `func(...) -> ...` signature. LLVM
+uses the storage fact for allocation and the callable fact for invocation
+registration. Dropping either half is a missing MIR fact; LLVM does not infer
+the signature again from the lambda AST.
+
+The view-backed C hook follows the same boundary. Its active MIR path consumes
+only the carried owner slot and `MIRTypeLayout`; no AST type annotation is
+available as a recovery source. An active MIR routine with no owner-carried
+layout reaches the existing missing-owner/layout diagnostic instead of
+reopening the AST node.
 Statement identity is carried by the shared `mir_set_inst_source_statement_fact`
 owner for DEF and non-CFG instructions, so multiple resource rows emitted from
 one source statement retain the same statement identity without rescanning the
 AST. The fixture `MIR keeps multiple resource runtime rows distinct within one
 statement` ratchets both distinct row ownership and that shared identity path.
 The ABI ownership shape gate carries a negative ratchet for this branch.
+
+The final C view hook now consumes that carriage directly. The former
+`transpiler_mir_find_prior_borrow_source_for_view` and
+`transpiler_mir_find_prior_resource_layout_for_slot` inventory scans are
+deleted; `resource_owner_slot_anchor` and `type_layout` are the only active MIR
+inputs. Removing either owner fact therefore reaches the existing
+`view-backed resource op is missing owner slot ABI metadata` or typed-layout
+failure instead of searching another routine or reopening `expr1`. The
+backend-fail-closed gate permanently rejects reintroducing those scans.
 
 See also:
 
@@ -370,21 +394,29 @@ an AST fallback and is blocked by the hard-self-host contract.
 The DRV-2 C emitter no longer accepts target readiness from the global envelope
 alone. `target_capability_owner.pgy` remains the vocabulary owner,
 `target_projection_fact_owner.pgy` derives one admitted projection carriage
-row, and `CompilerEmissionArtifact` records its schema and projection.
+row, and `CompilerEmissionArtifact` records its schema, projection, and the
+owner-derived target capability fingerprint. The self-host fingerprint is a
+bounded positive carriage representation of the same ordered envelope; the
+native planner retains the full-width target fingerprint for C/LLVM plans.
 `GenerateCFromVerifiedSemanticArtifact` consumes that row; its verifier checks
-the carried values against the canonical owner and rejects an empty or changed
-projection before C text emission. The negative
+the carried values and fingerprint against the canonical owner and rejects an
+empty, changed, or mutated projection before C text emission. The negative
 owner is
-`tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh`;
+`tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh`,
+with fingerprint mutation covered by
+`tests/self_hosted/parity/target_capability_manifest_parity.sh`;
 the focused `device_slot_routine` lane passes under both C-built and
 LLVM-built Pergyra drivers.
 
 This row is deliberately still `BRIDGE`. It proves that the selected `cpu-c`
-projection and the ordered required-fact/fallback vocabulary survive to the
-last emitter. It does not yet carry a native target fingerprint, concrete
-size/alignment/endian facts, object format, AIR evidence references, or an
-LLVM/self-hosted physical projection. Those values must become target-owned
-facts before `target.capability_profile` can be promoted.
+projection, the ordered required-fact/fallback vocabulary, and a mutation-
+checked fingerprint survive to the last emitter. AIR remains the verification
+layer upstream of native `VerifiedProjectionPlan`: C/LLVM still receive only
+the AIR-bound plan row, while this self-host DRV-2 carriage does not claim to
+be an AIR certificate. It does not yet carry a native full-width target
+fingerprint, concrete size/alignment/endian facts, object format, AIR evidence
+references, or an LLVM/self-hosted physical projection. Those values must
+become target-owned facts before `target.capability_profile` can be promoted.
 
 ### Comparison cadence
 

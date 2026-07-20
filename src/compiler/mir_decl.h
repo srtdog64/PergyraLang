@@ -15,6 +15,7 @@
 #include <stddef.h>
 
 #include "../parser/ast.h"
+#include "mir_abi.h"
 
 typedef struct
 {
@@ -99,6 +100,10 @@ typedef struct
     const char *token_name;
     char       *inner_type_name;
     bool        is_secure;
+    MIRResourceRuntimeRow runtime_call_abi;
+    const MIRTypeLayout   *type_layout;
+    uint32_t               abi_layout_id;
+    bool                   runtime_call_abi_present;
 } MIRDeclFieldClaim;
 
 typedef struct

@@ -1,6 +1,7 @@
 #include "mir.h"
 #include "mir_base_helpers.h"
 #include "mir_decl_header_authority.h"
+#include "mir_decl_header_fields.h"
 #include "mir_decl_header_refresh.h"
 #include "mir_decl_header_zone_state.h"
 #include "mir_decl_header_world_directive.h"
@@ -151,43 +152,7 @@ mir_destroy(MIRProgram *mir)
             }
             free(mir->decl_headers[i].role_impl_metadata);
             free(mir->decl_headers[i].role_include_metadata);
-            if (mir->decl_headers[i].field_metadata != NULL) {
-                for (size_t j = 0;
-                     j < mir->decl_headers[i].field_metadata_count;
-                     j++) {
-                    free(mir->decl_headers[i].field_metadata[j].type_name);
-                    {
-                        MIRDeclField *fm =
-                            &mir->decl_headers[i].field_metadata[j];
-                        if (fm->required_ability_refs != NULL) {
-                            for (size_t a = 0;
-                                 a < fm->required_ability_ref_count; a++) {
-                                MIRAbilityRef *ref =
-                                    &fm->required_ability_refs[a];
-                                free(ref->base_name);
-                                if (ref->actual_arg_type_names != NULL) {
-                                    for (size_t ai = 0;
-                                         ai < ref->actual_arg_count; ai++)
-                                        free(ref->actual_arg_type_names[ai]);
-                                    free(ref->actual_arg_type_names);
-                                }
-                            }
-                            free(fm->required_ability_refs);
-                        }
-                    }
-                }
-            }
-            free(mir->decl_headers[i].field_metadata);
-            if (mir->decl_headers[i].field_claim_metadata != NULL) {
-                for (size_t j = 0;
-                     j < mir->decl_headers[i].field_claim_metadata_count;
-                     j++) {
-                    free(mir->decl_headers[i]
-                             .field_claim_metadata[j]
-                             .inner_type_name);
-                }
-            }
-            free(mir->decl_headers[i].field_claim_metadata);
+            mir_decl_header_free_fields(&mir->decl_headers[i]);
             mir_decl_header_free_authorities(&mir->decl_headers[i]);
             mir_decl_header_free_refreshes(&mir->decl_headers[i]);
             mir_decl_header_free_zone_states(&mir->decl_headers[i]);

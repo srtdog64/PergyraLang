@@ -393,15 +393,20 @@ func CompileMirJsonTextToCForTargetVerified(
             artifact, verified.analysis, semantic_body_types,
             mir_generic_specializations
         );
-    return CompilerEmissionArtifact(
+    let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
             artifact, verified.analysis, body_types, machine_declaration,
             target_projection
         ),
         target_projection.schema,
-        target_projection.projection
+        target_projection.projection,
+        target_projection.target_capability_fingerprint
     );
+    if !CompilerEmissionArtifactReady(emission) {
+        Die("self-host C emission artifact target fingerprint is missing or invalid");
+    }
+    return emission;
 }
 
 func CompileMirJsonTextToCVerified(

@@ -11,12 +11,13 @@ struct CompilerTargetProjectionFact {
     projection: String;
     required_facts: Array<String>;
     fallback_reasons: Array<String>;
+    target_capability_fingerprint: Int;
 }
 
 func CompilerTargetProjectionFactEmpty() -> CompilerTargetProjectionFact {
     let facts: Array<String> = [];
     let fallbacks: Array<String> = [];
-    return CompilerTargetProjectionFact(false, "", "", facts, fallbacks);
+    return CompilerTargetProjectionFact(false, "", "", facts, fallbacks, 0);
 }
 
 func CompilerTargetProjectionFactFromOwner(
@@ -24,6 +25,10 @@ func CompilerTargetProjectionFactFromOwner(
 ) -> CompilerTargetProjectionFact {
     if !CompilerTargetCapabilityEnvelopeReady() ||
         !CompilerTargetProjectionKnown(projection) {
+        return CompilerTargetProjectionFactEmpty();
+    }
+    let fingerprint: Int = CompilerTargetCapabilityFingerprint();
+    if fingerprint == 0 {
         return CompilerTargetProjectionFactEmpty();
     }
     let facts: Array<String> = [];
@@ -41,7 +46,8 @@ func CompilerTargetProjectionFactFromOwner(
         fallback_i = fallback_i + 1;
     }
     return CompilerTargetProjectionFact(
-        true, CompilerTargetCapabilitySchema(), projection, facts, fallbacks
+        true, CompilerTargetCapabilitySchema(), projection, facts, fallbacks,
+        fingerprint
     );
 }
 
@@ -53,6 +59,9 @@ func CompilerTargetProjectionFactReadyFor(
         !CompilerTargetProjectionKnown(expected_projection) ||
         fact.schema != CompilerTargetCapabilitySchema() ||
         fact.projection != expected_projection ||
+        fact.target_capability_fingerprint == 0 ||
+        fact.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
         ArrayLength(fact.required_facts) != CompilerTargetFactCount() ||
         ArrayLength(fact.fallback_reasons) !=
             CompilerTargetFallbackReasonCount() {

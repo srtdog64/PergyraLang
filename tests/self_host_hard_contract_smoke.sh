@@ -120,7 +120,7 @@ require_text "src/self_hosted/PROGRESS.md" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompilerEmissionArtifact("
+    "let emission: CompilerEmissionArtifact = CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -258,6 +258,12 @@ require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negativ
 require_file "src/self_hosted/compiler/target_projection_fact_owner.pgy"
 require_text "src/self_hosted/compiler/target_projection_fact_owner.pgy" \
     "func CompilerTargetProjectionFactReadyFor("
+require_text "src/self_hosted/compiler/target_projection_fact_owner.pgy" \
+    "target_capability_fingerprint: Int;"
+require_text "src/self_hosted/compiler/target_projection_fact_owner.pgy" \
+    "CompilerTargetCapabilityFingerprint()"
+require_text "src/self_hosted/compiler/target_projection_fact_owner.pgy" \
+    "fact.target_capability_fingerprint !="
 require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
     "CompilerTargetProjectionFactReadyFor("
 require_file "tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh"

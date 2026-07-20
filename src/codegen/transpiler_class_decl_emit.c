@@ -91,17 +91,14 @@ emit_one_field_slot_claim_meta(TranspilerCtx *ctx,
 
     if (slot == NULL || suffix == NULL)
         return;
+    claim_fn = transpiler_slot_runtime_fn_for_decl_claim(ctx, claim);
+    if (claim_fn == NULL)
+        return;
     if (mir_decl_field_claim_is_secure(claim) && token != NULL) {
-        claim_fn = transpiler_slot_runtime_fn(ctx, true, suffix, "Claim");
-        if (claim_fn == NULL)
-            return;
         codebuf_write(ctx->out,
             "    self.%s = %s(&self.%s);\n",
             slot, claim_fn, token);
     } else if (!mir_decl_field_claim_is_secure(claim)) {
-        claim_fn = transpiler_slot_runtime_fn(ctx, false, suffix, "Claim");
-        if (claim_fn == NULL)
-            return;
         codebuf_write(ctx->out,
             "    self.%s = %s();\n", slot, claim_fn);
     }
