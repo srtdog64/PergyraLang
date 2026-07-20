@@ -1,5 +1,15 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: five additional class composition and
+method flows are DRV-2 MIR fixtures 89 through 93: `class_chain_methods`,
+`class_compose_factory`, `class_two_step_no_loop`,
+`class_three_params_clamp`, and `class_field_method_chain`. The Pergyra MIR
+producer accepted all five without a C fact fallback. Focused C-built and
+LLVM-built DRV-2 drivers matched the native oracle's canonical MIR,
+MIR-consumed C, and runtime output (`body_fixtures=20`, `mir_fixtures=5`). The
+complete 93-fixture matrix was not rerun in this slice, and the
+released/default driver replacement remains 0%.
+
 2026-07-21 executable breadth delta: six class call/value flows are DRV-2 MIR
 fixtures 83 through 88: `class_self_factory_chain`,
 `class_self_field_method`, `class_chained_factory_call`,

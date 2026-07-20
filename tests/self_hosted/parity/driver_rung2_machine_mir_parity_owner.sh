@@ -36,6 +36,21 @@ pgy_selfhost_driver_rung2_fixture_base() {
         tests/cases/backend_compare/class_nested_field_chain/main.pgy)
             printf '%s\n' "class_nested_field_chain"
             ;;
+        tests/cases/backend_compare/class_chain_methods/main.pgy)
+            printf '%s\n' "class_chain_methods"
+            ;;
+        tests/cases/backend_compare/class_compose_factory/main.pgy)
+            printf '%s\n' "class_compose_factory"
+            ;;
+        tests/cases/backend_compare/class_two_step_no_loop/main.pgy)
+            printf '%s\n' "class_two_step_no_loop"
+            ;;
+        tests/cases/backend_compare/class_three_params_clamp/main.pgy)
+            printf '%s\n' "class_three_params_clamp"
+            ;;
+        tests/cases/backend_compare/class_field_method_chain/main.pgy)
+            printf '%s\n' "class_field_method_chain"
+            ;;
         *)
             basename "$1" .pgy
             ;;
