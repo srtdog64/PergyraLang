@@ -414,18 +414,21 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 // the cyclic CFG can make a later iteration's then block look
                 // like the nearest common merge.  Consume the arm successor
                 // fact before projecting the fallthrough arm as continuation.
-                let then_flows_to_loop_exit: Bool = false;
+                let then_terminates_or_flows_to_loop_exit: Bool = false;
                 if structural_merge == t {
                     let then_bounds: Array<Int> = [0, 0];
-                    if BlockBounds(index, json, t, then_bounds) {
-                        then_flows_to_loop_exit = IsLoopAbrupt(
+                    then_terminates_or_flows_to_loop_exit =
+                        MirRoutineFactIndexBlockIsTerminal(index, ToInt(t));
+                    if !then_terminates_or_flows_to_loop_exit &&
+                        BlockBounds(index, json, t, then_bounds) {
+                        then_terminates_or_flows_to_loop_exit = IsLoopAbrupt(
                             ReadSucc(index, then_bounds[0], false),
                             loop_header, loop_exit
                         );
                     }
                 }
                 if IsLoopAbrupt(structural_merge, loop_header, loop_exit) ||
-                    then_flows_to_loop_exit {
+                    then_terminates_or_flows_to_loop_exit {
                     merge = f;
                 }
                 let hasElse: Bool = StringLength(f) > 0 && f != merge;

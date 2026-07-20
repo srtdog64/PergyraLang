@@ -530,6 +530,17 @@ func MirRoutineFactIndexBlockStructuralMerge(
     return ToString(merge);
 }
 
+func MirRoutineFactIndexBlockIsTerminal(
+    ref index: MirRoutineFactIndex,
+    block_id: Int
+) -> Bool {
+    if block_id < 0 || block_id >= ArrayLength(index.block_succ_true) {
+        return false;
+    }
+    return index.block_succ_true[block_id] == "" &&
+        index.block_succ_false[block_id] == "";
+}
+
 func MirRoutineFactIndexBlockBounds(
     ref index: MirRoutineFactIndex,
     block_id: Int,

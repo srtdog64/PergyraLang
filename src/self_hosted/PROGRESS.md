@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable CFG/SoT delta: `class_node_field_access` is DRV-2 MIR
+fixture 110. In a loop-local `if` whose true arm returns, cyclic reachability
+made that terminal true block look like its own structural merge. The MIR
+routine fact index now owns the terminal-block verdict from successor facts,
+and CFG-to-tree lowering consumes it before selecting the false successor as
+the continuation. It does not inspect return text or reopen the source AST.
+This preserves `return total` inside the true arm and keeps the carried
+expression-graph sequence aligned with reconstructed `SyntaxNodeId` lanes.
+The Pergyra-built hard driver passed focused canonical-MIR, emitted-C, host
+compile, and runtime parity for a six-fixture frontier including this case;
+C-built and LLVM-built self drivers independently passed the new fixture. The
+complete 110-fixture matrix was not run, and released/default replacement
+remains 0%.
+
 2026-07-21 hard executable delta: the installed Pergyra-built DRV-2 is now a
 direct producer in focused parity instead of merely being smoke-run after its
 build. The compiler-build cache hashes the parser owner's freshly composed AST
@@ -46,10 +60,11 @@ Current C-built and LLVM-built self drivers each matched the native oracle's
 canonical MIR, source/MIR C artifact, native C compile result, and runtime
 output for all fifteen. The fixture identity owner now derives a
 `backend_compare/*/main.pgy` identity from its parent directory instead of
-growing a per-fixture alias table. Three nearby probes remain fail-closed and
-are not counted: implicit owner-field assignment needs an assignment target
-binding fact, and the looped node member fixture loses an aggregate member
-expression graph during canonical consumption. The complete 108-fixture
+growing a per-fixture alias table. At that slice, three nearby probes remained
+fail-closed: implicit owner-field assignment needed an assignment target
+binding fact, and the looped node member fixture lost its expression-graph
+order during canonical consumption. The latter is now fixture 110 under the
+CFG/SoT delta above. The complete 108-fixture
 matrix was not rerun, and the
 released/default driver replacement remains 0%.
 
@@ -1245,7 +1260,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 109 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixture 109 passed focused C/LLVM canonical-MIR, source/MIR-C, native compile, and runtime parity, while the complete 109-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` now builds the bounded driver through Pergyra parser/codegen seeds. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixture 110 passed focused hard/C/LLVM canonical-MIR, source/MIR-C, native compile, and runtime parity, while the complete 110-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` now builds the bounded driver through Pergyra parser/codegen seeds. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

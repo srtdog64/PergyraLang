@@ -3618,9 +3618,11 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 109;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 110;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 109'
+    'mir_fixture_rows[@]}" -ne 110'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_self_chain/main.pgy"'
 for class_mir_fixture in \
@@ -3854,11 +3856,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 109;"
+    "return 110;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 109'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 110'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6408,6 +6410,8 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockSuccessor(index, bs, false_edge)"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockBounds("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockRow("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockIsTerminal("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockIsTerminal(index, ToInt(t))"
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutineEdgeTargetsDominator("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "MirRoutineGraphCanReachAvoiding("
