@@ -2482,6 +2482,20 @@ region-arena-test-smoke:
 	"$(BASH)" tests/region_arena_smoke.sh
 .PHONY: region-arena-test-smoke
 
+# Verified region plan logic gate (WO-REG-1 REG-1b, docs/197): row build /
+# lookup / dispose / conflict refusal / fail-closed AIR-certificate gate. Pure
+# C; links the plan source directly (it is not yet in COMPILER_SOURCES -- the
+# driver that would produce it is being reworked in a concurrent session, so
+# the module lands verified-but-unwired; see docs/197 Appendix A).
+REGION_PLAN_UNIT_BIN := $(BUILD_DIR)/region_plan_unit$(EXEEXT)
+
+$(REGION_PLAN_UNIT_BIN): tests/region_plan_unit.c src/compiler/verified_region_plan.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_plan_unit.c src/compiler/verified_region_plan.c
+
+region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
+	$(REGION_PLAN_UNIT_BIN)
+.PHONY: region-plan-unit-test-smoke
+
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
 selfhost-reachability-contract-test-smoke: $(PGY)

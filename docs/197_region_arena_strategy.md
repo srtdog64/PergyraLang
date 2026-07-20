@@ -429,26 +429,55 @@ emitted consumer yet). What actually shipped, refining §5.1:
   **deferred** — the concurrent session holds that aggregate region uncommitted;
   wiring it now would entangle. Add one line to the aggregate once that lands.
 
-### A.2 REG-1b + REG-1c — BLOCKED (concurrent working set), design frozen here
+### A.2 REG-1b — plan subsystem LANDED verified-but-unwired; driver/emission integration blocked by a *verified* collision
 
-**Why blocked, not skipped**: constraint #4 forbids landing the plan (REG-1b)
-without its emission consumer (REG-1c) — an unconsumed plan is exactly the
-§1.2 anti-pattern. REG-1c edits the emitters (`transpiler_expr_core_emit.c`
-StringConcat lowering, the LLVM string path) and REG-1b edits the driver
-(`compiler.c`, `compiler_llvm.c`) and `verified_projection_plan.h`. At
-2026-07-21 the concurrent session holds **109 files uncommitted**, including
-every one of those plus the entire `src/codegen/` tree and `src/common/arena.c`.
-WO-0 forbids modifying a concurrently-edited file. So the plan+emission train
-waits for that working set to land. The design below is frozen so the resumption
-is a mechanical apply.
+**Build path confirmed (2026-07-21).** The concurrent 109-file working set
+compiles: an isolated `mingw32-make pgy BUILD_DIR=.tmp/reg_build
+BIN_DIR=.tmp/reg_bin` (the make→gcc grandparent channel that survives the local
+anti-cheat) built a working `pgy.exe` from the current tree. So compiler changes
+CAN be built and verified on top of the working set — the constraint is
+staging-collision, not build-ability.
 
-**Follow the house split pattern**: the concurrent session is itself moving the
-parallel-capture plan into its own file (`verified_parallel_capture_plan.c`).
-Mirror it — put the region plan in **new files** `verified_region_plan.{h,c}`,
-NOT inside `verified_projection_plan.{h,c}` (which the other session holds).
-This removes the plan-header collision; only the driver call sites remain
-shared, and those get isolated hunks (spawn-lane-plan produce/dispose is the
-adjacency template).
+**Landed**: `verified_region_plan.{h,c}` — the plan subsystem (new files, house
+split pattern, mirroring the concurrent session's own move of the
+parallel-capture plan into `verified_parallel_capture_plan.c`, so no
+`verified_projection_plan.{h,c}` collision). `PgyRegionDisposition`
+(HEAP default / REGION-under-certificate), `PgyRegionFactRow`, `PgyRegionPlan`,
+`PgyRegionEscapeResult`. Producer `pgy_verified_region_plan_from_escape` gates on
+the AIR evidence certificate (same admission boundary as the spawn-lane plan)
+then validates the escape result: null-site refusal, conflicting-scope refusal,
+duplicate collapse; `_lookup` fail-closed (miss ⇒ HEAP). Row-building is split
+into `_build_rows` so the logic is unit-testable below the certificate gate.
+Gate **`region-plan-unit-test-smoke`** (7 cases: empty / three-sites /
+duplicate-collapse / conflict-refused / null-refused / lookup-fail-closed /
+cert-gate) builds under the project's `-Wall -Wextra -Werror` flags and passes.
+The module is **not yet in COMPILER_SOURCES** — it is the sole compiler `.c`
+outside that list on purpose (see the collision below); it lands wired the
+moment the driver rework settles.
+
+**The verified collision (why the driver wiring waits).** The remaining REG-1b
+integration is the driver producing the plan into the transpiler context — the
+exact `verified_spawn_lane_plan` produce/carry/dispose template at
+`compiler.c` invoke_c_backend, `compiler_llvm.c` (×2), and the
+`transpiler.h` ctx-struct field + `transpile_from_mir_with_projection_plan`
+signature. A hunk-level check (`git diff <file> | grep '^@@'`) shows the
+concurrent session holds uncommitted hunks **in those exact regions**:
+`compiler.c` @@ -68 (+17 lines in the spawn-lane produce block),
+`compiler_llvm.c` four hunks over both emit paths, `transpiler.h` @@ -153 (the
+ctx struct field list) and @@ -367 (the transpile signature). They are wiring
+the sibling parallel-capture plan through the identical ctx-field /
+transpile-signature / invoke_c_backend regions the region plan needs. This is
+not caution — my region field would land inside their struct hunk, my produce
+call inside their produce hunk; the additions coalesce into one git hunk and
+cannot be staged apart. `transpiler_expr_core_emit.c` (the `emit_binary`
+StringConcat site, the REG-1c consumer) is by contrast **clean** of user hunks.
+
+**Resumption (mechanical once the concurrent driver rework commits)**: add
+`verified_region_plan.c` to COMPILER_SOURCES; add a `const PgyRegionPlan *`
+field to the transpiler ctx and a param to the transpile entry beside
+`spawn_lane_plan`; in the driver, produce/carry/dispose beside the spawn-lane
+plan. No inline-mode refusal (PgyRegion works in every materialization, unlike
+the movable lane).
 
 **Plan type** (`verified_region_plan.h`):
 ```
