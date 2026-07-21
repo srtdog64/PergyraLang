@@ -3,6 +3,30 @@
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 
+func SemanticAstExpressionOwnerFieldType(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    field_name: String
+) -> Option<String> {
+    if field_name == "" ||
+        !SemanticAstNominalConstructorRowsReady(constructors) {
+        return None;
+    }
+    let signature_index: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index) { return None; }
+    let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+        signatures, UnwrapOption(signature_index)
+    );
+    if !IsSome(owner) || UnwrapOption(owner) == "" { return None; }
+    return SemanticAstNominalFieldType(
+        constructors, UnwrapOption(owner), field_name
+    );
+}
+
 func SemanticAstExpressionSeedOwnerFields(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -69,7 +93,20 @@ func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
     let names: Array<String> = [];
     let types: Array<String> = [];
     let modes: Array<String> = [];
-    return IsSome(function_node) && SemanticAstExpressionSeedOwnerFields(
+    let value_type: Option<String> = None;
+    let limit_type: Option<String> = None;
+    if IsSome(function_node) {
+        value_type = SemanticAstExpressionOwnerFieldType(
+            signatures, constructors, UnwrapOption(function_node), "value"
+        );
+        limit_type = SemanticAstExpressionOwnerFieldType(
+            signatures, constructors, UnwrapOption(function_node), "limit"
+        );
+    }
+    return IsSome(function_node) && IsSome(value_type) &&
+        IsSome(limit_type) && UnwrapOption(value_type) == "Int" &&
+        UnwrapOption(limit_type) == "Long" &&
+        SemanticAstExpressionSeedOwnerFields(
         signatures, constructors, UnwrapOption(function_node),
         names, types, modes
     ) && ArrayLength(names) == 2 && names[0] == "value" &&

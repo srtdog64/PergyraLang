@@ -9,6 +9,7 @@ import "routine_build_owner.pgy";
 import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
+import "../semantic/ast_expression_owner_field_environment_owner.pgy";
 
 func SelfMirMatchCaseFactForNode(
     ref input: SelfMirRoutineInput,
@@ -26,9 +27,34 @@ func SelfMirMatchCaseFactForNode(
     return SelfMirMatchCaseFactFromArtifact(input.artifact, case_node_id);
 }
 
+func SelfMirMatchSubjectType(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    match_node_id: Int,
+    match_value: String
+) -> Option<String> {
+    let local_index: Option<Int> = SelfMirRoutineLocalIndex(
+        build, match_value
+    );
+    if IsSome(local_index) {
+        return Some(build.local_types[UnwrapOption(local_index)]);
+    }
+    let statement_index: Option<Int> = SemanticAstStatementIndexForNode(
+        input.analysis.statements, match_node_id
+    );
+    if !IsSome(statement_index) { return None; }
+    return SemanticAstExpressionOwnerFieldType(
+        input.analysis.signatures, input.analysis.constructors,
+        input.analysis.statements.function_node_ids[
+            UnwrapOption(statement_index)
+        ], match_value
+    );
+}
+
 func SelfMirMatchCaseSubjectReady(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
+    match_node_id: Int,
     match_value: String,
     fact: SelfMirMatchCaseFact
 ) -> Bool {
@@ -36,12 +62,11 @@ func SelfMirMatchCaseSubjectReady(
         ToString(ToInt(fact.pattern)) == fact.pattern {
         return true;
     }
-    let local_index: Option<Int> = SelfMirRoutineLocalIndex(
-        build, match_value
+    let subject_type_opt: Option<String> = SelfMirMatchSubjectType(
+        input, build, match_node_id, match_value
     );
-    if !IsSome(local_index) { return false; }
-    let subject_type: String =
-        build.local_types[UnwrapOption(local_index)];
+    if !IsSome(subject_type_opt) { return false; }
+    let subject_type: String = UnwrapOption(subject_type_opt);
     if fact.variant == "Some" || fact.variant == "None" {
         return StartsWith(subject_type, "Option<");
     }
@@ -67,7 +92,9 @@ func SelfMirLowerMatchCaseBranch(
     match_value: String,
     fact: SelfMirMatchCaseFact
 ) -> SelfMirRoutineBuild {
-    if !SelfMirMatchCaseSubjectReady(input, build, match_value, fact) {
+    if !SelfMirMatchCaseSubjectReady(
+        input, build, match_node_id, match_value, fact
+    ) {
         return SelfMirRoutineBuildError(
             build, "MIR match subject type or variant fact is missing"
         );

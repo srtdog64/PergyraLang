@@ -12,22 +12,29 @@ pgy_selfhost_verify_driver_rung2_match() {
     if [[ "$base" != "match_case_int" &&
         "$base" != "match_case_assign" &&
         "$base" != "option_match" &&
-        "$base" != "enum_match" ]]; then
+        "$base" != "enum_match" &&
+        "$base" != "class_holds_enum_field" ]]; then
         return 0
     fi
-    if [[ "$base" == "enum_match" ]]; then
-        for match_pattern in \
-            '"match_patterns":["North"],"match_variant":null,"match_bindings":[]' \
-            '"match_patterns":["East"],"match_variant":null,"match_bindings":[]' \
-            '"match_patterns":["South"],"match_variant":null,"match_bindings":[]'; do
+    if [[ "$base" == "enum_match" ||
+        "$base" == "class_holds_enum_field" ]]; then
+        local enum_patterns=(North East South)
+        local first_variant="North"
+        if [[ "$base" == "class_holds_enum_field" ]]; then
+            enum_patterns=(Bronze Silver Gold)
+            first_variant="Bronze"
+        fi
+        for match_pattern in "${enum_patterns[@]}"; do
+            match_pattern="\"match_patterns\":[\"$match_pattern\"],\"match_variant\":null,\"match_bindings\":[]"
             grep -Fq "$match_pattern" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend enum match fact was lost: $match_pattern" >&2
                 exit 1
             }
         done
         missing_enum_variant="$BUILD_DIR/${base}_${backend}.missing-enum-variant.mir.json"
-        sed 's/"name":"North","param_count":0/"name":"MissingNorth","param_count":0/' \
-            "$self_mir_json" >"$missing_enum_variant"
+        pgy_replace_first_literal "$self_mir_json" "$missing_enum_variant" \
+            "\"name\":\"$first_variant\",\"param_count\":0" \
+            "\"name\":\"Missing$first_variant\",\"param_count\":0"
         if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_enum_variant")" \
             >"$missing_enum_variant.out" 2>"$missing_enum_variant.err"); then

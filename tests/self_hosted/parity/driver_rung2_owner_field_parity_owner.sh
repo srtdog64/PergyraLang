@@ -24,6 +24,15 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
             echo "[self-host-parity:driver-rung2] $backend owner field facts drifted" >&2
             exit 1
         }
+    elif [[ "$base" == "class_holds_enum_field" ]]; then
+        field_name="tier"
+        field_row='"name":"tier","type":"Tier"'
+        missing_row='"name":"missing_tier","type":"Tier"'
+        grep -Fq '"name":"Score","kind":"method","owner":"Player"' \
+            "$self_mir_json" && grep -Fq 'self.tier' "$emitted_c" || {
+            echo "[self-host-parity:driver-rung2] $backend match owner field facts drifted" >&2
+            exit 1
+        }
     elif [[ "$base" == "owner_field_assignment" ]]; then
         field_name="balance"
         field_row='"name":"balance","type":"Int"'

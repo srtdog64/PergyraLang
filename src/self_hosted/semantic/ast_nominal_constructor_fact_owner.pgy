@@ -266,7 +266,7 @@ func SemanticAstNominalConstructorFieldCountAt(
 }
 
 func SemanticAstNominalConstructorRowsReady(
-    facts: SemanticAstNominalConstructorFacts
+    ref facts: SemanticAstNominalConstructorFacts
 ) -> Bool {
     let count: Int = SemanticAstNominalConstructorCount(facts);
     if !facts.ok || ArrayLength(facts.nominal_kinds) != count ||

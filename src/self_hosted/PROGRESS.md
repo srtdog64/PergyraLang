@@ -1,5 +1,13 @@
 # Self-Host Progress
 
+2026-07-21 owner-field match SoT delta: DRV-2 MIR fixture 219 is
+`class_holds_enum_field`. MIR match subject validation now consumes the
+semantic method owner-field type query after ordinary local lookup, without
+seeding fields as fake SSA locals or rescanning source text. Focused C-built
+and LLVM-built producer-first paths match canonical MIR, emitted C, runtime
+output, and missing field/enum-variant rejection. The complete 219-fixture
+matrix and released/default replacement remain open.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 217 and 218 are
 `class_loop_method_total` and `class_method_branch_nest`. The existing class
 receiver, method-call target, field, branch, loop, return, and expression-graph
