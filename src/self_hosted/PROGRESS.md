@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 141 through 150 are
+`array_inline_class_weighted`, `array_insertion_sort`,
+`array_kadane_max_subarray`, `array_min_max_combined`, `array_min_max_loop`,
+`array_minmax_pair`, `array_minmax_range`, `array_of_strings_loop`,
+`array_pair_concat_sort`, and `array_partition_pivot`. These programs extend
+the hard replacement path across class-valued array calls, in-place sorting,
+range and pair aggregates, String arrays, nested loops, and branch/loop phi
+rows without adding a source-text recovery path or a C-owned fact fallback.
+The Pergyra-built hard driver and independent C-built and LLVM-built self
+drivers passed focused canonical-MIR, emitted-C, host-compile, and runtime
+parity for all ten fixtures. The complete 150-fixture matrix was not run, and
+released/default replacement remains 0%.
+
 2026-07-21 executable breadth/SoT delta: DRV-2 MIR fixtures 131 through 140
 are `array_dedup_inplace`, `array_element_assign`, `array_enum`,
 `array_filter_count_sum`, `array_filter_into_new`,
