@@ -150,14 +150,6 @@ func CompilerRuntimeCallAbiMachineLayerRemoteFutureTryFailureStmt() -> String {
     return "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);";
 }
 
-func CompilerRuntimeCallAbiMachineLayerRuntimeCPreamble(uses_log: Bool) -> String {
-    let out: String = "#include \"pgy_runtime.h\"\n";
-    if uses_log {
-        out = Concat(out, "#ifdef pgy_log\n#undef pgy_log\n#endif\n");
-    }
-    return out;
-}
-
 func CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(index: Int) -> String {
     if index == 0 { return "Claim"; }
     if index == 1 { return "Read"; }

@@ -136,7 +136,6 @@ for term in \
     'CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType' \
     'CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName' \
     'CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock' \
-    'CompilerRuntimeCallAbiMachineLayerRuntimeCPreamble' \
     'pergyra.abstract-device-slot.v1' \
     'submit-read'; do
     grep -Fq -- "$term" "$SELFHOST_OWNER" || {
@@ -145,11 +144,16 @@ for term in \
     }
 done
 
+grep -Fq -- 'CompilerRuntimeCallAbiResourceRuntimeCPreamble' \
+    "$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" || {
+    echo "[machine-layer-manifest] resource runtime preamble owner missing" >&2
+    exit 1
+}
+
 for term in \
     'CompilerRuntimeCallAbiMachineLayerDeviceCValueType' \
     'RewriteSemanticMachineCall' \
-    'usage.uses_machine_layer' \
-    'pgy_runtime.h'; do
+    'usage.uses_machine_layer'; do
     grep -Fq -- "$term" \
         "$SELFHOST_OWNER" \
         "$ROOT_DIR/src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \

@@ -4,6 +4,7 @@
 // runtime usage owner should not scan typed arena type-name rows itself.
 
 import "../../semantic/ast_type_surface_fact_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
 
 struct CodegenTypeUsageFacts {
     let has_string: Bool;
@@ -15,8 +16,19 @@ struct CodegenTypeUsageFacts {
     let has_float: Bool;
     let has_allocator: Bool;
     let has_text_builder: Bool;
+    let has_slot: Bool;
     let has_machine_layer: Bool;
     let has_remote_future: Bool;
+}
+
+func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(name) && IsSlotType(UnwrapOption(name)) { return true; }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> CodegenTypeUsageFacts {
@@ -30,6 +42,7 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         SemanticAstTypeSurfaceContains(facts, "Float"),
         SemanticAstTypeSurfaceContains(facts, "Allocator"),
         SemanticAstTypeSurfaceContains(facts, "TextBuilder"),
+        CodegenTypeUsageHasPlainSlot(facts),
         SemanticAstTypeSurfaceContains(facts, "DeviceSlot<"),
         SemanticAstTypeSurfaceContains(facts, "RemoteFuture<")
     );

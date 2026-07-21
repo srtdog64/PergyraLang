@@ -2,6 +2,7 @@
 
 import "program_fact_owner.pgy";
 import "cfg_instruction_mutation_owner.pgy";
+import "expression_runtime_abi_owner.pgy";
 
 struct SelfMirRoutineBuild {
     ok: Bool;
@@ -199,6 +200,42 @@ func SelfMirRoutineAttachLastExpressionGraph(
                 build,
                 "MIR resource runtime-call ABI row attachment failed"
             );
+        }
+    } else {
+        let projection: SelfMirExpressionRuntimeAbiProjection =
+            SelfMirExpressionRuntimeAbiProjectionFromGraph(
+                view, cfg.instructions.expr1s[instruction_index],
+                build.local_names, build.local_types
+            );
+        if !projection.ok {
+            return SelfMirRoutineBuildError(
+                build, projection.diagnostic_message
+            );
+        }
+        let abi_i: Int = 0;
+        while abi_i < ArrayLength(projection.operations) {
+            let abi_fact: CompilerRuntimeCallAbiFact =
+                CompilerRuntimeCallAbiFactForNativeResource(
+                    projection.type_names[abi_i],
+                    projection.operations[abi_i]
+                );
+            if !abi_fact.ok {
+                return SelfMirRoutineBuildError(
+                    build, "MIR Slot runtime-call ABI row is not declared"
+                );
+            }
+            if abi_i == 0 {
+                cfg = SelfMirCfgAttachLastRuntimeCallAbi(
+                    cfg, projection.type_names[abi_i],
+                    projection.operations[abi_i], abi_fact
+                );
+            } else {
+                cfg = SelfMirCfgAttachLastRuntimeCallAbiAux(
+                    cfg, projection.type_names[abi_i],
+                    projection.operations[abi_i], abi_fact
+                );
+            }
+            abi_i = abi_i + 1;
         }
     }
     return SelfMirRoutineBuild(

@@ -8,6 +8,7 @@ import "expression_operator_fact_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "builtin_signature_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
 func IsIdentText(text: String) -> Bool {
@@ -173,6 +174,33 @@ func MachineLayerBuiltinReturnType(
         return "Void";
     }
     return "";
+}
+
+func SlotBuiltinReturnType(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>
+) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" { return ""; }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 { return ""; }
+    let callee: String = Trim(Substring(text, 0, paren));
+    if callee == "ClaimSlot" { return "Slot<Unknown>"; }
+    if callee == "Write" || callee == "Release" { return "Void"; }
+    if callee != "Read" { return ""; }
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    let receiver_type: String = ExprType(
+        CallArgAt(args_src, 0), names, types, func_names, func_rets
+    );
+    let argument_types: Array<String> = [receiver_type];
+    let result: Option<String> = SemanticPolymorphicBuiltinReturnTypeOpt(
+        "Read", argument_types
+    );
+    if !IsSome(result) { return ""; }
+    return UnwrapOption(result);
 }
 
 func ParamTypeOf(part: String) -> String {
@@ -436,6 +464,9 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsResultType(expected) && actual == "Result<Unknown>" {
         return true;
     }
+    if IsSlotType(expected) && actual == "Slot<Unknown>" {
+        return true;
+    }
     if IsDeviceSlotType(expected) && actual == "DeviceSlot<Unknown>" {
         return true;
     }
@@ -529,6 +560,10 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     if StringLength(result_type) > 0 {
         return result_type;
     }
+    let slot_type: String = SlotBuiltinReturnType(
+        text, names, types, func_names, func_rets
+    );
+    if slot_type != "" { return slot_type; }
     let machine_layer_type: String = MachineLayerBuiltinReturnType(
         text, names, types, func_names, func_rets
     );

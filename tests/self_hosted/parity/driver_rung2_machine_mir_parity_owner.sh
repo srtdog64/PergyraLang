@@ -131,7 +131,11 @@ pgy_selfhost_driver_rung2_emit_source() {
 pgy_selfhost_driver_rung2_compile_emitted() {
     local machine_fixture="$1" actual="$2" output_bin="$3" log="$4"
     local -a command=("$CC" -x c -std=c11)
-    if [[ "$machine_fixture" -eq 1 ]]; then
+    local runtime_artifact="$machine_fixture"
+    if grep -q '#include "pgy_runtime.h"' "$actual"; then
+        runtime_artifact=1
+    fi
+    if [[ "$runtime_artifact" -eq 1 ]]; then
         command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
     fi
     command+=("$actual" -o "$output_bin")

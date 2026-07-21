@@ -50,3 +50,75 @@ func SelfMirJsonRuntimeCallAbiField(
         ])
     );
 }
+
+func SelfMirJsonRuntimeCallAbiAuxField(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> String {
+    let items: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(
+        rows.runtime_call_abi.aux_instruction_indices
+    ) {
+        if rows.runtime_call_abi.aux_instruction_indices[i] ==
+            instruction_index {
+            ArrayPush(items, JsonEmitObject([
+                JsonEmitFieldString(
+                    "owner", rows.runtime_call_abi.aux_owners[i]
+                ),
+                JsonEmitFieldNumber(
+                    "id", ToString(
+                        rows.runtime_call_abi.aux_runtime_call_abi_ids[i]
+                    )
+                ),
+                JsonEmitFieldString(
+                    "domain", rows.runtime_call_abi.aux_domains[i]
+                ),
+                JsonEmitFieldString(
+                    "type", rows.runtime_call_abi.aux_type_names[i]
+                ),
+                JsonEmitFieldString(
+                    "operation", rows.runtime_call_abi.aux_operations[i]
+                ),
+                JsonEmitFieldString(
+                    "symbol", rows.runtime_call_abi.aux_symbols[i]
+                ),
+                JsonEmitFieldString(
+                    "target_kind", rows.runtime_call_abi.aux_target_kinds[i]
+                ),
+                JsonEmitFieldString(
+                    "materialization",
+                    rows.runtime_call_abi.aux_materializations[i]
+                ),
+                JsonEmitFieldString(
+                    "call_shape", rows.runtime_call_abi.aux_call_shapes[i]
+                )
+            ]));
+        }
+        i = i + 1;
+    }
+    if ArrayLength(items) == 0 { return ""; }
+    return JsonEmitFieldRaw(
+        "runtime_call_abi_aux", JsonEmitArray(items)
+    );
+}
+
+func SelfMirJsonAppendRuntimeCallAbiFields(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int,
+    inout fields: Array<String>
+) -> Void {
+    let primary: String = SelfMirJsonRuntimeCallAbiField(
+        rows, instruction_index
+    );
+    if primary != "" {
+        ArrayPush(fields, JsonEmitFieldBool(
+            "runtime_call_abi_required", true
+        ));
+        ArrayPush(fields, primary);
+    }
+    let auxiliary: String = SelfMirJsonRuntimeCallAbiAuxField(
+        rows, instruction_index
+    );
+    if auxiliary != "" { ArrayPush(fields, auxiliary); }
+}

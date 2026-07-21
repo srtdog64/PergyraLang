@@ -135,9 +135,13 @@ func StringRuntimeCBoolLogBlock() -> String {
 }
 
 func StringRuntimeCLogMaterializationBlock(
+    runtime_header_owns_string_log: Bool,
     runtime_header_owns_bool_log: Bool
 ) -> String {
-    let block: String = StringRuntimeCStringLogBlock();
+    let block: String = "";
+    if !runtime_header_owns_string_log {
+        block = StringRuntimeCStringLogBlock();
+    }
     if !runtime_header_owns_bool_log {
         block = Concat(block, StringRuntimeCBoolLogBlock());
     }

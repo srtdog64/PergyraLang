@@ -13,6 +13,16 @@ struct CompilerRuntimeCallAbiFact {
     runtime_call_abi_id: Int;
 }
 
+func CompilerRuntimeCallAbiResourceRuntimeCPreamble(
+    undef_log_macro: Bool
+) -> String {
+    let out: String = "#include \"pgy_runtime.h\"\n";
+    if undef_log_macro {
+        out = Concat(out, "#ifdef pgy_log\n#undef pgy_log\n#endif\n");
+    }
+    return out;
+}
+
 func CompilerRuntimeCallAbiFactMissing() -> CompilerRuntimeCallAbiFact {
     return CompilerRuntimeCallAbiFact(false, "", "", "", "", "", "", 0);
 }
@@ -116,6 +126,25 @@ func CompilerRuntimeCallAbiConstructedInner(
         return None;
     }
     return Some(Substring(type_name, prefix_len, n - prefix_len - 1));
+}
+
+func CompilerRuntimeCallAbiConstructedCValueType(
+    type_name: String
+) -> Option<String> {
+    let kind_fact: Option<Int> =
+        CompilerRuntimeCallAbiConstructedKind(type_name);
+    if !IsSome(kind_fact) { return None; }
+    let kind: Int = UnwrapOption(kind_fact);
+    let inner_fact: Option<String> =
+        CompilerRuntimeCallAbiConstructedInner(type_name, kind);
+    if !IsSome(inner_fact) { return None; }
+    let suffix_fact: Option<String> =
+        CompilerRuntimeCallAbiConstructedSuffix(UnwrapOption(inner_fact));
+    if !IsSome(suffix_fact) { return None; }
+    let prefix: String = "PgySlot_";
+    if kind == 1 { prefix = "PgySecureSlot_"; }
+    if kind == 2 { prefix = "PgyDeviceSlot_"; }
+    return Some(Concat(prefix, UnwrapOption(suffix_fact)));
 }
 
 func CompilerRuntimeCallAbiConstructedPrefix(

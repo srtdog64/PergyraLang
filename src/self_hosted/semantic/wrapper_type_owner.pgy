@@ -22,6 +22,17 @@ func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
     return Some(Substring(type_name, 7, StringLength(type_name) - 8));
 }
 
+func IsSlotType(type_name: String) -> Bool {
+    let n: Int = StringLength(type_name);
+    return n >= 7 && Substring(type_name, 0, 5) == "Slot<" &&
+        CharAt(type_name, n - 1) == ">";
+}
+
+func SlotPayloadTypeOpt(type_name: String) -> Option<String> {
+    if !IsSlotType(type_name) { return None; }
+    return Some(Substring(type_name, 5, StringLength(type_name) - 6));
+}
+
 func IsDeviceSlotType(type_name: String) -> Bool {
     let n: Int = StringLength(type_name);
     return n >= 14 && Substring(type_name, 0, 11) == "DeviceSlot<" &&
@@ -66,12 +77,15 @@ func SemanticWrapperTypePolicyContractReady() -> Bool {
     let result_payload: Option<String> = ResultPayloadTypeOpt(
         "Result<Option<String>>"
     );
+    let slot_payload: Option<String> = SlotPayloadTypeOpt("Slot<Int>");
     return IsSome(option_payload) &&
         UnwrapOption(option_payload) == "Array<Int>" &&
         IsSome(result_payload) &&
         UnwrapOption(result_payload) == "Option<String>" &&
+        IsSome(slot_payload) && UnwrapOption(slot_payload) == "Int" &&
         IsSome(TryPayloadTypeOpt("Option<Int>")) &&
         IsSome(TryPayloadTypeOpt("Result<Int>")) &&
         !IsSome(TryPayloadTypeOpt("Int")) &&
-        !IsOptionType("Option<Int") && !IsResultType("Result<Int");
+        !IsOptionType("Option<Int") && !IsResultType("Result<Int") &&
+        !IsSlotType("Slot<Int");
 }

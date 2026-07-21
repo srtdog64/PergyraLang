@@ -161,8 +161,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 214 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 214" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 215 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 215" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
@@ -236,8 +236,9 @@ for backend in $BACKENDS; do
                 cat "$actual" "$err" >&2
                 exit 1
             fi
-            if ! "$CC" -x c -std=c11 "$actual" -o "$BUILD_DIR/${base}_${backend}.program.exe" \
-                >"$BUILD_DIR/${base}_${backend}.cc.log" 2>&1; then
+            if ! pgy_selfhost_driver_rung2_compile_emitted 0 "$actual" \
+                "$BUILD_DIR/${base}_${backend}.program.exe" \
+                "$BUILD_DIR/${base}_${backend}.cc.log"; then
                 echo "[self-host-parity:driver-rung2] emitted C compile failed: $backend/$base" >&2
                 cat "$BUILD_DIR/${base}_${backend}.cc.log" >&2
                 exit 1

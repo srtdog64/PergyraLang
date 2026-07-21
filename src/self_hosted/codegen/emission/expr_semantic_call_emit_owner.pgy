@@ -8,6 +8,7 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_type_owner.pgy";
 
@@ -327,6 +328,49 @@ func RewriteSemanticMachineCall(
     return "";
 }
 
+func RewriteSemanticSlotCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    source_name: String,
+    env: CodegenTypeEnv
+) -> String {
+    if source_name == "ClaimSlot" {
+        Die("ClaimSlot requires an expected Slot<T> type fact");
+    }
+    let argc: Int = ArrayLength(view.argument_nodes);
+    if argc < 1 { Die(Concat(source_name, " requires a Slot<T> argument")); }
+    let slot_type_fact: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.argument_nodes[0], env
+    );
+    if !IsSome(slot_type_fact) || !IsSlotType(UnwrapOption(slot_type_fact)) {
+        Die(Concat(source_name, " requires a typed Slot<T> argument"));
+    }
+    let slot_type: String = UnwrapOption(slot_type_fact);
+    let fact: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForConstructedResource(slot_type, source_name);
+    if !fact.ok { Die(Concat(source_name, " runtime-call ABI fact is missing")); }
+    let slot_arg: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[0], slot_type, "ref", env
+    );
+    if source_name == "Read" || source_name == "Release" {
+        if argc != 1 { Die(Concat(source_name, " requires exactly one argument")); }
+        return Concat(fact.symbol, Concat("(", Concat(slot_arg, ")")));
+    }
+    if source_name == "Write" {
+        if argc != 2 { Die("Write requires exactly two arguments"); }
+        let payload: Option<String> = SlotPayloadTypeOpt(slot_type);
+        if !IsSome(payload) { Die("Write Slot<T> payload type is missing"); }
+        let value_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], UnwrapOption(payload), "default", env
+        );
+        return Concat(fact.symbol, Concat("(", Concat(
+            slot_arg, Concat(", ", Concat(value_arg, ")"))
+        )));
+    }
+    Die(Concat(source_name, " is not a supported Slot<T> call"));
+    return "";
+}
+
 func RewriteSemanticDirectCall(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -350,6 +394,10 @@ func RewriteSemanticDirectCall(
         Die("semantic direct-call target fact is missing");
     }
     let source_name: String = UnwrapOption(target_name);
+    if source_name == "ClaimSlot" || source_name == "Read" ||
+        source_name == "Write" || source_name == "Release" {
+        return RewriteSemanticSlotCall(graph, view, source_name, env);
+    }
     if CompilerRuntimeCallAbiMachineLayerContactNameForSource(source_name) != "" {
         return RewriteSemanticMachineCall(graph, view, env);
     }

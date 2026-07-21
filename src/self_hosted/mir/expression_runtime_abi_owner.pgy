@@ -1,0 +1,191 @@
+// Projects Slot runtime-call ABI requirements from a carried expression graph.
+// Call identity comes from graph facts and concrete types from local bindings.
+
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+
+struct SelfMirExpressionRuntimeAbiProjection {
+    ok: Bool;
+    diagnostic_message: String;
+    type_names: Array<String>;
+    operations: Array<String>;
+}
+
+func SelfMirSlotRuntimeOperation(source_name: String) -> String {
+    if source_name == "ClaimSlot" { return "Claim"; }
+    if source_name == "Read" || source_name == "Write" ||
+        source_name == "Release" {
+        return source_name;
+    }
+    return "";
+}
+
+func SelfMirExpressionRuntimeAbiLocalType(
+    local_names: Array<String>,
+    local_types: Array<String>,
+    name: String
+) -> String {
+    let i: Int = 0;
+    while i < ArrayLength(local_names) && i < ArrayLength(local_types) {
+        if local_names[i] == name { return local_types[i]; }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SelfMirExpressionRuntimeAbiReceiverNode(
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int
+) -> Option<Int> {
+    let node: Int = call_node + 1;
+    while node < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if IsSome(kind) &&
+            UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+            let call: SemanticCallSpineView =
+                SemanticCallSpineViewFromGraph(graph, node);
+            if call.ok && call.call_node == call_node &&
+                ArrayLength(call.argument_nodes) > 0 {
+                return Some(call.argument_nodes[0]);
+            }
+        }
+        node = node + 1;
+    }
+    return None;
+}
+
+func SelfMirExpressionRuntimeAbiProjectionFromGraph(
+    view: SemanticExpressionGraphView,
+    expected_type: String,
+    local_names: Array<String>,
+    local_types: Array<String>
+) -> SelfMirExpressionRuntimeAbiProjection {
+    let type_names: Array<String> = [];
+    let operations: Array<String> = [];
+    if !view.ok || ArrayLength(local_names) != ArrayLength(local_types) {
+        return SelfMirExpressionRuntimeAbiProjection(
+            false, "MIR runtime-call ABI projection input is invalid",
+            type_names, operations
+        );
+    }
+    let stack: Array<Int> = [view.root_id];
+    while ArrayLength(stack) > 0 {
+        let last: Int = ArrayLength(stack) - 1;
+        let node: Int = stack[last];
+        ArrayPop(stack);
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            view.graph, node
+        );
+        if !IsSome(kind_opt) {
+            return SelfMirExpressionRuntimeAbiProjection(
+                false, "MIR runtime-call ABI graph node is missing",
+                type_names, operations
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        if kind == AstExpressionNodeCall() {
+            let target_opt: Option<String> =
+                SemanticExpressionGraphCallTargetName(view.graph, node);
+            if !IsSome(target_opt) {
+                return SelfMirExpressionRuntimeAbiProjection(
+                    false, "MIR runtime-call ABI call target is missing",
+                    type_names, operations
+                );
+            }
+            let operation: String = SelfMirSlotRuntimeOperation(
+                UnwrapOption(target_opt)
+            );
+            if operation != "" {
+                let type_name: String = expected_type;
+                if operation != "Claim" {
+                    let receiver_opt: Option<Int> =
+                        SelfMirExpressionRuntimeAbiReceiverNode(
+                            view.graph, node
+                        );
+                    if !IsSome(receiver_opt) {
+                        return SelfMirExpressionRuntimeAbiProjection(
+                            false,
+                            "MIR Slot runtime-call receiver fact is missing",
+                            type_names, operations
+                        );
+                    }
+                    let receiver_name_opt: Option<String> =
+                        SemanticExpressionGraphNodeText(
+                            view.graph, UnwrapOption(receiver_opt)
+                        );
+                    if !IsSome(receiver_name_opt) {
+                        return SelfMirExpressionRuntimeAbiProjection(
+                            false,
+                            "MIR Slot runtime-call receiver name is missing",
+                            type_names, operations
+                        );
+                    }
+                    type_name = SelfMirExpressionRuntimeAbiLocalType(
+                        local_names, local_types,
+                        UnwrapOption(receiver_name_opt)
+                    );
+                }
+                let kind_fact: Option<Int> =
+                    CompilerRuntimeCallAbiConstructedKind(type_name);
+                if !IsSome(kind_fact) || UnwrapOption(kind_fact) != 0 {
+                    return SelfMirExpressionRuntimeAbiProjection(
+                        false,
+                        "MIR Slot runtime-call concrete type fact is missing",
+                        type_names, operations
+                    );
+                }
+                if ArrayLength(type_names) > 0 &&
+                    type_names[0] != type_name {
+                    return SelfMirExpressionRuntimeAbiProjection(
+                        false,
+                        "MIR instruction mixes Slot runtime ABI types",
+                        type_names, operations
+                    );
+                }
+                let duplicate: Bool = false;
+                let i: Int = 0;
+                while i < ArrayLength(operations) {
+                    if operations[i] == operation &&
+                        type_names[i] == type_name {
+                        duplicate = true;
+                    }
+                    i = i + 1;
+                }
+                if !duplicate {
+                    ArrayPush(type_names, type_name);
+                    ArrayPush(operations, operation);
+                }
+            }
+        }
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity == 2 {
+            let right: Option<Int> = SemanticExpressionGraphRightChild(
+                view.graph, node
+            );
+            if !IsSome(right) {
+                return SelfMirExpressionRuntimeAbiProjection(
+                    false, "MIR runtime-call ABI right edge is missing",
+                    type_names, operations
+                );
+            }
+            ArrayPush(stack, UnwrapOption(right));
+        }
+        if arity >= 1 {
+            let left: Option<Int> = SemanticExpressionGraphLeftChild(
+                view.graph, node
+            );
+            if !IsSome(left) {
+                return SelfMirExpressionRuntimeAbiProjection(
+                    false, "MIR runtime-call ABI left edge is missing",
+                    type_names, operations
+                );
+            }
+            ArrayPush(stack, UnwrapOption(left));
+        }
+    }
+    return SelfMirExpressionRuntimeAbiProjection(
+        true, "", type_names, operations
+    );
+}

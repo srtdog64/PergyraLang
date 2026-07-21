@@ -198,12 +198,7 @@ func SelfMirJsonInstruction(
         ),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
-    let runtime_call_abi_field: String = SelfMirJsonRuntimeCallAbiField(
-        rows, instruction_index
-    );
-    if runtime_call_abi_field != "" {
-        ArrayPush(fields, runtime_call_abi_field);
-    }
+    SelfMirJsonAppendRuntimeCallAbiFields(rows, instruction_index, fields);
     return JsonEmitObject(fields);
 }
 

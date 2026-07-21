@@ -1,5 +1,22 @@
 # Self-Host Progress
 
+2026-07-21 executable Slot ABI SoT delta: DRV-2 MIR fixture 215 is
+`bool_helper_while_slot`. The semantic owner recognizes the plain `Slot<T>`
+Claim/Read/Write/Release surface, and the MIR producer projects each required
+runtime-call ABI row from carried expression-graph call identities and typed
+local bindings. A primary row plus instruction-keyed auxiliary rows survive
+MIR JSON; the MIR-lower consumer validates owner, concrete type, operation,
+symbol, call shape, and stable identity. Self-produced rows carry an explicit
+`runtime_call_abi_required` marker, so deleting or corrupting a row fails before
+emission while native MIR's separate resource-op rows remain compatible. The
+runtime header spelling also moved behind the runtime-ABI owner. Focused
+C-built and LLVM-built self drivers match the C oracle on canonical MIR,
+emitted C, host compilation, and runtime output, including missing, identity,
+payload, and auxiliary-row negative mutations. Final emission still projects a
+validated row through the canonical runtime ABI table; direct row-payload
+transport into the emission artifact remains open. The complete 215-fixture
+matrix and released/default replacement remain open.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 205 through 214 are
 `class_dual_method_loop`, `class_dual_predicate`,
 `class_factory_aggregate_loop`, `class_factory_filter_field`,

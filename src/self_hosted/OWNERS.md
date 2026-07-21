@@ -380,8 +380,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/program_fact_owner.pgy` -- flat declaration, routine,
   block, instruction, source-local, and use-row ownership.
 - `src/self_hosted/mir/runtime_call_abi_fact_owner.pgy` -- instruction-aligned
-  MIR resource runtime-call ABI facts; missing machine-operation rows fail
-  before JSON projection or backend consumption.
+  MIR resource runtime-call ABI facts, including auxiliary operations; missing
+  producer-declared rows fail before JSON projection or backend consumption.
+- `src/self_hosted/mir/expression_runtime_abi_owner.pgy` -- projects plain
+  `Slot<T>` runtime-call requirements from carried expression-graph call facts
+  and typed local bindings without reparsing source text.
 - `src/self_hosted/mir/cfg_instruction_mutation_owner.pgy` -- canonical use-row
   replacement and runtime-call ABI attachment state transformations.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use

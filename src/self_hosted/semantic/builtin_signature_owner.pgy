@@ -1,5 +1,7 @@
 // Canonical self-host semantic builtin signature table.
 
+import "wrapper_type_owner.pgy";
+
 func SemanticBuiltinSignatureRows() -> Array<String> {
     let rows: Array<String> = [
         "StringLength^Int^String",
@@ -90,7 +92,11 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "DeviceWrite^Void^Unknown|Unknown",
         "ReleaseDeviceSlot^Void^Unknown",
         "SubmitDeviceRead^RemoteFuture<Unknown>^Unknown",
-        "Clone^Unknown^Unknown"
+        "Clone^Unknown^Unknown",
+        "ClaimSlot^Slot<Unknown>^none",
+        "Read^Unknown^Unknown",
+        "Write^Void^Unknown|Unknown",
+        "Release^Void^Unknown"
     ];
     return rows;
 }
@@ -124,7 +130,7 @@ func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
         name == "Max" || name == "Clamp" ||
         name == "Clone" ||
         name == "ArraySort" || name == "ArrayReverse" ||
-        name == "ArrayMap" || name == "ArrayFilter";
+        name == "ArrayMap" || name == "ArrayFilter" || name == "Read";
 }
 
 func SemanticPolymorphicBuiltinReturnTypeOpt(
@@ -144,11 +150,15 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     else if name == "Clone" {
         expected_count = 1;
     }
+    else if name == "Read" { expected_count = 1; }
     else { return None; }
     if ArrayLength(argument_types) != expected_count {
         return None;
     }
     let result_type: String = argument_types[0];
+    if name == "Read" {
+        return SlotPayloadTypeOpt(result_type);
+    }
     if name == "Clone" {
         return Some(result_type);
     }
@@ -182,8 +192,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 89 && ArrayLength(returns) == 89 &&
-        ArrayLength(params) == 89 && names[0] == "StringLength" &&
+        ArrayLength(names) == 93 && ArrayLength(returns) == 93 &&
+        ArrayLength(params) == 93 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -196,6 +206,9 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[83] == "ClaimDeviceSlot" &&
         names[87] == "SubmitDeviceRead" &&
         names[88] == "Clone" &&
+        names[89] == "ClaimSlot" && returns[89] == "Slot<Unknown>" &&
+        names[90] == "Read" && names[91] == "Write" &&
+        names[92] == "Release" &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

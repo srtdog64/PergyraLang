@@ -17,6 +17,16 @@ struct SelfMirRuntimeCallAbiRows {
     materializations: Array<String>;
     call_shapes: Array<String>;
     runtime_call_abi_ids: Array<Int>;
+    aux_instruction_indices: Array<Int>;
+    aux_owners: Array<String>;
+    aux_domains: Array<String>;
+    aux_type_names: Array<String>;
+    aux_operations: Array<String>;
+    aux_symbols: Array<String>;
+    aux_target_kinds: Array<String>;
+    aux_materializations: Array<String>;
+    aux_call_shapes: Array<String>;
+    aux_runtime_call_abi_ids: Array<Int>;
 }
 
 func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
@@ -25,7 +35,8 @@ func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
     let ids: Array<Int> = [];
     return SelfMirRuntimeCallAbiRows(
         ints, strings, strings, strings, strings, strings, strings, strings,
-        strings, ids
+        strings, ids, ints, strings, strings, strings, strings, strings,
+        strings, strings, strings, ids
     );
 }
 
@@ -54,7 +65,11 @@ func SelfMirRuntimeCallAbiRowsAppendInstruction(
     ArrayPush(runtime_call_abi_ids, 0);
     return SelfMirRuntimeCallAbiRows(
         present, owners, domains, type_names, operations, symbols,
-        target_kinds, materializations, call_shapes, runtime_call_abi_ids
+        target_kinds, materializations, call_shapes, runtime_call_abi_ids,
+        rows.aux_instruction_indices, rows.aux_owners, rows.aux_domains,
+        rows.aux_type_names, rows.aux_operations, rows.aux_symbols,
+        rows.aux_target_kinds, rows.aux_materializations,
+        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids
     );
 }
 
@@ -75,6 +90,7 @@ func SelfMirRuntimeCallAbiRowsAppendRows(
     target: SelfMirRuntimeCallAbiRows,
     source: SelfMirRuntimeCallAbiRows
 ) -> SelfMirRuntimeCallAbiRows {
+    let instruction_offset: Int = ArrayLength(target.present);
     let present: Array<Int> = target.present;
     let owners: Array<String> = target.owners;
     let domains: Array<String> = target.domains;
@@ -85,6 +101,17 @@ func SelfMirRuntimeCallAbiRowsAppendRows(
     let materializations: Array<String> = target.materializations;
     let call_shapes: Array<String> = target.call_shapes;
     let runtime_call_abi_ids: Array<Int> = target.runtime_call_abi_ids;
+    let aux_instruction_indices: Array<Int> = target.aux_instruction_indices;
+    let aux_owners: Array<String> = target.aux_owners;
+    let aux_domains: Array<String> = target.aux_domains;
+    let aux_type_names: Array<String> = target.aux_type_names;
+    let aux_operations: Array<String> = target.aux_operations;
+    let aux_symbols: Array<String> = target.aux_symbols;
+    let aux_target_kinds: Array<String> = target.aux_target_kinds;
+    let aux_materializations: Array<String> = target.aux_materializations;
+    let aux_call_shapes: Array<String> = target.aux_call_shapes;
+    let aux_runtime_call_abi_ids: Array<Int> =
+        target.aux_runtime_call_abi_ids;
     let i: Int = 0;
     while i < ArrayLength(source.present) {
         ArrayPush(present, source.present[i]);
@@ -99,9 +126,32 @@ func SelfMirRuntimeCallAbiRowsAppendRows(
         ArrayPush(runtime_call_abi_ids, source.runtime_call_abi_ids[i]);
         i = i + 1;
     }
+    i = 0;
+    while i < ArrayLength(source.aux_instruction_indices) {
+        ArrayPush(
+            aux_instruction_indices,
+            source.aux_instruction_indices[i] + instruction_offset
+        );
+        ArrayPush(aux_owners, source.aux_owners[i]);
+        ArrayPush(aux_domains, source.aux_domains[i]);
+        ArrayPush(aux_type_names, source.aux_type_names[i]);
+        ArrayPush(aux_operations, source.aux_operations[i]);
+        ArrayPush(aux_symbols, source.aux_symbols[i]);
+        ArrayPush(aux_target_kinds, source.aux_target_kinds[i]);
+        ArrayPush(aux_materializations, source.aux_materializations[i]);
+        ArrayPush(aux_call_shapes, source.aux_call_shapes[i]);
+        ArrayPush(
+            aux_runtime_call_abi_ids,
+            source.aux_runtime_call_abi_ids[i]
+        );
+        i = i + 1;
+    }
     return SelfMirRuntimeCallAbiRows(
         present, owners, domains, type_names, operations, symbols,
-        target_kinds, materializations, call_shapes, runtime_call_abi_ids
+        target_kinds, materializations, call_shapes, runtime_call_abi_ids,
+        aux_instruction_indices, aux_owners, aux_domains, aux_type_names,
+        aux_operations, aux_symbols, aux_target_kinds,
+        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids
     );
 }
 
@@ -137,7 +187,49 @@ func SelfMirRuntimeCallAbiRowsAttachLast(
     ArraySet(runtime_call_abi_ids, index, fact.runtime_call_abi_id);
     return SelfMirRuntimeCallAbiRows(
         present, owners, domains, type_names, operations, symbols,
-        target_kinds, materializations, call_shapes, runtime_call_abi_ids
+        target_kinds, materializations, call_shapes, runtime_call_abi_ids,
+        rows.aux_instruction_indices, rows.aux_owners, rows.aux_domains,
+        rows.aux_type_names, rows.aux_operations, rows.aux_symbols,
+        rows.aux_target_kinds, rows.aux_materializations,
+        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids
+    );
+}
+
+func SelfMirRuntimeCallAbiRowsAttachLastAux(
+    rows: SelfMirRuntimeCallAbiRows,
+    type_name: String,
+    operation: String,
+    fact: CompilerRuntimeCallAbiFact
+) -> SelfMirRuntimeCallAbiRows {
+    let instruction_index: Int = ArrayLength(rows.present) - 1;
+    if instruction_index < 0 || !fact.ok { return rows; }
+    let aux_instruction_indices: Array<Int> = rows.aux_instruction_indices;
+    let aux_owners: Array<String> = rows.aux_owners;
+    let aux_domains: Array<String> = rows.aux_domains;
+    let aux_type_names: Array<String> = rows.aux_type_names;
+    let aux_operations: Array<String> = rows.aux_operations;
+    let aux_symbols: Array<String> = rows.aux_symbols;
+    let aux_target_kinds: Array<String> = rows.aux_target_kinds;
+    let aux_materializations: Array<String> = rows.aux_materializations;
+    let aux_call_shapes: Array<String> = rows.aux_call_shapes;
+    let aux_runtime_call_abi_ids: Array<Int> = rows.aux_runtime_call_abi_ids;
+    ArrayPush(aux_instruction_indices, instruction_index);
+    ArrayPush(aux_owners, "MIRResource");
+    ArrayPush(aux_domains, fact.domain);
+    ArrayPush(aux_type_names, type_name);
+    ArrayPush(aux_operations, operation);
+    ArrayPush(aux_symbols, fact.symbol);
+    ArrayPush(aux_target_kinds, fact.symbol_kind);
+    ArrayPush(aux_materializations, fact.materialization);
+    ArrayPush(aux_call_shapes, fact.call_shape);
+    ArrayPush(aux_runtime_call_abi_ids, fact.runtime_call_abi_id);
+    return SelfMirRuntimeCallAbiRows(
+        rows.present, rows.owners, rows.domains, rows.type_names,
+        rows.operations, rows.symbols, rows.target_kinds,
+        rows.materializations, rows.call_shapes, rows.runtime_call_abi_ids,
+        aux_instruction_indices, aux_owners, aux_domains, aux_type_names,
+        aux_operations, aux_symbols, aux_target_kinds,
+        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids
     );
 }
 
@@ -154,7 +246,25 @@ func SelfMirRuntimeCallAbiRowsReady(
         ArrayLength(rows.target_kinds) == instruction_count &&
         ArrayLength(rows.materializations) == instruction_count &&
         ArrayLength(rows.call_shapes) == instruction_count &&
-        ArrayLength(rows.runtime_call_abi_ids) == instruction_count;
+        ArrayLength(rows.runtime_call_abi_ids) == instruction_count &&
+        ArrayLength(rows.aux_owners) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_domains) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_type_names) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_operations) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_symbols) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_target_kinds) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_materializations) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_call_shapes) ==
+            ArrayLength(rows.aux_instruction_indices) &&
+        ArrayLength(rows.aux_runtime_call_abi_ids) ==
+            ArrayLength(rows.aux_instruction_indices);
 }
 
 func SelfMirRuntimeCallAbiRowValidationError(
@@ -162,6 +272,9 @@ func SelfMirRuntimeCallAbiRowValidationError(
     instruction_index: Int,
     expected_operation: String
 ) -> String {
+    if expected_operation == "" && rows.present[instruction_index] == 1 {
+        expected_operation = rows.operations[instruction_index];
+    }
     if expected_operation == "" {
         if rows.present[instruction_index] != 0 ||
             rows.owners[instruction_index] != "" ||
@@ -174,6 +287,13 @@ func SelfMirRuntimeCallAbiRowValidationError(
             rows.call_shapes[instruction_index] != "" ||
             rows.runtime_call_abi_ids[instruction_index] != 0 {
             return "runtime-call ABI row is attached without an operation";
+        }
+        let aux_index: Int = 0;
+        while aux_index < ArrayLength(rows.aux_instruction_indices) {
+            if rows.aux_instruction_indices[aux_index] == instruction_index {
+                return "runtime-call ABI auxiliary row has no primary row";
+            }
+            aux_index = aux_index + 1;
         }
         return "";
     }
@@ -202,6 +322,41 @@ func SelfMirRuntimeCallAbiRowValidationError(
         rows.runtime_call_abi_ids[instruction_index] !=
             expected.runtime_call_abi_id {
         return "resource runtime-call ABI row has an invalid stable identity";
+    }
+    let aux_index: Int = 0;
+    while aux_index < ArrayLength(rows.aux_instruction_indices) {
+        if rows.aux_instruction_indices[aux_index] == instruction_index {
+            let aux_operation: String = rows.aux_operations[aux_index];
+            let aux_type: String = rows.aux_type_names[aux_index];
+            let aux_expected: CompilerRuntimeCallAbiFact =
+                CompilerRuntimeCallAbiFactForNativeResource(
+                    aux_type, aux_operation
+                );
+            if aux_operation == expected_operation ||
+                aux_type != type_name || !aux_expected.ok ||
+                rows.aux_owners[aux_index] != "MIRResource" ||
+                rows.aux_domains[aux_index] != aux_expected.domain ||
+                rows.aux_symbols[aux_index] != aux_expected.symbol ||
+                rows.aux_target_kinds[aux_index] !=
+                    aux_expected.symbol_kind ||
+                rows.aux_materializations[aux_index] !=
+                    aux_expected.materialization ||
+                rows.aux_call_shapes[aux_index] !=
+                    aux_expected.call_shape ||
+                rows.aux_runtime_call_abi_ids[aux_index] !=
+                    aux_expected.runtime_call_abi_id {
+                return "resource runtime-call ABI auxiliary row differs from its owner";
+            }
+            let prior: Int = 0;
+            while prior < aux_index {
+                if rows.aux_instruction_indices[prior] == instruction_index &&
+                    rows.aux_operations[prior] == aux_operation {
+                    return "resource runtime-call ABI auxiliary operation is duplicated";
+                }
+                prior = prior + 1;
+            }
+        }
+        aux_index = aux_index + 1;
     }
     return "";
 }

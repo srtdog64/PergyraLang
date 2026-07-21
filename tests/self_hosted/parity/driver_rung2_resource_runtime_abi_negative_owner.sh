@@ -7,7 +7,10 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     local missing_row identity_row payload_row needle replacement
     local -a consumer_command
 
-    [[ "$machine_fixture" -eq 1 && "$base" == "device_slot_routine" ]] || return 0
+    if [[ "$base" != "device_slot_routine" &&
+        "$base" != "bool_helper_while_slot" ]]; then
+        return 0
+    fi
 
     missing_row="$BUILD_DIR/${base}_${backend}.missing-consumer-runtime-row.mir.json"
     needle='"runtime_call_abi":{"owner":"MIRResource","id":'
@@ -20,7 +23,9 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
 
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_row")")
-    consumer_command+=("$machine_declaration")
+    if [[ "$machine_fixture" -eq 1 ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$missing_row.out" 2>"$missing_row.err"); then
         echo "[self-host-parity:driver-rung2] $backend missing consumer runtime row was accepted: $base" >&2
@@ -45,7 +50,9 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
 
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$identity_row")")
-    consumer_command+=("$machine_declaration")
+    if [[ "$machine_fixture" -eq 1 ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$identity_row.out" 2>"$identity_row.err"); then
         echo "[self-host-parity:driver-rung2] $backend wrong consumer runtime-row identity was accepted: $base" >&2
@@ -70,7 +77,9 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
 
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$payload_row")")
-    consumer_command+=("$machine_declaration")
+    if [[ "$machine_fixture" -eq 1 ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$payload_row.out" 2>"$payload_row.err"); then
         echo "[self-host-parity:driver-rung2] $backend wrong consumer runtime-row payload was accepted: $base" >&2
@@ -83,4 +92,34 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
         cat "$payload_row.out" "$payload_row.err" >&2
         return 1
     }
+
+    if grep -Fq '"runtime_call_abi_aux":[{"owner":"MIRResource","id":' \
+        "$self_mir_json"; then
+        local aux_identity_row
+        aux_identity_row="$BUILD_DIR/${base}_${backend}.wrong-aux-runtime-row-id.mir.json"
+        needle='"runtime_call_abi_aux":[{"owner":"MIRResource","id":'
+        replacement='"runtime_call_abi_aux":[{"owner":"MIRResource","id":0,"id_original":'
+        if ! pgy_replace_first_literal \
+            "$self_mir_json" "$aux_identity_row" "$needle" "$replacement"; then
+            echo "[self-host-parity:driver-rung2] $backend auxiliary runtime-row identity mutation did not apply: $base" >&2
+            return 1
+        fi
+        consumer_command=("$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$aux_identity_row")")
+        if [[ "$machine_fixture" -eq 1 ]]; then
+            consumer_command+=("$machine_declaration")
+        fi
+        if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
+            >"$aux_identity_row.out" 2>"$aux_identity_row.err"); then
+            echo "[self-host-parity:driver-rung2] $backend wrong auxiliary runtime-row identity was accepted: $base" >&2
+            return 1
+        fi
+        grep -Fq \
+            "resource instruction or consumer is missing its lowered runtime-call ABI row" \
+            "$aux_identity_row.err" "$aux_identity_row.out" || {
+            echo "[self-host-parity:driver-rung2] $backend wrong auxiliary runtime-row identity diagnostic drifted: $base" >&2
+            cat "$aux_identity_row.out" "$aux_identity_row.err" >&2
+            return 1
+        }
+    fi
 }

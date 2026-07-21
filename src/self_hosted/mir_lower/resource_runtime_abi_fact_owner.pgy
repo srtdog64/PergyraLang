@@ -16,9 +16,57 @@ func MirResourceRuntimeRowRequired(operation: String) -> Bool {
         operation == "SubmitRead";
 }
 
+func MirResourceRuntimeAuxRowFactReady(
+    row: JsonObjectFactTable,
+    type_name: String
+) -> Bool {
+    if !JsonObjectFactTableReady(row) ||
+        !JsonObjectFactStringFieldEquals(row, "owner", "MIRResource") ||
+        !JsonObjectFactStringFieldEquals(row, "type", type_name) {
+        return false;
+    }
+    let operation_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        row, "operation");
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, "id");
+    let domain_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        row, "domain");
+    if !IsSome(operation_opt) || !IsSome(id_opt) || !IsSome(domain_opt) {
+        return false;
+    }
+    let operation: String = UnwrapOption(operation_opt);
+    let domain: String = UnwrapOption(domain_opt);
+    let expected: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactForNativeResource(type_name, operation);
+    if !MirResourceRuntimeRowRequired(operation) || !expected.ok ||
+        domain != expected.domain ||
+        !JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "target_kind", expected.symbol_kind) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "materialization", expected.materialization) ||
+        !JsonObjectFactStringFieldEquals(
+            row, "call_shape", expected.call_shape) {
+        return false;
+    }
+    return ToInt(UnwrapOption(id_opt)) > 0 &&
+        ToInt(UnwrapOption(id_opt)) == CompilerRuntimeCallAbiRowId(
+            domain, type_name, operation);
+}
+
 func MirResourceRuntimeRowFactReady(
     json: String, inst_start: Int, inst_end: Int
 ) -> Bool {
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, MirFactObjectStart(json, inst_start), inst_end);
+    let required: Bool = JsonObjectFactHasField(
+        instruction, "runtime_call_abi_required"
+    );
+    if required && !JsonObjectBoolFieldEquals(
+        instruction.json, instruction.start, instruction.end,
+        "runtime_call_abi_required", true
+    ) {
+        return false;
+    }
     let operation: String = MirObjectStringFact(
         json, inst_start, inst_end, "name");
     let machine_operation: String =
@@ -29,10 +77,21 @@ func MirResourceRuntimeRowFactReady(
         expected_operation = machine_operation;
     }
     if !MirResourceRuntimeRowRequired(expected_operation) {
-        return true;
+        let carried_row: JsonObjectFactTable = JsonObjectFactObjectTable(
+            instruction, "runtime_call_abi"
+        );
+        if JsonObjectFactTableReady(carried_row) {
+            let carried_operation: Option<String> =
+                JsonObjectFactStringFieldOpt(carried_row, "operation");
+            if IsSome(carried_operation) {
+                expected_operation = UnwrapOption(carried_operation);
+            }
+        }
     }
-    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, MirFactObjectStart(json, inst_start), inst_end);
+    if !MirResourceRuntimeRowRequired(expected_operation) {
+        return !required &&
+            !JsonObjectFactHasField(instruction, "runtime_call_abi_aux");
+    }
     let row: JsonObjectFactTable = JsonObjectFactObjectTable(
         instruction, "runtime_call_abi");
     if !JsonObjectFactTableReady(row) ||
@@ -69,6 +128,34 @@ func MirResourceRuntimeRowFactReady(
         !JsonObjectFactStringFieldEquals(
             row, "call_shape", expected.call_shape) {
         return false;
+    }
+    if JsonObjectFactHasField(instruction, "runtime_call_abi_aux") {
+        let aux_rows: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(instruction, "runtime_call_abi_aux");
+        if !JsonArrayObjectFactTableReady(aux_rows) { return false; }
+        let aux_index: Int = 0;
+        while aux_index < JsonArrayObjectFactCount(aux_rows) {
+            let aux_row: JsonObjectFactTable =
+                JsonArrayObjectFactAt(aux_rows, aux_index);
+            let aux_operation: Option<String> =
+                JsonObjectFactStringFieldOpt(aux_row, "operation");
+            if !IsSome(aux_operation) ||
+                UnwrapOption(aux_operation) == expected_operation ||
+                !MirResourceRuntimeAuxRowFactReady(aux_row, type_name) {
+                return false;
+            }
+            let prior_index: Int = 0;
+            while prior_index < aux_index {
+                let prior_row: JsonObjectFactTable =
+                    JsonArrayObjectFactAt(aux_rows, prior_index);
+                if JsonObjectFactStringFieldEquals(
+                    prior_row, "operation", UnwrapOption(aux_operation)) {
+                    return false;
+                }
+                prior_index = prior_index + 1;
+            }
+            aux_index = aux_index + 1;
+        }
     }
     return true;
 }
