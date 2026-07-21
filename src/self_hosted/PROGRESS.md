@@ -1,5 +1,25 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/SoT delta: DRV-2 MIR fixtures 131 through 140
+are `array_dedup_inplace`, `array_element_assign`, `array_enum`,
+`array_filter_count_sum`, `array_filter_into_new`,
+`array_filter_predicate_class`, `array_first_missing_positive`,
+`array_fold_minmax_sum`, `array_index_loop_sum`, and `array_inline_access`.
+`array_enum` exposed a consumer gap: the MIR declaration and codegen type
+environment already owned `Color` as a payload-free enum, but local emission
+accepted only structs on the nominal path. `EmitLet` now consumes the existing
+enum-kind row, and renaming only that declaration is rejected with
+`let_type_mismatch` instead of recovering a type from source text.
+`array_fold_minmax_sum` exposed a separate spelling seam. The typed C AST
+printer used `%g` for every numeric node and the self parser compensated by
+rewriting large decimal integers to exponent text. Integer nodes now retain
+decimal spelling while Float nodes retain `%g`; the compatibility rewrite was
+deleted and ratcheted. The self-host codegen reached `gen2 == gen3` at 35,277
+lines, and the Pergyra-built hard driver plus independent C-built and
+LLVM-built self drivers passed focused canonical-MIR, emitted-C, host-compile,
+negative-mutation, and runtime parity for all ten fixtures. The complete
+140-fixture matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable call-target/SoT delta: DRV-2 MIR fixtures 129 and 130
 are `array_elem_class_literal` and `array_elem_class_method`. Their loop bodies
 call `p.V()` where `p: P` is introduced by `for p in b`. Call-target fixpoint

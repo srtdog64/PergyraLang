@@ -81,23 +81,6 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
             return Concat(Substring(text, 0, dot_idx), ".0");
         }
         text = Substring(text, 0, trim_to);
-    } else if StringLength(text) > 6 &&
-        SourceByteAt(text, StringLength(text), 0) == SourceByteOf("1") {
-        let all_zero_tail: Bool = true;
-        let zi: Int = 1;
-        while zi < StringLength(text) {
-            if SourceByteAt(text, StringLength(text), zi) != SourceByteOf("0") {
-                all_zero_tail = false;
-            }
-            zi = zi + 1;
-        }
-        if all_zero_tail {
-            let exp_text: String = ToString(StringLength(text) - 1);
-            if StringLength(exp_text) == 1 {
-                exp_text = Concat("0", exp_text);
-            }
-            return Concat("1e+", exp_text);
-        }
     }
     return text;
 }
@@ -112,7 +95,12 @@ func ParserNumberSpellingContractReady() -> Bool {
         return false;
     }
     ArraySet(cursor, 0, 0);
-    return ReadNumber("16", 0, cursor) == "16" && cursor[0] == 2;
+    if ReadNumber("16", 0, cursor) != "16" || cursor[0] != 2 {
+        return false;
+    }
+    ArraySet(cursor, 0, 0);
+    return ReadNumber("1000000", 0, cursor) == "1000000" &&
+        cursor[0] == 7;
 }
 
 // Read a literal string including the surrounding double-quotes.

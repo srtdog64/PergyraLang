@@ -3012,6 +3012,12 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSour
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserNumberSpellingContractReady()"
+require_text "src/self_hosted/parser/cursor_owner.pgy" \
+    'ReadNumber("1000000", 0, cursor) == "1000000"'
+reject_text "src/self_hosted/parser/cursor_owner.pgy" \
+    'return Concat("1e+", exp_text);'
+require_text "src/parser/ast_print_misc.c" \
+    'ast_number_is_float(node) ? "%g" : "%.0f"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
@@ -3620,9 +3626,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 130;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 140;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 130'
+    'mir_fixture_rows[@]}" -ne 140'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3858,11 +3864,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 130;"
+    "return 140;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 130'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 140'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4079,6 +4085,10 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_enum_argument_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
     '"kind":"member_access","text":"Direction.East"'
+require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
+    'missing enum local owner was accepted'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'LookupKindType(env, type_name, "enum") == "payload_free"'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArgument(" "EnumPayloadFreeArgumentProjectionFactOpt"
 require_file "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh"

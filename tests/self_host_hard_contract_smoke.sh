@@ -503,7 +503,17 @@ for array_mir_fixture in \
     array_count_occurrences \
     array_count_ones_bits \
     array_count_pairs_sum \
-    array_count_sorted_pairs; do
+    array_count_sorted_pairs \
+    array_dedup_inplace \
+    array_element_assign \
+    array_enum \
+    array_filter_count_sum \
+    array_filter_into_new \
+    array_filter_predicate_class \
+    array_first_missing_positive \
+    array_fold_minmax_sum \
+    array_index_loop_sum \
+    array_inline_access; do
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done
@@ -529,6 +539,14 @@ require_function_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "SemanticAstAnalysisResolveCallTargetsFromBody" \
     "SemanticAstIterationSeedVisibleBindings("
+require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "EmitLet" 'LookupKindType(env, type_name, "enum") == "payload_free"'
+require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
+    "missing enum local owner was accepted"
+require_text "src/self_hosted/parser/cursor_owner.pgy" \
+    'ReadNumber("1000000", 0, cursor) == "1000000"'
+forbid_text "src/self_hosted/parser/cursor_owner.pgy" \
+    'return Concat("1e+", exp_text);'
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     'expected_member="Account_Deposit"'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \

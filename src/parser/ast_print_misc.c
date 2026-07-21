@@ -21,7 +21,8 @@ ast_print_number_text(const ASTNode *node, char *buffer, size_t capacity)
         return;
     }
 
-    int written = snprintf(buffer, capacity, "%g", node->data.number.value);
+    const char *format = ast_number_is_float(node) ? "%g" : "%.0f";
+    int written = snprintf(buffer, capacity, format, node->data.number.value);
     if (written < 0 || (size_t)written >= capacity) {
         buffer[0] = '\0';
         return;
