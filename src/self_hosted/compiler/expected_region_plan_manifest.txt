@@ -1,0 +1,29 @@
+schema=pgy.selfhost.region-plan.v1
+revision=1
+disposition|heap|yes
+disposition|region|yes
+disposition|unknown|no
+invariant|null_site_refuses_compile|ok
+invariant|scope_conflict_refuses_compile|ok
+invariant|owner_conflict_refuses_compile|ok
+invariant|duplicate_collapses|ok
+invariant|empty_plan_is_verified|ok
+invariant|lookup_miss_is_heap|ok
+invariant|refused_plan_is_heap|ok
+invariant|owner_scope_fails_closed|ok
+invariant|incompleteness_is_sound|ok
+invariant|dispositions_are_bounded|ok
+require|src/compiler/verified_region_plan.h|typedef struct PgyRegionPlan {
+require|src/compiler/verified_region_plan.h|#define PGY_REGION_PLAN_REVISION UINT32_C(1)
+require|src/compiler/verified_region_plan.h|bool pgy_verified_region_plan_from_escape(
+require|src/compiler/verified_region_plan.h|bool pgy_verified_region_plan_lookup(
+require|src/compiler/verified_region_plan.c|pgy_air_evidence_certificate_ready(air
+require|src/compiler/verified_region_plan.c|verified region plan: escape result carries a null site
+require|src/compiler/verified_region_plan.c|verified region plan: conflicting scopes for one site
+require|src/compiler/region_escape_v1.h|pgy_region_escape_v1_collect(
+require|src/compiler/region_escape_v1.c|is_print_call
+require|src/compiler/region_escape_v1.c|certify_concat_spine
+forbid|src/codegen/transpiler_context.c|pgy_verified_region_plan_from_escape
+forbid|src/codegen/llvm_expr_scalar_core.c|pgy_verified_region_plan_from_escape
+forbid|src/codegen/transpiler_context.c|pgy_region_escape_v1_collect
+forbid|src/codegen/llvm_expr_scalar_core.c|pgy_region_escape_v1_collect

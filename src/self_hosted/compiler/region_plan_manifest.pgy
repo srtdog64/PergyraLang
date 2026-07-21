@@ -1,0 +1,83 @@
+// Runnable projection over region_plan_owner.pgy: prints the plan contract
+// (schema, revision, the bounded disposition space), re-runs the producer
+// refusal / collapse / fail-closed witnesses in-language, and emits the
+// required and forbidden pin rows the smoke greps against the C projections.
+
+import "region_plan_owner.pgy";
+
+func RegionPlanDispositionRow(disposition: Int) -> String {
+    let row0: String = Concat("disposition|", RegionDispositionName(disposition));
+    let row1: String = Concat(row0, "|");
+    if RegionDispositionLegal(disposition) {
+        return Concat(row1, "yes");
+    }
+    return Concat(row1, "no");
+}
+
+func RegionPlanInvariantRow(label: String, holds: Bool) -> String {
+    let row0: String = Concat("invariant|", label);
+    let row1: String = Concat(row0, "|");
+    if holds { return Concat(row1, "ok"); }
+    return Concat(row1, "BROKEN");
+}
+
+func RegionPlanRequiredRow(index: Int) -> String {
+    let row0: String = Concat("require|", RegionPlanRequiredPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, RegionPlanRequiredTermAt(index));
+}
+
+func RegionPlanForbiddenRow(index: Int) -> String {
+    let row0: String = Concat("forbid|", RegionPlanForbiddenPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, RegionPlanForbiddenTermAt(index));
+}
+
+func Main() -> Void {
+    if !RegionPlanReady() {
+        Log("REGION_PLAN ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", RegionPlanSchema()));
+    Log(Concat("revision=", ToString(RegionPlanRevision())));
+
+    // The disposition space, plus one past the end: there is no third state.
+    let disposition: Int = 0;
+    while disposition < RegionDispositionCount() + 1 {
+        Log(RegionPlanDispositionRow(disposition));
+        disposition = disposition + 1;
+    }
+
+    Log(RegionPlanInvariantRow(
+        "null_site_refuses_compile", RegionPlanNullSiteRefuses()));
+    Log(RegionPlanInvariantRow(
+        "scope_conflict_refuses_compile", RegionPlanScopeConflictRefuses()));
+    Log(RegionPlanInvariantRow(
+        "owner_conflict_refuses_compile", RegionPlanOwnerConflictRefuses()));
+    Log(RegionPlanInvariantRow(
+        "duplicate_collapses", RegionPlanDuplicateCollapses()));
+    Log(RegionPlanInvariantRow(
+        "empty_plan_is_verified", RegionPlanEmptyIsVerified()));
+    Log(RegionPlanInvariantRow(
+        "lookup_miss_is_heap", RegionPlanLookupMissIsHeap()));
+    Log(RegionPlanInvariantRow(
+        "refused_plan_is_heap", RegionPlanRefusedPlanIsHeap()));
+    Log(RegionPlanInvariantRow(
+        "owner_scope_fails_closed", RegionPlanOwnerScopeFailsClosed()));
+    Log(RegionPlanInvariantRow(
+        "incompleteness_is_sound", RegionPlanIncompletenessIsSound()));
+    Log(RegionPlanInvariantRow(
+        "dispositions_are_bounded", RegionPlanDispositionsAreBounded()));
+
+    let required_index: Int = 0;
+    while required_index < RegionPlanRequiredCount() {
+        Log(RegionPlanRequiredRow(required_index));
+        required_index = required_index + 1;
+    }
+    let forbidden_index: Int = 0;
+    while forbidden_index < RegionPlanForbiddenCount() {
+        Log(RegionPlanForbiddenRow(forbidden_index));
+        forbidden_index = forbidden_index + 1;
+    }
+}

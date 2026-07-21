@@ -2520,6 +2520,47 @@ require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "l
 require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "invariant|reject_refuses_compile|ok"
 require_text "src/self_hosted/parallel/expected_spawn_lane_plan_manifest.txt" "invariant|lookup_fails_closed|ok"
 
+# Verified region plan (docs/197 WO-REG-1): the third verified-projection
+# artifact. The asymmetry row is the load-bearing one -- a lookup MISS is HEAP,
+# not a refusal, which is why a deliberately narrow escape analysis is safe to
+# ship. If that ever flips to a refusal, this contract must be re-argued.
+require_file "src/self_hosted/compiler/region_plan_owner.pgy"
+require_max_lines "src/self_hosted/compiler/region_plan_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/region_plan_owner.pgy"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "pgy.selfhost.region-plan.v1"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanProduce"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionEscapeCertifies"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanNullSiteRefuses"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanScopeConflictRefuses"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanOwnerConflictRefuses"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanLookupMissIsHeap"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanOwnerScopeFailsClosed"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanIncompletenessIsSound"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanRequiredPathAt"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanForbiddenTermAt"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanReady"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "definitely_missing_region_plan_term"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "src/compiler/verified_region_plan.c"
+require_file "src/self_hosted/compiler/region_plan_manifest.pgy"
+require_max_lines "src/self_hosted/compiler/region_plan_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/region_plan_manifest.pgy"
+require_text "src/self_hosted/compiler/region_plan_manifest.pgy" 'import "region_plan_owner.pgy";'
+require_text "src/self_hosted/compiler/region_plan_manifest.pgy" "RegionPlanReady()"
+require_text "src/self_hosted/compiler/region_plan_manifest.pgy" "RegionPlanRequiredCount()"
+require_text "src/self_hosted/compiler/region_plan_manifest.pgy" "RegionPlanForbiddenCount()"
+# The manifest PROJECTS the owner; it must never restate the owner's facts.
+reject_text "src/self_hosted/compiler/region_plan_manifest.pgy" "pgy.selfhost.region-plan.v1"
+reject_text "src/self_hosted/compiler/region_plan_manifest.pgy" "definitely_missing_region_plan_term"
+reject_text "src/self_hosted/compiler/region_plan_manifest.pgy" "src/compiler/verified_region_plan.c"
+require_file "src/self_hosted/compiler/expected_region_plan_manifest.txt"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "schema=pgy.selfhost.region-plan.v1"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "disposition|unknown|no"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|lookup_miss_is_heap|ok"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|incompleteness_is_sound|ok"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|owner_scope_fails_closed|ok"
+# The region artifact kind must be registered, or the comparator cannot diff it.
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRegionPlanArtifactKind"
+
 # Mechanism reachability contract: no mechanism without a consumer.
 # Both polarities must stay present or the census stops testing half of itself.
 require_file "src/self_hosted/compiler/reachability_owner.pgy"

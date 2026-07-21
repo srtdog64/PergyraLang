@@ -1,0 +1,450 @@
+// Verified region plan owner (docs/197 WO-REG-1, docs/36).
+//
+// SoT for the THIRD verified-projection artifact: `PgyRegionPlan` in
+// src/compiler/verified_region_plan.{h,c}, which carries a per-allocation-site
+// disposition (HEAP or REGION) from the escape pass into both backends. The
+// certification RULE -- which sites the analysis may certify -- is owned here
+// too, because region_escape_v1 is the only producer of escape evidence.
+//
+// What this owner declares:
+//
+//   - the plan artifact contract (schema, revision, the two dispositions);
+//   - the producer copies (site, scope, owning function) rows out of a
+//     CERTIFIED AIR verification -- the same admission boundary the spawn-lane
+//     plan uses, so no backend ever reads escape evidence directly;
+//   - a null site in the escape result refuses the COMPILE (contradictory
+//     evidence, never a silently dropped row);
+//   - conflicting scope OR conflicting owning function for one site refuses;
+//     a duplicate of the same fact collapses to one row;
+//   - THE FAIL-CLOSED ASYMMETRY, and the reason this artifact is safe to ship
+//     while the analysis is still narrow: a lookup MISS is HEAP, not a
+//     refusal. HEAP is today's byte-identical emission, so an incomplete
+//     escape pass can only cost performance -- never correctness. This is the
+//     opposite of the spawn-lane plan, where a miss must refuse the site
+//     because there is no safe default lane. Both are fail-closed; "closed"
+//     just means different things when a safe default exists.
+//   - the function-scope region lookup is fail-closed twice over: an unknown
+//     owner denies, and a row naming an owner while carrying scope 0 also
+//     denies (emitting a region the emitter never opens would be worse than
+//     heap);
+//   - backends CONSUME the plan (lookup); only the driver PRODUCES it. The
+//     forbid rows below keep the producer -- and the escape pass -- out of the
+//     emitters, so an emitter can never re-derive "is this region-safe" from
+//     source spelling. That re-derivation is exactly the drift this artifact
+//     exists to remove.
+//
+// Registration is pinned by src/self_hosted/OWNERS.md,
+// tests/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/selfhost_region_plan_smoke.sh gate.
+
+func RegionPlanSchema() -> String {
+    return "pgy.selfhost.region-plan.v1";
+}
+
+// Mirrors PGY_REGION_PLAN_REVISION. Backends refuse a plan whose revision
+// does not match the contract they were built against.
+func RegionPlanRevision() -> Int { return 1; }
+
+// A site that exists in no plan. Site identities are opaque and positive in
+// this model (the C artifact keys rows by the allocation AST node).
+func RegionPlanNoSite() -> Int { return 0; }
+
+// ---- dispositions, mirroring PgyRegionDisposition -----------------------
+//
+// HEAP is 0 on purpose: a zeroed row, an unverified plan, and a lookup miss
+// all mean HEAP without anyone having to write that decision down.
+
+func RegionDispositionHeap() -> Int { return 0; }
+func RegionDispositionRegion() -> Int { return 1; }
+func RegionDispositionCount() -> Int { return 2; }
+
+func RegionDispositionName(disposition: Int) -> String {
+    if disposition == RegionDispositionHeap() { return "heap"; }
+    if disposition == RegionDispositionRegion() { return "region"; }
+    return "unknown";
+}
+
+// Only these two dispositions may appear; there is no third "maybe" state to
+// paper over an undecided site.
+func RegionDispositionLegal(disposition: Int) -> Bool {
+    if disposition == RegionDispositionHeap() { return true; }
+    if disposition == RegionDispositionRegion() { return true; }
+    return false;
+}
+
+// ---- the escape certification rule (region_escape_v1) -------------------
+//
+// v1 certifies exactly one shape: a string concat that is a DIRECT Print /
+// PrintLn argument. The builtin reads the string synchronously and never
+// retains it, so the value cannot outlive the statement, so a function-scope
+// region always outlives it. Everything else -- a concat stored, returned,
+// captured, sent, or merely passed to some other callee -- declines, and
+// declining means HEAP.
+
+func RegionEscapeCertifies(is_string_concat: Bool, is_direct_print_arg: Bool) -> Bool {
+    if !is_string_concat { return false; }
+    return is_direct_print_arg;
+}
+
+// ---- the producer, modelled over a bounded escape table -----------------
+//
+// The C producer walks every certified escape site; this model walks up to
+// four, which is enough to witness every refusal and collapse rule with each
+// scenario visible in the golden. `used` marks a populated slot.
+
+struct RegionEscapeSite {
+    used: Bool;
+    site: Int;
+    scope: Int;
+    owner: Int;
+}
+
+struct RegionPlanOutcome {
+    verified: Bool;
+    refused_null_site: Bool;
+    refused_conflict: Bool;
+    row_count: Int;
+    row0_site: Int;
+    row0_scope: Int;
+    row0_owner: Int;
+    row1_site: Int;
+    row1_scope: Int;
+    row1_owner: Int;
+}
+
+func RegionEscapeSiteEmpty() -> RegionEscapeSite {
+    return RegionEscapeSite(false, RegionPlanNoSite(), 0, 0);
+}
+
+func RegionEscapeSiteAt(
+    s0: RegionEscapeSite,
+    s1: RegionEscapeSite,
+    s2: RegionEscapeSite,
+    s3: RegionEscapeSite,
+    index: Int
+) -> RegionEscapeSite {
+    if index == 0 { return s0; }
+    if index == 1 { return s1; }
+    if index == 2 { return s2; }
+    return s3;
+}
+
+func RegionPlanRefusal(null_site: Bool, conflict: Bool) -> RegionPlanOutcome {
+    return RegionPlanOutcome(false, null_site, conflict, 0,
+        RegionPlanNoSite(), 0, 0,
+        RegionPlanNoSite(), 0, 0);
+}
+
+// The produce algorithm, rule for rule with
+// pgy_verified_region_plan_build_rows: refuse a null site, refuse a site whose
+// scope or owning function disagrees with an already-recorded row, collapse
+// exact duplicates, then mark the plan verified.
+func RegionPlanProduce(
+    s0: RegionEscapeSite,
+    s1: RegionEscapeSite,
+    s2: RegionEscapeSite,
+    s3: RegionEscapeSite
+) -> RegionPlanOutcome {
+    let row0_site: Int = RegionPlanNoSite();
+    let row0_scope: Int = 0;
+    let row0_owner: Int = 0;
+    let row1_site: Int = RegionPlanNoSite();
+    let row1_scope: Int = 0;
+    let row1_owner: Int = 0;
+    let row_count: Int = 0;
+    let index: Int = 0;
+    while index < 4 {
+        let site: RegionEscapeSite = RegionEscapeSiteAt(s0, s1, s2, s3, index);
+        index = index + 1;
+        if !site.used { continue; }
+        if site.site == RegionPlanNoSite() {
+            return RegionPlanRefusal(true, false);
+        }
+        if row_count > 0 && row0_site == site.site {
+            if row0_scope != site.scope || row0_owner != site.owner {
+                return RegionPlanRefusal(false, true);
+            }
+            continue;
+        }
+        if row_count > 1 && row1_site == site.site {
+            if row1_scope != site.scope || row1_owner != site.owner {
+                return RegionPlanRefusal(false, true);
+            }
+            continue;
+        }
+        if row_count == 0 {
+            row0_site = site.site;
+            row0_scope = site.scope;
+            row0_owner = site.owner;
+        }
+        if row_count == 1 {
+            row1_site = site.site;
+            row1_scope = site.scope;
+            row1_owner = site.owner;
+        }
+        row_count = row_count + 1;
+    }
+    return RegionPlanOutcome(true, false, false, row_count,
+        row0_site, row0_scope, row0_owner,
+        row1_site, row1_scope, row1_owner);
+}
+
+// Per-site disposition lookup. A miss is HEAP, and so is every lookup against
+// an unverified (refused) plan -- the emitter needs no special case, it just
+// emits what it emits today.
+func RegionPlanLookupDisposition(outcome: RegionPlanOutcome, site: Int) -> Int {
+    if !outcome.verified { return RegionDispositionHeap(); }
+    if outcome.row_count > 0 && outcome.row0_site == site {
+        return RegionDispositionRegion();
+    }
+    if outcome.row_count > 1 && outcome.row1_site == site {
+        return RegionDispositionRegion();
+    }
+    return RegionDispositionHeap();
+}
+
+func RegionPlanLookupScope(outcome: RegionPlanOutcome, site: Int) -> Int {
+    if !outcome.verified { return 0; }
+    if outcome.row_count > 0 && outcome.row0_site == site { return outcome.row0_scope; }
+    if outcome.row_count > 1 && outcome.row1_site == site { return outcome.row1_scope; }
+    return 0;
+}
+
+// The one function-scope region owned by a routine. Returns 0 for "no region",
+// which is what the backend must treat as "open nothing".
+func RegionPlanScopeForOwner(outcome: RegionPlanOutcome, owner: Int) -> Int {
+    if !outcome.verified { return 0; }
+    if owner == 0 { return 0; }
+    if outcome.row_count > 0 && outcome.row0_owner == owner { return outcome.row0_scope; }
+    if outcome.row_count > 1 && outcome.row1_owner == owner { return outcome.row1_scope; }
+    return 0;
+}
+
+// ---- in-language invariant witnesses -----------------------------------
+
+// A null site in the escape result is contradictory evidence: the analysis
+// certified something it could not name. Refuse rather than drop the row.
+func RegionPlanNullSiteRefuses() -> Bool {
+    let healthy: RegionEscapeSite = RegionEscapeSite(true, 11, 7, 101);
+    let nameless: RegionEscapeSite =
+        RegionEscapeSite(true, RegionPlanNoSite(), 7, 101);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        healthy, nameless, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return !outcome.verified && outcome.refused_null_site &&
+        !outcome.refused_conflict;
+}
+
+// Two different scopes for one site are contradictory facts: refuse, do not
+// pick either -- picking the shorter one would free a live value.
+func RegionPlanScopeConflictRefuses() -> Bool {
+    let first: RegionEscapeSite = RegionEscapeSite(true, 21, 5, 101);
+    let second: RegionEscapeSite = RegionEscapeSite(true, 21, 6, 101);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        first, second, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return !outcome.verified && outcome.refused_conflict &&
+        !outcome.refused_null_site;
+}
+
+// The scopes agree but the OWNING FUNCTION does not. Two routines cannot both
+// own one allocation site's region, so this is refused for the same reason.
+func RegionPlanOwnerConflictRefuses() -> Bool {
+    let first: RegionEscapeSite = RegionEscapeSite(true, 31, 5, 101);
+    let second: RegionEscapeSite = RegionEscapeSite(true, 31, 5, 102);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        first, second, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return !outcome.verified && outcome.refused_conflict &&
+        !outcome.refused_null_site;
+}
+
+// The same fact twice is one row, not two.
+func RegionPlanDuplicateCollapses() -> Bool {
+    let fact: RegionEscapeSite = RegionEscapeSite(true, 41, 9, 103);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        fact, fact, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return outcome.verified && outcome.row_count == 1 &&
+        outcome.row0_scope == 9;
+}
+
+// A program the analysis certified nothing in produces an EMPTY verified plan.
+// Certifying nothing is the normal case, not an error.
+func RegionPlanEmptyIsVerified() -> Bool {
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty(),
+        RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return outcome.verified && outcome.row_count == 0 &&
+        RegionPlanLookupDisposition(outcome, 51) == RegionDispositionHeap();
+}
+
+// THE ASYMMETRY. A certified site reads REGION; every other site reads HEAP
+// from the same plan, without the emitter branching on "was the analysis
+// complete". Missing is not an error here.
+func RegionPlanLookupMissIsHeap() -> Bool {
+    let fact: RegionEscapeSite = RegionEscapeSite(true, 61, 3, 104);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        fact, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty(),
+        RegionEscapeSiteEmpty());
+    return RegionPlanLookupDisposition(outcome, 61) == RegionDispositionRegion() &&
+        RegionPlanLookupScope(outcome, 61) == 3 &&
+        RegionPlanLookupDisposition(outcome, 62) == RegionDispositionHeap() &&
+        RegionPlanLookupScope(outcome, 62) == 0;
+}
+
+// A REFUSED plan answers HEAP for the very site it was refused over, so a
+// caller that ignores the producer's failure still emits correct code.
+func RegionPlanRefusedPlanIsHeap() -> Bool {
+    let refused: RegionPlanOutcome = RegionPlanRefusal(false, true);
+    return RegionPlanLookupDisposition(refused, 21) == RegionDispositionHeap() &&
+        RegionPlanScopeForOwner(refused, 101) == 0;
+}
+
+// The function-scope lookup denies an unknown owner, a zero owner id, and --
+// the subtle one -- a row that names an owner but carries no scope.
+func RegionPlanOwnerScopeFailsClosed() -> Bool {
+    let owned: RegionEscapeSite = RegionEscapeSite(true, 71, 4, 105);
+    let scopeless: RegionEscapeSite = RegionEscapeSite(true, 72, 0, 106);
+    let outcome: RegionPlanOutcome = RegionPlanProduce(
+        owned, scopeless, RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return outcome.verified &&
+        RegionPlanScopeForOwner(outcome, 105) == 4 &&
+        RegionPlanScopeForOwner(outcome, 106) == 0 &&
+        RegionPlanScopeForOwner(outcome, 107) == 0 &&
+        RegionPlanScopeForOwner(outcome, 0) == 0;
+}
+
+// Analysis incompleteness is SOUND, not merely tolerated: a shape v1 declines
+// to certify is a shape that stays on today's emission path.
+func RegionPlanIncompletenessIsSound() -> Bool {
+    let direct_print_concat: Bool = RegionEscapeCertifies(true, true);
+    let stored_concat: Bool = RegionEscapeCertifies(true, false);
+    let non_concat: Bool = RegionEscapeCertifies(false, true);
+    let declined: RegionPlanOutcome = RegionPlanProduce(
+        RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty(),
+        RegionEscapeSiteEmpty(), RegionEscapeSiteEmpty());
+    return direct_print_concat && !stored_concat && !non_concat &&
+        RegionPlanLookupDisposition(declined, 81) == RegionDispositionHeap();
+}
+
+// There is no third disposition to hide an undecided site in.
+func RegionPlanDispositionsAreBounded() -> Bool {
+    return RegionDispositionLegal(RegionDispositionHeap()) &&
+        RegionDispositionLegal(RegionDispositionRegion()) &&
+        !RegionDispositionLegal(2) &&
+        RegionDispositionCount() == 2 &&
+        RegionDispositionName(RegionDispositionHeap()) == "heap" &&
+        RegionDispositionName(RegionDispositionRegion()) == "region";
+}
+
+// ---- required-term pins -------------------------------------------------
+//
+// Pin doctrine (docs/188 R2): stable identifiers and load-bearing refusal
+// strings only. The driver's produce/dispose sites and the emitters' lookup
+// consumption are NOT pinned here yet -- that wiring is landing in the
+// concurrent backend stream, and a pin must never describe a projection that
+// does not exist. They join this list in the same commit that wires them.
+
+func RegionPlanHeaderPath() -> String {
+    return "src/compiler/verified_region_plan.h";
+}
+
+func RegionPlanSourcePath() -> String {
+    return "src/compiler/verified_region_plan.c";
+}
+
+func RegionPlanEscapeHeaderPath() -> String {
+    return "src/compiler/region_escape_v1.h";
+}
+
+func RegionPlanEscapeSourcePath() -> String {
+    return "src/compiler/region_escape_v1.c";
+}
+
+func RegionPlanCConsumerPath() -> String {
+    return "src/codegen/transpiler_context.c";
+}
+
+func RegionPlanLlvmConsumerPath() -> String {
+    return "src/codegen/llvm_expr_scalar_core.c";
+}
+
+func RegionPlanRequiredCount() -> Int {
+    return 10;
+}
+
+func RegionPlanRequiredPathAt(index: Int) -> String {
+    if index <= 3 { return RegionPlanHeaderPath(); }
+    if index <= 6 { return RegionPlanSourcePath(); }
+    if index == 7 { return RegionPlanEscapeHeaderPath(); }
+    if index <= 9 { return RegionPlanEscapeSourcePath(); }
+    return "";
+}
+
+func RegionPlanRequiredTermAt(index: Int) -> String {
+    // The artifact: struct, revision, and the two entrypoints backends use.
+    if index == 0 { return "typedef struct PgyRegionPlan {"; }
+    if index == 1 { return "#define PGY_REGION_PLAN_REVISION UINT32_C(1)"; }
+    if index == 2 { return "bool pgy_verified_region_plan_from_escape("; }
+    if index == 3 { return "bool pgy_verified_region_plan_lookup("; }
+    // The producer's behaviour: the certified-AIR admission gate and both
+    // refusal diagnostics (they are user-visible; drifting them silently would
+    // orphan this owner and the tests).
+    if index == 4 { return "pgy_air_evidence_certificate_ready(air"; }
+    if index == 5 { return "verified region plan: escape result carries a null site"; }
+    if index == 6 { return "verified region plan: conflicting scopes for one site"; }
+    // The escape pass: its collect entrypoint, and the two internal predicates
+    // that ARE the v1 certification rule.
+    if index == 7 { return "pgy_region_escape_v1_collect("; }
+    if index == 8 { return "is_print_call"; }
+    if index == 9 { return "certify_concat_spine"; }
+    return "";
+}
+
+// Forbidden projection: backends consume the plan; they never produce it, and
+// they never re-run the escape analysis. Either one would re-open a private
+// lifetime decision inside codegen -- the exact drift this artifact removes.
+func RegionPlanForbiddenCount() -> Int {
+    return 4;
+}
+
+func RegionPlanForbiddenPathAt(index: Int) -> String {
+    if index == 0 { return RegionPlanCConsumerPath(); }
+    if index == 1 { return RegionPlanLlvmConsumerPath(); }
+    if index == 2 { return RegionPlanCConsumerPath(); }
+    if index == 3 { return RegionPlanLlvmConsumerPath(); }
+    return "";
+}
+
+func RegionPlanForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_verified_region_plan_from_escape"; }
+    if index == 1 { return "pgy_verified_region_plan_from_escape"; }
+    if index == 2 { return "pgy_region_escape_v1_collect"; }
+    if index == 3 { return "pgy_region_escape_v1_collect"; }
+    return "";
+}
+
+func RegionPlanMissingSelfTestTerm() -> String {
+    return "definitely_missing_region_plan_term";
+}
+
+func RegionPlanReady() -> Bool {
+    return RegionPlanSchema() != "" &&
+        RegionPlanRevision() == 1 &&
+        RegionPlanNullSiteRefuses() &&
+        RegionPlanScopeConflictRefuses() &&
+        RegionPlanOwnerConflictRefuses() &&
+        RegionPlanDuplicateCollapses() &&
+        RegionPlanEmptyIsVerified() &&
+        RegionPlanLookupMissIsHeap() &&
+        RegionPlanRefusedPlanIsHeap() &&
+        RegionPlanOwnerScopeFailsClosed() &&
+        RegionPlanIncompletenessIsSound() &&
+        RegionPlanDispositionsAreBounded() &&
+        RegionPlanRequiredCount() == 10 &&
+        RegionPlanForbiddenCount() == 4 &&
+        RegionPlanRequiredPathAt(0) == RegionPlanHeaderPath() &&
+        RegionPlanRequiredPathAt(9) == RegionPlanEscapeSourcePath() &&
+        RegionPlanRequiredTermAt(0) != "" &&
+        RegionPlanRequiredTermAt(9) != "" &&
+        RegionPlanForbiddenPathAt(3) == RegionPlanLlvmConsumerPath() &&
+        RegionPlanForbiddenTermAt(0) != "" &&
+        RegionPlanMissingSelfTestTerm() != "";
+}

@@ -779,6 +779,22 @@ inventory must not become a second fact-family owner registry.
   fact vocabulary for intent/effect/authority/coordination.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
+- `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
+  (docs/197 WO-REG-1): how a certified escape verdict TRAVELS to the backends.
+  Owns the plan artifact contract (revision, the two dispositions and no
+  third), the producer's fail-closed refusals (a null site; conflicting scope
+  or owning function for one site), duplicate collapse, the v1 certification
+  rule (a string concat that is a DIRECT Print/PrintLn argument), and the
+  fail-closed ASYMMETRY that makes a narrow analysis safe to ship -- a lookup
+  MISS is HEAP, today's byte-identical emission, so incompleteness costs
+  performance and never correctness. Contrast the spawn-lane plan, where a
+  miss must refuse because no safe default lane exists.
+- `src/self_hosted/compiler/region_plan_manifest.pgy` -- runnable projection
+  over the region plan owner: prints the contract, re-runs the producer and
+  soundness witnesses, and emits the require/forbid rows for the
+  expected-artifact diff on both compiler legs
+  (`src/self_hosted/compiler/expected_region_plan_manifest.txt`, gate
+  `tests/selfhost_region_plan_smoke.sh`).
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
 - `src/self_hosted/compiler/test_harness_target_paths_owner.pgy` -- target
