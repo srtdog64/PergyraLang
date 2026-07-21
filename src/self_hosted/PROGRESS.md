@@ -1,5 +1,13 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 217 and 218 are
+`class_loop_method_total` and `class_method_branch_nest`. The existing class
+receiver, method-call target, field, branch, loop, return, and expression-graph
+facts are sufficient; no semantic fallback or new fact family is introduced.
+Focused C-built and LLVM-built self drivers match the C oracle through
+canonical MIR, emitted C, host compilation, and runtime output. The complete
+218-fixture matrix and released/default replacement remain open.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixture 216 is
 `class_helper_method_chain`. The existing class receiver, method-call target,
 field, return, and expression-graph facts were sufficient; no semantic
