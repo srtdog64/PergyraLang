@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 205 through 214 are
+`class_dual_method_loop`, `class_dual_predicate`,
+`class_factory_aggregate_loop`, `class_factory_filter_field`,
+`class_factory_in_loop`, `class_field_method_chain_inline`,
+`class_helper_in_match`, `class_helper_module`,
+`class_immutable_step_until`, and `class_in_loop_field_use`. Clean
+committed-source C-built and LLVM-built self drivers match the C oracle after
+canonical MIR normalization, emit identical C from the MIR consumer and source
+paths, compile that C, and produce byte-identical runtime output for all ten
+programs. No semantic fallback or new fact family was required: this batch
+demonstrates that the admitted class/call/aggregate/loop facts generalize beyond
+the fixtures that introduced them. Only the focused ten-fixture matrix ran;
+the complete 214-fixture matrix and released/default replacement remain open.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixture 204 is
 `class_arg_helper_loop`. Clean committed-source C-built and LLVM-built self
 drivers match the C oracle byte-for-byte after canonical MIR normalization,

@@ -3682,9 +3682,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 204;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 214;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 204'
+    'mir_fixture_rows[@]}" -ne 214'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3920,11 +3920,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 204;"
+    "return 214;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 204'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 214'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3933,6 +3933,20 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/bubble_sort_basic/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_arg_helper_loop/main.pgy"'
+for class_mir_fixture in \
+    class_dual_method_loop \
+    class_dual_predicate \
+    class_factory_aggregate_loop \
+    class_factory_filter_field \
+    class_factory_in_loop \
+    class_field_method_chain_inline \
+    class_helper_in_match \
+    class_helper_module \
+    class_immutable_step_until \
+    class_in_loop_field_use; do
+    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+        "\"tests/cases/backend_compare/$class_mir_fixture/main.pgy\""
+done
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     'target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses'
 require_file "src/self_hosted/semantic/assignment_binding_mode_owner.pgy"

@@ -992,6 +992,18 @@ owner gate reached by this fixture also moves command-line mode selection into
 stage owner. The full 204-fixture matrix and released/default replacement
 remain open.
 
+Eighty-first executable active-rung delta, 2026-07-21:
+ten previously unowned backend-compare programs become DRV-2 MIR fixtures 205
+through 214. They cover dual-method loops and predicates, class factories in
+aggregate/filter/loop flows, inline method chains, class helpers in match and
+module flows, immutable step-until loops, and class field use inside loops.
+Clean C-built and LLVM-built self drivers match the C oracle through canonical
+MIR, MIR-to-C/source-to-C equality, host compilation, and runtime output for
+the focused ten-fixture matrix. No C semantic fallback or new fact owner was
+needed. This is executable substitution breadth that exercises the already
+owned facts; the full 214-fixture matrix and released/default replacement
+remain open.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,
