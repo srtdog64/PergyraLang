@@ -1,5 +1,13 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixture 220 is
+`class_steps_loop_simple`. The Pergyra producer already carried the class
+method, owner-field, while-CFG, reassignment, and loop-phi facts required by
+this program, so the admission adds no source re-read or compatibility fact.
+Focused C-built and LLVM-built self drivers match canonical MIR, emitted C,
+host compilation, and runtime output. The complete 220-fixture matrix and
+released/default replacement remain open.
+
 2026-07-21 owner-field match SoT delta: DRV-2 MIR fixture 219 is
 `class_holds_enum_field`. MIR match subject validation now consumes the
 semantic method owner-field type query after ordinary local lookup, without
