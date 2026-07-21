@@ -209,12 +209,22 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/bitwise_via_division/main.pgy",
         "tests/cases/backend_compare/bool_compound_predicates/main.pgy",
         "tests/cases/backend_compare/bool_cursor_equivalence/main.pgy",
-        "tests/cases/backend_compare/bool_expr_chain/main.pgy"
+        "tests/cases/backend_compare/bool_expr_chain/main.pgy",
+        "tests/cases/backend_compare/bool_ladder_chain/main.pgy",
+        "tests/cases/backend_compare/bool_logic_helpers/main.pgy",
+        "tests/cases/backend_compare/bool_negate_branch/main.pgy",
+        "tests/cases/backend_compare/bool_short_circuit_calls/main.pgy",
+        "tests/cases/backend_compare/bool_short_circuit_chain/main.pgy",
+        "tests/cases/backend_compare/bool_short_circuit_method/main.pgy",
+        "tests/cases/backend_compare/bool_state_toggle/main.pgy",
+        "tests/cases/backend_compare/bool_to_string_concat/main.pgy",
+        "tests/cases/backend_compare/break_continue/main.pgy",
+        "tests/cases/backend_compare/bubble_sort_inline/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 180;
+    return 190;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

@@ -553,7 +553,17 @@ for array_mir_fixture in \
     bitwise_via_division \
     bool_compound_predicates \
     bool_cursor_equivalence \
-    bool_expr_chain; do
+    bool_expr_chain \
+    bool_ladder_chain \
+    bool_logic_helpers \
+    bool_negate_branch \
+    bool_short_circuit_calls \
+    bool_short_circuit_chain \
+    bool_short_circuit_method \
+    bool_state_toggle \
+    bool_to_string_concat \
+    break_continue \
+    bubble_sort_inline; do
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done

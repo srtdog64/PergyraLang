@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/blocker delta: DRV-2 MIR fixtures 181 through
+190 are `bool_ladder_chain`, `bool_logic_helpers`, `bool_negate_branch`,
+`bool_short_circuit_calls`, `bool_short_circuit_chain`,
+`bool_short_circuit_method`, `bool_state_toggle`, `bool_to_string_concat`,
+`break_continue`, and `bubble_sort_inline`. The Pergyra-built hard driver and
+independent C-built and LLVM-built drivers passed focused canonical-MIR,
+emitted-C, host-compile, and runtime parity for all ten fixtures. The producer
+probe also found a real deferred-cleanup blocker: `branch_defer_scope` carries
+the typed defer body graph but not a fact that transports branch-registered
+cleanup to function exit, so the current MIR consumer produces `1,2` while the
+C oracle produces `2,1`. It remains outside the manifest; no source fallback
+or immediate-execution compatibility path was admitted. The complete
+190-fixture matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth/graph-SoT delta: DRV-2 MIR fixtures 171 through
 180 are `bank_interest_recursive`, `basic`, `bid_max_score`, `bin_push_chain`,
 `binary_search_int`, `binary_to_int`, `bitwise_via_division`,
