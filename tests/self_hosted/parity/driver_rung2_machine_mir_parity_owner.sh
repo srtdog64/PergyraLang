@@ -2,12 +2,15 @@
 # Owns DRV-2 machine-fixture target input and command shaping.
 
 pgy_selfhost_driver_rung2_fixture_base() {
+    local path="$1"
     case "$1" in
         tests/cases/backend_compare/*/main.pgy)
-            basename "$(dirname "$1")"
+            path="${path%/main.pgy}"
+            printf '%s\n' "${path##*/}"
             ;;
         *)
-            basename "$1" .pgy
+            path="${path##*/}"
+            printf '%s\n' "${path%.pgy}"
             ;;
     esac
 }

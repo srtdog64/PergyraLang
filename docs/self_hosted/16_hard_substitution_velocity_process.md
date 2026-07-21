@@ -954,6 +954,20 @@ emitters register the AST body pointer attached to the instruction; removing
 that bridge requires a fully typed nested cleanup-body row and backend
 consumer migration, not a self-host fallback.
 
+Seventy-eighth executable active-rung delta, 2026-07-21: ten more
+backend-compare programs become DRV-2 MIR fixtures 193 through 202, covering
+small array sorting/counting, buffer predicates, enum phase progression,
+class-chain calls, Caesar decoding, grid accumulation, match factories,
+all-positive checks, and class-state loops. Clean committed-source C-built and
+LLVM-built self drivers agree with the C oracle on canonical MIR, emitted C,
+host compilation, and runtime output. The probe keeps three boundaries honest:
+`bubble_sort_basic` is missing the indexed-assignment base-use graph, while
+`break_continue_while_slot` and `class_bump_option_match` fail in the bounded
+semantic subset. The focused selector also stops spawning external
+`dirname`/`basename` processes for every filter comparison and uses Bash path
+expansion instead, so Windows probe cost no longer scales as external process
+count times the manifest size.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

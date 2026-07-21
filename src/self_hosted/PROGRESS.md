@@ -1,5 +1,22 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/test-cost delta: DRV-2 MIR fixtures 193 through
+202 are `bubble_sort_small`, `bucket_count_array`, `buffer_full_check`,
+`build_phase_advance`, `buyer_shopping_chain`, `caesar_shift_decode`,
+`cell_grid_total`, `chain_match_factory`, `check_all_positive`, and
+`class_alive_while_loop`. A clean C-built self driver from committed source and
+an independent LLVM-built self driver passed source-to-MIR, canonical-MIR,
+MIR-to-C, host-compile, and runtime parity for all ten against the C oracle.
+The frontier probe rejected `bubble_sort_basic` because its indexed assignment
+target graph lacks the `arr` base use, and rejected
+`break_continue_while_slot` and `class_bump_option_match` at the semantic
+subset boundary; none was admitted through fallback. The focused fixture
+selector now derives path basenames with Bash parameter expansion instead of
+spawning `dirname` and `basename` for every wanted-fixture/manifest pair. This
+removes the observed Windows O(filter x manifest) process storm without
+weakening the manifest or parity work. The complete 202-fixture matrix was not
+run, and released/default replacement remains 0%.
+
 2026-07-21 executable defer-transport delta: DRV-2 MIR fixtures 191 and 192
 are `branch_defer_scope` and `branch_defer_skipped`. The reached MIR facts
 already determine the bounded beta behavior: dynamic-control defer is rejected,
