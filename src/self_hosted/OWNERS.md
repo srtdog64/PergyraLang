@@ -166,6 +166,9 @@ inventory must not become a second fact-family owner registry.
   assignment type verdicts joined from assignment, initializer, signature,
   lexical environment, and parser expression-graph facts; target binding,
   member, collection-base, index, and RHS scalar types are graph-derived.
+- `src/self_hosted/semantic/assignment_binding_mode_owner.pgy` -- canonical
+  parameter-mode classification consumed by MIR assignment verification; the
+  assignment type-fact owner remains the row owner.
 - `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy` -- fail-closed
   range/foreach header verdicts and lexical loop-binding type facts.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
@@ -444,6 +447,9 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy`
+  -- positive parameter-version-zero and negative local missing-use contract
+  kept outside the production verifier.
 - `src/self_hosted/mir/instruction_validation_owner.pgy` -- detailed MIR
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
@@ -491,6 +497,9 @@ inventory must not become a second fact-family owner registry.
   machine-contact projection validation for MIR JSON rows.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
   capture boundary/kind/writer fact validation for MIR JSON input.
+- `src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy` --
+  fail-closed comparison of carried MIR assignment modes with semantic
+  assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
 - `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one
   document-order routine identity inventory shared by declaration and routine

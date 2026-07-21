@@ -1,8 +1,7 @@
 // Structural verifier for the self-host MIR fact graph.
-
 import "program_fact_owner.pgy";
 import "instruction_validation_owner.pgy";
-
+import "../semantic/assignment_binding_mode_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
 }
@@ -116,9 +115,8 @@ func SelfMirAssignmentTargetGraphValidationError(
             )
         );
     }
-    if !SelfMirInstructionUsesLocalVersion(
-        rows, instruction_index, base_name
-    ) {
+    if !SelfMirInstructionUsesLocalVersion(rows, instruction_index, base_name) &&
+        !SemanticAssignmentBindingModeIsParameter(rows.arg1s[instruction_index]) {
         return Concat(
             "projected target base use is missing: base=", base_name
         );

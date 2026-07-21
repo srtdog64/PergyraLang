@@ -112,6 +112,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_array_literal_graph "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_indexed_assignment \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_assignment_binding_mode \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_index_expression_type \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "if_else_assign" ]]; then

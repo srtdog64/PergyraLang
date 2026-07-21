@@ -1,0 +1,6 @@
+// Canonical assignment binding-mode classification.
+
+func SemanticAssignmentBindingModeIsParameter(mode: String) -> Bool {
+    return mode == "default_param" || mode == "inout_param" ||
+        mode == "own_param" || mode == "ref_param";
+}

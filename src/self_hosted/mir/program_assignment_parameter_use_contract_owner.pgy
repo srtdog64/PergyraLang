@@ -1,0 +1,35 @@
+// Parameter version zero is a routine input, not an SSA definition.
+
+import "program_verify_owner.pgy";
+
+func SelfMirAssignmentParameterZeroUseRows(mode: String) -> SelfMirInstructionRows {
+    let no_uses: Array<String> = [];
+    let target_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
+        [1], [2], [0], [3],
+        [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+         AstExpressionNodeIndex()],
+        ["arr", "i", "arr[i]"], [0, 0, 0], [0, 0, 1],
+        [SemanticCallTargetNone(), SemanticCallTargetNone(),
+         SemanticCallTargetNone()], ["", "", ""]
+    );
+    let value_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
+        [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["other"],
+        [0], [0], [SemanticCallTargetNone()], [""]
+    );
+    return SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["arr.1"], ["arr"], [mode],
+        ["other"], ["arr[i]"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
+        [0], [0], no_uses, value_graph, target_graph,
+        SelfMirMatchFactRowsEmpty(), SelfMirDestructureFactRowsEmpty(),
+        SelfMirRuntimeCallAbiRowsForInstructionCount(1)
+    );
+}
+
+func SelfMirAssignmentParameterZeroUseContractReady() -> Bool {
+    return SelfMirInstructionRowsReady(
+        SelfMirAssignmentParameterZeroUseRows("inout_param")
+    ) && !SelfMirInstructionRowsReady(
+        SelfMirAssignmentParameterZeroUseRows("local")
+    );
+}

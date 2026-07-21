@@ -95,7 +95,7 @@ func SelfMirLowerAssignmentFromArtifact(
     let version: Int = build.local_versions[local_index];
     build = SelfMirRoutineAddInstruction(
         build, "def", "ssa-def", SelfMirSsaName(target, version),
-        target, "", expression, target_text, "AST_ASSIGNMENT", uses
+        target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses
     );
     build = SelfMirRoutineAttachLastExpressionGraph(
         build, value_graph, input.machine_declaration

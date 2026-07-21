@@ -3641,9 +3641,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 202;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 203;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 202'
+    'mir_fixture_rows[@]}" -ne 203'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3879,15 +3879,42 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 202;"
+    "return 203;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 202'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 203'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_skipped/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/bubble_sort_basic/main.pgy"'
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    'target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses'
+require_file "src/self_hosted/semantic/assignment_binding_mode_owner.pgy"
+require_text "src/self_hosted/semantic/assignment_binding_mode_owner.pgy" \
+    'func SemanticAssignmentBindingModeIsParameter(mode: String) -> Bool'
+require_file "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" 100
+require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'UnwrapOption(mode) !='
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'Die("MIR assignment binding-mode fact is missing or invalid");'
+require_file "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy"
+require_max_lines "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" 100
+require_text "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" \
+    'SelfMirAssignmentParameterZeroUseRows("inout_param")'
+require_text "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" \
+    'SelfMirAssignmentParameterZeroUseRows("local")'
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'return "mir_assignment_parameter_zero_use";'
+require_file "tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh" \
+    'invalid assignment mode was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_assignment_binding_mode_parity_owner.sh"
 for breadth_fixture in \
     bubble_sort_small bucket_count_array buffer_full_check \
     build_phase_advance buyer_shopping_chain caesar_shift_decode \

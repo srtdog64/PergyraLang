@@ -968,6 +968,17 @@ semantic subset. The focused selector also stops spawning external
 expansion instead, so Windows probe cost no longer scales as external process
 count times the manifest size.
 
+Seventy-ninth executable active-rung delta, 2026-07-21:
+bubble_sort_basic becomes DRV-2 MIR fixture 203 after closing assignment
+binding-mode carriage. An indexed inout parameter may omit an ordinary SSA
+base use because parameter version zero is an input, not a definition; local
+targets may not. The semantic owner carries inout_param into MIR, canonical
+self-MIR input is checked against that semantic fact, and a local-mode mutation
+fails closed. Clean C-built and LLVM-built self drivers match the C oracle
+through canonical MIR, MIR-to-C, host compilation, and runtime output. The
+explicit oracle compatibility bridge remains separate and is not evidence for
+self-MIR fact completeness.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

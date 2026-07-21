@@ -1,10 +1,4 @@
 // DRV-2 artifact-body semantic driver owner.
-//
-// This hard rung computes initializer, iteration, assignment, expression-use,
-// call, return, and condition evidence. Source and MIR-JSON inputs converge on
-// the same artifact verifier and codegen owner; neither path may fall back to
-// source scanning.
-
 import "driver_pipeline_owner.pgy";
 import "../semantic/ast_initializer_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
@@ -21,9 +15,11 @@ import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
 import "../mir_lower/expression_graph_fact_owner.pgy";
+import "../mir_lower/assignment_binding_mode_fact_owner.pgy";
 import "../mir_lower/generic_specialization_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
+import "../mir/program_assignment_parameter_use_contract_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
 import "driver_rung2_readiness_owner.pgy";
 import "driver_rung2_semantic_fixture_manifest_owner.pgy";
@@ -231,12 +227,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/cell_grid_total/main.pgy",
         "tests/cases/backend_compare/chain_match_factory/main.pgy",
         "tests/cases/backend_compare/check_all_positive/main.pgy",
-        "tests/cases/backend_compare/class_alive_while_loop/main.pgy"
+        "tests/cases/backend_compare/class_alive_while_loop/main.pgy",
+        "tests/cases/backend_compare/bubble_sort_basic/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 202;
+    return 203;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {
@@ -347,11 +344,17 @@ func CanonicalizeMirJsonVerified(
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeWithExpressionGraph(artifact, true, graph);
+    let verified: DriverRung2VerifiedFacts =
+        VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+    if !MirAssignmentBindingModesMatchSemanticFacts(
+        json, verified.body_types.assignment_types
+    ) {
+        Die("MIR assignment binding-mode fact is missing or invalid");
+    }
     return CompileArtifactAnalysisToMirJsonVerified(
-        artifact,
-        SemanticAstArtifactAnalyzeWithExpressionGraph(
-            artifact, true, graph
-        ),
+        artifact, verified.analysis,
         machine_declaration
     );
 }
@@ -395,6 +398,11 @@ func CompileMirJsonTextToCForTargetVerified(
         );
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+    if !MirAssignmentBindingModesMatchSemanticFacts(
+        json, verified.body_types.assignment_types
+    ) {
+        Die("MIR assignment binding-mode fact is missing or invalid");
+    }
     let semantic_body_types: SemanticAstBodyTypeBundle =
         verified.body_types;
     let mir_generic_specializations: CodegenGenericSpecializationFacts =

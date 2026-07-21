@@ -53,6 +53,9 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SelfMirAssignmentTargetGraphContractReady() {
         return "mir_assignment_target_graph";
     }
+    if !SelfMirAssignmentParameterZeroUseContractReady() {
+        return "mir_assignment_parameter_zero_use";
+    }
     if !SelfMirDestructureTypeFactRowsContractReady() {
         return "mir_destructure_type_facts";
     }

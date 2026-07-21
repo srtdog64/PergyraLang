@@ -1,0 +1,47 @@
+// MIR JSON assignment binding modes must match the semantic fact owner.
+
+import "program_routine_index_owner.pgy";
+import "routine_fact_index_owner.pgy";
+import "../semantic/ast_assignment_type_fact_owner.pgy";
+
+func MirAssignmentBindingModesMatchSemanticFacts(
+    json: String,
+    facts: SemanticAstAssignmentTypeFacts
+) -> Bool {
+    if !facts.ok { return false; }
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    if !routines.valid { return false; }
+    let assignment_i: Int = 0;
+    let routine_i: Int = 0;
+    while routine_i < MirProgramRoutineIndexCount(routines) {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            json, routines.starts[routine_i], routines.ends[routine_i]
+        );
+        if !index.valid { return false; }
+        let instruction_i: Int = 0;
+        while instruction_i < ArrayLength(index.instruction_starts) {
+            let instruction: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                    json, index.instruction_starts[instruction_i],
+                    index.instruction_ends[instruction_i]
+                );
+            let source_type: Option<String> =
+                JsonObjectFactStringFieldOpt(instruction, "source_type");
+            if IsSome(source_type) &&
+                UnwrapOption(source_type) == "AST_ASSIGNMENT" {
+                let mode: Option<String> =
+                    JsonObjectFactStringFieldOpt(instruction, "arg1");
+                if assignment_i >= ArrayLength(facts.target_binding_modes) ||
+                    !IsSome(mode) ||
+                    UnwrapOption(mode) !=
+                        facts.target_binding_modes[assignment_i] {
+                    return false;
+                }
+                assignment_i = assignment_i + 1;
+            }
+            instruction_i = instruction_i + 1;
+        }
+        routine_i = routine_i + 1;
+    }
+    return assignment_i == ArrayLength(facts.target_binding_modes);
+}

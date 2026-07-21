@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-21 executable assignment-mode SoT delta: DRV-2 MIR fixture 203 is
+bubble_sort_basic. Its indexed inout parameter target exposed a valid
+version-zero case: parameter input is not an SSA definition, so no synthetic
+arr.0 use is invented. The semantic assignment owner now carries its existing
+inout_param mode into MIR, the verifier permits an omitted projected-base use
+only for canonical parameter modes, and canonical self-MIR input must match the
+semantic mode fact instead of silently rebuilding over a bad input row. The
+C-oracle compatibility bridge remains separately named. Clean committed-source
+C-built and LLVM-built self drivers agree with the C oracle on canonical MIR,
+MIR-to-C, host compilation, and runtime output; changing inout_param to local
+fails with the assignment binding-mode diagnostic. The complete 203-fixture
+matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth/test-cost delta: DRV-2 MIR fixtures 193 through
 202 are `bubble_sort_small`, `bucket_count_array`, `buffer_full_check`,
 `build_phase_advance`, `buyer_shopping_chain`, `caesar_shift_decode`,
