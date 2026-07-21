@@ -3005,10 +3005,18 @@ require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
 require_file "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" 100
+require_file "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" 80
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'import "driver_rung2_readiness_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompilerDriverRung2ReadinessError"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func DriverRung2FixtureRows"
+require_text "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" \
+    "func EmitDriverRung2FixtureManifest"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "func CompilerDriverRung2Ready"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3633,9 +3641,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 170;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 180;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 170'
+    'mir_fixture_rows[@]}" -ne 180'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3871,11 +3879,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 170;"
+    "return 180;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 170'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 180'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3990,7 +3998,7 @@ reject_regex_under "src/self_hosted/mir" \
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'func MirExpressionGraphSequenceAppendRequired('
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 20;"
+require_text "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsReadyForMirProjection("
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
@@ -5342,14 +5350,20 @@ require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
     'expression, "ArraySet", 2'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'SelfMirSimpleStatementExpressionGraphLane(kind);'
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
+    $'kind == TypedAstKindBareCallStmtTag() ||\n        kind == TypedAstKindExitStmtTag() {'
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    $'rows.arg0s[i] == "ArraySet" ||\n             rows.arg0s[i] == "Exit") &&'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    $'UnwrapOption(arg0) == "ArraySet" ||\n            UnwrapOption(arg0) == "Exit";'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     'return Some(AstExpressionLaneAuxiliary());'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    'UnwrapOption(arg0) == "ArraySet";'
+    'UnwrapOption(arg0) == "ArraySet"'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
-    'rows.arg0s[i] == "ArraySet") &&'
+    'rows.arg0s[i] == "ArraySet"'
 reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "func SelfMirLowerBlockFromArtifact(" \
     "SemanticAstExpressionGraphFromText(" \
@@ -5628,7 +5642,7 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     '"kind":"member_access","text":"line.end.x"'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     '"kind":"member_access","text":"line.end.LengthPlus"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" \
     '"valid_array_builtins|ok"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/semantic/fixture/valid_array_builtins.pgy"'

@@ -543,7 +543,17 @@ for array_mir_fixture in \
     array_swap_pos_neg \
     array_zero_out_evens \
     atom_charged_match \
-    bank_fluent_chain; do
+    bank_fluent_chain \
+    bank_interest_recursive \
+    basic \
+    bid_max_score \
+    bin_push_chain \
+    binary_search_int \
+    binary_to_int \
+    bitwise_via_division \
+    bool_compound_predicates \
+    bool_cursor_equivalence \
+    bool_expr_chain; do
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done

@@ -61,7 +61,8 @@ func MirInstructionRequiresExpr0Graph(
         return !IsSome(arg0) || UnwrapOption(arg0) == "" ||
             UnwrapOption(arg0) == "Log" ||
             UnwrapOption(arg0) == "ArrayPush" ||
-            UnwrapOption(arg0) == "ArraySet";
+            UnwrapOption(arg0) == "ArraySet" ||
+            UnwrapOption(arg0) == "Exit";
     }
     return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }

@@ -1,5 +1,20 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/graph-SoT delta: DRV-2 MIR fixtures 171 through
+180 are `bank_interest_recursive`, `basic`, `bid_max_score`, `bin_push_chain`,
+`binary_search_int`, `binary_to_int`, `bitwise_via_division`,
+`bool_compound_predicates`, `bool_cursor_equivalence`, and `bool_expr_chain`.
+The first focused run exposed an `Exit(1)` instruction whose text existed but
+whose typed expression graph was absent. The statement producer now attaches
+the atom-lane graph, the MIR JSON graph consumer classifies `Exit` as required,
+and instruction validation rejects a missing graph. No C/source-text fallback
+was added. The semantic fixture inventory is now the separate
+`driver_rung2_semantic_fixture_manifest_owner.pgy` owner; the executable driver
+retains source/MIR convergence and is 520 lines. The Pergyra-built hard driver
+and independent C-built and LLVM-built drivers passed focused canonical-MIR,
+emitted-C, host-compile, and runtime parity for all ten fixtures. The complete
+180-fixture matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 161 through 170 are
 `array_set_in_place_memo`, `array_skip_pattern`, `array_sliding_diff`,
 `array_squeeze_zeros`, `array_sum_filtered`, `array_swap_pairs`,

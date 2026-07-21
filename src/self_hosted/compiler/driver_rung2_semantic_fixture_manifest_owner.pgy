@@ -1,0 +1,45 @@
+// DRV-2 semantic fixture manifest owner.
+//
+// This inventory is the stable positive/negative semantic harness surface.
+// The executable driver consumes it but does not own its membership.
+
+func DriverRung2FixtureRows() -> Array<String> {
+    return [
+        "valid_compound_local|ok",
+        "valid_call_int|ok",
+        "valid_option_none_literal|ok",
+        "valid_array_builtins|ok",
+        "valid_let_mut_reassign|ok",
+        "valid_outer_block_assign|ok",
+        "bad_let_type|error",
+        "bad_inner_let_type|error",
+        "bad_call_assign|error",
+        "bad_assign_type|error",
+        "bad_undefined_assign_lhs|error",
+        "bad_return_type|error",
+        "bad_condition_not_bool|error",
+        "bad_undefined_return|error",
+        "bad_undefined_assign|error",
+        "bad_undefined_let|error",
+        "bad_arity_too_few|error",
+        "valid_for_loop|ok",
+        "bad_for_undefined_iter|error",
+        "bad_for_body|error"
+    ];
+}
+
+func DriverRung2ExpectedFixtureCount() -> Int {
+    return 20;
+}
+
+func EmitDriverRung2FixtureManifest() -> Void {
+    let rows: Array<String> = DriverRung2FixtureRows();
+    if ArrayLength(rows) != DriverRung2ExpectedFixtureCount() {
+        Exit(1);
+    }
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}

@@ -26,35 +26,7 @@ import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
 import "driver_rung2_readiness_owner.pgy";
-
-func DriverRung2FixtureRows() -> Array<String> {
-    return [
-        "valid_compound_local|ok",
-        "valid_call_int|ok",
-        "valid_option_none_literal|ok",
-        "valid_array_builtins|ok",
-        "valid_let_mut_reassign|ok",
-        "valid_outer_block_assign|ok",
-        "bad_let_type|error",
-        "bad_inner_let_type|error",
-        "bad_call_assign|error",
-        "bad_assign_type|error",
-        "bad_undefined_assign_lhs|error",
-        "bad_return_type|error",
-        "bad_condition_not_bool|error",
-        "bad_undefined_return|error",
-        "bad_undefined_assign|error",
-        "bad_undefined_let|error",
-        "bad_arity_too_few|error",
-        "valid_for_loop|ok",
-        "bad_for_undefined_iter|error",
-        "bad_for_body|error"
-    ];
-}
-
-func DriverRung2ExpectedFixtureCount() -> Int {
-    return 20;
-}
+import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 
 func DriverRung2MirFixtureRows() -> Array<String> {
     return [
@@ -227,24 +199,22 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/array_swap_pos_neg/main.pgy",
         "tests/cases/backend_compare/array_zero_out_evens/main.pgy",
         "tests/cases/backend_compare/atom_charged_match/main.pgy",
-        "tests/cases/backend_compare/bank_fluent_chain/main.pgy"
+        "tests/cases/backend_compare/bank_fluent_chain/main.pgy",
+        "tests/cases/backend_compare/bank_interest_recursive/main.pgy",
+        "tests/cases/backend_compare/basic/main.pgy",
+        "tests/cases/backend_compare/bid_max_score/main.pgy",
+        "tests/cases/backend_compare/bin_push_chain/main.pgy",
+        "tests/cases/backend_compare/binary_search_int/main.pgy",
+        "tests/cases/backend_compare/binary_to_int/main.pgy",
+        "tests/cases/backend_compare/bitwise_via_division/main.pgy",
+        "tests/cases/backend_compare/bool_compound_predicates/main.pgy",
+        "tests/cases/backend_compare/bool_cursor_equivalence/main.pgy",
+        "tests/cases/backend_compare/bool_expr_chain/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 170;
-}
-
-func EmitDriverRung2FixtureManifest() -> Void {
-    let rows: Array<String> = DriverRung2FixtureRows();
-    if ArrayLength(rows) != DriverRung2ExpectedFixtureCount() {
-        Exit(1);
-    }
-    let i: Int = 0;
-    while i < ArrayLength(rows) {
-        Log(rows[i]);
-        i = i + 1;
-    }
+    return 180;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

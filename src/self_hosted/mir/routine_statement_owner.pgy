@@ -17,7 +17,8 @@ func SelfMirSimpleStatementExpressionGraphLane(
     kind: Int
 ) -> Option<Int> {
     if kind == TypedAstKindLogStmtTag() ||
-        kind == TypedAstKindBareCallStmtTag() {
+        kind == TypedAstKindBareCallStmtTag() ||
+        kind == TypedAstKindExitStmtTag() {
         return Some(AstExpressionLaneAtom());
     }
     if kind == TypedAstKindArrayPushStmtTag() {
