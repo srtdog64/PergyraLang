@@ -1,0 +1,68 @@
+// DRV-2 readiness owner.
+//
+// This contract names every fact producer required before the executable
+// source/MIR convergence driver may consume an artifact.
+
+func CompilerDriverRung2ReadinessError() -> String {
+    if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
+    if !ParserNumberSpellingContractReady() { return "parser_number_spelling"; }
+    if !SemanticBuiltinSignatureContractReady() { return "builtin_signature"; }
+    if !SemanticCallableResolutionContractReady() { return "callable_resolution"; }
+    if !SemanticExpressionNormalizationContractReady() { return "expression_normalization"; }
+    if !SemanticAstExpressionEnvironmentContractReady() { return "expression_environment"; }
+    if !SemanticAstInitializerTypeFactsContractReady() { return "initializer_type_facts"; }
+    if !SemanticAstIterationTypeFactsContractReady() { return "iteration_type_facts"; }
+    if !SemanticAstAssignmentFactsContractReady() { return "assignment_facts"; }
+    if !SemanticAstAssignmentTypeFactsContractReady() { return "assignment_type_facts"; }
+    if !SemanticAstStatementFactsContractReady() { return "statement_facts"; }
+    if !SemanticAstExpressionVerdictContractReady() { return "expression_verdict"; }
+    if !SemanticExpressionGraphIntrinsicTypeContractReady() { return "graph_intrinsic_type"; }
+    if !SemanticArrayTypeShapeContractReady() { return "array_type_shape"; }
+    if !SemanticTupleTypeShapeContractReady() { return "tuple_type_shape"; }
+    if !SemanticExpressionGraphScalarTypeContractReady() { return "graph_scalar_type"; }
+    if !SemanticExpressionGraphWrapperValueContractReady() { return "graph_wrapper_value"; }
+    if !SemanticExpressionGraphCollectionMutationContractReady() { return "graph_collection_mutation"; }
+    if !SemanticExpressionGraphFieldTypeContractReady() { return "graph_field_type"; }
+    if !SemanticAstExpressionTypedBindingContractReady() { return "expression_typed_binding"; }
+    if !SemanticAstStatementTypeFactsContractReady() { return "statement_type_facts"; }
+    if !SemanticAstStatementTypeQueryContractReady() { return "statement_type_query"; }
+    if !SemanticAstBodyTypeBundleContractReady() {
+        return Concat(
+            "body_type_bundle:", SemanticAstBodyTypeBundleContractError()
+        );
+    }
+    if !ParserExpressionGraphContractReady() { return "parser_expression_graph"; }
+    if !ParserExpressionPrecedenceGraphContractReady() { return "parser_precedence_graph"; }
+    if !ParserExpressionCastGraphContractReady() { return "parser_cast_graph"; }
+    if !ParserExpressionUnaryGraphContractReady() { return "parser_unary_graph"; }
+    if !ParserExpressionPipeGraphContractReady() { return "parser_pipe_graph"; }
+    if !ParserExpressionPostfixGraphContractReady() { return "parser_postfix_graph"; }
+    if !ParserExpressionTryGraphContractReady() { return "parser_try_graph"; }
+    if !ParserExpressionArrayLiteralGraphContractReady() { return "parser_array_literal_graph"; }
+    if !ParserExpressionStructLiteralGraphContractReady() { return "parser_struct_literal_graph"; }
+    if !SemanticExpressionGraphParserBridgeContractReady() { return "graph_parser_bridge"; }
+    if !SemanticExpressionGraphCompactBridgeTryContractReady() { return "graph_compact_try_bridge"; }
+    if !ParserExpressionCallGraphContractReady() { return "parser_call_graph"; }
+    if !ParserExpressionExplicitGenericCallGraphContractReady() { return "parser_generic_call_graph"; }
+    if !ParserExpressionNamedSingleCallArgumentContractReady() { return "parser_named_single_arg"; }
+    if !ParserExpressionNamedCallArgumentAtContractReady() { return "parser_named_arg"; }
+    if !ParserExpressionDirectCallCalleeContractReady() { return "parser_direct_callee"; }
+    if !ParserExpressionCallStatementKindContractReady() { return "parser_call_statement_kind"; }
+    if !SemanticExpressionCallTargetFactContractReady() { return "call_target_fact"; }
+    if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
+    if !SelfMirAssignmentTargetGraphContractReady() {
+        return "mir_assignment_target_graph";
+    }
+    if !SelfMirDestructureTypeFactRowsContractReady() {
+        return "mir_destructure_type_facts";
+    }
+    if !MirFactGraphPayloadContractReady() { return "mir_fact_graph_payload"; }
+    if TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) != "class" {
+        return "typed_ast_nominal_subkind";
+    }
+    return "";
+}
+
+func CompilerDriverRung2Ready() -> Bool {
+    return CompilerDriverRung2ReadinessError() == "";
+}

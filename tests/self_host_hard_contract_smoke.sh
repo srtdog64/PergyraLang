@@ -523,7 +523,17 @@ for array_mir_fixture in \
     array_minmax_range \
     array_of_strings_loop \
     array_pair_concat_sort \
-    array_partition_pivot; do
+    array_partition_pivot \
+    array_prefix_sum \
+    array_remove_value \
+    array_reverse_in_place \
+    array_rotate_left \
+    array_running_avg_int \
+    array_running_avg_window \
+    array_running_distinct_count \
+    array_running_max \
+    array_running_xor \
+    array_selection_sort; do
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done

@@ -3002,33 +3002,40 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
+require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
+require_file "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" 100
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'import "driver_rung2_readiness_owner.pgy";'
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func CompilerDriverRung2ReadinessError"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    "func CompilerDriverRung2Ready"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForMirProduction("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileArtifactToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserNumberSpellingContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "SemanticCallableResolutionContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserNumberSpellingContractReady()"
 require_text "src/self_hosted/parser/cursor_owner.pgy" \
     'ReadNumber("1000000", 0, cursor) == "1000000"'
 reject_text "src/self_hosted/parser/cursor_owner.pgy" \
     'return Concat("1e+", exp_text);'
 require_text "src/parser/ast_print_misc.c" \
     'ast_number_is_float(node) ? "%g" : "%.0f"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "AstExpressionNodeAwait()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeAwait() -> Int"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionCallGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionExplicitGenericCallGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstExpressionTypedBindingContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionCallGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionExplicitGenericCallGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "SemanticAstExpressionTypedBindingContractReady()"
 for expression_graph_transport_owner in \
     decl_ability_owner.pgy decl_dispatch_owner.pgy decl_nominal_owner.pgy \
     decl_role_owner.pgy decl_zone_owner.pgy function_decl_owner.pgy \
@@ -3068,7 +3075,7 @@ require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "func SelfMirExpressionGraphRangeReachable("
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "func SelfMirExpressionGraphRowsContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SelfMirExpressionGraphRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
 require_file "src/self_hosted/codegen/emission/function_binding_env_owner.pgy"
@@ -3131,7 +3138,7 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     "require_carried_call_targets"
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     "func SemanticExpressionCallTargetFactContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphCopy"
@@ -3310,7 +3317,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirFactGraphPayloadContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleReady("
@@ -3626,9 +3633,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 150;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 160;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 150'
+    'mir_fixture_rows[@]}" -ne 160'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3713,7 +3720,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.p
     "CheckCall("
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphWrapperValueFactFromGraph("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphWrapperValueContractReady()"
 require_file "src/self_hosted/tools/wrapper_policy_probe/main.pgy"
 require_max_lines "src/self_hosted/tools/wrapper_policy_probe/main.pgy" 300
@@ -3741,7 +3748,7 @@ require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphCollectionMutationFactFromGraph("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticCollectionMutationError("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphCollectionMutationContractReady()"
 require_file "src/self_hosted/tools/collection_policy_probe/main.pgy"
 require_max_lines "src/self_hosted/tools/collection_policy_probe/main.pgy" 300
@@ -3757,11 +3764,11 @@ require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pg
     "SemanticExpressionGraphScalarTypeContractReady()"
 require_file "src/self_hosted/semantic/array_type_shape_owner.pgy"
 require_max_lines "src/self_hosted/semantic/array_type_shape_owner.pgy" 80
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticArrayTypeShapeContractReady()"
 require_file "src/self_hosted/semantic/tuple_type_shape_owner.pgy"
 require_max_lines "src/self_hosted/semantic/tuple_type_shape_owner.pgy" 100
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticTupleTypeShapeContractReady()"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "binding_arities: Array<Int>"
@@ -3783,7 +3790,7 @@ require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
     "rows.binding_indices[row] >= rows.binding_counts[row]"
 require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
     'return "destructure type fact identity is duplicated";'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SelfMirDestructureTypeFactRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
@@ -3809,7 +3816,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy"
     "ExprType("
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphStructValueTypeError("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphFieldTypeContractReady()"
 require_file "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy"
 require_max_lines "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" 300
@@ -3821,7 +3828,7 @@ require_text "Makefile" "self-host-aggregate-field-policy-parity-test-smoke:"
 require_text "Makefile" "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
 require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     'SemanticExpressionGraphIntrinsicTypeContractReady()'
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     'SemanticAstExpressionVerdictFromGraph('
@@ -3864,11 +3871,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 150;"
+    "return 160;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 150'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 160'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4577,9 +4584,9 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_string_literal_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_string_literal"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParserExpressionPipeGraphContractReady("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPipeGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionPipeGraphContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "call = ParserExpressionCallArgument("
 reject_function_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
@@ -4588,9 +4595,9 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeTry() -> Int"
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
     "func ParserExpressionTryGraphContractReady("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "ParserExpressionTryGraphContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "ParserExpressionStructLiteralGraphContractReady()"
 require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     'import "try_expression_fact_owner.pgy";'
@@ -4598,7 +4605,7 @@ require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owne
     "func SemanticExpressionGraphCompactBridgeTryContractReady("
 require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     "SemanticExpressionGraphBuildTryCompactBridge("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphCompactBridgeTryContractReady()"
 require_text "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" \
     '$backend $stage try graph was lost'
@@ -5317,7 +5324,7 @@ reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "WithSemanticShape("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "body_types: SemanticAstBodyTypeBundle;"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticAstStatementTypeQueryContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "GenerateCFromVerifiedSemanticArtifact("
@@ -5530,7 +5537,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "func SemanticExpressionGraphBuildParserCompactBridge("
 require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" \
     "func SemanticExpressionGraphParserBridgeContractReady("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphParserBridgeContractReady()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall("

@@ -1,5 +1,19 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth/owner delta: DRV-2 MIR fixtures 151 through 160
+are `array_prefix_sum`, `array_remove_value`, `array_reverse_in_place`,
+`array_rotate_left`, `array_running_avg_int`, `array_running_avg_window`,
+`array_running_distinct_count`, `array_running_max`, `array_running_xor`, and
+`array_selection_sort`. The executable driver had reached 593 lines before
+this expansion. Its readiness checklist is now the separate
+`driver_rung2_readiness_owner.pgy` fact contract (68 lines), while the driver
+retains source/MIR convergence, verification, emission, and argument routing.
+This is an owner split, not a generic helper bucket. The resulting driver is
+540 lines. The Pergyra-built hard driver and independent C-built and
+LLVM-built self drivers passed focused canonical-MIR, emitted-C, host-compile,
+and runtime parity for all ten fixtures. The complete 160-fixture matrix was
+not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 141 through 150 are
 `array_inline_class_weighted`, `array_insertion_sort`,
 `array_kadane_max_subarray`, `array_min_max_combined`, `array_min_max_loop`,
