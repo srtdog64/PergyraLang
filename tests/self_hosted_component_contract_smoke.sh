@@ -3367,7 +3367,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--mir-json"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleReady("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
@@ -3379,8 +3379,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func Canonicaliz
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramJson(mir_facts)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_call.pgy"'
@@ -3682,9 +3682,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 203;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 204;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 203'
+    'mir_fixture_rows[@]}" -ne 204'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3920,17 +3920,19 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 203;"
+    "return 204;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 203'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 204'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_skipped/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/bubble_sort_basic/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_arg_helper_loop/main.pgy"'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     'target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses'
 require_file "src/self_hosted/semantic/assignment_binding_mode_owner.pgy"
@@ -4090,7 +4092,11 @@ require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIteratio
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
+require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 100
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" 'import "driver_rung2_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
@@ -9002,7 +9008,7 @@ reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"--emit-c-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" '"--emit-c-verified"'
 require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 300
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'

@@ -938,8 +938,12 @@ inventory must not become a second fact-family owner registry.
   semantic source/MIR-to-C owner; joins initializer, iteration, assignment,
   expression-use, call, return, and condition evidence after source and MIR
   JSON inputs converge on one `AstTreeArtifact` verifier.
+- `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- DRV-2 command-line
+  mode selection and argument routing; consumes compiler-stage operations but
+  owns no semantic or MIR facts.
 - `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
-  semantic boundary; ownership remains in `driver_rung2_owner.pgy`.
+  semantic entrypoint; CLI ownership remains in `driver_rung2_cli_owner.pgy`
+  and compiler-stage ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.

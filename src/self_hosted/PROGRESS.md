@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixture 204 is
+`class_arg_helper_loop`. Clean committed-source C-built and LLVM-built self
+drivers match the C oracle byte-for-byte after canonical MIR normalization,
+emit identical C from both the MIR consumer and source path, compile that C,
+and produce the same `60`, `0` runtime output. This fixture needed no new
+semantic fact or fallback; it extends the executable substitution surface
+already admitted by the existing class, array, call-target, loop-phi, and
+assignment owners. The
+reached 550-line gate also moved command-line mode routing out of the compiler
+stage owner into `driver_rung2_cli_owner.pgy`; no semantic decision moved. The
+complete 204-fixture matrix was not run, and released/default replacement
+remains 0%.
+
 2026-07-21 executable assignment-mode SoT delta: DRV-2 MIR fixture 203 is
 bubble_sort_basic. Its indexed inout parameter target exposed a valid
 version-zero case: parameter input is not an SSA definition, so no synthetic

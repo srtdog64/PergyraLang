@@ -232,7 +232,7 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CompileSourceToCVerified" \
     "CanonicalizeOracleMirJsonBridge("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
     'args[0] == "--canonicalize-oracle-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"'

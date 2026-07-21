@@ -979,6 +979,19 @@ through canonical MIR, MIR-to-C, host compilation, and runtime output. The
 explicit oracle compatibility bridge remains separate and is not evidence for
 self-MIR fact completeness.
 
+Eightieth executable active-rung delta, 2026-07-21:
+`class_arg_helper_loop` becomes DRV-2 MIR fixture 204 without adding a new
+fact family. Clean committed-source C-built and LLVM-built self drivers both
+produce canonical MIR byte-identical to the C oracle. Their MIR consumer and
+source paths emit identical C, and host compilation/runtime output agree
+(`60`, `0`). Existing class, array, call-target, loop-phi, and assignment
+owners were sufficient, so this is an executable breadth increase rather than
+an SoT-only change. The 550-line
+owner gate reached by this fixture also moves command-line mode selection into
+`driver_rung2_cli_owner.pgy`, leaving source/MIR/artifact transformation in the
+stage owner. The full 204-fixture matrix and released/default replacement
+remain open.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

@@ -1,0 +1,82 @@
+// DRV-2 command-line mode routing owner.
+
+import "driver_rung2_owner.pgy";
+
+func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitDriverRung2FixtureManifest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--mir-fixture-manifest" {
+        EmitDriverRung2MirFixtureManifest();
+        return;
+    }
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
+        args[0] == "--emit-mir-json-verified" {
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CompileSourceToMirJsonVerified(args[1], declaration));
+        return;
+    }
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
+        args[0] == "--canonicalize-mir-json" {
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CanonicalizeMirJsonVerified(args[1], declaration));
+        return;
+    }
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
+        args[0] == "--canonicalize-oracle-mir-json" {
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CanonicalizeOracleMirJsonBridge(args[1], declaration));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--mir-json" {
+        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
+            Die("driver rung-2 --mir-json requires MIR JSON and optional declaration path");
+        }
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CompileMirJsonToCVerified(args[1], declaration).payload);
+        return;
+    }
+    if ArrayLength(args) > 0 &&
+        args[0] == "--self-test-missing-target-projection" {
+        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
+            Die("missing-target-projection self-test requires MIR JSON and optional declaration path");
+        }
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        let json: String = MirJsonReadInput(args[1], declaration);
+        CompileMirJsonTextToCForTargetVerified(
+            json, declaration, CompilerTargetProjectionFactEmpty()
+        );
+        Die("missing target projection fact was accepted");
+    }
+    let source_path: String = ParserDefaultSourcePath(args);
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationEmpty();
+    if ArrayLength(args) == 3 &&
+        args[1] == "--machine-manifest-json" {
+        declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+    } else if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
+        Die(Concat("unknown driver rung-2 mode: ", args[1]));
+    }
+    Log(CompileSourceToCVerified(source_path, declaration).payload);
+}
