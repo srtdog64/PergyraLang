@@ -533,7 +533,17 @@ for array_mir_fixture in \
     array_running_distinct_count \
     array_running_max \
     array_running_xor \
-    array_selection_sort; do
+    array_selection_sort \
+    array_set_in_place_memo \
+    array_skip_pattern \
+    array_sliding_diff \
+    array_squeeze_zeros \
+    array_sum_filtered \
+    array_swap_pairs \
+    array_swap_pos_neg \
+    array_zero_out_evens \
+    atom_charged_match \
+    bank_fluent_chain; do
     require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done

@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 161 through 170 are
+`array_set_in_place_memo`, `array_skip_pattern`, `array_sliding_diff`,
+`array_squeeze_zeros`, `array_sum_filtered`, `array_swap_pairs`,
+`array_swap_pos_neg`, `array_zero_out_evens`, `atom_charged_match`, and
+`bank_fluent_chain`. This extends the replacement path across additional
+in-place array mutation, filtering, enum-match dispatch, and fluent class
+calls without admitting allocator, async, or extern surfaces whose producer
+facts still fail closed. The Pergyra-built hard driver and independent
+C-built and LLVM-built self drivers passed focused canonical-MIR, emitted-C,
+host-compile, and runtime parity for all ten fixtures. The complete
+170-fixture matrix was not run, and released/default replacement remains 0%.
+
 2026-07-21 executable breadth/owner delta: DRV-2 MIR fixtures 151 through 160
 are `array_prefix_sum`, `array_remove_value`, `array_reverse_in_place`,
 `array_rotate_left`, `array_running_avg_int`, `array_running_avg_window`,
