@@ -161,20 +161,26 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
+    let routine_defers: Array<String> = [""];
     let body: String = EmitStmtList(
         count, arena, local_bindings, assignments, statements, body_types,
         expression_surfaces, stmt_indent, cur, "    ",
-        env_state, body_ret, copyout
+        env_state, body_ret, routine_defers, copyout
     );
 
     let signature: String = "";
-    let body_full: String = Concat(prologue, Concat(body, copyout));
+    let body_full: String = Concat(
+        prologue, Concat(body, Concat(routine_defers[0], copyout))
+    );
     if is_main {
         body_full = Concat(machine_startup, body_full);
         signature = HostIORuntimeCEntrypointSignature(uses_args);
         if uses_args {
-            body_full = Concat(HostIORuntimeCArgsCapturePrefix(),
-                Concat(machine_startup, Concat(prologue, Concat(body, copyout))));
+            body_full = Concat(HostIORuntimeCArgsCapturePrefix(), Concat(
+                machine_startup, Concat(
+                    prologue, Concat(body, Concat(routine_defers[0], copyout))
+                )
+            ));
         }
     } else {
         let param_list: String = params;

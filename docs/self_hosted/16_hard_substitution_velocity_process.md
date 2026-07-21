@@ -939,6 +939,21 @@ a checked Coq projection. The current split is
 owner list or status count. `src/self_hosted/OWNERS.md` remains only a physical
 module inventory.
 
+Seventy-seventh executable active-rung delta, 2026-07-21:
+`branch_defer_scope` and `branch_defer_skipped` become DRV-2 MIR fixtures 191
+and 192. The first probe falsified the self emitter's lexical cleanup model:
+the taken static branch emitted `1,2`, while the native MIR path registers the
+reachable defer for routine exit and emits `2,1`. The self emitter now threads
+a routine-level LIFO registration state through nested statement emission.
+The skipped static branch registers nothing because its defer instruction is
+not reachable in the MIR-derived artifact. Independent C-built and LLVM-built
+self drivers pass canonical-MIR, emitted-C, host-compile, and runtime parity.
+The bounded proof still depends on the beta rule that dynamic-control defer is
+rejected. Native C/LLVM backends retain a separate bridge because their MIR
+emitters register the AST body pointer attached to the instruction; removing
+that bridge requires a fully typed nested cleanup-body row and backend
+consumer migration, not a self-host fallback.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

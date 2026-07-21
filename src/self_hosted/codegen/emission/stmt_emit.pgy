@@ -210,16 +210,15 @@ func EmitStmtList(count: Int, arena: AstArena,
                   stmt_indent: Int,
                   inout cur: Array<Int>, pad: String,
                   inout env_state: Array<String>, cur_fn_ret: String,
+                  inout routine_defers: Array<String>,
                   active_defers: String) -> String {
     let result: Array<String> = [];
-    let deferred: String = "";
     let inner_pad: String = Concat(pad, "    ");
     while cur[0] < count {
         let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
         let idx: Int = cur[0];
         let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
         if ind < stmt_indent {
-            ArrayPush(result, deferred);
             return StringJoin(result, "");
         }
         if ind > stmt_indent {
@@ -233,7 +232,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if CodegenSemanticExpressionGraphIsTry(let_graph) {
                 ArrayPush(result, Concat(pad, Concat(EmitTryLet(
                     local_bindings, arena, idx, let_graph, env_state,
-                    cur_fn_ret, pad, Concat(deferred, active_defers)
+                    cur_fn_ret, pad,
+                    Concat(routine_defers[0], active_defers)
                 ), "\n")));
             } else {
                 ArrayPush(result, Concat(pad, Concat(
@@ -287,9 +287,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if !AbiLayoutIsVoidReturnType(cur_fn_ret) {
                 bare = Concat("return ", Concat(AbiLayoutCDefaultReturnValue(cur_fn_ret, env), ";"));
             }
-            ArrayPush(result, deferred);
+            ArrayPush(result, routine_defers[0]);
             ArrayPush(result, active_defers);
-            deferred = "";
             ArrayPush(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -299,8 +298,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
                 );
-            let return_cleanup: String = Concat(deferred, active_defers);
-            deferred = "";
+            let return_cleanup: String =
+                Concat(routine_defers[0], active_defers);
             ArrayPush(result, EmitReturnWithCleanup(
                 rexpr, cur_fn_ret, env, return_graph,
                 return_cleanup, idx, pad
@@ -312,8 +311,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             CodegenAstArenaExpectBlock(arena, count, cur);
             let defer_env: Array<String> = [env_state[0], env_state[1]];
             let body: String = EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4,
-                cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
-            deferred = Concat(body, deferred); continue;
+                cur, pad, defer_env, cur_fn_ret, routine_defers, active_defers);
+            ArraySet(routine_defers, 0, Concat(body, routine_defers[0])); continue;
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
@@ -473,7 +472,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
             ArrayPush(result, Concat(pad, "}\n"));
             continue;
         }
@@ -491,7 +490,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
             ArrayPush(result, Concat(pad, "}\n"));
             continue;
         }
@@ -510,7 +509,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
             if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
                 if CodegenSemanticStatementIs(statements, cur[0], TypedAstKindIfStmtTag()) {
@@ -518,11 +517,11 @@ func EmitStmtList(count: Int, arena: AstArena,
                     // (no `Block:`). Emit `} else ` and recurse on that If at its
                     // own indent; the nested if-chain closes itself.
                     ArrayPush(result, Concat(pad, "} else "));
-                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
+                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_state, cur_fn_ret, routine_defers, active_defers));
                 } else {
                     ArrayPush(result, Concat(pad, "} else {\n"));
                     CodegenAstArenaExpectBlock(arena, count, cur);
-                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
+                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
                     ArrayPush(result, Concat(pad, "}\n"));
                 }
             } else {
@@ -562,7 +561,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     ArraySet(cur, 0, cur[0] + 1);
                     CodegenAstArenaExpectBlock(arena, count, cur);
                     let case_env: Array<String> = [env_state[0], env_state[1]];
-                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
+                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, routine_defers, active_defers));
                     match_case_count = match_case_count + 1;
                 } else if CodegenSemanticStatementIs(statements, cur[0], TypedAstKindMatchDefaultStmtTag()) {
                     Die("match default is not supported in self-host codegen subset");
@@ -592,7 +591,6 @@ func EmitStmtList(count: Int, arena: AstArena,
         }
         Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
-    ArrayPush(result, deferred);
     return StringJoin(result, "");
 }
 

@@ -3641,9 +3641,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 190;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 192;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 190'
+    'mir_fixture_rows[@]}" -ne 192'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_node_field_access/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3879,11 +3879,21 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 190;"
+    "return 192;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 190'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 192'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/branch_defer_skipped/main.pgy"'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'inout routine_defers: Array<String>'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'ArraySet(routine_defers, 0, Concat(body, routine_defers[0]))'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'let deferred: String = "";'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh" 40
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -8446,7 +8456,9 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldSt
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeRowRequired"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeAuxRowFactReady"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi_aux"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "JsonObjectFactStringFieldEquals"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" 'JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol)'

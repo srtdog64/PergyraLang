@@ -5,7 +5,7 @@ pgy_selfhost_verify_driver_rung2_defer() {
     local base="$2"
     local self_mir_json="$3"
 
-    [[ "$base" == "defer_scope" ]] || return 0
+    [[ "$base" == "defer_scope" || "$base" == "branch_defer_scope" ]] || return 0
     grep -Fq '"source_type":"AST_DEFER_STMT"' "$self_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend typed defer instruction was lost" >&2
         exit 1
