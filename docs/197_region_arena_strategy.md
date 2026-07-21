@@ -560,10 +560,72 @@ memory-boundedness witness (the leaking chained-concat fixture's RSS
 plateaus); C==LLVM output equality; reachability rows for the PgyRegion family
 flipped to **live in the same commit** (until then they stay declared/honest).
 
-### A.3 REG-1d — origin surface, unblocked-but-dependent
+### A.3 REG-1d — origin surface ✅ LANDED (`58a4a5e4`)
 
-`region_plan_owner.pgy` (+ manifest + golden + smoke) owning the producer
-refusal rules / duplicate collapse / per-site fail-closed lookup /
-driver-produces-backends-consume forbids, plus artifact-zone kind #29. New
-files (no collision), but it documents the REG-1b contract, so it lands with
-the REG-1b+c train, not before.
+`src/self_hosted/compiler/region_plan_owner.pgy` (450 lines) + manifest +
+pinned golden + `tests/selfhost_region_plan_smoke.sh`, artifact-zone kind 29,
+OWNERS.md and component-contract registration. Gate is green: golden contract
+diff through the self-hosted comparator, C-leg == LLVM-leg artifact equality,
+10 require pins, 4 forbid pins, self-test.
+
+Landed **before** the REG-1b+c train rather than with it, which the original
+plan had backwards. The owner is a *contract* artifact: it can declare the full
+rule set (including the owner-conflict refusal and the function-scope owner
+lookup, both of which only exist in the working tree so far) while pinning only
+the C projections that exist at that commit. Pinning is what must not run ahead
+of the code; modelling is not.
+
+The load-bearing addition over the plan sketch is naming the **asymmetry** as
+the owner's central claim, with its own witness (`lookup_miss_is_heap`) and its
+own contract row: a miss is HEAP, not a refusal, which is precisely why a
+narrow escape analysis is shippable. The spawn-lane plan is the contrast case
+(a miss there must refuse — no safe default lane exists). Both are fail-closed;
+the word means different things depending on whether a safe default exists, and
+that distinction is now written down where a future session cannot lose it.
+
+Deferred to the wiring commit, by the same pin-honesty rule: the driver
+produce/dispose require rows, the emitters' lookup require rows, and a
+`reach|...|live` row for `pgy_verified_region_plan_lookup` in the reachability
+manifest.
+
+### A.4 The REG-1c collision dissolved — wiring is in the tree, build green
+
+The blocker recorded in A.2/A.2b is **gone**, and not by waiting it out. The
+concurrent stream picked up the landed REG-1b/1c artifacts and wired them
+itself, end to end:
+
+- `CompilerIRBundle` carries `const struct PgyRegionPlan *region_plan`
+  (`src/compiler/compiler.h`) — the plan reaches backends as an immutable
+  bundle field, which is a better seam than the transpiler-ctx parameter this
+  document originally sketched;
+- the driver produces it (`src/compiler/driver_app.c`: escape collect →
+  `pgy_verified_region_plan_from_escape` → dispose on both exits);
+- both backends consume it — `transpiler_context.c` and
+  `llvm_expr_scalar_core.c` for the per-site lookup,
+  `llvm_mir_emit.c` for the function-scope region — via a new
+  `pgy_verified_region_plan_scope_for_function_id`, with
+  `function_syntax_id` added to the row so a routine can claim its scope by
+  stable MIR id rather than by AST root;
+- `verified_region_plan.c` + `region_escape_v1.c` are in `COMPILER_SOURCES`.
+
+**Verified**: a full isolated `mingw32-make pgy` over the current tree exits 0
+with no errors. Both unit gates stay green.
+
+Two follow-ups this session produced that must land **with** that wiring
+commit, because they reference the not-yet-committed `function_syntax_id`:
+
+1. `tests/region_plan_unit.c` gained coverage for the branches the extension
+   added and left untested — every test had passed `function_syntax_id = 0`, so
+   the new owner-conflict refusal and the whole
+   `_scope_for_function_id` fail-closed matrix (null plan, unverified plan,
+   zero id, unknown owner, and an owner row carrying scope 0) had no gate at
+   all. Verified green.
+2. The `selfhost-region-plan-test-smoke` aggregate membership line (the target
+   itself is committed; only the one-line aggregate edit sits in a hunk mixed
+   with the concurrent stream's own aggregate additions).
+
+Process note worth keeping: the earlier "blocked" reading was correct at the
+time but the *response* was too passive. What unblocked the track was checking
+whether the tree still built (it did), then landing every piece that did not
+touch a co-edited region — runtime, plan, analysis, and now the whole origin
+surface — so that when the wiring arrived it had something to wire.

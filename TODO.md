@@ -10452,15 +10452,33 @@ certificate-or-HEAP fail-closed·트윈 규율·slot 스토리지 불가침).
   게이트 `region-escape-unit-test-smoke`(Print(a+b)→1·PrintLn(a+b+c)→2·
   non-Print→0·bare→0·함수별 distinct scope, `-Wall -Wextra` 통과). 인터페이스
   (escape-site 배열)가 driver rework 와 독립이라 지금 검증 착지.
-- **★REG-1c emission + driver 배선만 남음 (verified 충돌 대기)**: emission =
-  clean `emit_binary` StringConcat 사이트에서 plan lookup→REGION 이면
-  `pgy_region_string_concat` + 함수당 region create/destroy(전 return 경로, MIR
-  terminal-branch CFG fact) + LLVM twin. **유일 blocker** = plan 을 emitter ctx
-  로 넣는 driver 배선인데, 사용자가 **sibling parallel-capture plan 을 동일
-  영역에 배선 중**(hunk: compiler.c @@-68 +17줄, transpiler.h @@-153 ctx struct +
-  @@-367 시그니처 — 사용자는 `_plans` 복수 overload 신설 중이라 지금 내 배선은
-  그 restructure 와 싸움). emit_binary 자체는 clean 이나 ctx->region_plan 이
-  배선 없이는 없음. 재개=사용자 restructure 커밋 후 기계적(docs/197 App A.2b).
+- **★REG-1d origin surface ✅ LANDED (2026-07-21, `58a4a5e4`)**:
+  `src/self_hosted/compiler/region_plan_owner.pgy`(450줄) + manifest + 핀 골든
+  + `tests/selfhost_region_plan_smoke.sh` + **artifact kind 29** + OWNERS.md +
+  component-contract 등록. 게이트 green(골든 계약 diff·**C leg==LLVM leg**
+  artifact 동일·require 핀 10·forbid 핀 4·self-test). 계획을 뒤집어 REG-1b+c
+  train **앞에** 착지 — owner 는 *계약* 산출물이라 규칙 전체(owner-conflict
+  거절·function-scope owner lookup)를 모델링하면서 **핀은 그 커밋에 실존하는
+  C 투영만** 걸면 된다(핀만 코드를 앞서면 안 됨, 모델링은 아님). 핵심 추가 =
+  **비대칭을 owner 의 중심 주장으로 명명**(`lookup_miss_is_heap` witness):
+  miss=HEAP(거절 아님)이라서 좁은 escape 분석이 출하 가능 — spawn-lane plan 은
+  반대(안전 기본 lane 이 없어 miss=거절). 둘 다 fail-closed 지만 "closed" 의
+  뜻이 다르다는 걸 미래 세션이 잃지 않도록 기록.
+- **★REG-1c 충돌 해소 — 배선이 tree 에 들어옴, 빌드 green**: 동시 세션이 착지된
+  REG-1b/1c 를 **직접 배선**했다(대기가 아니라 해소). `CompilerIRBundle` 에
+  `region_plan` 필드(원안의 transpiler-ctx 파라미터보다 나은 seam) + driver 생산
+  (`driver_app.c` escape collect→from_escape→양 exit dispose) + **양 백엔드 소비**
+  (`transpiler_context.c`/`llvm_expr_scalar_core.c` per-site,
+  `llvm_mir_emit.c` 함수-스코프) + 행에 `function_syntax_id` 추가 +
+  `_scope_for_function_id` 신설 + COMPILER_SOURCES 등록. **전체 isolated
+  `mingw32-make pgy` exit 0**(에러 0), 유닛 게이트 2종 green.
+- **잔여(= 그 배선 커밋과 함께 착지)**: ① `tests/region_plan_unit.c` 에
+  추가한 커버리지 — 확장이 만든 분기가 **무테스트**였다(모든 케이스가
+  `function_syntax_id = 0`): owner-conflict 거절 + `_scope_for_function_id`
+  fail-closed 전 행렬(null plan·unverified·id 0·미지 owner·scope 0 인 owner 행).
+  검증 green. ② `selfhost-region-plan-test-smoke` aggregate 1줄(타깃 자체는
+  커밋됨; aggregate hunk 만 동시 세션 추가분과 섞임). ③ 핀-정직 규칙에 따라
+  driver produce/dispose·emitter lookup require 행 + reachability `live` 행.
 - **목표**: §1.2 의 소비자-0 런타임 arena 를 체인-블록으로 승격(ABI §13 개정
   — 소비자 0 인 지금이 유일하게 싼 시점) + 3-물질화/`.bc` + `PgyRegionPlan`
   (제3의 verified-projection 산출물: site→REGION|HEAP, 인증서 게이트, per-site
