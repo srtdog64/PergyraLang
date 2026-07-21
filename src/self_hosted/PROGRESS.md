@@ -1,5 +1,14 @@
 # Self-Host Progress
 
+2026-07-21 executable breadth delta: DRV-2 MIR fixture 216 is
+`class_helper_method_chain`. The existing class receiver, method-call target,
+field, return, and expression-graph facts were sufficient; no semantic
+fallback or new fact family was added. Focused C-built and LLVM-built self
+drivers match the C oracle after canonical MIR normalization, emit identical C
+from the source and MIR consumer paths, compile that C, and produce identical
+runtime output. The complete 216-fixture matrix and released/default
+replacement remain open.
+
 2026-07-21 executable Slot ABI SoT delta: DRV-2 MIR fixture 215 is
 `bool_helper_while_slot`. The semantic owner recognizes the plain `Slot<T>`
 Claim/Read/Write/Release surface, and the MIR producer projects each required
