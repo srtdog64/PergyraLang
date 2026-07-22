@@ -9,21 +9,24 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `2a21ef801a3b06f15b1e327e470d1f47f21cbfbf` on `main`.
+- Captured HEAD: `d47f6bd017c9d14544d9c1dfa7180412d1417210` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and none of the remaining changes is staged.
-  The latest observed state has 6 modified tracked paths and 52 untracked
-  paths. The tracked set is the next semantic-type/AST-usage/signature SoT
-  slice. The untracked paths are diagnostic `.tmp` artifacts from allocator,
-  defer, TextBuilder, bootstrap, and wrapper-policy probes. Preserve them
-  until the next slice is explicitly audited. Build artifacts remain ignored;
-  run `git status --short --branch` before resuming because this count can
-  change.
+  The latest observed state has 21 modified tracked paths and 69 untracked
+  paths. The tracked set includes concurrent fixture-231/match-binding work,
+  plus an unstaged Result-adjacent formatting/contract remainder. The
+  untracked set includes the concurrent match-binding owners and diagnostic
+  `.tmp` artifacts from allocator, defer, TextBuilder, bootstrap, and
+  wrapper-policy probes. Preserve them until the next slice is explicitly
+  audited. Build artifacts remain ignored; run `git status --short --branch`
+  before resuming because this count can change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
   `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
   created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
-  The remaining dirty paths are preserved user/prior work and are not included
-  in those commits.
+  It then refreshed the handoff in `37c5e213` and created and pushed
+  `d47f6bd0` for the explicit `Result<T,E>` runtime SoT slice. The remaining
+  dirty paths are preserved user/prior work and are not included in those
+  commits.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -192,6 +195,23 @@ current owner fact and update this file after verification.
   objective card, and probe it without changing the manifest. Do not open a
   C-shaped runtime fragment or a parallel cleanup track merely to increase the
   fixture count.
+
+### 1a. Explicit Result runtime SoT closure
+
+- The explicit `Result<T,E>` runtime path is now owned by the self-hosted
+  Result usage, type, runtime-ABI, declaration, and emission owners. Contextual
+  constructors, `UnwrapErr`, returns, and local declarations consume the typed
+  Result facts; the old generic runtime-name fallback is not part of this
+  closed slice.
+- Focused evidence observed on 2026-07-23: hard substitution contract passed;
+  isolated codegen fixpoint passed with `gen2 == gen3` at 36,402 lines;
+  self-host compiler build passed; the explicit custom-error fixture emitted
+  typed Result ABI names, compiled, and ran with output `7`, `err`, `42`; and
+  `UnwrapErr(Option<Int>)` failed closed with `builtin_arg_type_mismatch`.
+- The full component contract was not green because the current concurrent
+  tree still has `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` at
+  649 lines against the 600-line cap. This is recorded as an external
+  remainder, not silently absorbed into the Result closure.
 
 ### 2. MIR-only / ABI-first backend closure
 
