@@ -2,8 +2,7 @@
 # Owns fail-closed mutations for self-produced MIR expression graphs.
 pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local machine_declaration="${5:-}" missing_graph invalid_graph
-    local invalid_cast_target
+    local machine_declaration="${5:-}" missing_graph invalid_graph invalid_cast_target
     local -a consumer_command
 
     if ! grep -Fq '"expr0_graph":{' "$self_mir_json"; then
@@ -31,6 +30,7 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     }
     pgy_selfhost_verify_driver_rung2_array_set_graph_negative \
         "$backend" "$base" "$self_mir_json" "$driver_bin"
+    pgy_selfhost_verify_driver_rung2_operator_kind_negative "$backend" "$base" "$self_mir_json" "$driver_bin"
     if [[ "$base" == "result_int_core" ]]; then
         if (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_graph")" \

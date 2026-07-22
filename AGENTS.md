@@ -3,6 +3,19 @@
 This repository is in beta-closure mode. Prefer source-of-truth closure over
 cosmetic reshuffling.
 
+## Resume Context
+
+- Start a resumed session with `docs/current_work_handoff.md`, then verify its
+  checkpoint with `git status`, the named owner document, and the named
+  focused gate.
+- `docs/current_work_handoff.md` is a navigation snapshot, not semantic
+  authority. The SoT registry, active rung owner, protocol/ABI registry, and
+  executable gates remain authoritative when a handoff and the current tree
+  disagree.
+- Refresh the handoff after a material work session with the exact HEAD/dirty
+  state, active executable rung, last green gate, next falsifying fixture, and
+  any blocker. Do not record an inferred continuation as completed work.
+
 ## Developer Experience Is A Core Invariant
 
 - The language slogan is: `개발자가 즐거워야 유저도 즐겁다.`

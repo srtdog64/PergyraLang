@@ -175,7 +175,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
             names, types, modes
         ) { environment_fact = "iteration_environment"; }
         else if !SemanticAstExpressionSeedVisibleMatchBindings(
-            artifact, expression_surfaces,
+            artifact, expression_surfaces, signatures, constructors,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) { environment_fact = "match_binding_environment"; }

@@ -331,12 +331,44 @@ func ParseLogicalOrFact(
     return left;
 }
 
+func ParseCoalesceFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseLogicalOrFact(
+        content, start, cursor_out
+    );
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) != "?" ||
+            ParserCharAt(content, i + 1) != "?" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 2;
+        let right: ParserExpressionFact = ParseLogicalOrFact(
+            content, i, cursor_out
+        );
+        i = cursor_out[0];
+        let text: String = Concat(
+            "(", Concat(left.text, Concat(" ?? ", Concat(right.text, ")")))
+        );
+        left = ParserExpressionBinary(
+            AstExpressionNodeCoalesce(), text, left, right
+        );
+    }
+    return left;
+}
+
 func ParseExprFact(
     content: String,
     start: Int,
     cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    return ParseLogicalOrFact(content, start, cursor_out);
+    return ParseCoalesceFact(content, start, cursor_out);
 }
 
 func ParserExpressionPrecedenceGraphContractReady() -> Bool {
@@ -344,6 +376,23 @@ func ParserExpressionPrecedenceGraphContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) {
+        return false;
+    }
+    let coalesce_source: String = "(candidate ?? 0)";
+    let coalesce_cursor: Array<Int> = [0];
+    let coalesce: ParserExpressionFact = ParseExprFact(
+        coalesce_source, 0, coalesce_cursor
+    );
+    if !coalesce.ok || coalesce_cursor[0] !=
+            StringLength(coalesce_source) ||
+        coalesce.arena.node_kinds[coalesce.root] !=
+            AstExpressionNodeCoalesce() {
+        return false;
+    }
+    let coalesce_left: Int = coalesce.arena.left_children[coalesce.root];
+    let coalesce_right: Int = coalesce.arena.right_children[coalesce.root];
+    if coalesce.arena.node_texts[coalesce_left] != "candidate" ||
+        coalesce.arena.node_texts[coalesce_right] != "0" {
         return false;
     }
     let root: Int = fact.root;

@@ -160,6 +160,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         names, types, modes
                     ) || !SemanticAstExpressionSeedVisibleMatchBindings(
                         artifact, analysis.expression_surfaces,
+                        analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes
                     ) || ArrayLength(names) != ArrayLength(types) ||

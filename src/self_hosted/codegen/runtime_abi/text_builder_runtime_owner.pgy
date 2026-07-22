@@ -1,23 +1,15 @@
-// Self-host C projection of the Allocator/TextBuilder ABI owner.
+// Self-host C symbol projection of the Allocator/TextBuilder ABI owner.
 
 func TextBuilderRuntimeCAllocatorResultFn() -> String { return "pgy_allocator_result"; }
 func TextBuilderRuntimeCAllocatorDestroyFn() -> String { return "pgy_allocator_destroy"; }
+func TextBuilderRuntimeCAllocatorSystemFn() -> String { return "pgy_allocator_system"; }
+func TextBuilderRuntimeCAllocatorTracingFn() -> String { return "pgy_allocator_tracing"; }
+func TextBuilderRuntimeCAllocatorDebugFn() -> String { return "pgy_allocator_debug"; }
+func TextBuilderRuntimeCAllocatorScratchFn() -> String { return "pgy_allocator_scratch"; }
+func TextBuilderRuntimeCAllocatorPersistentFn() -> String { return "pgy_allocator_persistent"; }
+func TextBuilderRuntimeCAllocatorPoolFn() -> String { return "pgy_allocator_pool"; }
+
 func TextBuilderRuntimeCNewFn() -> String { return "pgy_text_builder_new"; }
 func TextBuilderRuntimeCAppendFn() -> String { return "pgy_text_builder_append"; }
 func TextBuilderRuntimeCFinishFn() -> String { return "pgy_text_builder_finish"; }
 func TextBuilderRuntimeCDropFn() -> String { return "pgy_text_builder_drop"; }
-
-func TextBuilderRuntimeCBlock() -> String {
-    let block: String = "typedef enum { PGY_ALLOC_SYSTEM, PGY_ALLOC_TRACING, PGY_ALLOC_DEBUG, PGY_ALLOC_POOL, PGY_ALLOC_SCRATCH, PGY_ALLOC_RESULT, PGY_ALLOC_PERSISTENT } PgyAllocatorKind;\n";
-    block = Concat(block, "typedef struct { char *buffer; size_t capacity; size_t offset; } PgyPoolAllocatorState;\n");
-    block = Concat(block, "typedef struct { PgyAllocatorKind kind; bool trace_enabled; bool debug_enabled; size_t allocations; size_t deallocations; size_t bytes_in_use; size_t peak_bytes; PgyPoolAllocatorState *pool; } PgyAllocator;\n");
-    block = Concat(block, "typedef struct { char *data; size_t length; size_t capacity; bool finished; } PgyTextBuilder;\n");
-    block = Concat(block, "static PgyAllocator pgy_allocator_result(void) { PgyAllocator a; memset(&a, 0, sizeof(a)); a.kind = PGY_ALLOC_RESULT; return a; }\n");
-    block = Concat(block, "static void pgy_allocator_destroy(PgyAllocator *a) { if (a != NULL && a->pool != NULL) { free(a->pool->buffer); free(a->pool); a->pool = NULL; } }\n");
-    block = Concat(block, "static PgyTextBuilder pgy_text_builder_new(long long n) { PgyTextBuilder b; size_t cap; if (n < 0) abort(); cap = n > 0 ? (size_t)n : 64u; memset(&b, 0, sizeof(b)); b.data = (char*)malloc(cap); if (b.data == NULL) abort(); b.capacity = cap; b.data[0] = '\\0'; return b; }\n");
-    block = Concat(block, "static void pgy_text_builder_reserve(PgyTextBuilder *b, size_t need) { size_t cap; char *p; if (b == NULL || b->finished) abort(); if (need <= b->capacity) return; cap = b->capacity > 0 ? b->capacity : 64u; while (cap < need) { if (cap > ((size_t)-1) / 2u) abort(); cap *= 2u; } p = (char*)realloc(b->data, cap); if (p == NULL) abort(); b->data = p; b->capacity = cap; }\n");
-    block = Concat(block, "static void pgy_text_builder_append(PgyTextBuilder *b, const char *s) { size_t n; size_t need; if (b == NULL || b->finished || s == NULL) abort(); n = strlen(s); if (b->length > ((size_t)-1) - n - 1u) abort(); need = b->length + n + 1u; pgy_text_builder_reserve(b, need); memcpy(b->data + b->length, s, n + 1u); b->length += n; }\n");
-    block = Concat(block, "static char *pgy_text_builder_finish(PgyTextBuilder *b, PgyAllocator *a) { char *out; if (b == NULL || b->finished || a == NULL || a->kind != PGY_ALLOC_RESULT || a->pool != NULL) abort(); out = b->data; b->data = NULL; b->length = 0; b->capacity = 0; b->finished = true; return out; }\n");
-    block = Concat(block, "static void pgy_text_builder_drop(PgyTextBuilder *b) { if (b == NULL || b->finished) abort(); free(b->data); b->data = NULL; b->length = 0; b->capacity = 0; b->finished = true; }\n\n");
-    return block;
-}

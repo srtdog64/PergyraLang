@@ -207,7 +207,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             done
         fi
         oracle_canonical_mode="--canonicalize-oracle-mir-json"
-        if [[ "$base" == "array_index_assign" || "$base" == "defer_scope" ]]; then
+        if [[ "$base" == "defer_scope" ]]; then
             oracle_canonical_mode="--canonicalize-mir-json"
         fi
         pgy_selfhost_driver_rung2_canonicalize "$machine_fixture" \

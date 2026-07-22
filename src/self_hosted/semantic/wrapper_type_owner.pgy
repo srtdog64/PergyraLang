@@ -1,4 +1,7 @@
-// Canonical Option/Result type-shape policy.
+// Canonical Option/Result/Box type-shape policy.
+
+import "array_type_shape_owner.pgy";
+import "delimited_range_fact_owner.pgy";
 
 func IsOptionType(type_name: String) -> Bool {
     let n: Int = StringLength(type_name);
@@ -12,14 +15,107 @@ func IsResultType(type_name: String) -> Bool {
         CharAt(type_name, n - 1) == ">";
 }
 
+func BoxPayloadTypeOpt(type_name: String) -> Option<String> {
+    let n: Int = StringLength(type_name);
+    if n < 6 || Substring(type_name, 0, 4) != "Box<" {
+        return None;
+    }
+    let depth: Int = 1;
+    let i: Int = 4;
+    while i < n {
+        let c: String = CharAt(type_name, i);
+        if c == "<" {
+            depth = depth + 1;
+        } else if c == ">" {
+            depth = depth - 1;
+            if depth == 0 {
+                if i != n - 1 || i == 4 { return None; }
+                return Some(Substring(type_name, 4, i - 4));
+            }
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func IsBoxType(type_name: String) -> Bool {
+    return IsSome(BoxPayloadTypeOpt(type_name));
+}
+
+func BoxArrayElementTypeOpt(type_name: String) -> Option<String> {
+    let payload: Option<String> = BoxPayloadTypeOpt(type_name);
+    if !IsSome(payload) { return None; }
+    return SemanticArrayElementType(UnwrapOption(payload));
+}
+
 func OptionPayloadTypeOpt(type_name: String) -> Option<String> {
     if !IsOptionType(type_name) { return None; }
     return Some(Substring(type_name, 7, StringLength(type_name) - 8));
 }
 
-func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
+func OptionCoalescePayloadTypeOpt(
+    option_type: String,
+    fallback_type: String
+) -> Option<String> {
+    let payload: Option<String> = OptionPayloadTypeOpt(option_type);
+    if !IsSome(payload) || UnwrapOption(payload) == "Unknown" ||
+        UnwrapOption(payload) != fallback_type {
+        return None;
+    }
+    return payload;
+}
+
+func ResultTypeArgumentOpt(
+    type_name: String,
+    index: Int
+) -> Option<String> {
     if !IsResultType(type_name) { return None; }
-    return Some(Substring(type_name, 7, StringLength(type_name) - 8));
+    let inner: String = Substring(
+        type_name, 7, StringLength(type_name) - 8
+    );
+    let arguments: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(inner);
+    let count: Int = SemanticDelimitedRangeCount(arguments);
+    if count < 1 || count > 2 || index < 0 || index >= count {
+        return None;
+    }
+    let argument: String = SemanticDelimitedRangeText(
+        arguments, inner, index
+    );
+    if argument == "" { return None; }
+    return Some(argument);
+}
+
+func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
+    return ResultTypeArgumentOpt(type_name, 0);
+}
+
+func ResultErrorTypeOpt(type_name: String) -> Option<String> {
+    return ResultTypeArgumentOpt(type_name, 1);
+}
+
+func ResultTypeAssignableTo(expected: String, actual: String) -> Bool {
+    let expected_payload: Option<String> = ResultPayloadTypeOpt(expected);
+    let actual_payload: Option<String> = ResultPayloadTypeOpt(actual);
+    if !IsSome(expected_payload) || !IsSome(actual_payload) {
+        return false;
+    }
+    let actual_payload_name: String = UnwrapOption(actual_payload);
+    if actual_payload_name != "Unknown" &&
+        actual_payload_name != UnwrapOption(expected_payload) {
+        return false;
+    }
+    let expected_error: Option<String> = ResultErrorTypeOpt(expected);
+    if !IsSome(expected_error) {
+        return true;
+    }
+    let actual_error: Option<String> = ResultErrorTypeOpt(actual);
+    if !IsSome(actual_error) {
+        return true;
+    }
+    let actual_error_name: String = UnwrapOption(actual_error);
+    return actual_error_name == "Unknown" ||
+        actual_error_name == UnwrapOption(expected_error);
 }
 
 func IsSlotType(type_name: String) -> Bool {
@@ -77,15 +173,49 @@ func SemanticWrapperTypePolicyContractReady() -> Bool {
     let result_payload: Option<String> = ResultPayloadTypeOpt(
         "Result<Option<String>>"
     );
+    let result_pair_payload: Option<String> = ResultPayloadTypeOpt(
+        "Result<Array<Int>, Option<String>>"
+    );
+    let result_pair_error: Option<String> = ResultErrorTypeOpt(
+        "Result<Array<Int>, Option<String>>"
+    );
     let slot_payload: Option<String> = SlotPayloadTypeOpt("Slot<Int>");
+    let box_payload: Option<String> = BoxPayloadTypeOpt("Box<Array<Int>>");
+    let box_element: Option<String> = BoxArrayElementTypeOpt(
+        "Box<Array<Int>>"
+    );
     return IsSome(option_payload) &&
         UnwrapOption(option_payload) == "Array<Int>" &&
         IsSome(result_payload) &&
         UnwrapOption(result_payload) == "Option<String>" &&
+        IsSome(result_pair_payload) &&
+        UnwrapOption(result_pair_payload) == "Array<Int>" &&
+        IsSome(result_pair_error) &&
+        UnwrapOption(result_pair_error) == "Option<String>" &&
+        !IsSome(ResultErrorTypeOpt("Result<Int>")) &&
+        !IsSome(ResultPayloadTypeOpt("Result<Int, String, Bool>")) &&
+        ResultTypeAssignableTo(
+            "Result<Array<Int>, String>", "Result<Array<Int>>"
+        ) && ResultTypeAssignableTo(
+            "Result<Array<Int>, String>", "Result<Unknown, String>"
+        ) && ResultTypeAssignableTo(
+            "Result<Int>", "Result<Unknown, String>"
+        ) && !ResultTypeAssignableTo(
+            "Result<Array<Int>, String>", "Result<Int, String>"
+        ) && !ResultTypeAssignableTo(
+            "Result<Array<Int>, String>", "Result<Array<Int>, Bool>"
+        ) &&
         IsSome(slot_payload) && UnwrapOption(slot_payload) == "Int" &&
+        IsBoxType("Box<Array<Int>>") && IsSome(box_payload) &&
+        UnwrapOption(box_payload) == "Array<Int>" &&
+        IsSome(box_element) && UnwrapOption(box_element) == "Int" &&
         IsSome(TryPayloadTypeOpt("Option<Int>")) &&
         IsSome(TryPayloadTypeOpt("Result<Int>")) &&
+        IsSome(OptionCoalescePayloadTypeOpt("Option<Int>", "Int")) &&
+        !IsSome(OptionCoalescePayloadTypeOpt("Option<Int>", "String")) &&
+        !IsSome(OptionCoalescePayloadTypeOpt("Int", "Int")) &&
         !IsSome(TryPayloadTypeOpt("Int")) &&
         !IsOptionType("Option<Int") && !IsResultType("Result<Int") &&
+        !IsBoxType("Box<Array<Int>") &&
         !IsSlotType("Slot<Int");
 }

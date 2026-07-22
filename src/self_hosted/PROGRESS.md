@@ -1,5 +1,131 @@
 # Self-Host Progress
 
+2026-07-23 executable class-field/string-return breadth delta: DRV-2 MIR
+fixture 230 is `class_suit_score`. Its `Card` fields, `String`/`Int` helper
+returns, field comparisons, early returns, direct calls, and scalar/string Log
+calls all consume the existing class declaration, owner-field environment,
+typed expression graph, statement type, MIR, and C-emission owners. No new
+semantic rule, fixture helper, source rescan, native-MIR injection, C fallback,
+or backend-local policy was added. Focused C-built, LLVM-built, and freshly
+Pergyra-built hard producer-first parity each passed with 20 body fixtures and
+one MIR fixture. On the hard lane, native/self canonical MIR SHA-256 is
+`047E19BC06678B64D5D0843FC869CB979CEF34B9EDD55EC8813AD4DCD6476547`,
+source/self-MIR C SHA-256 is
+`B7EC186FB9B6F66D368AD3FCB88F777ACEB644F7DB69301385F1A44468A0F3AE`,
+and runtime output is `Heart`, `14`, `Spade`, `7`, `Club`, `13`. Generic
+missing/invalid expression-graph mutations remain fail closed. The same new
+Pergyra-built hard artifact then passed the unfiltered integration gate with
+`body_fixtures=20` and `mir_fixtures=230`; one existing worker-pool-inactive
+message made the documented serial execution choice visible without failing
+the gate. The complete current-hard 230/230 matrix is closed;
+released/default-driver replacement remains open, and fixture 231 is not yet
+selected.
+
+2026-07-23 current-hard integration closure: the 229-fixture DRV-2 frontier is
+green as one sharded producer-first matrix. The Pergyra-built hard driver
+matched the native C oracle's canonical MIR, emitted compilable C from both
+source and MIR consumption, and produced byte-equal runtime output for every
+manifest row; each shard also reran the 20 body fixtures. The integration run
+found a real shared semantic omission rather than a fixture-specific gap:
+native `type_is_assignable` permits `Float -> Double`, while the self-hosted
+`ExpressionAssignableTo` did not. The self-hosted type-compatibility owner now
+matches that widening direction, the existing 113-fixture semantic corpus
+proves `Float -> Double` return/initializer acceptance and `Double -> Float`
+return rejection on both C- and LLVM-built binaries, and
+`array_double_aggregate_core` proves the array-element consumer. Its static
+`Array<Double>` ABI row is owned by that fixture's own missing-row/wrong-ID
+negative gate instead of being required from the Long/Float/Bool aggregate
+fixture. `EmitLog` now consumes an explicit `Double` type fact through the
+formatted-scalar path; only an explicit `String` uses the string logger, and an
+unsupported type fails closed instead of falling through. Focused hard parity
+for `array_scalar_aggregate_core`, `array_double_aggregate_core`, and
+`owner_field_assignment` passed after the full run exposed two stale gate
+expectations. The owner-field gate now follows the MIR contract: only defined
+SSA versions appear in `uses`, while the version-zero parameter remains an
+expression-graph leaf. The complete current-hard 229/229 matrix is closed;
+released/default-driver replacement remains 0%, and no fixture 230 is admitted
+yet.
+
+2026-07-22 runtime-header/TextBuilder SoT delta: DRV-2 MIR fixture 229 is
+`text_builder_lifecycle`. The hand-written generated-C allocator/TextBuilder
+layout and implementation block is deleted. `runtime_header_owner.pgy` now
+selects canonical runtime inline owners while the existing TextBuilder ABI
+owner retains only stable call spellings; it does not duplicate runtime C.
+The emitted-C runtime-header classifier is also one shared test owner consumed
+by both producer-first parity compilation and the hard-driver installer, so a
+narrow canonical header cannot silently fall back to headerless compilation.
+The current self-codegen bootstrap rebuilt gen0, gen1, and gen2 with an empty
+gen1 compile log. Focused C, LLVM, and a newly Pergyra-built hard driver each
+passed producer-first parity with `body_fixtures=20` and `mir_fixtures=1`;
+native/self canonical MIR is byte-identical in every lane with SHA-256
+`CBA1C55B664BEC216DF874043186E3FC0FC40DEFE4BC61EC7096667163168779`,
+source/self-MIR emitted C is byte-identical within every lane, and runtime
+output is `PergyraLang`. Static gates reject the removed block and require the
+canonical allocator/TextBuilder headers. The complete 229-fixture matrix and
+released/default-driver replacement remain open.
+
+2026-07-22 executable allocator-lane breadth delta: DRV-2 MIR fixture 228 is
+`allocator_lane_boxarray`. `AllocatorScratch`, `AllocatorResult`, and
+`AllocatorPersistent` all flow through the existing builtin-signature,
+semantic local/type graph, MIR graph, and `BoxArray` runtime-ABI owners. The
+fixture required no allocator-name switch, fixture-specific helper, C-shaped
+runtime shard, source re-read, or backend-local representation. Focused C,
+LLVM, and a newly Pergyra-built hard driver each passed producer-first parity
+with `body_fixtures=20` and `mir_fixtures=1`; native/self canonical MIR is
+byte-identical in every lane with SHA-256
+`E64FCE30FAED2191271F28ECFD880EF9F382E192BCA25F7F1B662E467BA50F74`,
+source/self-MIR emitted C is byte-identical within every lane, and runtime
+output is `401`, `402`, `403`. Missing and invalid expression graphs remain
+fail-closed through the shared negative owner. The complete 228-fixture matrix
+and released/default-driver replacement remain open.
+
+2026-07-22 executable allocator/defer SoT delta: DRV-2 MIR fixture 227 is
+`allocator_defer_cleanup`. Allocator constructors, `Box<Array<T>>`
+materialization, and `AllocatorDestroy` cleanup remain one Pergyra-level typed
+flow: the initializer consumes the expected-type semantic graph, and `defer`
+carries an ordered call-expression graph plus the direct target fact instead of
+a `defer_body` source string. The consumer reconstructs the direct call only
+from that graph and rejects a missing graph, an invalid graph, or disagreement
+between the graph and target fact. The allocator-backed `Box<Array<T>>` boundary
+includes the canonical runtime owner; the older TextBuilder materialization is
+retained only as a bounded bootstrap bridge for programs that do not cross that
+type boundary. No fixture-specific emitter, C-shaped allocator shard, source
+re-read, dual runtime read, or backend-local fallback was added. Focused C,
+LLVM, and freshly Pergyra-built hard producer-first parity each passed with
+`body_fixtures=20` and `mir_fixtures=1`; source/self-MIR C SHA-256 is
+`D4AFF2F749AB8A4F7FF7E5FC4AEE37A0131E321A4E9F03688C57C759820CB35A`,
+canonical native/self MIR SHA-256 is
+`52C9F41BEAA6C8060E0594273EDF50B715A29357CC8A3BFE8CFE81DB419CD8AC`,
+and runtime output is `1201`, `1202`, `1203`, `1204`. The self-host component
+and runtime-bitcode contracts pass. The complete 227-fixture matrix and
+released/default-driver replacement remain open.
+
+2026-07-22 executable breadth/parser-SoT delta: DRV-2 MIR fixture 226 is
+`class_method_coalesce_call`. Parenthesized expressions now re-enter the
+existing `ParseExprFact` precedence owner, so grouped `??` expressions carry
+the coalesce, member-call target, Option type, and ABI facts through
+semantic/MIR production. `OptionCoalescePayloadTypeOpt` is the shared payload
+type owner, and C emission consumes the existing Option runtime ABI symbols
+rather than spelling a second representation. The MIR consumer now rejects a
+`coalesce -> logical_or` kind mutation before C emission. No fixture-specific
+owner/helper, C-shaped split, source re-read, or backend-local fallback was
+added. Current-tree focused C, LLVM, and Pergyra-built hard producer-first
+parity passed with `body_fixtures=20`, `mir_fixtures=1`, missing/invalid graph
+negatives, the operator-kind mutation, and runtime output `10`, `0`, `6`,
+`100`, `0`. The LLVM runtime-bitcode merge now leaves externally linked
+stateful globals as declarations, so the runtime object remains their sole
+definition owner; the runtime-bitcode and self-host component contracts pass.
+The complete 226-fixture matrix and released/default-driver replacement remain
+open.
+
+2026-07-22 executable breadth delta: DRV-2 MIR fixture 225 is
+`class_method_chain_slot`. The existing semantic nominal/method-call and
+`ClaimSlot`/`Read`/`Write` runtime-call ABI owners were sufficient; no
+fixture-specific owner/helper, source reconstruction, or backend-local lookup
+was added. Focused C/LLVM producer-first parity and the Pergyra-built hard
+driver passed with runtime output `3`. The complete 225-fixture matrix was not
+run before fixture 226 became the active executable surface.
+
 2026-07-21 builtin-call scalar SoT delta: DRV-2 MIR fixture 224 is
 `class_field_init_order`. The canonical builtin signature row already owns
 `ToString -> String` with an `Unknown` argument wildcard; graph scalar

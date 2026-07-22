@@ -106,6 +106,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/bool_logic.pgy",
         "src/self_hosted/codegen/fixture/defer_scope.pgy",
         "src/self_hosted/codegen/fixture/else_if_chain.pgy",
+        "tests/cases/backend_compare/allocator_defer_cleanup/main.pgy",
         "tests/cases/backend_compare/device_slot_machine_layer/main.pgy",
         "tests/cases/backend_compare/device_slot_remote/main.pgy",
         "tests/cases/backend_compare/device_slot_routine/main.pgy",
@@ -249,12 +250,17 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/class_method_branch_nest/main.pgy",
         "tests/cases/backend_compare/class_holds_enum_field/main.pgy",
         "tests/cases/backend_compare/class_steps_loop_simple/main.pgy",
-        "tests/cases/backend_compare/class_field_init_order/main.pgy"
+        "tests/cases/backend_compare/class_field_init_order/main.pgy",
+        "tests/cases/backend_compare/class_method_chain_slot/main.pgy",
+        "tests/cases/backend_compare/class_method_coalesce_call/main.pgy",
+        "tests/cases/backend_compare/allocator_lane_boxarray/main.pgy",
+        "tests/cases/backend_compare/text_builder_lifecycle/main.pgy",
+        "tests/cases/backend_compare/class_suit_score/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 224;
+    return 230;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {
@@ -316,6 +322,7 @@ func CompileArtifactAnalysisToMirJsonVerified(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types,
+        verified.body_types.statement_types,
         verified.body_types.generic_specializations,
         machine_declaration
     );

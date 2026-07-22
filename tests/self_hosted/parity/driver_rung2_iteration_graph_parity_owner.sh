@@ -17,18 +17,22 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
             echo "[self-host-parity:driver-rung2] $backend range iteration type fact drifted" >&2
             exit 1
         }
-        grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"0"' \
+        grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null' \
+            "$self_mir_json" && \
+        grep -Fq '"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"0"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-start graph drifted" >&2
             exit 1
         }
-        grep -Fq '"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"3"' \
+        grep -Fq '"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null' \
+            "$self_mir_json" && \
+        grep -Fq '"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"3"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-stop graph drifted" >&2
             exit 1
         }
         missing_graph="${self_mir_json%.json}.missing-range-stop.mir.json"
-        sed 's/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph"/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph_removed"/g' \
+        sed 's/\("kind":"branch"[^}]*"expr0":"0","expr0_graph\)/\1_removed/g' \
             "$self_mir_json" >"$missing_graph"
         pgy_selfhost_verify_driver_rung2_integer_literal_kind \
             "$backend" "$self_mir_json" "$driver_bin"
@@ -52,12 +56,14 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
                 exit 1
             }
         done
-        grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr0_graph":null,"expr1":"nums"' \
+        grep -Fq '"arg0":"n","arg1":null' "$self_mir_json" && \
+        grep -Fq '"expr0":"nums","expr0_graph":null,"expr1":"nums"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend Int foreach branch drifted" >&2
             exit 1
         }
-        grep -Fq '"arg0":"name","arg1":null,"expr0":"names","expr0_graph":null,"expr1":"names"' \
+        grep -Fq '"arg0":"name","arg1":null' "$self_mir_json" && \
+        grep -Fq '"expr0":"names","expr0_graph":null,"expr1":"names"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend String foreach branch drifted" >&2
             exit 1
@@ -71,7 +77,7 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
             }
         done
         missing_graph="${self_mir_json%.json}.missing-foreach-value.mir.json"
-        sed 's/"kind":"loop-init","name":"loop-init","result":null,"arg0":"n","arg1":null,"expr0":"nums","expr0_graph"/"kind":"loop-init","name":"loop-init","result":null,"arg0":"n","arg1":null,"expr0":"nums","expr0_graph_removed"/g' \
+        sed 's/\("kind":"loop-init"[^}]*"arg0":"n","arg1":null[^}]*"expr0":"nums","expr0_graph\)/\1_removed/g' \
             "$self_mir_json" >"$missing_graph"
     else
         return 0

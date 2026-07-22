@@ -36,6 +36,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_random: Bool;
     let uses_allocator: Bool;
     let uses_text_builder: Bool;
+    let uses_box_array: Bool;
     let uses_slot: Bool;
     let uses_machine_layer: Bool;
     let uses_remote_future: Bool;
@@ -137,6 +138,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_random,
         uses_allocator,
         uses_text_builder,
+        type_usage.has_box_array,
         uses_slot,
         uses_machine_layer,
         uses_remote_future,

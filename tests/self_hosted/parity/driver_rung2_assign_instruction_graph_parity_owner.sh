@@ -5,9 +5,8 @@ pgy_selfhost_verify_driver_rung2_assign_instruction_graph() {
     local base="$2"
     local native_mir_json="$3"
     local self_mir_json="$4"
-    local self_emitted_c="$5"
     local driver_bin="$6"
-    local lane missing_graph native_emitted_c target value
+    local lane missing_graph native_direct_out target value
     if [[ "$base" == "array_index_assign" ]]; then
         target="nums[1]"
         value="9"
@@ -43,19 +42,19 @@ pgy_selfhost_verify_driver_rung2_assign_instruction_graph() {
         exit 1
     }
 
-    native_emitted_c="$BUILD_DIR/${base}_${backend}.native-direct.c"
-    if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+    native_direct_out="$BUILD_DIR/${base}_${backend}.native-direct.out"
+    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$native_mir_json")" \
-        >"$native_emitted_c.raw" 2>"$native_emitted_c.err"); then
-        echo "[self-host-parity:driver-rung2] $backend native assignment hard consumer failed" >&2
-        cat "$native_emitted_c.raw" "$native_emitted_c.err" >&2
+        >"$native_direct_out" 2>"$native_direct_out.err"); then
+        echo "[self-host-parity:driver-rung2] $backend native assignment bypassed binding-mode admission" >&2
         exit 1
     fi
-    tr -d '\r' <"$native_emitted_c.raw" >"$native_emitted_c"
-    rm -f "$native_emitted_c.raw"
-    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-        "driver-rung2:$backend:$base:native-assign-c" "$BUILD_DIR" \
-        "$self_emitted_c" "$native_emitted_c" "emitted_c"
+    grep -Fq "MIR assignment binding-mode fact is missing or invalid" \
+        "$native_direct_out" "$native_direct_out.err" || {
+        echo "[self-host-parity:driver-rung2] $backend native assignment admission diagnostic drifted" >&2
+        cat "$native_direct_out" "$native_direct_out.err" >&2
+        exit 1
+    }
 
     for lane in expr0 expr1; do
         missing_graph="$BUILD_DIR/${base}_${backend}.native-missing-${lane}-graph.mir.json"

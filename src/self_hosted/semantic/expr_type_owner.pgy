@@ -429,7 +429,16 @@ func ResultCallReturnType(text: String, names: Array<String>, types: Array<Strin
         return Concat(Concat("Result<", value_type), ">");
     }
     if callee == "Err" {
-        return "Result<Unknown>";
+        let error_expr: String = CallArgAt(args_src, 0);
+        let error_type: String = ExprType(
+            error_expr, names, types, func_names, func_rets
+        );
+        if error_type == "" || error_type == "Unknown" {
+            return "Result<Unknown>";
+        }
+        return Concat(
+            "Result<Unknown, ", Concat(error_type, ">")
+        );
     }
     if callee == "IsOk" || callee == "IsErr" {
         return "Bool";
@@ -461,8 +470,8 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsOptionType(expected) && actual == "Option<Unknown>" {
         return true;
     }
-    if IsResultType(expected) && actual == "Result<Unknown>" {
-        return true;
+    if IsResultType(expected) && IsResultType(actual) {
+        return ResultTypeAssignableTo(expected, actual);
     }
     if IsSlotType(expected) && actual == "Slot<Unknown>" {
         return true;
@@ -473,7 +482,15 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsRemoteFutureType(expected) && actual == "RemoteFuture<Unknown>" {
         return true;
     }
+    if IsBoxType(expected) && actual == "Box<Unknown>" {
+        return true;
+    }
     if expected == "Long" && actual == "Int" && IsIntLiteral(Trim(expr)) {
+        return true;
+    }
+    // Keep scalar widening with the canonical type-system direction:
+    // a Float value may enter a Double context, never the reverse.
+    if expected == "Double" && actual == "Float" {
         return true;
     }
     return false;

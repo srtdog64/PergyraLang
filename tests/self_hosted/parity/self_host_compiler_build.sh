@@ -7,6 +7,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -33,6 +34,14 @@ EMIT_STAMP="$BUILD_DIR/driver.emit.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
 AST_ERROR="$BUILD_DIR/driver.ast.err"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
+
+# The stamp owns one installed driver artifact, not just its input graph. A
+# cache directory may be reused with a different output path during isolated
+# bootstrap checks, so bind the output identity before accepting a prior stamp.
+OUTPUT_KEY="$OUTPUT"
+case "$OUTPUT_KEY" in
+    "$ROOT_DIR"/*) OUTPUT_KEY="${OUTPUT_KEY#"$ROOT_DIR"/}" ;;
+esac
 
 case "$OUTPUT" in
     *.exe) ;;
@@ -88,6 +97,7 @@ printf '%s\n' \
     "parser=$(hash_file "$PARSER_BIN")" \
     "codegen=$(hash_file "$CODEGEN_BIN")" \
     "composed_ast=$(hash_file "$AST_FILE")" \
+    "output=$OUTPUT_KEY" \
     "cc=$($CC --version 2>/dev/null | head -1)" \
     >"$KEY_INPUT"
 build_key="$(hash_file "$KEY_INPUT")"
@@ -118,7 +128,12 @@ fi
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"
-if ! "$CC" "$C_FILE" -o "$tmp_output" >"$BUILD_DIR/driver.compile.log" 2>&1; then
+compile_command=("$CC")
+if pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE"; then
+    compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+fi
+compile_command+=("$C_FILE" -o "$tmp_output")
+if ! "${compile_command[@]}" >"$BUILD_DIR/driver.compile.log" 2>&1; then
     tail -n 40 "$BUILD_DIR/driver.compile.log" >&2 || true
     fail "emitted DRV-2 C failed to compile"
 fi

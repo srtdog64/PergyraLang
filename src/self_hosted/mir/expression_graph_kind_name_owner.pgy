@@ -44,5 +44,6 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeTypeName() { return "type_name"; }
     if kind == AstExpressionNodeCast() { return "cast"; }
     if kind == AstExpressionNodeAwait() { return "await"; }
+    if kind == AstExpressionNodeCoalesce() { return "coalesce"; }
     return "";
 }

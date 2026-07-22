@@ -1,0 +1,69 @@
+// Box<Array<T>> initializer materialization owner.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../runtime_abi/box_array_runtime_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "expr_semantic_call_emit_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+
+func EmitBoxArrayLet(
+    type_name: String,
+    env: CodegenTypeEnv,
+    graph: SemanticExpressionGraphView
+) -> String {
+    if !graph.ok {
+        Die("BoxArray initializer expression graph is missing");
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph.graph, graph.root_id
+    );
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph.graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph.graph, call.call_node
+    );
+    if !call.ok || !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) != "BoxArray" ||
+        ArrayLength(call.argument_nodes) != 2 {
+        Die("BoxArray initializer call fact is missing or invalid");
+    }
+    let capacity: String = RewriteSemanticCallArgument(
+        graph.graph, call.argument_nodes[0], "Int", "default", env
+    );
+    let allocator_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph.graph, call.argument_nodes[1], env
+    );
+    if !IsSome(allocator_type) || UnwrapOption(allocator_type) != "Allocator" {
+        Die("BoxArray allocator type fact is missing or invalid");
+    }
+    let allocator: String = RewriteSemanticCallArgument(
+        graph.graph, call.argument_nodes[1], "Allocator", "ref", env
+    );
+    let constructor: String = BoxArrayRuntimeCNewFnFor(type_name);
+    return Concat(
+        constructor, Concat("(", Concat(capacity, Concat(", ",
+            Concat(allocator, ")"))))
+    );
+}
+
+func EmitBoxArrayLetDeclaration(
+    name: String,
+    type_name: String,
+    c_name: String,
+    inout env_state: Array<String>,
+    env: CodegenTypeEnv,
+    graph: SemanticExpressionGraphView
+) -> String {
+    CodegenTypeEnvStateAppendValueBinding(
+        env_state, name, type_name, c_name
+    );
+    let value: String = EmitBoxArrayLet(type_name, env, graph);
+    return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+        Concat(c_name, Concat(" = ", Concat(value, ";")))));
+}

@@ -2,6 +2,7 @@
 
 Status: `derived-crosswalk, gate-backed`
 Date: 2026-07-20
+Updated: 2026-07-22
 
 This document is the single crosswalk for the compiler's externally visible
 and cross-stage protocols. It is **not** a new source of truth. The existing
@@ -84,10 +85,11 @@ has an explicit policy in `SOCompatibilityEvolution`; the native driver now
 consumes its seven policy rows through
 `driver_diag_compatibility_manifest_validate_file` and rejects unknown or
 changed values before compilation. Full promotion across the aggregate/runtime
-compatibility corpus and every active artifact consumer is still open. LSP has staged self-host transport/diagnostic owners, but no single
-protocol authority row and no session compatibility policy. The public MIR
-lowering header is an API boundary, not yet a versioned protocol with a
-declared owner or gate.
+compatibility corpus and every active artifact consumer is still open. LSP has
+staged self-host transport/diagnostic owners, but no single protocol authority
+row and no session compatibility policy. The public MIR lowering API now has a
+versioned request identity, admission failure, and focused gate; its top-level
+authority is still explicitly `UNREGISTERED`, so that row remains `BRIDGE`.
 
 LLVM's module-level runtime declaration phase is a narrow owner-directed
 exception: with no active MIR routine and no source node, it reads the

@@ -12,6 +12,7 @@ import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
 import "abi_layout_fact_owner.pgy";
+import "../semantic/wrapper_type_owner.pgy";
 
 func RoutineParamResourceMatchesType(
     resource_kind: String,
@@ -185,21 +186,42 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex, json: String,
         return "";
     }
     let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
-    if variant != "Some" {
+    if variant != "Some" && variant != "Ok" && variant != "Err" {
         return "";
     }
     let match_subject2: String = MirObjectStringFact(json, kp, inst_end, "expr0");
     let binding: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_bindings", 0);
     if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
-        MirLowerFailClosed("Some match case is missing subject or binding MIR fact");
+        MirLowerFailClosed(Concat(
+            variant, " match case is missing subject or binding MIR fact"
+        ));
     }
     let subject_type: String = MirRoutineFactIndexSourceLocalType(index, match_subject2);
-    let inner_type: String = OptionInnerTypeName(subject_type);
-    if StringLength(inner_type) == 0 {
-        MirLowerFailClosed(Concat("Some match case subject is not a known Option type: ", match_subject2));
+    let inner_type_opt: Option<String> = None;
+    let unwrap_name: String = "UnwrapOption";
+    if variant == "Some" {
+        inner_type_opt = OptionPayloadTypeOpt(subject_type);
+    } else if variant == "Ok" {
+        inner_type_opt = ResultPayloadTypeOpt(subject_type);
+        unwrap_name = "Unwrap";
+    } else {
+        inner_type_opt = ResultErrorTypeOpt(subject_type);
+        unwrap_name = "UnwrapErr";
     }
+    if !IsSome(inner_type_opt) || UnwrapOption(inner_type_opt) == "" ||
+        UnwrapOption(inner_type_opt) == "Unknown" {
+        MirLowerFailClosed(Concat(
+            variant, Concat(
+                " match case subject has no owned payload type: ",
+                match_subject2
+            )
+        ));
+    }
+    let inner_type: String = UnwrapOption(inner_type_opt);
     return Concat(indent, Concat("Let: ", Concat(binding, Concat(" : ",
-        Concat(inner_type, Concat(" = UnwrapOption(", Concat(match_subject2, ")\n")))))));
+        Concat(inner_type, Concat(" = ", Concat(unwrap_name, Concat(
+            "(", Concat(match_subject2, ")\n")
+        ))))))));
 }
 
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`

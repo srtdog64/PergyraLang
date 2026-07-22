@@ -3083,6 +3083,32 @@ require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "Parser
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "AstExpressionNodeAwait()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeCoalesce() -> Int"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "func ParseCoalesceFact("
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "AstExpressionNodeCoalesce(), text, left, right"
+require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
+    'nc == "?" && ParserCharAt(content, after_ws + 1) != "?"'
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'AstExpressionNodeCoalesce() { return "coalesce"; }'
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'kind == "coalesce"'
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "OptionCoalescePayloadTypeOpt(left, right)"
+require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
+    "func OptionCoalescePayloadTypeOpt("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "OptionResultRuntimeCOptionIsSomeFn()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "OptionResultRuntimeCOptionUnwrapFn()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "semantic logical operand type fact is invalid"
+reject_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "_pgy_coalesce.tag == PgyOptionSome"
+require_text "tests/self_hosted/parity/driver_rung2_operator_kind_negative_owner.sh" \
+    "operator kind mutation was accepted"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeAwait() -> Int"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionCallGraphContractReady()"
@@ -3611,6 +3637,60 @@ require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
 require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
     "SelfMirRoutineAttachLastExpressionGraph("
 reject_text "src/self_hosted/mir/routine_defer_owner.pgy" "payload_texts"
+reject_text "src/self_hosted/mir/routine_defer_owner.pgy" \
+    "TypedAstArenaAtomText("
+reject_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "SelfMirDeferBodyTextReady("
+require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
+    '"Call", "", "{...}", ""'
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    'arg0 != "Log" && arg0 != "Call"'
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "defer body graph has no direct call target fact"
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "RenderDirectDeferCallFromGraph(sequence.arena, root)"
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "defer body graph disagrees with direct call target fact"
+reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"defer_body"'
+require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
+require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 50
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderIncludeBlock(usage.uses_box_array)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array)"
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+    '#include \"pgy_runtime.h\"'
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+    '#include \"pgy_runtime_allocator_inline.h\"'
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+    '#include \"pgy_runtime_text_builder_inline.h\"'
+require_file "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+require_max_lines "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" 20
+require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
+    "pgy_selfhost_emitted_c_uses_runtime_headers()"
+require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
+    'pgy_runtime(_[^"]*)?\.h'
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    "pgy_selfhost_emitted_c_uses_runtime_headers"
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    "pgy_selfhost_emitted_c_uses_runtime_headers"
+reject_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    'pgy_runtime(_[^"]*)?\.h'
+reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'pgy_runtime(_[^"]*)?\.h'
+reject_text "src/self_hosted/codegen/runtime_abi/box_array_runtime_owner.pgy" \
+    "pgy_runtime.h"
+reject_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" \
+    "TextBuilderRuntimeCBlock"
+reject_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" \
+    "typedef struct"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "TextBuilderRuntimeCBlock"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    "CollectionRuntimeBoxArrayCValueType("
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.source_types[i] == "AST_DEFER_STMT"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
@@ -3621,6 +3701,12 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_defer_log_expression_fact(inst)"
 require_file "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh" 60
+require_file "tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh" 40
+require_text "tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_defer_graph_negative()"
+require_text "tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh" \
+    'call_target_name":"AllocatorDestroy'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_defer_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
@@ -3685,13 +3771,37 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 224;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 230;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 224'
+    'mir_fixture_rows[@]}" -ne 230'
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    "printf -v \"\$output_var\" '%s' \"\$base\""
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'declare -A mir_fixture_row_by_base=()'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'MIR fixture base is empty or duplicated'
+reject_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    '"$base" == "array_index_assign" ||'
+require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+    'MIR canonicalization failed: mode=$mode input=$input_arg'
+require_text "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh" \
+    'native assignment bypassed binding-mode admission'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_holds_enum_field/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_field_init_order/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_chain_slot/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_coalesce_call/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/allocator_defer_cleanup/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/allocator_lane_boxarray/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/text_builder_lifecycle/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_suit_score/main.pgy"'
 require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
     'expected != "Unknown" &&'
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
@@ -3730,6 +3840,10 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_owner_field'
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
     'missing owner field was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    '"uses":["balance.0"]'
+reject_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    'amount.1'
 require_file "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3943,11 +4057,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 224;"
+    "return 230;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 224'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 230'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4122,7 +4236,10 @@ reject_regex_under "src/self_hosted/mir" \
     "SelfMirRoutineAttachLastTargetExpressionGraph\\("
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'func MirExpressionGraphSequenceAppendRequired('
-require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
+require_text "src/runtime/pgy_runtime_text_builder_inline.h" \
+    "pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)"
+require_text "src/runtime/pgy_runtime_text_builder_inline.h" \
+    "builder->finished = true;"
 require_text "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsReadyForMirProjection("
@@ -4756,7 +4873,7 @@ require_text "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" \
     '$backend $stage try graph was lost'
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
     "AstExpressionNodeTry(),"
-try_postfix_block="$(sed -n '/if nc == "?" {/,/continue;/p' \
+try_postfix_block="$(sed -n '/if nc == "?" && ParserCharAt(content, after_ws + 1) != "?" {/,/continue;/p' \
     "$ROOT_DIR/src/self_hosted/parser/expr_postfix_owner.pgy")"
 grep -Fq "ParserExpressionUnary(" <<<"$try_postfix_block" ||
     fail "postfix try producer is not graph-backed"
@@ -8691,6 +8808,24 @@ semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -
 require_text "src/self_hosted/PROGRESS.md" "across 113 fixtures"
 require_file "src/self_hosted/semantic/fixture/valid_long_suffix.pgy"
 require_file "src/self_hosted/semantic/expected/valid_long_suffix.diag"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    'expected == "Double" && actual == "Float"'
+require_text "src/self_hosted/semantic/fixture/valid_float_arith.pgy" \
+    'func WidenedReturn() -> Double'
+require_text "src/self_hosted/semantic/fixture/bad_return_type.pgy" \
+    'func Main() -> Float'
+require_text "src/self_hosted/semantic/expected/bad_return_type.diag" \
+    '- actual: Double'
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    'if inferred_type_name == "Double"'
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    'if inferred_type_name == "String"'
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    'Die(Concat("unsupported Log expression type: ", inferred_type_name))'
+require_text "tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh" \
+    '"$base" == "array_double_aggregate_core"'
+reject_text "tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh" \
+    "'Array<Float>' 'Array<Bool>' 'Array<Double>'"
 require_file "src/self_hosted/semantic/fixture/bad_undefined_long_name.pgy"
 require_file "src/self_hosted/semantic/expected/bad_undefined_long_name.diag"
 require_file "src/self_hosted/semantic/fixture/valid_nested_generic_signature.pgy"

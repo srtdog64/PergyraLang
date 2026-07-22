@@ -56,6 +56,21 @@ func SemanticExpressionGraphScalarOperatorError(
         graph, UnwrapOption(right_opt), constructors, names, types,
         function_names, function_returns
     );
+    if kind == AstExpressionNodeCoalesce() {
+        let payload: Option<String> = OptionPayloadTypeOpt(left);
+        if left != "Unknown" && !IsSome(payload) {
+            return SemanticError2(
+                "binop_type_mismatch", "left", left, "right", right
+            );
+        }
+        if IsSome(payload) && UnwrapOption(payload) != "Unknown" &&
+            right != "Unknown" && UnwrapOption(payload) != right {
+            return SemanticError2(
+                "binop_type_mismatch", "left", left, "right", right
+            );
+        }
+        return "";
+    }
     if kind == AstExpressionNodeLogicalAnd() ||
         kind == AstExpressionNodeLogicalOr() {
         if left != "Unknown" && left != "Bool" {

@@ -10,14 +10,14 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
 
     [[ "$base" == "for_each_call" ]] || return 0
 
-    local ordinal
+    local ordinal call_graph_count
     for ordinal in 0 1 2; do
         grep -Fq "{\"name\":\"__pgy_forin_$ordinal\",\"type\":\"Array<Int>\"}" \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend foreach synthetic local $ordinal drifted" >&2
             exit 1
         }
-        grep -Fq "\"kind\":\"def\",\"name\":\"ssa-def\",\"result\":\"__pgy_forin_$ordinal.1\",\"arg0\":\"__pgy_forin_$ordinal\",\"arg1\":null,\"expr0\":\"MakeValues()\"" \
+        grep -Fq "\"kind\":\"def\",\"name\":\"ssa-def\",\"result\":\"__pgy_forin_$ordinal.1\",\"arg0\":\"__pgy_forin_$ordinal\",\"arg1\":null,\"abi_type_name\":\"Array<Int>\"" \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend foreach synthetic def $ordinal drifted" >&2
             exit 1
@@ -28,7 +28,16 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
             exit 1
         }
     done
-    if grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"value","arg1":null,"expr0":"MakeValues()"' \
+    call_graph_count="$(
+        { grep -oF \
+            '"kind":"call","text":"MakeValues()","call_target_kind":"direct","call_target_name":"MakeValues"' \
+            "$self_mir_json" || true; } | wc -l | tr -d ' '
+    )"
+    if [[ "$call_graph_count" -ne 3 ]]; then
+        echo "[self-host-parity:driver-rung2] $backend foreach call graph count drifted: $call_graph_count != 3" >&2
+        exit 1
+    fi
+    if grep -Eq '"kind":"loop-init"[^}]*"name":"loop-init"[^}]*"result":null[^}]*"arg0":"value"[^}]*"expr0":"MakeValues\(\)"' \
         "$self_mir_json"; then
         echo "[self-host-parity:driver-rung2] $backend retained direct-call foreach consumption" >&2
         exit 1

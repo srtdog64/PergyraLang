@@ -66,8 +66,12 @@ func AstMatchCasePatternFactFromArtifact(
     let callee: Int = rows.arena.left_children[call];
     let binding: String = rows.arena.node_texts[argument];
     if rows.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
-        rows.arena.node_texts[callee] != "Some" || binding == "" {
+        binding == "" {
         return AstMatchCasePatternFactInvalid();
     }
-    return AstMatchCasePatternFact(true, pattern, "Some", binding);
+    let variant: String = rows.arena.node_texts[callee];
+    if variant != "Some" && variant != "Ok" && variant != "Err" {
+        return AstMatchCasePatternFactInvalid();
+    }
+    return AstMatchCasePatternFact(true, pattern, variant, binding);
 }

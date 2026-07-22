@@ -289,7 +289,8 @@ compile_c_artifact_with_bounded_log() {
     local rc
 
     set +e
-    "$CC" "$source" -o "$output" 2>&1 | awk -v limit="$limit" '
+    "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+        "$source" -o "$output" 2>&1 | awk -v limit="$limit" '
         BEGIN {
             written = 0
             truncated = 0

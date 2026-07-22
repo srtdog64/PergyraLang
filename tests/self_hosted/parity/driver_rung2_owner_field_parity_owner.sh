@@ -39,8 +39,10 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         missing_row='"name":"missing_balance","type":"Int"'
         grep -Fq '"name":"Deposit","kind":"method","owner":"Account"' \
             "$self_mir_json" && grep -Fq '"result":"balance.1"' \
-            "$self_mir_json" && grep -Fq '"uses":["balance.0","amount.1"]' \
-            "$self_mir_json" && grep -Fq 'self.balance =' "$emitted_c" || {
+            "$self_mir_json" && grep -Fq '"uses":["balance.0"]' \
+            "$self_mir_json" && grep -Fq '"kind":"leaf","text":"amount"' \
+            "$self_mir_json" && grep -Fq 'self.balance = ((self.balance + amount))' \
+            "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend owner assignment facts drifted" >&2
             exit 1
         }

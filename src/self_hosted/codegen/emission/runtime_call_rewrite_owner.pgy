@@ -9,8 +9,33 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "../runtime_abi/text_builder_runtime_owner.pgy";
 
 func RuntimeCallCName(source_name: String) -> Option<String> {
+    if source_name == "AllocatorSystem" {
+        return Some(TextBuilderRuntimeCAllocatorSystemFn());
+    }
+    if source_name == "AllocatorTracing" {
+        return Some(TextBuilderRuntimeCAllocatorTracingFn());
+    }
+    if source_name == "AllocatorDebug" {
+        return Some(TextBuilderRuntimeCAllocatorDebugFn());
+    }
+    if source_name == "AllocatorScratch" {
+        return Some(TextBuilderRuntimeCAllocatorScratchFn());
+    }
+    if source_name == "AllocatorPersistent" {
+        return Some(TextBuilderRuntimeCAllocatorPersistentFn());
+    }
+    if source_name == "AllocatorPool" {
+        return Some(TextBuilderRuntimeCAllocatorPoolFn());
+    }
+    if source_name == "AllocatorResult" {
+        return Some(TextBuilderRuntimeCAllocatorResultFn());
+    }
+    if source_name == "AllocatorDestroy" {
+        return Some(TextBuilderRuntimeCAllocatorDestroyFn());
+    }
     if source_name == "StringLength" { return Some(StringRuntimeCStringLengthFn()); }
     if source_name == "StringContains" { return Some(StringRuntimeCStringContainsFn()); }
     if source_name == "StringIndexOf" { return Some(StringRuntimeCStringIndexOfFn()); }

@@ -107,10 +107,12 @@ func SelfMirInstructionRowsValidationError(
         if kind == "stmt" && rows.expr0s[i] == "" {
             return Concat(row_prefix, " statement payload is empty");
         }
+        let typed_defer: Bool = kind == "stmt" &&
+            (rows.arg0s[i] == "Log" || rows.arg0s[i] == "Call") &&
+            rows.expr0s[i] == "{...}" &&
+            rows.expr0_graphs.has_roots[i] == 1;
         if rows.source_types[i] == "AST_DEFER_STMT" &&
-            (kind != "stmt" || rows.arg0s[i] != "Log" ||
-             rows.expr0s[i] != "{...}" ||
-             rows.expr0_graphs.has_roots[i] != 1) {
+            !typed_defer {
             return Concat(
                 row_prefix, " typed defer body fact is missing or invalid"
             );

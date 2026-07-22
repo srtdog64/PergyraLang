@@ -292,6 +292,16 @@ llvm_strip_function_body(LLVMValueRef fn)
 static void
 llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
 {
+    /* Stateful runtime storage has one definition owner: the separately
+     * linked runtime object.  Bitcode is an optimization consumer, so keep
+     * external globals as declarations while retaining internal constants
+     * and function bodies that are safe to inline. */
+    for (LLVMValueRef gv = LLVMGetFirstGlobal(runtime_module);
+         gv != NULL; gv = LLVMGetNextGlobal(gv)) {
+        if (LLVMGetLinkage(gv) == LLVMExternalLinkage
+            && LLVMGetInitializer(gv) != NULL)
+            LLVMSetInitializer(gv, NULL);
+    }
     for (LLVMValueRef fn = LLVMGetFirstFunction(runtime_module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *name = LLVMGetValueName(fn);

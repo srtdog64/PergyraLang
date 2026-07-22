@@ -24,6 +24,7 @@ import "assign_emit_owner.pgy";
 import "log_emit_owner.pgy";
 import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
+import "box_array_let_emit_owner.pgy";
 func EmitLet(
     local_bindings: SemanticAstLocalBindingFacts,
     arena: AstArena,
@@ -68,6 +69,7 @@ func EmitLet(
         );
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
+    if IsBoxType(type_name) && IsSome(BoxArrayElementTypeOpt(type_name)) { return EmitBoxArrayLetDeclaration(name, type_name, c_name, env_state, env, graph); }
     if type_name == "Allocator" || type_name == "TextBuilder" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, type_name, c_name
@@ -188,7 +190,6 @@ func EmitLet(
     Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Option/struct/payload-free enum): ", type_name));
     return "";
 }
-
 func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeEnv) -> String {
     let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumLiteralProjectionFactOpt(pattern, subject_type, env);
     if IsSome(enum_fact_opt) {
@@ -198,7 +199,6 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeE
     Die(Concat("unsupported match case pattern in self-host codegen subset: ", pattern));
     return "0";
 }
-
 // Emit the C for a sequence of statements at AST indentation `stmt_indent`,
 // starting at line cur[0]. `pad` is the C indentation prefix. `env_state`
 // carries global/local rows behind the CodegenTypeEnv owner.

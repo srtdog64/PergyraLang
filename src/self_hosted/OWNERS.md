@@ -321,8 +321,9 @@ inventory must not become a second fact-family owner registry.
   string/parenthesis-aware top-level operator-position fact consumed by typing
   and logical/binary diagnostics.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
-- `src/self_hosted/semantic/wrapper_type_owner.pgy` -- canonical Option/Result
-  type-shape and payload projection policy shared by legacy and graph lanes.
+- `src/self_hosted/semantic/wrapper_type_owner.pgy` -- canonical
+  Option/Result/Box type-shape and payload projection policy shared by legacy
+  and graph lanes; nested Box payloads require a balanced outer wrapper.
 - `src/self_hosted/semantic/collection_mutation_policy_owner.pgy` -- canonical
   mutator, collection type, and parameter-mode policy shared by source,
   statement-fact, and expression-graph consumers.
@@ -587,7 +588,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy` -- self-host C math/random runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
-- `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder layout, lifecycle, and runtime-call projection facts.
+- `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
+- `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` -- owner-directed canonical runtime header composition for allocator, TextBuilder, and allocator-backed BoxArray consumers; it selects owners but does not duplicate their C implementations.
+- `src/self_hosted/codegen/runtime_abi/box_array_runtime_owner.pgy` -- self-host C allocator-backed Box<Array<T>> type and constructor ABI facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
   recursive expression emission from semantic node handles and child edges;
@@ -618,6 +621,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/collection_element_emit_owner.pgy` --
   collection element value emission; graph-owned `ArrayPush` projection is
   separated from the still-explicit array-literal and `ArraySet` text bridges.
+- `src/self_hosted/codegen/emission/box_array_let_emit_owner.pgy` --
+  expected-type `Box<Array<T>>` initializer materialization from the
+  semantic call spine and named allocator place/type facts.
 - `src/self_hosted/codegen/emission/enum_emit_owner.pgy` -- enum declaration
   emission and semantic enum-value projection into the codegen environment.
 - `src/self_hosted/codegen/emission/function_binding_env_owner.pgy` --

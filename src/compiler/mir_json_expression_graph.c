@@ -622,8 +622,13 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
 
     if (inst == NULL || lane < 0 || lane > 1)
         return NULL;
-    if (lane == 0 && mir_instruction_source_is_defer_stmt(inst))
-        return mir_defer_log_expression_fact(inst);
+    if (lane == 0 && mir_instruction_source_is_defer_stmt(inst)) {
+        if (inst->arg0 != NULL && strcmp(inst->arg0, "Log") == 0)
+            return mir_defer_log_expression_fact(inst);
+        if (inst->arg0 != NULL && strcmp(inst->arg0, "Call") == 0)
+            return mir_defer_call_expression_fact(inst);
+        return NULL;
+    }
     if (lane == 1) {
         if ((inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_DEF)
             && mir_instruction_source_node_type_or(inst, AST_PROGRAM)

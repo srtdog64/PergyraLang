@@ -59,10 +59,11 @@ func AstExpressionNodeStringLiteral() -> Int { return 33; }
 func AstExpressionNodeTypeName() -> Int { return 34; }
 func AstExpressionNodeCast() -> Int { return 35; }
 func AstExpressionNodeAwait() -> Int { return 36; }
+func AstExpressionNodeCoalesce() -> Int { return 37; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeAwait();
+        kind <= AstExpressionNodeCoalesce();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {

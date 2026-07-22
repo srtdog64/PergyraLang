@@ -1,0 +1,30 @@
+// Self-host C ABI facts for allocator-backed Box<Array<T>> values.
+
+import "../../semantic/wrapper_type_owner.pgy";
+
+func BoxArrayRuntimeCValueType(element_type: String) -> String {
+    if element_type == "Int" { return "PgyBoxArray_Int"; }
+    if element_type == "Long" { return "PgyBoxArray_Long"; }
+    if element_type == "Float" { return "PgyBoxArray_Float"; }
+    if element_type == "Double" { return "PgyBoxArray_Double"; }
+    if element_type == "Bool" { return "PgyBoxArray_Bool"; }
+    if element_type == "String" { return "PgyBoxArray_String"; }
+    return "";
+}
+
+func BoxArrayRuntimeCNewFn(element_type: String) -> String {
+    if BoxArrayRuntimeCValueType(element_type) == "" { return ""; }
+    return Concat("pgy_box_array_new_", element_type);
+}
+
+func BoxArrayRuntimeCValueTypeFor(type_name: String) -> String {
+    let element: Option<String> = BoxArrayElementTypeOpt(type_name);
+    if !IsSome(element) { return ""; }
+    return BoxArrayRuntimeCValueType(UnwrapOption(element));
+}
+
+func BoxArrayRuntimeCNewFnFor(type_name: String) -> String {
+    let element: Option<String> = BoxArrayElementTypeOpt(type_name);
+    if !IsSome(element) { return ""; }
+    return BoxArrayRuntimeCNewFn(UnwrapOption(element));
+}

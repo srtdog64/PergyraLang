@@ -37,7 +37,9 @@ func MirInstructionRequiresExpr0Graph(
     let instruction_name: String = UnwrapOption(name);
     let source: String = UnwrapOption(source_type);
     if source == "AST_DEFER_STMT" {
-        return IsSome(arg0) && UnwrapOption(arg0) == "Log" &&
+        return IsSome(arg0) &&
+            (UnwrapOption(arg0) == "Log" ||
+             UnwrapOption(arg0) == "Call") &&
             UnwrapOption(expr0) == "{...}";
     }
     if instruction_kind == "assign" && source == "AST_ASSIGNMENT" {

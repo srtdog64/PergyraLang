@@ -225,9 +225,9 @@ func CodegenExpressionTypeFromGraph(
     );
     if !IsSome(right_id) { return None; }
     let right: Option<String> = CodegenExpressionTypeFromGraph(
-        graph, UnwrapOption(right_id), env
-    );
+        graph, UnwrapOption(right_id), env);
     if !IsSome(right) { return None; }
+    if kind == AstExpressionNodeCoalesce() { return OptionCoalescePayloadTypeOpt(UnwrapOption(left), UnwrapOption(right)); }
     if kind == AstExpressionNodeLogicalAnd() ||
         kind == AstExpressionNodeLogicalOr() ||
         kind == AstExpressionNodeEquality() ||

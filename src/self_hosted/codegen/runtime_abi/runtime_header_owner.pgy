@@ -1,0 +1,33 @@
+// Canonical self-host C runtime header composition owner.
+//
+// Header selection is a consumer fact. Runtime types and implementations stay
+// owned by the runtime inline headers named here.
+
+func RuntimeCHeaderRequired(
+    uses_allocator: Bool,
+    uses_text_builder: Bool,
+    uses_box_array: Bool
+) -> Bool {
+    return uses_allocator || uses_text_builder || uses_box_array;
+}
+
+func RuntimeCHeaderIncludeBlock(uses_box_array: Bool) -> String {
+    if uses_box_array {
+        return "#include \"pgy_runtime.h\"\n";
+    }
+    return "#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_allocator_inline.h\"\n#include \"pgy_runtime_text_builder_inline.h\"\n";
+}
+
+func RuntimeCHeaderOwnsCheckedArithmetic(
+    uses_allocator: Bool,
+    uses_text_builder: Bool,
+    uses_box_array: Bool
+) -> Bool {
+    return RuntimeCHeaderRequired(
+        uses_allocator, uses_text_builder, uses_box_array
+    );
+}
+
+func RuntimeCHeaderOwnsScalarLog(uses_box_array: Bool) -> Bool {
+    return uses_box_array;
+}

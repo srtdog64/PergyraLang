@@ -10,6 +10,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_operator_kind_negative_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_graph_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh"
@@ -162,29 +165,35 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 224 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 224" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 230 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 230" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
     filtered_mir_fixture_rows=()
     mir_fixture_filters=()
+    declare -A mir_fixture_row_by_base=()
+    for fixture_rel in "${mir_fixture_rows[@]}"; do
+        fixture_base=""
+        pgy_selfhost_driver_rung2_fixture_base "$fixture_rel" fixture_base
+        if [[ -z "$fixture_base" ||
+            -n "${mir_fixture_row_by_base[$fixture_base]+present}" ]]; then
+            echo "[self-host-parity:driver-rung2] MIR fixture base is empty or duplicated: $fixture_base" >&2
+            exit 1
+        fi
+        mir_fixture_row_by_base["$fixture_base"]="$fixture_rel"
+    done
     IFS=',' read -r -a mir_fixture_filters <<<"$MIR_FIXTURE_FILTER"
     for wanted_fixture in "${mir_fixture_filters[@]}"; do
-        matched_fixture=""
-        for fixture_rel in "${mir_fixture_rows[@]}"; do
-            if [[ "$(pgy_selfhost_driver_rung2_fixture_base \
-                "$fixture_rel")" == "$wanted_fixture" ]]; then
-                matched_fixture="$fixture_rel"
-                break
-            fi
-        done
-        if [[ -z "$wanted_fixture" || -z "$matched_fixture" ]]; then
+        if [[ -z "$wanted_fixture" ||
+            -z "${mir_fixture_row_by_base[$wanted_fixture]+present}" ]]; then
             echo "[self-host-parity:driver-rung2] MIR fixture filter did not select a row: $wanted_fixture" >&2
             exit 1
         fi
-        filtered_mir_fixture_rows+=("$matched_fixture")
+        filtered_mir_fixture_rows+=(
+            "${mir_fixture_row_by_base[$wanted_fixture]}"
+        )
     done
     mir_fixture_rows=("${filtered_mir_fixture_rows[@]}")
 fi

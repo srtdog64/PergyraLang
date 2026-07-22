@@ -199,7 +199,7 @@ func SemanticAstIterationTypeFactsFromArtifact(
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) || !SemanticAstExpressionSeedVisibleMatchBindings(
-            artifact, expression_surfaces,
+            artifact, expression_surfaces, signatures, constructors,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {

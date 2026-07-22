@@ -193,7 +193,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types, modes
         ) || !SemanticAstExpressionSeedVisibleMatchBindings(
-            artifact, expression_surfaces,
+            artifact, expression_surfaces, signatures, constructors,
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {

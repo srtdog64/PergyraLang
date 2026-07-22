@@ -69,9 +69,58 @@ func StmtToTreeLine(stmt: String) -> String {
     return s;
 }
 
+func RenderDirectDeferCallFromGraph(
+    ref arena: SemanticExpressionGraphArena,
+    root: Int
+) -> String {
+    let arguments: Array<String> = [];
+    let call_node: Int = root;
+    while call_node >= 0 && call_node < ArrayLength(arena.node_kinds) &&
+        arena.node_kinds[call_node] == AstExpressionNodeCallArgument() {
+        let argument_node: Int = arena.right_children[call_node];
+        if argument_node < 0 || argument_node >= ArrayLength(arena.node_texts) ||
+            arena.node_texts[argument_node] == "" {
+            MirLowerFailClosed("defer body graph has an invalid call argument fact");
+        }
+        ArrayPush(arguments, arena.node_texts[argument_node]);
+        call_node = arena.left_children[call_node];
+    }
+    if call_node < 0 || call_node >= ArrayLength(arena.node_kinds) ||
+        arena.node_kinds[call_node] != AstExpressionNodeCall() ||
+        arena.call_target_kinds[call_node] != SemanticCallTargetDirect() ||
+        arena.call_target_names[call_node] == "" {
+        MirLowerFailClosed("defer body graph has no direct call target fact");
+    }
+    let target: String = arena.call_target_names[call_node];
+    let callee_node: Int = arena.left_children[call_node];
+    let empty_call: String = Concat(target, "()");
+    if callee_node < 0 || callee_node >= ArrayLength(arena.node_texts) ||
+        arena.node_kinds[callee_node] != AstExpressionNodeLeaf() ||
+        arena.node_texts[callee_node] != target ||
+        arena.node_texts[call_node] != empty_call {
+        MirLowerFailClosed(
+            "defer body graph disagrees with direct call target fact"
+        );
+    }
+    let body: String = Concat(target, "(");
+    let i: Int = ArrayLength(arguments);
+    while i > 0 {
+        i = i - 1;
+        if i + 1 < ArrayLength(arguments) { body = Concat(body, ", "); }
+        body = Concat(body, arguments[i]);
+    }
+    body = Concat(body, ")");
+    if arena.node_texts[root] != body {
+        MirLowerFailClosed(
+            "defer body graph disagrees with direct call target fact"
+        );
+    }
+    return body;
+}
+
 func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
                           indent: String, arg0: String) -> String {
-    if arg0 != "Log" {
+    if arg0 != "Log" && arg0 != "Call" {
         MirLowerFailClosed("defer instruction has no typed body kind");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -94,13 +143,17 @@ func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
         sequence.arena.node_texts[root] == "" {
         MirLowerFailClosed("defer body graph has no root expression");
     }
+    let body: String = "";
+    if arg0 == "Log" {
+        body = Concat("Log(", Concat(sequence.arena.node_texts[root], ")"));
+    } else {
+        body = RenderDirectDeferCallFromGraph(sequence.arena, root);
+    }
     let out: String = Concat(indent, "Defer:\n");
     out = Concat(out, Concat(indent, "  Block:\n"));
     return Concat(
         out,
-        Concat(indent, Concat(
-            "    Log(", Concat(sequence.arena.node_texts[root], ")\n")
-        ))
+        Concat(indent, Concat("    ", Concat(body, "\n")))
     );
 }
 

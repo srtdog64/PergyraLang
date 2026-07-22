@@ -3,6 +3,7 @@
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
+import "../semantic/ast_statement_type_query_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 
 struct SelfMirInitializerRows {
@@ -32,6 +33,7 @@ struct SelfMirRoutineInput {
     initializers: SelfMirInitializerRows;
     iterations: SelfMirIterationRows;
     assignments: SelfMirAssignmentRows;
+    statement_types: SemanticAstStatementTypeFacts;
     machine_declaration: SelfHostMachineLayerDeclaration;
 }
 

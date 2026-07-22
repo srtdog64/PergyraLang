@@ -2,6 +2,8 @@
 
 import "../hir/ast_match_pattern_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression_environment_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "env_owner.pgy";
@@ -10,8 +12,11 @@ import "wrapper_type_owner.pgy";
 func SemanticAstExpressionSeedOneMatchBinding(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
+    function_names: Array<String>,
+    function_returns: Array<String>,
     function_node_id: Int,
     case_node_id: Int,
     inout names: Array<String>,
@@ -49,22 +54,18 @@ func SemanticAstExpressionSeedOneMatchBinding(
     if !IsSome(subject_root) {
         return false;
     }
-    let subject_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        expression_surfaces.expression_graph, UnwrapOption(subject_root)
-    );
-    let subject_name: Option<String> = SemanticExpressionGraphNodeText(
-        expression_surfaces.expression_graph, UnwrapOption(subject_root)
-    );
-    if !IsSome(subject_kind) ||
-        UnwrapOption(subject_kind) != AstExpressionNodeLeaf() ||
-        !IsSome(subject_name) ||
-        !EnvContainsName(names, UnwrapOption(subject_name)) {
+    let subject_type_fact: Option<String> =
+        SemanticExpressionGraphValueReceiverTypeName(
+            expression_surfaces.expression_graph,
+            UnwrapOption(subject_root), constructors, names, types,
+            function_names, function_returns
+        );
+    if !IsSome(subject_type_fact) {
         return false;
     }
-    let subject_type: String = EnvLookup(
-        names, types, UnwrapOption(subject_name)
-    );
-    if pattern.variant != "Some" {
+    let subject_type: String = UnwrapOption(subject_type_fact);
+    if pattern.variant != "Some" && pattern.variant != "Ok" &&
+        pattern.variant != "Err" {
         if pattern.binding != "" {
             return false;
         }
@@ -86,9 +87,14 @@ func SemanticAstExpressionSeedOneMatchBinding(
     if pattern.binding == "" {
         return false;
     }
-    let payload_type: Option<String> = OptionPayloadTypeOpt(
-        subject_type
-    );
+    let payload_type: Option<String> = None;
+    if pattern.variant == "Some" {
+        payload_type = OptionPayloadTypeOpt(subject_type);
+    } else if pattern.variant == "Ok" {
+        payload_type = ResultPayloadTypeOpt(subject_type);
+    } else {
+        payload_type = ResultErrorTypeOpt(subject_type);
+    }
     if !IsSome(payload_type) || UnwrapOption(payload_type) == "" ||
         UnwrapOption(payload_type) == "Unknown" {
         return false;
@@ -102,6 +108,8 @@ func SemanticAstExpressionSeedOneMatchBinding(
 func SemanticAstExpressionSeedVisibleMatchBindings(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     function_node_id: Int,
     use_node_id: Int,
     inout names: Array<String>,
@@ -131,6 +139,15 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     ) {
         return false;
     }
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        signatures, constructors,
+        function_names, function_returns, function_params
+    ) {
+        return false;
+    }
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts =
@@ -141,7 +158,8 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     let i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {
         if !SemanticAstExpressionSeedOneMatchBinding(
-            artifact, expression_surfaces, enums, function_scopes,
+            artifact, expression_surfaces, constructors, enums,
+            function_scopes, function_names, function_returns,
             function_node_id, case_nodes[i], names, types, modes
         ) {
             return false;

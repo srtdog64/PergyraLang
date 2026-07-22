@@ -464,7 +464,7 @@ emitted consumer yet). What actually shipped, refining §5.1:
   **deferred** — the concurrent session holds that aggregate region uncommitted;
   wiring it now would entangle. Add one line to the aggregate once that lands.
 
-### A.2 REG-1b — plan subsystem LANDED verified-but-unwired; driver/emission integration blocked by a *verified* collision
+### A.2 REG-1b — historical verified-but-unwired checkpoint (superseded by A.5)
 
 Historical snapshot: the collision described below was subsequently resolved.
 The current driver publishes the AIR-gated plan and both C/LLVM consumers read
@@ -646,7 +646,7 @@ two blocks and asserts the block count is stable. The contract distinguishes a
 valid certificate with an uncertified site (HEAP) from missing/invalid AIR or a
 contradictory allocation-site row (plan publication failure).
 
-### A.4 The REG-1c collision dissolved — wiring is in the tree, build green
+### A.5 The REG-1c collision dissolved — wiring is in the tree, build green
 
 The blocker recorded in A.2/A.2b is **gone**, and not by waiting it out. The
 concurrent stream picked up the landed REG-1b/1c artifacts and wired them

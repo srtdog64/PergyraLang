@@ -5,6 +5,7 @@
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/box_array_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/abi_layout_nominal_array_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -43,6 +44,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
         let option_struct_fact: OptionStructRuntimeFact = UnwrapOption(option_struct_fact_opt);
         return option_struct_fact.c_type;
     }
+    if IsBoxType(type_name) && IsSome(BoxArrayElementTypeOpt(type_name)) {
+        let box_type: String = BoxArrayRuntimeCValueTypeFor(type_name);
+        if box_type != "" { return box_type; }
+    }
     let array_element: Option<String> =
         SemanticArrayElementType(type_name);
     if type_name == "Array<Float>" ||
@@ -70,7 +75,7 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumCValueType();
     }
-    Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/String/Array/Result/Option/struct/payload-free enum): ", type_name));
+    Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/Double/String/Array/Result/Option/struct/payload-free enum): ", type_name));
     return "";
 }
 
@@ -124,7 +129,7 @@ func AbiLayoutCLocalType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
 func AbiLayoutCFieldType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
-        Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", type_name));
+        Die(Concat("struct/class fields must be Int/Long/Bool/Float/Double/String/previous struct, got: ", type_name));
     }
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumCValueType();

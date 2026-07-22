@@ -201,7 +201,14 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
             Concat("Result<", Concat(actual_types[0], ">"))
         );
     }
-    if name == "Err" { return SemanticExpressionGraphWrapperOk("Result<Unknown>"); }
+    if name == "Err" {
+        if actual_types[0] == "Unknown" {
+            return SemanticExpressionGraphWrapperOk("Result<Unknown>");
+        }
+        return SemanticExpressionGraphWrapperOk(
+            Concat("Result<Unknown, ", Concat(actual_types[0], ">"))
+        );
+    }
 
     let wrapped: String = actual_types[0];
     if name == "IsSome" || name == "UnwrapOption" {

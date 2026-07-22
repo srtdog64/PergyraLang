@@ -160,13 +160,18 @@ func SelfMirMatchFactRowsValidationError(
             if pattern != "None" || rows.binding_counts[i] != 0 {
                 return "bounded None match rows are invalid";
             }
-        } else if variant == "Some" {
+        } else if variant == "Some" || variant == "Ok" ||
+            variant == "Err" {
             if rows.binding_counts[i] != 1 ||
                 rows.bindings[binding_cursor] == "" ||
                 pattern != Concat(
-                    "Some(", Concat(rows.bindings[binding_cursor], ")")
+                    variant, Concat(
+                        "(", Concat(rows.bindings[binding_cursor], ")")
+                    )
                 ) {
-                return "bounded Some match rows are invalid";
+                return Concat(
+                    "bounded ", Concat(variant, " match rows are invalid")
+                );
             }
         } else {
             return "match variant is outside bounded MIR producer";

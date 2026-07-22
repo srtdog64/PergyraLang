@@ -88,6 +88,19 @@ mir_defer_single_log_expression(ASTNode *body)
     return ast_call_argument(stmt, 0);
 }
 
+static ASTNode *
+mir_defer_single_call_statement(ASTNode *body)
+{
+    ASTNode *stmt;
+
+    if (body == NULL || ast_block_statement_count(body) != 1)
+        return NULL;
+    stmt = ast_block_statement(body, 0);
+    if (stmt == NULL || stmt->type != AST_CALL)
+        return NULL;
+    return stmt;
+}
+
 ASTNode *
 mir_defer_log_expression_fact(const MIRInstruction *inst)
 {
@@ -95,6 +108,15 @@ mir_defer_log_expression_fact(const MIRInstruction *inst)
         || strcmp(inst->arg0, "Log") != 0)
         return NULL;
     return mir_defer_single_log_expression(inst->expr0);
+}
+
+ASTNode *
+mir_defer_call_expression_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->arg0 == NULL
+        || strcmp(inst->arg0, "Call") != 0)
+        return NULL;
+    return mir_defer_single_call_statement(inst->expr0);
 }
 
 void
@@ -106,6 +128,8 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         inst->expr0 = ast_defer_body(stmt);
         if (mir_defer_single_log_expression(inst->expr0) != NULL)
             inst->arg0 = "Log";
+        else if (mir_defer_single_call_statement(inst->expr0) != NULL)
+            inst->arg0 = "Call";
         return;
     }
     if (stmt->type == AST_LET_DECL) {

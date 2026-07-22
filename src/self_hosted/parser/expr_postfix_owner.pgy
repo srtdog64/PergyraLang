@@ -286,7 +286,7 @@ func ApplyPostfixFact(
             if !base.ok { Exit(1); }
             continue;
         }
-        if nc == "?" {
+        if nc == "?" && ParserCharAt(content, after_ws + 1) != "?" {
             i = after_ws + 1;
             let try_text: String = Concat("?", base.text);
             base = ParserExpressionUnary(

@@ -289,7 +289,8 @@ func SemanticAstGenericSpecializationFactsFromBody(
         ) || !SemanticAstExpressionSeedVisibleLocalModes(
             artifact, locals, UnwrapOption(function_node), use_node_id, modes
         ) || !SemanticAstExpressionSeedVisibleMatchBindings(
-            artifact, expression_surfaces, UnwrapOption(function_node),
+            artifact, expression_surfaces, signatures, constructors,
+            UnwrapOption(function_node),
             use_node_id, names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstGenericSpecializationError(

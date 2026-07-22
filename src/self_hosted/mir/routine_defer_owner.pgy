@@ -1,4 +1,4 @@
-// Typed MIR lowering for the bounded single-Log defer body.
+// Typed MIR lowering for the bounded single-statement defer body.
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
@@ -28,16 +28,32 @@ func SelfMirLowerDeferFromArtifact(
         );
     }
     let stmt_node_id: Int = UnwrapOption(stmt_opt);
-    if !TypedAstArenaNodeKindIs(
+    let empty_uses: Array<String> = [];
+    if TypedAstArenaNodeKindIs(
         input.artifact.arena, stmt_node_id, TypedAstKindLogStmtTag()
     ) {
-        return SelfMirRoutineBuildError(
-            build, "defer body is outside the bounded Log rung"
+        let next: SelfMirRoutineBuild = SelfMirRoutineAddInstruction(
+            build, "stmt", "stmt", "", "Log", "", "{...}", "",
+            "AST_DEFER_STMT", empty_uses
+        );
+        return SelfMirRoutineAttachLastExpressionGraph(
+            next,
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                stmt_node_id, AstExpressionLaneAtom()
+            ),
+            input.machine_declaration
         );
     }
-    let empty_uses: Array<String> = [];
+    if !TypedAstArenaNodeKindIs(
+        input.artifact.arena, stmt_node_id, TypedAstKindBareCallStmtTag()
+    ) {
+        return SelfMirRoutineBuildError(
+            build, "defer body is outside the bounded call rung"
+        );
+    }
     let next: SelfMirRoutineBuild = SelfMirRoutineAddInstruction(
-        build, "stmt", "stmt", "", "Log", "", "{...}", "",
+        build, "stmt", "stmt", "", "Call", "", "{...}", "",
         "AST_DEFER_STMT", empty_uses
     );
     return SelfMirRoutineAttachLastExpressionGraph(

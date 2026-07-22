@@ -35,8 +35,30 @@ func MirExpressionGraphSequenceAppendMatchCondition(
                 (UnwrapOption(binding_count) != 1 ||
                     !IsSome(MirMatchBindingAt(instruction, 0)))) ||
             (variant == "None" && UnwrapOption(binding_count) != 0) ||
-            (variant != "Some" && variant != "None") {
+            ((variant == "Ok" || variant == "Err") &&
+                (UnwrapOption(binding_count) != 1 ||
+                    !IsSome(MirMatchBindingAt(instruction, 0)))) ||
+            (variant != "Some" && variant != "None" &&
+                variant != "Ok" && variant != "Err") {
             return MirExpressionGraphSequenceError(sequence);
+        }
+        if variant == "Ok" || variant == "Err" {
+            let condition_name: String = "IsOk";
+            let unwrap_name: String = "Unwrap";
+            if variant == "Err" {
+                condition_name = "IsErr";
+                unwrap_name = "UnwrapErr";
+            }
+            let result_condition: MirExpressionGraphSequence =
+                MirExpressionGraphSequenceAppendUnaryCall(
+                    sequence, subject_graph, condition_name,
+                    match_value_text, false
+                );
+            if !result_condition.ok { return result_condition; }
+            return MirExpressionGraphSequenceAppendUnaryCall(
+                result_condition, subject_graph, unwrap_name,
+                match_value_text, false
+            );
         }
         let condition: MirExpressionGraphSequence =
             MirExpressionGraphSequenceAppendUnaryCall(

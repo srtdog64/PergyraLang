@@ -42,7 +42,8 @@ func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
         kind == AstExpressionNodeIndex() ||
         kind == AstExpressionNodeLogicalNot() ||
         kind == AstExpressionNodeNegate() ||
-        kind == AstExpressionNodeAwait();
+        kind == AstExpressionNodeAwait() ||
+        kind == AstExpressionNodeCoalesce();
 }
 
 func SemanticExpressionGraphNumericTypeName(type_name: String) -> Bool {
@@ -330,6 +331,12 @@ func SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(right_opt), constructors, names, types,
         function_names, function_returns
     );
+    if kind == AstExpressionNodeCoalesce() {
+        let payload: Option<String> =
+            OptionCoalescePayloadTypeOpt(left, right);
+        if IsSome(payload) { return UnwrapOption(payload); }
+        return "Unknown";
+    }
     if kind == AstExpressionNodeLogicalAnd() ||
         kind == AstExpressionNodeLogicalOr() {
         if left == "Bool" && right == "Bool" { return "Bool"; }
@@ -418,6 +425,12 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
                 [AstExpressionLaneAuxiliary()], [fact.root], fact.arena
             ), [0], 1
         );
+    let coalesce_cursor: Array<Int> = [0];
+    let coalesce_fact: ParserExpressionFact =
+        ParseExprFact("value ?? 0", 0, coalesce_cursor);
+    let coalesce_graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [coalesce_fact.root], coalesce_fact.arena), [0], 1);
     let await_cursor: Array<Int> = [0];
     let await_fact: ParserExpressionFact = ParseExprFact(
         "await pending", 0, await_cursor
@@ -542,6 +555,7 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ["stack"], ["Array<Int>"], index_functions, index_returns
         );
     return await_fact.ok && await_cursor[0] == 13 &&
+        coalesce_fact.ok && coalesce_cursor[0] == 10 &&
         index_fact.ok && index_cursor[0] == StringLength(index_text) &&
         invalid_index_fact.ok && invalid_index_cursor[0] ==
             StringLength(invalid_index_text) &&
@@ -571,6 +585,9 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             graph, fact.root, constructors, ["i"], ["String"], empty, empty
         ) == "Unknown" && SemanticExpressionGraphScalarTypeName(
+            coalesce_graph, coalesce_fact.root, constructors,
+            ["value"], ["Option<Int>"], empty, empty
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
             await_graph, await_fact.root, constructors,
             ["pending"], ["RemoteFuture<Int>"], empty, empty
         ) == "Result<Int>" && SemanticExpressionGraphScalarTypeName(

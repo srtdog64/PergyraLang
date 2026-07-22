@@ -68,7 +68,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "IsSome^Bool^Unknown",
         "UnwrapOption^Unknown^Unknown",
         "Ok^Unknown^Unknown",
-        "Err^Unknown^String",
+        "Err^Unknown^Unknown",
         "IsOk^Bool^Unknown",
         "IsErr^Bool^Unknown",
         "Unwrap^Unknown^Unknown",
@@ -96,7 +96,14 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ClaimSlot^Slot<Unknown>^none",
         "Read^Unknown^Unknown",
         "Write^Void^Unknown|Unknown",
-        "Release^Void^Unknown"
+        "Release^Void^Unknown",
+        "AllocatorSystem^Allocator^none",
+        "AllocatorTracing^Allocator^none",
+        "AllocatorDebug^Allocator^none",
+        "AllocatorScratch^Allocator^none",
+        "AllocatorPersistent^Allocator^none",
+        "AllocatorPool^Allocator^Unknown",
+        "BoxArray^Box<Unknown>^Int|Allocator"
     ];
     return rows;
 }
@@ -192,8 +199,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 93 && ArrayLength(returns) == 93 &&
-        ArrayLength(params) == 93 && names[0] == "StringLength" &&
+        ArrayLength(names) == 100 && ArrayLength(returns) == 100 &&
+        ArrayLength(params) == 100 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -209,6 +216,11 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[89] == "ClaimSlot" && returns[89] == "Slot<Unknown>" &&
         names[90] == "Read" && names[91] == "Write" &&
         names[92] == "Release" &&
+        names[93] == "AllocatorSystem" && names[94] == "AllocatorTracing" &&
+        names[95] == "AllocatorDebug" && names[96] == "AllocatorScratch" &&
+        names[97] == "AllocatorPersistent" && names[98] == "AllocatorPool" &&
+        returns[98] == "Allocator" && names[99] == "BoxArray" &&
+        returns[99] == "Box<Unknown>" && params[99] == "Int|Allocator" &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

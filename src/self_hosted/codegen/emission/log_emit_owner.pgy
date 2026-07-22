@@ -2,6 +2,7 @@
 
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "../text/text_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 
@@ -47,12 +48,22 @@ func EmitLog(
             StringRuntimeCFloatLineFormat(), env
         );
     }
+    if inferred_type_name == "Double" {
+        return EmitFormattedScalarLog(
+            rendered, "Double",
+            StringRuntimeCFloatLineFormat(), env
+        );
+    }
     if inferred_type_name == "Bool" {
         return Concat(StringRuntimeCBoolLogFn(), Concat("((bool)(", Concat(
             rendered, "));"
         )));
     }
-    return Concat(StringRuntimeCLogFn(), Concat("(", Concat(
-        rendered, ");"
-    )));
+    if inferred_type_name == "String" {
+        return Concat(StringRuntimeCLogFn(), Concat("(", Concat(
+            rendered, ");"
+        )));
+    }
+    Die(Concat("unsupported Log expression type: ", inferred_type_name));
+    return "";
 }

@@ -264,7 +264,7 @@ func ParsePrimaryFact(
                     base = "<node:26>";
                 } else {
                     i = i + 1;
-                    grouped = ParseLogicalOrFact(content, i, cursor_out);
+                    grouped = ParseExprFact(content, i, cursor_out);
                     if !grouped.ok { Exit(1); }
                     base = grouped.text;
                     preserves_grouped_graph = true;

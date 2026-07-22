@@ -9,7 +9,6 @@ import "routine_build_owner.pgy";
 import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
-import "../semantic/ast_expression_owner_field_environment_owner.pgy";
 
 func SelfMirMatchCaseFactForNode(
     ref input: SelfMirRoutineInput,
@@ -29,25 +28,11 @@ func SelfMirMatchCaseFactForNode(
 
 func SelfMirMatchSubjectType(
     ref input: SelfMirRoutineInput,
-    build: SelfMirRoutineBuild,
-    match_node_id: Int,
-    match_value: String
+    match_node_id: Int
 ) -> Option<String> {
-    let local_index: Option<Int> = SelfMirRoutineLocalIndex(
-        build, match_value
-    );
-    if IsSome(local_index) {
-        return Some(build.local_types[UnwrapOption(local_index)]);
-    }
-    let statement_index: Option<Int> = SemanticAstStatementIndexForNode(
-        input.analysis.statements, match_node_id
-    );
-    if !IsSome(statement_index) { return None; }
-    return SemanticAstExpressionOwnerFieldType(
-        input.analysis.signatures, input.analysis.constructors,
-        input.analysis.statements.function_node_ids[
-            UnwrapOption(statement_index)
-        ], match_value
+    return SemanticAstStatementInferredTypeForNode(
+        input.statement_types, match_node_id,
+        TypedAstKindMatchStmtTag()
     );
 }
 
@@ -63,12 +48,15 @@ func SelfMirMatchCaseSubjectReady(
         return true;
     }
     let subject_type_opt: Option<String> = SelfMirMatchSubjectType(
-        input, build, match_node_id, match_value
+        input, match_node_id
     );
     if !IsSome(subject_type_opt) { return false; }
     let subject_type: String = UnwrapOption(subject_type_opt);
     if fact.variant == "Some" || fact.variant == "None" {
         return StartsWith(subject_type, "Option<");
+    }
+    if fact.variant == "Ok" || fact.variant == "Err" {
+        return StartsWith(subject_type, "Result<");
     }
     if fact.variant != "" || fact.binding != "" {
         return false;

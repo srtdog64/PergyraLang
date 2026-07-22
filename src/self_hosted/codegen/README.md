@@ -269,10 +269,12 @@ return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that
 owner instead of locally mapping `Int` / `String` / aggregate or
 empty-signature facts to C spellings.
-`runtime_abi/text_builder_runtime_owner.pgy` owns the standalone C projection
-for Allocator/TextBuilder layout and call spelling. The compiler runtime-call
-artifact carries the same operations and call shapes; emitters do not invent
-the helper names locally.
+`runtime_abi/text_builder_runtime_owner.pgy` owns Allocator/TextBuilder call
+spelling. `runtime_abi/runtime_header_owner.pgy` composes the canonical runtime
+inline owners for allocator, TextBuilder, and allocator-backed BoxArray
+consumers; generated C no longer carries a second hand-written layout or
+implementation block. The compiler runtime-call artifact carries the same
+operations and call shapes; emitters do not invent helper names locally.
 `runtime_abi/collection_runtime_owner.pgy` owns C collection runtime helper
 symbol spelling for the supported `Array<Int>` / `Array<String>` subset and the
 bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. It also

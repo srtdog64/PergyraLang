@@ -21,6 +21,9 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     elif [[ "$base" == "array_scalar_aggregate_core" ]]; then
         expected_type='Array<Long>'
         expected_layout_prefix='"abi_layout_id":716601410,"abi_layout_required":true,"abi_layout":{"type":"Array<Long>","size":32,"align":8'
+    elif [[ "$base" == "array_double_aggregate_core" ]]; then
+        expected_type='Array<Double>'
+        expected_layout_prefix='"abi_layout_id":704297701,"abi_layout_required":true,"abi_layout":{"type":"Array<Double>","size":32,"align":8'
     elif [[ "$machine_fixture" -eq 1 && "$base" == "device_slot_routine" ]]; then
         expected_type='DeviceSlot<Int>'
         expected_layout_prefix='"abi_layout_id":707638132,"abi_layout_required":true,"abi_layout":{"type":"DeviceSlot<Int>","size":8,"align":4'
@@ -41,13 +44,11 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     }
 
     if [[ "$base" == "array_scalar_aggregate_core" ]]; then
-        for array_type in 'Array<Float>' 'Array<Bool>' 'Array<Double>'; do
+        for array_type in 'Array<Float>' 'Array<Bool>'; do
             if [[ "$array_type" == 'Array<Float>' ]]; then
                 array_layout_prefix='"abi_layout_id":791395840,"abi_layout_required":true,"abi_layout":{"type":"Array<Float>","size":32,"align":8'
             elif [[ "$array_type" == 'Array<Bool>' ]]; then
                 array_layout_prefix='"abi_layout_id":569019588,"abi_layout_required":true,"abi_layout":{"type":"Array<Bool>","size":32,"align":8'
-            else
-                array_layout_prefix='"abi_layout_id":704297701,"abi_layout_required":true,"abi_layout":{"type":"Array<Double>","size":32,"align":8'
             fi
             grep -Fq "\"abi_type_name\":\"$array_type\"" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend static ABI type row is missing: $array_type" >&2

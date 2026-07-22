@@ -61,6 +61,10 @@ require_term src/codegen/llvm_api.c "llvm_fn_is_stateful_runtime" \
     "exclusion loop must consult the stateful predicate"
 require_term src/codegen/llvm_api.c "LLVMGetLinkage" \
     "stripping must be gated on external linkage (static strip = link break)"
+require_term src/codegen/llvm_api.c "LLVMGetFirstGlobal(runtime_module)" \
+    "bitcode must enumerate external runtime global definitions"
+require_term src/codegen/llvm_api.c "LLVMSetInitializer(gv, NULL)" \
+    "the linked runtime object must remain the sole global-definition owner"
 
 # 3. freshness is a directory scan (docs/189 C6)
 require_term src/codegen/llvm_runtime_bitcode_freshness.c \
