@@ -9,26 +9,28 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `89e314be5c0b3b28196c214079557e8fa21cba04` on `main`.
+- Captured HEAD: `23f06879bf8013d5614d5374262ef21c90f3b875` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has two modified unstaged tracked paths and 48 untracked diagnostic `.tmp`
-  artifacts. The tracked remainder is the pre-existing `stmt_emit.pgy`
-  declaration-formatting edit and a separate `class_result_chain_loop`
-  loop-phi parity experiment; neither is part of the closed 232 slice.
-  Preserve them and the allocator, defer, TextBuilder, bootstrap, and
-  wrapper-policy probe artifacts until explicitly audited. Build artifacts
-  remain ignored; run `git status --short --branch` before resuming because
-  this count can change.
+  has two modified unstaged tracked paths and 46 untracked diagnostic `.tmp`
+  artifacts: this handoff and the pre-existing `stmt_emit.pgy`
+  declaration-formatting edit. Preserve that edit and the allocator, defer,
+  TextBuilder, bootstrap, and wrapper-policy probe artifacts until explicitly
+  audited. Build artifacts remain ignored; run
+  `git status --short --branch` before resuming because this count can change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
   `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
   created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
   It then refreshed the handoff in `37c5e213` and created and pushed
   `d47f6bd0` for the explicit `Result<T,E>` runtime SoT slice, then refreshed
   this handoff in `d623d002`, committed and pushed the 25-path fixture-231
-  match-binding slice as `dd916eaa`, and committed and pushed the fixture-232
-  class-composition closure as `89e314be`. The two remaining tracked paths
-  are not included in those commits.
+  match-binding slice as `dd916eaa`, and concurrent work committed and pushed
+  the fixture-232 class-composition slice as `89e314be`, then refreshed this
+  handoff in `0491f718`. This session verified and created/pushed
+  `23f06879` for the fixture-234 `class_method_result_loop` Result/class-method
+  loop closure, including its owner-directed match/phi negative gates and
+  fresh hard producer evidence. This handoff refresh is the only remaining
+  tracked task change; the pre-existing `stmt_emit.pgy` edit was not staged.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -82,12 +84,11 @@ current owner fact and update this file after verification.
 ### 1. Hard self-host DRV-2 executable replacement
 
 - Resume owner: `src/self_hosted/PROGRESS.md`.
-- The closed executable frontier is fixture 232, `class_factory_result_wrap`,
-  after `dish_result_collect` fixture 231. Focused C/LLVM/current-hard/new-hard
-  parity and the eight-row hard Result/Option/enum/class/frontier shard are
-  green. The last complete unfiltered current-hard matrix remains 230/230;
-  released/default-driver replacement remains open, and fixture 233 has not
-  been selected.
+- The current-tree closed executable frontier is fixture 234,
+  `class_method_result_loop`, after `class_result_chain_loop` fixture 233.
+  Focused C/LLVM/fresh-hard producer-first parity and the Result/Option/enum/
+  match-phi frontier shard are green. The last complete unfiltered current-hard
+  matrix remains 230/230; released/default-driver replacement remains open.
 - A focused C/LLVM producer-first parity result counts. Owner files, docs,
   manifests, and fixture count do not count as substitution by themselves.
 - Fixture 226 adds `coalesce` as a stable typed expression-graph node. Grouped
@@ -239,11 +240,57 @@ current owner fact and update this file after verification.
 - The full 232-row matrix was not run because the observed 231 projection
   exceeds the 30-minute integration budget. The last complete unfiltered
   matrix remains 230/230; this is an explicit omission, not a green result.
-- The next bounded falsifier is not yet selected. Before fixture 233 admission,
-  choose exactly one unsupported Pergyra-level semantic surface, write its
-  objective card, and probe it without changing the manifest. Do not open a
-  C-shaped runtime fragment or a parallel cleanup track merely to increase the
-  fixture count.
+- Fixture 234,
+  `tests/cases/backend_compare/class_method_result_loop/main.pgy`, carries a
+  class method `Calc.DivBy` through `Result<Int,DivErr>`, typed `Ok(v)`/`Err(e)`
+  match arms, accumulator merge, and a while backedge. MIR owns the member
+  target `Calc_DivBy` and the accumulator chain
+  `acc.1 -> acc.4 -> acc.8/acc.12 -> acc.13 -> acc.4`; no fixture/name branch,
+  source re-scan, pattern inference, native-MIR injection, C fallback, or new
+  runtime fragment was added.
+- Focused C-built, LLVM-built, and freshly Pergyra-built 234-hard lanes pass
+  with 20 body fixtures and one MIR fixture. The fresh hard driver is
+  `.tmp/bin_class_method_result_loop_234_hard/pgy-self-driver.exe`, SHA-256
+  `AFE689EDCB93AEAE7FE9CC9FDFCAD16E4F03C6AE244053EAA59A01DA27FDCE2E`.
+  Hard native/self canonical MIR SHA-256 is
+  `B11981A79C4A892A20ADC489254E896A4B01262119845DB972F92120584C1CDA`;
+  hard source/self-MIR C SHA-256 is
+  `1C0F1419F35B8F0F7AE43E47C8772A71516C11254C19C79C54F2439072495D0F`;
+  runtime output is `104`, `-2`, `0`. Removing `match_binding_types` or
+  `Calc_DivBy` fails graph admission, while removing the `acc.4` loop-carried
+  input fails with `MIR phi facts are missing or inconsistent: RunSeries`.
+- Component, shell syntax, hard contract, and diff gates pass. The full
+  234-row matrix was not run under the 30-minute budget; the last complete
+  unfiltered matrix remains 230/230. The next bounded falsifier is not yet
+  selected.
+- Fixture 233,
+  `tests/cases/backend_compare/class_result_chain_loop/main.pgy`, carries a
+  `Wizard` through `Result<Wizard,DraftErr>`, match-bound next state, match
+  merge, and a while backedge. MIR owns the chain
+  `w.1 -> w.3 -> w.7 -> w.13 -> w.3`; error variants return explicitly.
+  Compiler semantics gained no fixture/name branch, source re-scan,
+  struct-copy guess, native-MIR injection, C fallback, or runtime shard.
+- Focused C-built, LLVM-built, previous-232-hard, and freshly Pergyra-built
+  233-hard lanes pass with 20 body fixtures and one MIR fixture. The new hard
+  driver is `.tmp/bin_class_result_chain_loop_233_hard/pgy-self-driver.exe`,
+  SHA-256
+  `19CC79B10900099F60FFF64D81B9CE13BC527E6BF831CCE7108A69BE73D91E6A`,
+  with a 233-row manifest ending in `class_result_chain_loop`.
+- Hard native/self canonical MIR SHA-256 is
+  `4130D3F3B898DD0FC917A64E58483517C3CAB528645125CC5FF7243B6410BBDE`;
+  oracle/self/source emitted-C SHA-256 is
+  `DDF21027CE91D240312391538980571B531EF5CDDF6AFDCD702D3FBA1FE42BA1`;
+  runtime output is `100`, `0`, `20`, `0`. Removing `Ok(after): Wizard` fails
+  expression-graph admission, while removing `w.7` from the merge phi fails
+  with `MIR phi facts are missing or inconsistent: ManaPoints`.
+- The ten-fixture hard impact shard passes. Component, shell syntax, diff, SoT
+  authority, gate-owner, protocol-registry, and substitution-velocity gates
+  also pass. The full 233-row matrix was not run under the 30-minute budget;
+  the last complete unfiltered matrix remains 230/230.
+- Before the next fixture admission, choose exactly one unsupported
+  Pergyra-level semantic surface, write its objective card, and probe it
+  without changing the manifest. Do not open a C-shaped runtime fragment or a
+  parallel cleanup track merely to increase the fixture count.
 
 ### 1a. Explicit Result runtime SoT closure
 
@@ -260,9 +307,9 @@ current owner fact and update this file after verification.
 - The current component contract is green. Match binding local-index and
   reconstruction responsibilities now live in named Pergyra owners;
   `routine_fact_index_owner.pgy` and `stmt_emit.pgy` both meet the 600-line
-  cap. Fixtures 231 and 232 prove that this Result runtime owner reaches class
-  payloads, enum errors, value-returning match control flow, and typed class
-  method calls without adding a C-side inference path.
+  cap. Fixtures 231-233 prove that this Result runtime owner reaches class
+  payloads, enum errors, value-returning match control flow, typed class method
+  calls, and loop-carried class state without adding a C-side inference path.
 
 ### 2. MIR-only / ABI-first backend closure
 
