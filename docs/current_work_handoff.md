@@ -9,18 +9,18 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `b3216b62e82fb0e2e12023bc83db1be8c241fe61` on `main`.
+- Captured HEAD: `e87307855124c54740447687a4a3290ae07f020b` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 10 unstaged tracked entries and 47 untracked paths. The fixture-235 slice
+  has 11 unstaged tracked entries and 48 untracked paths. The fixture-235 slice
   owns seven tracked entries plus the untracked replacement
   `driver_rung2_wrapper_match_loop_phi_parity_owner.sh`; the retired
   Result-named owner is the matching deletion. The pre-existing
   `stmt_emit.pgy` declaration-formatting edit remains separate. This handoff
   and `src/self_hosted/PROGRESS.md` are the two documentation refreshes in the
-  remaining tracked set. The region callee-identity slice is committed below;
-  preserve the concurrent fixture-235 work and all other dirty paths. The
-  other 46 untracked paths are the existing allocator, defer, TextBuilder,
+  remaining tracked set. The semantic region-escape SoT closure is committed
+  below; preserve the remaining concurrent edits separately. The other 46
+  untracked paths are the existing allocator, defer, TextBuilder,
   bootstrap, and wrapper-policy probes. Build artifacts remain ignored; run
   `git status --short --branch` before resuming because this count can change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
@@ -340,15 +340,21 @@ current owner fact and update this file after verification.
   landed. Current rows use stable syntax/allocation IDs, reset reuses retained
   blocks, and an uncertified site defaults to HEAP while missing or
   contradictory certificate evidence refuses plan publication.
-- The 2026-07-23 callee-identity closure moved the direct-print certificate's
-  authority to the semantic-owned `BuiltinKind` call fact. The region producer
-  consumes it through the AST accessor; a missing fact remains HEAP, and the
-  manifest rejects the old `strcmp(name, "Print")`/`PrintLn` source-spelling
-  path. Region unit, C/LLVM backend wiring, plan/arena, LLVM-disabled/enabled
-  compiler, component/hard contract, SoT authority, and substitution-velocity
-  gates passed. The adequacy gate's Coq model was declared skipped because no
-  prover is installed on this runner; its live owner checks passed with the
-  repository's `PGY_ALLOW_MISSING_COQ=1` declaration.
+- The 2026-07-23 closure moved bounded direct-`Print` escape-fact production
+  into semantic ownership at `src/semantic/region_escape_fact.c`. Semantic
+  analysis emits stable allocation/scope/function IDs from the resolved
+  `BuiltinKind` fact; the driver only validates those rows into the AIR-gated
+  verified plan. `src/compiler/region_escape_v1.{h,c}` was deleted, and the
+  component contract rejects its return. This executable closure is committed
+  and pushed as `e8730785`.
+- Observed green gates for this slice are region unit, verified-plan unit,
+  arena, C/LLVM backend wiring, self-host region-plan, component contract,
+  alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
+  substitution velocity. The adequacy gate's Coq model was declared skipped
+  because no prover is installed on this runner; its live owner checks passed
+  with `PGY_ALLOW_MISSING_COQ=1`. The hard contract remains red only because
+  concurrent fixture-235 work removed an expected `P_V` term; that file was
+  not changed by this slice.
 - This closes the callee-identity fallback seam only. The
   `resource.region_allocation_plan` registry row remains `BRIDGE` until the
   remaining semantic HIR/MIR retention and producer migration are complete.
