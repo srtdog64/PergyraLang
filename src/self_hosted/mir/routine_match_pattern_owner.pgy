@@ -7,10 +7,11 @@ struct SelfMirMatchCaseFact {
     pattern: String;
     variant: String;
     binding: String;
+    binding_type: String;
 }
 
 func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
-    return SelfMirMatchCaseFact(false, "", "", "");
+    return SelfMirMatchCaseFact(false, "", "", "", "");
 }
 
 func SelfMirMatchCaseFactFromArtifact(
@@ -23,6 +24,6 @@ func SelfMirMatchCaseFactFromArtifact(
         return SelfMirMatchCaseFactInvalid();
     }
     return SelfMirMatchCaseFact(
-        true, fact.pattern, fact.variant, fact.binding
+        true, fact.pattern, fact.variant, fact.binding, ""
     );
 }

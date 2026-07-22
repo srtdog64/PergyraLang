@@ -7,6 +7,7 @@ struct SelfMirMatchJsonFields {
     patterns: String;
     variant: String;
     bindings: String;
+    binding_types: String;
 }
 
 func SelfMirMatchJsonFieldsForInstruction(
@@ -15,6 +16,7 @@ func SelfMirMatchJsonFieldsForInstruction(
 ) -> SelfMirMatchJsonFields {
     let patterns: Array<String> = [];
     let bindings: Array<String> = [];
+    let binding_types: Array<String> = [];
     let variant: String = "null";
     let fact_index: Option<Int> = SelfMirMatchFactIndexForInstruction(
         rows.match_facts, instruction_index
@@ -43,6 +45,14 @@ func SelfMirMatchJsonFieldsForInstruction(
                     ]
                 )
             );
+            ArrayPush(
+                binding_types,
+                JsonStringLiteral(
+                    rows.match_facts.binding_types[
+                        rows.match_facts.binding_starts[row] + binding_i
+                    ]
+                )
+            );
             binding_i = binding_i + 1;
         }
         if rows.match_facts.variants[row] != "" {
@@ -50,6 +60,7 @@ func SelfMirMatchJsonFieldsForInstruction(
         }
     }
     return SelfMirMatchJsonFields(
-        JsonEmitArray(patterns), variant, JsonEmitArray(bindings)
+        JsonEmitArray(patterns), variant, JsonEmitArray(bindings),
+        JsonEmitArray(binding_types)
     );
 }

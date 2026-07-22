@@ -13,13 +13,14 @@ struct SelfMirMatchFactRows {
     binding_starts: Array<Int>;
     binding_counts: Array<Int>;
     bindings: Array<String>;
+    binding_types: Array<String>;
 }
 
 func SelfMirMatchFactRowsEmpty() -> SelfMirMatchFactRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfMirMatchFactRows(
-        ints, ints, ints, strings, strings, ints, ints, strings
+        ints, ints, ints, strings, strings, ints, ints, strings, strings
     );
 }
 
@@ -40,7 +41,8 @@ func SelfMirMatchFactRowsAttachCase(
     instruction_index: Int,
     pattern: String,
     variant: String,
-    binding: String
+    binding: String,
+    binding_type: String
 ) -> SelfMirMatchFactRows {
     let instruction_indices: Array<Int> = rows.instruction_indices;
     let pattern_starts: Array<Int> = rows.pattern_starts;
@@ -50,6 +52,7 @@ func SelfMirMatchFactRowsAttachCase(
     let binding_starts: Array<Int> = rows.binding_starts;
     let binding_counts: Array<Int> = rows.binding_counts;
     let bindings: Array<String> = rows.bindings;
+    let binding_types: Array<String> = rows.binding_types;
     ArrayPush(instruction_indices, instruction_index);
     ArrayPush(pattern_starts, ArrayLength(patterns));
     ArrayPush(pattern_counts, 1);
@@ -58,13 +61,15 @@ func SelfMirMatchFactRowsAttachCase(
     ArrayPush(binding_starts, ArrayLength(bindings));
     let binding_count: Int = 0;
     if binding != "" {
+        if binding_type == "" || binding_type == "Unknown" { return rows; }
         ArrayPush(bindings, binding);
+        ArrayPush(binding_types, binding_type);
         binding_count = 1;
     }
     ArrayPush(binding_counts, binding_count);
     return SelfMirMatchFactRows(
         instruction_indices, pattern_starts, pattern_counts, patterns,
-        variants, binding_starts, binding_counts, bindings
+        variants, binding_starts, binding_counts, bindings, binding_types
     );
 }
 
@@ -81,6 +86,7 @@ func SelfMirMatchFactRowsAppend(
     let binding_starts: Array<Int> = target.binding_starts;
     let binding_counts: Array<Int> = target.binding_counts;
     let bindings: Array<String> = target.bindings;
+    let binding_types: Array<String> = target.binding_types;
     let row: Int = 0;
     while row < ArrayLength(source.instruction_indices) {
         ArrayPush(
@@ -106,13 +112,19 @@ func SelfMirMatchFactRowsAppend(
                 bindings,
                 source.bindings[source.binding_starts[row] + binding_i]
             );
+            ArrayPush(
+                binding_types,
+                source.binding_types[
+                    source.binding_starts[row] + binding_i
+                ]
+            );
             binding_i = binding_i + 1;
         }
         row = row + 1;
     }
     return SelfMirMatchFactRows(
         instruction_indices, pattern_starts, pattern_counts, patterns,
-        variants, binding_starts, binding_counts, bindings
+        variants, binding_starts, binding_counts, bindings, binding_types
     );
 }
 
@@ -150,6 +162,9 @@ func SelfMirMatchFactRowsValidationError(
                 ArrayLength(rows.bindings) {
             return "match binding rows are invalid";
         }
+        if ArrayLength(rows.binding_types) != ArrayLength(rows.bindings) {
+            return "match binding type rows differ";
+        }
         let variant: String = rows.variants[i];
         let pattern: String = rows.patterns[pattern_cursor];
         if variant == "" {
@@ -164,6 +179,8 @@ func SelfMirMatchFactRowsValidationError(
             variant == "Err" {
             if rows.binding_counts[i] != 1 ||
                 rows.bindings[binding_cursor] == "" ||
+                rows.binding_types[binding_cursor] == "" ||
+                rows.binding_types[binding_cursor] == "Unknown" ||
                 pattern != Concat(
                     variant, Concat(
                         "(", Concat(rows.bindings[binding_cursor], ")")
@@ -181,7 +198,8 @@ func SelfMirMatchFactRowsValidationError(
         i = i + 1;
     }
     if pattern_cursor != ArrayLength(rows.patterns) ||
-        binding_cursor != ArrayLength(rows.bindings) {
+        binding_cursor != ArrayLength(rows.bindings) ||
+        binding_cursor != ArrayLength(rows.binding_types) {
         return "match payload totals differ";
     }
     return "";

@@ -179,6 +179,9 @@ func SelfMirJsonInstruction(
         JsonEmitFieldRaw("match_variant", match_fields.variant),
         JsonEmitFieldRaw("match_bindings", match_fields.bindings),
         JsonEmitFieldRaw(
+            "match_binding_types", match_fields.binding_types
+        ),
+        JsonEmitFieldRaw(
             "destructure_element_type",
             SelfMirJsonDestructureElementType(rows, instruction_index)
         ),

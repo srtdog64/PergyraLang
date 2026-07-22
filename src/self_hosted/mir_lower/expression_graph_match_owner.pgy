@@ -16,11 +16,14 @@ func MirExpressionGraphSequenceAppendMatchCondition(
         JsonObjectFactStringFieldOpt(instruction, "expr0");
     let pattern_count: Option<Int> = MirMatchPatternCount(instruction);
     let binding_count: Option<Int> = MirMatchBindingCount(instruction);
+    let binding_type_count: Option<Int> =
+        MirMatchBindingTypeCount(instruction);
     if !IsSome(source_type) ||
         UnwrapOption(source_type) != "AST_MATCH_CASE" ||
         !IsSome(match_value) || UnwrapOption(match_value) == "" ||
         !IsSome(pattern_count) || UnwrapOption(pattern_count) != 1 ||
-        !IsSome(binding_count) {
+        !IsSome(binding_count) || !IsSome(binding_type_count) ||
+        UnwrapOption(binding_type_count) != UnwrapOption(binding_count) {
         return MirExpressionGraphSequenceError(sequence);
     }
     let match_value_text: String = UnwrapOption(match_value);
@@ -33,11 +36,13 @@ func MirExpressionGraphSequenceAppendMatchCondition(
         let variant: String = UnwrapOption(variant_opt);
         if (variant == "Some" &&
                 (UnwrapOption(binding_count) != 1 ||
-                    !IsSome(MirMatchBindingAt(instruction, 0)))) ||
+                    !IsSome(MirMatchBindingAt(instruction, 0)) ||
+                    !IsSome(MirMatchBindingTypeAt(instruction, 0)))) ||
             (variant == "None" && UnwrapOption(binding_count) != 0) ||
             ((variant == "Ok" || variant == "Err") &&
                 (UnwrapOption(binding_count) != 1 ||
-                    !IsSome(MirMatchBindingAt(instruction, 0)))) ||
+                    !IsSome(MirMatchBindingAt(instruction, 0)) ||
+                    !IsSome(MirMatchBindingTypeAt(instruction, 0)))) ||
             (variant != "Some" && variant != "None" &&
                 variant != "Ok" && variant != "Err") {
             return MirExpressionGraphSequenceError(sequence);

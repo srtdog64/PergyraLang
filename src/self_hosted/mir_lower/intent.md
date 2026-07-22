@@ -110,7 +110,10 @@ graph-less artifacts can be upgraded
 only by the explicitly named `--canonicalize-oracle-mir-json` compatibility
 boundary, which reuses the canonical Pergyra expression parser through
 `SemanticAstArtifactAnalyzeCompactBridge`. The hard consumer cannot invoke
-that bridge.
+that bridge. The same boundary may reconstruct a legacy native match binding
+as an inferred `Let` when `match_binding_types` is absent; ordinary MIR graph
+admission still rejects that missing fact, while canonical self MIR carries
+the Pergyra-owned binding type explicitly.
 
 `phi_fact_owner.pgy` consumes the indexed CFG rather than rendered statements.
 Each phi must be the block prefix, have one use per distinct predecessor, and

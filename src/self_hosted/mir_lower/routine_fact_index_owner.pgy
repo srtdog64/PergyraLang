@@ -6,6 +6,7 @@
 
 import "json_fact_read.pgy";
 import "loop_flow_fact_owner.pgy";
+import "match_binding_local_fact_owner.pgy";
 import "mir_cfg_graph_owner.pgy";
 import "resource_flow_fact_owner.pgy";
 
@@ -302,6 +303,11 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
             local_cursor = local_bounds[1];
         }
     }
+
+    let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(json, instruction_starts, instruction_ends, source_local_names, source_local_types);
+    source_local_names = match_locals.names;
+    source_local_types = match_locals.types;
+    if !match_locals.valid { valid = false; validation_stage = match_locals.validation_stage; }
 
     return MirRoutineFactIndex(valid, validation_stage, loop_flow_facts_valid,
         routine_start, routine_end,

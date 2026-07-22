@@ -92,6 +92,13 @@ func SelfMirMergeMatchArms(
     }
     let local_i: Int = 0;
     while local_i < entry_count {
+        // An inactive entry name belongs to an earlier lexical block. Match
+        // arms may reuse its spelling, but they cannot promote it outside.
+        if entry_versions[local_i] == 0 {
+            build = SelfMirRoutineSetLocalVersion(build, local_i, 0);
+            local_i = local_i + 1;
+            continue;
+        }
         let incoming: Array<String> = [];
         let first_version: Int = -1;
         let all_same: Bool = true;

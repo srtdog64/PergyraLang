@@ -48,9 +48,10 @@ String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `ToFloat`. Array combinators: `ArraySort`, `ArrayReverse`, `ArrayMap`,
 `ArrayFilter` for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool`
 function references.
-Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
-`UnwrapOr`, and postfix `?` early-return lowering for `Int` payload lets inside
-`Result<Int>` functions.
+Result values: the fixed bootstrap `Result<Int>` row plus explicit
+`Result<T,E>` specializations selected once from semantic type usage. `Ok`,
+`Err`, `IsOk`, `IsErr`, `Unwrap`, and `UnwrapErr` consume that specialization;
+`UnwrapOr` and postfix `?` remain bounded to the existing `Int` payload rung.
 Option values: `Option<Int>` / `Option<String>` with `Some`, `None`, `IsSome`,
 and `UnwrapOption`.
 Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
@@ -83,7 +84,8 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
 - `String` param -> `const char*`, return -> `const char*`
 - `Array<Int>` param/return -> `pgy_ai`; `Array<String>` param/return -> `pgy_as`
 - struct param/return -> value-passed C typedef for the generated struct
-- `Result<Int>` param/return -> value-passed `pgy_result_int`
+- `Result<Int>` param/return -> value-passed `pgy_result_int`; explicit
+  `Result<T,E>` -> one generated tagged value type from `ResultRuntimeFact`
 - `Option<Int>` param/return -> value-passed `pgy_option_int`
 - `Option<String>` param/return -> value-passed `pgy_option_string`
 - `Allocator` local -> value-passed `PgyAllocator`; `TextBuilder` local ->
@@ -127,9 +129,10 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
   access while `ExprKind` consumes the field-type fact for `Log` / condition
   routing. Struct-valued fields recurse through the same fact-owned literal
   boundary, and dotted reads such as `line.end.x` resolve through field facts.
-- `Let: <name> : Result<Int> = Ok(v)|Err(s)|Call(...)` -> value-passed
-  `pgy_result_int`; `IsOk` / `IsErr` branch conditions and `Unwrap` /
-  `UnwrapOr` integer expressions lower through local helpers. `Let: <name> :
+- `Let: <name> : Result<T,E> = Ok(v)|Err(e)|Call(...)` -> the explicit tagged
+  Result specialization owned by `ResultRuntimeFact`; `IsOk` / `IsErr` branch
+  conditions and `Unwrap` / `UnwrapErr` select its owned helper symbols. The
+  fixed `Result<Int>` row retains `UnwrapOr`. `Let: <name> :
   Int = Call(...)?` inside a `Result<Int>` function lowers to a temporary
   `pgy_result_int`, propagates `Err` with the active defer stack emitted before
   return, and binds the unwrapped `Int` payload on the success path.
@@ -140,8 +143,9 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
   `UnwrapOption` expressions lower through common field-access helpers.
   Match-case `Some(v)` binding is not
   reconstructed from source text here; the MIR JSON path must provide
-  `match_variant` and `match_bindings` facts before this emitter sees the
-  lowered `Let: v : Int = UnwrapOption(...)` line.
+  `match_variant`, `match_bindings`, and `match_binding_types` facts before
+  this emitter sees the lowered `Let: v : Int = UnwrapOption(...)` line. The
+  same carried type row owns `Ok(v)` and `Err(e)` bindings.
 - `Defer:` -> local block-exit emission in reverse registration order. Return
   paths emit the currently active defer stack before returning; broader
   resource/defer semantics remain owned by the native backend path.
@@ -293,6 +297,10 @@ symbol spelling for the supported file, byte-count stdin, directory-walk, and
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
 helper symbol spelling for the supported `Option<Int>` / `Option<String>` /
 `Result<Int>` subset.
+`runtime_abi/result_runtime_owner.pgy` owns the C type and helper symbols for
+each explicit `Result<T,E>` usage, while
+`emission/result_runtime_emit_owner.pgy` materializes that tagged definition.
+It is one type-directed runtime projection, not one emitter per fixture.
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `option_result_runtime_owner.pgy` instead of
 locally spelling `pgy_option_*` / `pgy_result_*` helper names.

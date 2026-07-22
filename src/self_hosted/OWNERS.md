@@ -494,6 +494,10 @@ inventory must not become a second fact-family owner registry.
   facts; source text and builtin-name inference are forbidden.
 - `src/self_hosted/mir_lower/match_json_fact_owner.pgy` -- typed optional reads
   for match pattern arrays consumed during graph reconstruction.
+- `src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy` -- validates
+  carried match binding/type rows and admits them into the routine-local view.
+- `src/self_hosted/mir_lower/match_binding_render_owner.pgy` -- reconstructs
+  typed match binding statements and the oracle-only inferred legacy form.
 - `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
   predecessor arity and canonical SSA local-identity validation.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity

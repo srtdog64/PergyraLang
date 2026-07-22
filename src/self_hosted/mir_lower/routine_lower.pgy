@@ -6,13 +6,13 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
+import "match_binding_render_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
 import "abi_layout_fact_owner.pgy";
-import "../semantic/wrapper_type_owner.pgy";
 
 func RoutineParamResourceMatchesType(
     resource_kind: String,
@@ -83,23 +83,6 @@ func BlockInstructionOfKindBounds(
     return false;
 }
 
-func OptionInnerTypeName(type_name: String) -> String {
-    let lt: Int = StringIndexOf(type_name, "<");
-    if lt < 0 {
-        return "";
-    }
-    let gt: Int = StringIndexOf(type_name, ">");
-    if gt <= lt {
-        return "";
-    }
-    let inner: String = StringTrim(Substring(type_name, lt + 1, gt - lt - 1));
-    let colon: Int = StringIndexOf(inner, ":");
-    if colon >= 0 {
-        inner = StringTrim(Substring(inner, 0, colon));
-    }
-    return inner;
-}
-
 // Resolve block `id` to its MIR `blocks` row span [o[0], o[1]); false if not
 // found. The supported MIR subset uses sequential block ids, but we still check
 // the row's `id` fact before returning it.
@@ -143,6 +126,12 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
         if variant == "None" {
             return Concat("!IsSome(", Concat(match_subject, ")"));
         }
+        if variant == "Ok" {
+            return Concat("IsOk(", Concat(match_subject, ")"));
+        }
+        if variant == "Err" {
+            return Concat("IsErr(", Concat(match_subject, ")"));
+        }
         let enum_owner: String = MirEnumOwnerForVariant(json, pattern);
         if StringLength(enum_owner) > 0 {
             return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", pattern))));
@@ -179,49 +168,9 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex, json: String,
     if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
         return "";
     }
-    let kp: Int = inst_bounds[0];
-    let inst_end: Int = inst_bounds[1];
-    let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
-    if source_type != "AST_MATCH_CASE" {
-        return "";
-    }
-    let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
-    if variant != "Some" && variant != "Ok" && variant != "Err" {
-        return "";
-    }
-    let match_subject2: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-    let binding: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_bindings", 0);
-    if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
-        MirLowerFailClosed(Concat(
-            variant, " match case is missing subject or binding MIR fact"
-        ));
-    }
-    let subject_type: String = MirRoutineFactIndexSourceLocalType(index, match_subject2);
-    let inner_type_opt: Option<String> = None;
-    let unwrap_name: String = "UnwrapOption";
-    if variant == "Some" {
-        inner_type_opt = OptionPayloadTypeOpt(subject_type);
-    } else if variant == "Ok" {
-        inner_type_opt = ResultPayloadTypeOpt(subject_type);
-        unwrap_name = "Unwrap";
-    } else {
-        inner_type_opt = ResultErrorTypeOpt(subject_type);
-        unwrap_name = "UnwrapErr";
-    }
-    if !IsSome(inner_type_opt) || UnwrapOption(inner_type_opt) == "" ||
-        UnwrapOption(inner_type_opt) == "Unknown" {
-        MirLowerFailClosed(Concat(
-            variant, Concat(
-                " match case subject has no owned payload type: ",
-                match_subject2
-            )
-        ));
-    }
-    let inner_type: String = UnwrapOption(inner_type_opt);
-    return Concat(indent, Concat("Let: ", Concat(binding, Concat(" : ",
-        Concat(inner_type, Concat(" = ", Concat(unwrap_name, Concat(
-            "(", Concat(match_subject2, ")\n")
-        ))))))));
+    return MirMatchBindingLineForInstruction(
+        json, inst_bounds[0], inst_bounds[1], indent
+    );
 }
 
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`

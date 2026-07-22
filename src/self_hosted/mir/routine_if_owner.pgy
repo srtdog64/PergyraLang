@@ -47,6 +47,13 @@ func SelfMirMergeIfBranches(
     }
     let merge_local_i: Int = 0;
     while merge_local_i < ArrayLength(entry_versions) {
+        // Version zero means the name is not live in the enclosing lexical
+        // scope. A declaration in either arm cannot manufacture an outer phi.
+        if entry_versions[merge_local_i] == 0 {
+            build = SelfMirRoutineSetLocalVersion(build, merge_local_i, 0);
+            merge_local_i = merge_local_i + 1;
+            continue;
+        }
         let then_version: Int = then_versions[merge_local_i];
         let else_version: Int = else_versions[merge_local_i];
         if then_live && else_live && then_version != else_version {

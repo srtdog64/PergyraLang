@@ -7,13 +7,41 @@ pgy_selfhost_verify_driver_rung2_match() {
     local self_mir_json="$3"
     local driver_bin="$4"
     local match_pattern missing_match_pattern missing_phi_input unknown_phi_input
-    local missing_match_binding missing_enum_variant
+    local missing_match_binding missing_match_binding_type missing_enum_variant
 
     if [[ "$base" != "match_case_int" &&
         "$base" != "match_case_assign" &&
         "$base" != "option_match" &&
         "$base" != "enum_match" &&
-        "$base" != "class_holds_enum_field" ]]; then
+        "$base" != "class_holds_enum_field" &&
+        "$base" != "dish_result_collect" ]]; then
+        return 0
+    fi
+    if [[ "$base" == "dish_result_collect" ]]; then
+        for match_pattern in \
+            '"match_patterns":["Ok(d)"],"match_variant":"Ok","match_bindings":["d"],"match_binding_types":["Dish"]' \
+            '"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["CookErr"]'; do
+            grep -Fq "$match_pattern" "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Result match binding type fact was lost: $match_pattern" >&2
+                exit 1
+            }
+        done
+        missing_match_binding_type="$BUILD_DIR/${base}_${backend}.missing-match-binding-type.mir.json"
+        pgy_replace_first_literal "$self_mir_json" "$missing_match_binding_type" \
+            '"match_binding_types":["Dish"]' \
+            '"match_binding_types":[]'
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$missing_match_binding_type")" \
+            >"$missing_match_binding_type.out" 2>"$missing_match_binding_type.err"); then
+            echo "[self-host-parity:driver-rung2] $backend missing Result match binding type was accepted" >&2
+            exit 1
+        fi
+        grep -Fq "MIR instruction expression graph is missing or invalid" \
+            "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
+            echo "[self-host-parity:driver-rung2] $backend missing Result binding type diagnostic drifted" >&2
+            cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
+            exit 1
+        }
         return 0
     fi
     if [[ "$base" == "enum_match" ||
@@ -51,15 +79,15 @@ pgy_selfhost_verify_driver_rung2_match() {
     fi
     if [[ "$base" == "option_match" ]]; then
         for match_pattern in \
-            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"]' \
-            '"match_patterns":["None"],"match_variant":"None","match_bindings":[]'; do
+            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"],"match_binding_types":["Int"]' \
+            '"match_patterns":["None"],"match_variant":"None","match_bindings":[],"match_binding_types":[]'; do
             grep -Fq "$match_pattern" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Option match fact was lost: $match_pattern" >&2
                 exit 1
             }
         done
         missing_match_binding="$BUILD_DIR/${base}_${backend}.missing-match-binding.mir.json"
-        sed 's/"match_bindings":\["v"\]/"match_bindings":[]/' \
+        sed 's/"match_bindings":\["v"\],"match_binding_types":\["Int"\]/"match_bindings":[],"match_binding_types":[]/' \
             "$self_mir_json" >"$missing_match_binding"
         if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_match_binding")" \

@@ -1,0 +1,81 @@
+// Routine-local index projection for MIR match binding type facts.
+//
+// The producer already owns each pattern binding's type.  This owner validates
+// the parallel binding/type rows and admits them into the routine-local view so
+// nested lowering never infers a type from pattern spelling or source text.
+
+import "json_fact_read.pgy";
+
+struct MirMatchBindingLocalFacts {
+    valid: Bool;
+    validation_stage: String;
+    names: Array<String>;
+    types: Array<String>;
+}
+
+func BuildMirMatchBindingLocalFacts(
+    json: String,
+    instruction_starts: Array<Int>,
+    instruction_ends: Array<Int>,
+    source_local_names: Array<String>,
+    source_local_types: Array<String>
+) -> MirMatchBindingLocalFacts {
+    let names: Array<String> = source_local_names;
+    let types: Array<String> = source_local_types;
+    let valid: Bool = true;
+    let validation_stage: String = "ok";
+    let instruction: Int = 0;
+    while instruction < ArrayLength(instruction_starts) {
+        let start: Int = instruction_starts[instruction];
+        let end: Int = instruction_ends[instruction];
+        let binding_count: Int = MirObjectArrayStringFactCount(
+            json, start, end, "match_bindings"
+        );
+        let type_count: Int = MirObjectArrayStringFactCount(
+            json, start, end, "match_binding_types"
+        );
+        if binding_count != type_count {
+            // Native oracle MIR predates this carried fact. Leave its binding
+            // out of the local index so only the explicitly named oracle
+            // canonicalizer can rebuild an inferred Let. Direct MIR graph
+            // admission still rejects the missing type before codegen.
+            if binding_count == 0 || type_count != 0 {
+                valid = false;
+                validation_stage = "match_binding_type_count";
+            }
+        } else {
+            let binding: Int = 0;
+            while binding < binding_count {
+                let name: String = MirObjectArrayStringFactAt(
+                    json, start, end, "match_bindings", binding
+                );
+                let type_name: String = MirObjectArrayStringFactAt(
+                    json, start, end, "match_binding_types", binding
+                );
+                if name == "" || type_name == "" || type_name == "Unknown" {
+                    valid = false;
+                    validation_stage = "match_binding_type";
+                } else {
+                    let existing: String = "";
+                    let row: Int = 0;
+                    while row < ArrayLength(names) {
+                        if names[row] == name { existing = types[row]; }
+                        row = row + 1;
+                    }
+                    if existing == "" {
+                        ArrayPush(names, name);
+                        ArrayPush(types, type_name);
+                    } else if existing != type_name {
+                        valid = false;
+                        validation_stage = "match_binding_type_conflict";
+                    }
+                }
+                binding = binding + 1;
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return MirMatchBindingLocalFacts(
+        valid, validation_stage, names, types
+    );
+}

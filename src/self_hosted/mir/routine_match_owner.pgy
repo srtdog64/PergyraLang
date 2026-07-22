@@ -9,6 +9,7 @@ import "routine_build_owner.pgy";
 import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
+import "../semantic/wrapper_type_owner.pgy";
 
 func SelfMirMatchCaseFactForNode(
     ref input: SelfMirRoutineInput,
@@ -73,6 +74,28 @@ func SelfMirMatchCaseSubjectReady(
     return false;
 }
 
+func SelfMirMatchBindingType(
+    ref input: SelfMirRoutineInput,
+    match_node_id: Int,
+    fact: SelfMirMatchCaseFact
+) -> Option<String> {
+    if fact.binding == "" { return Some(""); }
+    let subject_type: Option<String> = SelfMirMatchSubjectType(
+        input, match_node_id
+    );
+    if !IsSome(subject_type) { return None; }
+    if fact.variant == "Some" {
+        return OptionPayloadTypeOpt(UnwrapOption(subject_type));
+    }
+    if fact.variant == "Ok" {
+        return ResultPayloadTypeOpt(UnwrapOption(subject_type));
+    }
+    if fact.variant == "Err" {
+        return ResultErrorTypeOpt(UnwrapOption(subject_type));
+    }
+    return None;
+}
+
 func SelfMirLowerMatchCaseBranch(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
@@ -87,6 +110,22 @@ func SelfMirLowerMatchCaseBranch(
             build, "MIR match subject type or variant fact is missing"
         );
     }
+    let carried_fact: SelfMirMatchCaseFact = fact;
+    let binding_type: Option<String> = SelfMirMatchBindingType(
+        input, match_node_id, fact
+    );
+    if !IsSome(binding_type) ||
+        (fact.binding != "" &&
+            (UnwrapOption(binding_type) == "" ||
+             UnwrapOption(binding_type) == "Unknown")) {
+        return SelfMirRoutineBuildError(
+            build, "MIR match binding type fact is missing"
+        );
+    }
+    carried_fact = SelfMirMatchCaseFact(
+        fact.ok, fact.pattern, fact.variant, fact.binding,
+        UnwrapOption(binding_type)
+    );
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", match_value, "",
         "AST_MATCH_CASE", SelfMirExpressionUses(build, match_value)
@@ -98,7 +137,7 @@ func SelfMirLowerMatchCaseBranch(
         ), input.machine_declaration
     );
     if !build.ok { return build; }
-    return SelfMirRoutineAttachLastMatchCase(build, fact);
+    return SelfMirRoutineAttachLastMatchCase(build, carried_fact);
 }
 
 func SelfMirLowerMatchFromArtifact(

@@ -1,7 +1,7 @@
 # SoT Owner Spine Registry
 
 Status: `architecture-owner-registry`  
-Date: 2026-07-12
+Date: 2026-07-23
 
 This registry fixes the first whole-compiler owner outline. It is the
 machine-gated companion to `docs/125_source_of_truth_spine.md` and
@@ -116,6 +116,7 @@ src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy | MirParallelCaptureFa
 src/self_hosted/mir_lower/machine_layer_fact_owner.pgy | MirMachineLayerFactsReady | semantic.machine_layer_transition | projection
 src/self_hosted/mir_lower/expression_graph_fact_owner.pgy | MirExpressionGraphFactsForArtifact | mir.execution_graph | projection
 src/self_hosted/mir_lower/match_json_fact_owner.pgy | MirMatchPatternCount | mir.execution_graph | local_view
+src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy | MirMatchBindingLocalFacts | mir.execution_graph | local_view
 src/self_hosted/mir_lower/phi_fact_owner.pgy | MirRoutinePhiFactsReady | mir.execution_graph | local_view
 src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy | MirCodegenGenericSpecializationFacts | mir.generic_specialization | projection
 src/self_hosted/mir_lower/resource_flow_fact_owner.pgy | MirResourceFlowFacts | semantic.resource_flow_universe | projection
@@ -149,10 +150,29 @@ Contextual `Option<struct>` `None` initialization, reassignment, and return
 select the MIR-owned ABI constructor through expected-type facts; the native C
 and LLVM assignment consumers may not recover that type from AST text or fall
 back to `Option<Int>`.
+`Result<T,E>` match binding types follow the same single-owner direction. The
+semantic statement-result fact owns the match subject type; the canonical
+wrapper owner projects the `Ok` payload or `Err` error type; and
+`SelfMirMatchFactRows` carries that exact type beside the binding. The
+mir-lower local view and binding renderer consume the carried row. A missing
+row fails ordinary graph admission, while only the explicitly named native
+oracle canonicalization bridge may reconstruct an inferred legacy `Let` and
+then reproduce canonical Pergyra MIR. Version zero denotes an inactive lexical
+name, so branch or match arms cannot promote a block-local binding into an
+outer phi.
 Other expression shapes remain under `selfhost.expression_surface`. The try row closes postfix-try
 structure and its operand edge only. Payload type classification remains in the
 expression-surface `BRIDGE`, and the compact legacy/native canonicalization
 bridge must reproduce the same graph but is not hard-codegen authority.
+
+Explicit `Result<T,E>` C materialization is a derived projection of
+`selfhost.type_runtime_usage_surface` and `abi.layout_rows`, not a new ABI
+authority. Semantic type usage inventories each concrete pair once;
+`ResultRuntimeFactForType` owns its tagged C type and constructor/query/unwrap
+symbols; and result runtime, local, return, call, and composite-literal emitters
+consume that fact. `dish_result_collect` is the executable witness for
+`Result<Dish,CookErr>` and its missing-binding-type mutation. Native C does not
+gain a parallel Result inference path.
 
 For `abi.runtime_call_rows`, the declared owner remains `SFAbiRuntimeCallRows`
 under `SOMirAbi`. The current stable-identity sub-rung is executable: MIR

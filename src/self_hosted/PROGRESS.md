@@ -1,5 +1,40 @@
 # Self-Host Progress
 
+2026-07-23 executable `Result<class, enum>` delta: DRV-2 MIR fixture 231 is
+`dish_result_collect`. Its active seam is one Pergyra-owned flow:
+`Result<Dish,CookErr>` shape and contextual `Ok`/`Err` types -> semantic
+statement result type -> MIR `match_binding_types` -> explicit Result runtime
+fact -> C emission. `Ok(d)` carries `Dish`, `Err(e)` carries `CookErr`, and the
+nested enum match consumes that carried binding type without a source scan,
+pattern-spelling inference, fixture branch, or hidden native-C fallback. The
+MIR lowerer accepts a missing binding type only while reconstructing the
+explicitly named legacy oracle bridge; ordinary canonicalization and hard MIR
+consumption still reject the missing fact through expression-graph admission.
+Lexical version zero is now an inactive arm-local state, so a declaration in
+one `if` or `match` arm cannot manufacture an outer phi or leak into a later
+same-spelling binding. The Result runtime remains one generated tagged
+specialization selected from semantic type usage, not a C-shaped shard per
+fixture.
+
+Focused C-built and LLVM-built producer-first parity passed with 20 body
+fixtures and the selected MIR fixture. A freshly Pergyra-built hard driver at
+`.tmp/bin_dish_result_231_hard/pgy-self-driver.exe` has SHA-256
+`DD4A4CD6913A0EF3F329487DDAF9C34E0B4C858DC625810910374448A308DC97`,
+emits a 231-row manifest ending in `dish_result_collect`, and passed both the
+focused hard lane and a seven-fixture Result/Option/match/enum/frontier hard
+shard. On the focused hard lane, native/self canonical MIR SHA-256 is
+`57D74F8EC14255E63C1A0AC05650FF3DBF9460618F78FCB088878D2B5905AA9A`,
+source/self-MIR C SHA-256 is
+`49971A30E6FF299EEE6122670BDF0013DC3F5E44491868857957131268F2D123`,
+and native/self runtime output is `175`, `-1`, `-2`. Removing the first
+`match_binding_types` row fails closed with `MIR instruction expression graph
+is missing or invalid`. The self-host component contract and `git diff
+--check` pass. An attempted unfiltered 231 hard matrix was stopped after 21
+runtime rows when its projected duration exceeded the repository's integration
+shard budget; it is not recorded as green. The last complete unfiltered hard
+matrix remains 230/230, released/default-driver replacement remains open, and
+fixture 232 is not selected.
+
 2026-07-23 executable class-field/string-return breadth delta: DRV-2 MIR
 fixture 230 is `class_suit_score`. Its `Card` fields, `String`/`Int` helper
 returns, field comparisons, early returns, direct calls, and scalar/string Log

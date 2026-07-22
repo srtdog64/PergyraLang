@@ -69,3 +69,38 @@ func MirMatchBindingAt(
     if binding == "" { return None; }
     return Some(binding);
 }
+
+func MirMatchBindingTypeCount(
+    instruction: JsonObjectFactTable
+) -> Option<Int> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(
+        instruction, "match_binding_types", bounds
+    ) {
+        return None;
+    }
+    return Some(JsonArrayStringCount(
+        instruction.json, bounds[0], bounds[1]
+    ));
+}
+
+func MirMatchBindingTypeAt(
+    instruction: JsonObjectFactTable,
+    index: Int
+) -> Option<String> {
+    let count: Option<Int> = MirMatchBindingTypeCount(instruction);
+    if !IsSome(count) || index < 0 || index >= UnwrapOption(count) {
+        return None;
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(
+        instruction, "match_binding_types", bounds
+    ) {
+        return None;
+    }
+    let binding_type: String = JsonArrayStringAt(
+        instruction.json, bounds[0], bounds[1], index
+    );
+    if binding_type == "" || binding_type == "Unknown" { return None; }
+    return Some(binding_type);
+}
