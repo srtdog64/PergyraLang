@@ -9,25 +9,26 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `dd916eaae29c49d774a7343eede678cbd5c87a06` on `main`.
+- Captured HEAD: `89e314be5c0b3b28196c214079557e8fa21cba04` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has eight modified unstaged tracked paths and 54 untracked diagnostic `.tmp`
-  artifacts. Seven tracked paths are the fixture-232 manifest/gate/docs delta;
-  `src/self_hosted/codegen/emission/stmt_emit.pgy` is a pre-existing unstaged
-  declaration-formatting edit and was not changed by fixture 232. Preserve it
-  and the allocator, defer, TextBuilder, bootstrap, and wrapper-policy probe
-  artifacts until explicitly audited. Build artifacts remain ignored; run
-  `git status --short --branch` before resuming because this count can change.
+  has two modified unstaged tracked paths and 48 untracked diagnostic `.tmp`
+  artifacts. The tracked remainder is the pre-existing `stmt_emit.pgy`
+  declaration-formatting edit and a separate `class_result_chain_loop`
+  loop-phi parity experiment; neither is part of the closed 232 slice.
+  Preserve them and the allocator, defer, TextBuilder, bootstrap, and
+  wrapper-policy probe artifacts until explicitly audited. Build artifacts
+  remain ignored; run `git status --short --branch` before resuming because
+  this count can change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
   `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
   created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
   It then refreshed the handoff in `37c5e213` and created and pushed
   `d47f6bd0` for the explicit `Result<T,E>` runtime SoT slice, then refreshed
-  this handoff in `d623d002`. During fixture-232 verification, concurrent work
-  committed and pushed the 25-path fixture-231/match-binding slice as
-  `dd916eaa`. This session did not stage, commit, or push it. Fixture-232
-  worktree changes are not included in that commit.
+  this handoff in `d623d002`, committed and pushed the 25-path fixture-231
+  match-binding slice as `dd916eaa`, and committed and pushed the fixture-232
+  class-composition closure as `89e314be`. The two remaining tracked paths
+  are not included in those commits.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
