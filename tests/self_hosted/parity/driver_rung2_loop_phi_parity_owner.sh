@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Owns DRV-2 loop-header phi omission and malformed-header rejection.
+# Owns DRV-2 malformed loop-header phi rejection.
 
 pgy_selfhost_verify_driver_rung2_loop_phi() {
     local backend="$1"

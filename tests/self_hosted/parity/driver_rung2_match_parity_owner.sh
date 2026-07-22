@@ -17,12 +17,14 @@ pgy_selfhost_verify_driver_rung2_match() {
         "$base" != "class_holds_enum_field" &&
         "$base" != "dish_result_collect" &&
         "$base" != "class_factory_result_wrap" &&
-        "$base" != "class_result_chain_loop" ]]; then
+        "$base" != "class_result_chain_loop" &&
+        "$base" != "class_method_result_loop" ]]; then
         return 0
     fi
     if [[ "$base" == "dish_result_collect" ||
         "$base" == "class_factory_result_wrap" ||
-        "$base" == "class_result_chain_loop" ]]; then
+        "$base" == "class_result_chain_loop" ||
+        "$base" == "class_method_result_loop" ]]; then
         result_ok_pattern='"match_patterns":["Ok(d)"],"match_variant":"Ok","match_bindings":["d"],"match_binding_types":["Dish"]'
         result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["CookErr"]'
         result_ok_type="Dish"
@@ -34,6 +36,10 @@ pgy_selfhost_verify_driver_rung2_match() {
             result_ok_pattern='"match_patterns":["Ok(after)"],"match_variant":"Ok","match_bindings":["after"],"match_binding_types":["Wizard"]'
             result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["DraftErr"]'
             result_ok_type="Wizard"
+        elif [[ "$base" == "class_method_result_loop" ]]; then
+            result_ok_pattern='"match_patterns":["Ok(v)"],"match_variant":"Ok","match_bindings":["v"],"match_binding_types":["Int"]'
+            result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["DivErr"]'
+            result_ok_type="Int"
         fi
         for match_pattern in "$result_ok_pattern" "$result_err_pattern"; do
             grep -Fq "$match_pattern" "$self_mir_json" || {

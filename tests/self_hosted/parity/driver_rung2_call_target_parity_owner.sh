@@ -12,7 +12,8 @@ pgy_selfhost_verify_driver_rung2_call_target() {
         "$base" == "class_method_self_access" ||
         "$base" == "array_elem_class_literal" ||
         "$base" == "array_elem_class_method" ||
-        "$base" == "class_factory_result_wrap" ]]; then
+        "$base" == "class_factory_result_wrap" ||
+        "$base" == "class_method_result_loop" ]]; then
         local expected_member="Stat_PromoteIf"
         if [[ "$base" == "class_method_self_access" ]]; then
             expected_member="Account_Deposit"
@@ -21,6 +22,8 @@ pgy_selfhost_verify_driver_rung2_call_target() {
             expected_member="P_V"
         elif [[ "$base" == "class_factory_result_wrap" ]]; then
             expected_member="Tax_Compute"
+        elif [[ "$base" == "class_method_result_loop" ]]; then
+            expected_member="Calc_DivBy"
         fi
         grep -Fq "\"call_target_kind\":\"member\",\"call_target_name\":\"$expected_member\"" \
             "$self_mir_json" || {

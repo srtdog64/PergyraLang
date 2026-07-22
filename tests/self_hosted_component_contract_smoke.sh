@@ -3771,9 +3771,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 233;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 234;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 233'
+    'mir_fixture_rows[@]}" -ne 234'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3808,6 +3808,12 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_factory_result_wrap/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_result_chain_loop/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_result_loop/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_result_loop_phi_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_result_loop_phi'
 require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
     "func ResultErrorTypeOpt"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
@@ -4079,11 +4085,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 233;"
+    "return 234;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 233'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 234'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

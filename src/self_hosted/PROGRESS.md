@@ -1,5 +1,67 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra class-method Result loop replacement delta: DRV-2 MIR
+fixture 234 is `class_method_result_loop`. It closes the method-owned variant
+of the same high-level state transition:
+`Calc.DivBy -> Result<Int,DivErr> -> match -> acc -> while backedge`.
+The self-hosted producer carries the member call target `Calc_DivBy`, `Ok(v):
+Int`, `Err(e): DivErr`, and the explicit accumulator chain
+`acc.1 -> acc.4 -> acc.8/acc.12 -> acc.13 -> acc.4`. The Result-match owner,
+member-call owner, MIR phi owner, and existing Result/class emission owners
+consume those typed facts. No fixture/name branch was added to compiler
+semantics, no source re-scan or pattern inference was introduced, and no
+native-MIR, C fallback, backend-local representation, or runtime fragment was
+added.
+
+Focused C-built, LLVM-built, and freshly Pergyra-built 234-hard
+producer-first parity each passed with 20 body fixtures and one MIR fixture.
+The fresh hard driver is
+`.tmp/bin_class_method_result_loop_234_hard/pgy-self-driver.exe`, SHA-256
+`AFE689EDCB93AEAE7FE9CC9FDFCAD16E4F03C6AE244053EAA59A01DA27FDCE2E`.
+Its hard runtime output is `104`, `-2`, `0`; native/self canonical MIR
+SHA-256 is
+`B11981A79C4A892A20ADC489254E896A4B01262119845DB972F92120584C1CDA`; and
+hard source-MIR-C/self-MIR-C SHA-256 is
+`1C0F1419F35B8F0F7AE43E47C8772A71516C11254C19C79C54F2439072495D0F`.
+Removing `match_binding_types` or the `Calc_DivBy` call target fails graph
+admission. Removing the `acc.4` loop-carried input fails closed with
+`MIR phi facts are missing or inconsistent: RunSeries`. Component, shell
+syntax, hard contract, and diff gates pass. The full 234-row matrix was not
+run because the observed runtime exceeds the 30-minute integration budget;
+the last complete unfiltered current-hard matrix remains 230/230.
+Released/default-driver replacement remains open.
+
+2026-07-23 Pergyra loop-state replacement delta: DRV-2 MIR fixture 233 is
+`class_result_chain_loop`. It closes one high-level state transition:
+`Wizard -> Result<Wizard,DraftErr> -> match -> next Wizard -> while backedge`,
+with explicit early returns from both error variants. The self-hosted producer
+carries `Ok(after): Wizard`, `Err(e): DraftErr`, the direct `CastSpell` target,
+and the exact SSA state chain `w.1 -> w.3 -> w.7 -> w.13 -> w.3`. Existing
+match, SSA def/phi, Result runtime, class, array-index, and emission owners
+consume those facts. No `w`-name or fixture branch was added to compiler
+semantics, and there is no source re-scan, struct-copy guess, native-MIR
+injection, C fallback, backend-local representation, or new runtime fragment.
+
+Focused C-built and LLVM-built parity, current-232-hard parity, and freshly
+Pergyra-built 233-hard parity each passed with 20 body fixtures and one MIR
+fixture. The new driver is
+`.tmp/bin_class_result_chain_loop_233_hard/pgy-self-driver.exe`, SHA-256
+`19CC79B10900099F60FFF64D81B9CE13BC527E6BF831CCE7108A69BE73D91E6A`,
+and its manifest has 233 rows ending in `class_result_chain_loop`. On the new
+focused hard lane, native/self canonical MIR SHA-256 is
+`4130D3F3B898DD0FC917A64E58483517C3CAB528645125CC5FF7243B6410BBDE`;
+oracle-MIR/self-MIR/source emitted C SHA-256 is
+`DDF21027CE91D240312391538980571B531EF5CDDF6AFDCD702D3FBA1FE42BA1`;
+and runtime output is `100`, `0`, `20`, `0`. Removing the `Wizard` match
+binding type fails graph admission; removing loop-carried input `w.7` fails the
+`ManaPoints` phi verifier. A ten-fixture Result/Option/enum/match-phi/frontier
+hard shard passed, as did component, shell syntax, diff, SoT authority,
+gate-owner, protocol-registry, and substitution-velocity gates. The full
+233-row matrix was not run because the observed runtime exceeds the 30-minute
+integration budget; the last complete unfiltered current-hard matrix remains
+230/230. Released/default-driver replacement remains open, and fixture 234 is
+not selected.
+
 2026-07-23 Pergyra-composition replacement delta: DRV-2 MIR fixture 232 is
 `class_factory_result_wrap`. It extends the executable frontier through one
 language-level composition rather than a C-shaped feature shard:
@@ -30,7 +92,8 @@ diff, SoT authority, gate-owner, protocol-registry, and substitution-velocity
 gates pass. The full 232-row matrix was not run because the prior 231 attempt
 projected beyond the 30-minute integration budget; the last complete
 unfiltered current-hard matrix remains 230/230. Released/default-driver
-replacement remains open, and fixture 233 is not selected.
+replacement remains open, and fixture 233 was not yet selected at that
+checkpoint.
 
 2026-07-23 executable `Result<class, enum>` delta: DRV-2 MIR fixture 231 is
 `dish_result_collect`. Its active seam is one Pergyra-owned flow:

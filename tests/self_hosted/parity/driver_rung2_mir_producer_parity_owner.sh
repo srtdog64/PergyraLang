@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 pgy_selfhost_prepare_driver_rung2_mir_oracles() {
     local fixture_rel fixture_abs base mir_json oracle_bin
     pgy_selfhost_driver_rung2_machine_manifest_init
@@ -126,6 +125,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         fi
         pgy_selfhost_verify_driver_rung2_match \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_result_loop_phi "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_loop_phi \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_continue \
