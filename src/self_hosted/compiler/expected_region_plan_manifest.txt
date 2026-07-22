@@ -20,13 +20,13 @@ require|src/compiler/verified_region_plan.h|bool pgy_verified_region_plan_lookup
 require|src/compiler/verified_region_plan.c|pgy_air_evidence_certificate_ready(air
 require|src/compiler/verified_region_plan.c|verified region plan: escape result carries a null site
 require|src/compiler/verified_region_plan.c|verified region plan: conflicting scopes for one site
-require|src/compiler/region_escape_v1.h|pgy_region_escape_v1_collect(
-require|src/compiler/region_escape_v1.c|is_print_call
-require|src/compiler/region_escape_v1.c|certify_concat_spine
-require|src/compiler/region_escape_v1.c|ast_call_semantic_callee_builtin_kind
+require|src/semantic/region_escape_fact.h|typedef struct PgyRegionEscapeFact
+require|src/semantic/region_escape_fact.c|semantic_region_escape_collect
+require|src/semantic/region_escape_fact.c|ast_call_semantic_callee_builtin_kind
+require|src/semantic/region_escape_fact.c|region_escape_append_concat_spine
 forbid|src/codegen/transpiler_context.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/transpiler_context.c|pgy_region_escape_v1_collect
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_region_escape_v1_collect
-forbid|src/compiler/region_escape_v1.c|strcmp(name, "Print")
-forbid|src/compiler/region_escape_v1.c|strcmp(name, "PrintLn")
+forbid|src/compiler/driver_app.c|pgy_region_escape_v1_collect
+forbid|src/compiler/driver_app.c|pgy_region_escape_v1_free

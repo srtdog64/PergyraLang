@@ -30,7 +30,6 @@
 #include "c_runner.h"
 #include "driver_diag.h"
 #include "machine_layer_manifest.h"
-#include "region_escape_v1.h"
 #include "verified_region_plan.h"
 
 /* Path utilities are now in path_utils.h/c */
@@ -129,7 +128,6 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     AIRProgram *air = NULL;
     CompilerIRBundle bundle;
     PgyRegionPlan region_plan = {0};
-    PgyRegionEscapeSite *region_sites = NULL;
     int exit_code = 1;
     char *load_error = NULL;
     char *hir_error = NULL;
@@ -534,17 +532,16 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
-    /* Region selection is an AIR-admitted driver fact.  The escape walk is
-     * performed once here while the source AST is still owned by the driver;
-     * both MIR backends receive only the verified immutable plan and must use
-     * its per-site lookup.  A missing/empty result remains the HEAP default. */
+    /* Region selection is an AIR-admitted driver fact. Semantic analysis owns
+     * the bounded escape rows; the driver only gates and materializes them.
+     * Both MIR backends receive the verified immutable plan and must use its
+     * per-site lookup. A missing/empty result remains the HEAP default. */
     driver_debug_stage("region_plan");
     {
         const char *region_error = NULL;
-        size_t region_site_count = pgy_region_escape_v1_collect(
-            ast, &region_sites);
         PgyRegionEscapeResult region_escape = {
-            region_sites, region_site_count
+            sem->region_escape_facts,
+            sem->region_escape_fact_count
         };
         if (!pgy_verified_region_plan_from_escape(
                 (const PgyAirVerification *)air,
@@ -559,8 +556,6 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             goto cleanup;
         }
     }
-    pgy_region_escape_v1_free(region_sites);
-    region_sites = NULL;
     bundle.region_plan = &region_plan;
 
     /* Dispatch to backend runner */
@@ -610,7 +605,6 @@ cleanup:
     module_loader_destroy_graph(module_graph);
     free(compatibility_manifest_path);
     free(hir_error);
-    pgy_region_escape_v1_free(region_sites);
     pgy_verified_region_plan_dispose(&region_plan);
     dir_destroy(dir);
     air_destroy(air);

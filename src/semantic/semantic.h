@@ -22,6 +22,7 @@
 #include "function_param_flow_fact.h"
 #include "iteration_type_fact.h"
 #include "destructure_type_fact.h"
+#include "region_escape_fact.h"
 #include "type_system.h"
 
 /*
@@ -77,6 +78,10 @@ typedef struct SemanticResult
     /* Positional destructure binding types keyed by stable syntax identity. */
     PgyDestructureTypeFact *destructure_type_facts;
     size_t       destructure_type_fact_count;
+    /* Semantic-owned bounded region escape facts. The driver converts these
+     * stable rows into the verified plan; it must not rescan the AST. */
+    PgyRegionEscapeFact *region_escape_facts;
+    size_t               region_escape_fact_count;
     /* Owns every Type this analysis allocated (WO-SEC-2). Borrowed Type*
      * held by symbols, IRs, or the backend stay valid until this result is
      * destroyed, which the driver does last. */

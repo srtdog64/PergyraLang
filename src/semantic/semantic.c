@@ -299,6 +299,14 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         semantic_error(ctx, ast,
             "Loop flow summary snapshot allocation failed");
     }
+    PgyRegionEscapeFact *region_escape_facts = NULL;
+    size_t region_escape_fact_count = 0;
+    if (!ctx->has_error
+        && !semantic_region_escape_collect(
+            ast, &region_escape_facts, &region_escape_fact_count)) {
+        semantic_error(ctx, ast,
+            "Semantic region escape fact collection failed closed");
+    }
     if (timing) {
         t_legacy_slot = semantic_timing_now() - t_mark;
         fprintf(stderr,
@@ -341,6 +349,8 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     result->iteration_type_fact_count = ctx->iteration_type_fact_count;
     result->destructure_type_facts = ctx->destructure_type_facts;
     result->destructure_type_fact_count = ctx->destructure_type_fact_count;
+    result->region_escape_facts = region_escape_facts;
+    result->region_escape_fact_count = region_escape_fact_count;
     result->loop_flow_summary_facts = ctx->loop_flow_summary_facts;
     result->loop_flow_summary_fact_count =
         ctx->loop_flow_summary_fact_count;
@@ -422,6 +432,7 @@ semantic_result_destroy(SemanticResult *result)
         result->destructure_type_fact_count);
     free(result->loop_flow_summary_facts);
     free(result->loop_flow_state_facts);
+    semantic_region_escape_facts_free(result->region_escape_facts);
     /* Last: the IRs and the backend borrow Type* from here, and the driver
      * destroys them before this result. */
     type_registry_destroy(result->owned_types);

@@ -3,8 +3,9 @@
 // SoT for the THIRD verified-projection artifact: `PgyRegionPlan` in
 // src/compiler/verified_region_plan.{h,c}, which carries a per-allocation-site
 // disposition (HEAP or REGION) from the escape pass into both backends. The
-// certification RULE -- which sites the analysis may certify -- is owned here
-// too, because region_escape_v1 is the only producer of escape evidence.
+// certification RULE -- which sites the analysis may certify -- is owned by
+// the semantic region-escape fact producer and carried here as the plan
+// consumer contract.
 //
 // What this owner declares:
 //
@@ -72,10 +73,10 @@ func RegionDispositionLegal(disposition: Int) -> Bool {
     return false;
 }
 
-// ---- the escape certification rule (region_escape_v1) -------------------
+// ---- the escape certification rule (semantic region fact owner) ----------
 //
-// v1 certifies exactly one shape: a string concat that is a DIRECT Print /
-// PrintLn argument. The builtin reads the string synchronously and never
+// v1 certifies exactly one shape: a string concat that is a DIRECT Print
+// argument. The builtin reads the string synchronously and never
 // retains it, so the value cannot outlive the statement, so a function-scope
 // region always outlives it. Everything else -- a concat stored, returned,
 // captured, sent, or merely passed to some other callee -- declines, and
@@ -88,7 +89,7 @@ func RegionEscapeCertifies(is_string_concat: Bool, is_direct_print_arg: Bool) ->
 
 // ---- the producer, modelled over a bounded escape table -----------------
 //
-// The C producer walks every certified escape site; this model walks up to
+// The C plan producer validates every semantic-certified escape site; this model walks up to
 // four, which is enough to witness every refusal and collapse rule with each
 // scenario visible in the golden. `used` marks a populated slot.
 
@@ -351,11 +352,15 @@ func RegionPlanSourcePath() -> String {
 }
 
 func RegionPlanEscapeHeaderPath() -> String {
-    return "src/compiler/region_escape_v1.h";
+    return "src/semantic/region_escape_fact.h";
 }
 
 func RegionPlanEscapeSourcePath() -> String {
-    return "src/compiler/region_escape_v1.c";
+    return "src/semantic/region_escape_fact.c";
+}
+
+func RegionPlanDriverPath() -> String {
+    return "src/compiler/driver_app.c";
 }
 
 func RegionPlanCConsumerPath() -> String {
@@ -390,12 +395,12 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
     if index == 4 { return "pgy_air_evidence_certificate_ready(air"; }
     if index == 5 { return "verified region plan: escape result carries a null site"; }
     if index == 6 { return "verified region plan: conflicting scopes for one site"; }
-    // The escape pass: its collect entrypoint, semantic callee fact, and the
-    // two structural predicates that ARE the v1 certification rule.
-    if index == 7 { return "pgy_region_escape_v1_collect("; }
-    if index == 8 { return "is_print_call"; }
-    if index == 9 { return "certify_concat_spine"; }
-    if index == 10 { return "ast_call_semantic_callee_builtin_kind"; }
+    // The semantic producer: fact type, collect entrypoint, semantic callee
+    // fact, and the structural certification predicate.
+    if index == 7 { return "typedef struct PgyRegionEscapeFact"; }
+    if index == 8 { return "semantic_region_escape_collect"; }
+    if index == 9 { return "ast_call_semantic_callee_builtin_kind"; }
+    if index == 10 { return "region_escape_append_concat_spine"; }
     return "";
 }
 
@@ -411,7 +416,7 @@ func RegionPlanForbiddenPathAt(index: Int) -> String {
     if index == 1 { return RegionPlanLlvmConsumerPath(); }
     if index == 2 { return RegionPlanCConsumerPath(); }
     if index == 3 { return RegionPlanLlvmConsumerPath(); }
-    if index == 4 || index == 5 { return RegionPlanEscapeSourcePath(); }
+    if index == 4 || index == 5 { return RegionPlanDriverPath(); }
     return "";
 }
 
@@ -420,8 +425,8 @@ func RegionPlanForbiddenTermAt(index: Int) -> String {
     if index == 1 { return "pgy_verified_region_plan_from_escape"; }
     if index == 2 { return "pgy_region_escape_v1_collect"; }
     if index == 3 { return "pgy_region_escape_v1_collect"; }
-    if index == 4 { return "strcmp(name, \"Print\")"; }
-    if index == 5 { return "strcmp(name, \"PrintLn\")"; }
+    if index == 4 { return "pgy_region_escape_v1_collect"; }
+    if index == 5 { return "pgy_region_escape_v1_free"; }
     return "";
 }
 
@@ -448,7 +453,7 @@ func RegionPlanReady() -> Bool {
         RegionPlanRequiredPathAt(10) == RegionPlanEscapeSourcePath() &&
         RegionPlanRequiredTermAt(0) != "" &&
         RegionPlanRequiredTermAt(9) != "" &&
-        RegionPlanForbiddenPathAt(5) == RegionPlanEscapeSourcePath() &&
+        RegionPlanForbiddenPathAt(5) == RegionPlanDriverPath() &&
         RegionPlanForbiddenTermAt(0) != "" &&
         RegionPlanMissingSelfTestTerm() != "";
 }

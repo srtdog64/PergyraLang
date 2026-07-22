@@ -53,7 +53,7 @@ static void test_empty(void)
 
 static void test_three_sites(void)
 {
-    PgyRegionEscapeSite sites[3] = {
+    PgyRegionEscapeFact sites[3] = {
         { SITE_A, 7, 0 }, { SITE_B, 7, 0 }, { SITE_C, 9, 0 },
     };
     PgyRegionEscapeResult esc = { sites, 3 };
@@ -71,7 +71,7 @@ static void test_three_sites(void)
 
 static void test_duplicate_collapse(void)
 {
-    PgyRegionEscapeSite sites[3] = {
+    PgyRegionEscapeFact sites[3] = {
         { SITE_A, 4, 0 }, { SITE_A, 4, 0 }, { SITE_B, 4, 0 },
     };
     PgyRegionEscapeResult esc = { sites, 3 };
@@ -84,7 +84,7 @@ static void test_duplicate_collapse(void)
 
 static void test_conflict_refused(void)
 {
-    PgyRegionEscapeSite sites[2] = { { SITE_A, 1, 0 }, { SITE_A, 2, 0 } };
+    PgyRegionEscapeFact sites[2] = { { SITE_A, 1, 0 }, { SITE_A, 2, 0 } };
     PgyRegionEscapeResult esc = { sites, 2 };
     PgyRegionPlan plan;
     const char *err = NULL;
@@ -95,7 +95,7 @@ static void test_conflict_refused(void)
 
 static void test_null_site_refused(void)
 {
-    PgyRegionEscapeSite sites[2] = { { SITE_A, 1, 0 }, { 0, 1, 0 } };
+    PgyRegionEscapeFact sites[2] = { { SITE_A, 1, 0 }, { 0, 1, 0 } };
     PgyRegionEscapeResult esc = { sites, 2 };
     PgyRegionPlan plan;
     const char *err = NULL;
@@ -119,7 +119,7 @@ static void test_owner_conflict_refused(void)
     /* One site claimed by two different owning functions. The scopes agree, so
        only the owner disagrees -- the escape pass contradicted itself and the
        compile must stop here rather than let one owner win silently. */
-    PgyRegionEscapeSite sites[2] = { { SITE_A, 5, 11 }, { SITE_A, 5, 12 } };
+    PgyRegionEscapeFact sites[2] = { { SITE_A, 5, 11 }, { SITE_A, 5, 12 } };
     PgyRegionEscapeResult esc = { sites, 2 };
     PgyRegionPlan plan;
     const char *err = NULL;
@@ -140,7 +140,7 @@ static void test_scope_for_function_id(void)
     CHECK(!pgy_verified_region_plan_scope_for_function_id(&unver, 11, &s) && s == 0,
           "unverified plan denies + clears");
 
-    PgyRegionEscapeSite sites[3] = {
+    PgyRegionEscapeFact sites[3] = {
         { SITE_A, 7, 11 }, { SITE_B, 7, 11 }, { SITE_C, 9, 12 },
     };
     PgyRegionEscapeResult esc = { sites, 3 };
@@ -167,7 +167,7 @@ static void test_owner_row_without_scope_failclosed(void)
     /* A row may name an owning function yet carry scope id 0 (no region was
        actually opened). Emitting a function-scope region for it would create a
        region the emitter never opens, so the owner lookup denies. */
-    PgyRegionEscapeSite sites[1] = { { SITE_A, 0, 14 } };
+    PgyRegionEscapeFact sites[1] = { { SITE_A, 0, 14 } };
     PgyRegionEscapeResult esc = { sites, 1 };
     PgyRegionPlan plan;
     const char *err = NULL;

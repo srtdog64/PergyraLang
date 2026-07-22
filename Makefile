@@ -625,6 +625,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/lifecycle_state.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
+                   $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/semantic.c \
                    $(SEMANTIC_DIR)/semantic_diagnostic_json.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
@@ -970,7 +971,6 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/verified_projection_plan.c \
                    $(COMPILER_DIR)/verified_parallel_capture_plan.c \
                    $(COMPILER_DIR)/verified_region_plan.c \
-                   $(COMPILER_DIR)/region_escape_v1.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
@@ -2508,16 +2508,16 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 .PHONY: region-plan-unit-test-smoke
 
 # Region escape analysis v1 gate (WO-REG-1 REG-1c, docs/197): the sound
-# certification rule (a string concat that is a DIRECT Print/PrintLn argument
+# certification rule (a string concat that is a DIRECT Print argument
 # is region-safe, with its nested left-spine concats; everything else stays
 # HEAP) and per-function scope-id allocation, against hand-built AST nodes.
-# The pass traverses the bounded AST shape, but reads callee authority from the
-# semantic builtin-kind fact through the AST accessor owner; only stable IDs and
-# that accessor are linked into this unit gate.
+# The semantic owner traverses the bounded AST shape after type checking and
+# emits stable escape facts; this unit links that owner directly and keeps the
+# missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/compiler/region_escape_v1.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/compiler/region_escape_v1.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)

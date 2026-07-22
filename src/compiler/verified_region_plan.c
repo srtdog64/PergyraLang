@@ -40,7 +40,7 @@ pgy_verified_region_plan_build_rows(const PgyRegionEscapeResult *escape,
     }
 
     for (size_t i = 0; i < site_count; i++) {
-        const PgyRegionEscapeSite *site = &escape->sites[i];
+        const PgyRegionEscapeFact *site = &escape->sites[i];
         bool duplicate = false;
 
         if (site->allocation_site_id == 0) {

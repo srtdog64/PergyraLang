@@ -2543,6 +2543,13 @@ require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanRe
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "definitely_missing_region_plan_term"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "src/compiler/verified_region_plan.c"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "ast_call_semantic_callee_builtin_kind"
+require_file "src/semantic/region_escape_fact.h"
+require_file "src/semantic/region_escape_fact.c"
+require_text "src/semantic/region_escape_fact.c" "semantic_region_escape_collect"
+reject_file "src/compiler/region_escape_v1.h"
+reject_file "src/compiler/region_escape_v1.c"
+reject_text "src/compiler/driver_app.c" "pgy_region_escape_v1_collect"
+reject_text "src/compiler/driver_app.c" "pgy_region_escape_v1_free"
 require_file "src/self_hosted/compiler/region_plan_manifest.pgy"
 require_max_lines "src/self_hosted/compiler/region_plan_manifest.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/region_plan_manifest.pgy"
@@ -2560,7 +2567,7 @@ require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "dispo
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|lookup_miss_is_heap|ok"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|incompleteness_is_sound|ok"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|owner_scope_fails_closed|ok"
-require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/region_escape_v1.c|strcmp(name, \"Print\")"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|pgy_region_escape_v1_collect"
 # The region artifact kind must be registered, or the comparator cannot diff it.
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRegionPlanArtifactKind"
 require_text "src/compiler/verified_region_plan.h" "PgyRegionAllocationSiteId"

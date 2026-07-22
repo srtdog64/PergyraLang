@@ -4,7 +4,7 @@
 /*
  * Verified region plan: the third verified-projection artifact (docs/197).
  *
- * The escape pass (region_escape_v1) certifies the allocation sites whose whole
+ * The semantic region escape owner certifies the allocation sites whose whole
  * expression tree is region-safe; this plan carries the certified disposition
  * per allocation AST site into the backends. Emitters must take the disposition
  * from pgy_verified_region_plan_lookup -- recovering "is this region-safe" from
@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include "air_evidence_certificate.h"
+#include "../semantic/region_escape_fact.h"
 
 /* Stable identity carried by semantic/HIR/MIR allocation-site facts.  The
  * producer may inspect an AST node while the source is still owned by the
@@ -56,17 +57,11 @@ typedef struct PgyRegionPlan {
 
 /*
  * The escape-analysis result the producer validates into a plan. Owned by the
- * caller (region_escape_v1); the producer copies only what it certifies. Only
+ * caller (semantic region escape owner); the producer copies only what it certifies. Only
  * region-safe sites appear here -- HEAP is the default for everything absent.
  */
-typedef struct PgyRegionEscapeSite {
-    PgyRegionAllocationSiteId allocation_site_id;
-    uint32_t              scope_id;
-    uint32_t              function_syntax_id;
-} PgyRegionEscapeSite;
-
 typedef struct PgyRegionEscapeResult {
-    const PgyRegionEscapeSite *sites;      /* region-safe sites only */
+    const PgyRegionEscapeFact *sites;      /* region-safe sites only */
     size_t                     site_count;
 } PgyRegionEscapeResult;
 

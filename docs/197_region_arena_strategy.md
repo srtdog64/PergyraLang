@@ -682,6 +682,23 @@ commit, because they reference the not-yet-committed `function_syntax_id`:
    itself is committed; only the one-line aggregate edit sits in a hunk mixed
    with the concurrent stream's own aggregate additions).
 
+### A.6 Current SoT correction — semantic escape facts
+
+The current tree supersedes the historical `region_escape_v1` producer notes
+above. `src/semantic/region_escape_fact.{h,c}` is now the semantic owner of
+the bounded direct-`Print` concat facts. It runs after type checking, consumes
+the resolved `BuiltinKind` call fact, and emits only stable allocation-site,
+scope, and function identities. Missing or invalid facts fail closed; the
+driver no longer calls an AST escape walk and only validates the semantic rows
+through `pgy_verified_region_plan_from_escape`.
+
+The retired `src/compiler/region_escape_v1.{h,c}` path is deleted and the
+component contract rejects its reappearance. C and LLVM backend parity,
+semantic region unit, verified-plan, arena, and self-hosted owner gates pass
+for this slice. HIR/MIR retention carriage and broader semantic retention
+summaries remain the next open region seam; the registry row therefore remains
+`BRIDGE`.
+
 Process note worth keeping: the earlier "blocked" reading was correct at the
 time but the *response* was too passive. What unblocked the track was checking
 whether the tree still built (it did), then landing every piece that did not

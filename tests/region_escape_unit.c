@@ -1,9 +1,10 @@
 /*
- * Standalone unit test for region_escape_v1.c (WO-REG-1 REG-1c, docs/197).
+ * Standalone unit test for the semantic region escape fact owner
+ * (WO-REG-1 REG-1c, docs/197).
  *
- * The pass reads AST struct fields directly, so it is verified against
- * hand-built nodes with no parser link. Checks the sound v1 rule: a string
- * concat that is a DIRECT Print/PrintLn argument is certified region-safe (with
+ * The owner is verified against hand-built nodes with no driver link. Checks
+ * the sound v1 rule: a string concat that is a DIRECT Print argument is
+ * certified region-safe (with
  * its nested left-spine concats); anything else stays HEAP. Also checks
  * per-function scope-id allocation.
  *
@@ -18,7 +19,7 @@
 #include "parser/ast.h"
 #include "parser/ast_api.h"
 #include "lexer/lexer.h"
-#include "region_escape_v1.h"
+#include "semantic/region_escape_fact.h"
 #include "semantic/builtin_kind.h"
 
 static int failures = 0;
@@ -26,6 +27,14 @@ static uint32_t next_test_stable_id = 1;
 #define CHECK(cond, msg) do { \
     if (!(cond)) { fprintf(stderr, "FAIL: %s\n", (msg)); failures++; } \
 } while (0)
+
+static size_t collect_sites(const ASTNode *root, PgyRegionEscapeFact **sites)
+{
+    size_t count = 0;
+    CHECK(semantic_region_escape_collect(root, sites, &count),
+          "semantic region escape fact collection succeeds");
+    return count;
+}
 
 static ASTNode mk_string(const char *v)
 {
@@ -66,12 +75,12 @@ static void test_print_concat_certified(void)
               &call, (uint32_t)BUILTIN_PRINT),
           "semantic Print builtin fact records");
 
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&call, &sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&call, &sites);
     CHECK(n == 1, "Print(a+b) certifies 1 site");
     CHECK(n == 1 && sites[0].allocation_site_id == concat.stable_id,
           "certified site carries the concat stable id");
-    pgy_region_escape_v1_free(sites);
+    semantic_region_escape_facts_free(sites);
 }
 
 /* Print("a" + "b" + "c") -> outer ((a+b)+c) and inner (a+b) both certified. */
@@ -87,10 +96,10 @@ static void test_chained_concat_spine(void)
               &call, (uint32_t)BUILTIN_PRINT),
           "semantic Print builtin fact records for chain");
 
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&call, &sites);
-    CHECK(n == 2, "PrintLn(a+b+c) certifies 2 spine sites");
-    pgy_region_escape_v1_free(sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&call, &sites);
+    CHECK(n == 2, "Print(a+b+c) certifies 2 spine sites");
+    semantic_region_escape_facts_free(sites);
 }
 
 /* A source-shaped Print call without its semantic builtin fact is not
@@ -103,13 +112,13 @@ static void test_missing_builtin_fact_not_certified(void)
     ASTNode *args[1] = { &concat };
     ASTNode call = mk_call(&callee, args, 1);
 
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&call, &sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&call, &sites);
     CHECK(n == 0, "missing semantic Print fact stays HEAP");
-    pgy_region_escape_v1_free(sites);
+    semantic_region_escape_facts_free(sites);
 }
 
-/* NotPrint("a" + "b") -> nothing certified (only Print/PrintLn are borrow-safe). */
+/* Store("a" + "b") -> nothing certified (only semantic Print is borrow-safe). */
 static void test_non_print_not_certified(void)
 {
     ASTNode sa = mk_string("a"), sb = mk_string("b");
@@ -118,10 +127,10 @@ static void test_non_print_not_certified(void)
     ASTNode *args[1] = { &concat };
     ASTNode call = mk_call(&callee, args, 1);
 
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&call, &sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&call, &sites);
     CHECK(n == 0, "Store(a+b) certifies nothing");
-    pgy_region_escape_v1_free(sites);
+    semantic_region_escape_facts_free(sites);
 }
 
 /* A bare concat with no enclosing Print -> HEAP (not certified). */
@@ -129,10 +138,10 @@ static void test_bare_concat_not_certified(void)
 {
     ASTNode sa = mk_string("a"), sb = mk_string("b");
     ASTNode concat = mk_concat(&sa, &sb);
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&concat, &sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&concat, &sites);
     CHECK(n == 0, "bare concat certifies nothing");
-    pgy_region_escape_v1_free(sites);
+    semantic_region_escape_facts_free(sites);
 }
 
 /* Two functions, each with a Print concat -> distinct scope ids. */
@@ -175,15 +184,15 @@ static void test_per_function_scope(void)
     prog.type = AST_PROGRAM; prog.stable_id = next_test_stable_id++;
     prog.data.program.statements = progstmts; prog.data.program.count = 2;
 
-    PgyRegionEscapeSite *sites = NULL;
-    size_t n = pgy_region_escape_v1_collect(&prog, &sites);
+    PgyRegionEscapeFact *sites = NULL;
+    size_t n = collect_sites(&prog, &sites);
     CHECK(n == 2, "two functions certify two sites");
     if (n == 2) {
         uint32_t s0 = sites[0].scope_id, s1 = sites[1].scope_id;
         CHECK(s0 != s1, "distinct functions get distinct scope ids");
         CHECK(s0 != 0 && s1 != 0, "function scopes are nonzero");
     }
-    pgy_region_escape_v1_free(sites);
+    semantic_region_escape_facts_free(sites);
 }
 
 int main(void)
