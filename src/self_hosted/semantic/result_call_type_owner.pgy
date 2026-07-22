@@ -1,0 +1,66 @@
+// Result constructor/projection types for the source-text semantic lane.
+
+import "wrapper_type_owner.pgy";
+
+func ResultCallReturnType(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>
+) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" { return ""; }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 { return ""; }
+    let callee: String = Trim(Substring(text, 0, paren));
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    if callee == "Ok" {
+        let value_expr: String = CallArgAt(args_src, 0);
+        let value_type: String = ExprType(
+            value_expr, names, types, func_names, func_rets
+        );
+        if StringLength(value_type) == 0 { return "Result<Unknown>"; }
+        return Concat(Concat("Result<", value_type), ">");
+    }
+    if callee == "Err" {
+        let error_expr: String = CallArgAt(args_src, 0);
+        let error_type: String = ExprType(
+            error_expr, names, types, func_names, func_rets
+        );
+        if error_type == "" || error_type == "Unknown" {
+            return "Result<Unknown>";
+        }
+        return Concat("Result<Unknown, ", Concat(error_type, ">"));
+    }
+    if callee == "IsOk" || callee == "IsErr" { return "Bool"; }
+    if callee == "Unwrap" {
+        let result_type: String = ExprType(
+            CallArgAt(args_src, 0), names, types, func_names, func_rets
+        );
+        let payload: Option<String> = ResultPayloadTypeOpt(result_type);
+        if IsSome(payload) { return UnwrapOption(payload); }
+        return "Unknown";
+    }
+    if callee == "UnwrapErr" {
+        let result_type2: String = ExprType(
+            CallArgAt(args_src, 0), names, types, func_names, func_rets
+        );
+        let error_type2: Option<String> = ResultErrorTypeOpt(result_type2);
+        if IsSome(error_type2) { return UnwrapOption(error_type2); }
+        return "Unknown";
+    }
+    if callee == "UnwrapOr" {
+        let result_type3: String = ExprType(
+            CallArgAt(args_src, 0), names, types, func_names, func_rets
+        );
+        let payload2: Option<String> = ResultPayloadTypeOpt(result_type3);
+        if IsSome(payload2) && UnwrapOption(payload2) != "Unknown" {
+            return UnwrapOption(payload2);
+        }
+        return ExprType(
+            CallArgAt(args_src, 1), names, types, func_names, func_rets
+        );
+    }
+    return "";
+}

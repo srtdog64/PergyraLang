@@ -34,7 +34,7 @@ func EmitReturnValue(
             rexpr, return_type, env, graph
         );
     }
-    if StartsWith(return_type, "Result<") && StringIndexOf(return_type, "Int") >= 0 {
+    if StartsWith(return_type, "Result<") {
         return RewriteExpectedValueWithSemanticGraph(
             rexpr, return_type, env, graph
         );

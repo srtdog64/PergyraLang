@@ -42,7 +42,7 @@ func SemanticWrapperBuiltinName(name: String) -> Bool {
     return name == "Some" || name == "None" || name == "IsSome" ||
         name == "UnwrapOption" || name == "Ok" || name == "Err" ||
         name == "IsOk" || name == "IsErr" || name == "Unwrap" ||
-        name == "UnwrapOr";
+        name == "UnwrapErr" || name == "UnwrapOr";
 }
 
 func SemanticWrapperBuiltinTypeMismatch(
@@ -244,6 +244,15 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
     }
     if name == "Unwrap" {
         return SemanticExpressionGraphWrapperOk(UnwrapOption(result_payload));
+    }
+    if name == "UnwrapErr" {
+        let result_error: Option<String> = ResultErrorTypeOpt(wrapped);
+        if !IsSome(result_error) {
+            return SemanticWrapperBuiltinTypeMismatch(
+                name, "Result<T, E>", wrapped
+            );
+        }
+        return SemanticExpressionGraphWrapperOk(UnwrapOption(result_error));
     }
     let fallback: String = actual_types[1];
     if UnwrapOption(result_payload) != "Unknown" && fallback != "Unknown" &&

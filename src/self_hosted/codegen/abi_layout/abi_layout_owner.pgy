@@ -5,6 +5,7 @@
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/result_runtime_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/abi_layout_nominal_array_owner.pgy";
@@ -38,6 +39,8 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     if IsSome(row) {
         return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
     }
+    let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
+    if result_fact.ok { return result_fact.c_type; }
     let option_struct_fact_opt: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows);
     if IsSome(option_struct_fact_opt) {

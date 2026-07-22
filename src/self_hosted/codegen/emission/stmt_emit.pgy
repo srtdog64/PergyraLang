@@ -25,6 +25,7 @@ import "log_emit_owner.pgy";
 import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
 import "box_array_let_emit_owner.pgy";
+import "result_let_emit_owner.pgy";
 func EmitLet(
     local_bindings: SemanticAstLocalBindingFacts,
     arena: AstArena,
@@ -143,12 +144,7 @@ func EmitLet(
         }
         return out;
     }
-    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "ResultInt", c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
+    if StartsWith(type_name, "Result<") { return EmitResultLetDeclaration(name, type_name, c_name, expr, env_state, env, graph); }
     if IsSlotType(type_name) {
         CodegenTypeEnvStateAppendTypedValueBinding(env_state, name, type_name, type_name, c_name);
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph), ";")))));

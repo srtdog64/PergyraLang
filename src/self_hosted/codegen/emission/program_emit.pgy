@@ -26,6 +26,7 @@ import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "enum_emit_owner.pgy";
 import "generic_function_emit_owner.pgy";
+import "result_runtime_emit_owner.pgy";
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
                   assignments: SemanticAstAssignmentFacts,
@@ -580,13 +581,10 @@ func GenerateCUnitFromSemanticFacts(
     }
     TextBuilderAppend(output, enum_block);
     TextBuilderAppend(output, typedef_block);
+    TextBuilderAppend(output, EmitResultRuntimeDefinitions(usage.result_types, base_env));
     TextBuilderAppend(output, option_struct_block);
     TextBuilderAppend(output, record_array_block);
-    if usage.uses_machine_layer {
-        TextBuilderAppend(output, CompilerMachineLayerRuntimeBindingBlock(
-            machine_declaration
-        ));
-    }
+    if usage.uses_machine_layer { TextBuilderAppend(output, CompilerMachineLayerRuntimeBindingBlock(machine_declaration)); }
     TextBuilderAppend(output, proto_block);
     let definition_index: Int = 0;
     while definition_index < ArrayLength(defs) {

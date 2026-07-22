@@ -1,0 +1,48 @@
+// Explicit Result<T, E> type inventory for C runtime materialization.
+
+import "../../semantic/ast_type_surface_fact_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
+
+struct CodegenResultUsageFacts {
+    type_names: Array<String>;
+}
+
+func CodegenResultUsageContains(
+    facts: CodegenResultUsageFacts,
+    type_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(facts.type_names) {
+        if facts.type_names[i] == type_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenResultUsageFactsFromSemantic(
+    facts: SemanticAstTypeSurfaceFacts
+) -> CodegenResultUsageFacts {
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let type_name_opt: Option<String> =
+            SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(type_name_opt) {
+            let type_name: String = UnwrapOption(type_name_opt);
+            let payload: Option<String> = ResultPayloadTypeOpt(type_name);
+            let error: Option<String> = ResultErrorTypeOpt(type_name);
+            if IsSome(payload) && IsSome(error) &&
+                UnwrapOption(payload) != "" &&
+                UnwrapOption(payload) != "Unknown" &&
+                UnwrapOption(error) != "" &&
+                UnwrapOption(error) != "Unknown" &&
+                !CodegenResultUsageContains(
+                    CodegenResultUsageFacts(type_names), type_name
+                ) {
+                ArrayPush(type_names, type_name);
+            }
+        }
+        i = i + 1;
+    }
+    return CodegenResultUsageFacts(type_names);
+}

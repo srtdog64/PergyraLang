@@ -1,0 +1,103 @@
+// Scalar graph shape facts shared by type and verdict projections.
+
+import "ast_expression_graph_fact_owner.pgy";
+
+func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
+    return kind == AstExpressionNodeLogicalOr() ||
+        kind == AstExpressionNodeLogicalAnd() ||
+        kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() ||
+        kind == AstExpressionNodeLess() ||
+        kind == AstExpressionNodeLessEqual() ||
+        kind == AstExpressionNodeGreater() ||
+        kind == AstExpressionNodeGreaterEqual() ||
+        kind == AstExpressionNodeAdd() ||
+        kind == AstExpressionNodeSubtract() ||
+        kind == AstExpressionNodeMultiply() ||
+        kind == AstExpressionNodeDivide() ||
+        kind == AstExpressionNodeModulo() ||
+        kind == AstExpressionNodeIndex() ||
+        kind == AstExpressionNodeLogicalNot() ||
+        kind == AstExpressionNodeNegate() ||
+        kind == AstExpressionNodeAwait() ||
+        kind == AstExpressionNodeCoalesce();
+}
+
+func SemanticExpressionGraphNumericTypeName(type_name: String) -> Bool {
+    return type_name == "Int" || type_name == "Long" ||
+        type_name == "Float";
+}
+
+func SemanticExpressionGraphCastTargetTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCast() {
+        return None;
+    }
+    let target: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(target) { return None; }
+    let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, UnwrapOption(target)
+    );
+    let target_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, UnwrapOption(target)
+    );
+    if !IsSome(target_kind) || !IsSome(target_text) ||
+        UnwrapOption(target_kind) != AstExpressionNodeTypeName() {
+        return None;
+    }
+    return target_text;
+}
+
+func SemanticExpressionGraphScalarTreeOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Bool {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) { return false; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if AstExpressionNodeIsScalarLeaf(kind) { return true; }
+    if kind == AstExpressionNodeCast() {
+        let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        return IsSome(operand) &&
+            IsSome(SemanticExpressionGraphCastTargetTypeName(
+                graph, node_id
+            )) && SemanticExpressionGraphScalarTreeOwned(
+                graph, UnwrapOption(operand)
+            );
+    }
+    if !SemanticExpressionGraphScalarOperatorKind(kind) { return false; }
+    let left: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if !IsSome(left) || !SemanticExpressionGraphScalarTreeOwned(
+        graph, UnwrapOption(left)
+    ) {
+        return false;
+    }
+    if AstExpressionNodeArity(kind) == 1 { return true; }
+    let right: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    return IsSome(right) && SemanticExpressionGraphScalarTreeOwned(
+        graph, UnwrapOption(right)
+    );
+}
+
+func SemanticExpressionGraphScalarOperatorTypeOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    return IsSome(kind) &&
+        SemanticExpressionGraphScalarOperatorKind(UnwrapOption(kind)) &&
+        SemanticExpressionGraphScalarTreeOwned(graph, root_id);
+}

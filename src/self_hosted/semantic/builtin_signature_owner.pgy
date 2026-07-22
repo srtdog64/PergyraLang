@@ -72,6 +72,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "IsOk^Bool^Unknown",
         "IsErr^Bool^Unknown",
         "Unwrap^Unknown^Unknown",
+        "UnwrapErr^Unknown^Unknown",
         "UnwrapOr^Unknown^Unknown|Unknown",
         "AllocatorResult^Allocator^none",
         "AllocatorDestroy^Void^Allocator",
@@ -199,28 +200,29 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 100 && ArrayLength(returns) == 100 &&
-        ArrayLength(params) == 100 && names[0] == "StringLength" &&
+        ArrayLength(names) == 101 && ArrayLength(returns) == 101 &&
+        ArrayLength(params) == 101 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
-        names[69] == "AllocatorResult" && returns[69] == "Allocator" &&
-        names[74] == "TextBuilderDrop" && params[74] == "TextBuilder" &&
-        names[75] == "FileOpen" && returns[75] == "Int" &&
-        params[75] == "String|String" &&
-        names[78] == "FileClose" && params[78] == "Int" &&
-        names[79] == "ArraySort" && names[82] == "ArrayFilter" &&
-        names[83] == "ClaimDeviceSlot" &&
-        names[87] == "SubmitDeviceRead" &&
-        names[88] == "Clone" &&
-        names[89] == "ClaimSlot" && returns[89] == "Slot<Unknown>" &&
-        names[90] == "Read" && names[91] == "Write" &&
-        names[92] == "Release" &&
-        names[93] == "AllocatorSystem" && names[94] == "AllocatorTracing" &&
-        names[95] == "AllocatorDebug" && names[96] == "AllocatorScratch" &&
-        names[97] == "AllocatorPersistent" && names[98] == "AllocatorPool" &&
-        returns[98] == "Allocator" && names[99] == "BoxArray" &&
-        returns[99] == "Box<Unknown>" && params[99] == "Int|Allocator" &&
+        names[68] == "UnwrapErr" && params[68] == "Unknown" &&
+        names[70] == "AllocatorResult" && returns[70] == "Allocator" &&
+        names[75] == "TextBuilderDrop" && params[75] == "TextBuilder" &&
+        names[76] == "FileOpen" && returns[76] == "Int" &&
+        params[76] == "String|String" &&
+        names[79] == "FileClose" && params[79] == "Int" &&
+        names[80] == "ArraySort" && names[83] == "ArrayFilter" &&
+        names[84] == "ClaimDeviceSlot" &&
+        names[88] == "SubmitDeviceRead" &&
+        names[89] == "Clone" &&
+        names[90] == "ClaimSlot" && returns[90] == "Slot<Unknown>" &&
+        names[91] == "Read" && names[92] == "Write" &&
+        names[93] == "Release" &&
+        names[94] == "AllocatorSystem" && names[95] == "AllocatorTracing" &&
+        names[96] == "AllocatorDebug" && names[97] == "AllocatorScratch" &&
+        names[98] == "AllocatorPersistent" && names[99] == "AllocatorPool" &&
+        returns[99] == "Allocator" && names[100] == "BoxArray" &&
+        returns[100] == "Box<Unknown>" && params[100] == "Int|Allocator" &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

@@ -1,0 +1,25 @@
+// Explicit Result<T, E> local declaration emission owner.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+
+func EmitResultLetDeclaration(
+    name: String,
+    type_name: String,
+    c_name: String,
+    expr: String,
+    inout env_state: Array<String>,
+    env: CodegenTypeEnv,
+    graph: SemanticExpressionGraphView
+) -> String {
+    CodegenTypeEnvStateAppendTypedValueBinding(
+        env_state, name, type_name, type_name, c_name
+    );
+    let value: String = RewriteExpectedValueWithSemanticGraph(
+        expr, type_name, env, graph
+    );
+    return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+        Concat(c_name, Concat(" = ", Concat(value, ";")))));
+}

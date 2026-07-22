@@ -211,6 +211,11 @@ inventory must not become a second fact-family owner registry.
   nominal result types carried by parser-owned expression graph nodes.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy` --
   scalar result-type projection from parser-owned expression node handles.
+- `src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy` --
+  scalar graph shape and cast/operator ownership facts shared by type and
+  verdict projections.
+- `src/self_hosted/semantic/result_call_type_owner.pgy` -- Result constructor
+  and projection type facts for the bounded source-text semantic lane.
 - `src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy` --
   graph-only Option/Result builtin type and diagnostic facts; carried call
   targets and typed signature rows are mandatory for the covered scalar lane.
@@ -571,6 +576,8 @@ inventory must not become a second fact-family owner registry.
   nominal-record array usage facts derived from semantic type surfaces and the
   codegen type environment.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
+- `src/self_hosted/codegen/input/result_usage_owner.pgy` -- explicit
+  `Result<T, E>` runtime type inventory derived from semantic type surfaces.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
@@ -587,6 +594,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy` -- self-host C math/random runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/result_runtime_owner.pgy` -- explicit
+  `Result<T, E>` runtime ABI facts and specialized helper symbol ownership.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
 - `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` -- owner-directed canonical runtime header composition for allocator, TextBuilder, and allocator-backed BoxArray consumers; it selects owners but does not duplicate their C implementations.
@@ -603,6 +612,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy` --
   expression type projection from semantic graph handles plus codegen type
   rows; migrated emitters must not reparse node text to recover these types.
+- `src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy` --
+  call-spine return-type projection, including explicit Result error payloads,
+  from semantic graph facts.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
@@ -634,6 +646,10 @@ inventory must not become a second fact-family owner registry.
   generic-template suppression and concrete specialization emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
+- `src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy` -- explicit
+  `Result<T, E>` C runtime materialization from semantic usage facts.
+- `src/self_hosted/codegen/emission/result_let_emit_owner.pgy` -- explicit
+  `Result<T, E>` local binding materialization from expected semantic facts.
 - `src/self_hosted/codegen/emission/program_entry_owner.pgy` -- public source,
   artifact, and verified semantic entrypoints into program emission.
 - `src/self_hosted/codegen/emission/assign_emit_owner.pgy` -- assignment target

@@ -1,0 +1,82 @@
+// Materializes explicit Result<T, E> runtime definitions from usage facts.
+
+import "../text/text_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../input/result_usage_owner.pgy";
+import "../runtime_abi/result_runtime_owner.pgy";
+
+func EmitResultRuntimeDefinitions(
+    usage: CodegenResultUsageFacts,
+    env: CodegenTypeEnv
+) -> String {
+    let blocks: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(usage.type_names) {
+        let fact: ResultRuntimeFact = ResultRuntimeFactForType(
+            usage.type_names[i]
+        );
+        if !fact.ok {
+            Die("explicit Result<T, E> runtime fact is missing");
+        }
+        let payload_c: String = AbiLayoutCValueType(
+            fact.payload_type, env
+        );
+        let error_c: String = AbiLayoutCValueType(fact.error_type, env);
+        let block: String = Concat(
+            "typedef struct { bool is_ok; union { ", Concat(
+                payload_c, Concat(" ok; ", Concat(
+                    error_c, Concat(" err; } value; } ", Concat(
+                        fact.c_type, ";\n"
+                    ))
+                ))
+            )
+        );
+        block = Concat(block, Concat(
+            "static ", Concat(fact.c_type, Concat(" ", Concat(
+                fact.ok_fn, Concat("(", Concat(payload_c, Concat(
+                    " v) { ", Concat(
+                        fact.c_type,
+                        " r; r.is_ok = true; r.value.ok = v; return r; }\n"
+                    )
+                )))
+            )))
+        ));
+        block = Concat(block, Concat(
+            "static ", Concat(fact.c_type, Concat(" ", Concat(
+                fact.err_fn, Concat("(", Concat(error_c, Concat(
+                    " e) { ", Concat(
+                        fact.c_type,
+                        " r; r.is_ok = false; r.value.err = e; return r; }\n"
+                    )
+                )))
+            )))
+        ));
+        block = Concat(block, Concat(
+            "static bool ", Concat(fact.is_ok_fn, Concat("(", Concat(
+                fact.c_type, " r) { return r.is_ok; }\n"
+            )))
+        ));
+        block = Concat(block, Concat(
+            "static bool ", Concat(fact.is_err_fn, Concat("(", Concat(
+                fact.c_type, " r) { return !r.is_ok; }\n"
+            )))
+        ));
+        block = Concat(block, Concat(
+            "static ", Concat(payload_c, Concat(" ", Concat(
+                fact.unwrap_fn, Concat("(", Concat(fact.c_type,
+                    " r) { return r.value.ok; }\n"
+                ))
+            )))
+        ));
+        block = Concat(block, Concat(
+            "static ", Concat(error_c, Concat(" ", Concat(
+                fact.unwrap_err_fn, Concat("(", Concat(fact.c_type,
+                    " r) { return r.value.err; }\n\n"
+                ))
+            )))
+        ));
+        ArrayPush(blocks, block);
+        i = i + 1;
+    }
+    return StringJoin(blocks, "");
+}

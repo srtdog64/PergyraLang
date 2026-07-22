@@ -8,6 +8,7 @@ import "expression_operator_fact_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "result_call_type_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
@@ -406,60 +407,6 @@ func OptionCallReturnType(text: String, names: Array<String>, types: Array<Strin
     }
     if callee == "IsSome" {
         return "Bool";
-    }
-    return "";
-}
-func ResultCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let n: Int = StringLength(text);
-    if n == 0 || CharAt(text, n - 1) != ")" {
-        return "";
-    }
-    let paren: Int = StringIndexOf(text, "(");
-    if paren <= 0 {
-        return "";
-    }
-    let callee: String = Trim(Substring(text, 0, paren));
-    let args_src: String = Substring(text, paren + 1, n - paren - 2);
-    if callee == "Ok" {
-        let value_expr: String = CallArgAt(args_src, 0);
-        let value_type: String = ExprType(value_expr, names, types, func_names, func_rets);
-        if StringLength(value_type) == 0 {
-            return "Result<Unknown>";
-        }
-        return Concat(Concat("Result<", value_type), ">");
-    }
-    if callee == "Err" {
-        let error_expr: String = CallArgAt(args_src, 0);
-        let error_type: String = ExprType(
-            error_expr, names, types, func_names, func_rets
-        );
-        if error_type == "" || error_type == "Unknown" {
-            return "Result<Unknown>";
-        }
-        return Concat(
-            "Result<Unknown, ", Concat(error_type, ">")
-        );
-    }
-    if callee == "IsOk" || callee == "IsErr" {
-        return "Bool";
-    }
-    if callee == "Unwrap" {
-        let result_expr: String = CallArgAt(args_src, 0);
-        let payload_type_opt: Option<String> = ResultPayloadTypeOpt(ExprType(result_expr, names, types, func_names, func_rets));
-        if IsSome(payload_type_opt) {
-            return UnwrapOption(payload_type_opt);
-        }
-        return "Unknown";
-    }
-    if callee == "UnwrapOr" {
-        let result_expr: String = CallArgAt(args_src, 0);
-        let result_type: String = ExprType(result_expr, names, types, func_names, func_rets);
-        let payload_type_opt2: Option<String> = ResultPayloadTypeOpt(result_type);
-        if IsSome(payload_type_opt2) && UnwrapOption(payload_type_opt2) != "Unknown" {
-            return UnwrapOption(payload_type_opt2);
-        }
-        let fallback_expr: String = CallArgAt(args_src, 1);
-        return ExprType(fallback_expr, names, types, func_names, func_rets);
     }
     return "";
 }

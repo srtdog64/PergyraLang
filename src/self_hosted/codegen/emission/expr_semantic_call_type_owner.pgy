@@ -1,0 +1,66 @@
+// Codegen call-spine type projection from semantic graph facts.
+
+import "../text/text_owner.pgy";
+import "../input/generic_specialization_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
+
+func CodegenExpressionCallTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok { return None; }
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_name) { return None; }
+    let source_name: String = UnwrapOption(target_name);
+    if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
+        ArrayLength(call.argument_nodes) == 1 {
+        let wrapped: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, call.argument_nodes[0], env
+        );
+        if !IsSome(wrapped) { return None; }
+        return TryPayloadTypeOpt(UnwrapOption(wrapped));
+    }
+    if source_name == "UnwrapErr" &&
+        ArrayLength(call.argument_nodes) == 1 {
+        let wrapped_error: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, call.argument_nodes[0], env
+        );
+        if !IsSome(wrapped_error) { return None; }
+        return ResultErrorTypeOpt(UnwrapOption(wrapped_error));
+    }
+    if SemanticBuiltinReturnDependsOnArguments(source_name) {
+        let argument_types: Array<String> = [];
+        let argument_index: Int = 0;
+        while argument_index < ArrayLength(call.argument_nodes) {
+            let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
+                graph, call.argument_nodes[argument_index], env
+            );
+            if !IsSome(argument_type) { return None; }
+            ArrayPush(argument_types, UnwrapOption(argument_type));
+            argument_index = argument_index + 1;
+        }
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            source_name, argument_types
+        );
+    }
+    let call_symbol: String = source_name;
+    let alias: String = LookupKindType(env, source_name, "call");
+    if alias != "" { call_symbol = alias; }
+    let specialization: String = LookupKindType(
+        env, CodegenGenericCallNodeKey(call.call_node), "call"
+    );
+    if specialization != "" { call_symbol = specialization; }
+    let return_type: String = LookupKindType(env, call_symbol, "f");
+    if return_type == "" || return_type == "Unknown" { return None; }
+    return Some(return_type);
+}

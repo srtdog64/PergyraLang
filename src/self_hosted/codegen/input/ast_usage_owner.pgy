@@ -7,6 +7,7 @@ import "ast_expression_usage_owner.pgy";
 import "ast_kind_usage_owner.pgy";
 import "ast_type_usage_owner.pgy";
 import "nominal_array_usage_owner.pgy";
+import "result_usage_owner.pgy";
 
 struct CodegenRuntimeUsageFacts {
     let uses_args: Bool;
@@ -23,6 +24,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_array: Bool;
     let uses_ast_text_node_array: Bool;
     nominal_record_arrays: CodegenNominalArrayUsageFacts;
+    result_types: CodegenResultUsageFacts;
     let uses_io: Bool;
     let uses_join: Bool;
     let uses_split: Bool;
@@ -90,6 +92,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
         CodegenNominalArrayUsageFactsFromSemantic(
             type_surfaces, signatures, specializations, env
         );
+    let result_types: CodegenResultUsageFacts =
+        CodegenResultUsageFactsFromSemantic(type_surfaces);
     let uses_io: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupIo());
     let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
     let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());
@@ -125,6 +129,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_array,
         uses_ast_text_node_array,
         nominal_record_arrays,
+        result_types,
         uses_io,
         uses_join,
         uses_split,

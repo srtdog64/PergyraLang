@@ -3807,7 +3807,7 @@ require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verd
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     "func SemanticAstExpressionOwnerFieldType"
 require_text "src/self_hosted/mir/routine_match_owner.pgy" \
-    "SemanticAstExpressionOwnerFieldType("
+    "SemanticAstStatementInferredTypeForNode("
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     "SelfMirRoutineAddLocal(build, match_value"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -5777,7 +5777,7 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     "func SemanticPolymorphicBuiltinReturnTypeOpt("
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "SemanticPolymorphicBuiltinReturnTypeOpt("
-require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy" \
     "SemanticPolymorphicBuiltinReturnTypeOpt("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "SeedSemanticBuiltinSignatures("
