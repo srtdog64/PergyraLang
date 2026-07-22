@@ -9,23 +9,21 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `18cf5e89bb3d7c3f7f7b11f2d7c0adaefeec91ca` on `main`.
+- Captured HEAD: `2a21ef801a3b06f15b1e327e470d1f47f21cbfbf` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and none of the remaining changes is staged.
-  The latest observed state has 70 modified tracked paths and 53 untracked
-  paths. The tracked set includes the recovery/docs edits, fixture-226..229
-  parser/semantic/MIR/codegen owners, the LLVM runtime-bitcode fix, allocator/
-  BoxArray/defer/TextBuilder consumers, and emitted-C/bootstrap compile-owner
-  corrections. Untracked source owners include allocator-backed BoxArray,
-  runtime-header composition, defer graph, operator-kind, and emitted-C
-  runtime-header owners; `.tmp_allocator_*`, `.tmp_defer_*`,
-  `.tmp_text_builder_*`, bootstrap logs, and wrapper-policy paths are diagnostic
-  artifacts. Preserve them until this slice is explicitly audited. Build
-  artifacts remain ignored; run `git status --short --branch` before resuming
-  because this count can change.
+  The latest observed state has 6 modified tracked paths and 52 untracked
+  paths. The tracked set is the next semantic-type/AST-usage/signature SoT
+  slice. The untracked paths are diagnostic `.tmp` artifacts from allocator,
+  defer, TextBuilder, bootstrap, and wrapper-policy probes. Preserve them
+  until the next slice is explicitly audited. Build artifacts remain ignored;
+  run `git status --short --branch` before resuming because this count can
+  change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
-  `Double` emission SoT slice. The remaining dirty paths are preserved
-  user/prior work and are not included in that commit.
+  `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
+  created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
+  The remaining dirty paths are preserved user/prior work and are not included
+  in those commits.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
