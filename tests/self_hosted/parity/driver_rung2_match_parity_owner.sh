@@ -8,19 +8,34 @@ pgy_selfhost_verify_driver_rung2_match() {
     local driver_bin="$4"
     local match_pattern missing_match_pattern missing_phi_input unknown_phi_input
     local missing_match_binding missing_match_binding_type missing_enum_variant
+    local result_ok_pattern result_err_pattern result_ok_type
 
     if [[ "$base" != "match_case_int" &&
         "$base" != "match_case_assign" &&
         "$base" != "option_match" &&
         "$base" != "enum_match" &&
         "$base" != "class_holds_enum_field" &&
-        "$base" != "dish_result_collect" ]]; then
+        "$base" != "dish_result_collect" &&
+        "$base" != "class_factory_result_wrap" &&
+        "$base" != "class_result_chain_loop" ]]; then
         return 0
     fi
-    if [[ "$base" == "dish_result_collect" ]]; then
-        for match_pattern in \
-            '"match_patterns":["Ok(d)"],"match_variant":"Ok","match_bindings":["d"],"match_binding_types":["Dish"]' \
-            '"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["CookErr"]'; do
+    if [[ "$base" == "dish_result_collect" ||
+        "$base" == "class_factory_result_wrap" ||
+        "$base" == "class_result_chain_loop" ]]; then
+        result_ok_pattern='"match_patterns":["Ok(d)"],"match_variant":"Ok","match_bindings":["d"],"match_binding_types":["Dish"]'
+        result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["CookErr"]'
+        result_ok_type="Dish"
+        if [[ "$base" == "class_factory_result_wrap" ]]; then
+            result_ok_pattern='"match_patterns":["Ok(t)"],"match_variant":"Ok","match_bindings":["t"],"match_binding_types":["Tax"]'
+            result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["TaxErr"]'
+            result_ok_type="Tax"
+        elif [[ "$base" == "class_result_chain_loop" ]]; then
+            result_ok_pattern='"match_patterns":["Ok(after)"],"match_variant":"Ok","match_bindings":["after"],"match_binding_types":["Wizard"]'
+            result_err_pattern='"match_patterns":["Err(e)"],"match_variant":"Err","match_bindings":["e"],"match_binding_types":["DraftErr"]'
+            result_ok_type="Wizard"
+        fi
+        for match_pattern in "$result_ok_pattern" "$result_err_pattern"; do
             grep -Fq "$match_pattern" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Result match binding type fact was lost: $match_pattern" >&2
                 exit 1
@@ -28,7 +43,7 @@ pgy_selfhost_verify_driver_rung2_match() {
         done
         missing_match_binding_type="$BUILD_DIR/${base}_${backend}.missing-match-binding-type.mir.json"
         pgy_replace_first_literal "$self_mir_json" "$missing_match_binding_type" \
-            '"match_binding_types":["Dish"]' \
+            "\"match_binding_types\":[\"$result_ok_type\"]" \
             '"match_binding_types":[]'
         if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_match_binding_type")" \

@@ -3771,9 +3771,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 231;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 233;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 231'
+    'mir_fixture_rows[@]}" -ne 233'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3804,6 +3804,10 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_suit_score/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/dish_result_collect/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_factory_result_wrap/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_result_chain_loop/main.pgy"'
 require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
     "func ResultErrorTypeOpt"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
@@ -4075,11 +4079,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 231;"
+    "return 233;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 231'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 233'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -8765,6 +8769,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "class_helper_met
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"
 require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_bindings", 0'
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_binding_types", 0'
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbol_count"
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbols"
 require_text "src/compiler/mir_json_dump_flow.c" "loop_flow_summary_count"

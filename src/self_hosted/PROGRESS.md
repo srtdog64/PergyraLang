@@ -1,5 +1,37 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra-composition replacement delta: DRV-2 MIR fixture 232 is
+`class_factory_result_wrap`. It extends the executable frontier through one
+language-level composition rather than a C-shaped feature shard:
+`MakeTax -> Result<Tax,TaxErr> -> match -> t.Compute() -> Int return`.
+The existing semantic typed-expression environment owns the `Tax`/`TaxErr`
+binding facts, MIR carries them in `match_binding_types`, and the typed member
+call graph carries `Tax_Compute` to the existing Result/class emission owners.
+No compiler fixture branch, source re-scan, pattern-string inference,
+backend-local representation, C oracle fallback, or new runtime fragment was
+added. The executable delta is the 232-row manifest plus generalized existing
+Result-binding and member-call negative gates.
+
+Focused C-built and LLVM-built parity, current-231-hard parity, and freshly
+Pergyra-built 232-hard parity each passed with 20 body fixtures and the one
+selected MIR fixture. The new driver is
+`.tmp/bin_class_factory_result_wrap_232_hard/pgy-self-driver.exe`, SHA-256
+`D565A28EF6B5C5750AE5EE45D77D0BE46A323FE22B77DCB780B62C0CCFE54F53`,
+and its manifest has 232 rows ending in `class_factory_result_wrap`. On the new
+focused hard lane, native/self canonical MIR SHA-256 is
+`038B15579E570FC780A7CD891EDABEC7DE8863CDB2753378A637DB8A1658909B`;
+oracle-MIR/self-MIR/source emitted C SHA-256 is
+`91C40FC856A00A4E1944380D892BE553D4D5807A1B1103FAAEEA4A2739CDAD0F`;
+and runtime output is `10`, `25`, `-1`, `-2`, `0`. Removing either the `Tax`
+match binding type or `Tax_Compute` call target fails closed with
+`MIR instruction expression graph is missing or invalid`. An eight-fixture
+Result/Option/enum/class/frontier hard shard passed. Component, shell syntax,
+diff, SoT authority, gate-owner, protocol-registry, and substitution-velocity
+gates pass. The full 232-row matrix was not run because the prior 231 attempt
+projected beyond the 30-minute integration budget; the last complete
+unfiltered current-hard matrix remains 230/230. Released/default-driver
+replacement remains open, and fixture 233 is not selected.
+
 2026-07-23 executable `Result<class, enum>` delta: DRV-2 MIR fixture 231 is
 `dish_result_collect`. Its active seam is one Pergyra-owned flow:
 `Result<Dish,CookErr>` shape and contextual `Ok`/`Err` types -> semantic
@@ -33,7 +65,7 @@ is missing or invalid`. The self-host component contract and `git diff
 runtime rows when its projected duration exceeded the repository's integration
 shard budget; it is not recorded as green. The last complete unfiltered hard
 matrix remains 230/230, released/default-driver replacement remains open, and
-fixture 232 is not selected.
+fixture 232 was not yet selected at that checkpoint.
 
 2026-07-23 executable class-field/string-return breadth delta: DRV-2 MIR
 fixture 230 is `class_suit_score`. Its `Card` fields, `String`/`Int` helper

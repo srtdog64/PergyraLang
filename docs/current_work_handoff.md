@@ -9,24 +9,25 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `d47f6bd017c9d14544d9c1dfa7180412d1417210` on `main`.
+- Captured HEAD: `dd916eaae29c49d774a7343eede678cbd5c87a06` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
-- The live worktree is dirty and none of the remaining changes is staged.
-  The latest observed state has 21 modified tracked paths and 69 untracked
-  paths. The tracked set includes concurrent fixture-231/match-binding work,
-  plus an unstaged Result-adjacent formatting/contract remainder. The
-  untracked set includes the concurrent match-binding owners and diagnostic
-  `.tmp` artifacts from allocator, defer, TextBuilder, bootstrap, and
-  wrapper-policy probes. Preserve them until the next slice is explicitly
-  audited. Build artifacts remain ignored; run `git status --short --branch`
-  before resuming because this count can change.
+- The live worktree is dirty and the index is clean. The latest observed state
+  has eight modified unstaged tracked paths and 54 untracked diagnostic `.tmp`
+  artifacts. Seven tracked paths are the fixture-232 manifest/gate/docs delta;
+  `src/self_hosted/codegen/emission/stmt_emit.pgy` is a pre-existing unstaged
+  declaration-formatting edit and was not changed by fixture 232. Preserve it
+  and the allocator, defer, TextBuilder, bootstrap, and wrapper-policy probe
+  artifacts until explicitly audited. Build artifacts remain ignored; run
+  `git status --short --branch` before resuming because this count can change.
 - This session created and pushed `18cf5e89` for the verified self-hosted
   `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
   created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
   It then refreshed the handoff in `37c5e213` and created and pushed
-  `d47f6bd0` for the explicit `Result<T,E>` runtime SoT slice. The remaining
-  dirty paths are preserved user/prior work and are not included in those
-  commits.
+  `d47f6bd0` for the explicit `Result<T,E>` runtime SoT slice, then refreshed
+  this handoff in `d623d002`. During fixture-232 verification, concurrent work
+  committed and pushed the 25-path fixture-231/match-binding slice as
+  `dd916eaa`. This session did not stage, commit, or push it. Fixture-232
+  worktree changes are not included in that commit.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -80,10 +81,12 @@ current owner fact and update this file after verification.
 ### 1. Hard self-host DRV-2 executable replacement
 
 - Resume owner: `src/self_hosted/PROGRESS.md`.
-- The closed executable frontier is fixture 230, `class_suit_score`, after the
-  closed `text_builder_lifecycle` fixture 229. The current-hard 230/230 matrix
-  is green. Released/default-driver replacement remains open, and fixture 231
-  has not been selected.
+- The closed executable frontier is fixture 232, `class_factory_result_wrap`,
+  after `dish_result_collect` fixture 231. Focused C/LLVM/current-hard/new-hard
+  parity and the eight-row hard Result/Option/enum/class/frontier shard are
+  green. The last complete unfiltered current-hard matrix remains 230/230;
+  released/default-driver replacement remains open, and fixture 233 has not
+  been selected.
 - A focused C/LLVM producer-first parity result counts. Owner files, docs,
   manifests, and fixture count do not count as substitution by themselves.
 - Fixture 226 adds `coalesce` as a stable typed expression-graph node. Grouped
@@ -190,7 +193,52 @@ current owner fact and update this file after verification.
   `.tmp/driver_class_suit_230_hard_full`. One existing worker-pool-inactive
   message exposed the documented serial execution choice; it did not fail the
   gate. Released/default replacement remains 0%.
-- The next bounded falsifier is not yet selected. Before fixture 231 admission,
+- Fixture 231, `tests/cases/backend_compare/dish_result_collect/main.pgy`,
+  closes the active `Result<Dish,CookErr>` seam through Pergyra semantic
+  statement types, carried MIR `match_binding_types`, explicit Result runtime
+  facts, nested enum matching, and class method calls. Missing binding type
+  fails ordinary MIR graph admission; only the named native-oracle
+  canonicalization bridge may reconstruct an inferred legacy `Let` before
+  producing canonical Pergyra MIR. Version-zero arm locals no longer leak or
+  generate an outer phi.
+- Focused C-built, LLVM-built, and freshly Pergyra-built hard lanes pass with
+  20 body fixtures and one MIR fixture. The hard driver is
+  `.tmp/bin_dish_result_231_hard/pgy-self-driver.exe`, SHA-256
+  `DD4A4CD6913A0EF3F329487DDAF9C34E0B4C858DC625810910374448A308DC97`.
+  Hard native/self canonical MIR SHA-256 is
+  `57D74F8EC14255E63C1A0AC05650FF3DBF9460618F78FCB088878D2B5905AA9A`;
+  source/self-MIR C SHA-256 is
+  `49971A30E6FF299EEE6122670BDF0013DC3F5E44491868857957131268F2D123`;
+  runtime output is `175`, `-1`, `-2`.
+- A seven-row hard Result/Option/match/enum/frontier shard passes. An
+  unfiltered 231-row attempt was intentionally stopped after 21 runtime rows
+  when its projected duration exceeded the integration-shard budget; do not
+  call it green. The last complete unfiltered matrix is still 230/230.
+- Fixture 232,
+  `tests/cases/backend_compare/class_factory_result_wrap/main.pgy`, extends the
+  same Pergyra owners through a value-returning function:
+  `MakeTax -> Result<Tax,TaxErr> -> match -> t.Compute()`. MIR explicitly
+  carries `Ok(t): Tax`, `Err(e): TaxErr`, and the member target `Tax_Compute`;
+  the hard consumer rejects either missing fact. No source re-scan,
+  pattern-string inference, fixture branch in compiler semantics, C fallback,
+  or new runtime fragment was added.
+- Focused C-built, LLVM-built, previous-231-hard, and freshly Pergyra-built
+  232-hard lanes pass with 20 body fixtures and one MIR fixture. The new hard
+  driver is
+  `.tmp/bin_class_factory_result_wrap_232_hard/pgy-self-driver.exe`, SHA-256
+  `D565A28EF6B5C5750AE5EE45D77D0BE46A323FE22B77DCB780B62C0CCFE54F53`,
+  with a 232-row manifest ending in `class_factory_result_wrap`.
+- Hard native/self canonical MIR SHA-256 is
+  `038B15579E570FC780A7CD891EDABEC7DE8863CDB2753378A637DB8A1658909B`;
+  oracle/self/source emitted-C SHA-256 is
+  `91C40FC856A00A4E1944380D892BE553D4D5807A1B1103FAAEEA4A2739CDAD0F`;
+  runtime output is `10`, `25`, `-1`, `-2`, `0`. The eight-fixture hard impact
+  shard passes. Component, shell syntax, diff, SoT authority, gate-owner,
+  protocol-registry, and substitution-velocity gates also pass.
+- The full 232-row matrix was not run because the observed 231 projection
+  exceeds the 30-minute integration budget. The last complete unfiltered
+  matrix remains 230/230; this is an explicit omission, not a green result.
+- The next bounded falsifier is not yet selected. Before fixture 233 admission,
   choose exactly one unsupported Pergyra-level semantic surface, write its
   objective card, and probe it without changing the manifest. Do not open a
   C-shaped runtime fragment or a parallel cleanup track merely to increase the
@@ -208,10 +256,12 @@ current owner fact and update this file after verification.
   self-host compiler build passed; the explicit custom-error fixture emitted
   typed Result ABI names, compiled, and ran with output `7`, `err`, `42`; and
   `UnwrapErr(Option<Int>)` failed closed with `builtin_arg_type_mismatch`.
-- The full component contract was not green because the current concurrent
-  tree still has `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` at
-  649 lines against the 600-line cap. This is recorded as an external
-  remainder, not silently absorbed into the Result closure.
+- The current component contract is green. Match binding local-index and
+  reconstruction responsibilities now live in named Pergyra owners;
+  `routine_fact_index_owner.pgy` and `stmt_emit.pgy` both meet the 600-line
+  cap. Fixtures 231 and 232 prove that this Result runtime owner reaches class
+  payloads, enum errors, value-returning match control flow, and typed class
+  method calls without adding a C-side inference path.
 
 ### 2. MIR-only / ABI-first backend closure
 
