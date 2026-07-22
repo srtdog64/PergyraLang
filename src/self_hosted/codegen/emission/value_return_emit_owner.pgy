@@ -23,6 +23,9 @@ func EmitReturnValue(
     if return_type == "Float" {
         return WrapExprWithSemanticGraph(rexpr, env, graph);
     }
+    if return_type == "Double" {
+        return WrapExprWithSemanticGraph(rexpr, env, graph);
+    }
     if return_type == "Long" {
         return WrapExprWithSemanticGraph(rexpr, env, graph);
     }

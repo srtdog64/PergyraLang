@@ -51,7 +51,7 @@ func EmitStructLit(expr: String, env: CodegenTypeEnv) -> String {
             let cval: String = "";
             if ftype == "String" {
                 cval = StrEval(val, env);
-            } else if ftype == "Float" {
+            } else if ftype == "Float" || ftype == "Double" {
                 cval = RewriteExpr(val, env);
             } else if ftype == "Int" || ftype == "Bool" {
                 cval = IntEval(val, env);

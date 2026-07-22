@@ -56,9 +56,9 @@ func EmitLet(
         );
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
-    if type_name == "Float" {
+    if type_name == "Float" || type_name == "Double" {
         CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Float", c_name
+            env_state, name, type_name, c_name
         );
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
@@ -185,7 +185,7 @@ func EmitLet(
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
-    Die(Concat("unsupported let type (only Int/Bool/Float/String/Array/Option/struct/payload-free enum): ", type_name));
+    Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Option/struct/payload-free enum): ", type_name));
     return "";
 }
 

@@ -468,7 +468,9 @@ forbid_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
-    '"uses":["balance.0","amount.1"]'
+    '"uses":["balance.0"]'
+require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
+    '"kind":"leaf","text":"amount"'
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
     '"name":"missing_balance","type":"Int"'
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \

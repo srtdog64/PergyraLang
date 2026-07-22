@@ -185,7 +185,7 @@ func CodegenExpressionTypeFromGraph(
             return None;
         }
         let target: String = UnwrapOption(target_text);
-        if target == "Int" || target == "Long" || target == "Float" {
+        if target == "Int" || target == "Long" || target == "Float" || target == "Double" {
             return Some(target);
         }
         return None;

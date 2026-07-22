@@ -274,7 +274,7 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Codeg
             let cval: String = "";
             if ftype == "String" {
                 cval = StrEval(val, env);
-            } else if ftype == "Float" {
+            } else if ftype == "Float" || ftype == "Double" {
                 cval = RewriteExpr(val, env);
             } else if ftype == "Int" || ftype == "Bool" {
                 cval = IntEval(val, env);
