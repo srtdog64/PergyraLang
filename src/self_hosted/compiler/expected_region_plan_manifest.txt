@@ -23,7 +23,10 @@ require|src/compiler/verified_region_plan.c|verified region plan: conflicting sc
 require|src/compiler/region_escape_v1.h|pgy_region_escape_v1_collect(
 require|src/compiler/region_escape_v1.c|is_print_call
 require|src/compiler/region_escape_v1.c|certify_concat_spine
+require|src/compiler/region_escape_v1.c|ast_call_semantic_callee_builtin_kind
 forbid|src/codegen/transpiler_context.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/transpiler_context.c|pgy_region_escape_v1_collect
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_region_escape_v1_collect
+forbid|src/compiler/region_escape_v1.c|strcmp(name, "Print")
+forbid|src/compiler/region_escape_v1.c|strcmp(name, "PrintLn")

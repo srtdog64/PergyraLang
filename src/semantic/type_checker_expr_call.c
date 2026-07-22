@@ -105,6 +105,16 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         BuiltinKind bk   = user_class_overrides_builtin
             ? BUILTIN_NOT_BUILTIN
             : builtin_resolve(name);
+        if (!ast_call_set_semantic_callee_builtin_kind(
+                expr, (uint32_t)bk)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE,
+                PGY_FIX_USE_CALLABLE_DECLARATION,
+                expr,
+                "Call target semantic identity could not be recorded");
+            return TYPE_UNKNOWN;
+        }
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
 

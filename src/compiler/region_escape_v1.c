@@ -1,17 +1,16 @@
 #include "region_escape_v1.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "../parser/ast.h"
 #include "../parser/ast_api.h"
 #include "../lexer/lexer.h" /* TOKEN_PLUS */
+#include "../semantic/builtin_kind.h"
 
 /*
- * Direct AST field access (like the codegen emitters, e.g. emit_binary reading
- * node->type) rather than the ast_api accessors, so this pass is self-contained
- * -- it needs only the ASTNode struct definition, not the parser object. That
- * keeps the analysis unit-testable against hand-built nodes with no parser link.
+ * Structural traversal is intentionally narrow and uses stable syntax facts;
+ * callee authority comes from the semantic builtin-kind annotation through the
+ * AST API. The producer never recovers a borrow-safe callee from source text.
  */
 
 typedef struct {
@@ -95,16 +94,11 @@ certify_concat_spine(EscapeCollector *c,
 static bool
 is_print_call(const ASTNode *call)
 {
-    const ASTNode *callee;
-    const char *name;
+    uint32_t builtin_kind = 0;
     if (call == NULL || call->type != AST_CALL)
         return false;
-    callee = call->data.call.callee;
-    if (callee == NULL || callee->type != AST_IDENTIFIER)
-        return false;
-    name = callee->data.identifier.name;
-    return name != NULL
-        && (strcmp(name, "Print") == 0 || strcmp(name, "PrintLn") == 0);
+    return ast_call_semantic_callee_builtin_kind(call, &builtin_kind)
+        && builtin_kind == (uint32_t)BUILTIN_PRINT;
 }
 
 static void

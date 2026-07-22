@@ -63,6 +63,31 @@ ast_call_set_semantic_callee_decl_id(ASTNode *node, uint32_t decl_id)
 }
 
 bool
+ast_call_semantic_callee_builtin_kind(const ASTNode *node,
+                                      uint32_t *kind_out)
+{
+    if (kind_out != NULL)
+        *kind_out = 0;
+    if (node == NULL || node->type != AST_CALL
+        || !node->data.call.semantic_callee_builtin_kind_set) {
+        return false;
+    }
+    if (kind_out != NULL)
+        *kind_out = node->data.call.semantic_callee_builtin_kind;
+    return true;
+}
+
+bool
+ast_call_set_semantic_callee_builtin_kind(ASTNode *node, uint32_t kind)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    node->data.call.semantic_callee_builtin_kind = kind;
+    node->data.call.semantic_callee_builtin_kind_set = true;
+    return true;
+}
+
+bool
 ast_call_uses_braced_initializer_syntax(const ASTNode *node)
 {
     return node != NULL && node->type == AST_CALL

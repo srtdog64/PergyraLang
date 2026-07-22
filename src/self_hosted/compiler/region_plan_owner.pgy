@@ -367,14 +367,14 @@ func RegionPlanLlvmConsumerPath() -> String {
 }
 
 func RegionPlanRequiredCount() -> Int {
-    return 10;
+    return 11;
 }
 
 func RegionPlanRequiredPathAt(index: Int) -> String {
     if index <= 3 { return RegionPlanHeaderPath(); }
     if index <= 6 { return RegionPlanSourcePath(); }
     if index == 7 { return RegionPlanEscapeHeaderPath(); }
-    if index <= 9 { return RegionPlanEscapeSourcePath(); }
+    if index <= 10 { return RegionPlanEscapeSourcePath(); }
     return "";
 }
 
@@ -390,11 +390,12 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
     if index == 4 { return "pgy_air_evidence_certificate_ready(air"; }
     if index == 5 { return "verified region plan: escape result carries a null site"; }
     if index == 6 { return "verified region plan: conflicting scopes for one site"; }
-    // The escape pass: its collect entrypoint, and the two internal predicates
-    // that ARE the v1 certification rule.
+    // The escape pass: its collect entrypoint, semantic callee fact, and the
+    // two structural predicates that ARE the v1 certification rule.
     if index == 7 { return "pgy_region_escape_v1_collect("; }
     if index == 8 { return "is_print_call"; }
     if index == 9 { return "certify_concat_spine"; }
+    if index == 10 { return "ast_call_semantic_callee_builtin_kind"; }
     return "";
 }
 
@@ -402,7 +403,7 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
 // they never re-run the escape analysis. Either one would re-open a private
 // lifetime decision inside codegen -- the exact drift this artifact removes.
 func RegionPlanForbiddenCount() -> Int {
-    return 4;
+    return 6;
 }
 
 func RegionPlanForbiddenPathAt(index: Int) -> String {
@@ -410,6 +411,7 @@ func RegionPlanForbiddenPathAt(index: Int) -> String {
     if index == 1 { return RegionPlanLlvmConsumerPath(); }
     if index == 2 { return RegionPlanCConsumerPath(); }
     if index == 3 { return RegionPlanLlvmConsumerPath(); }
+    if index == 4 || index == 5 { return RegionPlanEscapeSourcePath(); }
     return "";
 }
 
@@ -418,6 +420,8 @@ func RegionPlanForbiddenTermAt(index: Int) -> String {
     if index == 1 { return "pgy_verified_region_plan_from_escape"; }
     if index == 2 { return "pgy_region_escape_v1_collect"; }
     if index == 3 { return "pgy_region_escape_v1_collect"; }
+    if index == 4 { return "strcmp(name, \"Print\")"; }
+    if index == 5 { return "strcmp(name, \"PrintLn\")"; }
     return "";
 }
 
@@ -438,13 +442,13 @@ func RegionPlanReady() -> Bool {
         RegionPlanOwnerScopeFailsClosed() &&
         RegionPlanIncompletenessIsSound() &&
         RegionPlanDispositionsAreBounded() &&
-        RegionPlanRequiredCount() == 10 &&
-        RegionPlanForbiddenCount() == 4 &&
+        RegionPlanRequiredCount() == 11 &&
+        RegionPlanForbiddenCount() == 6 &&
         RegionPlanRequiredPathAt(0) == RegionPlanHeaderPath() &&
-        RegionPlanRequiredPathAt(9) == RegionPlanEscapeSourcePath() &&
+        RegionPlanRequiredPathAt(10) == RegionPlanEscapeSourcePath() &&
         RegionPlanRequiredTermAt(0) != "" &&
         RegionPlanRequiredTermAt(9) != "" &&
-        RegionPlanForbiddenPathAt(3) == RegionPlanLlvmConsumerPath() &&
+        RegionPlanForbiddenPathAt(5) == RegionPlanEscapeSourcePath() &&
         RegionPlanForbiddenTermAt(0) != "" &&
         RegionPlanMissingSelfTestTerm() != "";
 }

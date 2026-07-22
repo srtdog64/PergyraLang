@@ -244,6 +244,8 @@ struct ASTNode
             size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */
             uint32_t       semantic_callee_decl_id;
+            uint32_t       semantic_callee_builtin_kind;
+            bool           semantic_callee_builtin_kind_set;
             bool           uses_braced_initializer_syntax;
         } call;
         

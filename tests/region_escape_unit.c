@@ -16,8 +16,10 @@
 #include <string.h>
 
 #include "parser/ast.h"
+#include "parser/ast_api.h"
 #include "lexer/lexer.h"
 #include "region_escape_v1.h"
+#include "semantic/builtin_kind.h"
 
 static int failures = 0;
 static uint32_t next_test_stable_id = 1;
@@ -60,6 +62,9 @@ static void test_print_concat_certified(void)
     ASTNode callee = mk_ident("Print");
     ASTNode *args[1] = { &concat };
     ASTNode call = mk_call(&callee, args, 1);
+    CHECK(ast_call_set_semantic_callee_builtin_kind(
+              &call, (uint32_t)BUILTIN_PRINT),
+          "semantic Print builtin fact records");
 
     PgyRegionEscapeSite *sites = NULL;
     size_t n = pgy_region_escape_v1_collect(&call, &sites);
@@ -75,13 +80,32 @@ static void test_chained_concat_spine(void)
     ASTNode sa = mk_string("a"), sb = mk_string("b"), sc = mk_string("c");
     ASTNode inner = mk_concat(&sa, &sb);
     ASTNode outer = mk_concat(&inner, &sc);
-    ASTNode callee = mk_ident("PrintLn");
+    ASTNode callee = mk_ident("Print");
     ASTNode *args[1] = { &outer };
     ASTNode call = mk_call(&callee, args, 1);
+    CHECK(ast_call_set_semantic_callee_builtin_kind(
+              &call, (uint32_t)BUILTIN_PRINT),
+          "semantic Print builtin fact records for chain");
 
     PgyRegionEscapeSite *sites = NULL;
     size_t n = pgy_region_escape_v1_collect(&call, &sites);
     CHECK(n == 2, "PrintLn(a+b+c) certifies 2 spine sites");
+    pgy_region_escape_v1_free(sites);
+}
+
+/* A source-shaped Print call without its semantic builtin fact is not
+ * certifiable. The region producer must not recover authority from spelling. */
+static void test_missing_builtin_fact_not_certified(void)
+{
+    ASTNode sa = mk_string("a"), sb = mk_string("b");
+    ASTNode concat = mk_concat(&sa, &sb);
+    ASTNode callee = mk_ident("Print");
+    ASTNode *args[1] = { &concat };
+    ASTNode call = mk_call(&callee, args, 1);
+
+    PgyRegionEscapeSite *sites = NULL;
+    size_t n = pgy_region_escape_v1_collect(&call, &sites);
+    CHECK(n == 0, "missing semantic Print fact stays HEAP");
     pgy_region_escape_v1_free(sites);
 }
 
@@ -119,6 +143,9 @@ static void test_per_function_scope(void)
     ASTNode callee1 = mk_ident("Print");
     ASTNode *a1[1] = { &c1 };
     ASTNode call1 = mk_call(&callee1, a1, 1);
+    CHECK(ast_call_set_semantic_callee_builtin_kind(
+              &call1, (uint32_t)BUILTIN_PRINT),
+          "semantic Print builtin fact records for first function");
     ASTNode *b1stmts[1] = { &call1 };
     ASTNode blk1; memset(&blk1, 0, sizeof(blk1));
     blk1.type = AST_BLOCK; blk1.stable_id = next_test_stable_id++;
@@ -132,6 +159,9 @@ static void test_per_function_scope(void)
     ASTNode callee2 = mk_ident("Print");
     ASTNode *a2[1] = { &c2 };
     ASTNode call2 = mk_call(&callee2, a2, 1);
+    CHECK(ast_call_set_semantic_callee_builtin_kind(
+              &call2, (uint32_t)BUILTIN_PRINT),
+          "semantic Print builtin fact records for second function");
     ASTNode *b2stmts[1] = { &call2 };
     ASTNode blk2; memset(&blk2, 0, sizeof(blk2));
     blk2.type = AST_BLOCK; blk2.stable_id = next_test_stable_id++;
@@ -160,6 +190,7 @@ int main(void)
 {
     test_print_concat_certified();
     test_chained_concat_spine();
+    test_missing_builtin_fact_not_certified();
     test_non_print_not_certified();
     test_bare_concat_not_certified();
     test_per_function_scope();

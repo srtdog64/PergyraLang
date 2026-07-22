@@ -237,6 +237,10 @@ GenericParam* ast_call_generic_arg(const ASTNode* node, size_t index);
 ASTNode* ast_call_callee(const ASTNode* node);
 uint32_t ast_call_semantic_callee_decl_id(const ASTNode* node);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
+bool ast_call_semantic_callee_builtin_kind(
+    const ASTNode *node, uint32_t *kind_out);
+bool ast_call_set_semantic_callee_builtin_kind(
+    ASTNode *node, uint32_t kind);
 size_t ast_call_arg_count(const ASTNode* node);
 ASTNode** ast_call_arguments(const ASTNode* node, size_t* count_out);
 ASTNode* ast_call_argument(const ASTNode* node, size_t index);
