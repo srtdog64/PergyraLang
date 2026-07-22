@@ -140,13 +140,15 @@ mir_validate_decl_role_impl_metadata(const MIRDeclHeader *header,
     }
 
     if (header->ast_type == AST_ROLE_DECL
-        && impl_method_total != header->method_count) {
+        && impl_method_total + header->role_override_method_count
+            != header->method_count) {
         if (error_message != NULL) {
             *error_message = mir_decl_header_role_strdup_fmt(
-                "MIR declaration header[%zu] '%s' role impl method count %zu does not match method metadata count %zu",
+                "MIR declaration header[%zu] '%s' role method count %zu plus override count %zu does not match method metadata count %zu",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)",
                 impl_method_total,
+                header->role_override_method_count,
                 header->method_count);
         }
         return false;

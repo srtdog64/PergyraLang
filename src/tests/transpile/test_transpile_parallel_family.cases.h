@@ -34,7 +34,7 @@ test_parallel_family_emit(void)
            the unit test supplies the fact for its hand-built node. */
         static PgySpawnLaneFactRow lane_rows[1];
         static PgySpawnLanePlan lane_plan;
-        lane_rows[0].site = spawn_node;
+        lane_rows[0].source_stable_id = ast_node_stable_id(spawn_node);
         lane_rows[0].lane = PGY_LANE_WORKER_POOL;
         lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
         lane_plan.rows = lane_rows;

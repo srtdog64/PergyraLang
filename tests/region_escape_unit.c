@@ -20,6 +20,7 @@
 #include "region_escape_v1.h"
 
 static int failures = 0;
+static uint32_t next_test_stable_id = 1;
 #define CHECK(cond, msg) do { \
     if (!(cond)) { fprintf(stderr, "FAIL: %s\n", (msg)); failures++; } \
 } while (0)
@@ -27,23 +28,27 @@ static int failures = 0;
 static ASTNode mk_string(const char *v)
 {
     ASTNode n; memset(&n, 0, sizeof(n));
-    n.type = AST_STRING; n.data.string.value = (char *)v; return n;
+    n.type = AST_STRING; n.stable_id = next_test_stable_id++;
+    n.data.string.value = (char *)v; return n;
 }
 static ASTNode mk_ident(const char *name)
 {
     ASTNode n; memset(&n, 0, sizeof(n));
-    n.type = AST_IDENTIFIER; n.data.identifier.name = (char *)name; return n;
+    n.type = AST_IDENTIFIER; n.stable_id = next_test_stable_id++;
+    n.data.identifier.name = (char *)name; return n;
 }
 static ASTNode mk_concat(ASTNode *l, ASTNode *r)
 {
     ASTNode n; memset(&n, 0, sizeof(n));
-    n.type = AST_BINARY; n.data.binary.left = l; n.data.binary.right = r;
+    n.type = AST_BINARY; n.stable_id = next_test_stable_id++;
+    n.data.binary.left = l; n.data.binary.right = r;
     n.data.binary.op.type = TOKEN_PLUS; return n;
 }
 static ASTNode mk_call(ASTNode *callee, ASTNode **args, size_t argc)
 {
     ASTNode n; memset(&n, 0, sizeof(n));
-    n.type = AST_CALL; n.data.call.callee = callee;
+    n.type = AST_CALL; n.stable_id = next_test_stable_id++;
+    n.data.call.callee = callee;
     n.data.call.arguments = args; n.data.call.arg_count = argc; return n;
 }
 
@@ -59,7 +64,8 @@ static void test_print_concat_certified(void)
     PgyRegionEscapeSite *sites = NULL;
     size_t n = pgy_region_escape_v1_collect(&call, &sites);
     CHECK(n == 1, "Print(a+b) certifies 1 site");
-    CHECK(n == 1 && sites[0].site == &concat, "certified site is the concat");
+    CHECK(n == 1 && sites[0].allocation_site_id == concat.stable_id,
+          "certified site carries the concat stable id");
     pgy_region_escape_v1_free(sites);
 }
 
@@ -115,9 +121,11 @@ static void test_per_function_scope(void)
     ASTNode call1 = mk_call(&callee1, a1, 1);
     ASTNode *b1stmts[1] = { &call1 };
     ASTNode blk1; memset(&blk1, 0, sizeof(blk1));
-    blk1.type = AST_BLOCK; blk1.data.block.statements = b1stmts; blk1.data.block.count = 1;
+    blk1.type = AST_BLOCK; blk1.stable_id = next_test_stable_id++;
+    blk1.data.block.statements = b1stmts; blk1.data.block.count = 1;
     ASTNode fn1; memset(&fn1, 0, sizeof(fn1));
-    fn1.type = AST_FUNC_DECL; fn1.data.func_decl.body = &blk1;
+    fn1.type = AST_FUNC_DECL; fn1.stable_id = next_test_stable_id++;
+    fn1.data.func_decl.body = &blk1;
 
     ASTNode sc = mk_string("c"), sd = mk_string("d");
     ASTNode c2 = mk_concat(&sc, &sd);
@@ -126,13 +134,16 @@ static void test_per_function_scope(void)
     ASTNode call2 = mk_call(&callee2, a2, 1);
     ASTNode *b2stmts[1] = { &call2 };
     ASTNode blk2; memset(&blk2, 0, sizeof(blk2));
-    blk2.type = AST_BLOCK; blk2.data.block.statements = b2stmts; blk2.data.block.count = 1;
+    blk2.type = AST_BLOCK; blk2.stable_id = next_test_stable_id++;
+    blk2.data.block.statements = b2stmts; blk2.data.block.count = 1;
     ASTNode fn2; memset(&fn2, 0, sizeof(fn2));
-    fn2.type = AST_FUNC_DECL; fn2.data.func_decl.body = &blk2;
+    fn2.type = AST_FUNC_DECL; fn2.stable_id = next_test_stable_id++;
+    fn2.data.func_decl.body = &blk2;
 
     ASTNode *progstmts[2] = { &fn1, &fn2 };
     ASTNode prog; memset(&prog, 0, sizeof(prog));
-    prog.type = AST_PROGRAM; prog.data.program.statements = progstmts; prog.data.program.count = 2;
+    prog.type = AST_PROGRAM; prog.stable_id = next_test_stable_id++;
+    prog.data.program.statements = progstmts; prog.data.program.count = 2;
 
     PgyRegionEscapeSite *sites = NULL;
     size_t n = pgy_region_escape_v1_collect(&prog, &sites);

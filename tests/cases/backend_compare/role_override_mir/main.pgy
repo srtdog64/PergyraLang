@@ -1,0 +1,18 @@
+subject OverrideTarget {
+    let value: Int;
+
+    func Name() -> String {
+        return "base";
+    }
+}
+
+role OverrideSurface for OverrideTarget {
+    override func Name() -> String {
+        return "override";
+    }
+}
+
+func Main() -> Void {
+    let target = OverrideTarget(1);
+    Log(target.Name());
+}

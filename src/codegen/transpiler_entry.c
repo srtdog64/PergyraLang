@@ -17,7 +17,9 @@
 static TranspileResult *
 transpile_mir_only(const MIRProgram *mir,
                    const PgyVerifiedProjectionPlanRow *projection_plan,
+                   const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                    const PgySpawnLanePlan *spawn_lane_plan,
+                   const PgyRegionPlan *region_plan,
                    const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
@@ -36,7 +38,9 @@ transpile_mir_only(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
+    ctx->region_plan = region_plan;
     if (projection_plan == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
             "%s", "C backend: verified projection plan required");
@@ -64,6 +68,11 @@ transpile_mir_only(const MIRProgram *mir,
                || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
         transpiler_set_mir_inventory_missing(ctx, "%s",
             "C backend: verified spawn-lane plan required");
+    } else if (parallel_capture_plan == NULL
+               || !pgy_verified_parallel_capture_plan_identity_ready(
+                      parallel_capture_plan)) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: verified parallel-capture plan required");
     } else {
         observability_plan = *projection_plan;
         ctx->uses_intent_observability =
@@ -104,7 +113,7 @@ transpile_mir_only(const MIRProgram *mir,
 TranspileResult *
 transpile_from_mir(const MIRProgram *mir, const char *output_path)
 {
-    return transpile_mir_only(mir, NULL, NULL, output_path);
+    return transpile_mir_only(mir, NULL, NULL, NULL, NULL, output_path);
 }
 
 TranspileResult *
@@ -114,8 +123,21 @@ transpile_from_mir_with_projection_plan(
     const PgySpawnLanePlan *spawn_lane_plan,
     const char *output_path)
 {
-    return transpile_mir_only(mir, projection_plan, spawn_lane_plan,
-                              output_path);
+    return transpile_mir_only(mir, projection_plan, NULL,
+                              spawn_lane_plan, NULL, output_path);
+}
+
+TranspileResult *
+transpile_from_mir_with_projection_plans(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
+    const char *output_path)
+{
+    return transpile_mir_only(mir, projection_plan, parallel_capture_plan,
+                              spawn_lane_plan, region_plan, output_path);
 }
 
 TranspileResult *
@@ -130,7 +152,7 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
         }
         return result;
     }
-    return transpile_mir_only(mir, NULL, NULL, output_path);
+    return transpile_mir_only(mir, NULL, NULL, NULL, NULL, output_path);
 }
 
 void

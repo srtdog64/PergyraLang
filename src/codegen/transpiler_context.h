@@ -29,6 +29,20 @@ void transpiler_set_mir_intent_carrier_missing(TranspilerCtx *ctx,
 char *transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s);
 char *transpiler_scratch_fmt(TranspilerCtx *ctx, const char *fmt, ...);
 
+/* Region plan consumer.  These helpers own only the C spelling of the
+ * function-scope lifetime; the disposition itself always comes from the
+ * verified plan lookup. */
+bool transpiler_region_scope_for_function_id(const TranspilerCtx *ctx,
+                                             uint32_t function_syntax_id,
+                                             uint32_t *scope_id_out);
+void transpiler_region_scope_begin(TranspilerCtx *ctx, uint32_t scope_id);
+void transpiler_region_scope_destroy(TranspilerCtx *ctx);
+void transpiler_region_scope_end(TranspilerCtx *ctx);
+char *transpiler_region_concat(TranspilerCtx *ctx,
+                               const ASTNode *site,
+                               const char *left,
+                               const char *right);
+
 void write_indent(TranspilerCtx *ctx);
 void write_indent_to(CodeBuf *buf, int indent);
 

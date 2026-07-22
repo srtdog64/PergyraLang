@@ -108,10 +108,22 @@ projection_class_field_type_name_by_name(TranspilerCtx *ctx,
     field = transpiler_hosted_field_view_metadata(&view, index);
     if (field != NULL) {
         const char *type_name = transpiler_mir_decl_field_type_name(field);
-        if (type_name != NULL)
+        if (type_name != NULL && type_name[0] != '\0')
             return type_name;
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing projection class-field type-name metadata for '%s' index %zu",
+                decl_name, index);
+            return NULL;
+        }
         type_node = transpiler_mir_decl_field_type(field);
     } else {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing projection class-field metadata for '%s' index %zu",
+                decl_name, index);
+            return NULL;
+        }
         type_node = transpiler_hosted_field_view_type(&view, index);
     }
 

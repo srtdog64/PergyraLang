@@ -168,6 +168,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     }
 
     transpiler_emit_mut_ref_writebacks(ctx);
+    transpiler_region_scope_destroy(ctx);
     write_indent(ctx);
     if (inst->expr0 != NULL) {
         codebuf_write(ctx->out, "return %s;\n", return_expr);
@@ -257,6 +258,7 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
             return false;
         }
         transpiler_emit_mut_ref_writebacks(ctx);
+        transpiler_region_scope_destroy(ctx);
         write_indent(ctx);
         if (strcmp(ctx->current_return_type, "Void") == 0) {
             codebuf_write(ctx->out, "return;\n");

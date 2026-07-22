@@ -1,6 +1,14 @@
 # Region/Arena Strategy — Declared-Lifetime Allocation (WO-REG)
 
-**Status**: STRATEGY (2026-07-21). No code has landed. This document is the
+**Status**: WO-REG-1 IMPLEMENTED (2026-07-21). The runtime region is now
+carried from the AIR-certified driver plan to both C and LLVM consumers. This
+document remains the strategy and evidence record; stale census statements are
+marked where implementation changed them.
+
+## Historical strategy context
+
+The original strategy text follows; WO-REG-1 is now live and its current
+evidence is recorded in §1.2, §1.4, and the gates listed below.
 complete build plan requested by the BDFL ("전략 자체를 전부 작성해놔") after the
 2026-07-21 census answered "우리 언어에 메모리 아레나가 있나?" with: *twice
 declared, never carried*. Rung WO-REG-1 starts only on BDFL approval of the
@@ -29,7 +37,7 @@ The compiler already *believes* the thesis of this document: transient
 allocations grouped by declared release points, with cross-boundary copies
 counted rather than hidden.
 
-### 1.2 The runtime has an arena — with zero consumers
+### 1.2 The runtime has two arena families, with the region family live
 
 `src/runtime/pgy_runtime_memory_array_slot_inline.h:87-171` defines a complete
 runtime `PgyArena` family: `{buffer, capacity, offset}` fixed-capacity frame
@@ -40,14 +48,23 @@ fail-closed: `PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
 PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY)` — the panic reason constant
 exists in the panic contract.
 
-**Measured consumer count: zero.** No codegen site emits `pgy_arena_*` (every
-`pgy_arena_` hit in `src/codegen` is the *compiler's* arena from
-`src/common/arena.h`); no runtime module calls it. This is exactly the
-"consumer-less mechanism" class the reachability contract
-(`reachability_owner.pgy`, live≥1 / declared_only-documented asymmetry) was
-built to expose. It is currently not even registered as a census row — a
-blind spot WO-REG-1 must close in either direction (rehabilitate or register
-as declared with an honesty note).
+The fixed-capacity `PgyArena` family remains available for legacy runtime
+helpers, while `PgyRegion` in `src/runtime/pgy_runtime_region_inline.h` is the
+live WO-REG-1 family. The driver produces `PgyRegionPlan` rows from the escape
+certificate; C consumes inline region operations and LLVM consumes the exported
+runtime twins. `tests/region_arena_smoke.sh` proves chained growth, pointer
+stability, alignment, reset, and budget fail-closed behaviour in both runtime
+materializations. `tests/region_backend_wiring_smoke.sh` proves the producer /
+consumer path for certified string temporaries and the heap fallback for an
+uncertified binding. The former zero-consumer statement applies only to the
+legacy fixed `PgyArena`, not to the region path.
+
+Reset now reuses the retained block chain before acquiring another block. The
+head block remains the destroy-chain owner; after reset, zeroed older blocks
+are selected only when the head cannot fit the request. Live blocks from the
+ordinary growth path are never reused. The region smoke deliberately performs
+grow → reset → grow across two blocks and asserts that the block count does not
+increase.
 
 ### 1.3 The ABI spec pinned arena shapes years before any consumer
 
@@ -67,15 +84,12 @@ never received the evidence pipeline to make it live.
 
 ### 1.4 What emitted programs actually do for transient allocations
 
-- **Strings**: surface `+` lowers to `StringConcat`
-  (`pgy_runtime_string_builtin_inline.h:296-310`): one `malloc` per concat.
-  Chained concats emit as **nested calls** —
-  `StringConcat(StringConcat(a, b), c)` — so the inner result pointer is
-  unrecoverable after the outer call returns. **Chained-concat intermediates
-  are a process-lifetime leak today.** Additionally, `StringConcat`'s OOM path
-  returns `strdup("")` — a silent-empty fallback that contradicts the
-  fail-closed canon (the arena's own OOM path is already correct; §5.1 aligns
-  the string path when it migrates).
+- **Strings**: the heap `StringConcat` path remains the compatibility lowering,
+  but the certified direct `Print("a" + "b")` class now uses
+  `pgy_region_string_concat` inside a function-scope region. This eliminates
+  chained-concat intermediate leaks for the migrated class. Any binding or
+  escape that is not certified stays on the existing heap path; the backend
+  never guesses a region lifetime.
 - **Spawn**: per-task `calloc(PgyTask)` + argument pack — the measured
   2-mallocs-per-task cost on the fine-grain critical path
   (benchmarks/PARALLEL_RESULTS.md; the WO-RT-4 chain established the producer
@@ -85,6 +99,11 @@ never received the evidence pipeline to make it live.
 - **Surface**: no `region`/`arena` keyword; no allocator vocabulary at all.
 
 ### 1.5 Verdict
+
+**Implementation update (2026-07-21):** the evidence path described below has
+now been landed for WO-REG-1. Treat the original census verdict in this section
+as historical context; the live status is recorded at the top of this document
+and in §1.2/§1.4 above.
 
 The language should have arenas — it already decided that twice (compiler
 practice + ABI spec) — but the mechanism was declared without an evidence
@@ -153,7 +172,7 @@ Semantic ─ HIR/DIR/RIR ──► allocation-site facts + escape verdicts
                 │              scope-exit placement (terminal-branch CFG
                 │              facts already carried)
                 ▼
-   Verified Region Plan ───► PgyRegionPlan rows: site → REGION(scope) | HEAP
+   Verified Region Plan ───► PgyRegionPlan rows: AllocationSiteId → REGION(scope) | HEAP
                 │              producer in verified_projection_plan.c,
                 │              certificate-gated, refusal rules, revision int
                 ▼
@@ -199,6 +218,18 @@ A site S in scope Σ is region-safe iff **all** hold:
 Implementation stance: **certificate or HEAP** — the pass reuses the own/ref
 + value-capture machinery (the interprocedurally-complete UAF tracking is the
 existing asset that makes (i)–(iii) checkable); no new lifetime vocabulary.
+
+The three failure classes are intentionally distinct:
+
+```text
+valid AIR certificate + site not certified  → HEAP
+missing or invalid AIR certificate          → compiler invariant failure
+contradictory/zero allocation-site row      → compiler invariant failure
+```
+
+Only the first case is an ordinary analysis miss. The latter two refuse plan
+publication, so a malformed proof cannot silently become a heap optimization
+choice.
 
 **Loud-failure instrumentation**: `PGY_REGION_POISON` debug mode memsets
 `0xDD` over the region on scope exit. All backend-compare region fixtures run
@@ -393,6 +424,10 @@ vertical slice (WO-REG-4 substrate).
 
 ### A.1 REG-1a — LANDED (`f17b60f4`)
 
+This appendix preserves the original execution log. Its “no emitted consumer”
+sentence is historical; the later REG-1b+c wiring landed in the working tree
+and is summarized by the live census in §1.2/§1.4.
+
 The runtime foundation is in, verified, and byte-identity-preserving (no
 emitted consumer yet). What actually shipped, refining §5.1:
 
@@ -430,6 +465,10 @@ emitted consumer yet). What actually shipped, refining §5.1:
   wiring it now would entangle. Add one line to the aggregate once that lands.
 
 ### A.2 REG-1b — plan subsystem LANDED verified-but-unwired; driver/emission integration blocked by a *verified* collision
+
+Historical snapshot: the collision described below was subsequently resolved.
+The current driver publishes the AIR-gated plan and both C/LLVM consumers read
+it; keep the snapshot for provenance, not as the current status.
 
 **Build path confirmed (2026-07-21).** The concurrent 109-file working set
 compiles: an isolated `mingw32-make pgy BUILD_DIR=.tmp/reg_build
@@ -511,7 +550,7 @@ plan into the ctx — the one entangled step.
 ```
 typedef enum { PGY_REGION_SITE_HEAP, PGY_REGION_SITE_REGION } PgyRegionDisposition;
 typedef struct PgyRegionFactRow {
-    const struct ASTNode *site;    /* the allocation-expr AST node (AIR key)   */
+    uint32_t allocation_site_id;   /* stable semantic/HIR/MIR allocation key */
     PgyRegionDisposition  disp;    /* REGION only under an escape certificate  */
     uint32_t              scope_id;/* function-scope region id (lazy, per fn)  */
 } PgyRegionFactRow;
@@ -520,11 +559,13 @@ typedef struct PgyRegionPlan {
 } PgyRegionPlan;
 #define PGY_REGION_PLAN_REVISION UINT32_C(1)
 ```
-Producer `pgy_verified_region_plan_from_air` mirrors
+Producer `pgy_verified_region_plan_from_escape` mirrors
 `pgy_verified_spawn_lane_plan_from_air`: certificate-ready gate; a site with no
 escape certificate defaults to HEAP (never REGION-without-proof); conflicting
-dispositions for one site → refuse; duplicates collapse. `_lookup(plan, site,
-&disp,&scope)` fail-closed (absent → HEAP). `_dispose` frees rows.
+dispositions for one allocation-site id → refuse; duplicates collapse. A
+zero/missing allocation-site id is contradictory evidence and refuses the
+plan. `_lookup(plan, allocation_site_id, &disp,&scope)` fail-closed (absent →
+HEAP). `_dispose` frees rows.
 
 **Escape pass v1** (string temporaries only): a `pgy_region_escape_v1` pass
 over RIR/MIR reusing the own/ref + value-capture machinery. Certify a string
@@ -587,6 +628,23 @@ Deferred to the wiring commit, by the same pin-honesty rule: the driver
 produce/dispose require rows, the emitters' lookup require rows, and a
 `reach|...|live` row for `pgy_verified_region_plan_lookup` in the reachability
 manifest.
+
+### A.4 Current correction train — stable IDs, reset reuse, and explicit certificate semantics
+
+The live plan no longer keys rows by `ASTNode *`. `region_escape_v1` converts
+each certified node to `ast_node_stable_id` while the driver still owns the AST;
+`PgyRegionEscapeSite`, `PgyRegionFactRow`, and backend lookup carry only the
+positive `AllocationSiteId`. This prevents an address from crossing MIR,
+serialization, restart, or independent C/LLVM processes. The escape pass is
+still a narrow AST-owned prototype for callee classification; it must not be
+widened or treated as the final semantic owner until resolved call identity and
+retention summaries replace the `Print`/`PrintLn` spelling check.
+
+`pgy_region_reset` now reuses zeroed retained blocks in the existing destroy
+chain before charging a new acquisition. A grow → reset → grow harness crosses
+two blocks and asserts the block count is stable. The contract distinguishes a
+valid certificate with an uncertified site (HEAP) from missing/invalid AIR or a
+contradictory allocation-site row (plan publication failure).
 
 ### A.4 The REG-1c collision dissolved — wiring is in the tree, build green
 

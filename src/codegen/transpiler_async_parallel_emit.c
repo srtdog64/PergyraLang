@@ -1,5 +1,6 @@
 #include "transpiler_async_parallel_emit.h"
 #include "../compiler/mir_parallel_capture_facts.h"
+#include "../compiler/verified_projection_plan.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -258,9 +259,10 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     bool capture_typed_snap_needed[MAX_SLOT_VARS] = {0};
     size_t capture_typed_snap_writer[MAX_SLOT_VARS] = {0};
     for (int ci = 0; ci < capture_typed_count; ci++) {
-        const MIRParallelCaptureDispositionRow *row =
-            mir_parallel_capture_disposition_find(
-                capture_boundary, capture_typed_names[ci],
+        const PgyVerifiedParallelCaptureRow *row =
+            pgy_verified_parallel_capture_disposition_find(
+                ctx->parallel_capture_plan, capture_boundary,
+                capture_typed_names[ci],
                 MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY);
         if (row == NULL)
             continue;

@@ -97,7 +97,10 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
         let expected: String = SemanticDelimitedRangeText(
             signature_facts, signature, i
         );
-        if !SemanticResolvedCallConcreteScalarType(expected) { return false; }
+        if expected != "Unknown" &&
+            !SemanticResolvedCallConcreteScalarType(expected) {
+            return false;
+        }
         i = i + 1;
     }
     if expected_count != ArrayLength(call.argument_nodes) { return false; }

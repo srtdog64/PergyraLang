@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
@@ -45,6 +46,85 @@
 #endif
 
 #include "../common/string_compat.h"
+
+/*
+ * Runtime-object cache identity is deliberately separate from source mtime
+ * freshness.  Mtime answers "did an input file change?"; it cannot answer
+ * whether the object was produced by the same compiler/toolchain, target,
+ * linkage mode, sanitizer profile, or runtime ABI.  A cache hit is valid only
+ * for the complete identity below (review 2026-07-20, cache-key work order).
+ */
+#define PGY_RUNTIME_CACHE_IDENTITY_SCHEMA "pgy.runtime-cache.v2"
+#define PGY_RUNTIME_CACHE_ABI_VERSION "pgy-runtime-abi.v2"
+
+static uint64_t
+compiler_runtime_cache_hash_text(uint64_t hash, const char *text)
+{
+    const unsigned char *cursor = (const unsigned char *)
+        (text != NULL ? text : "");
+
+    while (*cursor != '\0') {
+        hash ^= (uint64_t)*cursor++;
+        hash *= UINT64_C(1099511628211);
+    }
+    /* Keep field boundaries unambiguous. */
+    hash ^= UINT64_C(0xff);
+    hash *= UINT64_C(1099511628211);
+    return hash;
+}
+
+static const char *
+compiler_runtime_cache_env_or(const char *name, const char *fallback)
+{
+    const char *value = getenv(name);
+    return value != NULL && value[0] != '\0' ? value : fallback;
+}
+
+static const char *
+compiler_runtime_cache_target_identity(void)
+{
+    const char *explicit_target = getenv("PGY_TARGET_TRIPLE");
+    if (explicit_target != NULL && explicit_target[0] != '\0')
+        return explicit_target;
+#ifdef _WIN32
+    return "windows-native";
+#elif defined(__APPLE__)
+    return "apple-host";
+#else
+    return "posix-host";
+#endif
+}
+
+static uint64_t
+compiler_runtime_cache_identity(const char *linkage,
+                                PgyOptProfile opt_profile,
+                                bool uses_intent_observability)
+{
+    const char *profile = opt_profile == PGY_OPT_RELEASE ? "release" : "dev";
+    const char *obs = uses_intent_observability ? "obs1" : "obs0";
+    const char *toolchain = compiler_runtime_cache_env_or(
+        "PGY_TOOLCHAIN_ID", compiler_runtime_cache_env_or("PGY_CC",
+            compiler_runtime_cache_env_or("CC", "auto")));
+    const char *revision = compiler_runtime_cache_env_or(
+        "PGY_COMPILER_REVISION", "unversioned");
+    const char *sanitizer = compiler_runtime_cache_env_or(
+        "PGY_RUNTIME_SANITIZER_MODE", "none");
+    uint64_t hash = UINT64_C(1469598103934665603);
+
+    hash = compiler_runtime_cache_hash_text(
+        hash, PGY_RUNTIME_CACHE_IDENTITY_SCHEMA);
+    hash = compiler_runtime_cache_hash_text(hash, PGY_RUNTIME_CACHE_ABI_VERSION);
+    hash = compiler_runtime_cache_hash_text(hash, linkage);
+    hash = compiler_runtime_cache_hash_text(hash, profile);
+    hash = compiler_runtime_cache_hash_text(hash, obs);
+    hash = compiler_runtime_cache_hash_text(hash, toolchain);
+    hash = compiler_runtime_cache_hash_text(hash, revision);
+    hash = compiler_runtime_cache_hash_text(
+        hash, compiler_runtime_cache_target_identity());
+    hash = compiler_runtime_cache_hash_text(hash, sanitizer);
+    hash = compiler_runtime_cache_hash_text(hash, PGY_CFLAGS_THREAD_FLAG);
+    return hash;
+}
 
 static const char *
 compiler_temp_dir(void)
@@ -223,6 +303,8 @@ compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
     const char *tmpdir = compiler_temp_dir();
     const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "release" : "dev";
     const char *obs_name = uses_intent_observability ? "obs1" : "obs0";
+    uint64_t identity = compiler_runtime_cache_identity(
+        "llvm-runtime", opt_profile, uses_intent_observability);
     char buf[1024];
 #ifdef _WIN32
     const char *ext = ".obj";
@@ -230,8 +312,8 @@ compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
     const char *ext = ".o";
 #endif
 
-    snprintf(buf, sizeof(buf), "%s/pgy_runtime_cache_%s_%s%s",
-             tmpdir, opt_name, obs_name, ext);
+    snprintf(buf, sizeof(buf), "%s/pgy_runtime_cache_v2_%016llx_%s_%s%s",
+             tmpdir, (unsigned long long)identity, opt_name, obs_name, ext);
     return pergyra_strdup(buf);
 }
 
@@ -245,6 +327,8 @@ compiler_cext_object_path(PgyOptProfile opt_profile,
     const char *tmpdir = compiler_temp_dir();
     const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "release" : "dev";
     const char *obs_name = uses_intent_observability ? "obs1" : "obs0";
+    uint64_t identity = compiler_runtime_cache_identity(
+        "c-extern-runtime", opt_profile, uses_intent_observability);
     char buf[1024];
 #ifdef _WIN32
     const char *ext = ".obj";
@@ -252,8 +336,8 @@ compiler_cext_object_path(PgyOptProfile opt_profile,
     const char *ext = ".o";
 #endif
 
-    snprintf(buf, sizeof(buf), "%s/pgy_runtime_cext_%s_%s%s",
-             tmpdir, opt_name, obs_name, ext);
+    snprintf(buf, sizeof(buf), "%s/pgy_runtime_cext_v2_%016llx_%s_%s%s",
+             tmpdir, (unsigned long long)identity, opt_name, obs_name, ext);
     return pergyra_strdup(buf);
 }
 

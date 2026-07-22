@@ -1,0 +1,8 @@
+func MakeDouble() -> Double {
+    return 1.25;
+}
+
+func Main() -> Void {
+    let doubles: Array<Double> = [MakeDouble(), MakeDouble()];
+    Log(doubles[1]);
+}

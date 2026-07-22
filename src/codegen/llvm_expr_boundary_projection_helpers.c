@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "llvm_boundary_slot_param.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
@@ -163,15 +164,12 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         bool is_secure = false;
         MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         FuncParam *p;
-        const char *param_type_name;
         const char *inner = NULL;
 
         if (allow_ast_compat) {
             p = ast_func_param(decl, i);
-            param_type_name = NULL;
         } else {
             p = llvm_mir_routine_param(routine, i);
-            param_type_name = llvm_mir_routine_param_type_name(routine, i);
         }
         emitted_count++;
         if (allow_ast_compat) {
@@ -200,6 +198,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         FuncParam *p;
         const char *param_type_name;
+        const MIRCallableSig *param_callable_sig = NULL;
         const char *inner = NULL;
         ASTNode *arg_node = arg_nodes[arg_idx++];
         bool pointer_self = false;
@@ -212,6 +211,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         } else {
             p = llvm_mir_routine_param(routine, i);
             param_type_name = llvm_mir_routine_param_type_name(routine, i);
+            param_callable_sig = llvm_mir_routine_param_callable_sig(
+                routine, i);
         }
         if (p != NULL) {
             carriage = allow_ast_compat
@@ -227,9 +228,19 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                 ctx, routine, i, &resource_kind);
             is_secure = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
         }
-        pointer_self = param_type_name != NULL
-            ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-            : llvm_boundary_param_uses_pointer_self(ctx, p);
+        if (param_callable_sig != NULL)
+            pointer_self = false;
+        else if (param_type_name != NULL)
+            pointer_self = llvm_type_name_uses_pointer_self(ctx,
+                param_type_name);
+        else if (allow_ast_compat)
+            pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);
+        else {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call parameter ABI fact for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
         pointer_self = pointer_self || pass_indirect;
 
         if (ctx->has_error)
@@ -305,12 +316,22 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
         {
             LLVMTypeRef saved_ret = ctx->current_ret_type;
-            LLVMTypeRef expected_ty = param_type_name != NULL
-                ? pergyra_type_to_llvm(ctx, param_type_name)
-                : (p != NULL && p->type != NULL
-                && !llvm_boundary_type_mentions_generic_param(decl, p->type)
-                ? ast_type_to_llvm(ctx, p->type)
-                : NULL);
+            LLVMTypeRef expected_ty;
+            if (param_callable_sig != NULL)
+                expected_ty = llvm_mir_callable_sig_to_llvm(
+                    ctx, param_callable_sig);
+            else if (param_type_name != NULL)
+                expected_ty = pergyra_type_to_llvm(ctx, param_type_name);
+            else if (allow_ast_compat && p != NULL && p->type != NULL
+                && !llvm_boundary_type_mentions_generic_param(decl, p->type))
+                expected_ty = ast_type_to_llvm(ctx, p->type);
+            else {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing boundary call parameter ABI fact for '%s'",
+                    decl_name != NULL ? decl_name : "(anonymous-function)");
+                ctx->current_ret_type = saved_ret;
+                return NULL;
+            }
             if (ctx->has_error) {
                 ctx->current_ret_type = saved_ret;
                 return llvm_boundary_args_error(ctx, arg_node,

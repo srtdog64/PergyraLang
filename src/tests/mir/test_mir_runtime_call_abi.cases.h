@@ -321,7 +321,7 @@ test_mir_runtime_call_abi_facts(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR synthetic slot consumers derive rows from an existing owner");
+    TEST("MIR runtime-row lookup does not synthesize after all owner facts are removed");
     {
         const char *src =
             "func Main() -> Void {\n"
@@ -336,6 +336,8 @@ test_mir_runtime_call_abi_facts(void)
         const MIRInstruction *owner = NULL;
         const MIRResourceRuntimeRow *read_row = NULL;
         MIRInstruction *disabled_rows[16];
+        bool disabled_primary_present[16];
+        uint8_t disabled_aux_counts[16];
         size_t disabled_row_count = 0;
         char *validation_error = NULL;
         bool rejected_without_owner = false;
@@ -355,15 +357,17 @@ test_mir_runtime_call_abi_facts(void)
                 MIRBasicBlock *block = &main_routine->blocks[bi];
                 for (size_t ii = 0; ii < block->instruction_count; ii++) {
                     MIRInstruction *inst = &block->instructions[ii];
-                    const MIRResourceRuntimeRow *row =
-                        &inst->resource_runtime_fact;
-                    if (inst->resource_runtime_fact_present
-                        && row->abi_type_name != NULL
-                        && strcmp(row->abi_type_name, "SecureSlot<Int>") == 0
+                    if (inst->abi_type_name != NULL
+                        && strcmp(inst->abi_type_name, "SecureSlot<Int>") == 0
                         && disabled_row_count
                             < sizeof(disabled_rows) / sizeof(disabled_rows[0])) {
                         disabled_rows[disabled_row_count++] = inst;
+                        disabled_primary_present[disabled_row_count - 1] =
+                            inst->resource_runtime_fact_present;
+                        disabled_aux_counts[disabled_row_count - 1] =
+                            inst->resource_runtime_aux_fact_count;
                         inst->resource_runtime_fact_present = false;
+                        inst->resource_runtime_aux_fact_count = 0;
                     }
                 }
             }
@@ -374,16 +378,17 @@ test_mir_runtime_call_abi_facts(void)
                     main_routine, MIR_RESOURCE_ABI_SECURE_SLOT, "Int",
                     "Read") == NULL;
         }
-        for (size_t i = 0; i < disabled_row_count; i++)
-            disabled_rows[i]->resource_runtime_fact_present = true;
+        for (size_t i = 0; i < disabled_row_count; i++) {
+            disabled_rows[i]->resource_runtime_fact_present =
+                disabled_primary_present[i];
+            disabled_rows[i]->resource_runtime_aux_fact_count =
+                disabled_aux_counts[i];
+        }
         validation_ok = mir_validate(mir, &validation_error);
         if (!validation_ok && validation_error != NULL)
             fprintf(stderr, "synthetic-row validation: %s\n",
                     validation_error);
         EXPECT(ok && main_routine != NULL && owner != NULL && read_row != NULL
-               && strcmp(read_row->resource_op_name, "Read") == 0
-               && strcmp(read_row->runtime_fn, "pgy_secure_read_Int") == 0
-               && read_row->runtime_call_abi_id != 0
                && rejected_without_owner
                && validation_ok);
         free(validation_error);
@@ -392,7 +397,7 @@ test_mir_runtime_call_abi_facts(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR slot-sugar DEF carries a canonical Claim runtime row");
+    TEST("MIR slot-sugar DEF keeps Claim row and owns concrete Write row");
     {
         const char *src =
             "struct Vec2 { x: Int; y: Int; }\n"
@@ -405,9 +410,11 @@ test_mir_runtime_call_abi_facts(void)
         MIRProgram *mir = NULL;
         MIRRoutine *main_routine = NULL;
         MIRInstruction *claim_def = NULL;
-        const MIRResourceRuntimeRow *derived_write = NULL;
+        const MIRResourceRuntimeRow *write_row = NULL;
         char *mir_error = NULL;
         bool rejected_payload = false;
+        bool rejected_aux_capacity = false;
+        uint8_t saved_aux_count = 0;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
 
         if (ok)
@@ -431,7 +438,7 @@ test_mir_runtime_call_abi_facts(void)
             }
         }
         if (claim_def != NULL) {
-            derived_write = mir_abi_resource_runtime_row_for_mir_abi(
+            write_row = mir_abi_resource_runtime_row_for_mir_abi(
                 main_routine, MIR_RESOURCE_ABI_SLOT, "Vec2", "Write");
             const char *saved_symbol =
                 claim_def->resource_runtime_fact.runtime_fn;
@@ -441,6 +448,16 @@ test_mir_runtime_call_abi_facts(void)
                 && strstr(mir_error,
                     "carries an invalid runtime-call ABI row") != NULL;
             claim_def->resource_runtime_fact.runtime_fn = saved_symbol;
+            free(mir_error);
+            mir_error = NULL;
+            saved_aux_count = claim_def->resource_runtime_aux_fact_count;
+            claim_def->resource_runtime_aux_fact_count = 5;
+            rejected_aux_capacity = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                    "auxiliary runtime-call ABI row count exceeds capacity")
+                    != NULL;
+            claim_def->resource_runtime_aux_fact_count = saved_aux_count;
         }
         EXPECT(ok && main_routine != NULL && claim_def != NULL
                && strcmp(claim_def->resource_runtime_fact.resource_op_name,
@@ -448,10 +465,11 @@ test_mir_runtime_call_abi_facts(void)
                && strcmp(claim_def->resource_runtime_fact.runtime_fn,
                          "pgy_claim_Vec2") == 0
                && claim_def->resource_runtime_fact.runtime_call_abi_id != 0
-               && derived_write != NULL
-               && strcmp(derived_write->runtime_fn,
-                         "pgy_write_Vec2") == 0
+               && write_row != NULL
+               && strcmp(write_row->resource_op_name, "Write") == 0
+               && write_row->runtime_call_abi_id != 0
                && rejected_payload
+               && rejected_aux_capacity
                && mir_validate(mir, NULL));
         free(mir_error);
         mir_destroy(mir);

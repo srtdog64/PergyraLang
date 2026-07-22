@@ -7,6 +7,8 @@ import "destructure_json_projection_owner.pgy";
 import "destructure_type_json_projection_owner.pgy";
 import "generic_specialization_json_projection_owner.pgy";
 import "runtime_call_abi_json_projection_owner.pgy";
+import "abi_layout_json_projection_owner.pgy";
+import "machine_layer_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
 
@@ -69,38 +71,6 @@ func SelfMirJsonExpressionGraph(
     ]);
 }
 
-func SelfMirJsonMachineLayer(
-    machine: SelfMirMachineLayerProjection
-) -> String {
-    if machine.contact_kind == "" {
-        return "null";
-    }
-    return JsonEmitObject([
-        JsonEmitFieldString("manifest", machine.manifest_id),
-        JsonEmitFieldString("operation", machine.contact_kind),
-        JsonEmitFieldString("physical_grant", machine.physical_grant),
-        JsonEmitFieldNumber(
-            "physical_base", ToString(machine.physical_base)
-        ),
-        JsonEmitFieldNumber(
-            "physical_size", ToString(machine.physical_size)
-        ),
-        JsonEmitFieldString("physical_mode", machine.physical_mode),
-        JsonEmitFieldString(
-            "runtime_operation", machine.runtime_operation
-        ),
-        JsonEmitFieldBool(
-            "hardware_adequate", machine.hardware_adequate == 1
-        ),
-        JsonEmitFieldBool(
-            "authority_required", machine.authority_required == 1
-        ),
-        JsonEmitFieldBool(
-            "live_lease_required", machine.live_lease_required == 1
-        )
-    ]);
-}
-
 func SelfMirJsonInstruction(
     facts: SelfMirProgramFacts,
     instruction_index: Int
@@ -119,6 +89,8 @@ func SelfMirJsonInstruction(
     }
     let match_fields: SelfMirMatchJsonFields =
         SelfMirMatchJsonFieldsForInstruction(rows, instruction_index);
+    let abi_type_name: String = SelfMirJsonAbiTypeName(
+        rows, instruction_index);
     let machine: SelfMirMachineLayerProjection =
         SelfMirMachineLayerProjection(
             true,
@@ -133,6 +105,16 @@ func SelfMirJsonInstruction(
             rows.machine_layer_authority_required[instruction_index],
             rows.machine_layer_live_lease_required[instruction_index]
         );
+    // Static rows are producer-owned for the fixed ABI subset.  Unknown
+    // and target-dependent rows retain the explicit dynamic tuple; that
+    // form is a declared fact, not a backend lookup permission.
+    let abi_layout: String = SelfMirJsonStaticAbiLayout(abi_type_name);
+    let abi_layout_required: Bool = StringLength(abi_layout) > 0;
+    let abi_layout_id: String = SelfMirJsonAbiLayoutId(abi_layout);
+    let abi_layout_wire: String = "null";
+    if abi_layout_required {
+        abi_layout_wire = abi_layout;
+    }
     let fields: Array<String> = [
         JsonEmitFieldNumber("id", ToString(rows.ids[instruction_index])),
         JsonEmitFieldString("kind", rows.kinds[instruction_index]),
@@ -152,6 +134,14 @@ func SelfMirJsonInstruction(
                 SelfMirOptionalString(rows.arg1s[instruction_index])
             )
         ),
+        JsonEmitFieldRaw(
+            "abi_type_name", SelfMirJsonOptionalString(
+                SelfMirOptionalString(abi_type_name)
+            )
+        ),
+        JsonEmitFieldNumber("abi_layout_id", abi_layout_id),
+        JsonEmitFieldBool("abi_layout_required", abi_layout_required),
+        JsonEmitFieldRaw("abi_layout", abi_layout_wire),
         JsonEmitFieldRaw(
             "expr0", SelfMirJsonOptionalString(
                 SelfMirOptionalString(rows.expr0s[instruction_index])

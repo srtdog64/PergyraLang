@@ -49,8 +49,10 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
                 ast_node_stable_id(source_call));
             if (source_inst != NULL) {
                 const MIRResourceRuntimeRow *source_row =
-                    &source_inst->resource_runtime_fact;
-                if (source_row->resource_op_name != NULL
+                    mir_abi_resource_runtime_row_for_instruction(
+                        source_inst, operation);
+                if (source_row != NULL
+                    && source_row->resource_op_name != NULL
                     && operation != NULL
                     && strcmp(source_row->resource_op_name, operation) == 0) {
                     row = source_row;
@@ -68,7 +70,8 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
                 inner_type,
                 operation);
             if (source_inst != NULL) {
-                row = &source_inst->resource_runtime_fact;
+                row = mir_abi_resource_runtime_row_for_instruction(
+                    source_inst, operation);
                 row_is_mir_fact = true;
             }
             if (row == NULL) {
@@ -93,7 +96,7 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
         /* Exact source identity wins over the enclosing instruction row for
          * nested resource expressions such as Write(a, Read(b)). */
     } else if (inst != NULL && inst->resource_runtime_fact_present) {
-        row = &inst->resource_runtime_fact;
+        row = mir_abi_resource_runtime_row_for_instruction(inst, operation);
         row_is_mir_fact = true;
         if (row->resource_op_name == NULL || operation == NULL
             || strcmp(row->resource_op_name, operation) != 0) {
@@ -136,6 +139,14 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "C MIR source operation has no active instruction-owned runtime-call ABI row");
+        return NULL;
+    } else if (transpiler_active_has_mir(ctx)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "MIR-only C path missing active routine for runtime-call ABI row");
         return NULL;
     } else {
         row = mir_abi_resource_runtime_row_by_kind(

@@ -26,6 +26,7 @@ func CodegenNominalArrayElementKnown(
 
 func CodegenNominalArrayBuiltinElement(element_type: String) -> Bool {
     return element_type == "Int" || element_type == "Long" ||
+        element_type == "Float" || element_type == "Double" ||
         element_type == "String" || element_type == "Bool" ||
         element_type == "CodegenAstTextNode";
 }

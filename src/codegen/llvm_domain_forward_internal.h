@@ -41,11 +41,4 @@ const char *llvm_domain_method_return_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method,
     bool allow_ast_compat);
-LLVMTypeRef llvm_domain_forward_required_param_type(
-    LLVMGenCtx *ctx,
-    ASTNode *owner,
-    FuncParam *param,
-    const char *owner_kind,
-    const char *owner_name);
-
 #endif /* PGY_LLVM_DOMAIN_FORWARD_INTERNAL_H */

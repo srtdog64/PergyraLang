@@ -11,6 +11,10 @@ LLVMTypeRef llvm_domain_required_ast_type(LLVMGenCtx *ctx,
                                           ASTNode *field_node,
                                           ASTNode *type_node,
                                           const char *field_kind);
+LLVMTypeRef llvm_domain_required_type_name(LLVMGenCtx *ctx,
+                                           ASTNode *field_node,
+                                           const char *type_name,
+                                           const char *field_kind);
 LLVMTypeRef llvm_domain_required_class_struct_type(LLVMGenCtx *ctx,
                                                    ASTNode *field_node,
                                                    const char *type_name,

@@ -60,6 +60,10 @@ require_term() {
         load_file_text "src/compiler/mir_decl.h"
         [[ "${!PGY_FILE_TEXT_VAR}" == *"$term"* ]] && return 0
     fi
+    if [[ "$rel" == "src/codegen/llvm_internal_api.h" ]]; then
+        load_file_text "src/codegen/llvm_internal_emit_api.h"
+        [[ "${!PGY_FILE_TEXT_VAR}" == *"$term"* ]] && return 0
+    fi
     fail "$rel missing term: $term"
 }
 
@@ -326,10 +330,20 @@ require_term "src/codegen/llvm_backend_type_map.c" \
     "llvm_hosted_field_view_type_name(&fv, j)"
 require_term "src/codegen/llvm_backend_type_map.c" \
     "generic_header != NULL && !fv.uses_mir_metadata"
-require_each_following_term "src/codegen/llvm_backend_type_map.c" \
-    "generic_header = llvm_find_decl_header_in_context_of_type(ctx," \
-    "tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base)" \
-    8
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "generic_header = llvm_find_decl_header_in_context_of_type(ctx,"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "if (generic_header == NULL && llvm_active_has_mir(ctx))"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base)"
+if ! awk '
+    /generic_header = llvm_find_decl_header_in_context_of_type\(ctx,/ { header=NR }
+    /if \(generic_header == NULL && llvm_active_has_mir\(ctx\)\)/ { guard=NR }
+    /tmpl = llvm_find_decl_in_active_inventory\(ctx, AST_CLASS_DECL, base\)/ { ast=NR }
+    END { exit !(header > 0 && guard > header && ast > guard) }
+' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"; then
+    fail "LLVM generic class specialization must fail closed before the compatibility AST lookup"
+fi
 require_term "src/codegen/llvm_backend_type_render.c" \
     "llvm_render_alias_target_type_name_from_headers"
 reject_term "src/codegen/llvm_backend_type_render.c" \
@@ -1451,6 +1465,12 @@ require_term "src/codegen/transpiler_constructor_channel_guard.c" \
     "transpiler_mir_decl_field_type_name(field)"
 require_term "src/codegen/transpiler_constructor_channel_guard.c" \
     "transpiler_type_name_is_channel(type_name)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_field_view_type_name(view, i)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_shared_field_view_type_name(view, i)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "MIR-only C path missing constructor field type-name metadata"
 for term in \
     "TranspilerHostedFieldView fields" \
     "transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl)" \
@@ -1499,6 +1519,12 @@ require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_mir_decl_field_type_name(field)"
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "pgy_classify_type(type_name) == PGY_TK_CHANNEL"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "llvm_hosted_field_view_type_name(&class_fields, i)"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "llvm_hosted_shared_field_view_type_name(view, i)"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "MIR-only LLVM path missing constructor field type-name metadata"
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "LLVMHostedFieldView class_fields"
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
@@ -1551,10 +1577,34 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
     "MIR-only C path missing class field type-name metadata"
 require_term "src/codegen/transpiler_class_constructor_emit.c" \
     "mir_decl_header_field_claim_count("
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
+    "transpiler_hosted_field_view_type_name(&field_view, i)"
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
+    "transpiler_emit_ctor_arg_with_expected_type_name"
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
+    "MIR-only C path missing class constructor field type-name metadata"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_emit_ctor_arg_from_field_abi"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_domain_slot_view_type_name"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_type_name"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "MIR-only C path missing constructor field type-name metadata"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_emit_field_slot_claims_from_header"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "mir_decl_header_field_claim("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "MIR-only LLVM path missing class constructor field type-name metadata"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "if (llvm_active_has_mir(ctx))"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_shared_field_view_type_name(view, i)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "MIR-only LLVM path missing class constructor shared-field type-name metadata"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_emit_constructor_field_arg(node, ctx"
 if grep -Fq "llvm_class_constructor_field_type_at" \
         "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM class constructor field arguments must consume field type names, not AST field type nodes"
@@ -1733,7 +1783,12 @@ require_term "src/codegen/llvm_domain_lookup.c" \
 require_term "src/codegen/llvm_domain_lookup.c" \
     "llvm_hosted_field_view_find_index("
 require_term "src/codegen/llvm_domain_lookup.c" \
-    "llvm_hosted_field_view_type("
+    "llvm_hosted_field_view_type_name("
+for term in \
+    "MIR-only LLVM path missing current-field metadata" \
+    "if (llvm_active_has_mir(ctx))"; do
+    require_term "src/codegen/llvm_domain_lookup.c" "$term"
+done
 for rel in \
     "src/codegen/transpiler_nominal.c" \
     "src/codegen/transpiler_overlay_host_fields.c" \
@@ -1795,6 +1850,31 @@ for rel in \
         fail "$rel must consume LLVMHostedFieldView"
     fi
 done
+for term in \
+    "llvm_projection_field_type_name_by_name(" \
+    "llvm_mir_decl_field_type_name(field)" \
+    "MIR-only LLVM path missing projection field type-name metadata" \
+    "MIR-only LLVM path missing projection field metadata"; do
+    require_term "src/codegen/llvm_expr_projection_path_helpers.c" "$term"
+done
+for term in \
+    "projection_class_field_type_name_by_name(" \
+    "transpiler_mir_decl_field_type_name(field)" \
+    "MIR-only C path missing projection class-field type-name metadata" \
+    "MIR-only C path missing projection class-field metadata"; do
+    require_term "src/codegen/transpiler_projection_emit.c" "$term"
+done
+for term in \
+    "projection_field_type_name(TranspilerCtx *ctx" \
+    "transpiler_active_has_mir(ctx)" \
+    "MIR-only C path missing projection class-field type-name metadata"; do
+    require_term "src/codegen/transpiler_projection_field_path.c" "$term"
+done
+for term in \
+    "MIR-only C path missing nominal field type-name metadata" \
+    "if (transpiler_active_has_mir(ctx))"; do
+    require_term "src/codegen/transpiler_nominal.c" "$term"
+done
 require_term "src/codegen/transpiler_let_emit.c" \
     "transpiler_emit_class_constructor_with_type("
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
@@ -1842,7 +1922,7 @@ fi
 for term in \
     "transpiler_hosted_class_field_view_from_decl(" \
     "transpiler_hosted_field_view_missing_mir_metadata(&field_view)" \
-    "transpiler_hosted_field_view_type(&field_view, i)" \
+    "transpiler_hosted_field_view_type_name(&field_view, i)" \
     "transpiler_hosted_field_view_name(&field_view, i)"; do
     require_term "src/codegen/transpiler_class_constructor_emit.c" "$term"
 done
@@ -1865,7 +1945,7 @@ require_term "src/codegen/transpiler_domain_constructor_emit.c" \
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_initializer("
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
-    "transpiler_hosted_shared_field_view_type("
+    "transpiler_hosted_shared_field_view_type_name("
 if grep -Eq 'transpiler_hosted_shared_field_view_source_ast\(|ast_party_shared_initializer\(' \
     "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
     fail "C constructor shared-field defaults must consume MIR-owned shared-field initializer metadata"
@@ -2613,7 +2693,19 @@ require_term "src/codegen/llvm_register.c" \
 require_term "src/codegen/llvm_register.c" \
     "llvm_hosted_field_view_missing_mir_metadata(&field_view)"
 require_term "src/codegen/llvm_register.c" \
-    "llvm_hosted_field_view_type(&field_view, j)"
+    "llvm_hosted_field_view_type_name(&field_view, j)"
+require_term "src/codegen/llvm_register.c" \
+    "pergyra_type_to_llvm(ctx, field_type_name)"
+require_term "src/codegen/llvm_register.c" \
+    "MIR-only LLVM path missing class field type-name metadata"
+require_term "src/codegen/llvm_register.c" \
+    "llvm_find_decl_header_in_context_of_type("
+require_term "src/codegen/llvm_register.c" \
+    "MIR-only LLVM path missing class declaration header"
+require_term "src/codegen/llvm_register.c" \
+    "mir_decl_header_nominal_kind_or(class_header"
+require_term "src/codegen/llvm_register.c" \
+    "mir_decl_header_uses_pointer_self(class_header)"
 require_term "src/codegen/llvm_register.c" \
     "llvm_hosted_field_view_name(&field_view, j)"
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
@@ -2628,8 +2720,7 @@ require_term "src/codegen/transpiler_class_constructor_emit.c" \
     "transpiler_hosted_class_field_view_from_decl("
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
-    "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "src/codegen/transpiler_class_constructor_emit.c"; do
+    "src/codegen/transpiler_generic_class_specialization_emit.c"; do
     require_term "$rel" "transpiler_hosted_field_view_missing_mir_metadata(&field_view)"
     require_term "$rel" "transpiler_hosted_field_view_name(&field_view, i)"
     require_term "$rel" "transpiler_hosted_field_view_type(&field_view, i)"
@@ -2637,6 +2728,12 @@ for rel in \
         fail "$rel must consume TranspilerHostedFieldView, not class field compatibility view"
     fi
 done
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
+    "transpiler_hosted_field_view_type_name(&field_view, i)"
+if grep -Fq "transpiler_hosted_field_view_type(&field_view, i)" \
+        "$ROOT_DIR/src/codegen/transpiler_class_constructor_emit.c"; then
+    fail "C class constructor must not recover expected types from retained AST field nodes"
+fi
 require_term "src/codegen/llvm_domain_forward_role.c" \
     "role_name = llvm_decl_node_name(stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
@@ -7065,8 +7162,9 @@ for term in \
     "LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_param_type_name(method_meta, k)" \
-    "llvm_mir_decl_method_return_type(method_meta)" \
     "llvm_mir_decl_method_return_type_name(method_meta)" \
+    "llvm_mir_routine_return_callable_sig(method_routine)" \
+    "llvm_mir_routine_param_callable_sig(method_routine, k)" \
     "llvm_mir_decl_method_is_action_like(method_meta)" \
     "pergyra_type_to_llvm(ctx, param_type_name)" \
     "pergyra_type_to_llvm(ctx, return_type_name)" \
@@ -7343,7 +7441,7 @@ require_term "src/codegen/llvm_domain_role_lookup.c" \
 require_term "src/codegen/llvm_domain_forward_role.c" \
     "llvm_role_for_type_node(stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
-    "llvm_role_for_type_name(stmt)"
+    "llvm_role_for_type_name(ctx, stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_emit_func_from_mir(mir_method, ctx)"
 if grep -Fq "llvm_hosted_method_view_missing_mir_method_row(&method_view, j)" \
@@ -8541,5 +8639,39 @@ for rel in \
     require_term "$rel" "transpiler_mir_decl_field_type_name(shared_meta)"
     require_term "$rel" "transpiler_require_type_name_c_type_copy"
 done
+
+# Event signatures are declaration ABI rows, not a second AST type owner.
+for term in \
+    "event_param_count" \
+    "event_param_names" \
+    "event_param_type_names" \
+    "event_param_metadata_present"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+for term in \
+    "mir_decl_header_event_param_count" \
+    "mir_decl_header_event_param_name" \
+    "mir_decl_header_event_param_type_name"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
+done
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_decl_header_set_event_params"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "event parameter metadata is incomplete"
+require_term "src/compiler/mir_lifecycle.c" \
+    "free(mir->decl_headers[i].event_param_type_names[j])"
+require_term "src/codegen/transpiler_event_emit.c" \
+    "emit_event_decl_from_mir_header"
+require_term "src/codegen/transpiler_event_emit.c" \
+    "MIR-only C path missing event parameter ABI metadata"
+require_term "src/codegen/transpiler_event_emit.c" \
+    "transpiler_require_type_name_c_type_copy"
+require_term "src/codegen/llvm_domain_event.c" \
+    "MIR-only LLVM path missing event parameter ABI metadata"
+require_term "src/codegen/llvm_domain_event.c" \
+    "mir_decl_header_event_param_type_name"
+require_term "src/codegen/llvm_domain_event.c" \
+    "pergyra_type_to_llvm(ctx, type_name)"
 
 echo "[mir-decl-inventory] OK: C/LLVM declaration inventory use is helper-gated"

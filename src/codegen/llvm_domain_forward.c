@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_forward_internal.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
 
@@ -137,32 +138,6 @@ llvm_domain_method_return_type_name_metadata_first(
     return NULL;
 }
 
-LLVMTypeRef
-llvm_domain_forward_required_param_type(LLVMGenCtx *ctx,
-                                        ASTNode *owner,
-                                        FuncParam *param,
-                                        const char *owner_kind,
-                                        const char *owner_name)
-{
-    if (ctx == NULL)
-        return NULL;
-    if (param != NULL && param->type != NULL) {
-        LLVMTypeRef type = ast_type_to_llvm(ctx, param->type);
-        if (ctx->has_error || type == NULL)
-            return NULL;
-        return type;
-    }
-
-    llvm_set_error_at_with_hints(ctx, owner,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM %s '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
-        owner_kind != NULL ? owner_kind : "domain forward declaration",
-        owner_name != NULL ? owner_name : "<anonymous>");
-    return NULL;
-}
-
 void
 llvm_emit_domain_sync_forward_decl(LLVMGenCtx *ctx,
                                    const char *decl_name,
@@ -220,6 +195,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         const char *mname;
         ASTNode *return_type = NULL;
         const char *return_type_name;
+        const MIRRoutine *method_routine;
+        const MIRCallableSig *return_callable_sig;
         size_t pc;
         LLVMTypeRef ret;
         size_t user_pc = 0;
@@ -237,6 +214,11 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         }
         if (method_meta == NULL)
             continue;
+
+        method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
+        return_callable_sig = method_routine != NULL
+            ? llvm_mir_routine_return_callable_sig(method_routine)
+            : NULL;
 
         mname = llvm_domain_method_name_metadata_first(
             method_meta, NULL, false);
@@ -264,12 +246,21 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
                 "MIR-only LLVM path missing domain method forward parameter type-name metadata for '%s.%s'")) {
             return;
         }
-        if (return_type_name != NULL) {
+        if (return_callable_sig != NULL) {
+            ret = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+            if (ctx->has_error || ret == NULL)
+                return;
+        } else if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
                 return;
         } else if (return_type != NULL) {
-            ret = ast_type_to_llvm(ctx, return_type);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing domain method return ABI fact for '%s.%s'",
+                decl_name, mname);
+            return;
+        } else {
+            ret = ctx->type_void;
             if (ctx->has_error || ret == NULL)
                 return;
         }
@@ -299,11 +290,21 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             const char *type_name =
                 llvm_domain_method_param_type_name_metadata_first(
                     method_meta, NULL, k, false);
+            const MIRCallableSig *param_callable_sig =
+                method_routine != NULL
+                    ? llvm_mir_routine_param_callable_sig(method_routine, k)
+                    : NULL;
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
             param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
-            if (param_cls != NULL && param_cls->is_pointer_self_host) {
+            if (param_callable_sig != NULL) {
+                LLVMTypeRef pt = llvm_mir_callable_sig_to_llvm(
+                    ctx, param_callable_sig);
+                if (ctx->has_error || pt == NULL)
+                    return;
+                ptypes[pidx++] = pt;
+            } else if (param_cls != NULL && param_cls->is_pointer_self_host) {
                 ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);
             } else if (type_name != NULL) {
                 LLVMTypeRef pt = pergyra_type_to_llvm(ctx, type_name);
@@ -311,11 +312,10 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
                     return;
                 ptypes[pidx++] = pt;
             } else {
-                LLVMTypeRef pt = llvm_domain_forward_required_param_type(
-                    ctx, NULL, p, "domain method", mname);
-                if (ctx->has_error || pt == NULL)
-                    return;
-                ptypes[pidx++] = pt;
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing domain method parameter ABI fact for '%s.%s'",
+                    decl_name, mname);
+                return;
             }
         }
 

@@ -205,6 +205,9 @@ typedef struct
     size_t       role_impl_count;
     MIRDeclRoleImpl *role_impl_metadata;
     size_t       role_impl_metadata_count;
+    /* Override methods are role-owned methods but not ability impl rows.
+     * They are appended after normal method spans. */
+    size_t       role_override_method_count;
     size_t       role_include_count;
     MIRDeclRoleInclude *role_include_metadata;
     size_t       role_include_metadata_count;
@@ -232,6 +235,12 @@ typedef struct
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;
+    /* Event handler ABI rows. Event declarations are not routines, but
+     * their ordered parameter names/types are a backend-facing contract. */
+    size_t       event_param_count;
+    char       **event_param_names;
+    char       **event_param_type_names;
+    bool         event_param_metadata_present;
     NominalDeclKind nominal_kind;
     bool         uses_pointer_self;
 } MIRDeclHeader;

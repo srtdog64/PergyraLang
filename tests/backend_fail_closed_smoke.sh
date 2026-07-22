@@ -186,6 +186,24 @@ grep -Fq "mir_abi_resource_runtime_row_by_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "mir_abi_resource_runtime_instruction_for_abi(" \
+    "$ROOT_DIR/src/compiler/mir_abi_resource_runtime_mir.c"
+mir_mir_row_helper="$(awk '
+    /^mir_abi_resource_runtime_row_for_mir_abi\(/ { inside = 1 }
+    inside { print }
+    inside && /^}/ { exit }
+' "$ROOT_DIR/src/compiler/mir_abi_resource_runtime_mir.c")"
+if grep -F 'mir_abi_resource_runtime_row_by_type_name(' <<<"$mir_mir_row_helper" >/dev/null \
+    || grep -F 'mir_abi_resource_runtime_row_for_type_name(' <<<"$mir_mir_row_helper" >/dev/null; then
+    echo "[backend-fail-closed] active MIR runtime-row helper must not rebuild a row from the global ABI table" >&2
+    exit 1
+fi
+if grep -R -n --include='*.c' --include='*.h' \
+    'mir_abi_resource_runtime_pin_row_for_mir(' \
+    "$ROOT_DIR/src/codegen" >/dev/null; then
+    echo "[backend-fail-closed] backend pin consumers must use instruction-owned MIR rows" >&2
+    exit 1
+fi
 grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "inst->resource_runtime_fact_present" \
@@ -998,12 +1016,26 @@ grep -Fq "MIR-only LLVM path missing function declaration return type-name metad
     "$ROOT_DIR/src/codegen/llvm_decl.c"
 grep -Fq "MIR-only LLVM path missing function declaration parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"
+if grep -Fq "llvm_decl_required_param_type_name_first" \
+        "$ROOT_DIR/src/codegen/llvm_decl.c"; then
+    echo "[backend-fail-closed] active MIR LLVM declaration reintroduced AST parameter type recovery" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing function body return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "MIR-only LLVM path missing function body parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "MIR-only LLVM path missing function parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+for llvm_mir_param_owner in \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"; do
+    if grep -E 'llvm_mir_required_type_from_ast|llvm_mir_param_uses_pointer_self' \
+            "$llvm_mir_param_owner" >/dev/null; then
+        echo "[backend-fail-closed] active MIR parameter ABI reintroduced AST type recovery: $llvm_mir_param_owner" >&2
+        exit 1
+    fi
+done
 grep -Fq "MIR-only LLVM path missing array return inference routine" \
     "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -Fq "MIR-only LLVM path missing array return inference signature metadata" \
@@ -1172,6 +1204,20 @@ grep -Fq "MIR-only LLVM path missing role method forward return type-name metada
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 grep -Fq "MIR-only LLVM path missing role method forward parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "llvm_mir_decl_method_routine" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+grep -Fq "llvm_mir_decl_method_routine" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+if grep -Fq "llvm_domain_forward_required_param_type" \
+        "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"; then
+    echo "[backend-fail-closed] active MIR hosted forward declarations reintroduced AST parameter type recovery" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing role forward declaration name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 grep -Fq "MIR-only LLVM path missing role operator forward name metadata" \
@@ -1180,6 +1226,82 @@ grep -Fq "MIR-only LLVM path missing role operator forward return type-name meta
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 grep -Fq "MIR-only LLVM path missing role operator forward parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role operator receiver type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role subject type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c"
+grep -Fq "MIR-only LLVM path missing constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"
+grep -Fq "MIR-only C path missing constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
+grep -Fq "transpiler_emit_ctor_arg_with_expected_type_name" \
+    "$ROOT_DIR/src/codegen/transpiler_class_constructor_emit.c"
+grep -Fq "MIR-only C path missing class constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_class_constructor_emit.c"
+grep -Fq "transpiler_emit_ctor_arg_from_field_abi" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+grep -Fq "MIR-only C path missing constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+if grep -Fq "transpiler_emit_ctor_arg_with_expected_type(ctx" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    echo "[backend-fail-closed] active MIR domain constructors reintroduced AST expected-type lowering" >&2
+    exit 1
+fi
+grep -Fq "MIR-only LLVM path missing class constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "llvm_hosted_shared_field_view_type_name(view, i)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "MIR-only LLVM path missing class constructor shared-field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "llvm_emit_constructor_field_arg(node, ctx" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+if grep -Fq "llvm_emit_expression(initializer, ctx)" \
+        "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    echo "[backend-fail-closed] LLVM constructor shared defaults reintroduced untyped initializer lowering" >&2
+    exit 1
+fi
+if grep -Fq "field_type = field_meta != NULL" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c" \
+    && ! grep -Fq "if (llvm_active_has_mir(ctx))" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    echo "[backend-fail-closed] LLVM class constructor type recovery lost its active-MIR guard" >&2
+    exit 1
+fi
+grep -Fq "mir_decl_header_role_subject_type_name" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c"
+grep -Fq "llvm_hosted_shared_field_view_type_name" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"
+grep -Fq "llvm_domain_required_type_name" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"
+grep -Fq "MIR-only LLVM path missing %s type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_fields.c"
+grep -Fq "MIR-only LLVM path missing current-field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"
+grep -Fq "MIR-only LLVM path missing current-field metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"
+grep -Fq "MIR-only LLVM path missing active routine for runtime-call ABI row" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
+grep -Fq "MIR-only C path missing active routine for runtime-call ABI row" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "MIR-only LLVM path missing domain projection field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "MIR-only LLVM path missing projection field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
+grep -Fq "MIR-only LLVM path missing projection field metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
+grep -Fq "MIR-only C path missing projection class-field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
+grep -Fq "MIR-only C path missing projection class-field metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
+grep -Fq "MIR-only C path missing projection class-field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_field_path.c"
+grep -Fq "MIR-only C path missing nominal field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+if grep -Fq "llvm_role_for_type_name(ASTNode *role)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c"; then
+    echo "legacy context-free role subject lookup remains" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing domain method forward return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 grep -Fq "MIR-only LLVM path missing domain method forward parameter type-name metadata" \
@@ -1192,6 +1314,32 @@ grep -Fq "MIR-only LLVM path missing method body metadata row for role" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing member-call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
+grep -Fq "llvm_mir_routine_param_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_specialize.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_specialize.c"
+grep -Fq "MIR-only LLVM path missing generic method parameter ABI fact" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_specialize.c"
+if grep -E 'ast_type_to_llvm\(ctx, p->type\)|ast_func_param\(method_decl' \
+        "$ROOT_DIR/src/codegen/llvm_member_call_specialize.c" >/dev/null; then
+    echo "[backend-fail-closed] active MIR generic method specialization reintroduced AST ABI recovery" >&2
+    exit 1
+fi
+grep -Fq "MIR-only LLVM generic class specialization missing class header metadata" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "MIR-only LLVM generic class specialization missing field type metadata" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "llvm_mir_routine_param_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "MIR-only LLVM path missing generic function parameter ABI fact" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+if grep -Fq "llvm_spawn_required_param_type(ctx, generic_ast, p" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"; then
+    echo "[backend-fail-closed] active MIR generic spawn reintroduced AST parameter ABI recovery" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing member-call receiver type metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "closed instead of clearing the source-of-truth diagnostic" \
@@ -1206,13 +1354,29 @@ grep -Fq "MIR-only LLVM path missing boundary call signature metadata" \
     "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "MIR-only LLVM path missing boundary call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "llvm_mir_routine_param_callable_sig" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "MIR-only LLVM path missing boundary call parameter ABI fact" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "MIR-only LLVM path missing match subject routine" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
 grep -Fq "MIR-only LLVM path missing match subject signature metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
 grep -Fq "MIR-only LLVM path missing match subject return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "MIR-only LLVM path missing match subject return ABI fact" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
 grep -Fq "MIR-only LLVM path missing method type inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_mir_decl_method_routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "MIR-only LLVM path missing method type inference return ABI fact" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "MIR-only LLVM path missing let method return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
@@ -1250,6 +1414,36 @@ grep -Fq "MIR-only LLVM path missing class method registry return type-name meta
     "$ROOT_DIR/src/codegen/llvm_register.c"
 grep -Fq "MIR-only LLVM path missing class method registry parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "llvm_hosted_field_view_type_name(&field_view, j)" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "pergyra_type_to_llvm(ctx, field_type_name)" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing class field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "llvm_find_decl_header_in_context_of_type(" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "AST_CLASS_DECL, cls_name" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing class declaration header" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "mir_decl_header_nominal_kind_or(class_header" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "mir_decl_header_uses_pointer_self(class_header)" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing class field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "llvm_mir_callable_sig_to_llvm" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+if grep -Fq "ast_type_to_llvm(ctx, return_type)" \
+        "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    echo "[backend-fail-closed] nominal method registration reintroduced AST return-type recovery" >&2
+    exit 1
+fi
+if grep -Fq "llvm_register_required_ast_type(ctx, stmt" \
+        "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    echo "[backend-fail-closed] nominal method registration reintroduced AST parameter-type recovery" >&2
+    exit 1
+fi
 grep -Fq "MIR-only C path missing role method name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role declaration name metadata" \
@@ -1278,6 +1472,17 @@ grep -Fq "MIR-only C path missing role operator return type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role operator parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "role_override_method_count" \
+    "$ROOT_DIR/src/compiler/mir_decl.h"
+grep -Fq "ast_override_func_decl(impl)" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c"
+grep -Fq "hir_append_hidden_method_routine" \
+    "$ROOT_DIR/src/compiler/hir_routines.c"
+if grep -Fq "MIR-only C path missing role override method metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"; then
+    echo "retired role override AST-only fallback diagnostic remains" >&2
+    exit 1
+fi
 grep -Fq "MIR-only C path missing member-call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 grep -Fq "MIR-only C path missing member-call return type-name metadata" \
@@ -1353,7 +1558,12 @@ grep -Fq "C backend role operator method name metadata is missing" \
 grep -Fq "LLVM destructuring let binding name metadata is missing" \
     "$ROOT_DIR/src/codegen/llvm_stmt_destructure.c"
 grep -Fq 'run_case "lambda_expr"' "$ROOT_DIR/tests/llvm_smoke.sh"
-grep -Fq "llvm_register_callable_param_if_needed" \
+if grep -Fq "llvm_register_callable_param_if_needed" \
+        "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"; then
+    echo "[backend-fail-closed] active MIR parameter binding reintroduced AST callable registration" >&2
+    exit 1
+fi
+grep -Fq "llvm_register_callable_mir_signature" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "llvm_stmt_callable_entry_return_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
@@ -1746,7 +1956,7 @@ grep -Fq "const MIRCallableSig *param_callable_sig" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "const MIRCallableSig *return_callable_sig" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
-grep -Fq "llvm_register_callable_signature_names(ctx, p->name" \
+grep -Fq "llvm_register_callable_mir_signature(ctx, p->name" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "llvm_mir_async_fact_future_inner_from_source_local" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
@@ -1786,5 +1996,23 @@ grep -Fq "mir_source_local_type_append_callable(program, routine," \
     "$ROOT_DIR/src/compiler/mir_source_local_types.c"
 grep -Fq "!source_local_fact->is_callable" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+
+# Active MIR event emission must consume the declaration-header ABI rows and
+# fail closed when a row is absent; the AST event-parameter branch is legacy
+# compatibility only.
+grep -Fq "emit_event_decl_from_mir_header" \
+    "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "MIR-only C path missing event parameter ABI metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "is missing event parameter metadata" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"
+grep -Fq "transpiler_require_type_name_c_type_copy" \
+    "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "MIR-only LLVM path missing event parameter ABI metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_event.c"
+grep -Fq "mir_decl_header_event_param_type_name" \
+    "$ROOT_DIR/src/codegen/llvm_domain_event.c"
+grep -Fq "pergyra_type_to_llvm(ctx, type_name)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_event.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

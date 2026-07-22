@@ -265,6 +265,26 @@ llvm_hosted_shared_field_view_type(
     return NULL;
 }
 
+const char *
+llvm_hosted_shared_field_view_type_name(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_shared_field_view_metadata(view, index);
+    ASTNode *type_node;
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+
+    type_node = llvm_hosted_shared_field_view_type(view, index);
+    return type_node != NULL ? ast_type_name(type_node) : NULL;
+}
+
 ASTNode *
 llvm_hosted_shared_field_view_initializer(
     const LLVMHostedSharedFieldView *view,

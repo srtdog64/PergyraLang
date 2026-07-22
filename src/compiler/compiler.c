@@ -2,6 +2,7 @@
 #include "compiler_toolchain.h"
 #include "path_utils.h"
 #include "verified_projection_plan.h"
+#include "verified_region_plan.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +24,7 @@ invoke_c_backend(const CompilerIRBundle *bundle,
 {
     TranspileResult *transpile_result;
     PgyVerifiedProjectionPlanRow projection_plan;
+    PgyVerifiedParallelCapturePlan parallel_capture_plan = {0};
     const char *projection_error = NULL;
     if (error_code != NULL)
         *error_code = NULL;
@@ -68,6 +70,17 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         return 1;
     }
 
+    if (!pgy_verified_parallel_capture_plan_from_air(
+            air, bundle->mir, &parallel_capture_plan, &projection_error)) {
+        pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                projection_error != NULL
+                    ? projection_error
+                    : "verified parallel-capture plan failed");
+        return 1;
+    }
+
     /* The legacy inline runtime carries no M:N materialization, so a movable
      * spawn-lane row is refused HERE, before codegen -- compile-time
      * fail-closed (docs/194 R1), not a runtime null-handle panic. */
@@ -84,6 +97,8 @@ invoke_c_backend(const CompilerIRBundle *bundle,
                     continue;
                 }
                 pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
+                pgy_verified_parallel_capture_plan_dispose(
+                    &parallel_capture_plan);
                 if (error_message != NULL) {
                     *error_message = pergyra_strdup(
                         "movable execution lane requires the extern runtime; "
@@ -94,9 +109,11 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         }
     }
 
-    transpile_result = transpile_from_mir_with_projection_plan(
-        bundle->mir, &projection_plan, &spawn_lane_plan, output_c_path);
+    transpile_result = transpile_from_mir_with_projection_plans(
+        bundle->mir, &projection_plan, &parallel_capture_plan,
+        &spawn_lane_plan, bundle->region_plan, output_c_path);
     pgy_verified_spawn_lane_plan_dispose(&spawn_lane_plan);
+    pgy_verified_parallel_capture_plan_dispose(&parallel_capture_plan);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;

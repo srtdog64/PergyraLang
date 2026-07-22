@@ -58,7 +58,8 @@ Lexer* lexer_create(const char* source) {
         free(lexer);
         return NULL;
     }
-    pgy_arena_init(&lexer->token_text_owner->arena, 0);
+    pgy_arena_init_named(&lexer->token_text_owner->arena, 0,
+                         "lexer-token-text");
     
     lexer->source = source;
     lexer->current = source;
@@ -76,6 +77,10 @@ Lexer* lexer_create(const char* source) {
 void lexer_destroy(Lexer* lexer) {
     if (lexer) {
         if (lexer->token_text_owner != NULL) {
+            pgy_arena_set_last_consumer(&lexer->token_text_owner->arena,
+                                        "lexer-token-stream");
+            pgy_arena_set_release_point(&lexer->token_text_owner->arena,
+                                        "lexer-destroy");
             pgy_arena_destroy(&lexer->token_text_owner->arena);
             free(lexer->token_text_owner);
         }

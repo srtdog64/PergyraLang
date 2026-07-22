@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../parser/ast.h"
+#include "../parser/ast_api.h"
 #include "../lexer/lexer.h" /* TOKEN_PLUS */
 
 /*
@@ -19,10 +20,14 @@ typedef struct {
     size_t               cap;
     uint32_t             next_scope; /* function-scope id allocator */
     bool                 oom;
+    bool                 invalid_site;
 } EscapeCollector;
 
 static void
-escape_push(EscapeCollector *c, const ASTNode *site, uint32_t scope)
+escape_push(EscapeCollector *c,
+            const ASTNode *site,
+            uint32_t scope,
+            uint32_t function_syntax_id)
 {
     if (c->oom)
         return;
@@ -38,8 +43,15 @@ escape_push(EscapeCollector *c, const ASTNode *site, uint32_t scope)
         c->sites = grown;
         c->cap = ncap;
     }
-    c->sites[c->count].site = site;
+    PgyRegionAllocationSiteId allocation_site_id =
+        ast_node_stable_id(site);
+    if (allocation_site_id == 0) {
+        c->invalid_site = true;
+        return;
+    }
+    c->sites[c->count].allocation_site_id = allocation_site_id;
     c->sites[c->count].scope_id = scope;
+    c->sites[c->count].function_syntax_id = function_syntax_id;
     c->count++;
 }
 
@@ -69,10 +81,13 @@ is_string_concat(const ASTNode *e)
    ((a+b)+c), so the argument node and its left child (a+b) are both concat
    sites the emitter will lower. */
 static void
-certify_concat_spine(EscapeCollector *c, const ASTNode *e, uint32_t scope)
+certify_concat_spine(EscapeCollector *c,
+                     const ASTNode *e,
+                     uint32_t scope,
+                     uint32_t function_syntax_id)
 {
     while (is_string_concat(e)) {
-        escape_push(c, e, scope);
+        escape_push(c, e, scope, function_syntax_id);
         e = e->data.binary.left;
     }
 }
@@ -93,7 +108,10 @@ is_print_call(const ASTNode *call)
 }
 
 static void
-escape_walk(EscapeCollector *c, const ASTNode *node, uint32_t scope)
+escape_walk(EscapeCollector *c,
+            const ASTNode *node,
+            uint32_t scope,
+            uint32_t function_syntax_id)
 {
     if (node == NULL || c->oom)
         return;
@@ -101,18 +119,21 @@ escape_walk(EscapeCollector *c, const ASTNode *node, uint32_t scope)
     switch (node->type) {
     case AST_PROGRAM: {
         for (size_t i = 0; i < node->data.program.count; i++)
-            escape_walk(c, node->data.program.statements[i], scope);
+            escape_walk(c, node->data.program.statements[i], scope,
+                        function_syntax_id);
         break;
     }
     case AST_FUNC_DECL: {
         /* Each function body is its own region scope. */
         uint32_t fn_scope = ++c->next_scope;
-        escape_walk(c, node->data.func_decl.body, fn_scope);
+        uint32_t fn_syntax_id = ast_node_stable_id(node);
+        escape_walk(c, node->data.func_decl.body, fn_scope, fn_syntax_id);
         break;
     }
     case AST_BLOCK: {
         for (size_t i = 0; i < node->data.block.count; i++)
-            escape_walk(c, node->data.block.statements[i], scope);
+            escape_walk(c, node->data.block.statements[i], scope,
+                        function_syntax_id);
         break;
     }
     case AST_CALL: {
@@ -120,13 +141,14 @@ escape_walk(EscapeCollector *c, const ASTNode *node, uint32_t scope)
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 const ASTNode *arg = node->data.call.arguments[i];
                 if (is_string_concat(arg))
-                    certify_concat_spine(c, arg, scope);
+                    certify_concat_spine(c, arg, scope, function_syntax_id);
             }
         }
         /* Descend into arguments so a Print nested in another call's args is
            still reached (the nested Print's own concat args get certified). */
         for (size_t i = 0; i < node->data.call.arg_count; i++)
-            escape_walk(c, node->data.call.arguments[i], scope);
+            escape_walk(c, node->data.call.arguments[i], scope,
+                        function_syntax_id);
         break;
     }
     default:
@@ -146,10 +168,11 @@ pgy_region_escape_v1_collect(const struct ASTNode *root,
     c.cap = 0;
     c.next_scope = 0;
     c.oom = false;
+    c.invalid_site = false;
 
-    escape_walk(&c, root, 0);
+    escape_walk(&c, root, 0, 0);
 
-    if (c.oom) {
+    if (c.oom || c.invalid_site) {
         /* Hand back the honest conservative answer (all HEAP) rather than a
            silent truncation. */
         free(c.sites);

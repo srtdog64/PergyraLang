@@ -102,8 +102,20 @@ llvm_domain_projection_field_type_name_by_name(LLVMGenCtx *ctx,
         const char *type_name = llvm_mir_decl_field_type_name(field);
         if (type_name != NULL)
             return type_name;
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing domain projection field type-name metadata for '%s' index %zu",
+                decl_name, index);
+            return NULL;
+        }
         type_node = llvm_mir_decl_field_type(field);
     } else {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing domain projection field metadata for '%s' index %zu",
+                decl_name, index);
+            return NULL;
+        }
         type_node = llvm_hosted_field_view_type(&view, index);
     }
 

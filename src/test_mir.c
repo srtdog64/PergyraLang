@@ -52,8 +52,11 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
-        if (*hir_out != NULL && *rir_out != NULL)
-            *mir_out = mir_lower(*hir_out, *rir_out, sem, &mir_error);
+        if (*hir_out != NULL && *rir_out != NULL) {
+            MIRLowerRequest mir_request;
+            mir_lower_request_init(&mir_request, *hir_out, *rir_out, sem);
+            *mir_out = mir_lower(&mir_request, &mir_error);
+        }
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);

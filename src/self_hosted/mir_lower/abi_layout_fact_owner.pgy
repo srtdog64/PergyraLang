@@ -1,0 +1,244 @@
+// MIR static ABI-layout fact consumer for the self-hosted lowering lane.
+//
+// The native MIR owner serializes the complete MIRTypeLayout row at the JSON
+// boundary.  This owner validates that row in place, including the stable
+// identity used by mir_abi_layout_id.  It never consults the AST or a global
+// backend layout table; a dynamic nominal ABI type is represented explicitly
+// as a non-required row with id zero.
+
+import "json_fact_read.pgy";
+
+func MirAbiLayoutModulus() -> Long {
+    return 268435456L;
+}
+
+// 1099511628211 (FNV-1a prime) modulo 2^28.  Keeping the reduced multiplier
+// and using modular multiplication avoids overflowing Pergyra Long while
+// preserving the low 28 bits used by the native layout identity.
+func MirAbiLayoutFnvPrimeModulus() -> Long {
+    return 435L;
+}
+
+func MirAbiLayoutMulMod(a: Long, b: Long, modulus: Long) -> Long {
+    let left: Long = a % modulus;
+    let right: Long = b;
+    let result: Long = 0L;
+    while right > 0L {
+        if right % 2L == 1L {
+            result = (result + left) % modulus;
+        }
+        left = (left + left) % modulus;
+        right = right / 2L;
+    }
+    return result;
+}
+
+// XOR only touches the low byte.  Arithmetic bit extraction keeps this
+// projection independent of a target-specific integer bitwise ABI.
+func MirAbiLayoutXorByte(value: Long, byte_value: Long) -> Long {
+    let low: Long = value % 256L;
+    let result: Long = 0L;
+    let bit: Long = 1L;
+    let index: Int = 0;
+    while index < 8 {
+        let left_bit: Long = (low / bit) % 2L;
+        let right_bit: Long = (byte_value / bit) % 2L;
+        if left_bit != right_bit {
+            result = result + bit;
+        }
+        bit = bit * 2L;
+        index = index + 1;
+    }
+    return value - low + result;
+}
+
+func MirAbiLayoutHashByte(hash: Long, byte_value: Long) -> Long {
+    let modulus: Long = MirAbiLayoutModulus();
+    return MirAbiLayoutMulMod(
+        MirAbiLayoutXorByte(hash, byte_value),
+        MirAbiLayoutFnvPrimeModulus(), modulus);
+}
+
+func MirAbiLayoutHashString(hash: Long, value: String) -> Long {
+    let out: Long = hash;
+    let i: Int = 0;
+    let n: Int = StringLength(value);
+    while i < n {
+        out = MirAbiLayoutHashByte(
+            out, (CharCode(value, n, i) as Long));
+        i = i + 1;
+    }
+    // Native mir_abi_layout_hash_string delimits every nullable string.
+    return MirAbiLayoutHashByte(out, 255L);
+}
+
+func MirAbiLayoutHashU32(hash: Long, value: Long) -> Long {
+    let out: Long = hash;
+    let unsigned_value: Long = value;
+    if unsigned_value < 0L {
+        unsigned_value = unsigned_value + 4294967296L;
+    }
+    let divisor: Long = 1L;
+    let i: Int = 0;
+    while i < 4 {
+        out = MirAbiLayoutHashByte(
+            out, (unsigned_value / divisor) % 256L);
+        divisor = divisor * 256L;
+        i = i + 1;
+    }
+    return out;
+}
+
+func MirAbiLayoutStringField(
+    row: JsonObjectFactTable, field: String
+) -> String {
+    let value: Option<String> = JsonObjectFactStringFieldOpt(row, field);
+    if !IsSome(value) {
+        return "";
+    }
+    return UnwrapOption(value);
+}
+
+func MirAbiLayoutRequiredStringFields(
+    row: JsonObjectFactTable
+) -> Bool {
+    return JsonObjectFactHasField(row, "type") &&
+        JsonObjectFactHasField(row, "runtime_fn") &&
+        JsonObjectFactHasField(row, "inner_c_type") &&
+        JsonObjectFactHasField(row, "discriminant") &&
+        JsonObjectFactHasField(row, "niche_none_pattern");
+}
+
+func MirAbiLayoutHashRow(row: JsonObjectFactTable) -> Long {
+    let hash: Long = 60621699L; // FNV offset basis modulo 2^28
+    let fields: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(row, "fields");
+    let field_count: Int = JsonArrayObjectFactCount(fields);
+    hash = MirAbiLayoutHashString(
+        hash, MirAbiLayoutStringField(row, "type"));
+    hash = MirAbiLayoutHashU32(
+        hash, ToInt(MirObjectNumberFact(
+            row.json, row.start, row.end, "size")) as Long);
+    hash = MirAbiLayoutHashU32(
+        hash, ToInt(MirObjectNumberFact(
+            row.json, row.start, row.end, "align")) as Long);
+    hash = MirAbiLayoutHashU32(hash, field_count as Long);
+
+    let i: Int = 0;
+    while i < field_count {
+        let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, i);
+        hash = MirAbiLayoutHashString(
+            hash, MirAbiLayoutStringField(field, "name"));
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(MirObjectNumberFact(
+                field.json, field.start, field.end, "offset")) as Long);
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(MirObjectNumberFact(
+                field.json, field.start, field.end, "size")) as Long);
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(MirObjectNumberFact(
+                field.json, field.start, field.end, "align")) as Long);
+        i = i + 1;
+    }
+
+    hash = MirAbiLayoutHashString(
+        hash, MirAbiLayoutStringField(row, "runtime_fn"));
+    hash = MirAbiLayoutHashString(
+        hash, MirAbiLayoutStringField(row, "inner_c_type"));
+    hash = MirAbiLayoutHashU32(
+        hash, ToInt(MirObjectNumberFact(
+            row.json, row.start, row.end, "representation")) as Long);
+    hash = MirAbiLayoutHashString(
+        hash, MirAbiLayoutStringField(row, "discriminant"));
+    hash = MirAbiLayoutHashU32(
+        hash, ToInt(MirObjectNumberFact(
+            row.json, row.start, row.end, "primary_tag")) as Long);
+    hash = MirAbiLayoutHashU32(
+        hash, ToInt(MirObjectNumberFact(
+            row.json, row.start, row.end, "secondary_tag")) as Long);
+    return MirAbiLayoutHashString(
+        hash, MirAbiLayoutStringField(row, "niche_none_pattern"));
+}
+
+func MirAbiLayoutIdFromRow(row: JsonObjectFactTable) -> Int {
+    return (536870912L +
+        (MirAbiLayoutHashRow(row) % MirAbiLayoutModulus())) as Int;
+}
+
+func MirInstructionAbiLayoutFactReady(
+    json: String, inst_start: Int, inst_end: Int
+) -> Bool {
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, MirFactObjectStart(json, inst_start), inst_end);
+    if !JsonObjectFactTableReady(instruction) ||
+        !JsonObjectFactHasField(instruction, "abi_type_name") ||
+        !JsonObjectFactHasField(instruction, "abi_layout_id") ||
+        !JsonObjectFactHasField(instruction, "abi_layout_required") ||
+        !JsonObjectFactHasField(instruction, "abi_layout") {
+        return false;
+    }
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        instruction, "abi_layout_id");
+    if !IsSome(id_opt) {
+        return false;
+    }
+    let id: Int = ToInt(UnwrapOption(id_opt));
+    let required: Bool = JsonObjectBoolFieldEquals(
+        json, instruction.start, instruction.end,
+        "abi_layout_required", true);
+    let optional: Bool = JsonObjectBoolFieldEquals(
+        json, instruction.start, instruction.end,
+        "abi_layout_required", false);
+    let row: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "abi_layout");
+
+    if required {
+        if id <= 0 || !JsonObjectFactTableReady(row) ||
+            !MirAbiLayoutRequiredStringFields(row) ||
+            !JsonObjectFactHasField(row, "size") ||
+            !JsonObjectFactHasField(row, "align") ||
+            !JsonObjectFactHasField(row, "fields") ||
+            !JsonObjectFactHasField(row, "representation") ||
+            !JsonObjectFactHasField(row, "primary_tag") ||
+            !JsonObjectFactHasField(row, "secondary_tag") {
+            return false;
+        }
+        let type_name: String = MirAbiLayoutStringField(
+            instruction, "abi_type_name");
+        if StringLength(type_name) == 0 ||
+            type_name != MirAbiLayoutStringField(row, "type") {
+            return false;
+        }
+        let fields: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(row, "fields");
+        if !JsonArrayObjectFactTableReady(fields) {
+            return false;
+        }
+        let field_i: Int = 0;
+        while field_i < JsonArrayObjectFactCount(fields) {
+            let field: JsonObjectFactTable =
+                JsonArrayObjectFactAt(fields, field_i);
+            if !JsonObjectFactTableReady(field) ||
+                !JsonObjectFactHasField(field, "name") ||
+                !JsonObjectFactHasField(field, "offset") ||
+                !JsonObjectFactHasField(field, "size") ||
+                !JsonObjectFactHasField(field, "align") ||
+                StringLength(MirAbiLayoutStringField(field, "name")) == 0 ||
+                StringLength(MirObjectNumberFact(
+                    field.json, field.start, field.end, "offset")) == 0 ||
+                StringLength(MirObjectNumberFact(
+                    field.json, field.start, field.end, "size")) == 0 ||
+                StringLength(MirObjectNumberFact(
+                    field.json, field.start, field.end, "align")) == 0 {
+                return false;
+            }
+            field_i = field_i + 1;
+        }
+        return id == MirAbiLayoutIdFromRow(row);
+    }
+
+    // A constructed nominal layout has a type name but no static table row.
+    // Its absence is valid only when the producer explicitly carried that
+    // fact; an attached partial row or a non-zero identity is rejected.
+    return optional && id == 0 && !JsonObjectFactTableReady(row);
+}

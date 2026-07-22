@@ -27,6 +27,15 @@ arena_new_block(size_t capacity)
     return blk;
 }
 
+static void
+arena_add_saturating(size_t *value, size_t amount)
+{
+    if (*value <= SIZE_MAX - amount)
+        *value += amount;
+    else
+        *value = SIZE_MAX;
+}
+
 static bool
 arena_ensure(PgyArena *arena, size_t n)
 {
@@ -47,6 +56,7 @@ arena_ensure(PgyArena *arena, size_t n)
 
     blk->next      = arena->current;
     arena->current = blk;
+    arena_add_saturating(&arena->ledger.created_bytes, cap);
     return true;
 }
 
@@ -55,14 +65,26 @@ arena_ensure(PgyArena *arena, size_t n)
 void
 pgy_arena_init(PgyArena *arena, size_t block_size)
 {
+    pgy_arena_init_named(arena, block_size, "unnamed");
+}
+
+void
+pgy_arena_init_named(PgyArena *arena, size_t block_size, const char *owner)
+{
+    if (arena == NULL)
+        return;
     arena->current         = NULL;
     arena->block_size      = block_size > 0 ? block_size : PGY_ARENA_DEFAULT_BLOCK_SIZE;
     arena->total_allocated = 0;
+    memset(&arena->ledger, 0, sizeof(arena->ledger));
+    arena->ledger.owner = owner != NULL ? owner : "unnamed";
 }
 
 void
 pgy_arena_destroy(PgyArena *arena)
 {
+    if (arena == NULL)
+        return;
     PgyArenaBlock *blk = arena->current;
     while (blk != NULL) {
         PgyArenaBlock *next = blk->next;
@@ -71,6 +93,7 @@ pgy_arena_destroy(PgyArena *arena)
     }
     arena->current         = NULL;
     arena->total_allocated = 0;
+    memset(&arena->ledger, 0, sizeof(arena->ledger));
 }
 
 void *
@@ -86,6 +109,10 @@ pgy_arena_alloc(PgyArena *arena, size_t n)
 
     void *ptr = arena->current->data + arena->current->used;
     arena->current->used += n;
+    arena_add_saturating(&arena->ledger.retained_bytes, n);
+    if (arena->ledger.retained_bytes > arena->ledger.peak_bytes)
+        arena->ledger.peak_bytes = arena->ledger.retained_bytes;
+    arena_add_saturating(&arena->ledger.allocation_count, 1);
     if (arena->total_allocated <= SIZE_MAX - n)
         arena->total_allocated += n;
     else
@@ -114,6 +141,8 @@ pgy_arena_strdup(PgyArena *arena, const char *s)
     char *dup = pgy_arena_alloc(arena, len + 1);
     if (dup != NULL)
         memcpy(dup, s, len + 1);
+    if (dup != NULL)
+        arena_add_saturating(&arena->ledger.string_payload_bytes, len + 1);
     return dup;
 }
 
@@ -134,6 +163,8 @@ pgy_arena_vfmt(PgyArena *arena, const char *fmt, va_list args)
         return NULL;
 
     vsnprintf(buf, (size_t)needed + 1, fmt, args);
+    arena_add_saturating(&arena->ledger.string_payload_bytes,
+                         (size_t)needed + 1);
     return buf;
 }
 
@@ -145,4 +176,40 @@ pgy_arena_fmt(PgyArena *arena, const char *fmt, ...)
     char *result = pgy_arena_vfmt(arena, fmt, args);
     va_end(args);
     return result;
+}
+
+void
+pgy_arena_set_last_consumer(PgyArena *arena, const char *consumer)
+{
+    if (arena != NULL)
+        arena->ledger.last_consumer = consumer;
+}
+
+void
+pgy_arena_set_release_point(PgyArena *arena, const char *release_point)
+{
+    if (arena != NULL)
+        arena->ledger.release_point = release_point;
+}
+
+void
+pgy_arena_note_cross_stage_copy(PgyArena *arena, size_t bytes)
+{
+    if (arena == NULL)
+        return;
+    arena_add_saturating(&arena->ledger.cross_stage_copies, bytes);
+}
+
+void
+pgy_arena_note_identity_copy(PgyArena *arena, size_t bytes)
+{
+    if (arena == NULL)
+        return;
+    arena_add_saturating(&arena->ledger.identity_payload_bytes, bytes);
+}
+
+const PgyArenaLedger *
+pgy_arena_ledger(const PgyArena *arena)
+{
+    return arena != NULL ? &arena->ledger : NULL;
 }

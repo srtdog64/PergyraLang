@@ -16,6 +16,8 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
+#include "../compiler/verified_region_plan.h"
+#include "../parser/ast_api.h"
 
 static LLVMTypeRef
 llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
@@ -425,6 +427,38 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     if (op_type == TOKEN_PLUS
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
+        PgyRegionDisposition region_disposition;
+        uint32_t region_scope_id = 0;
+        if (ctx->region_scope_active
+            && pgy_verified_region_plan_lookup(
+                ctx->region_plan, ast_node_stable_id(node),
+                &region_disposition,
+                &region_scope_id)
+            && region_disposition == PGY_REGION_DISPOSITION_REGION
+            && region_scope_id == ctx->region_scope_id) {
+            LLVMFuncEntry *region_fn = llvm_lookup_function(
+                ctx, "pgy_region_string_concat_export");
+            if (region_fn == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM region plan requires runtime function '%s'",
+                    "pgy_region_string_concat_export");
+                return NULL;
+            }
+            if (left_type != ctx->type_i8ptr)
+                left = llvm_coerce_value_to_string(left, ctx);
+            if (right_type != ctx->type_i8ptr)
+                right = llvm_coerce_value_to_string(right, ctx);
+            if (left == NULL || right == NULL
+                || LLVMTypeOf(left) != ctx->type_i8ptr
+                || LLVMTypeOf(right) != ctx->type_i8ptr) {
+                return llvm_scalar_expr_error(ctx, node,
+                    "LLVM region string concatenation could not coerce operands");
+            }
+            LLVMValueRef args[] = { ctx->region_alloca, left, right };
+            return LLVMBuildCall2(ctx->builder, region_fn->fn_type,
+                                  region_fn->fn, args, 3,
+                                  llvm_tmp_name(ctx));
+        }
         LLVMFuncEntry *fn = llvm_required_scalar_runtime_function(ctx, node,
             "string concatenation", "StringConcat");
         if (left_type != ctx->type_i8ptr)

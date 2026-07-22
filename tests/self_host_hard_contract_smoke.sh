@@ -248,7 +248,7 @@ require_file "tests/self_hosted/fixtures/machine_layer_declaration.json"
 forbid_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     '"$PGY" --machine-manifest-json'
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
-    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote,device_slot_routine"'
+    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote,device_slot_routine,option_string_core,array_sum_filtered,str_array,array_scalar_aggregate_core,array_double_aggregate_core"'
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \
     "abi_layout_row_manifest_parity.sh"
 require_text "tests/self_hosted/parity/mir_abi_first_lane.sh" \

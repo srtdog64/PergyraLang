@@ -108,12 +108,31 @@ pgy_region_block_acquire(PgyRegion* region, size_t need)
 }
 
 static inline void*
-pgy_region_alloc(PgyRegion* region, size_t size, size_t align)
+pgy_region_block_try_alloc(PgyRegionBlock* blk, size_t size, size_t align)
 {
-    PgyRegionBlock* blk;
     uintptr_t       base;
     uintptr_t       aligned;
     size_t          pad;
+
+    if (blk == NULL || blk->used > blk->capacity)
+        return NULL;
+
+    base    = (uintptr_t)(blk->data + blk->used);
+    aligned = (base + (align - 1)) & ~(uintptr_t)(align - 1);
+    pad     = (size_t)(aligned - base);
+    if (pad <= blk->capacity - blk->used
+        && size <= blk->capacity - blk->used - pad) {
+        blk->used += pad + size;
+        return (void*)aligned;
+    }
+    return NULL;
+}
+
+static inline void*
+pgy_region_alloc(PgyRegion* region, size_t size, size_t align)
+{
+    PgyRegionBlock* blk;
+    void*           result;
 
     if (region == NULL || align == 0 || (align & (align - 1)) != 0) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
@@ -122,17 +141,27 @@ pgy_region_alloc(PgyRegion* region, size_t size, size_t align)
     if (size == 0)
         return NULL;
 
-    blk = region->current;
-    if (blk != NULL) {
-        base    = (uintptr_t)(blk->data + blk->used);
-        aligned = (base + (align - 1)) & ~(uintptr_t)(align - 1);
-        pad     = (size_t)(aligned - base);
-        if (pad <= blk->capacity - blk->used
-            && size <= blk->capacity - blk->used - pad) {
-            blk->used += pad + size;
+    /* The head is the normal bump path.  After reset, older blocks have
+     * used==0 and are retained in the chain; walk those zeroed blocks before
+     * acquiring another one.  In the ordinary (non-reset) path, older blocks
+     * still carry live bytes and are deliberately not reused.  Keeping
+     * `current` as the newest block preserves the destroy chain and the pinned
+     * PgyRegion head ABI without adding a second region cursor. */
+    result = pgy_region_block_try_alloc(region->current, size, align);
+    if (result != NULL) {
+        if (region->total_allocated <= SIZE_MAX - size)
+            region->total_allocated += size;
+        return result;
+    }
+    for (blk = region->current != NULL ? region->current->next : NULL;
+         blk != NULL; blk = blk->next) {
+        if (blk->used != 0)
+            continue;
+        result = pgy_region_block_try_alloc(blk, size, align);
+        if (result != NULL) {
             if (region->total_allocated <= SIZE_MAX - size)
                 region->total_allocated += size;
-            return (void*)aligned;
+            return result;
         }
     }
 
@@ -143,13 +172,14 @@ pgy_region_alloc(PgyRegion* region, size_t size, size_t align)
                           PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY);
     }
     blk     = pgy_region_block_acquire(region, size + (align - 1));
-    base    = (uintptr_t)(blk->data + blk->used);
-    aligned = (base + (align - 1)) & ~(uintptr_t)(align - 1);
-    pad     = (size_t)(aligned - base);
-    blk->used += pad + size;
+    result = pgy_region_block_try_alloc(blk, size, align);
+    if (result == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "fresh region block rejected its reserved allocation");
+    }
     if (region->total_allocated <= SIZE_MAX - size)
         region->total_allocated += size;
-    return (void*)aligned;
+    return result;
 }
 
 static inline void*

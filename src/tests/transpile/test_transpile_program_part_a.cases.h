@@ -141,7 +141,7 @@ test_program_emit_head(void)
         /* The spawn emitter consumes the AIR-carried lane fact per site. */
         static PgySpawnLaneFactRow spawn_lane_rows[1];
         static PgySpawnLanePlan spawn_lane_plan;
-        spawn_lane_rows[0].site = spawn;
+        spawn_lane_rows[0].source_stable_id = ast_node_stable_id(spawn);
         spawn_lane_rows[0].lane = PGY_LANE_WORKER_POOL;
         spawn_lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
         spawn_lane_plan.rows = spawn_lane_rows;

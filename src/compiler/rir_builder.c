@@ -357,7 +357,19 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
             case AST_ROLE_DECL:
                 for (size_t j = 0; ok && j < ast_role_impl_count(node); j++) {
                     ASTNode *impl = ast_role_impl(node, j);
-                    if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+                    if (impl == NULL)
+                        continue;
+                    if (impl->type == AST_OVERRIDE_FUNC) {
+                        ASTNode *override_func = ast_override_func_decl(impl);
+                        if (override_func != NULL
+                            && override_func->type == AST_FUNC_DECL) {
+                            ok = rir_collect_func_scope(
+                                rir, RIR_SCOPE_METHOD, ast_role_name(node),
+                                NULL, override_func);
+                        }
+                        continue;
+                    }
+                    if (impl->type != AST_IMPL_ABILITY)
                         continue;
                     for (size_t k = 0;
                          ok && k < ast_impl_ability_method_count(impl);

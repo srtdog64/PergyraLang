@@ -88,7 +88,7 @@ semantic_preload_stdlib_uses(ASTNode *ast)
      * path string is short-lived and never escapes: it is consumed by
      * import_resolver_load_program and then unused.  Using a function-local
      * arena batches the allocations and removes N malloc/free pairs. */
-    pgy_arena_init(&path_arena, 0);
+    pgy_arena_init_named(&path_arena, 0, "semantic-path-scratch");
 
     for (size_t i = 0; i < ast_program_statement_count(ast); i++) {
         ASTNode *stmt = ast_program_statement(ast, i);
@@ -151,6 +151,8 @@ semantic_preload_stdlib_uses(ASTNode *ast)
     for (size_t i = 0; i < loaded_count; i++)
         free(loaded_modules[i]);
     free(loaded_modules);
+    pgy_arena_set_last_consumer(&path_arena, "semantic-import-resolution");
+    pgy_arena_set_release_point(&path_arena, "semantic-import-resolution-end");
     pgy_arena_destroy(&path_arena);
 }
 

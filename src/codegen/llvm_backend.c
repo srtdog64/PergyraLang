@@ -69,9 +69,19 @@ llvm_ctx_create(const char *module_name)
         LLVMStructSetBody(ctx->type_text_builder,
             text_builder_fields, 4, 0);
     }
+    {
+        /* pgy_abi_region head record: { current block pointer, block size,
+         * total payload bytes }.  The block body is opaque to LLVM; the
+         * runtime export owns allocation and release. */
+        LLVMTypeRef region_fields[] = {
+            ctx->type_i8ptr, ctx->type_i64, ctx->type_i64
+        };
+        ctx->type_region = LLVMStructCreateNamed(ctx->context, "PgyRegion");
+        LLVMStructSetBody(ctx->type_region, region_fields, 3, 0);
+    }
 
-    pgy_arena_init(&ctx->scratch, 0);
-    pgy_arena_init(&ctx->persistent, 0);
+    pgy_arena_init_named(&ctx->scratch, 0, "llvm-backend-scratch");
+    pgy_arena_init_named(&ctx->persistent, 0, "llvm-backend-persistent");
 
     ctx->scope_depth   = 0;
     ctx->tmp_counter   = 0;
@@ -429,6 +439,10 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
         free(ctx->mono_instances[i].name);
     free(ctx->mono_instances);
 
+    pgy_arena_set_last_consumer(&ctx->scratch, "llvm-codegen");
+    pgy_arena_set_release_point(&ctx->scratch, "llvm-backend-destroy");
+    pgy_arena_set_last_consumer(&ctx->persistent, "llvm-codegen");
+    pgy_arena_set_release_point(&ctx->persistent, "llvm-backend-destroy");
     pgy_arena_destroy(&ctx->scratch);
     pgy_arena_destroy(&ctx->persistent);
     free(ctx);
@@ -454,7 +468,8 @@ LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name) {
     (void)module_name;
     if (res) {
         memset(res, 0, sizeof(LLVMGenResult));
-        pgy_arena_init(&res->owned_arena, 0);
+        pgy_arena_init_named(&res->owned_arena, 0,
+                             "llvm-result-error");
         res->error_message = pgy_arena_strdup(&res->owned_arena,
             "LLVM backend not enabled");
     }
@@ -469,7 +484,8 @@ LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *modu
     (void)release_opt;
     if (res) {
         memset(res, 0, sizeof(LLVMGenResult));
-        pgy_arena_init(&res->owned_arena, 0);
+        pgy_arena_init_named(&res->owned_arena, 0,
+                             "llvm-result-error");
         res->error_message = pgy_arena_strdup(&res->owned_arena,
             "LLVM backend not enabled");
     }

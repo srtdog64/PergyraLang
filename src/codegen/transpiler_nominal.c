@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -39,8 +40,15 @@ render_mir_decl_field_type_name(TranspilerCtx *ctx,
     if (ctx == NULL || field == NULL)
         return NULL;
     type_name = transpiler_mir_decl_field_type_name(field);
-    if (type_name != NULL)
+    if (type_name != NULL && type_name[0] != '\0')
         return type_name;
+    if (transpiler_active_has_mir(ctx)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing nominal field type-name metadata for '%s'",
+            mir_decl_field_name(field) != NULL
+                ? mir_decl_field_name(field) : "(anonymous-field)");
+        return NULL;
+    }
     return render_nominal_member_type_name(
         ctx, transpiler_mir_decl_field_type(field));
 }
@@ -79,6 +87,8 @@ transpiler_class_member_type_name(TranspilerCtx *ctx,
     type_name = render_mir_decl_field_type_name(ctx, field);
     if (type_name != NULL)
         return type_name;
+    if (transpiler_active_has_mir(ctx))
+        return NULL;
     return render_nominal_member_type_name(
         ctx, transpiler_hosted_field_view_type(&field_view, field_index));
 }
@@ -117,6 +127,8 @@ transpiler_domain_slot_member_type_name(TranspilerCtx *ctx,
             if (type_name != NULL)
                 return type_name;
         }
+        if (transpiler_active_has_mir(ctx))
+            return NULL;
         return render_nominal_member_type_name(ctx,
             transpiler_hosted_domain_slot_view_type(&slot_view, i));
     }
@@ -157,6 +169,8 @@ transpiler_host_shared_member_type_name(TranspilerCtx *ctx,
             if (type_name != NULL)
                 return type_name;
         }
+        if (transpiler_active_has_mir(ctx))
+            return NULL;
         return render_nominal_member_type_name(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i));
     }

@@ -41,14 +41,43 @@
 #include "mir_cfg_contract_validate.h"
 #include "mir_abi_layout.h"
 
+void
+mir_lower_request_init(MIRLowerRequest *request,
+                        const HIRProgram *hir,
+                        const RIRProgram *rir,
+                        const SemanticResult *semantic)
+{
+    if (request == NULL)
+        return;
+    request->protocol_id = PGY_MIR_LOWER_PROTOCOL_ID;
+    request->protocol_version = PGY_MIR_LOWER_PROTOCOL_VERSION;
+    request->hir = hir;
+    request->rir = rir;
+    request->semantic = semantic;
+}
+
 MIRProgram *
-mir_lower(const HIRProgram *hir, const RIRProgram *rir,
-          const SemanticResult *semantic, char **error_message)
+mir_lower(const MIRLowerRequest *request, char **error_message)
 {
     const char *debug_mir_lower;
+    const HIRProgram *hir;
+    const RIRProgram *rir;
+    const SemanticResult *semantic;
     MIRProgram *mir;
     if (error_message != NULL)
         *error_message = NULL;
+    if (request == NULL
+        || request->protocol_id == NULL
+        || strcmp(request->protocol_id, PGY_MIR_LOWER_PROTOCOL_ID) != 0
+        || request->protocol_version != PGY_MIR_LOWER_PROTOCOL_VERSION) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR lowering request has an unsupported protocol id/version");
+        return NULL;
+    }
+    hir = request->hir;
+    rir = request->rir;
+    semantic = request->semantic;
     if (hir == NULL || semantic == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
@@ -240,7 +269,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             return NULL;
         }
         memset(&routine, 0, sizeof(routine));
-        pgy_arena_init(&routine.scratch, 0);
+        pgy_arena_init_named(&routine.scratch, 0, "mir-routine-scratch");
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
         routine.name = hir_routine->name;

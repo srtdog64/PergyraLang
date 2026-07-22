@@ -433,7 +433,9 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 static LLVMGenResult *
 llvm_codegen_mir_only(const MIRProgram *mir,
                       const PgyVerifiedProjectionPlanRow *projection_plan,
+                      const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                       const PgySpawnLanePlan *spawn_lane_plan,
+                      const PgyRegionPlan *region_plan,
                       const char *module_name)
 {
     llvm_debug_stage("codegen_with_mir:ctx_create");
@@ -445,12 +447,21 @@ llvm_codegen_mir_only(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
+    ctx->region_plan = region_plan;
     if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
         || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
         llvm_ctx_destroy(ctx);
         return llvm_result_error(
             "LLVM backend: verified spawn-lane plan required");
+    }
+    if (parallel_capture_plan == NULL
+        || !pgy_verified_parallel_capture_plan_identity_ready(
+               parallel_capture_plan)) {
+        llvm_ctx_destroy(ctx);
+        return llvm_result_error(
+            "LLVM backend: verified parallel-capture plan required");
     }
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
@@ -504,7 +515,7 @@ llvm_codegen_mir_only(const MIRProgram *mir,
 LLVMGenResult *
 llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, NULL, NULL, module_name);
+    return llvm_codegen_mir_only(mir, NULL, NULL, NULL, NULL, module_name);
 }
 
 LLVMGenResult *
@@ -514,14 +525,29 @@ llvm_codegen_from_mir_with_projection_plan(
     const PgySpawnLanePlan *spawn_lane_plan,
     const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, projection_plan, spawn_lane_plan,
-                                 module_name);
+    return llvm_codegen_mir_only(mir, projection_plan, NULL,
+                                 spawn_lane_plan, NULL, module_name);
+}
+
+LLVMGenResult *
+llvm_codegen_from_mir_with_projection_plans(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
+    const char *module_name)
+{
+    return llvm_codegen_mir_only(mir, projection_plan, parallel_capture_plan,
+                                 spawn_lane_plan, region_plan, module_name);
 }
 
 static LLVMGenResult *
 llvm_codegen_to_object_core(const MIRProgram *mir,
                             const PgyVerifiedProjectionPlanRow *projection_plan,
+                            const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
                             const PgySpawnLanePlan *spawn_lane_plan,
+                            const PgyRegionPlan *region_plan,
                             const char *module_name,
                             const char *output_path,
                             bool release_opt)
@@ -539,12 +565,21 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
 
     ctx->mir = mir;
     ctx->projection_plan = projection_plan;
+    ctx->parallel_capture_plan = parallel_capture_plan;
     ctx->spawn_lane_plan = spawn_lane_plan;
+    ctx->region_plan = region_plan;
     if (spawn_lane_plan == NULL || !spawn_lane_plan->verified
         || spawn_lane_plan->revision != PGY_SPAWN_LANE_PLAN_REVISION) {
         llvm_ctx_destroy(ctx);
         return llvm_result_error(
             "LLVM backend: verified spawn-lane plan required");
+    }
+    if (parallel_capture_plan == NULL
+        || !pgy_verified_parallel_capture_plan_identity_ready(
+               parallel_capture_plan)) {
+        llvm_ctx_destroy(ctx);
+        return llvm_result_error(
+            "LLVM backend: verified parallel-capture plan required");
     }
 
     llvm_debug_stage("codegen_to_object:validate_mir");
@@ -651,7 +686,7 @@ llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                 const char *output_path,
                                 bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, NULL, NULL, module_name,
+    return llvm_codegen_to_object_core(mir, NULL, NULL, NULL, NULL, module_name,
                                        output_path, release_opt);
 }
 
@@ -664,8 +699,26 @@ llvm_codegen_to_object_from_mir_with_projection_plan(
                                          const char *output_path,
                                          bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, projection_plan, spawn_lane_plan,
-                                       module_name, output_path, release_opt);
+    return llvm_codegen_to_object_core(mir, projection_plan, NULL,
+                                       spawn_lane_plan, NULL, module_name,
+                                       output_path, release_opt);
+}
+
+LLVMGenResult *
+llvm_codegen_to_object_from_mir_with_projection_plans(
+                                         const MIRProgram *mir,
+                                         const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
+    const char *module_name,
+                                         const char *output_path,
+                                         bool release_opt)
+{
+    return llvm_codegen_to_object_core(mir, projection_plan,
+                                       parallel_capture_plan,
+                                       spawn_lane_plan, region_plan, module_name,
+                                       output_path, release_opt);
 }
 
 void

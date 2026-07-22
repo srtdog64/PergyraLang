@@ -457,6 +457,10 @@ inventory must not become a second fact-family owner registry.
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
+- `src/self_hosted/mir/abi_layout_json_projection_owner.pgy` -- self-host
+  producer ABI-layout tuple and explicit dynamic-row projection.
+- `src/self_hosted/mir/machine_layer_json_projection_owner.pgy` -- machine
+  layer object projection nested in the pgy.mir.v1 instruction row.
 - `src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy` -- nested
   `runtime_call_abi` JSON projection from the instruction-owned fact row.
 - `src/self_hosted/mir/json_projection_support_owner.pgy` -- shared optional
@@ -516,6 +520,8 @@ inventory must not become a second fact-family owner registry.
   ResourceFlowUniverse identity row parsing and count validation.
 - `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried
   MIR resource runtime-call ABI row validation before self-host reconstruction.
+- `src/self_hosted/mir_lower/abi_layout_fact_owner.pgy` -- carried static MIR
+  ABI layout rows and stable-identity validation.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.

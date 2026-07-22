@@ -141,15 +141,28 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ASTNode *slot_type =
                         llvm_hosted_domain_slot_view_type(
                             &domain_slot_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(
-                        ctx, stmt, slot_type, "zone slot");
+                    const char *slot_type_name =
+                        llvm_hosted_domain_slot_view_type_name(
+                            &domain_slot_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, slot_type_name, "zone slot")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, slot_type, "zone slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
                 for (size_t j = 0; j < shared_view.count; j++, idx++) {
                     ASTNode *sf_type =
                         llvm_hosted_shared_field_view_type(&shared_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, stmt, sf_type, "zone shared field");
+                    const char *sf_type_name =
+                        llvm_hosted_shared_field_view_type_name(
+                            &shared_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, sf_type_name, "zone shared field")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, sf_type, "zone shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
@@ -224,7 +237,14 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 for (size_t j = 0; j < shared_view.count; j++, idx++) {
                     ASTNode *sf_type =
                         llvm_hosted_shared_field_view_type(&shared_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, stmt, sf_type, "roster shared field");
+                    const char *sf_type_name =
+                        llvm_hosted_shared_field_view_type_name(
+                            &shared_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, sf_type_name, "roster shared field")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, sf_type, "roster shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
@@ -315,7 +335,14 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 for (size_t j = 0; j < shared_view.count; j++, idx++) {
                     ASTNode *sf_type =
                         llvm_hosted_shared_field_view_type(&shared_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, stmt, sf_type, "world shared field");
+                    const char *sf_type_name =
+                        llvm_hosted_shared_field_view_type_name(
+                            &shared_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, sf_type_name, "world shared field")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, sf_type, "world shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
@@ -363,15 +390,28 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ASTNode *slot_type =
                         llvm_hosted_domain_slot_view_type(
                             &domain_slot_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(
-                        ctx, stmt, slot_type, "domain slot");
+                    const char *slot_type_name =
+                        llvm_hosted_domain_slot_view_type_name(
+                            &domain_slot_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, slot_type_name, "domain slot")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, slot_type, "domain slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
                 for (size_t j = 0; j < shared_view.count; j++, idx++) {
                     ASTNode *sf_type =
                         llvm_hosted_shared_field_view_type(&shared_view, j);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, stmt, sf_type, "domain shared field");
+                    const char *sf_type_name =
+                        llvm_hosted_shared_field_view_type_name(
+                            &shared_view, j);
+                    ftypes[idx] = llvm_active_has_mir(ctx)
+                        ? llvm_domain_required_type_name(
+                            ctx, stmt, sf_type_name, "domain shared field")
+                        : llvm_domain_required_ast_type(
+                            ctx, stmt, sf_type, "domain shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }

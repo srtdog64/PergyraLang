@@ -18,7 +18,9 @@ typedef struct
 } TranspilerProjectionFieldInfo;
 
 static const char *
-projection_field_type_name(const TranspilerHostedFieldView *view,
+projection_field_type_name(TranspilerCtx *ctx,
+                           const char *host_type_name,
+                           const TranspilerHostedFieldView *view,
                            size_t index)
 {
     const MIRDeclField *field;
@@ -27,8 +29,15 @@ projection_field_type_name(const TranspilerHostedFieldView *view,
 
     field = transpiler_hosted_field_view_metadata(view, index);
     type_name = transpiler_mir_decl_field_type_name(field);
-    if (type_name != NULL)
+    if (type_name != NULL && type_name[0] != '\0')
         return type_name;
+    if (transpiler_active_has_mir(ctx)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing projection class-field type-name metadata for '%s' index %zu",
+            host_type_name != NULL ? host_type_name : "(anonymous-class)",
+            index);
+        return NULL;
+    }
     type_node = transpiler_hosted_field_view_type(view, index);
     return type_node != NULL ? ast_type_name(type_node) : NULL;
 }
@@ -63,7 +72,8 @@ host_projection_class_field_info(TranspilerCtx *ctx,
     info.exists = true;
     info.subject_like =
         transpiler_hosted_field_view_is_subject_like(&field_view, field_index);
-    info.type_name = projection_field_type_name(&field_view, field_index);
+    info.type_name = projection_field_type_name(
+        ctx, host_type_name, &field_view, field_index);
     return info;
 }
 

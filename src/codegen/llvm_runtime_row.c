@@ -102,8 +102,10 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
                 ast_node_stable_id(node));
             if (source_inst != NULL) {
                 const MIRResourceRuntimeRow *source_row =
-                    &source_inst->resource_runtime_fact;
-                if (source_row->resource_op_name != NULL
+                    mir_abi_resource_runtime_row_for_instruction(
+                        source_inst, operation);
+                if (source_row != NULL
+                    && source_row->resource_op_name != NULL
                     && operation != NULL
                     && strcmp(source_row->resource_op_name, operation) == 0) {
                     row = source_row;
@@ -119,7 +121,8 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
             source_inst = mir_abi_resource_runtime_instruction_for_abi(
                 ctx->current_mir_routine, kind, inner_type_name, operation);
             if (source_inst != NULL) {
-                row = &source_inst->resource_runtime_fact;
+                row = mir_abi_resource_runtime_row_for_instruction(
+                    source_inst, operation);
                 row_is_mir_fact = true;
             }
             if (row == NULL) {
@@ -137,7 +140,7 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
     if (row != NULL) {
         /* Nested resource expressions consume their own MIR row. */
     } else if (inst != NULL && inst->resource_runtime_fact_present) {
-        row = &inst->resource_runtime_fact;
+        row = mir_abi_resource_runtime_row_for_instruction(inst, operation);
         row_is_mir_fact = true;
         if (row->resource_op_name == NULL
             || operation == NULL
@@ -170,7 +173,7 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
         return NULL;
     } else if (ctx != NULL && ctx->current_mir_routine != NULL
                && llvm_slot_runtime_operation_is_synthetic_pin(operation)) {
-        row = mir_abi_resource_runtime_pin_row_for_mir(
+        row = mir_abi_resource_runtime_row_for_mir_abi(
             ctx->current_mir_routine, kind, inner_type_name, operation);
         if (row != NULL) {
             row_is_mir_fact = true;
@@ -189,6 +192,21 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM MIR source operation is missing its lowered runtime-call ABI row");
+        return NULL;
+    } else if (ctx != NULL && ctx->current_mir_routine == NULL
+               && node == NULL) {
+        /* Runtime declaration is a module-level ABI materialization phase,
+         * before any MIR routine is active.  It consumes the canonical ABI
+         * row vocabulary to declare the exported functions; source-level
+         * operations remain fail-closed below once a routine is active. */
+        row = mir_abi_resource_runtime_row_by_kind(
+            kind, inner_type_name, operation);
+    } else if (llvm_active_has_mir(ctx)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "MIR-only LLVM path missing active routine for runtime-call ABI row");
         return NULL;
     } else {
         row = mir_abi_resource_runtime_row_by_kind(

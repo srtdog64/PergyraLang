@@ -13,6 +13,8 @@ typedef struct TranspilerMirEmitState {
     char return_type[128];
     ASTNode *return_callable_type;
     const MIRRoutine *mir_routine;
+    uint32_t region_scope_id;
+    bool region_scope_active;
 } TranspilerMirEmitState;
 
 void transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,

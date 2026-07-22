@@ -377,6 +377,10 @@ void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                                             LLVMClassTypeEntry *owner_cls,
                                             LLVMFuncEntry *owner_sync,
                                             const char *owner_name);
+void          llvm_mir_region_scope_begin(LLVMGenCtx *ctx,
+                                          const MIRRoutine *routine);
+void          llvm_mir_region_scope_destroy(LLVMGenCtx *ctx);
+void          llvm_mir_region_scope_end(LLVMGenCtx *ctx);
 LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 bool          llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
                                                ASTNode *expr,

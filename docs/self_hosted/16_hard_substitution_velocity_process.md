@@ -1001,7 +1001,7 @@ Clean C-built and LLVM-built self drivers match the C oracle through canonical
 MIR, MIR-to-C/source-to-C equality, host compilation, and runtime output for
 the focused ten-fixture matrix. No C semantic fallback or new fact owner was
 needed. This is executable substitution breadth that exercises the already
-owned facts; the full 214-fixture matrix and released/default replacement
+owned facts; the full 217-fixture matrix and released/default replacement
 remain open.
 
 ## 7. Fifteen-Day Correction

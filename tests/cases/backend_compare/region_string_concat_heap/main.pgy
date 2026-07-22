@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let value: String = "a" + "b";
+    Print(value);
+}

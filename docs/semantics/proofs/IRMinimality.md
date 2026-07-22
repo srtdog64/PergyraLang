@@ -37,7 +37,7 @@ DIR nor AIR — **zero**):
   codegen track  :  AST ──► HIR ──► RIR ──► MIR ──► {C, LLVM}
                               │       ▲        ▲
                               └───────┘        │   (RIR enriched with HIR flow;
-                                      └────────┘    MIR = mir_lower(hir, rir))
+                                      └────────┘    MIR = mir_lower(MIRLowerRequest))
 
   verification   :  AST ──► DIR ──┐
   track (off the                  ├──► AIR  (air_synthesize/air_verify; drift,

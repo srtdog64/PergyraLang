@@ -4,7 +4,7 @@
 pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     local machine_fixture="$1" backend="$2" base="$3" self_mir_json="$4"
     local driver_bin="$5" machine_declaration="$6"
-    local missing_row identity_row payload_row needle replacement
+    local missing_row identity_row payload_row aux_identity_row aux_injected_row needle replacement
     local -a consumer_command
 
     if [[ "$base" != "device_slot_routine" &&
@@ -93,9 +93,43 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
         return 1
     }
 
+    # Inject an auxiliary row with a deliberately invalid stable identity. The
+    # old primary-only reader would ignore this unknown array and accept the
+    # document; the owner must reject it before reconstruction proceeds.
+    if grep -Fq '"type":"DeviceSlot<Int>"' "$self_mir_json"; then
+        aux_injected_row="$BUILD_DIR/${base}_${backend}.invalid-aux-runtime-row.mir.json"
+        needle=',"runtime_call_abi":{"owner":"MIRResource","id":'
+        replacement=',"runtime_call_abi_aux":[{"owner":"MIRResource","id":0,"domain":"native-resource","type":"DeviceSlot<Int>","operation":"Write","symbol":"pgy_device_write_Int","target_kind":"function","materialization":"mir_abi_resource_row","call_shape":"container_ptr_value_to_void"}],"runtime_call_abi":{"owner":"MIRResource","id":'
+        if ! pgy_replace_first_literal \
+            "$self_mir_json" "$aux_injected_row" "$needle" "$replacement"; then
+            echo "[self-host-parity:driver-rung2] $backend auxiliary runtime-row injection did not apply: $base" >&2
+            return 1
+        fi
+
+        consumer_command=("$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$aux_injected_row")")
+        if [[ "$machine_fixture" -eq 1 ]]; then
+            consumer_command+=("$machine_declaration")
+        fi
+        if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
+            >"$aux_injected_row.out" 2>"$aux_injected_row.err"); then
+            echo "[self-host-parity:driver-rung2] $backend invalid auxiliary runtime row was accepted: $base" >&2
+            return 1
+        fi
+        grep -Fq \
+            "resource instruction or consumer is missing its lowered runtime-call ABI row" \
+            "$aux_injected_row.err" "$aux_injected_row.out" || {
+            echo "[self-host-parity:driver-rung2] $backend invalid auxiliary runtime-row diagnostic drifted: $base" >&2
+            cat "$aux_injected_row.out" "$aux_injected_row.err" >&2
+            return 1
+        }
+    fi
+
+    # A primary Claim row can own concrete auxiliary Read/Write or pin rows.
+    # Mutate the first auxiliary identity as a separate negative leg so the
+    # self-host validator cannot silently validate only the primary row.
     if grep -Fq '"runtime_call_abi_aux":[{"owner":"MIRResource","id":' \
         "$self_mir_json"; then
-        local aux_identity_row
         aux_identity_row="$BUILD_DIR/${base}_${backend}.wrong-aux-runtime-row-id.mir.json"
         needle='"runtime_call_abi_aux":[{"owner":"MIRResource","id":'
         replacement='"runtime_call_abi_aux":[{"owner":"MIRResource","id":0,"id_original":'
@@ -104,6 +138,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
             echo "[self-host-parity:driver-rung2] $backend auxiliary runtime-row identity mutation did not apply: $base" >&2
             return 1
         fi
+
         consumer_command=("$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$aux_identity_row")")
         if [[ "$machine_fixture" -eq 1 ]]; then

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Owns DRV-2 source-to-MIR producer, consumer, artifact, and run parity.
 
 pgy_selfhost_prepare_driver_rung2_mir_oracles() {
     local fixture_rel fixture_abs base mir_json oracle_bin
@@ -76,6 +75,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_machine_facts \
             "$machine_fixture" "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
+        pgy_selfhost_verify_driver_rung2_abi_layout_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
         pgy_selfhost_verify_driver_rung2_target_projection_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
         if [[ "$base" == "forloop" ]]; then
             grep -Fq '"loop_flow_summary_count":1' "$self_mir_json" || {

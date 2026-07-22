@@ -14,6 +14,7 @@
 #include "llvm_backend.h"
 #include "../common/string_compat.h"
 #include "../compiler/mir.h"
+#include "../compiler/verified_projection_plan.h"
 #include "../semantic/diag_codes.h"
 
 #include <stdio.h>
@@ -300,7 +301,9 @@ typedef struct LLVMGenCtx
 {
     const MIRProgram *mir;  /* MIR-based emission support */
     const PgyVerifiedProjectionPlanRow *projection_plan;
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan;
     const PgySpawnLanePlan *spawn_lane_plan; /* AIR-carried spawn lane facts */
+    const PgyRegionPlan *region_plan;         /* AIR-carried region facts */
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
@@ -366,6 +369,10 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     type_task_handle;
     LLVMTypeRef     type_allocator;
     LLVMTypeRef     type_text_builder;
+    LLVMTypeRef     type_region;
+    LLVMValueRef    region_alloca;
+    uint32_t        region_scope_id;
+    bool            region_scope_active;
     int             parallel_counter;
     /* Expression-form parallel join (docs/181 R2): while emitting such a
      * wrapper body, `give` stores through this per-task result slot. */

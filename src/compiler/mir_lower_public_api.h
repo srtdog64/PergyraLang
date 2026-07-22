@@ -3,9 +3,7 @@
 
 #include "mir.h"
 
-MIRProgram *mir_lower(const HIRProgram *hir,
-                      const RIRProgram *rir,
-                      const SemanticResult *semantic,
-                      char **error_message);
+/* The versioned MIRLowerRequest contract is declared by mir.h and is the
+ * sole native entry surface for MIR lowering. */
 
 #endif /* PGY_MIR_LOWER_PUBLIC_API_H */

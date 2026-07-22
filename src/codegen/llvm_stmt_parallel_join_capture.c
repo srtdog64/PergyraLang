@@ -49,12 +49,12 @@ llvm_parallel_join_collect_captures(
 
             LLVMArrayVarEntry *array = llvm_lookup_array_var(ctx, name);
             bool index_admitted = array != NULL
-                && mir_parallel_capture_disposition_find(
-                    capture_boundary, name,
+                && pgy_verified_parallel_capture_disposition_find(
+                    ctx->parallel_capture_plan, capture_boundary, name,
                     MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) != NULL;
             bool readonly_admitted = array != NULL
-                && mir_parallel_capture_disposition_find(
-                    capture_boundary, name,
+                && pgy_verified_parallel_capture_disposition_find(
+                    ctx->parallel_capture_plan, capture_boundary, name,
                     MIR_PARALLEL_CAPTURE_JOIN_READONLY) != NULL;
             bool array_admitted = index_admitted || readonly_admitted;
             if (!array_admitted
@@ -100,15 +100,17 @@ llvm_parallel_join_emit_alias_guard(
 {
     for (size_t wi = 0; wi < capture_count; wi++) {
         if (!captures[wi].is_admitted_array
-            || mir_parallel_capture_disposition_find(
-                   capture_boundary, captures[wi].name,
+            || pgy_verified_parallel_capture_disposition_find(
+                   ctx->parallel_capture_plan, capture_boundary,
+                   captures[wi].name,
                    MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) == NULL) {
             continue;
         }
         for (size_t ri = 0; ri < capture_count; ri++) {
             if (!captures[ri].is_admitted_array
-                || mir_parallel_capture_disposition_find(
-                       capture_boundary, captures[ri].name,
+                || pgy_verified_parallel_capture_disposition_find(
+                       ctx->parallel_capture_plan, capture_boundary,
+                       captures[ri].name,
                        MIR_PARALLEL_CAPTURE_JOIN_READONLY) == NULL) {
                 continue;
             }

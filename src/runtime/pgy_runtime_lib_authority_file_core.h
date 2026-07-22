@@ -51,7 +51,9 @@ extern void pgy_budget_charge_export(int kind, uint64_t amount, const char *op);
 #include "runtime/pgy_runtime_panic_contract.h"
 #include "runtime/pgy_runtime_capability.h"
 #include "runtime/pgy_runtime_budget.h"
+#include "runtime/pgy_runtime_context.h"
 #include "runtime/pgy_runtime_security_log.h"
+#include "runtime/pgy_runtime_region_inline.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
 static pthread_mutex_t pgy_runtime_lib_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -235,6 +237,33 @@ pgy_zone_authority_check_token_export(void *zone_ptr, void *participant_ptr,
     }
 }
 
+/* LLVM-leg region ABI.  The C backend consumes the same header-only region
+ * body directly; LLVM cannot inline a C static function, so these three
+ * wrappers are the single exported runtime owner for the equivalent calls. */
+void
+pgy_region_create_export(PgyRegion *region, size_t block_size)
+{
+    if (region == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "region create on null destination");
+    }
+    *region = pgy_region_create(block_size);
+}
+
+void
+pgy_region_destroy_export(PgyRegion *region)
+{
+    pgy_region_destroy(region);
+}
+
+char *
+pgy_region_string_concat_export(PgyRegion *region,
+                                 const char *a,
+                                 const char *b)
+{
+    return pgy_region_string_concat(region, a, b);
+}
+
 void
 pgy_runtime_panic_internal_invariant_export(const char *reason)
 {
@@ -264,69 +293,35 @@ pgy_runtime_panic_authority_mismatch_export(const char *reason)
 
 #include "pgy_runtime_lib_lifecycle_core.h"
 
-/* Content capability gate -- external (non-inline) twins of the static-inline
- * definitions in pgy_runtime_panic_checked_inline.h, for the LLVM-linked runtime
- * object. The effective grant is env INTERSECT manifest (docs/190 A4): the host
- * env (PGY_CAP_GRANT) and a loader's manifest restrict independently and the
- * more restrictive wins (fail-closed) -- policy-identical to the C twin, which
- * this used to disagree with (LLVM let env overwrite the manifest, C let the
- * manifest overwrite env). Both components default to PGY_CAP_ALL.
- * See pgy_runtime_capability.h and docs/semantics/15.
- *
- * pgy_runtime_lib.c is compiled twice -- once to the .bc (clang, runtime module
- * llvm-linked + inlined into the program) and once to the native cache object
- * (linked). If both defined this state it would split across instances (one
- * inlined into the program from the .bc, one in the cache object), so an LLVM
- * program's gate would read one copy and mutate another. To keep ONE instance,
- * only the native object defines it; the .bc build (PGY_RUNTIME_BC_BUILD)
- * declares it extern so every reference resolves to that single definition. */
-#ifdef PGY_RUNTIME_BC_BUILD
-extern uint32_t g_pgy_cap_manifest;
-extern uint32_t g_pgy_cap_env;
-#else
-uint32_t g_pgy_cap_manifest = PGY_CAP_ALL;
-uint32_t g_pgy_cap_env = PGY_CAP_ALL;
-#endif
-
-/* Latch the host PGY_CAP_GRANT restriction into the env component exactly once,
- * before the first gated op observes the grant (mirror of the inline twin's env
- * latch in pgy_runtime_panic_checked_inline.h). pgy_cap_require_export -- the
- * critical path every gated ambient op goes through -- is bitcode-stripped to
- * this one runtime object, so this latch runs on the single shared masks. */
-static int g_pgy_cap_env_applied = 0;
-
-static void
-pgy_cap_apply_env_once(void)
+/* Content capability gate -- external twins of the inline definitions. The
+ * instance context in pgy_runtime_panic_checked_inline.h is the sole owner for
+ * both C and LLVM; this file supplies only the LLVM-linked ABI wrappers. */
+static PgyCapMasks *
+pgy_cap_context_masks(void)
 {
-    unsigned env_mask;
-
-    if (g_pgy_cap_env_applied)
-        return;
-    g_pgy_cap_env_applied = 1;
-    if (pgy_cap_env_grant(&env_mask))
-        g_pgy_cap_env = env_mask;
+    return pgy_cap_masks_slot();
 }
 
 /* Effective grant = intersection; the more restrictive of env and manifest
- * wins (fail-closed). */
+ * wins (fail-closed) for the currently bound content instance. */
 static uint32_t
 pgy_cap_effective(void)
 {
-    pgy_cap_apply_env_once();
-    return g_pgy_cap_env & g_pgy_cap_manifest;
+    PgyCapMasks *m = pgy_cap_context_masks();
+    return m->env & m->manifest;
 }
 
 void
 pgy_cap_set_manifest_export(uint32_t mask)
 {
-    g_pgy_cap_manifest = mask;
+    pgy_cap_context_masks()->manifest = mask;
 }
 
 void
 pgy_cap_grant_all_export(void)
 {
     /* Resets only the manifest component; a host env restriction still holds. */
-    g_pgy_cap_manifest = PGY_CAP_ALL;
+    pgy_cap_context_masks()->manifest = PGY_CAP_ALL;
 }
 
 uint32_t
@@ -350,23 +345,8 @@ pgy_cap_require_export(uint32_t cap, const char *op)
 }
 
 /* Resource budget gate -- external twins of the static-inline definitions in
- * pgy_runtime_panic_checked_inline.h. One process-wide per-kind budget; metered
- * ops panic fail-closed on overrun. See pgy_runtime_budget.h and docs/15. */
-/* Single instance across the .bc and the native cache object (see the
- * capability-mask note above for why) -- the .bc build only declares it. */
-#ifdef PGY_RUNTIME_BC_BUILD
-extern PgyBudgetState g_pgy_budget;
-#else
-PgyBudgetState g_pgy_budget;
-#endif
-
-/* noinline so the optimizer cannot inline these into their callers (e.g. the
- * collection alloc paths) inside the .bc/runtime object. Inlined copies would
- * each reference this TU's g_pgy_budget, and since the LLVM bitcode-strip only
- * removes the standalone function bodies, the inlined copies (and their
- * g_pgy_budget references) would survive -- splitting the budget across several
- * instances so is_imposed reads one and charge accumulates into another. Kept
- * non-inline, every call resolves to this one shared state. */
+ * pgy_runtime_panic_checked_inline.h. The budget is selected from the same
+ * currently bound content context as the capability mask. */
 #if defined(__GNUC__) || defined(__clang__)
 #  define PGY_BUDGET_NOINLINE __attribute__((noinline))
 #else
@@ -376,54 +356,51 @@ PgyBudgetState g_pgy_budget;
 PGY_BUDGET_NOINLINE void
 pgy_budget_reset_export(void)
 {
-    pgy_budget_state_init(&g_pgy_budget);
+    pgy_budget_state_init(pgy_budget_state_slot());
 }
 
 PGY_BUDGET_NOINLINE void
 pgy_budget_set_limit_export(int kind, uint64_t limit)
 {
-    if (!g_pgy_budget.initialized)
-        pgy_budget_state_init(&g_pgy_budget);
+    PgyBudgetState *budget = pgy_budget_state_slot();
+
     if (pgy_budget_kind_valid(kind)) {
-        g_pgy_budget.limit[kind] = limit;
+        budget->limit[kind] = limit;
         if (limit != PGY_BUDGET_UNLIMITED)
-            g_pgy_budget.imposed = 1;
+            budget->imposed = 1;
     }
 }
 
 PGY_BUDGET_NOINLINE uint64_t
 pgy_budget_used_export(int kind)
 {
-    if (!g_pgy_budget.initialized)
-        pgy_budget_state_init(&g_pgy_budget);
+    PgyBudgetState *budget = pgy_budget_state_slot();
+
     return pgy_budget_kind_valid(kind)
-        ? atomic_load_explicit(&g_pgy_budget.used[kind], memory_order_relaxed)
+        ? atomic_load_explicit(&budget->used[kind], memory_order_relaxed)
         : 0;
 }
 
 PGY_BUDGET_NOINLINE int
 pgy_budget_is_imposed_export(void)
 {
-    if (!g_pgy_budget.initialized)
-        pgy_budget_state_init(&g_pgy_budget);
-    return g_pgy_budget.imposed;
+    return pgy_budget_state_slot()->imposed;
 }
 
 PGY_BUDGET_NOINLINE void
 pgy_budget_charge_export(int kind, uint64_t amount, const char *op)
 {
+    PgyBudgetState *budget = pgy_budget_state_slot();
     uint64_t used;
 
-    if (!g_pgy_budget.initialized)
-        pgy_budget_state_init(&g_pgy_budget);
     if (!pgy_budget_kind_valid(kind))
         return;
-    used = pgy_budget_charge_into(&g_pgy_budget, kind, amount);
-    if (used > g_pgy_budget.limit[kind]) {
+    used = pgy_budget_charge_into(budget, kind, amount);
+    if (used > budget->limit[kind]) {
         fprintf(stderr, "%s budget op=%s kind=%d used=%llu limit=%llu\n",
                 PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>", kind,
                 (unsigned long long)used,
-                (unsigned long long)g_pgy_budget.limit[kind]);
+                (unsigned long long)budget->limit[kind]);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED,
                           PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED);
     }

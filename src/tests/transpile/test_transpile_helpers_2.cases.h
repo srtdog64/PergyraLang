@@ -25,8 +25,11 @@ lower_pipeline_from_source_ex(const char *source,
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
-        if (*hir_out != NULL && *rir_out != NULL)
-            *mir_out = mir_lower(*hir_out, *rir_out, sem, &mir_error);
+        if (*hir_out != NULL && *rir_out != NULL) {
+            MIRLowerRequest mir_request;
+            mir_lower_request_init(&mir_request, *hir_out, *rir_out, sem);
+            *mir_out = mir_lower(&mir_request, &mir_error);
+        }
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);
@@ -76,6 +79,8 @@ lower_pipeline_from_source_quiet(const char *source,
  * production. The test owns a minimal AIR verification handle because these
  * cases exercise MIR-to-C shape, not AIR synthesis; target and machine facts
  * are still supplied by the real projection-plan owner. */
+static PgyVerifiedParallelCapturePlan test_empty_parallel_capture_plan;
+
 static bool
 issue_test_c_projection_plan(const MIRProgram *mir,
                              PgyVerifiedProjectionPlanRow *plan,
@@ -86,9 +91,21 @@ issue_test_c_projection_plan(const MIRProgram *mir,
     air.has_hir_input = true;
     air.has_rir_input = true;
     air.has_mir_input = true;
-    return pgy_air_evidence_certificate_issue(&air, error)
-        && pgy_verified_projection_plan_intent_observability_with_air(
-            &air, mir, PGY_PROJECTION_TARGET_C, plan, error);
+    if (!pgy_air_evidence_certificate_issue(&air, error)
+        || !pgy_verified_projection_plan_intent_observability_with_air(
+            &air, mir, PGY_PROJECTION_TARGET_C, plan, error))
+        return false;
+    memset(&test_empty_parallel_capture_plan, 0,
+        sizeof(test_empty_parallel_capture_plan));
+    test_empty_parallel_capture_plan.revision =
+        PGY_VERIFIED_PARALLEL_CAPTURE_PLAN_REVISION;
+    test_empty_parallel_capture_plan.air_certificate_fingerprint =
+        air.verification_certificate_fingerprint;
+    test_empty_parallel_capture_plan.verified = true;
+    test_empty_parallel_capture_plan.digest =
+        pgy_verified_parallel_capture_plan_digest(
+            &test_empty_parallel_capture_plan);
+    return true;
 }
 
 /* Tests that never reach a spawn site cross the verified spawn-lane boundary
@@ -114,8 +131,9 @@ transpile_mir_with_test_evidence(const MIRProgram *mir,
         }
         return result;
     }
-    return transpile_from_mir_with_projection_plan(mir, &plan,
-        &test_empty_spawn_lane_plan, output_path);
+    return transpile_from_mir_with_projection_plans(mir, &plan,
+        &test_empty_parallel_capture_plan, &test_empty_spawn_lane_plan,
+        NULL, output_path);
 }
 
 static bool
@@ -133,6 +151,7 @@ bind_test_c_projection_plan(TranspilerCtx *ctx, const MIRProgram *mir)
         return false;
     }
     ctx->projection_plan = &plan;
+    ctx->parallel_capture_plan = &test_empty_parallel_capture_plan;
     ctx->spawn_lane_plan = &test_empty_spawn_lane_plan;
     return true;
 }

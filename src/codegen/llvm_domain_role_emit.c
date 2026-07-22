@@ -135,7 +135,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     TOKEN_PERCENT, TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS,
                     TOKEN_LESS_EQUAL, TOKEN_GREATER, TOKEN_GREATER_EQUAL
                 };
-                const char *for_type_name = llvm_role_for_type_name(stmt);
+                const char *for_type_name =
+                    llvm_role_for_type_name(ctx, stmt);
+                if (ctx->has_error)
+                    return false;
 
                 for (size_t oi = 0; for_type_name != NULL
                        && oi < sizeof(ops) / sizeof(ops[0]); oi++) {

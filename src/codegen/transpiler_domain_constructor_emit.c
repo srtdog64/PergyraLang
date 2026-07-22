@@ -9,56 +9,41 @@
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_constructor_channel_guard.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_constructor_internal.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_type_require.h"
 #include "transpiler_projection.h"
-#include "transpiler_type_render.h"
 
 char *
-transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
-                                            ASTNode *field_type,
-                                            const char *field_name,
-                                            ASTNode *arg)
+transpiler_emit_ctor_arg_with_expected_type_name(TranspilerCtx *ctx,
+                                                const char *field_type_name,
+                                                const char *field_name,
+                                                ASTNode *arg)
 {
-    char *expected_type;
     const char *saved_expected_type;
     const char *arg_type;
     char *result;
 
-    if (field_type == NULL) {
-        arg_type = transpiler_expr_infer_type_name(ctx, arg);
-        if (arg_type != NULL && strcmp(arg_type, "Void") == 0) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ARG_TYPE,
-                "C constructor field '%s' cannot consume a Void expression value",
-                field_name != NULL ? field_name : "<field>");
-            return NULL;
-        }
-        result = emit_expression(arg, ctx);
-        if (result != NULL)
-            return result;
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "C constructor field '%s' could not lower initializer expression",
-            field_name != NULL ? field_name : "<field>");
+    if (field_type_name == NULL || field_type_name[0] == '\0') {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing constructor field type-name metadata for '%s'",
+            field_name != NULL ? field_name : "(anonymous-field)");
         return NULL;
     }
 
-    if (transpiler_constructor_field_is_channel(ctx, field_type)) {
+    if (transpiler_type_name_is_channel(field_type_name)) {
         transpiler_constructor_reject_channel_field(ctx, field_name);
         return NULL;
     }
 
-    expected_type = render_type_name_in_ctx(ctx, field_type);
     saved_expected_type = ctx->expected_type;
-    ctx->expected_type = expected_type;
+    char expected_type_buf[256];
+    ctx->expected_type = transpiler_type_name_apply_generic_bindings(
+        ctx, field_type_name, expected_type_buf, sizeof(expected_type_buf));
     arg_type = transpiler_expr_infer_type_name(ctx, arg);
     if (arg_type != NULL && strcmp(arg_type, "Void") == 0) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -68,12 +53,10 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
             "C constructor field '%s' cannot consume a Void expression value",
             field_name != NULL ? field_name : "<field>");
         ctx->expected_type = saved_expected_type;
-        free(expected_type);
         return NULL;
     }
     result = emit_expression(arg, ctx);
     ctx->expected_type = saved_expected_type;
-    free(expected_type);
     if (result == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -84,6 +67,26 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
         return NULL;
     }
     return result;
+}
+
+/* Constructor expected types are declaration ABI facts. The retained AST type
+ * node is not an expected-type recovery source here; shared/domain constructor
+ * lowering must stop when the hosted MIR view does not carry the name. */
+static char *
+transpiler_emit_ctor_arg_from_field_abi(TranspilerCtx *ctx,
+                                        const char *field_type_name,
+                                        const char *field_name,
+                                        ASTNode *arg,
+                                        size_t index)
+{
+    if (field_type_name == NULL || field_type_name[0] == '\0') {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing constructor field type-name metadata for '%s' index %zu",
+            field_name != NULL ? field_name : "(anonymous-field)", index);
+        return NULL;
+    }
+    return transpiler_emit_ctor_arg_with_expected_type_name(
+        ctx, field_type_name, field_name, arg);
 }
 
 static char *
@@ -110,10 +113,10 @@ transpiler_emit_party_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < shared_count; i++) {
         const char *field_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            ast_call_argument(call, i));
+            ast_call_argument(call, i), i);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -137,10 +140,10 @@ transpiler_emit_party_constructor(ASTNode *call,
         if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
-        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        init_expr = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            initializer);
+            initializer, i);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -198,21 +201,23 @@ transpiler_emit_roster_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
-        ASTNode *field_type = NULL;
+        const char *field_type_name = NULL;
         if (i < roster_party_count) {
             field_name = transpiler_hosted_roster_slot_view_name(
+                &roster_view, i);
+            field_type_name = transpiler_hosted_roster_slot_view_type_name(
                 &roster_view, i);
         } else {
             size_t shared_index = i - roster_party_count;
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, shared_index);
-            field_type = transpiler_hosted_shared_field_view_type(
+            field_type_name = transpiler_hosted_shared_field_view_type_name(
                 &shared_view, shared_index);
         }
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            field_type,
+        char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            field_type_name,
             field_name,
-            ast_call_argument(call, i));
+            ast_call_argument(call, i), i);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -237,10 +242,10 @@ transpiler_emit_roster_constructor(ASTNode *call,
         if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
-        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        init_expr = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            initializer);
+            initializer, i);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -306,22 +311,22 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
-        ASTNode *field_type = NULL;
+        const char *field_type_name = NULL;
         if (i < slot_count) {
             field_name = transpiler_hosted_domain_slot_view_name(
                 &slot_view, i);
-            field_type = transpiler_hosted_domain_slot_view_type(
+            field_type_name = transpiler_hosted_domain_slot_view_type_name(
                 &slot_view, i);
         } else {
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, i - slot_count);
-            field_type = transpiler_hosted_shared_field_view_type(
+            field_type_name = transpiler_hosted_shared_field_view_type_name(
                 &shared_view, i - slot_count);
         }
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            field_type,
+        char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            field_type_name,
             field_name,
-            ast_call_argument(call, i));
+            ast_call_argument(call, i), i);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -346,10 +351,10 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
         if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
-        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        init_expr = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            initializer);
+            initializer, i);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -430,22 +435,22 @@ transpiler_emit_zone_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
-        ASTNode *field_type = NULL;
+        const char *field_type_name = NULL;
         if (i < slot_count) {
             field_name = transpiler_hosted_domain_slot_view_name(
                 &slot_view, i);
-            field_type = transpiler_hosted_domain_slot_view_type(
+            field_type_name = transpiler_hosted_domain_slot_view_type_name(
                 &slot_view, i);
         } else {
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, i - slot_count);
-            field_type = transpiler_hosted_shared_field_view_type(
+            field_type_name = transpiler_hosted_shared_field_view_type_name(
                 &shared_view, i - slot_count);
         }
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            field_type,
+        char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            field_type_name,
             field_name,
-            ast_call_argument(call, i));
+            ast_call_argument(call, i), i);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -470,10 +475,10 @@ transpiler_emit_zone_constructor(ASTNode *call,
         if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
-        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        init_expr = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            initializer);
+            initializer, i);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -556,23 +561,27 @@ transpiler_emit_world_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
-        ASTNode *field_type = NULL;
+        const char *field_type_name = NULL;
         if (i < roster_count) {
             field_name = transpiler_hosted_world_roster_slot_view_name(
+                &roster_view, i);
+            field_type_name = transpiler_hosted_world_roster_slot_view_type_name(
                 &roster_view, i);
         } else if (i < roster_count + zone_count) {
             field_name = transpiler_hosted_world_zone_slot_view_name(
                 &zone_view, i - roster_count);
+            field_type_name = transpiler_hosted_world_zone_slot_view_type_name(
+                &zone_view, i - roster_count);
         } else {
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, i - roster_count - zone_count);
-            field_type = transpiler_hosted_shared_field_view_type(
+            field_type_name = transpiler_hosted_shared_field_view_type_name(
                 &shared_view, i - roster_count - zone_count);
         }
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            field_type,
+        char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            field_type_name,
             field_name,
-            ast_call_argument(call, i));
+            ast_call_argument(call, i), i);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -597,10 +606,10 @@ transpiler_emit_world_constructor(ASTNode *call,
         if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
-        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            transpiler_hosted_shared_field_view_type(&shared_view, i),
+        init_expr = transpiler_emit_ctor_arg_from_field_abi(ctx,
+            transpiler_hosted_shared_field_view_type_name(&shared_view, i),
             field_name,
-            initializer);
+            initializer, i);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;

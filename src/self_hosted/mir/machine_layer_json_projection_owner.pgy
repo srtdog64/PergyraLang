@@ -1,0 +1,36 @@
+// Owns the machine-layer object emitted inside pgy.mir.v1 instructions.
+
+import "program_verify_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonMachineLayer(
+    machine: SelfMirMachineLayerProjection
+) -> String {
+    if machine.contact_kind == "" {
+        return "null";
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("manifest", machine.manifest_id),
+        JsonEmitFieldString("operation", machine.contact_kind),
+        JsonEmitFieldString("physical_grant", machine.physical_grant),
+        JsonEmitFieldNumber(
+            "physical_base", ToString(machine.physical_base)
+        ),
+        JsonEmitFieldNumber(
+            "physical_size", ToString(machine.physical_size)
+        ),
+        JsonEmitFieldString("physical_mode", machine.physical_mode),
+        JsonEmitFieldString(
+            "runtime_operation", machine.runtime_operation
+        ),
+        JsonEmitFieldBool(
+            "hardware_adequate", machine.hardware_adequate == 1
+        ),
+        JsonEmitFieldBool(
+            "authority_required", machine.authority_required == 1
+        ),
+        JsonEmitFieldBool(
+            "live_lease_required", machine.live_lease_required == 1
+        )
+    ]);
+}

@@ -303,8 +303,8 @@ func ParallelLaneRequiredTermAt(index: Int) -> String {
     // WO-PAR-NOVEL step 2: both spawn emitters consume the AIR-carried fact
     // through the plan lookup -- the re-derivation these rows used to pin is
     // retired, and these pins keep the consumption seam from drifting back.
-    if index == 11 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,"; }
-    if index == 12 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,"; }
+    if index == 11 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),"; }
+    if index == 12 { return "pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),"; }
     return "";
 }
 

@@ -490,11 +490,31 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         return field_cls->class_name;
 
     mir_field = llvm_find_decl_field_in_context(ctx, host_name, field_name);
+    if (llvm_active_has_mir(ctx) && mir_field == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing current-field metadata for '%s.%s'",
+            host_name, field_name);
+        return NULL;
+    }
     {
         const char *field_type_name = llvm_mir_decl_field_type_name(mir_field);
         ASTNode *field_type = llvm_mir_decl_field_type(mir_field);
-        if (field_type_name == NULL && field_type != NULL)
+        if (field_type_name == NULL && mir_field != NULL
+            && llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing current-field type-name metadata for '%s.%s'",
+                host_name, field_name);
+            return NULL;
+        }
+        if (field_type_name == NULL && field_type != NULL) {
+            if (llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing current-field type-name metadata for '%s.%s'",
+                    host_name, field_name);
+                return NULL;
+            }
             field_type_name = ast_type_name(field_type);
+        }
         if (field_type_name != NULL
             && llvm_lookup_class(ctx, field_type_name) != NULL)
             return field_type_name;
@@ -517,9 +537,14 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         }
         if (llvm_hosted_field_view_find_index(
                 &field_view, field_name, &field_index)) {
-            ASTNode *field_type =
-                llvm_hosted_field_view_type(&field_view, field_index);
-            field_type_name = field_type != NULL ? ast_type_name(field_type) : NULL;
+            field_type_name = llvm_hosted_field_view_type_name(
+                &field_view, field_index);
+            if (field_type_name == NULL && llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing current-field type-name metadata for '%s.%s'",
+                    host_name, field_name);
+                return NULL;
+            }
         }
         if (field_type_name != NULL
             && llvm_lookup_class(ctx, field_type_name) != NULL)

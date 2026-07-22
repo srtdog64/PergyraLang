@@ -1,0 +1,345 @@
+// Owns the ABI-layout tuple projected by the self-hosted MIR JSON producer.
+//
+// The native MIR owner remains authoritative. This projection materializes a
+// bounded fixed-row subset from that explicit contract; unknown or
+// target-dependent rows stay dynamic instead of guessing from source text.
+
+import "program_verify_owner.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+import "../compiler/abi_layout_target_policy_owner.pgy";
+import "../lib/json_emit.pgy";
+
+// The producer-side row set is deliberately small and explicit in this rung.
+// It mirrors rows admitted by the current selfhost-c ABI target policy.  The
+// pointer-bearing String rows are therefore not universal host defaults: their
+// fixed word layout is valid only after that policy is ready.  Unknown rows,
+// and rows for a future target without carried size/align facts, remain the
+// declared dynamic form instead of guessing from source text.
+func SelfMirJsonAbiLayoutField(
+    name: String, offset: Int, size: Int, align: Int
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("name", name),
+        JsonEmitFieldNumber("offset", ToString(offset)),
+        JsonEmitFieldNumber("size", ToString(size)),
+        JsonEmitFieldNumber("align", ToString(align))
+    ]);
+}
+
+func SelfMirJsonAbiLayoutRow(
+    type_name: String, size: Int, align: Int, fields: Array<String>,
+    runtime_fn: String, inner_c_type: String, representation: Int,
+    discriminant: String, primary_tag: Int, secondary_tag: Int
+) -> String {
+    let discriminant_field: String = "null";
+    if StringLength(discriminant) > 0 {
+        discriminant_field = JsonStringLiteral(discriminant);
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("type", type_name),
+        JsonEmitFieldNumber("size", ToString(size)),
+        JsonEmitFieldNumber("align", ToString(align)),
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields)),
+        JsonEmitFieldString("runtime_fn", runtime_fn),
+        JsonEmitFieldString("inner_c_type", inner_c_type),
+        JsonEmitFieldNumber("representation", ToString(representation)),
+        JsonEmitFieldRaw("discriminant", discriminant_field),
+        JsonEmitFieldNumber("primary_tag", ToString(primary_tag)),
+        JsonEmitFieldNumber("secondary_tag", ToString(secondary_tag)),
+        JsonEmitFieldRaw("niche_none_pattern", "null")
+    ]);
+}
+
+func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
+    if !CompilerAbiLayoutTargetPolicyReady() {
+        return "";
+    }
+    let fields: Array<String> = [];
+    if type_name == "Slot<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 4, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_claim_Int", "int32_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "Slot<Long>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_Long", "int64_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "Slot<Float>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 4, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_claim_Float", "float", 0, "", 0, 0
+        );
+    }
+    if type_name == "Slot<Double>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_Double", "double", 0, "", 0, 0
+        );
+    }
+    if type_name == "Slot<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 1, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 2, 1, fields, "pgy_claim_Bool", "bool", 0, "", 0, 0
+        );
+    }
+    if type_name == "Slot<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_String", "char*", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 4, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_claim_device_Int", "int32_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<Long>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_device_Long", "int64_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<Float>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 4, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_claim_device_Float", "float", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<Double>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_device_Double", "double", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 1, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 2, 1, fields, "pgy_claim_device_Bool", "bool", 0, "", 0, 0
+        );
+    }
+    if type_name == "DeviceSlot<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("claimed", 8, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_device_String", "char*", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 4, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 24, 8, fields, "pgy_claim_secure_Int", "int32_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<Long>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 16, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 24, 8, fields, "pgy_claim_secure_Long", "int64_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<Float>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 4, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_secure_Float", "float", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<Double>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 16, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 24, 8, fields, "pgy_claim_secure_Double", "double", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 1, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_claim_secure_Bool", "bool", 0, "", 0, 0
+        );
+    }
+    if type_name == "SecureSlot<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("occupied", 8, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("token", 16, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 24, 8, fields, "pgy_claim_secure_String", "char*", 0, "", 0, 0
+        );
+    }
+    if type_name == "Option<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 4, 4));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_option_some_Int", "int32_t", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Option<Long>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_option_some_Long", "int64_t", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Option<Float>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 4, 4));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_option_some_Float", "float", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Option<Double>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_option_some_Double", "double", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Option<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 1, 1));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 8, 4, fields, "pgy_option_some_Bool", "bool", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Option<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_option_some_String", "char*", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Result<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("ok", 4, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("err", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_result_ok_Int", "int32_t", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Result<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("ok", 4, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("err", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_result_ok_Bool", "bool", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Result<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("ok", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("err", 8, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 16, 8, fields, "pgy_result_ok_String", "char*", 1, "tag", 0, 1
+        );
+    }
+    if type_name == "Array<Int>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_Int", "int32_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "Array<String>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_String", "char*", 0, "", 0, 0
+        );
+    }
+    if type_name == "Array<Long>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_Long", "int64_t", 0, "", 0, 0
+        );
+    }
+    if type_name == "Array<Float>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_Float", "float", 0, "", 0, 0
+        );
+    }
+    if type_name == "Array<Double>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_Double", "double", 0, "", 0, 0
+        );
+    }
+    if type_name == "Array<Bool>" {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("data", 0, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("length", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("capacity", 16, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField("allocator", 24, 8, 8));
+        return SelfMirJsonAbiLayoutRow(
+            type_name, 32, 8, fields, "pgy_array_new_Bool", "bool", 0, "", 0, 0
+        );
+    }
+    return "";
+}
+
+func SelfMirJsonAbiLayoutId(layout: String) -> String {
+    if StringLength(layout) == 0 {
+        return "0";
+    }
+    let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        layout, 0, StringLength(layout)
+    );
+    return ToString(MirAbiLayoutIdFromRow(row));
+}
+
+func SelfMirJsonAbiTypeName(
+    rows: SelfMirInstructionRows, instruction_index: Int
+) -> String {
+    if rows.runtime_call_abi.present[instruction_index] == 1 {
+        return rows.runtime_call_abi.type_names[instruction_index];
+    }
+    let candidate: String = rows.expr1s[instruction_index];
+    if candidate == "Int" || candidate == "Long" ||
+        candidate == "Float" || candidate == "Double" ||
+        candidate == "Bool" || candidate == "String" ||
+        candidate == "Option<Int>" || candidate == "Option<Long>" ||
+        candidate == "Option<Float>" || candidate == "Option<Double>" ||
+        candidate == "Option<String>" || candidate == "Option<Bool>" ||
+        candidate == "Result<Int>" || candidate == "Result<Bool>" ||
+        candidate == "Result<String>" || candidate == "Array<Int>" ||
+        candidate == "Array<Long>" || candidate == "Array<Float>" ||
+        candidate == "Array<Double>" || candidate == "Array<Bool>" ||
+        candidate == "Array<String>" || candidate == "TextBuilder" ||
+        candidate == "Allocator" {
+        return candidate;
+    }
+    return "";
+}

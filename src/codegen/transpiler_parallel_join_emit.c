@@ -17,6 +17,7 @@
 #include "transpiler_async_parallel_emit.h"
 #include "transpiler_parallel_join_reduce_emit.h"
 #include "../compiler/mir_parallel_capture_facts.h"
+#include "../compiler/verified_projection_plan.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -156,11 +157,13 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             const char *tn = entry != NULL ? entry->type_name : NULL;
 
             if (tn != NULL && transpiler_type_name_is_array(tn)
-                && mir_parallel_capture_disposition_find(
-                    capture_boundary, capture_typed_names[i],
+                && pgy_verified_parallel_capture_disposition_find(
+                    ctx->parallel_capture_plan, capture_boundary,
+                    capture_typed_names[i],
                     MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) == NULL
-                && mir_parallel_capture_disposition_find(
-                    capture_boundary, capture_typed_names[i],
+                && pgy_verified_parallel_capture_disposition_find(
+                    ctx->parallel_capture_plan, capture_boundary,
+                    capture_typed_names[i],
                     MIR_PARALLEL_CAPTURE_JOIN_READONLY) == NULL) {
                 join_set_error(ctx,
                     "parallel join capture '%s' shares a mutable array without index-disjointness evidence; the checker fact is missing",
@@ -360,13 +363,15 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
          * same panic export pair, so class and reason match across
          * backends. */
         for (int wi = 0; wi < capture_typed_count; wi++) {
-            if (mir_parallel_capture_disposition_find(
-                    capture_boundary, capture_typed_names[wi],
+            if (pgy_verified_parallel_capture_disposition_find(
+                    ctx->parallel_capture_plan, capture_boundary,
+                    capture_typed_names[wi],
                     MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) == NULL)
                 continue;
             for (int ri = 0; ri < capture_typed_count; ri++) {
-                if (mir_parallel_capture_disposition_find(
-                        capture_boundary, capture_typed_names[ri],
+                if (pgy_verified_parallel_capture_disposition_find(
+                        ctx->parallel_capture_plan, capture_boundary,
+                        capture_typed_names[ri],
                         MIR_PARALLEL_CAPTURE_JOIN_READONLY) == NULL)
                     continue;
                 write_indent(ctx);

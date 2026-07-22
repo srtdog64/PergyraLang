@@ -68,6 +68,15 @@ llvm_class_constructor_field_type_name_at(LLVMGenCtx *ctx,
     field_type_name = field_meta != NULL
         ? llvm_mir_decl_field_type_name(field_meta)
         : NULL;
+    if (llvm_active_has_mir(ctx)) {
+        if (field_type_name == NULL || field_type_name[0] == '\0') {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing class constructor field type-name metadata for '%s' index %zu",
+                callee_name, index);
+            return NULL;
+        }
+        return pergyra_strdup(field_type_name);
+    }
     if (field_type_name != NULL)
         return pergyra_strdup(field_type_name);
 
@@ -261,17 +270,38 @@ llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
     for (size_t i = 0; view != NULL && i < view->count; i++) {
         const char *shared_name =
             llvm_hosted_shared_field_view_name(view, i);
+        const char *shared_type_name =
+            llvm_hosted_shared_field_view_type_name(view, i);
         ASTNode *initializer =
             llvm_hosted_shared_field_view_initializer(view, i);
+        char *legacy_type_name = NULL;
         int field_idx;
         LLVMValueRef init_val;
         if (shared_name == NULL || initializer == NULL) {
             continue;
         }
+        if (llvm_active_has_mir(ctx)) {
+            if (shared_type_name == NULL || shared_type_name[0] == '\0') {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing class constructor shared-field type-name metadata for '%s' index %zu",
+                    shared_name, i);
+                return false;
+            }
+        } else if (shared_type_name == NULL) {
+            ASTNode *shared_type =
+                llvm_hosted_shared_field_view_type(view, i);
+            legacy_type_name = shared_type != NULL
+                ? llvm_render_type_name_in_ctx(ctx, shared_type) : NULL;
+            shared_type_name = legacy_type_name;
+        }
         field_idx = llvm_class_field_index(cls, shared_name);
-        if (field_idx < 0 || (size_t)field_idx < ast_call_arg_count(node))
+        if (field_idx < 0 || (size_t)field_idx < ast_call_arg_count(node)) {
+            free(legacy_type_name);
             continue;
-        init_val = llvm_emit_expression(initializer, ctx);
+        }
+        init_val = llvm_emit_constructor_field_arg(node, ctx,
+            shared_type_name, shared_name, initializer);
+        free(legacy_type_name);
         if (init_val == NULL) {
             llvm_constructor_error(initializer, ctx,
                 "LLVM class constructor could not lower shared-field initializer");

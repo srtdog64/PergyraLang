@@ -21,6 +21,8 @@ static const char kLlvmMirClassFieldMetadataMissing[] =
     "<mir-class-field-metadata>";
 static const char kLlvmMirDomainSlotMetadataMissing[] =
     "<mir-domain-slot-metadata>";
+static const char kLlvmMirFieldTypeNameMetadataMissing[] =
+    "<mir-field-type-name-metadata>";
 
 void
 llvm_constructor_reject_channel_field(ASTNode *node,
@@ -71,9 +73,21 @@ llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx, ASTNode *class_decl)
         return kLlvmMirClassFieldMetadataMissing;
     }
     for (size_t i = 0; i < class_fields.count; i++) {
-        ASTNode *field_type =
-            llvm_hosted_field_view_type(&class_fields, i);
-        if (llvm_constructor_field_is_channel(ctx, field_type))
+        const char *type_name =
+            llvm_hosted_field_view_type_name(&class_fields, i);
+        if (llvm_active_has_mir(ctx)) {
+            if (type_name == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing constructor field type-name metadata for '%s' index %zu",
+                    class_name != NULL ? class_name : "(anonymous-class)", i);
+                return kLlvmMirFieldTypeNameMetadataMissing;
+            }
+            if (pgy_classify_type(type_name) == PGY_TK_CHANNEL)
+                return llvm_hosted_field_view_name(&class_fields, i);
+            continue;
+        }
+        if (llvm_constructor_field_is_channel(
+                ctx, llvm_hosted_field_view_type(&class_fields, i)))
             return llvm_hosted_field_view_name(&class_fields, i);
     }
     return NULL;
@@ -82,11 +96,25 @@ llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx, ASTNode *class_decl)
 static const char *
 llvm_constructor_find_shared_channel_field(
     LLVMGenCtx *ctx,
+    const char *decl_name,
     const LLVMHostedSharedFieldView *view)
 {
     for (size_t i = 0; view != NULL && i < view->count; i++) {
-        ASTNode *field_type = llvm_hosted_shared_field_view_type(view, i);
-        if (llvm_constructor_field_is_channel(ctx, field_type))
+        const char *type_name =
+            llvm_hosted_shared_field_view_type_name(view, i);
+        if (llvm_active_has_mir(ctx)) {
+            if (type_name == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing constructor field type-name metadata for '%s' index %zu",
+                    decl_name != NULL ? decl_name : "(anonymous-host)", i);
+                return kLlvmMirFieldTypeNameMetadataMissing;
+            }
+            if (pgy_classify_type(type_name) == PGY_TK_CHANNEL)
+                return llvm_hosted_shared_field_view_name(view, i);
+            continue;
+        }
+        if (llvm_constructor_field_is_channel(
+                ctx, llvm_hosted_shared_field_view_type(view, i)))
             return llvm_hosted_shared_field_view_name(view, i);
     }
     return NULL;
@@ -94,12 +122,25 @@ llvm_constructor_find_shared_channel_field(
 
 static const char *
 llvm_constructor_find_slot_channel_field(LLVMGenCtx *ctx,
+                                         const char *decl_name,
                                          const LLVMHostedDomainSlotView *view)
 {
     for (size_t i = 0; view != NULL && i < view->count; i++) {
-        ASTNode *slot_type =
-            llvm_hosted_domain_slot_view_type(view, i);
-        if (llvm_constructor_field_is_channel(ctx, slot_type))
+        const char *type_name =
+            llvm_hosted_domain_slot_view_type_name(view, i);
+        if (llvm_active_has_mir(ctx)) {
+            if (type_name == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing constructor field type-name metadata for '%s' index %zu",
+                    decl_name != NULL ? decl_name : "(anonymous-domain)", i);
+                return kLlvmMirFieldTypeNameMetadataMissing;
+            }
+            if (pgy_classify_type(type_name) == PGY_TK_CHANNEL)
+                return llvm_hosted_domain_slot_view_name(view, i);
+            continue;
+        }
+        if (llvm_constructor_field_is_channel(
+                ctx, llvm_hosted_domain_slot_view_type(view, i)))
             return llvm_hosted_domain_slot_view_name(view, i);
     }
     return NULL;
@@ -115,11 +156,13 @@ llvm_constructor_mir_field_is_channel(LLVMGenCtx *ctx,
     if (field == NULL)
         return false;
 
+    type_name = llvm_mir_decl_field_type_name(field);
+    if (llvm_active_has_mir(ctx))
+        return pgy_classify_type(type_name) == PGY_TK_CHANNEL;
+
     type_node = llvm_mir_decl_field_type(field);
     if (llvm_constructor_field_is_channel(ctx, type_node))
         return true;
-
-    type_name = llvm_mir_decl_field_type_name(field);
     return pgy_classify_type(type_name) == PGY_TK_CHANNEL;
 }
 
@@ -137,6 +180,16 @@ llvm_constructor_find_mir_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_field_count(header); i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            == MIR_DECL_FIELD_ROLE_SLOT)
+            continue;
+        if (llvm_active_has_mir(ctx)
+            && llvm_mir_decl_field_type_name(field) == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing constructor field type-name metadata for '%s' index %zu",
+                host_name != NULL ? host_name : "(anonymous-host)", i);
+            return kLlvmMirFieldTypeNameMetadataMissing;
+        }
         if (llvm_constructor_mir_field_is_channel(ctx, field))
             return mir_decl_field_name(field);
     }
@@ -189,7 +242,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
         if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
             return llvm_constructor_fail_shared_metadata_missing(
                 ctx, decl_name);
-        return llvm_constructor_find_shared_channel_field(ctx, &shared);
+        return llvm_constructor_find_shared_channel_field(ctx, decl_name, &shared);
     }
     case AST_RELATION_DECL:
         {
@@ -199,7 +252,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
                 return llvm_constructor_fail_domain_slot_metadata_missing(
                     ctx, decl_name);
             const char *slot =
-                llvm_constructor_find_slot_channel_field(ctx, &slot_view);
+                llvm_constructor_find_slot_channel_field(ctx, decl_name, &slot_view);
             if (slot != NULL)
                 return slot;
         }
@@ -209,7 +262,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
                 return llvm_constructor_fail_shared_metadata_missing(
                     ctx, decl_name);
-            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+            return llvm_constructor_find_shared_channel_field(ctx, decl_name, &shared);
         }
     case AST_EFFECT_DECL:
         {
@@ -219,7 +272,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
                 return llvm_constructor_fail_domain_slot_metadata_missing(
                     ctx, decl_name);
             const char *slot =
-                llvm_constructor_find_slot_channel_field(ctx, &slot_view);
+                llvm_constructor_find_slot_channel_field(ctx, decl_name, &slot_view);
             if (slot != NULL)
                 return slot;
         }
@@ -229,7 +282,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
                 return llvm_constructor_fail_shared_metadata_missing(
                     ctx, decl_name);
-            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+            return llvm_constructor_find_shared_channel_field(ctx, decl_name, &shared);
         }
     case AST_ZONE_DECL:
         {
@@ -239,7 +292,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
                 return llvm_constructor_fail_domain_slot_metadata_missing(
                     ctx, decl_name);
             const char *slot =
-                llvm_constructor_find_slot_channel_field(ctx, &slot_view);
+                llvm_constructor_find_slot_channel_field(ctx, decl_name, &slot_view);
             if (slot != NULL)
                 return slot;
         }
@@ -249,7 +302,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
                 return llvm_constructor_fail_shared_metadata_missing(
                     ctx, decl_name);
-            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+            return llvm_constructor_find_shared_channel_field(ctx, decl_name, &shared);
         }
     case AST_WORLD_DECL: {
         LLVMHostedSharedFieldView shared =
@@ -257,7 +310,7 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
         if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
             return llvm_constructor_fail_shared_metadata_missing(
                 ctx, decl_name);
-        return llvm_constructor_find_shared_channel_field(ctx, &shared);
+        return llvm_constructor_find_shared_channel_field(ctx, decl_name, &shared);
     }
     default:
         return NULL;

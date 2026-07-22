@@ -1,39 +1,55 @@
 # Self-Host Progress
 
-2026-07-21 executable breadth delta: DRV-2 MIR fixture 220 is
+2026-07-21 builtin-call scalar SoT delta: DRV-2 MIR fixture 224 is
+`class_field_init_order`. The canonical builtin signature row already owns
+`ToString -> String` with an `Unknown` argument wildcard; graph scalar
+validation now consumes that row when the actual argument graph is typed,
+instead of falling back to text-level binary checking for a larger string
+concatenation. The focused C/LLVM gate is the acceptance boundary; the
+complete 224-fixture matrix and released/default replacement remain open.
+
+2026-07-21 executable MIR/ABI-first aggregate delta: the current DRV-2
+manifest is 222 rows and includes the new `array_scalar_aggregate_core`
+aggregate fixture. The self-host collection-runtime owner now
+routes `Array<Float>` to a typed `pgy_af` value/runtime family; `Array<Long>`
+shares the owned integer runtime and `Array<Bool>` uses the existing bool
+family. The self MIR producer carries native `Array<Long|Float|Bool>` layout
+rows and focused C/LLVM parity covers canonical MIR, missing/wrong ABI-row
+mutations, emitted C, host compilation, and runtime output. Generic,
+target-specific, and `Array<Double>` aggregate rows remain outside this rung.
+
+2026-07-21 executable breadth delta: DRV-2 MIR fixture 222 is
 `class_steps_loop_simple`. The Pergyra producer already carried the class
 method, owner-field, while-CFG, reassignment, and loop-phi facts required by
 this program, so the admission adds no source re-read or compatibility fact.
-Focused C-built and LLVM-built self drivers match canonical MIR, emitted C,
-host compilation, and runtime output. The complete 220-fixture matrix and
-released/default replacement remain open.
-
-2026-07-21 owner-field match SoT delta: DRV-2 MIR fixture 219 is
-`class_holds_enum_field`. MIR match subject validation now consumes the
-semantic method owner-field type query after ordinary local lookup, without
-seeding fields as fake SSA locals or rescanning source text. Focused C-built
-and LLVM-built producer-first paths match canonical MIR, emitted C, runtime
-output, and missing field/enum-variant rejection. The complete 219-fixture
+The focused C/LLVM gate is the acceptance boundary; the complete 222-fixture
 matrix and released/default replacement remain open.
 
-2026-07-21 executable breadth delta: DRV-2 MIR fixtures 217 and 218 are
+2026-07-21 owner-field match SoT delta: DRV-2 MIR fixture 221 is
+`class_holds_enum_field`. MIR match subject validation now consumes the
+semantic method owner-field type query after ordinary local lookup, without
+seeding fields as fake SSA locals or rescanning source text. Focused C/LLVM
+producer-first parity plus missing field and enum-variant mutations are the
+acceptance gate. The complete 221-fixture matrix and released/default
+replacement remain open.
+
+2026-07-21 executable breadth delta: DRV-2 MIR fixtures 218 and 219 are
 `class_loop_method_total` and `class_method_branch_nest`. The existing class
 receiver, method-call target, field, branch, loop, return, and expression-graph
 facts are sufficient; no semantic fallback or new fact family is introduced.
-Focused C-built and LLVM-built self drivers match the C oracle through
-canonical MIR, emitted C, host compilation, and runtime output. The complete
-218-fixture matrix and released/default replacement remain open.
+Focused C-built and LLVM-built self-driver parity is the acceptance gate. The
+complete 219-fixture matrix and released/default replacement remain open.
 
-2026-07-21 executable breadth delta: DRV-2 MIR fixture 216 is
+2026-07-21 executable breadth delta: DRV-2 MIR fixture 217 is
 `class_helper_method_chain`. The existing class receiver, method-call target,
 field, return, and expression-graph facts were sufficient; no semantic
 fallback or new fact family was added. Focused C-built and LLVM-built self
 drivers match the C oracle after canonical MIR normalization, emit identical C
 from the source and MIR consumer paths, compile that C, and produce identical
-runtime output. The complete 216-fixture matrix and released/default
+runtime output. The complete 217-fixture matrix and released/default
 replacement remain open.
 
-2026-07-21 executable Slot ABI SoT delta: DRV-2 MIR fixture 215 is
+2026-07-21 executable Slot ABI SoT delta: DRV-2 MIR fixture 216 is
 `bool_helper_while_slot`. The semantic owner recognizes the plain `Slot<T>`
 Claim/Read/Write/Release surface, and the MIR producer projects each required
 runtime-call ABI row from carried expression-graph call identities and typed
@@ -47,8 +63,22 @@ C-built and LLVM-built self drivers match the C oracle on canonical MIR,
 emitted C, host compilation, and runtime output, including missing, identity,
 payload, and auxiliary-row negative mutations. Final emission still projects a
 validated row through the canonical runtime ABI table; direct row-payload
-transport into the emission artifact remains open. The complete 215-fixture
+transport into the emission artifact remains open. The complete 216-fixture
 matrix and released/default replacement remain open.
+
+2026-07-21 MIR-only ABI-first layout delta: the self-host MIR JSON producer now
+materializes the fixed `Slot<T>`, `DeviceSlot<T>`, and `SecureSlot<T>` rows for
+`T` in `{Int, Long, Float, Double, Bool, String}`, plus explicit-tag
+`Option<Int|Long|Float|Double|Bool|String>` and
+`Result<Int|Bool|String>` rows, plus `Array<Int>` and `Array<String>` aggregate
+rows. `option_string_core`, `array_sum_filtered`, and `str_array` are now
+focused DRV-2 ABI fixtures. The producer declares native-shaped
+`Array<Long>`/`Array<Float>`/`Array<Bool>` rows, but their current self-host
+semantic array-usage consumer fails closed before executable promotion.
+native/self C and LLVM producers agree on
+`Option<String>` `LayoutId=589228278`, and missing-row/wrong-ID mutations fail
+at the MIR consumer. Unknown and target-dependent aggregate rows remain an
+explicit dynamic bridge.
 
 2026-07-21 executable breadth delta: DRV-2 MIR fixtures 205 through 214 are
 `class_dual_method_loop`, `class_dual_predicate`,
@@ -62,7 +92,7 @@ paths, compile that C, and produce byte-identical runtime output for all ten
 programs. No semantic fallback or new fact family was required: this batch
 demonstrates that the admitted class/call/aggregate/loop facts generalize beyond
 the fixtures that introduced them. Only the focused ten-fixture matrix ran;
-the complete 214-fixture matrix and released/default replacement remain open.
+the complete 215-fixture matrix and released/default replacement remain open.
 
 2026-07-21 executable breadth delta: DRV-2 MIR fixture 204 is
 `class_arg_helper_loop`. Clean committed-source C-built and LLVM-built self

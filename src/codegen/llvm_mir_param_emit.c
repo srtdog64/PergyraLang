@@ -14,7 +14,6 @@
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
 #include "llvm_inventory_decl_lookup.h"
-#include "llvm_mir_type_helpers.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "codegen_slot_type_policy.h"
@@ -37,22 +36,11 @@ llvm_mir_self_var_class(LLVMGenCtx *ctx, const char *owner_name,
         ASTNode *role_decl =
             llvm_find_host_decl_in_active_inventory(ctx, owner_name);
         const char *subject = role_decl != NULL
-            ? llvm_role_for_type_name(role_decl) : NULL;
+            ? llvm_role_for_type_name(ctx, role_decl) : NULL;
         if (subject != NULL)
             return subject;
     }
     return owner_name;
-}
-
-static void
-llvm_register_callable_param_if_needed(LLVMGenCtx *ctx, FuncParam *param)
-{
-    if (ctx == NULL || param == NULL || param->name == NULL
-        || param->type == NULL || param->type->type != AST_EVENT_HANDLER_TYPE)
-        return;
-    if (llvm_lookup_callable_entry(ctx, param->name) != NULL)
-        return;
-    llvm_register_callable_var(ctx, param->name, param->type);
 }
 
 static const char *
@@ -136,7 +124,16 @@ llvm_register_one_field_slot(LLVMGenCtx *ctx, ASTNode *host,
 
     if (field_name == NULL)
         return;
-    if (type_name == NULL) {
+    if (type_name == NULL || type_name[0] == '\0') {
+        if (llvm_active_has_mir(ctx)) {
+            const char *host_name = host != NULL
+                ? llvm_decl_node_name(host) : NULL;
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing class field type-name metadata for '%s' index %zu",
+                host_name != NULL ? host_name : "(anonymous-host)",
+                field_index);
+            return;
+        }
         field_type = llvm_hosted_field_view_type(field_view, field_index);
         if (field_type != NULL) {
             owned_type_name = llvm_render_type_name_in_ctx(ctx, field_type);
@@ -412,8 +409,11 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 ? llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)
                 : param_type_name != NULL
                 ? pergyra_type_to_llvm(ctx, param_type_name)
-                : llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
-                    "function parameter");
+                : NULL;
+            if (pt == NULL && !ctx->has_error)
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing parameter ABI type fact for '%s'",
+                    p->name);
             if (ctx->has_error || pt == NULL)
                 return;
             if (slot_inner != NULL) {
@@ -431,11 +431,20 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 LLVMBuildStore(ctx->builder,
                     LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
                 llvm_scope_declare(ctx, p->name, alloca, slot_ptr_ty);
-                if (param_type_name != NULL)
+                if (param_callable_sig != NULL)
+                    llvm_register_callable_mir_signature(ctx, p->name,
+                        param_callable_sig->param_count,
+                        (const char *const *)param_callable_sig->param_type_names,
+                        NULL,
+                        param_callable_sig->return_type_name,
+                        NULL);
+                else if (param_type_name != NULL)
                     llvm_register_typed_var_abi_binding(ctx, p->name, alloca,
                         param_type_name);
                 else
-                    llvm_register_typed_var(ctx, p->name, p->type);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing parameter ABI type fact for '%s'",
+                        p->name);
                 llvm_register_slot_var(ctx, p->name, slot_inner,
                     resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT);
                 if (resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT) {
@@ -456,9 +465,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
 
             if (pass_indirect
                 || (param_type_name != NULL
-                ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-                : (p->type != NULL
-                    && llvm_mir_param_uses_pointer_self(ctx, p->type))))
+                    && llvm_type_name_uses_pointer_self(ctx, param_type_name)))
                 pt = LLVMPointerType(pt, 0);
             if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
                 LLVMValueRef mr_ptr =
@@ -479,10 +486,12 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             }
             llvm_scope_declare(ctx, p->name, alloca, pt);
             if (param_callable_sig != NULL) {
-                llvm_register_callable_signature_names(ctx, p->name,
+                llvm_register_callable_mir_signature(ctx, p->name,
                     param_callable_sig->param_count,
                     (const char *const *)param_callable_sig->param_type_names,
-                    param_callable_sig->return_type_name);
+                    NULL,
+                    param_callable_sig->return_type_name,
+                    NULL);
             } else if (param_type_name != NULL)
                 llvm_register_typed_var_abi_binding(ctx, p->name, alloca,
                     param_type_name);
@@ -490,12 +499,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing parameter ABI type fact for '%s'",
                     p->name);
-            if (param_callable_sig == NULL)
-                llvm_register_callable_param_if_needed(ctx, p);
             if (param_type_name != NULL)
                 llvm_register_var_class(ctx, p->name, param_type_name);
-            else
-                llvm_mir_register_nominal_class(ctx, p->name, p->type);
         }
         return;
     }
@@ -564,82 +569,6 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     type_name);
             if (type_name != NULL)
                 llvm_register_var_class(ctx, alias, type_name);
-        } else {
-            if (is_method && i == 0) {
-                LLVMTypeRef self_type = owner_is_role
-                    ? ctx->type_i8ptr
-                    : (owner_cls != NULL
-                    ? (owner_cls->is_pointer_self_host
-                        ? LLVMPointerType(owner_cls->struct_type, 0)
-                        : owner_cls->struct_type)
-                    : ctx->type_i8ptr);
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                    (owner_cls != NULL && owner_cls->is_pointer_self_host
-                     && !owner_is_role)
-                        ? "self.addr" : "self");
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
-                llvm_scope_declare(ctx, "self", alloca, self_type);
-                {
-                    const char *self_class = llvm_mir_self_var_class(
-                        ctx, owner_name, owner_is_role);
-                    if (self_class != NULL)
-                        llvm_register_var_class(ctx, "self", self_class);
-                }
-            } else {
-                size_t logical_index = is_method ? (i - 1) : i;
-                size_t seen = 0;
-                FuncParam *p = NULL;
-                size_t source_param_index = (size_t)-1;
-                size_t func_param_count =
-                    llvm_mir_routine_param_count(routine);
-                for (size_t param_index = 0; param_index < func_param_count;
-                     param_index++) {
-                    FuncParam *candidate =
-                        llvm_mir_routine_param(routine, param_index);
-                    if (llvm_param_is_implicit_self_local(candidate)) {
-                        continue;
-                    }
-                    if (seen == logical_index) {
-                        p = candidate;
-                        source_param_index = param_index;
-                        break;
-                    }
-                    seen++;
-                }
-                if (p == NULL || p->name == NULL)
-                    continue;
-                const char *param_type_name =
-                    source_param_index != (size_t)-1
-                        ? llvm_mir_routine_param_type_name(routine,
-                            source_param_index)
-                        : NULL;
-                LLVMTypeRef pt = param_type_name != NULL
-                    ? pergyra_type_to_llvm(ctx, param_type_name)
-                    : llvm_mir_required_type_from_ast(
-                        ctx, func_decl, p->type, "function parameter");
-                if (ctx->has_error || pt == NULL)
-                    return;
-                if (param_type_name != NULL
-                    ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-                    : (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx,
-                        p->type))) {
-                    pt = LLVMPointerType(pt, 0);
-                }
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i),
-                    alloca);
-                llvm_scope_declare(ctx, p->name, alloca, pt);
-                if (param_type_name != NULL)
-                    llvm_register_typed_var_abi_binding(ctx, p->name, alloca,
-                        param_type_name);
-                else
-                    llvm_register_typed_var(ctx, p->name, p->type);
-                llvm_register_callable_param_if_needed(ctx, p);
-                if (param_type_name != NULL)
-                    llvm_register_var_class(ctx, p->name, param_type_name);
-                else
-                    llvm_mir_register_nominal_class(ctx, p->name, p->type);
-            }
         }
     }
 }

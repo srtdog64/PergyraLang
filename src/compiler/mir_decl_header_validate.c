@@ -110,6 +110,54 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
+    if (header->ast_type != AST_EVENT_DECL
+        && (header->event_param_metadata_present
+            || header->event_param_count != 0
+            || header->event_param_names != NULL
+            || header->event_param_type_names != NULL)) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has event parameter metadata on a non-event declaration",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+    if (header->ast_type == AST_EVENT_DECL
+        && !header->event_param_metadata_present) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' is missing event parameter metadata",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+    if (header->event_param_count > 0
+        && (header->event_param_names == NULL
+            || header->event_param_type_names == NULL)) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' event parameter metadata is incomplete",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+    for (size_t i = 0; i < header->event_param_count; i++) {
+        if (header->event_param_names[i] == NULL
+            || header->event_param_type_names[i] == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] '%s' event parameter[%zu] has no ABI metadata",
+                    header_index,
+                    header->name != NULL ? header->name : "(anonymous)",
+                    i);
+            }
+            return false;
+        }
+    }
+
     if (header->generic_metadata_count > 0
         && header->generic_metadata == NULL) {
         if (error_message != NULL) {

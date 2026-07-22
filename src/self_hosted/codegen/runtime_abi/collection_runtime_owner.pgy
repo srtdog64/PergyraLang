@@ -35,6 +35,12 @@ func CollectionRuntimeBuiltinKindFromTypeName(
     if type_name == "Array<Bool>" || type_name == "Array<Bool: Bool>" {
         return Some("ArrayBool");
     }
+    if type_name == "Array<Float>" || type_name == "Array<Float: Float>" {
+        return Some("ArrayFloat");
+    }
+    if type_name == "Array<Double>" || type_name == "Array<Double: Double>" {
+        return Some("ArrayDouble");
+    }
     if type_name == "Array<CodegenAstTextNode>" ||
         type_name ==
             "Array<CodegenAstTextNode: CodegenAstTextNode>" {
@@ -52,7 +58,7 @@ func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
     if IsSome(kind) {
         return UnwrapOption(kind);
     }
-    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<Bool>/Array<CodegenAstTextNode> bridge forms): ", type_name));
+    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<Bool>/Array<Float>/Array<Double>/Array<CodegenAstTextNode> bridge forms): ", type_name));
     return "";
 }
 
@@ -61,10 +67,12 @@ func CollectionRuntimeRecordElementType(kind: String) -> Option<String> {
 }
 
 func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
-    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayBool" || kind == "ArrayCodegenAstTextNode" {
+    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayBool" ||
+        kind == "ArrayFloat" || kind == "ArrayDouble" ||
+        kind == "ArrayCodegenAstTextNode" {
         return kind;
     }
-    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, Array<Bool>, or Array<CodegenAstTextNode>, got: ", kind)));
+    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, Array<Bool>, Array<Float>, Array<Double>, or Array<CodegenAstTextNode>, got: ", kind)));
     return "";
 }
 
@@ -79,6 +87,12 @@ func CollectionRuntimeKindCode(kind: String) -> Int {
     if checked == "ArrayBool" {
         return 4;
     }
+    if checked == "ArrayFloat" {
+        return 5;
+    }
+    if checked == "ArrayDouble" {
+        return 6;
+    }
     return 1;
 }
 
@@ -92,14 +106,21 @@ func CollectionRuntimeElementTypeFromKindCode(kind_code: Int) -> String {
     if kind_code == 4 {
         return "Bool";
     }
+    if kind_code == 5 {
+        return "Float";
+    }
+    if kind_code == 6 {
+        return "Double";
+    }
     return "Int";
 }
 
 func CollectionRuntimeKindCodeOrDie(kind_code: Int, context: String) -> Int {
-    if kind_code == 1 || kind_code == 2 || kind_code == 3 || kind_code == 4 {
+    if kind_code == 1 || kind_code == 2 || kind_code == 3 ||
+        kind_code == 4 || kind_code == 5 || kind_code == 6 {
         return kind_code;
     }
-    Die(Concat(context, Concat(" requires collection kind code 1, 2, 3, or 4, got: ", ToString(kind_code))));
+    Die(Concat(context, Concat(" requires collection kind code 1, 2, 3, 4, 5, or 6, got: ", ToString(kind_code))));
     return 0;
 }
 
@@ -113,6 +134,12 @@ func CollectionRuntimeCNewFn(kind_code: Int) -> String {
     }
     if checked == 4 {
         return "pgy_ab_new";
+    }
+    if checked == 5 {
+        return "pgy_af_new";
+    }
+    if checked == 6 {
+        return "pgy_ad_new";
     }
     return "pgy_ai_new";
 }
@@ -128,6 +155,12 @@ func CollectionRuntimeCPushFn(kind_code: Int) -> String {
     if checked == 4 {
         return "pgy_ab_push";
     }
+    if checked == 5 {
+        return "pgy_af_push";
+    }
+    if checked == 6 {
+        return "pgy_ad_push";
+    }
     return "pgy_ai_push";
 }
 
@@ -141,6 +174,12 @@ func CollectionRuntimeCSetFn(kind_code: Int) -> String {
     }
     if checked == 4 {
         return "pgy_ab_set";
+    }
+    if checked == 5 {
+        return "pgy_af_set";
+    }
+    if checked == 6 {
+        return "pgy_ad_set";
     }
     return "pgy_ai_set";
 }
@@ -156,6 +195,12 @@ func CollectionRuntimeCGetFn(kind_code: Int) -> String {
     if checked == 4 {
         return "pgy_ab_get";
     }
+    if checked == 5 {
+        return "pgy_af_get";
+    }
+    if checked == 6 {
+        return "pgy_ad_get";
+    }
     return "pgy_ai_get";
 }
 
@@ -169,6 +214,12 @@ func CollectionRuntimeCLenFn(kind_code: Int) -> String {
     }
     if checked == 4 {
         return "pgy_ab_len";
+    }
+    if checked == 5 {
+        return "pgy_af_len";
+    }
+    if checked == 6 {
+        return "pgy_ad_len";
     }
     return "pgy_ai_len";
 }
@@ -184,6 +235,12 @@ func CollectionRuntimeCPopFn(kind_code: Int) -> String {
     if checked == 4 {
         return "pgy_ab_pop";
     }
+    if checked == 5 {
+        return "pgy_af_pop";
+    }
+    if checked == 6 {
+        return "pgy_ad_pop";
+    }
     return "pgy_ai_pop";
 }
 
@@ -191,13 +248,18 @@ func CollectionRuntimeFactFromKind(
     kind: String, env: CodegenTypeEnv
 ) -> CollectionRuntimeFact {
     if kind == "ArrayInt" || kind == "ArrayString" ||
-        kind == "ArrayBool" || kind == "ArrayCodegenAstTextNode" {
+        kind == "ArrayBool" || kind == "ArrayFloat" || kind == "ArrayDouble" ||
+        kind == "ArrayCodegenAstTextNode" {
         let kind_code: Int = CollectionRuntimeKindCode(kind);
         let c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
         if kind == "ArrayString" {
             c_array_type = CompilerAbiLayoutArrayStringCValueType();
         } else if kind == "ArrayBool" {
             c_array_type = CompilerAbiLayoutArrayBoolCValueType();
+        } else if kind == "ArrayFloat" {
+            c_array_type = "pgy_af";
+        } else if kind == "ArrayDouble" {
+            c_array_type = "pgy_ad";
         } else if kind == "ArrayCodegenAstTextNode" {
             c_array_type =
                 CompilerAbiLayoutArrayCodegenAstTextNodeCValueType();
@@ -346,6 +408,24 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(4), Concat("(", Concat(bool_array_type, " *a, long long i, bool v) { a->data[i] = v; }\n")))));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(4), Concat("(", Concat(bool_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCPopFn(4), Concat("(", Concat(bool_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : false; }\n\n")))));
+    block = Concat(block, "typedef struct { float *data; long long len; long long cap; } pgy_af;\n");
+    block = Concat(block, "static pgy_af pgy_af_new(void) { pgy_af a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+    block = Concat(block, "static void pgy_af_push(pgy_af *a, float v) {\n");
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (float *)realloc(a->data, (size_t)a->cap * sizeof(float)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, "static float pgy_af_get(pgy_af a, long long i) { return a.data[i]; }\n");
+    block = Concat(block, "static void pgy_af_set(pgy_af *a, long long i, float v) { a->data[i] = v; }\n");
+    block = Concat(block, "static long long pgy_af_len(pgy_af a) { return a.len; }\n");
+    block = Concat(block, "static float pgy_af_pop(pgy_af *a) { return a->len > 0 ? a->data[--a->len] : 0.0f; }\n\n");
+    block = Concat(block, "typedef struct { double *data; long long len; long long cap; } pgy_ad;\n");
+    block = Concat(block, "static pgy_ad pgy_ad_new(void) { pgy_ad a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+    block = Concat(block, "static void pgy_ad_push(pgy_ad *a, double v) {\n");
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (double *)realloc(a->data, (size_t)a->cap * sizeof(double)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, "static double pgy_ad_get(pgy_ad a, long long i) { return a.data[i]; }\n");
+    block = Concat(block, "static void pgy_ad_set(pgy_ad *a, long long i, double v) { a->data[i] = v; }\n");
+    block = Concat(block, "static long long pgy_ad_len(pgy_ad a) { return a.len; }\n");
+    block = Concat(block, "static double pgy_ad_pop(pgy_ad *a) { return a->len > 0 ? a->data[--a->len] : 0.0; }\n\n");
     return block;
 }
 

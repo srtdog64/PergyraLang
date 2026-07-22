@@ -169,6 +169,7 @@ not own status, decisions, or completion claims.
 | [`108_stdlib_beta_freeze.md`](108_stdlib_beta_freeze.md) | Stdlib beta freeze list |
 | [`148_stdlib_architecture.md`](148_stdlib_architecture.md) | Stdlib architecture wiring: layers, contracts, inventory, and active/sketch policy |
 | [`109_package_module_resolver_contract.md`](109_package_module_resolver_contract.md) | Seashell package/module resolver contract: `pgy.toml` remains a fail-closed TOML subset while `pgy.seashell.v1` owns local package/build declaration |
+| [`195_world_universe_composition.md`](195_world_universe_composition.md) | Proposed WorldGraph/UniverseManifest composition boundary and post-beta DLL/shared-library loading contract |
 | [`29_stdlib_design.md`](29_stdlib_design.md) | Stdlib design |
 | [`67_layered_stdlib_and_domain_kits.md`](67_layered_stdlib_and_domain_kits.md) | Layered stdlib and domain kit policy |
 
@@ -198,6 +199,8 @@ not own status, decisions, or completion claims.
 | [`166_production_bar_review_2026_07.md`](166_production_bar_review_2026_07.md) | Production-bar review contract: gate-less claims fail, partial coverage stays partial, and P0 production blockers are routed |
 | [`reviews/2026-07-12_architecture_review_checked.md`](reviews/2026-07-12_architecture_review_checked.md) | Current-head check of the 2026-07-11 architecture review: accepted, superseded, and still-open findings with executable evidence |
 | [`reviews/2026-07-18_architecture_review_checked.md`](reviews/2026-07-18_architecture_review_checked.md) | Current-head check of the 2026-07-18 architecture review: self-host producer memory, semantic place facts, projection ownership, extern runtime closure, TSan, and sandbox routing |
+| [`reviews/2026-07-20_architecture_review_checked.md`](reviews/2026-07-20_architecture_review_checked.md) | Current-head check of the 2026-07-20 review: stale lane finding superseded, compiler peak-live cost, partial projection legalization, bootstrap evidence, and per-instance sandbox routing |
+| [`196_content_instance_runtime_context.md`](196_content_instance_runtime_context.md) | Capability/budget `ContentInstance` context ABI, TLS binding, and remaining sandbox owners |
 | [`reviews/2026-07-19_production_review_checked.md`](reviews/2026-07-19_production_review_checked.md) | Current-head check of the production review at `2575f9a7`: landed runtime-state repairs, bounded memory evidence, remaining TSan/sandbox/projection blockers, and the next self-host rung |
 | [`170_keyword_lineage_cs_application_map.md`](170_keyword_lineage_cs_application_map.md) | Keyword, influenced-language, computer-science, and implementation-owner routing map |
 | [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |

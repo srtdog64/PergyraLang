@@ -412,8 +412,25 @@ llvm_role_for_type_node(ASTNode *role)
 }
 
 const char *
-llvm_role_for_type_name(ASTNode *role)
+llvm_role_for_type_name(LLVMGenCtx *ctx, ASTNode *role)
 {
+    if (ctx != NULL && llvm_active_has_mir(ctx)) {
+        const char *role_name = llvm_decl_node_name(role);
+        const MIRDeclHeader *role_header = role_name != NULL
+            ? llvm_find_decl_header_in_context_of_type(
+                ctx, AST_ROLE_DECL, role_name)
+            : NULL;
+        const char *subject_name =
+            mir_decl_header_role_subject_type_name(role_header);
+        if (subject_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing role subject type-name metadata for '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return NULL;
+        }
+        return subject_name;
+    }
+
     ASTNode *for_type = llvm_role_for_type_node(role);
 
     return ast_type_name(for_type);

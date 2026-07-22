@@ -19,8 +19,8 @@ PGY_BIN="$PGY" PGY_SELFHOST_BUILD_DIR="$BUILD_ROOT/runtime_call_abi" "${BASH}" \
 PGY_BIN="$PGY" \
 PGY_SELFHOST_BUILD_DIR="$BUILD_ROOT/driver_rung2" \
 PGY_SELFHOST_DRIVER_BACKENDS="$BACKENDS" \
-PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote,device_slot_routine" \
+PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="device_slot_machine_layer,device_slot_remote,device_slot_routine,option_string_core,array_sum_filtered,str_array,array_scalar_aggregate_core,array_double_aggregate_core" \
     "${BASH}" \
     "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
 
-echo "[self-host-mir-abi-first] self MIR/ABI producer lane ok: backends=$BACKENDS fixtures=3"
+echo "[self-host-mir-abi-first] self MIR/ABI producer lane ok: backends=$BACKENDS fixtures=8"

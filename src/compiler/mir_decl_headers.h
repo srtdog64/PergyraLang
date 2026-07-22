@@ -81,6 +81,11 @@ const char *mir_decl_enum_variant_name(const MIRDeclEnumVariant *variant);
 size_t mir_decl_enum_variant_param_count(const MIRDeclEnumVariant *variant);
 const char *mir_decl_enum_variant_param_type_name(
     const MIRDeclEnumVariant *variant, size_t index);
+size_t mir_decl_header_event_param_count(const MIRDeclHeader *header);
+const char *mir_decl_header_event_param_name(const MIRDeclHeader *header,
+                                             size_t index);
+const char *mir_decl_header_event_param_type_name(const MIRDeclHeader *header,
+                                                  size_t index);
 const char *mir_decl_method_name(const MIRDeclMethod *method);
 size_t mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *mir_decl_method_param(const MIRDeclMethod *method, size_t index);

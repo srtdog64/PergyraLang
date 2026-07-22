@@ -44,16 +44,18 @@ reject_term() {
 
 # Both twins must compute the intersection of the two restriction components.
 require_term "$C_TWIN"    "m->env & m->manifest"              "C twin intersection (env & manifest)"
-require_term "$LLVM_TWIN" "g_pgy_cap_env & g_pgy_cap_manifest" "LLVM twin intersection (env & manifest)"
+require_term "$LLVM_TWIN" "m->env & m->manifest" "LLVM twin intersection (env & manifest)"
 
 # Both twins must keep the env and manifest components separate (a single fused
 # grant cannot express intersection with reset -- the pre-A4 shape).
-require_term "$LLVM_TWIN" "g_pgy_cap_manifest" "LLVM twin manifest component"
-require_term "$LLVM_TWIN" "g_pgy_cap_env"      "LLVM twin env component"
+require_term "$LLVM_TWIN" "PgyCapMasks *m"       "LLVM twin context mask component"
+require_term "$LLVM_TWIN" "pgy_cap_context_masks" "LLVM twin context owner"
 
 # The fused single-mask global from before A4 must be gone on the LLVM twin;
 # its presence means the overwrite policy was restored.
 reject_term "$LLVM_TWIN" "g_pgy_cap_granted" "pre-A4 fused grant global g_pgy_cap_granted"
+reject_term "$LLVM_TWIN" "g_pgy_cap_manifest" "process-global manifest owner"
+reject_term "$LLVM_TWIN" "g_pgy_cap_env" "process-global env owner"
 
 if [ "$fail" -ne 0 ]; then
     echo "[cap-env-manifest-parity] FAIL -- the two capability twins disagree on env vs manifest"

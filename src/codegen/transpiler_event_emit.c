@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_type_render.h"
@@ -28,9 +29,131 @@ transpiler_event_op_emit_part(TranspilerCtx *ctx,
     return NULL;
 }
 
+static void
+emit_event_decl_from_mir_header(const MIRDeclHeader *header,
+                                TranspilerCtx *ctx)
+{
+    const char *name;
+    const char *event_type;
+    size_t param_count;
+
+    if (ctx == NULL || header == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing event declaration header metadata");
+        return;
+    }
+    name = mir_decl_header_name(header);
+    if (name == NULL || name[0] == '\0'
+        || mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            != AST_EVENT_DECL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing event declaration identity metadata");
+        return;
+    }
+    param_count = mir_decl_header_event_param_count(header);
+    event_type = transpiler_scratch_fmt(ctx, "%s_Event", name);
+
+    codebuf_write(ctx->out, "\n/* Event: %s */\n", name);
+    codebuf_write(ctx->out, "typedef void (*%s_Handler)(", name);
+    for (size_t i = 0; i < param_count; i++) {
+        const char *param_name =
+            mir_decl_header_event_param_name(header, i);
+        const char *param_type_name =
+            mir_decl_header_event_param_type_name(header, i);
+        char pt_buf[256];
+
+        if (param_name == NULL || param_type_name == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing event parameter ABI metadata for '%s' index %zu",
+                name, i);
+            return;
+        }
+        if (!transpiler_require_type_name_c_type_copy(ctx, param_type_name,
+                "event handler parameter", pt_buf, sizeof(pt_buf)))
+            return;
+        if (i > 0)
+            codebuf_write(ctx->out, ", ");
+        codebuf_write(ctx->out, "%s %s", pt_buf, param_name);
+    }
+    codebuf_write(ctx->out, ");\n");
+    codebuf_write(ctx->out, "typedef struct {\n");
+    codebuf_write(ctx->out,
+        "    %s_Handler handlers[PGY_EVENT_MAX_HANDLERS];\n", name);
+    codebuf_write(ctx->out,
+        "    void* contexts[PGY_EVENT_MAX_HANDLERS];\n");
+    codebuf_write(ctx->out, "    size_t count;\n");
+    codebuf_write(ctx->out, "    bool is_invoking;\n");
+    codebuf_write(ctx->out, "    bool pending_changes;\n");
+    codebuf_write(ctx->out, "} %s;\n", event_type);
+    codebuf_write(ctx->out, "static %s %s;\n", event_type, name);
+
+    codebuf_write(ctx->out,
+        "static inline void %s_INIT(%s* e) {\n", name, event_type);
+    codebuf_write(ctx->out, "    memset(e, 0, sizeof(*e));\n}\n");
+    codebuf_write(ctx->out,
+        "static inline void %s_SUBSCRIBE(%s* e, %s_Handler h) {\n",
+        name, event_type, name);
+    codebuf_write(ctx->out,
+        "    if (e->count < PGY_EVENT_MAX_HANDLERS) {\n");
+    codebuf_write(ctx->out,
+        "        e->handlers[e->count++] = h;\n        return;\n    }\n");
+    codebuf_write(ctx->out,
+        "    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"event handler capacity exceeded\");\n}\n");
+    codebuf_write(ctx->out,
+        "static inline void %s_UNSUBSCRIBE(%s* e, %s_Handler h) {\n",
+        name, event_type, name);
+    codebuf_write(ctx->out,
+        "    for (size_t i = 0; i < e->count; i++) {\n"
+        "        if (e->handlers[i] == h) {\n"
+        "            for (size_t j = i; j < e->count - 1; j++)\n"
+        "                e->handlers[j] = e->handlers[j + 1];\n"
+        "            e->count--;\n            break;\n        }\n    }\n}\n");
+
+    codebuf_write(ctx->out,
+        "static inline void %s_INVOKE(%s* e", name, event_type);
+    for (size_t i = 0; i < param_count; i++) {
+        const char *param_name =
+            mir_decl_header_event_param_name(header, i);
+        const char *param_type_name =
+            mir_decl_header_event_param_type_name(header, i);
+        char pt_buf[256];
+
+        if (param_name == NULL || param_type_name == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing event invoke ABI metadata for '%s' index %zu",
+                name, i);
+            return;
+        }
+        if (!transpiler_require_type_name_c_type_copy(ctx, param_type_name,
+                "event invoke parameter", pt_buf, sizeof(pt_buf)))
+            return;
+        codebuf_write(ctx->out, ", %s %s", pt_buf, param_name);
+    }
+    codebuf_write(ctx->out, ") {\n    e->is_invoking = true;\n");
+    codebuf_write(ctx->out,
+        "    for (size_t i = 0; i < e->count; i++) {\n        e->handlers[i](");
+    for (size_t i = 0; i < param_count; i++) {
+        if (i > 0)
+            codebuf_write(ctx->out, ", ");
+        codebuf_write(ctx->out, "%s",
+            mir_decl_header_event_param_name(header, i));
+    }
+    codebuf_write(ctx->out,
+        ");\n    }\n    e->is_invoking = false;\n}\n");
+}
+
 void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 {
+    if (transpiler_active_has_mir(ctx)) {
+        const char *event_name = ast_event_name(node);
+        const MIRDeclHeader *header =
+            transpiler_active_decl_header_of_type(
+                ctx, AST_EVENT_DECL, event_name);
+        emit_event_decl_from_mir_header(header, ctx);
+        return;
+    }
+
     const char *name = ast_event_name(node);
     const char *event_type = transpiler_scratch_fmt(ctx, "%s_Event", name);
 

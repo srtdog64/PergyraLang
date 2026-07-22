@@ -104,7 +104,7 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
                 free(left);
                 return NULL;
             }
-            char *result = strdup_fmt("StringConcat(%s, %s)", left, right);
+            char *result = transpiler_region_concat(ctx, expr, left, right);
             free(left);
             free(right);
             return result;

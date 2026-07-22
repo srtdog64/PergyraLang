@@ -9,7 +9,7 @@
 // What this owner declares:
 //
 //   - the plan artifact contract (schema, revision, the two dispositions);
-//   - the producer copies (site, scope, owning function) rows out of a
+//   - the producer copies (allocation-site id, scope, owning function) rows out of a
 //     CERTIFIED AIR verification -- the same admission boundary the spawn-lane
 //     plan uses, so no backend ever reads escape evidence directly;
 //   - a null site in the escape result refuses the COMPILE (contradictory
@@ -45,8 +45,8 @@ func RegionPlanSchema() -> String {
 // does not match the contract they were built against.
 func RegionPlanRevision() -> Int { return 1; }
 
-// A site that exists in no plan. Site identities are opaque and positive in
-// this model (the C artifact keys rows by the allocation AST node).
+// A site that exists in no plan. Allocation-site identities are opaque and
+// positive in this model; they are stable IDs, never AST addresses.
 func RegionPlanNoSite() -> Int { return 0; }
 
 // ---- dispositions, mirroring PgyRegionDisposition -----------------------
@@ -94,7 +94,7 @@ func RegionEscapeCertifies(is_string_concat: Bool, is_direct_print_arg: Bool) ->
 
 struct RegionEscapeSite {
     used: Bool;
-    site: Int;
+    allocation_site_id: Int;
     scope: Int;
     owner: Int;
 }
@@ -157,28 +157,28 @@ func RegionPlanProduce(
         let site: RegionEscapeSite = RegionEscapeSiteAt(s0, s1, s2, s3, index);
         index = index + 1;
         if !site.used { continue; }
-        if site.site == RegionPlanNoSite() {
+        if site.allocation_site_id == RegionPlanNoSite() {
             return RegionPlanRefusal(true, false);
         }
-        if row_count > 0 && row0_site == site.site {
+        if row_count > 0 && row0_site == site.allocation_site_id {
             if row0_scope != site.scope || row0_owner != site.owner {
                 return RegionPlanRefusal(false, true);
             }
             continue;
         }
-        if row_count > 1 && row1_site == site.site {
+        if row_count > 1 && row1_site == site.allocation_site_id {
             if row1_scope != site.scope || row1_owner != site.owner {
                 return RegionPlanRefusal(false, true);
             }
             continue;
         }
         if row_count == 0 {
-            row0_site = site.site;
+            row0_site = site.allocation_site_id;
             row0_scope = site.scope;
             row0_owner = site.owner;
         }
         if row_count == 1 {
-            row1_site = site.site;
+            row1_site = site.allocation_site_id;
             row1_scope = site.scope;
             row1_owner = site.owner;
         }

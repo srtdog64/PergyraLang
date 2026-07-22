@@ -85,6 +85,8 @@ transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,
     state->func_decl = ctx->current_func_decl;
     state->return_callable_type = ctx->current_return_callable_type;
     state->mir_routine = ctx->active_mir_routine;
+    state->region_scope_id = ctx->region_scope_id;
+    state->region_scope_active = ctx->region_scope_active;
     if (!transpiler_mir_emit_copy_return_type(state->return_type,
             sizeof(state->return_type), ctx->current_return_type)) {
         transpiler_mir_emit_return_type_too_long(ctx);
@@ -105,6 +107,8 @@ transpiler_restore_mir_emit_state_from_snapshot_local(
         state->return_callable_type,
         state->func_decl, state->host_decl, state->out);
     ctx->active_mir_routine = state->mir_routine;
+    ctx->region_scope_id = state->region_scope_id;
+    ctx->region_scope_active = state->region_scope_active;
 }
 
 void

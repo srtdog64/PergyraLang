@@ -12,6 +12,7 @@
 #include "mir_decl_method_projection.h"
 #include "mir_type_helpers.h"
 
+#include "../common/string_compat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +77,73 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
     mir_decl_method_projection_metadata_clear(meta);
     meta->param_type_names = NULL;
     meta->return_type_name = NULL;
+}
+
+static void
+mir_decl_header_event_params_clear(MIRDeclHeader *header)
+{
+    if (header == NULL)
+        return;
+    if (header->event_param_names != NULL) {
+        for (size_t i = 0; i < header->event_param_count; i++)
+            free(header->event_param_names[i]);
+    }
+    if (header->event_param_type_names != NULL) {
+        for (size_t i = 0; i < header->event_param_count; i++)
+            free(header->event_param_type_names[i]);
+    }
+    free(header->event_param_names);
+    free(header->event_param_type_names);
+    header->event_param_names = NULL;
+    header->event_param_type_names = NULL;
+    header->event_param_count = 0;
+    header->event_param_metadata_present = false;
+}
+
+static bool
+mir_decl_header_set_event_params(MIRDeclHeader *header, ASTNode *event_decl)
+{
+    size_t count;
+
+    if (header == NULL || event_decl == NULL
+        || event_decl->type != AST_EVENT_DECL)
+        return true;
+
+    count = ast_event_param_count(event_decl);
+    header->event_param_metadata_present = true;
+    header->event_param_count = count;
+    if (count == 0)
+        return true;
+    if (count > SIZE_MAX / sizeof(char *))
+        return false;
+
+    header->event_param_names = calloc(count, sizeof(char *));
+    header->event_param_type_names = calloc(count, sizeof(char *));
+    if (header->event_param_names == NULL
+        || header->event_param_type_names == NULL) {
+        mir_decl_header_event_params_clear(header);
+        return false;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *param = ast_event_param(event_decl, i);
+        const char *name = param != NULL ? ast_let_name(param) : NULL;
+
+        if (param == NULL || param->type != AST_LET_DECL || name == NULL
+            || ast_let_type(param) == NULL) {
+            mir_decl_header_event_params_clear(header);
+            return false;
+        }
+        header->event_param_names[i] = pergyra_strdup(name);
+        header->event_param_type_names[i] =
+            mir_capture_type_name(ast_let_type(param), NULL);
+        if (header->event_param_names[i] == NULL
+            || header->event_param_type_names[i] == NULL) {
+            mir_decl_header_event_params_clear(header);
+            return false;
+        }
+    }
+    return true;
 }
 
 static void
@@ -285,7 +353,7 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
 static bool
 mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
 {
-    size_t count;
+    size_t count = 0;
     size_t out = 0;
 
     if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
@@ -293,7 +361,17 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
 
     if (!ast_role_impl_method_total_count(role_decl, &count))
         return false;
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
+        if (impl == NULL || impl->type != AST_OVERRIDE_FUNC
+            || ast_override_func_decl(impl) == NULL)
+            continue;
+        if (count == SIZE_MAX)
+            return false;
+        count++;
+    }
     header->method_count = count;
+    header->role_override_method_count = 0;
     header->method_metadata = NULL;
     header->method_metadata_count = 0;
     if (count == 0)
@@ -314,6 +392,19 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
             MIRDeclMethod *meta = &header->method_metadata[out++];
             mir_decl_method_metadata_init(meta, header, method);
         }
+    }
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
+        ASTNode *method;
+        MIRDeclMethod *meta;
+        if (impl == NULL || impl->type != AST_OVERRIDE_FUNC)
+            continue;
+        method = ast_override_func_decl(impl);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+        meta = &header->method_metadata[out++];
+        mir_decl_method_metadata_init(meta, header, method);
+        header->role_override_method_count++;
     }
     header->method_metadata_count = out;
     return true;
@@ -547,6 +638,21 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         mir_decl_header_free_fields(&header);
         return false;
     }
+    if (!mir_decl_header_set_event_params(&header, decl)) {
+        free(header.type_alias_target_type_name);
+        for (size_t i = 0; i < header.method_metadata_count; i++)
+            mir_decl_method_metadata_clear(&header.method_metadata[i]);
+        free(header.method_metadata);
+        mir_decl_header_free_world_directives(&header);
+        mir_decl_header_free_world_states(&header);
+        mir_decl_header_free_zone_states(&header);
+        mir_decl_header_free_refreshes(&header);
+        mir_decl_header_free_generics(&header);
+        mir_decl_header_free_authorities(&header);
+        mir_decl_header_free_fields(&header);
+        mir_decl_header_free_variants(&header);
+        return false;
+    }
     if (!mir_append_decl_header(mir, header)) {
         free(header.type_alias_target_type_name);
         for (size_t i = 0; i < header.method_metadata_count; i++)
@@ -560,6 +666,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         mir_decl_header_free_refreshes(&header);
         mir_decl_header_free_zone_states(&header);
         mir_decl_header_free_variants(&header);
+        mir_decl_header_event_params_clear(&header);
         return false;
     }
     return true;

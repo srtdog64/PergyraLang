@@ -3,6 +3,7 @@
 #include "llvm_domain_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_inventory_internal.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_stmt_source_local_fallback.h"
@@ -32,11 +33,17 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
 {
     ASTNode *ret_ty = NULL;
     const MIRDeclMethod *method_meta = NULL;
+    const MIRRoutine *method_routine = NULL;
+    const MIRCallableSig *return_callable_sig = NULL;
 
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
     method_meta = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
+    method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
+    return_callable_sig = method_routine != NULL
+        ? llvm_mir_routine_return_callable_sig(method_routine)
+        : NULL;
     if (!llvm_mir_decl_method_metadata_complete_for(ctx, method_meta,
             host_type_name, method_name,
             LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
@@ -47,6 +54,13 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     {
         const char *ret_name =
             llvm_mir_decl_method_return_type_name(method_meta);
+        if (return_callable_sig != NULL) {
+            LLVMTypeRef llvm_ret = llvm_mir_callable_sig_to_llvm(
+                ctx, return_callable_sig);
+            if (llvm_ret != NULL && !ctx->has_error)
+                return llvm_ret;
+            return NULL;
+        }
         if (ret_name != NULL) {
             LLVMTypeRef llvm_ret = pergyra_type_to_llvm(ctx, ret_name);
             if (llvm_ret != NULL && !ctx->has_error)
@@ -67,6 +81,13 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
         return NULL;
     }
     if (ret_ty != NULL) {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method type inference return ABI fact for '%s.%s'",
+                host_type_name,
+                method_name);
+            return NULL;
+        }
         LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
         if (llvm_ret != NULL && !ctx->has_error)
             return llvm_ret;

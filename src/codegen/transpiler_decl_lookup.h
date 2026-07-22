@@ -199,6 +199,9 @@ const char *transpiler_hosted_field_view_name(
 ASTNode *transpiler_hosted_field_view_type(
     const TranspilerHostedFieldView *view,
     size_t index);
+const char *transpiler_hosted_field_view_type_name(
+    const TranspilerHostedFieldView *view,
+    size_t index);
 bool transpiler_hosted_field_view_find_index(
     const TranspilerHostedFieldView *view,
     const char *field_name,
@@ -219,6 +222,9 @@ const char *transpiler_hosted_shared_field_view_name(
     const TranspilerHostedSharedFieldView *view,
     size_t index);
 ASTNode *transpiler_hosted_shared_field_view_type(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+const char *transpiler_hosted_shared_field_view_type_name(
     const TranspilerHostedSharedFieldView *view,
     size_t index);
 ASTNode *transpiler_hosted_shared_field_view_initializer(

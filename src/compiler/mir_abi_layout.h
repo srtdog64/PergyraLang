@@ -71,6 +71,9 @@ const MIRInstruction *mir_abi_resource_runtime_instruction_for_abi(
     MIRResourceAbiKind kind,
     const char *inner_type_name,
     const char *resource_op_name);
+const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_for_instruction(
+    const MIRInstruction *instruction,
+    const char *resource_op_name);
 /* Return the existing same-type MIR resource fact that authorizes a
  * synthetic consumer.  This is the layout/evidence owner for consumers that
  * have no source resource instruction of their own. */
@@ -78,10 +81,10 @@ const MIRInstruction *mir_abi_resource_runtime_owner_for_mir_abi(
     const MIRRoutine *routine,
     MIRResourceAbiKind kind,
     const char *inner_type_name);
-/* Derive a synthetic consumer row (such as MIR's slot auto-read) from an
- * existing same-type MIR resource owner. The returned TLS row is valid until
- * the next call on the same thread; no row is produced when the routine has
- * no same-type owner fact. */
+/* Return an existing routine-owned row for a consumer that has no source
+ * resource instruction of its own.  This is an instruction lookup, not a
+ * reconstruction from the global ABI table; no row is produced when the
+ * exact operation fact is absent. */
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_for_mir_abi(
     const MIRRoutine *routine,
     MIRResourceAbiKind kind,

@@ -29,6 +29,8 @@
 
 typedef struct PgyVerifiedProjectionPlanRow PgyVerifiedProjectionPlanRow;
 typedef struct PgySpawnLanePlan PgySpawnLanePlan;
+typedef struct PgyVerifiedParallelCapturePlan PgyVerifiedParallelCapturePlan;
+typedef struct PgyRegionPlan PgyRegionPlan;
 
 /* -----------------------------------------------------------------
  * Result type for LLVM code generation
@@ -67,6 +69,14 @@ LLVMGenResult *llvm_codegen_from_mir_with_projection_plan(
     const PgySpawnLanePlan *spawn_lane_plan,
     const char *module_name);
 
+LLVMGenResult *llvm_codegen_from_mir_with_projection_plans(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
+    const char *module_name);
+
 LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                                const char *module_name,
                                                const char *output_path,
@@ -76,6 +86,16 @@ LLVMGenResult *llvm_codegen_to_object_from_mir_with_projection_plan(
     const MIRProgram *mir,
     const PgyVerifiedProjectionPlanRow *projection_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
+    const char *module_name,
+    const char *output_path,
+    bool release_opt);
+
+LLVMGenResult *llvm_codegen_to_object_from_mir_with_projection_plans(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
     const char *module_name,
     const char *output_path,
     bool release_opt);

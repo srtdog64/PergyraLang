@@ -16,6 +16,11 @@ func MirResourceRuntimeRowRequired(operation: String) -> Bool {
         operation == "SubmitRead";
 }
 
+// Auxiliary rows are still MIR-owned facts.  A slot definition may carry a
+// primary Claim row together with the concrete Read/Write or pin lifecycle
+// rows that a backend consumer will use.  The self-hosted lane must validate
+// those rows in place; accepting only the primary row would silently reopen
+// global ABI-table reconstruction for the auxiliary operation.
 func MirResourceRuntimeAuxRowFactReady(
     row: JsonObjectFactTable,
     type_name: String
@@ -35,10 +40,12 @@ func MirResourceRuntimeAuxRowFactReady(
     }
     let operation: String = UnwrapOption(operation_opt);
     let domain: String = UnwrapOption(domain_opt);
+    if !MirResourceRuntimeRowRequired(operation) {
+        return false;
+    }
     let expected: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFactForNativeResource(type_name, operation);
-    if !MirResourceRuntimeRowRequired(operation) || !expected.ok ||
-        domain != expected.domain ||
+    if !expected.ok || domain != expected.domain ||
         !JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol) ||
         !JsonObjectFactStringFieldEquals(
             row, "target_kind", expected.symbol_kind) ||
@@ -129,18 +136,24 @@ func MirResourceRuntimeRowFactReady(
             row, "call_shape", expected.call_shape) {
         return false;
     }
+    // The primary row is not the complete owner surface when the instruction
+    // carries runtime_call_abi_aux.  Validate every auxiliary row against the
+    // same MIRResource owner and canonical type; absence remains valid for an
+    // instruction with no auxiliary operations.
     if JsonObjectFactHasField(instruction, "runtime_call_abi_aux") {
         let aux_rows: JsonArrayObjectFactTable =
             JsonObjectFactArrayObjectTable(instruction, "runtime_call_abi_aux");
-        if !JsonArrayObjectFactTableReady(aux_rows) { return false; }
+        if !JsonArrayObjectFactTableReady(aux_rows) {
+            return false;
+        }
         let aux_index: Int = 0;
         while aux_index < JsonArrayObjectFactCount(aux_rows) {
             let aux_row: JsonObjectFactTable =
                 JsonArrayObjectFactAt(aux_rows, aux_index);
-            let aux_operation: Option<String> =
+            let aux_operation_opt: Option<String> =
                 JsonObjectFactStringFieldOpt(aux_row, "operation");
-            if !IsSome(aux_operation) ||
-                UnwrapOption(aux_operation) == expected_operation ||
+            if !IsSome(aux_operation_opt) ||
+                UnwrapOption(aux_operation_opt) == expected_operation ||
                 !MirResourceRuntimeAuxRowFactReady(aux_row, type_name) {
                 return false;
             }
@@ -149,7 +162,7 @@ func MirResourceRuntimeRowFactReady(
                 let prior_row: JsonObjectFactTable =
                     JsonArrayObjectFactAt(aux_rows, prior_index);
                 if JsonObjectFactStringFieldEquals(
-                    prior_row, "operation", UnwrapOption(aux_operation)) {
+                    prior_row, "operation", UnwrapOption(aux_operation_opt)) {
                     return false;
                 }
                 prior_index = prior_index + 1;

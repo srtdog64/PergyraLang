@@ -11,6 +11,7 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "../compiler/mir_decl_headers.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_generic_method_specialization.h"
 
 static bool
@@ -235,12 +236,16 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         const char *method_name = NULL;
         size_t pc = 0;
         const char *return_type_name = NULL;
-        ASTNode *return_type = NULL;
+        const MIRRoutine *method_routine = NULL;
+        const MIRCallableSig *return_callable_sig = NULL;
 
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
         return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
-        return_type = llvm_mir_decl_method_return_type(method_meta);
+        method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
+        return_callable_sig = method_routine != NULL
+            ? llvm_mir_routine_return_callable_sig(method_routine)
+            : NULL;
         if (method_name == NULL)
             continue;
         if (!llvm_mir_decl_method_metadata_complete_for(ctx,
@@ -253,12 +258,15 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             return;
         }
 
-        LLVMTypeRef ret_type = ctx->type_void;
-        if (return_type_name != NULL)
+        LLVMTypeRef ret_type = NULL;
+        if (return_callable_sig != NULL)
+            ret_type = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+        else if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (return_type != NULL) {
-            ret_type = ast_type_to_llvm(ctx, return_type);
-        }
+        else
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing enum method return ABI fact for '%s.%s'",
+                enum_name, method_name);
         if (ctx->has_error || ret_type == NULL)
             return;
 
@@ -306,15 +314,22 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             const char *param_type_name =
                 llvm_mir_decl_method_param_type_name(method_meta, k);
+            const MIRCallableSig *param_callable_sig = method_routine != NULL
+                ? llvm_mir_routine_param_callable_sig(method_routine, k)
+                : NULL;
             if (llvm_param_is_implicit_self(p))
                 continue;
-            if (param_type_name != NULL) {
+            if (param_callable_sig != NULL) {
+                param_types[pidx++] = llvm_mir_callable_sig_to_llvm(
+                    ctx, param_callable_sig);
+            } else if (param_type_name != NULL) {
                 param_types[pidx++] =
                     pergyra_type_to_llvm(ctx, param_type_name);
             } else {
-                param_types[pidx++] = llvm_register_required_ast_type(
-                    ctx, stmt, p != NULL ? p->type : NULL,
-                    "enum method parameter");
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing enum method parameter ABI fact for '%s.%s'",
+                    enum_name, method_name);
+                return;
             }
             if (ctx->has_error || param_types[pidx - 1] == NULL)
                 return;
@@ -335,6 +350,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 void
 llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 {
+    const MIRDeclHeader *class_header = NULL;
+
     if (ctx == NULL || stmt == NULL)
         return;
     if (stmt->type == AST_ENUM_DECL) {
@@ -347,6 +364,14 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     const char *cls_name = llvm_decl_node_name(stmt);
     if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
         return;
+    class_header = llvm_find_decl_header_in_context_of_type(
+        ctx, AST_CLASS_DECL, cls_name);
+    if (llvm_active_has_mir(ctx) && class_header == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class declaration header for '%s'",
+            cls_name);
+        return;
+    }
     LLVMHostedFieldView field_view =
         llvm_hosted_class_field_view_from_decl(ctx, cls_name, stmt);
     if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
@@ -367,9 +392,22 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         return;
     }
     for (size_t j = 0; j < fc; j++) {
-        ASTNode *field_type = llvm_hosted_field_view_type(&field_view, j);
-        field_types[j] = llvm_register_required_ast_type(
-            ctx, stmt, field_type, "class field");
+        const char *field_type_name =
+            llvm_hosted_field_view_type_name(&field_view, j);
+        if (llvm_active_has_mir(ctx)) {
+            if (field_type_name == NULL || field_type_name[0] == '\0') {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing class field type-name metadata for '%s' index %zu",
+                    cls_name, j);
+                return;
+            }
+            field_types[j] = pergyra_type_to_llvm(ctx, field_type_name);
+        } else {
+            ASTNode *field_type = llvm_hosted_field_view_type(
+                &field_view, j);
+            field_types[j] = llvm_register_required_ast_type(
+                ctx, stmt, field_type, "class field");
+        }
         if (ctx->has_error || field_types[j] == NULL)
             return;
     }
@@ -377,9 +415,13 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
     LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
 
-    NominalDeclKind nominal_kind = ast_class_nominal_kind(stmt);
+    NominalDeclKind nominal_kind = llvm_active_has_mir(ctx)
+        ? mir_decl_header_nominal_kind_or(class_header, NOMINAL_DECL_CLASS)
+        : ast_class_nominal_kind(stmt);
     bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
-    bool is_pointer_self_host = is_subject || nominal_kind == NOMINAL_DECL_VESSEL;
+    bool is_pointer_self_host = llvm_active_has_mir(ctx)
+        ? mir_decl_header_uses_pointer_self(class_header)
+        : (is_subject || nominal_kind == NOMINAL_DECL_VESSEL);
     bool is_immutable = llvm_nominal_uses_immutable_projection_storage(nominal_kind);
     bool is_boundary_transfer = llvm_nominal_is_boundary_transfer_contract(nominal_kind);
     LLVMClassTypeEntry *entry = llvm_register_class(ctx, cls_name, struct_ty,
@@ -421,16 +463,18 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         const char *method_name = NULL;
         size_t pc = 0;
         const char *return_type_name = NULL;
-        ASTNode *return_type = NULL;
         bool method_is_action = false;
         const MIRRoutine *method_routine = NULL;
+        const MIRCallableSig *return_callable_sig = NULL;
 
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
         return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
-        return_type = llvm_mir_decl_method_return_type(method_meta);
         method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
         method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
+        return_callable_sig = method_routine != NULL
+            ? llvm_mir_routine_return_callable_sig(method_routine)
+            : NULL;
         if (method_name == NULL)
             continue;
         if (!llvm_mir_decl_method_metadata_complete_for(ctx,
@@ -451,12 +495,15 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             continue;
         }
 
-        LLVMTypeRef ret_type = ctx->type_void;
-        if (return_type_name != NULL)
+        LLVMTypeRef ret_type = NULL;
+        if (return_callable_sig != NULL)
+            ret_type = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+        else if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (return_type != NULL) {
-            ret_type = ast_type_to_llvm(ctx, return_type);
-        }
+        else
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing class method return ABI fact for '%s.%s'",
+                cls_name, method_name);
         if (ctx->has_error || ret_type == NULL)
             return;
 
@@ -484,27 +531,30 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             const char *param_type_name =
                 llvm_mir_decl_method_param_type_name(method_meta, k);
+            const MIRCallableSig *param_callable_sig = method_routine != NULL
+                ? llvm_mir_routine_param_callable_sig(method_routine, k)
+                : NULL;
             if (llvm_param_is_implicit_self(p))
                 continue;
-            if (param_type_name != NULL) {
+            if (param_callable_sig != NULL) {
+                param_types[pidx] = llvm_mir_callable_sig_to_llvm(
+                    ctx, param_callable_sig);
+            } else if (param_type_name != NULL) {
                 param_types[pidx] =
                     pergyra_type_to_llvm(ctx, param_type_name);
             } else {
-                param_types[pidx] = llvm_register_required_ast_type(
-                    ctx, stmt, p != NULL ? p->type : NULL,
-                    "class method parameter");
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing class method parameter ABI fact for '%s.%s'",
+                    cls_name, method_name);
+                return;
             }
             if (ctx->has_error || param_types[pidx] == NULL)
                 return;
             /* Match the body emit (llvm_emit_func_from_mir): a subject-typed
              * parameter is passed by pointer. Without this the registered
              * forward signature drifts from the emitted body signature. */
-            if (param_type_name != NULL
-                ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-                : (p != NULL && p->type != NULL
-                    && ast_type_name(p->type) != NULL
-                    && llvm_type_name_uses_pointer_self(ctx,
-                        ast_type_name(p->type)))) {
+            if (param_callable_sig == NULL && param_type_name != NULL
+                && llvm_type_name_uses_pointer_self(ctx, param_type_name)) {
                 param_types[pidx] = LLVMPointerType(param_types[pidx], 0);
             }
             pidx++;

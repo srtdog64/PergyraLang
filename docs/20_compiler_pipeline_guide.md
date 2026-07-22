@@ -324,7 +324,9 @@ public operation API/umbrella이며 저장 구조를 다시 선언하지 않는�
 
 주 진입점:
 
-- `MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)`
+- `MIRProgram *mir_lower(const MIRLowerRequest *request, char **error_message)`;
+  callers initialize the versioned `pergyra.compiler-lowering-api` request
+  through `mir_lower_request_init`.
 
 현재 MIR의 역할은 "RIR와 HIR CFG를 붙여 실행-지향 블록/명령 스켈레톤을 만드는 시작점"이다.
 

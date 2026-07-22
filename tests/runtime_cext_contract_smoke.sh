@@ -49,6 +49,16 @@ require_term "src/runtime/pgy_runtime_platform_io_core.h" \
     "#include \"pgy_runtime_linkage.h\""
 require_term "src/runtime/pgy_runtime_cext_lib.c" \
     "#define PGY_RUNTIME_EXTERN_DEFS"
+require_term "src/runtime/pgy_runtime_context.h" \
+    "PGY_CONTEXT_GLOBAL _Thread_local PgyRuntimeContext *g_pgy_runtime_context_current;"
+require_term "src/runtime/pgy_runtime_context.h" \
+    "pgy_runtime_context_bind(PgyRuntimeContext *context)"
+reject_term "src/runtime/pgy_runtime_lib_authority_file_core.h" \
+    "g_pgy_cap_manifest"
+reject_term "src/runtime/pgy_runtime_lib_authority_file_core.h" \
+    "g_pgy_cap_env"
+reject_term "src/runtime/pgy_runtime_lib_authority_file_core.h" \
+    "g_pgy_budget"
 reject_term "src/compiler/compiler_runtime_cache.c" \
     'argv[argc++] = "-DPGY_RUNTIME_EXTERN_DEFS";'
 

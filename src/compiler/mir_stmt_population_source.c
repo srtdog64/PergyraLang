@@ -1,6 +1,7 @@
 #include "mir_stmt_population_internal.h"
 
 #include "mir_abi_layout.h"
+#include "mir_lower_population.h"
 #include "mir_source_local_type_shape.h"
 
 #include <stdlib.h>
@@ -170,39 +171,7 @@ mir_make_destructure_instruction(MIRRoutine *routine,
                 if (inst.abi_type_name != NULL) {
                     inst.type_layout = mir_abi_lookup(inst.abi_type_name);
                     inst.abi_layout_id = mir_abi_layout_id(inst.type_layout);
-                    {
-                        const MIRResourceRuntimeRow *row =
-                            mir_abi_resource_runtime_row_for_type_name(
-                                inst.abi_type_name, "Claim");
-                        if (row != NULL) {
-                            inst.resource_runtime_fact = *row;
-                            inst.resource_runtime_fact.domain =
-                                pgy_arena_strdup(&routine->scratch, row->domain);
-                            inst.resource_runtime_fact.abi_type_name =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->abi_type_name);
-                            inst.resource_runtime_fact.resource_op_name =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->resource_op_name);
-                            inst.resource_runtime_fact.runtime_fn =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->runtime_fn);
-                            inst.resource_runtime_fact.target_kind =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->target_kind);
-                            inst.resource_runtime_fact.materialization =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->materialization);
-                            inst.resource_runtime_fact.call_shape =
-                                pgy_arena_strdup(&routine->scratch,
-                                                 row->call_shape);
-                            inst.resource_runtime_fact.runtime_call_abi_id =
-                                mir_abi_resource_runtime_row_id(
-                                    &inst.resource_runtime_fact);
-                            inst.resource_runtime_fact_present =
-                                inst.resource_runtime_fact.runtime_call_abi_id != 0;
-                        }
-                    }
+                    (void)mir_materialize_resource_runtime_fact(routine, &inst);
                 }
                 free(claim_type_name);
             }

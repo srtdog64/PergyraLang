@@ -8,6 +8,7 @@
 #include "air_evidence_certificate.h"
 #include "machine_layer_manifest.h"
 #include "target_capability_contract.h"
+#include "../parser/ast_api.h"
 
 static uint64_t
 verified_projection_plan_mix_byte(uint64_t hash, uint8_t byte)
@@ -330,6 +331,14 @@ pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
 
         if (!spawn_lane_boundary_is_spawn_site(boundary))
             continue;
+        uint32_t source_stable_id = ast_node_stable_id(boundary->ast);
+        if (source_stable_id == 0) {
+            pgy_verified_spawn_lane_plan_dispose(plan_out);
+            if (error_out != NULL)
+                *error_out =
+                    "verified spawn-lane plan: spawn boundary is missing stable source identity";
+            return false;
+        }
         /* A rejected lane means contradictory evidence (e.g. a pinned capture
            on a movable executor).  It must fail the compile here, observably,
            not surface as a runtime null-handle panic. */
@@ -341,7 +350,7 @@ pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
             return false;
         }
         for (size_t j = 0; j < plan_out->row_count; j++) {
-            if (plan_out->rows[j].site != boundary->ast)
+            if (plan_out->rows[j].source_stable_id != source_stable_id)
                 continue;
             if (plan_out->rows[j].lane != boundary->execution_lane) {
                 pgy_verified_spawn_lane_plan_dispose(plan_out);
@@ -355,7 +364,7 @@ pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
         }
         if (duplicate)
             continue;
-        plan_out->rows[plan_out->row_count].site = boundary->ast;
+        plan_out->rows[plan_out->row_count].source_stable_id = source_stable_id;
         plan_out->rows[plan_out->row_count].lane = boundary->execution_lane;
         plan_out->row_count++;
     }
@@ -376,13 +385,13 @@ pgy_verified_spawn_lane_plan_dispose(PgySpawnLanePlan *plan)
 
 bool
 pgy_verified_spawn_lane_plan_lookup(const PgySpawnLanePlan *plan,
-                                    const struct ASTNode *site,
+                                    uint32_t source_stable_id,
                                     PgyExecutionLane *lane_out)
 {
-    if (plan == NULL || !plan->verified || site == NULL)
+    if (plan == NULL || !plan->verified || source_stable_id == 0)
         return false;
     for (size_t i = 0; i < plan->row_count; i++) {
-        if (plan->rows[i].site == site) {
+        if (plan->rows[i].source_stable_id == source_stable_id) {
             if (lane_out != NULL)
                 *lane_out = plan->rows[i].lane;
             return true;

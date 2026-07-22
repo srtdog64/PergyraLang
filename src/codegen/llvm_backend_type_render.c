@@ -156,7 +156,7 @@ llvm_render_type_name_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node)
     PgyArena arena;
     char *result;
 
-    pgy_arena_init(&arena, 0);
+    pgy_arena_init_named(&arena, 0, "llvm-type-render-scratch");
     result = llvm_render_type_name_scratch_in_ctx(ctx, type_node, &arena);
     result = result != NULL ? pergyra_strdup(result) : NULL;
     pgy_arena_destroy(&arena);

@@ -13,6 +13,8 @@
 #include "llvm_mir_match_pattern.h"
 #include "llvm_mir_match_region.h"
 #include "llvm_mir_signature.h"
+#include "llvm_backend_type_map_internal.h"
+#include "llvm_inventory_internal.h"
 #include "parser/ast_api.h"
 
 #include <stdint.h>
@@ -273,6 +275,7 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
         bool decl_is_extern = decl != NULL
             && llvm_decl_is_extern_function(ctx, decl);
         const MIRRoutine *routine = NULL;
+        const MIRCallableSig *return_callable_sig = NULL;
         bool decl_is_generic = false;
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && llvm_active_has_mir(ctx)
@@ -300,13 +303,26 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
             }
             ret = llvm_mir_routine_return_type(routine);
             return_type_name = llvm_mir_routine_return_type_name(routine);
-            if (return_type_name != NULL) {
+            return_callable_sig =
+                llvm_mir_routine_return_callable_sig(routine);
+            if (return_callable_sig != NULL) {
+                subject_ty = llvm_mir_callable_sig_to_llvm(
+                    ctx, return_callable_sig);
+                if (ctx->has_error)
+                    return NULL;
+            } else if (return_type_name != NULL) {
                 subject_ty = pergyra_type_to_llvm(ctx, return_type_name);
                 if (ctx->has_error)
                     return NULL;
             }
         } else {
             ret = ast_func_return_type(decl);
+        }
+        if (subject_ty == NULL && ret != NULL && llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing match subject return ABI fact for '%s'",
+                callee != NULL ? callee : "(anonymous-function)");
+            return NULL;
         }
         if (subject_ty == NULL && ret != NULL)
             subject_ty = ast_type_to_llvm(ctx, ret);

@@ -20,7 +20,10 @@ typedef enum PgyProjectionAxis {
 
 typedef enum PgyProjectionDisposition {
     PGY_PROJECTION_ERASE,
-    PGY_PROJECTION_MATERIALIZE
+    PGY_PROJECTION_MATERIALIZE,
+    PGY_PROJECTION_RETAIN,
+    PGY_PROJECTION_SUMMARIZE,
+    PGY_PROJECTION_REJECT
 } PgyProjectionDisposition;
 
 typedef enum PgyProjectionRuntimeProfile {
@@ -61,6 +64,47 @@ typedef struct PgyVerifiedProjectionPlanRow {
 
 #define PGY_VERIFIED_PROJECTION_PLAN_REVISION UINT32_C(1)
 
+/* Parallel capture is a separate verified row family.  It is deliberately
+ * not folded into the intent-observability row: capture facts have different
+ * owners, consumers, and dispositions, while both families share the same
+ * AIR certificate admission boundary. */
+typedef struct PgyVerifiedParallelCaptureRow {
+    uint32_t source_stable_id;
+    const char *name; /* borrowed from the MIR owner for this compilation */
+    MIRParallelCaptureDispositionKind kind;
+    size_t writer_task;
+    PgyProjectionDisposition disposition;
+} PgyVerifiedParallelCaptureRow;
+
+typedef struct PgyVerifiedParallelCapturePlan {
+    uint32_t revision;
+    uint64_t digest;
+    uint64_t air_certificate_fingerprint;
+    PgyVerifiedParallelCaptureRow *rows; /* owned; released by ..._dispose */
+    size_t row_count;
+    bool verified;
+} PgyVerifiedParallelCapturePlan;
+
+#define PGY_VERIFIED_PARALLEL_CAPTURE_PLAN_REVISION UINT32_C(1)
+
+uint64_t pgy_verified_parallel_capture_plan_digest(
+    const PgyVerifiedParallelCapturePlan *plan);
+bool pgy_verified_parallel_capture_plan_identity_ready(
+    const PgyVerifiedParallelCapturePlan *plan);
+bool pgy_verified_parallel_capture_plan_from_air(
+    const PgyAirVerification *air,
+    const MIRProgram *mir,
+    PgyVerifiedParallelCapturePlan *plan_out,
+    const char **error_out);
+void pgy_verified_parallel_capture_plan_dispose(
+    PgyVerifiedParallelCapturePlan *plan);
+const PgyVerifiedParallelCaptureRow *
+pgy_verified_parallel_capture_disposition_find(
+    const PgyVerifiedParallelCapturePlan *plan,
+    const MIRParallelCaptureBoundaryFact *boundary,
+    const char *name,
+    MIRParallelCaptureDispositionKind kind);
+
 uint64_t pgy_verified_projection_plan_digest(
     const PgyVerifiedProjectionPlanRow *row);
 bool pgy_verified_projection_plan_identity_ready(
@@ -91,7 +135,7 @@ bool pgy_verified_projection_plan_intent_observability_with_air(
  * source spelling inside a backend is the drift this artifact removes.
  */
 typedef struct PgySpawnLaneFactRow {
-    const struct ASTNode *site;   /* the AST_SPAWN_EXPR node (AIR boundary key) */
+    uint32_t              source_stable_id;
     PgyExecutionLane      lane;   /* classified lane; never the rejected lane */
 } PgySpawnLaneFactRow;
 
@@ -113,7 +157,7 @@ bool pgy_verified_spawn_lane_plan_from_air(
 void pgy_verified_spawn_lane_plan_dispose(PgySpawnLanePlan *plan);
 bool pgy_verified_spawn_lane_plan_lookup(
     const PgySpawnLanePlan *plan,
-    const struct ASTNode *site,
+    uint32_t source_stable_id,
     PgyExecutionLane *lane_out);
 
 #endif /* PERGYRA_VERIFIED_PROJECTION_PLAN_H */

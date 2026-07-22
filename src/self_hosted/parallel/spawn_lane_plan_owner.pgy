@@ -16,7 +16,7 @@
 //   - Inline can never appear in a plan row (a spawn boundary is always a
 //     concurrent site), so plan rows range over exactly the five
 //     runnable-from-spawn lanes;
-//   - lookup is per-site and fail-closed: a miss means the emitter must
+//   - lookup is per stable source identity and fail-closed: a miss means the emitter must
 //     refuse the spawn site, not guess a lane;
 //   - backends CONSUME the plan (lookup); only the driver PRODUCES it. The
 //     forbid rows below keep the producer out of the emitters.
@@ -40,7 +40,7 @@ func SpawnLanePlanSchema() -> String {
 func SpawnLanePlanRevision() -> Int { return 1; }
 
 // A site that exists in no plan. Site identities are opaque and positive in
-// this model (the C artifact keys rows by the spawn AST node).
+// this model (the C artifact keys rows by the AIR-assigned stable source ID).
 func SpawnLanePlanNoSite() -> Int { return 0; }
 
 // Which lanes may appear in a produced plan row. Reject is refused by the
@@ -65,7 +65,7 @@ func SpawnLanePlanRowLaneLegal(lane: Int) -> Bool {
 struct SpawnLaneBoundary {
     used: Bool;
     is_spawn: Bool;
-    site: Int;
+    source_stable_id: Int;
     lane: Int;
 }
 
@@ -74,9 +74,9 @@ struct SpawnLanePlanOutcome {
     refused_reject: Bool;
     refused_conflict: Bool;
     row_count: Int;
-    row0_site: Int;
+    row0_source_stable_id: Int;
     row0_lane: Int;
-    row1_site: Int;
+    row1_source_stable_id: Int;
     row1_lane: Int;
 }
 
@@ -112,9 +112,9 @@ func SpawnLanePlanProduce(
     b2: SpawnLaneBoundary,
     b3: SpawnLaneBoundary
 ) -> SpawnLanePlanOutcome {
-    let row0_site: Int = SpawnLanePlanNoSite();
+    let row0_source_stable_id: Int = SpawnLanePlanNoSite();
     let row0_lane: Int = ParallelLaneReject();
-    let row1_site: Int = SpawnLanePlanNoSite();
+    let row1_source_stable_id: Int = SpawnLanePlanNoSite();
     let row1_lane: Int = ParallelLaneReject();
     let row_count: Int = 0;
     let index: Int = 0;
@@ -126,46 +126,51 @@ func SpawnLanePlanProduce(
         if boundary.lane == ParallelLaneReject() {
             return SpawnLanePlanRefusal(true, false);
         }
-        if row_count > 0 && row0_site == boundary.site {
+        if boundary.source_stable_id == SpawnLanePlanNoSite() {
+            return SpawnLanePlanRefusal(true, false);
+        }
+        if row_count > 0 && row0_source_stable_id == boundary.source_stable_id {
             if row0_lane != boundary.lane {
                 return SpawnLanePlanRefusal(false, true);
             }
             continue;
         }
-        if row_count > 1 && row1_site == boundary.site {
+        if row_count > 1 && row1_source_stable_id == boundary.source_stable_id {
             if row1_lane != boundary.lane {
                 return SpawnLanePlanRefusal(false, true);
             }
             continue;
         }
         if row_count == 0 {
-            row0_site = boundary.site;
+            row0_source_stable_id = boundary.source_stable_id;
             row0_lane = boundary.lane;
         }
         if row_count == 1 {
-            row1_site = boundary.site;
+            row1_source_stable_id = boundary.source_stable_id;
             row1_lane = boundary.lane;
         }
         row_count = row_count + 1;
     }
     return SpawnLanePlanOutcome(true, false, false, row_count,
-        row0_site, row0_lane, row1_site, row1_lane);
+        row0_source_stable_id, row0_lane,
+        row1_source_stable_id, row1_lane);
 }
 
 // Per-site fail-closed lookup: an unverified plan answers nothing, and a
-// missing site is a MISS the emitter must refuse -- never a default lane.
-func SpawnLanePlanLookupFound(outcome: SpawnLanePlanOutcome, site: Int) -> Bool {
+// missing source identity is a MISS the emitter must refuse -- never a default lane.
+func SpawnLanePlanLookupFound(outcome: SpawnLanePlanOutcome, source_stable_id: Int) -> Bool {
     if !outcome.verified { return false; }
-    if outcome.row_count > 0 && outcome.row0_site == site { return true; }
-    if outcome.row_count > 1 && outcome.row1_site == site { return true; }
+    if source_stable_id == SpawnLanePlanNoSite() { return false; }
+    if outcome.row_count > 0 && outcome.row0_source_stable_id == source_stable_id { return true; }
+    if outcome.row_count > 1 && outcome.row1_source_stable_id == source_stable_id { return true; }
     return false;
 }
 
-func SpawnLanePlanLookupLane(outcome: SpawnLanePlanOutcome, site: Int) -> Int {
-    if outcome.row_count > 0 && outcome.row0_site == site {
+func SpawnLanePlanLookupLane(outcome: SpawnLanePlanOutcome, source_stable_id: Int) -> Int {
+    if outcome.row_count > 0 && outcome.row0_source_stable_id == source_stable_id {
         return outcome.row0_lane;
     }
-    if outcome.row_count > 1 && outcome.row1_site == site {
+    if outcome.row_count > 1 && outcome.row1_source_stable_id == source_stable_id {
         return outcome.row1_lane;
     }
     return ParallelLaneReject();
@@ -219,7 +224,7 @@ func SpawnLanePlanSkipsNonSpawnBoundaries() -> Bool {
     let outcome: SpawnLanePlanOutcome = SpawnLanePlanProduce(
         zone_like, spawn_like, SpawnLaneBoundaryEmpty(), SpawnLaneBoundaryEmpty());
     return outcome.verified && outcome.row_count == 1 &&
-        outcome.row0_site == 42;
+        outcome.row0_source_stable_id == 42;
 }
 
 // A program with no spawn site produces an EMPTY verified plan -- absence of
@@ -231,7 +236,7 @@ func SpawnLanePlanEmptyIsVerified() -> Bool {
     return outcome.verified && outcome.row_count == 0;
 }
 
-// A missing site is a miss, and an unverified (refused) plan answers no
+// A missing source identity is a miss, and an unverified (refused) plan answers no
 // lookup at all -- the emitter's only move on either is to fail closed.
 func SpawnLanePlanLookupFailsClosed() -> Bool {
     let fact: SpawnLaneBoundary =

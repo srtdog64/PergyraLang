@@ -9,8 +9,30 @@
 #include "mir_program.h"
 
 typedef struct SemanticResult SemanticResult;
-MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir,
-                      const SemanticResult *semantic, char **error_message);
+
+/*
+ * Versioned MIR-lowering admission contract.  The request is an in-process
+ * ABI row, not a convenience wrapper: every native caller must enter through
+ * the same protocol identity/version before MIR facts can be produced.
+ */
+#define PGY_MIR_LOWER_PROTOCOL_ID "pergyra.compiler-lowering-api"
+#define PGY_MIR_LOWER_PROTOCOL_VERSION 1u
+
+typedef struct
+{
+    const char             *protocol_id;
+    uint32_t                protocol_version;
+    const HIRProgram       *hir;
+    const RIRProgram       *rir;
+    const SemanticResult   *semantic;
+} MIRLowerRequest;
+
+void mir_lower_request_init(MIRLowerRequest *request,
+                            const HIRProgram *hir,
+                            const RIRProgram *rir,
+                            const SemanticResult *semantic);
+MIRProgram *mir_lower(const MIRLowerRequest *request,
+                      char **error_message);
 void        mir_instruction_capture_source_provenance(
                 MIRInstruction *inst,
                 const ASTNode *source);

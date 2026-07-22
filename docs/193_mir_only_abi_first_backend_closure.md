@@ -68,6 +68,23 @@ facts, and the single runtime-call ABI row authority. Each must retain the same
 AIR-bound admission and negative gate before the status can move from `PARTIAL`
 to `CLOSED`.
 
+### Versioned MIR-lowering admission
+
+The native MIR entry now has an explicit in-process protocol contract. Every
+caller constructs `MIRLowerRequest` through `mir_lower_request_init`, carrying
+the stable `pergyra.compiler-lowering-api` identity, version `1`, and the HIR,
+RIR, and semantic owners. `mir_lower` rejects a missing, unknown, or mismatched
+identity/version before it can allocate a `MIRProgram`; it also retains the
+existing missing-HIR/semantic failure. The driver, MIR test harnesses, and
+transpile tests all use this one request shape, so an old positional call cannot
+silently bypass the admission contract.
+
+This is a protocol-admission bridge, not a claim that lowering itself is
+already self-hosted: the native C lowering owner remains the current producer,
+while `src/self_hosted/mir_lower` is a separate projection lane. The permanent
+gate is `make mir-lowering-api-test-smoke`, included by the backend fail-closed
+gate; it checks the identity/version validation and rejects positional callers.
+
 The active C MIR function emitter now keeps that boundary fail-closed for
 parameter and local registration as well. Once strict MIR signature admission
 has succeeded, a missing parameter or local type-name fact cannot be repaired
@@ -89,8 +106,8 @@ this AST path from being reopened.
 
 This is intentionally a sub-rung, not a claim that every domain emitter is
 AST-free. Class, relation, effect, party, roster, zone, and world dispatch now
-select their declaration from MIR headers. Constructor consumers and the LLVM
-bootstrap remain declaration-side replacement seams.
+select their declaration from MIR headers. The wider LLVM declaration/bootstrap
+inventory remains a declaration-side replacement seam.
 
 ### Declaration type materialization sub-rung
 
@@ -105,8 +122,12 @@ This closes a narrower but important ABI seam: the nominal layout's C type is
 now derived from the same MIR declaration row that owns the field identity,
 rather than from a second AST payload. Relation/effect and party/roster
 dispatch now select `emit_*_decl_from_mir_header` directly from the inventory.
-The remaining declaration work is the AST-only role implementation surface,
-constructor consumers, and LLVM declaration/bootstrap paths.
+LLVM nominal registration now consumes the same field `type_name` rows through
+`pergyra_type_to_llvm`, including the class-field slot binding pass; an active
+MIR row without that name fails before `LLVMStructSetBody` or slot scope
+registration. The retained AST field node remains only in the explicit
+non-MIR compatibility branch. The remaining declaration work is the AST-only
+role implementation surface and the wider LLVM declaration/bootstrap paths.
 
 World derived-state and command-directive rows are now captured and verified in
 `MIRDeclHeader`. When MIR is active, both the C and LLVM world emitters consume
@@ -117,8 +138,36 @@ inputs and directive state references are resolved through MIR-backed world
 zone/state views; world layout, frontier, derived-state, and `HasZone` query
 consumers use the same rows, and neither backend rescans the AST to recover
 the decision.
-This remains a bounded sub-rung: constructor consumers and LLVM bootstrap are
-still open seams and are not silently treated as MIR-only closure.
+Class constructor argument lowering is now a bounded ABI sub-rung. The MIR
+class field row's `type_name` is the sole active-MIR expected-type fact: C sets
+its context-sensitive expression type from that name, and LLVM maps the same
+name through its backend type builder. If the row is missing, either backend
+emits a MIR inventory diagnostic before lowering; the active LLVM path cannot
+fall through to `mir_decl_field_type` or a compatibility AST field. The
+`class_compare_return` C/LLVM fixture and the constructor fail-closed checks
+cover this seam. This does not close the wider LLVM declaration/bootstrap
+inventory, which remains a separate open seam.
+
+Shared/domain constructor arguments and defaults now use the same bounded C
+owner. Party, roster, relation, effect, zone, and world constructors select
+the MIR view's field/slot `type_name` for active-MIR expected-type lowering;
+the retained AST type node is not an expected-type recovery source. A missing
+row fails with the constructor field type-name inventory diagnostic. LLVM class
+shared-field defaults likewise pass the MIR type name through
+`llvm_emit_constructor_field_arg` before inserting the initializer, so
+`None`/collection context cannot be inferred from an unowned expression.
+The `party_roster_host_methods` and `relation_effect_projection_sync`
+fixtures cover the C/LLVM runtime parity for this slice. The wider LLVM
+declaration/bootstrap inventory and runtime-call/layout bridge remain separate
+open seams.
+
+Projection path and nominal-member type lookup now use the same rule. Once AIR
+has admitted an active MIR plan, class-field projection helpers and C nominal
+member lookup accept only `MIRDeclField.type_name`; a missing row or field
+metadata emits the backend inventory diagnostic before nested-path resolution.
+The retained AST field type is still reachable only from the explicit
+non-MIR compatibility branch. This keeps projection path selection and slot
+member typing on one declaration ABI fact owner in both C and LLVM.
 
 ### Callable declaration sub-rung (AIR-bound)
 
@@ -135,8 +184,28 @@ backends project the ABI differently while consuming one row.
 The executable evidence is the LLVM object compile, the full LLVM compiler
 link, `mir-declaration-inventory-test-smoke`, and `tests/llvm_smoke.sh` (which
 includes `event_system`). This is a bounded routine-declaration sub-rung, not
-full LLVM declaration/bootstrap closure: method/domain callable declarations,
-constructors, and runtime-call ABI rows remain separate open seams.
+full LLVM declaration/bootstrap closure: the wider domain bootstrap inventory
+and runtime-call ABI rows remain separate open seams.
+
+The same declaration owner is now fail-closed for ordinary routine ABI rows.
+When a routine is active MIR, `llvm_decl.c` accepts only its carried return
+type name or callable signature and its ordered parameter type names/callable
+signatures. The retained `ASTNode` type is consulted only when the explicit
+legacy AST-compatibility branch is selected. Missing MIR declaration facts
+produce the inventory diagnostic before LLVM type construction, and the
+backend gate rejects the old type-name-first helper from returning to this
+path. Thus forward declaration and body emission share the same MIR ABI
+authority instead of reopening a declaration/body split.
+
+Hosted domain and role method forward declarations now use the linked
+`MIRRoutine` callable rows as well. A method's ordinary parameter and return
+types come from `MIRDeclMethod` type-name rows; an `EventHandler` shape comes
+from the linked routine's `MIRCallableSig`. If neither row is available, the
+forward declaration emits a MIR inventory diagnostic instead of invoking the
+old AST parameter helper. The role-operator path applies the same rule to its
+rhs and return ABI facts. The role subject/physical receiver projection is a
+separate machine/domain seam and remains explicitly tracked rather than being
+silently treated as closed here.
 
 The same `MIRCallableSig` owner now remains in force after declaration: LLVM
 function-body type construction and parameter alloca binding consume the
@@ -145,6 +214,21 @@ and return names. Active MIR cannot fall back to `ast_type_to_llvm` for an
 `EventHandler` slot; the signature metadata gate rejects a missing callable
 row before emission. This keeps AIR as the admission boundary while allowing
 C and LLVM to lower one MIR ABI row through backend-specific type builders.
+
+Event declarations now have the same explicit ABI carriage. During MIR
+declaration capture, `mir_decl_header_set_event_params` stores the ordered
+parameter names and source type names in the event's `MIRDeclHeader`; the MIR
+header validator rejects incomplete or non-event rows, and MIR destruction
+owns their storage. The C event emitter consumes those rows through the
+bounded C type-name owner, while LLVM consumes the same names through its
+LLVM type builder. A missing event header, parameter name, or parameter type
+is a MIR inventory error in either backend; neither active path re-queries
+`ast_event_param`/`ast_let_type`. The retained AST event branch is only the
+legacy compatibility lane. This is an ABI sub-rung under the AIR-admitted
+projection plan, not a claim that event operation bodies or all LLVM bootstrap
+state have independently closed. `tests/llvm_smoke.sh` exercises the
+`event_system` fixture on LLVM, and the same fixture is run through the C
+backend parity path.
 
 The generic LLVM await-type consumer follows the same owner direction. When
 the backend future registry has not yet materialized a binding, active MIR
@@ -164,6 +248,105 @@ consume those carried rows; a missing callable local, parameter, or return
 fact is a MIR inventory error and stops emission. The legacy AST registration
 APIs remain only on the non-MIR compatibility path, so this sub-rung does not
 create a second ABI owner.
+
+The routine parameter ABI now follows the same hard boundary in LLVM body
+emission and parameter alloca binding. Once
+`llvm_mir_routine_signature_metadata_complete` has admitted a routine,
+parameter LLVM types come only from the carried `param_type_name` or
+`MIRCallableSig`; resource-slot parameters use that same row before adding
+their slot/token carriage. Pointer-self and value-result decisions likewise
+use MIR carriage/type facts. A missing row emits the MIR inventory diagnostic
+and stops emission. The former `FuncParam.type` recovery helpers are not
+reachable from either active MIR consumer, and the negative backend gate
+rejects their reintroduction. Callable locals are registered with the nested
+MIR callable rows, preserving one callable ABI owner through declaration,
+body, and scope binding.
+
+Boundary-call argument lowering now consumes the same parameter ABI rows.
+Active MIR uses the carried callable signature for callable expected types and
+the carried type name/carriage for pointer-self and value-result handling.
+Only the explicit generic/extern compatibility lane may inspect the AST
+parameter type. A missing active-MIR ABI fact fails before argument emission,
+so an LLVM boundary call cannot silently repair its expected type from
+`FuncParam.type`.
+
+On-demand generic-class method specialization follows the same rule. Its
+specialized prototype consumes the linked `MIRDeclMethod` and `MIRRoutine`
+rows, including callable parameter/return signatures, before the specialized
+MIR body is emitted. The old AST template/body branch is removed from this
+active path; a missing generic method ABI row is a MIR inventory failure.
+
+LLVM generic-class layout specialization now applies the same boundary to
+aggregate ABI rows. Active MIR requires the generic class header and every
+field `type_name` from `MIRDeclHeaderInventory`; missing rows fail closed
+before `LLVMStructSetBody`. AST template lookup and field type conversion are
+retained only for the non-MIR compatibility lane, so a generic aggregate cannot
+silently acquire a second layout owner.
+
+Hosted/member-call type inference now follows that same ABI owner. When the
+active MIR path asks for a method return type, it first consumes the linked
+routine's `MIRCallableSig` (for callable returns) and then the method's carried
+return type-name. A retained AST return node is no longer a repair source after
+MIR admission; if both MIR rows are absent, inference fails with a MIR
+inventory diagnostic. The legacy AST conversion remains behind the explicit
+non-MIR compatibility path, so AIR-bound projection still has one admitted
+fact owner.
+
+The role-operator receiver now follows the physical-side half of that rule:
+LLVM lowers the `role_subject_type_name` row carried by the MIR role header and
+rejects an active MIR role whose receiver name row is absent. The old
+`for_type` AST conversion is only a non-MIR compatibility path, keeping the
+machine/domain receiver from becoming a second layout authority.
+
+LLVM nominal method registration now closes the matching prototype seam for
+enum and class methods. Active MIR registration consumes the linked routine's
+`MIRCallableSig` for callable returns/parameters and the `MIRDeclMethod`
+type-name rows for ordinary ABI types. Missing rows fail with a method-specific
+MIR inventory diagnostic; `llvm_register_required_ast_type` is retained only
+for the explicit non-MIR compatibility lane. The negative backend gate rejects
+both AST return recovery and AST parameter recovery in this registrar, and the
+`role_override_mir`, `event_system`, and `class_compare_return` parity cases
+exercise the resulting C/LLVM signatures.
+
+The C role-declaration path now applies the same boundary to role overrides.
+`AST_OVERRIDE_FUNC` implementations are produced as role-owned `MIRDeclMethod`
+rows after the ordinary role implementation spans. HIR creates the matching
+hosted `MIRRoutine`, the declaration-header validator accounts for the explicit
+override suffix count, and C/LLVM consume the same method view for body/prototype
+emission. Override rows are not ability-vtable entries. The former
+`MIR-only C path missing role override method metadata` diagnostic is therefore
+retired; the backend smoke gate rejects its reintroduction. The non-MIR
+compatibility lane keeps legacy AST override emission only for the explicit
+unit-test compatibility path.
+
+LLVM domain aggregate registration now consumes the carried field
+`type_name` rows for domain slots and shared fields. Active MIR no longer passes
+the retained AST type nodes into `ast_type_to_llvm`; a missing row emits a MIR
+inventory diagnostic before `LLVMStructSetBody`. The AST field conversion helper
+remains only for the explicit non-MIR compatibility lane, so domain layout has
+one MIR ABI owner across C and LLVM.
+
+The same field row is now authoritative for projection lookup. Current-field
+class discovery and nested domain projection paths reject a MIR field whose
+`type_name` is absent instead of recovering `MIRDeclField.type` from the AST.
+This keeps projection navigation and aggregate layout on the same carried ABI
+fact and makes a missing row observable at the last consumer.
+
+Constructor Channel rejection now uses that same field-row owner in both
+backends. The active MIR C and LLVM guards classify class fields, shared fields,
+and domain slots from `MIRDeclField.type_name`; they do not use the retained AST
+type node to decide whether aggregate construction is legal. A missing
+constructor field type name fails closed with the backend's MIR inventory
+diagnostic before the ordinary Channel rejection path can run. The AST type
+helpers remain only in the explicit non-MIR compatibility branch. This keeps
+the machine-facing constructor ABI and the AIR-admitted projection plan on one
+field fact rather than duplicating a classification decision in each backend.
+
+The MIR match-condition payload consumer applies the same rule to a call used
+as an option/result subject. Its subject type comes from the routine callable
+row or carried return type-name; an active MIR routine with only an AST return
+node now fails closed before payload extraction. This prevents pattern
+lowering from quietly rebuilding the match payload layout at the LLVM edge.
 
 ### Expression call-target carriage sub-rung
 
@@ -229,13 +412,15 @@ pin rows live in `mir_abi_resource_runtime_mir.c`. All three are below the
 production owner cap, and the Makefile inventory plus ABI ownership gate names
 the responsibility split.
 
-Pin enter/exit has no source call node to own a runtime row. MIR therefore
-authorizes `PinReadInit`, `PinWriteInit`, and `Unpin` only from a same-type
-`Read`/`Write` resource instruction, and exposes both the owner instruction and
-the derived row through `mir_abi_resource_runtime_*_pin_*_for_mir`. LLVM uses
-that MIR owner for layout identity validation; it does not inspect the stale
-backend instruction cursor or synthesize a row from `SecureSlot<T>` spelling.
-If the authorizing MIR row is absent, the pin path fails closed.
+Pin enter/exit has no source call node to own a runtime row. Lowering therefore
+attaches `PinReadInit`/`PinWriteInit`, `Unpin`, and `UnpinCleanup` as auxiliary
+rows on the concrete `PinRead`/`PinWrite` MIR instruction. The pin lookup is a
+view over those instruction-owned rows; it never reconstructs a row from the
+global ABI table or from a `SecureSlot<T>` spelling. LLVM uses the same MIR
+owner for layout identity validation. If the authorizing instruction or its
+auxiliary row is absent, the pin path fails closed. The JSON MIR projection
+emits the primary `runtime_call_abi` plus the ordered `runtime_call_abi_aux`
+set so this multi-operation ownership remains inspectable.
 
 The active C MIR resource-op path now has the corresponding producer seam:
 MIR lowering resolves the static or constructed `Slot<T>` family row once and
@@ -251,9 +436,18 @@ uses `runtime_call_abi_structured_fact_owner.pgy`; it does not parse a row
 string, reopen source text, or call the C oracle. The self-hosted `mir_lower`
 consumer validates the nested `runtime_call_abi` fact before it suppresses
 evidence-only resource rows.
+It now validates the same ordered `runtime_call_abi_aux` array on that
+instruction: every auxiliary row must retain the MIRResource owner, the
+primary ABI type, a declared operation, the canonical payload, and its stable
+row identity. This prevents the self-host JSON lane from accepting a valid
+primary Claim while ignoring a mutated Read/Write or pin lifecycle row. The
+rung-2 auxiliary-ID mutation is owned by
+`driver_rung2_resource_runtime_abi_negative_owner.sh`; the wider aggregate and
+compatibility corpus remains a separate BRIDGE.
 
 Slot-sugar initialization is also explicit carriage rather than a backend
-exception. Its `MIR_INST_DEF` carries the canonical Claim row and layout ID.
+exception. Its `MIR_INST_DEF` carries the canonical Claim row, the concrete
+Write/Read auxiliary rows used by sugar, and the layout ID.
 The shared MIR verifier validates every present runtime-call row regardless of
 instruction kind, and C/LLVM may consume the active DEF row only when its
 operation matches the requested operation. An implicit Write sharing the same
@@ -287,10 +481,11 @@ multi-operation regression gate.
 
 Synthetic consumers are owner-derived, never table-fallback consumers. A
 typed `Slot<T>`, `SecureSlot<T>`, or `DeviceSlot<T>` DEF and a destructure
-Claim carry the canonical Claim row on that MIR owner instruction. When an
-auto-read, pin helper, or other source expression has no unique resource-op
-identity, the C and LLVM row owners may derive the requested operation only
-from an existing same-type MIR runtime owner. If every same-type owner fact is
+Claim carry the canonical Claim row and any concrete slot-sugar Read/Write
+auxiliary rows on that MIR owner instruction. When an auto-read, pin helper, or
+other source expression has no unique resource-op identity, the C and LLVM row
+owners may select the requested operation only from an existing same-type MIR
+runtime owner or its auxiliary row set. If every same-type owner fact is
 removed, lookup returns no row and the backend fails closed; the static ABI
 table cannot authorize the operation by itself. The permanent MIR gate is
 `MIR synthetic slot consumers derive rows from an existing owner`, including
@@ -337,6 +532,25 @@ ratchet is also covered by `src/tests/mir/test_mir_runtime_call_abi.cases.h`
 and the driver rung-2 wrong-ID mutation in
 `tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh`.
 
+The LLVM runtime-row selector now fails closed when a source-level MIR
+operation is active but no routine-owned row exists. The one explicit exception
+is the module-level runtime declaration phase: before a routine is active and
+with no source node, LLVM consumes the canonical ABI row vocabulary only to
+declare exported runtime functions. This prevents declaration setup from
+being mistaken for a source-operation fallback. The C selector applies the
+same active-operation guard, including unknown operation spellings, so both
+backends have the same source-level failure boundary. The broader
+runtime-call compatibility corpus remains a separate bridge.
+
+The active-MIR helper `mir_abi_resource_runtime_row_for_mir_abi` is now
+instruction-owned as well. It delegates only to
+`mir_abi_resource_runtime_instruction_for_abi` and returns that concrete
+routine row; it no longer reconstructs a row from the global ABI table after
+finding a routine owner. Thus a missing operation row is observable at the
+MIR consumer instead of being repaired by backend-time table lookup. The
+negative portion of `backend-fail-closed-test-smoke` rejects either global row
+lookup from this helper.
+
 ### Static ABI layout identity sub-rung (AIR-bound)
 
 Static `MIRTypeLayout` rows now have a content-derived `LayoutId` materialized
@@ -352,10 +566,41 @@ before AIR-bound projection reaches either backend. The negative MIR fixture is
 `MIR validator rejects missing ABI layout identity` in
 `src/tests/mir/test_mir_lowering_part_a_1.cases.h`, and the ABI ownership shape
 gate requires both the owner and the mutation. This is a bounded identity rung:
-dynamic nominal layouts still use their runtime-call row, and the self-host JSON
-projection has not yet promoted static layout IDs to a separate compatibility
-row. Therefore `pergyra.abi.core.v1` remains `BRIDGE` until aggregate/layout
-consumers and the self-host wire row migrate together.
+dynamic nominal layouts still use their runtime-call row. The native `pgy.mir.v1`
+producer now carries the complete static `MIRTypeLayout` row beside every
+instruction (`abi_type_name`, `abi_layout_id`, `abi_layout_required`, and
+`abi_layout`), so the self-host consumer can validate the row without reopening
+the source type or a process-local table. `abi_layout_required=false` is an
+explicit dynamic case and must carry ID `0` plus `null`; a missing tuple,
+partial row, or mutated ID fails closed in `mir_lower`. The permanent mutation
+gate is the device-slot rung in
+`tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh`.
+
+The self-host producer now materializes a bounded fixed-row subset directly:
+the fixed scalar `Slot<T>`, `DeviceSlot<T>`, and `SecureSlot<T>` rows for
+`T` in `{Int, Long, Float, Double, Bool, String}`, plus explicit-tag
+`Option<T>` rows for `T` in `{Int, Long, Float, Double, Bool, String}` and
+`Result<T>` rows for `{Int, Bool, String}`. It computes the same
+content-derived `LayoutId` from the serialized row; the device-slot rung
+observes `707638132` on both native and self-host producers, and the negative
+owner mutates the required row and its identity. Unknown and target-dependent
+rows still use the explicit dynamic tuple, so this closes producer carriage
+for the expanded fixed subset, now including the `Array<Int>` and
+`Array<String>` aggregate rows through the `array_sum_filtered` and `str_array`
+fixtures. The producer and self-host collection runtime now also carry
+`Array<Long>`, `Array<Float>`, and `Array<Bool>` through the
+`array_scalar_aggregate_core` fixture; the focused C/LLVM parity lane checks
+their layout rows, emitted C, host compilation, and runtime output. This is
+still a bounded aggregate subset, not a claim that every generic or
+target-specific static row has migrated.
+The producer checks `CompilerAbiLayoutTargetPolicyReady()` before materializing
+any row: the pointer-bearing `String` subset is an admitted `selfhost-c`
+projection, not a universal pointer-width default. A future target must carry
+its own size/align facts before it can promote those rows from the dynamic
+tuple.
+Therefore `pergyra.abi.core.v1` remains `BRIDGE` until the remaining static
+row families and aggregate/generic/target-specific layout consumers migrate
+behind the same owner.
 
 The constructed-nominal exception is now owner-directed rather than a backend
 guess: `mir_abi_resource_runtime_row_is_constructed_nominal()` recognizes only
@@ -408,6 +653,47 @@ inputs. Removing either owner fact therefore reaches the existing
 `view-backed resource op is missing owner slot ABI metadata` or typed-layout
 failure instead of searching another routine or reopening `expr1`. The
 backend-fail-closed gate permanently rejects reintroducing those scans.
+
+### Parallel-capture projection row (AIR-bound, bounded)
+
+The first non-observability projection row family is now executable for
+parallel capture dispositions. `SemanticParallelCaptureBoundaryFact` remains
+the semantic producer and `MIRParallelCaptureBoundaryFact` is the MIR SoT;
+`PgyVerifiedParallelCapturePlan` is only the AIR-bound carrier. The carrier
+records the boundary stable identity, capture name, MIR disposition kind,
+writer task, AIR certificate fingerprint, revision, and a mutation-checked
+digest. Its row disposition is explicit: snapshot-copy maps to
+`materialize`, while join-index-disjoint and join-readonly map to `retain`;
+unknown kinds are classified as `reject` and fail before carrier publication.
+
+The producer requires a certified AIR boundary for every MIR capture boundary,
+valid MIR capture validation, and a non-mutated plan identity. An AIR parallel
+boundary with no capture rows is a valid empty carrier; the producer does not
+invent a semantic row for it. The last legitimate consumers are the C async/
+parallel-join emitters and the LLVM async/parallel-join emitters. They consume
+only `pgy_verified_parallel_capture_disposition_find`; direct
+`mir_parallel_capture_disposition_find` calls are forbidden after the AIR
+admission boundary. A missing carrier, certificate, boundary, row, or digest
+fails closed in both backend entrypoints.
+
+The focused negative/source-shape gate is
+`make parallel-capture-projection-test-smoke`, included by
+`make backend-fail-closed-test-smoke`. The C/LLVM executable fixture
+`tests/cases/parallel_snapshot/snapshot_read.pgy` proves the carrier through
+both real compiles and the expected `42/1` runtime result; the broader
+runtime-call ABI compatibility corpus remains a separate bridge.
+
+### Spawn-lane stable identity sub-rung (AIR-bound)
+
+The verified spawn-lane plan no longer stores an `AST_SPAWN_EXPR` pointer as
+its row key. AIR computes `ast_node_stable_id` once, rejects a zero identity,
+and publishes `source_stable_id -> ExecutionLane`. C and LLVM consumers pass
+the stable ID of their current node only to the verified-plan lookup; they do
+not compare pointer identity or reclassify the lane from source spelling.
+Hand-built transpiler fixtures assign stable IDs before installing a plan, and
+the ABI ownership gate rejects the pointer-shaped row from returning. This is
+a bounded identity closure for the AIR spawn projection; the wider MIR JSON
+transport of spawn rows remains a separate bridge.
 
 See also:
 
@@ -476,8 +762,8 @@ owner is
 `tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh`,
 with fingerprint mutation covered by
 `tests/self_hosted/parity/target_capability_manifest_parity.sh`;
-the focused `device_slot_routine` lane passes under both C-built and
-LLVM-built Pergyra drivers.
+the focused `device_slot_routine`, `option_string_core`, `array_sum_filtered`, and `str_array` lanes pass under
+both C-built and LLVM-built Pergyra drivers.
 
 This row is deliberately still `BRIDGE`. It proves that the selected `cpu-c`
 projection, the ordered required-fact/fallback vocabulary, and a mutation-

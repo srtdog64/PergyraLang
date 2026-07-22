@@ -5,7 +5,7 @@
 
 /*
  * Row-building core. Every certified escape site becomes a REGION row. Refuses
- * a null site (an escape result must not carry a hole), refuses two conflicting
+ * a zero allocation-site id (an escape result must not carry a hole), refuses two conflicting
  * dispositions/scopes for one site, and collapses exact duplicates. HEAP is the
  * default for any site not present, so only region-safe sites are recorded.
  */
@@ -43,7 +43,7 @@ pgy_verified_region_plan_build_rows(const PgyRegionEscapeResult *escape,
         const PgyRegionEscapeSite *site = &escape->sites[i];
         bool duplicate = false;
 
-        if (site->site == NULL) {
+        if (site->allocation_site_id == 0) {
             pgy_verified_region_plan_dispose(plan_out);
             if (error_out != NULL)
                 *error_out =
@@ -51,12 +51,15 @@ pgy_verified_region_plan_build_rows(const PgyRegionEscapeResult *escape,
             return false;
         }
         for (size_t j = 0; j < plan_out->row_count; j++) {
-            if (plan_out->rows[j].site != site->site)
+            if (plan_out->rows[j].allocation_site_id
+                != site->allocation_site_id)
                 continue;
             /* A site certified twice must agree on scope; a disagreement means
                the escape pass produced contradictory evidence and must fail the
                compile here, observably, not silently pick one. */
-            if (plan_out->rows[j].scope_id != site->scope_id) {
+            if (plan_out->rows[j].scope_id != site->scope_id
+                || plan_out->rows[j].function_syntax_id
+                    != site->function_syntax_id) {
                 pgy_verified_region_plan_dispose(plan_out);
                 if (error_out != NULL)
                     *error_out =
@@ -68,10 +71,13 @@ pgy_verified_region_plan_build_rows(const PgyRegionEscapeResult *escape,
         }
         if (duplicate)
             continue;
-        plan_out->rows[plan_out->row_count].site = site->site;
+        plan_out->rows[plan_out->row_count].allocation_site_id =
+            site->allocation_site_id;
         plan_out->rows[plan_out->row_count].disposition =
             PGY_REGION_DISPOSITION_REGION;
         plan_out->rows[plan_out->row_count].scope_id = site->scope_id;
+        plan_out->rows[plan_out->row_count].function_syntax_id =
+            site->function_syntax_id;
         plan_out->row_count++;
     }
 
@@ -120,19 +126,42 @@ pgy_verified_region_plan_dispose(PgyRegionPlan *plan)
 
 bool
 pgy_verified_region_plan_lookup(const PgyRegionPlan *plan,
-                                const struct ASTNode *site,
+                                PgyRegionAllocationSiteId allocation_site_id,
                                 PgyRegionDisposition *disposition_out,
                                 uint32_t *scope_id_out)
 {
-    if (plan == NULL || !plan->verified || site == NULL)
+    if (plan == NULL || !plan->verified || allocation_site_id == 0)
         return false;
     for (size_t i = 0; i < plan->row_count; i++) {
-        if (plan->rows[i].site != site)
+        if (plan->rows[i].allocation_site_id != allocation_site_id)
             continue;
         if (disposition_out != NULL)
             *disposition_out = plan->rows[i].disposition;
         if (scope_id_out != NULL)
             *scope_id_out = plan->rows[i].scope_id;
+        return true;
+    }
+    return false;
+}
+
+bool
+pgy_verified_region_plan_scope_for_function_id(
+    const PgyRegionPlan *plan,
+    uint32_t function_syntax_id,
+    uint32_t *scope_id_out)
+{
+    if (scope_id_out != NULL)
+        *scope_id_out = 0;
+    if (plan == NULL || !plan->verified || function_syntax_id == 0)
+        return false;
+    for (size_t i = 0; i < plan->row_count; i++) {
+        const PgyRegionFactRow *row = &plan->rows[i];
+        if (row->function_syntax_id != function_syntax_id)
+            continue;
+        if (row->scope_id == 0)
+            return false;
+        if (scope_id_out != NULL)
+            *scope_id_out = row->scope_id;
         return true;
     }
     return false;

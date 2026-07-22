@@ -157,6 +157,9 @@ const char *llvm_hosted_shared_field_view_name(
 ASTNode *llvm_hosted_shared_field_view_type(
     const LLVMHostedSharedFieldView *view,
     size_t index);
+const char *llvm_hosted_shared_field_view_type_name(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
 ASTNode *llvm_hosted_shared_field_view_initializer(
     const LLVMHostedSharedFieldView *view,
     size_t index);

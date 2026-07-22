@@ -38,8 +38,8 @@ require|src/compiler/verified_projection_plan.c|pgy_verified_spawn_lane_plan_fro
 require|src/codegen/transpiler_spawn_channel_emit.c|transpiler_spawn_lane_symbol(
 require|src/codegen/transpiler_spawn_channel_emit.c|pgy_lane_spawn_dispatch(
 require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_lane_spawn_dispatch_export
-require|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
-require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+require|src/codegen/transpiler_spawn_channel_emit.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
+require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
 forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_blocking
 forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_blocking
 forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking

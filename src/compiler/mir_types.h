@@ -181,6 +181,13 @@ typedef struct
      * through their stable source identity instead of collapsing rows here. */
     bool             resource_runtime_fact_present;
     MIRResourceRuntimeRow resource_runtime_fact;
+    /* A slot definition can own more than one lowered runtime operation:
+     * Claim establishes the container while slot sugar/auto-read emits a
+     * concrete Write or Read from the same source definition.  Keep those
+     * additional rows in the MIR-owned fact set instead of asking a backend
+     * to reconstruct them from the global ABI vocabulary. */
+    uint8_t          resource_runtime_aux_fact_count;
+    MIRResourceRuntimeRow resource_runtime_aux_facts[4];
     const MIRTextBuilderRuntimeRow *text_builder_runtime_row;
     /* Owner-directed machine contact fact. Backends must not infer this
      * boundary from the source call or ABI type alone. */

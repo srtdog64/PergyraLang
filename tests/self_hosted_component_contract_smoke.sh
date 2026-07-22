@@ -2529,6 +2529,7 @@ require_max_lines "src/self_hosted/compiler/region_plan_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/region_plan_owner.pgy"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "pgy.selfhost.region-plan.v1"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanProduce"
+require_text "src/self_hosted/compiler/region_plan_owner.pgy" "allocation_site_id"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionEscapeCertifies"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanNullSiteRefuses"
 require_text "src/self_hosted/compiler/region_plan_owner.pgy" "func RegionPlanScopeConflictRefuses"
@@ -2560,6 +2561,8 @@ require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invar
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invariant|owner_scope_fails_closed|ok"
 # The region artifact kind must be registered, or the comparator cannot diff it.
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRegionPlanArtifactKind"
+require_text "src/compiler/verified_region_plan.h" "PgyRegionAllocationSiteId"
+require_text "src/compiler/verified_region_plan.h" "allocation_site_id"
 
 # Mechanism reachability contract: no mechanism without a consumer.
 # Both polarities must stay present or the census stops testing half of itself.
@@ -3682,19 +3685,25 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 220;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 224;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 220'
+    'mir_fixture_rows[@]}" -ne 224'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_holds_enum_field/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    '"tests/cases/backend_compare/class_steps_loop_simple/main.pgy"'
+    '"tests/cases/backend_compare/class_field_init_order/main.pgy"'
+require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
+    'expected != "Unknown" &&'
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     "func SemanticAstExpressionOwnerFieldType"
 require_text "src/self_hosted/mir/routine_match_owner.pgy" \
     "SemanticAstExpressionOwnerFieldType("
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     "SelfMirRoutineAddLocal(build, match_value"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/array_scalar_aggregate_core.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/array_double_aggregate_core.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_loop_method_total/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3934,11 +3943,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 220;"
+    "return 224;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 220'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 224'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -6095,6 +6104,14 @@ require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayIntCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayStringCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayBoolCValueType()"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'type_name == "Array<Float>"'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'return Some("ArrayFloat")'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'pgy_af_new'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'typedef struct { float *data; long long len; long long cap; } pgy_af;'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'type_name == "Array<Double>"'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'return Some("ArrayDouble")'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'pgy_ad_new'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'typedef struct { double *data; long long len; long long cap; } pgy_ad;'
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCodegenAstTextNodeArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayCodegenAstTextNodeCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
@@ -6131,6 +6148,8 @@ require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     "CodegenNominalArrayUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     "CodegenSemanticGenericFormalKnown(signatures, element_type)"
+require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
+    'element_type == "Float" || element_type == "Double"'
 require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     "CodegenGenericSpecializationActuals("
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" \
@@ -8573,6 +8592,10 @@ require_text "src/self_hosted/mir_lower/decl_lower.pgy" "UnwrapOption(routine_po
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirInstructionAbiLayoutFactReady"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutIdFromRow"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutHashU32"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "instruction is missing or carries an invalid MIR ABI layout fact"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeRowRequired"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "MirResourceRuntimeAuxRowFactReady"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi"
@@ -8771,10 +8794,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 75 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 75"
-[[ "$codegen_expected_count" -eq 75 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 75"
+[[ "$codegen_fixture_count" -eq 77 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 77"
+[[ "$codegen_expected_count" -eq 77 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 77"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -8788,7 +8811,7 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 75;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 77;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \

@@ -29,6 +29,8 @@
 
 typedef struct PgyVerifiedProjectionPlanRow PgyVerifiedProjectionPlanRow;
 typedef struct PgySpawnLanePlan PgySpawnLanePlan;
+typedef struct PgyVerifiedParallelCapturePlan PgyVerifiedParallelCapturePlan;
+typedef struct PgyRegionPlan PgyRegionPlan;
 
 /* -----------------------------------------------------------------
  * Output buffer: grows dynamically.
@@ -153,7 +155,11 @@ typedef struct
     bool              in_parallel;  /* inside a Parallel block       */
     const MIRProgram *mir;          /* MIR program (required)        */
     const PgyVerifiedProjectionPlanRow *projection_plan;
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan;
     const PgySpawnLanePlan *spawn_lane_plan; /* AIR-carried spawn lane facts */
+    const PgyRegionPlan *region_plan;         /* AIR-carried region facts */
+    uint32_t region_scope_id;
+    bool     region_scope_active;
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
@@ -341,7 +347,9 @@ void           transpiler_ctx_destroy(TranspilerCtx *ctx);
  *
  * Usage:
  *   SemanticResult *sem = semantic_analyze(ast);
- *   MIRProgram *mir = mir_lower(hir, rir, sem, NULL);
+ *   MIRLowerRequest request;
+ *   mir_lower_request_init(&request, hir, rir, sem);
+ *   MIRProgram *mir = mir_lower(&request, NULL);
  *   TranspileResult *res = transpile_from_mir(mir, "out.c");
  * ----------------------------------------------------------------- */
 
@@ -366,6 +374,13 @@ TranspileResult *transpile_from_mir_with_projection_plan(
     const MIRProgram *mir,
     const PgyVerifiedProjectionPlanRow *projection_plan,
     const PgySpawnLanePlan *spawn_lane_plan,
+    const char *output_path);
+TranspileResult *transpile_from_mir_with_projection_plans(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const PgyVerifiedParallelCapturePlan *parallel_capture_plan,
+    const PgySpawnLanePlan *spawn_lane_plan,
+    const PgyRegionPlan *region_plan,
     const char *output_path);
 TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const MIRProgram *mir,

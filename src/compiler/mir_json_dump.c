@@ -418,6 +418,57 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
     mir_json_emit_str_or_null(out, mir_routine_return_type_name(routine));
 }
 
+/* ABI layout is a MIR-owned fact.  Carry the complete static row across the
+ * JSON boundary instead of asking a self-hosted consumer to rediscover it
+ * from the source type or a process-local ABI table.  The numeric
+ * representation is intentional: it is the enum value hashed by
+ * mir_abi_layout_id, so the wire row remains lossless and target-neutral. */
+static void
+mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
+{
+    const MIRTypeLayout *layout = inst != NULL ? inst->type_layout : NULL;
+    const char *abi_type_name = inst != NULL && inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : layout != NULL ? layout->abi_type_name : NULL;
+
+    fputs(",\"abi_type_name\":", out);
+    mir_json_emit_str_or_null(out, abi_type_name);
+    fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+            inst != NULL ? inst->abi_layout_id : 0,
+            layout != NULL ? "true" : "false");
+    fputs(",\"abi_layout\":", out);
+    if (layout == NULL) {
+        fputs("null", out);
+        return;
+    }
+
+    fputs("{\"type\":", out);
+    mir_json_emit_str_or_null(out, layout->abi_type_name);
+    fprintf(out, ",\"size\":%u,\"align\":%u,\"fields\":[",
+            layout->size_bytes, layout->align_bytes);
+    for (uint16_t i = 0; i < layout->field_count; i++) {
+        const MIRFieldLayout *field = &layout->fields[i];
+        if (i > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, field->field_name);
+        fprintf(out, ",\"offset\":%u,\"size\":%u,\"align\":%u}",
+                field->offset, field->field_size, field->field_align);
+    }
+    fputs("],\"runtime_fn\":", out);
+    mir_json_emit_str_or_null(out, layout->runtime_fn);
+    fputs(",\"inner_c_type\":", out);
+    mir_json_emit_str_or_null(out, layout->inner_c_type);
+    fprintf(out, ",\"representation\":%u,\"discriminant\":",
+            (unsigned)layout->representation);
+    mir_json_emit_str_or_null(out, layout->discriminant_field_name);
+    fprintf(out, ",\"primary_tag\":%" PRId32
+                ",\"secondary_tag\":%" PRId32 ",\"niche_none_pattern\":",
+            layout->primary_tag_value, layout->secondary_tag_value);
+    mir_json_emit_str_or_null(out, layout->niche_none_pattern);
+    fputc('}', out);
+}
+
 static void
 mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
 {
@@ -431,6 +482,7 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_str_or_null(out, inst->arg0);
     fputs(",\"arg1\":", out);
     mir_json_emit_str_or_null(out, inst->arg1);
+    mir_json_emit_instruction_abi_layout(out, inst);
     fputs(",\"machine_layer\":", out);
     if (inst->machine_layer_fact_present) {
         fputs("{\"operation\":", out);

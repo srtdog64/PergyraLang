@@ -10,6 +10,7 @@
 #include "llvm_mir_signature.h"
 #include "../compiler/execution_lane.h"
 #include "../compiler/verified_projection_plan.h"
+#include "../parser/ast_api.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -226,7 +227,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
        carried from AIR (the spawn-lane plan); the backend does not recover
        the lane from source spelling. The runtime facade owns the concrete
        executor mapping. A spawn site the plan does not cover is fail-closed. */
-    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
             &spawn_lane)) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,

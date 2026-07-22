@@ -447,9 +447,18 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 ctx->expected_callable_type = saved_expected_callable_type;
                 ctx->expected_type_name = saved_expected_type_name;
                 if (val != NULL) {
+                    /* MIR carries the declared return type separately from
+                     * the expression spelling.  Apply the same checked
+                     * scalar coercion used by ordinary return statements
+                     * before installing the LLVM terminator; otherwise a
+                     * Float literal returned as Double leaves an invalid
+                     * module (ret float in a double function). */
+                    val = llvm_mir_coerce_value_for_store(
+                        ctx, val, function_ret_type);
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
                     llvm_emit_mut_ref_writebacks(ctx);
+                    llvm_mir_region_scope_destroy(ctx);
                     LLVMBuildRet(ctx->builder, val);
                     emitted_terminator = true;
                 } else {
@@ -473,6 +482,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     return;
                 llvm_emit_mut_ref_writebacks(ctx);
                 if (function_ret_type == ctx->type_void) {
+                    llvm_mir_region_scope_destroy(ctx);
                     LLVMBuildRetVoid(ctx->builder);
                 } else {
                     llvm_set_mir_topology_invalid(ctx,
@@ -583,6 +593,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 return;
             llvm_emit_mut_ref_writebacks(ctx);
             if (function_ret_type == ctx->type_void) {
+                llvm_mir_region_scope_destroy(ctx);
                 LLVMBuildRetVoid(ctx->builder);
             } else {
                 /* Closure #74: a non-void block with no successors and no

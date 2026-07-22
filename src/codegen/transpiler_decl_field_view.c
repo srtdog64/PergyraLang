@@ -138,6 +138,20 @@ transpiler_hosted_field_view_type(const TranspilerHostedFieldView *view,
     return NULL;
 }
 
+const char *
+transpiler_hosted_field_view_type_name(const TranspilerHostedFieldView *view,
+                                       size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    return NULL;
+}
+
 bool
 transpiler_hosted_field_view_find_index(
     const TranspilerHostedFieldView *view,
@@ -258,6 +272,21 @@ transpiler_hosted_shared_field_view_type(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type(field);
+    return NULL;
+}
+
+const char *
+transpiler_hosted_shared_field_view_type_name(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
     return NULL;
 }
 

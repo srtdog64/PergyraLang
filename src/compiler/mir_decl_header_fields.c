@@ -128,10 +128,21 @@ mir_decl_field_metadata_init_role_slot(MIRDeclField *meta,
                                        const MIRDeclHeader *header,
                                        ASTNode *slot)
 {
+    const char *type_name = NULL;
+
     if (meta == NULL || slot == NULL)
         return;
+    /* A role slot is a value-position overlay whose callable surface is
+       owned by its first required ability.  Preserve that nominal identity
+       in the MIR field row; leaving it NULL forces C/LLVM consumers back to
+       an AST fallback (or makes the MIR-only path reject a valid slot). */
+    if (ast_role_slot_required_ability_count(slot) > 0) {
+        ASTNode *ability = ast_role_slot_required_ability(slot, 0);
+        if (ability != NULL && ability->type == AST_TYPE)
+            type_name = ast_type_name(ability);
+    }
     mir_decl_field_metadata_init(
-        meta, header, ast_role_slot_name(slot), NULL, NULL,
+        meta, header, ast_role_slot_name(slot), NULL, type_name,
         MIR_DECL_FIELD_ROLE_SLOT);
     meta->is_dynamic = ast_role_slot_is_dynamic(slot);
     {

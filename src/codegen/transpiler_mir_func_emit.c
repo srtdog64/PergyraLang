@@ -87,6 +87,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ASTNode *return_type = NULL;
     size_t func_param_count = 0;
     bool mir_active = transpiler_active_has_mir(ctx);
+    uint32_t region_scope_id = 0;
+    const ASTNode *region_source_decl = NULL;
 
     if (ctx != NULL && transpiler_active_has_mir(ctx) && mir_routine == NULL) {
         transpiler_set_mir_inventory_missing(
@@ -543,6 +545,18 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         return;
     }
 
+    region_source_decl = node != NULL
+        ? node
+        : (mir_routine != NULL ? mir_routine_source_decl(mir_routine) : NULL);
+    if (region_source_decl != NULL)
+        (void)transpiler_region_scope_for_function_id(
+            ctx, ast_node_stable_id(region_source_decl), &region_scope_id);
+    if (region_scope_id == 0 && mir_routine != NULL)
+        (void)transpiler_region_scope_for_function_id(
+            ctx, mir_routine->source_syntax_id, &region_scope_id);
+    if (region_scope_id != 0)
+        transpiler_region_scope_begin(ctx, region_scope_id);
+
     for (size_t i = 0; i < mir_routine->block_count; i++) {
         const MIRBasicBlock *block = &mir_routine->blocks[i];
         if (!block->is_reachable || block->is_cleanup)
@@ -676,11 +690,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                             return;
                         }
                         transpiler_emit_mut_ref_writebacks(ctx);
+                        transpiler_region_scope_destroy(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return %s;\n", ret_expr);
                         free(ret_expr);
                     } else {
                         transpiler_emit_mut_ref_writebacks(ctx);
+                        transpiler_region_scope_destroy(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return;\n");
 
@@ -695,5 +711,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     transpiler_emit_mut_ref_writebacks(ctx);
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
+    transpiler_region_scope_end(ctx);
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
 }

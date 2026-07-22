@@ -381,7 +381,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
        from source spelling; the lane scheduler facade owns the executor
        mapping. A spawn site the plan does not cover is fail-closed. */
     PgyExecutionLane spawn_lane = PGY_LANE_REJECT;
-    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, node,
+    if (!pgy_verified_spawn_lane_plan_lookup(ctx->spawn_lane_plan, ast_node_stable_id(node),
             &spawn_lane)) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,

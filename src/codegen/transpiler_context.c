@@ -12,7 +12,10 @@
 #include <stdint.h>
 
 #include "transpiler_context.h"
+#include "../common/string_compat.h"
 #include "../compiler/verified_projection_plan.h"
+#include "../compiler/verified_region_plan.h"
+#include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
 #define CODEBUF_INITIAL_CAP 4096
@@ -310,13 +313,82 @@ transpiler_scratch_fmt(TranspilerCtx *ctx, const char *fmt, ...)
     return result;
 }
 
+bool
+transpiler_region_scope_for_function_id(const TranspilerCtx *ctx,
+                                        uint32_t function_syntax_id,
+                                        uint32_t *scope_id_out)
+{
+    return ctx != NULL
+        && pgy_verified_region_plan_scope_for_function_id(
+            ctx->region_plan, function_syntax_id, scope_id_out);
+}
+
+void
+transpiler_region_scope_begin(TranspilerCtx *ctx, uint32_t scope_id)
+{
+    if (ctx == NULL || ctx->out == NULL || scope_id == 0)
+        return;
+    ctx->region_scope_id = scope_id;
+    ctx->region_scope_active = true;
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "PgyRegion __pgy_region_%u = pgy_region_create(0);\n",
+        (unsigned)scope_id);
+}
+
+void
+transpiler_region_scope_destroy(TranspilerCtx *ctx)
+{
+    if (ctx == NULL || !ctx->region_scope_active || ctx->out == NULL)
+        return;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "pgy_region_destroy(&__pgy_region_%u);\n",
+                  (unsigned)ctx->region_scope_id);
+}
+
+void
+transpiler_region_scope_end(TranspilerCtx *ctx)
+{
+    if (ctx == NULL)
+        return;
+    ctx->region_scope_active = false;
+    ctx->region_scope_id = 0;
+}
+
+char *
+transpiler_region_concat(TranspilerCtx *ctx,
+                         const ASTNode *site,
+                         const char *left,
+                         const char *right)
+{
+    PgyRegionDisposition disposition;
+    uint32_t scope_id = 0;
+
+    if (ctx != NULL && ctx->region_scope_active
+        && pgy_verified_region_plan_lookup(
+            ctx->region_plan, ast_node_stable_id(site),
+            &disposition, &scope_id)
+        && disposition == PGY_REGION_DISPOSITION_REGION
+        && scope_id == ctx->region_scope_id) {
+        return pergyra_strdup_printf(
+            "pgy_region_string_concat(&__pgy_region_%u, %s, %s)",
+            (unsigned)scope_id,
+            left != NULL ? left : "NULL",
+            right != NULL ? right : "NULL");
+    }
+    return pergyra_strdup_printf(
+        "StringConcat(%s, %s)",
+        left != NULL ? left : "NULL",
+        right != NULL ? right : "NULL");
+}
+
 TranspilerCtx *
 transpiler_ctx_create(void)
 {
     TranspilerCtx *ctx = calloc(1, sizeof(TranspilerCtx));
     if (ctx == NULL)
         return NULL;
-    pgy_arena_init(&ctx->arena, 0);
+    pgy_arena_init_named(&ctx->arena, 0, "c-transpiler-arena");
     ctx->out   = codebuf_create();
     ctx->decls = codebuf_create();
     ctx->helpers = codebuf_create();
@@ -397,6 +469,8 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
     codebuf_destroy(ctx->helpers);
     codebuf_destroy(ctx->wrappers);
     free(ctx->backend_error);
+    pgy_arena_set_last_consumer(&ctx->arena, "c-transpiler");
+    pgy_arena_set_release_point(&ctx->arena, "c-transpiler-destroy");
     pgy_arena_destroy(&ctx->arena);
     free(ctx);
 }

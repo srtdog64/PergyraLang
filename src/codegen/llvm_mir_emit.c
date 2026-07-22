@@ -13,7 +13,6 @@
 #include "llvm_mir_vars.h"
 #include "llvm_mir_phi.h"
 #include "llvm_mir_signature.h"
-#include "llvm_mir_type_helpers.h"
 #include "llvm_backend_type_map_internal.h"
 
 static void
@@ -125,6 +124,68 @@ llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
 
 #include "llvm_mir_block_emit.h"
 #include "llvm_mir_local_emit.h"
+#include "../compiler/verified_region_plan.h"
+
+void
+llvm_mir_region_scope_begin(LLVMGenCtx *ctx, const MIRRoutine *routine)
+{
+    uint32_t scope_id = 0;
+    LLVMFuncEntry *create_fn;
+    LLVMValueRef args[2];
+
+    if (ctx == NULL || routine == NULL || ctx->region_plan == NULL
+        || ctx->type_region == NULL)
+        return;
+    if (!pgy_verified_region_plan_scope_for_function_id(
+            ctx->region_plan, routine->source_syntax_id, &scope_id))
+        return;
+    create_fn = llvm_lookup_function(ctx, "pgy_region_create_export");
+    if (create_fn == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM region plan requires runtime function '%s'",
+            "pgy_region_create_export");
+        return;
+    }
+    ctx->region_alloca = LLVMBuildAlloca(ctx->builder, ctx->type_region,
+                                         "__pgy_region");
+    args[0] = ctx->region_alloca;
+    args[1] = LLVMConstInt(ctx->type_i64, 0, 0);
+    LLVMBuildCall2(ctx->builder, create_fn->fn_type, create_fn->fn,
+                   args, 2, "");
+    ctx->region_scope_id = scope_id;
+    ctx->region_scope_active = true;
+}
+
+void
+llvm_mir_region_scope_destroy(LLVMGenCtx *ctx)
+{
+    LLVMFuncEntry *destroy_fn;
+    LLVMValueRef args[1];
+
+    if (ctx == NULL || !ctx->region_scope_active
+        || ctx->region_alloca == NULL)
+        return;
+    destroy_fn = llvm_lookup_function(ctx, "pgy_region_destroy_export");
+    if (destroy_fn == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM region plan requires runtime function '%s'",
+            "pgy_region_destroy_export");
+        return;
+    }
+    args[0] = ctx->region_alloca;
+    LLVMBuildCall2(ctx->builder, destroy_fn->fn_type, destroy_fn->fn,
+                   args, 1, "");
+}
+
+void
+llvm_mir_region_scope_end(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL)
+        return;
+    ctx->region_alloca = NULL;
+    ctx->region_scope_id = 0;
+    ctx->region_scope_active = false;
+}
 
 LLVMValueRef
 llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
@@ -321,11 +382,16 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             const char *slot_inner = llvm_mir_boundary_resource_inner_name(
                 ctx, routine, source_param_index, &resource_kind);
             if (slot_inner != NULL) {
-                LLVMTypeRef slot_ty = param_type_name != NULL
+                LLVMTypeRef slot_ty = param_callable_sig != NULL
+                    ? llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig)
+                    : param_type_name != NULL
                     ? pergyra_type_to_llvm(ctx, param_type_name)
-                    : llvm_mir_required_type_from_ast(ctx, func_decl,
-                        p != NULL ? p->type : NULL,
-                        "function parameter");
+                    : NULL;
+                if (slot_ty == NULL && !ctx->has_error)
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing parameter ABI type fact for '%s'",
+                        p != NULL && p->name != NULL
+                            ? p->name : "(anonymous)");
                 if (ctx->has_error || slot_ty == NULL)
                     return NULL;
                 param_types[i] = LLVMPointerType(slot_ty, 0);
@@ -340,19 +406,19 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 else if (param_type_name != NULL)
                     param_types[i] = pergyra_type_to_llvm(ctx,
                         param_type_name);
-                else if (p != NULL && p->type != NULL)
-                    param_types[i] = llvm_mir_required_type_from_ast(
-                        ctx, func_decl, p->type, "function parameter");
-                else
-                    param_types[i] = llvm_mir_required_type_from_ast(
-                        ctx, func_decl, NULL, "function parameter");
+                else {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing parameter ABI type fact for '%s'",
+                        p != NULL && p->name != NULL
+                            ? p->name : "(anonymous)");
+                    param_types[i] = NULL;
+                }
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
                 if (pass_indirect
                     || (param_callable_sig == NULL && param_type_name != NULL
                     ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-                    : (param_callable_sig == NULL && p != NULL && p->type != NULL
-                        && llvm_mir_param_uses_pointer_self(ctx, p->type)))) {
+                    : false)) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
                 if (p != NULL
@@ -431,6 +497,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
     ASTNode *saved_host_decl = NULL;
+    LLVMValueRef saved_region_alloca = NULL;
+    uint32_t saved_region_scope_id = 0;
+    bool saved_region_scope_active = false;
     bool scope_pushed = false;
     bool defer_scope_pushed = false;
 
@@ -484,11 +553,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->current_within_zone_name = llvm_mir_routine_within_zone(routine);
     ctx->current_func_decl = func_decl;
     ctx->current_mir_routine = routine;
+    saved_region_alloca = ctx->region_alloca;
+    saved_region_scope_id = ctx->region_scope_id;
+    saved_region_scope_active = ctx->region_scope_active;
     if (is_method)
         saved_host_decl = llvm_bind_current_host_decl(
             ctx, llvm_find_host_decl_in_active_inventory(ctx, owner_name));
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
+    llvm_mir_region_scope_begin(ctx, routine);
+    if (ctx->has_error)
+        goto restore_state;
     llvm_scope_push(ctx);
     if (ctx->has_error)
         goto restore_state;
@@ -566,6 +641,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         if (mir_block->has_succ_true) {
             LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
         } else if (ret_type == ctx->type_void) {
+            llvm_mir_region_scope_destroy(ctx);
             LLVMBuildRetVoid(ctx->builder);
         } else {
             if (!ctx->has_error) {
@@ -599,6 +675,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     llvm_mir_debug_stage("emit_func_from_mir:cleanup_emitted", routine);
 
 restore_state:
+    llvm_mir_region_scope_end(ctx);
+    ctx->region_alloca = saved_region_alloca;
+    ctx->region_scope_id = saved_region_scope_id;
+    ctx->region_scope_active = saved_region_scope_active;
     if (defer_scope_pushed)
         llvm_defer_scope_pop(ctx);
     if (scope_pushed)

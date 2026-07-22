@@ -9,6 +9,7 @@
 
 #include "llvm_domain_struct_fields.h"
 #include "llvm_domain_projection_count_helpers.h"
+#include "llvm_backend_type_map_internal.h"
 #include "parser/ast_api.h"
 
 #include <stdbool.h>
@@ -70,6 +71,30 @@ llvm_domain_required_ast_type(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM domain %s requires explicit type metadata; silent i32 fallback is not allowed",
         field_kind != NULL ? field_kind : "field");
+    return NULL;
+}
+
+LLVMTypeRef
+llvm_domain_required_type_name(LLVMGenCtx *ctx,
+                               ASTNode *field_node,
+                               const char *type_name,
+                               const char *field_kind)
+{
+    LLVMTypeRef type;
+
+    if (ctx == NULL)
+        return NULL;
+    if (type_name != NULL && type_name[0] != '\0') {
+        type = pergyra_type_to_llvm(ctx, type_name);
+        if (ctx->has_error || type == NULL)
+            return NULL;
+        return type;
+    }
+
+    (void)field_node;
+    llvm_set_mir_inventory_missing(ctx,
+        "MIR-only LLVM path missing %s type-name metadata",
+        field_kind != NULL ? field_kind : "domain field");
     return NULL;
 }
 

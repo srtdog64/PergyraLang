@@ -331,6 +331,37 @@ mir_decl_enum_variant_param_type_name(const MIRDeclEnumVariant *variant,
     return variant->param_type_names[index];
 }
 
+size_t
+mir_decl_header_event_param_count(const MIRDeclHeader *header)
+{
+    return header != NULL && header->ast_type == AST_EVENT_DECL
+        && header->event_param_metadata_present
+        ? header->event_param_count : 0;
+}
+
+const char *
+mir_decl_header_event_param_name(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->ast_type != AST_EVENT_DECL
+        || !header->event_param_metadata_present
+        || header->event_param_names == NULL
+        || index >= header->event_param_count)
+        return NULL;
+    return header->event_param_names[index];
+}
+
+const char *
+mir_decl_header_event_param_type_name(const MIRDeclHeader *header,
+                                      size_t index)
+{
+    if (header == NULL || header->ast_type != AST_EVENT_DECL
+        || !header->event_param_metadata_present
+        || header->event_param_type_names == NULL
+        || index >= header->event_param_count)
+        return NULL;
+    return header->event_param_type_names[index];
+}
+
 const char *
 mir_decl_method_name(const MIRDeclMethod *method)
 {

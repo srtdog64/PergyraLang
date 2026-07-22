@@ -11,6 +11,7 @@
 
 #include "llvm_boundary_slot_param.h"
 #include "llvm_backend_generic.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
@@ -161,6 +162,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 llvm_mir_routine_return_type_name(generic_routine);
             ASTNode *return_type =
                 llvm_mir_routine_return_type(generic_routine);
+            const MIRCallableSig *return_callable_sig =
+                llvm_mir_routine_return_callable_sig(generic_routine);
             size_t pc;
             LLVMTypeRef *ptypes;
             size_t real_pc = 0;
@@ -185,10 +188,18 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 ctx->type_subst_count = saved_subst;
                 return NULL;
             }
-            if (return_type_name != NULL)
+            if (return_callable_sig != NULL)
+                ret = llvm_mir_callable_sig_to_llvm(ctx,
+                    return_callable_sig);
+            else if (return_type_name != NULL)
                 ret = pergyra_type_to_llvm(ctx, return_type_name);
-            else if (return_type != NULL)
-                ret = ast_type_to_llvm(ctx, return_type);
+            else if (return_type != NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing generic function return ABI fact for '%s'",
+                    callee_name != NULL ? callee_name : "(anonymous)");
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
             if (ctx->has_error || ret == NULL) {
                 ctx->type_subst_count = saved_subst;
                 return NULL;
@@ -211,6 +222,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 FuncParam *p = llvm_mir_routine_param(generic_routine, k);
                 const char *param_type_name =
                     llvm_mir_routine_param_type_name(generic_routine, k);
+                const MIRCallableSig *param_callable_sig =
+                    llvm_mir_routine_param_callable_sig(generic_routine, k);
                 MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
                 const char *inner;
                 LLVMTypeRef pt;
@@ -221,10 +234,17 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     continue;
                 inner = llvm_mir_boundary_resource_inner_name(
                     ctx, generic_routine, k, &resource_kind);
-                pt = param_type_name != NULL
-                    ? pergyra_type_to_llvm(ctx, param_type_name)
-                    : llvm_spawn_required_param_type(ctx, generic_ast, p,
-                        callee_name);
+                if (param_callable_sig != NULL)
+                    pt = llvm_mir_callable_sig_to_llvm(ctx,
+                        param_callable_sig);
+                else if (param_type_name != NULL)
+                    pt = pergyra_type_to_llvm(ctx, param_type_name);
+                else {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing generic function parameter ABI fact for '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous)");
+                    pt = NULL;
+                }
                 if (ctx->has_error || pt == NULL) {
                     ctx->type_subst_count = saved_subst;
                     return NULL;

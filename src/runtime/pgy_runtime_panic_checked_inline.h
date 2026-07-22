@@ -3,6 +3,8 @@
 #ifndef PGY_RUNTIME_PANIC_CHECKED_INLINE_H
 #define PGY_RUNTIME_PANIC_CHECKED_INLINE_H
 
+#include <stdbool.h>
+
 #include "pgy_runtime_linkage.h"
 
 #include "pgy_runtime_capability.h"
@@ -194,30 +196,7 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
  * the runtime object (excluded from inlined bitcode, llvm_fn_is_capability_runtime).
  * ================================================================= */
 
-typedef struct {
-    uint32_t manifest;    /* loader grant (pgy_cap_set_manifest_export) */
-    uint32_t env;         /* host PGY_CAP_GRANT, latched once */
-    int      env_latched;
-} PgyCapMasks;
-
-PGY_RT_DECL PgyCapMasks *
-pgy_cap_masks_slot(void)
-#ifndef PGY_RUNTIME_DECLS_ONLY
-{
-    static PgyCapMasks m = { PGY_CAP_ALL, PGY_CAP_ALL, 0 };
-
-    if (!m.env_latched) {
-        unsigned env_mask;
-
-        m.env_latched = 1;
-        if (pgy_cap_env_grant(&env_mask))
-            m.env = env_mask;   /* host PGY_CAP_GRANT restricts the grant */
-    }
-    return &m;
-}
-#else
-;
-#endif
+#include "pgy_runtime_context.h"
 
 /* The effective grant every gate checks: intersection of both restrictions. */
 static inline uint32_t
@@ -263,24 +242,6 @@ pgy_cap_require_export(uint32_t cap, const char *op)
 }
 
 /* ---- resource budget (quantitative sandbox gate) ---- */
-
-/* One process-wide budget, single-homed the same way as the capability slot
- * above: PGY_RT_DECL so the cext object owns the one `st` and every accounting
- * path (allocator, spawn, channel) charges it, instead of alloc/spawn charging
- * the object copy while a channel or a loader's set_limit touches a separate
- * emitted-TU copy (docs/190 A3). */
-PGY_RT_DECL PgyBudgetState *
-pgy_budget_state_slot(void)
-#ifndef PGY_RUNTIME_DECLS_ONLY
-{
-    static PgyBudgetState st;
-    if (!st.initialized)
-        pgy_budget_state_init(&st);
-    return &st;
-}
-#else
-;
-#endif
 
 static inline void
 pgy_budget_reset_export(void)

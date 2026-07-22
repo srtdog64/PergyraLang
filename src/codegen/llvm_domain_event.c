@@ -6,6 +6,8 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_event.h"
+#include "llvm_backend_type_map_internal.h"
+#include "../compiler/mir_decl_headers.h"
 
 static LLVMTypeRef
 llvm_domain_event_required_param_type(LLVMGenCtx *ctx,
@@ -75,11 +77,28 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
     /* Register event types and generate helper functions. */
     for (size_t i = 0; i < event_count; i++) {
         ASTNode *stmt = events[i];
+        const MIRDeclHeader *event_header = NULL;
+        const char *ename;
+        int pc;
         if (stmt == NULL || stmt->type != AST_EVENT_DECL)
             continue;
 
-        const char *ename = ast_event_name(stmt);
-        int pc = (int)ast_event_param_count(stmt);
+        if (llvm_active_has_mir(ctx)) {
+            const char *event_name = ast_event_name(stmt);
+            event_header = llvm_find_decl_header_in_context_of_type(
+                ctx, AST_EVENT_DECL, event_name);
+            if (event_header == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing event declaration header metadata for '%s'",
+                    event_name != NULL ? event_name : "<anonymous>");
+                goto restore_state;
+            }
+            ename = mir_decl_header_name(event_header);
+            pc = (int)mir_decl_header_event_param_count(event_header);
+        } else {
+            ename = ast_event_name(stmt);
+            pc = (int)ast_event_param_count(stmt);
+        }
 
         /* Event struct: { [16 x ptr], i64 } handlers + count */
         LLVMTypeRef handler_arr = LLVMArrayType(ctx->type_i8ptr,
@@ -106,10 +125,23 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             goto restore_state;
         }
         for (int j = 0; j < pc; j++) {
-            ASTNode *p = ast_event_param(stmt, (size_t)j);
-            ASTNode *param_type = (p != NULL) ? ast_let_type(p) : NULL;
-            ptypes[j] = llvm_domain_event_required_param_type(
-                ctx, stmt, param_type, ename);
+            if (llvm_active_has_mir(ctx)) {
+                const char *type_name =
+                    mir_decl_header_event_param_type_name(
+                        event_header, (size_t)j);
+                if (type_name == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing event parameter ABI metadata for '%s' index %d",
+                        ename != NULL ? ename : "<anonymous>", j);
+                    goto restore_state;
+                }
+                ptypes[j] = pergyra_type_to_llvm(ctx, type_name);
+            } else {
+                ASTNode *p = ast_event_param(stmt, (size_t)j);
+                ASTNode *param_type = (p != NULL) ? ast_let_type(p) : NULL;
+                ptypes[j] = llvm_domain_event_required_param_type(
+                    ctx, stmt, param_type, ename);
+            }
             if (ctx->has_error || ptypes[j] == NULL)
                 goto restore_state;
         }

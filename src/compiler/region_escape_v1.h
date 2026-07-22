@@ -21,10 +21,10 @@
  * StringConcat emission sites, so a spurious row is never read.
  *
  * This module is intentionally free of any driver/context dependency: its
- * output is a plain escape-site array. The driver call site that runs it and
- * feeds pgy_verified_region_plan_from_escape is the only remaining wiring, and
- * it lands when the concurrent projection-plan threading rework settles
- * (docs/197 Appendix A). The interface here is stable across that rework.
+ * output is a plain escape-site array. The driver runs it once while the source
+ * AST is owned, converts each certified node to its stable allocation-site id,
+ * and feeds the resulting rows to pgy_verified_region_plan_from_escape. No AST
+ * address leaves this producer boundary.
  */
 
 #include <stddef.h>
@@ -38,8 +38,9 @@ struct ASTNode;
  * region-safe string-concat site. Allocates *sites_out (caller frees with
  * pgy_region_escape_v1_free); sets it to NULL when nothing is certified.
  * Returns the number of certified sites. Each site carries a function-scope id
- * (all concats in one function share an id; distinct functions get distinct
- * ids), which the emitter maps to one region per function.
+ * (all concats in one function share a scope id; distinct functions get
+ * distinct ids), while each row carries the stable allocation-site id used by
+ * both backend consumers.
  */
 size_t pgy_region_escape_v1_collect(const struct ASTNode *root,
                                     PgyRegionEscapeSite **sites_out);

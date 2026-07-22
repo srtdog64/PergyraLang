@@ -10,7 +10,7 @@ llvm_stmt_render_type_arg(GenericParam *param)
     PgyArena arena;
     char *result;
 
-    pgy_arena_init(&arena, 0);
+    pgy_arena_init_named(&arena, 0, "llvm-stmt-type-render-scratch");
     result = llvm_stmt_render_type_arg_scratch(param, &arena);
     result = result != NULL ? pergyra_strdup(result) : NULL;
     pgy_arena_destroy(&arena);

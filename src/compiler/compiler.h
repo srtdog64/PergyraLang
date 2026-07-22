@@ -57,6 +57,10 @@ typedef struct
     const DIRProgram *dir;
     const RIRProgram *rir;
     const MIRProgram *mir;
+    /* AIR-certified region facts produced by the driver.  Backends receive
+     * this immutable artifact; they do not rerun escape analysis or inspect
+     * the AST to choose an allocator. */
+    const struct PgyRegionPlan *region_plan;
 } CompilerIRBundle;
 
 CompilerResult *compiler_emit_c(const CompilerIRBundle *bundle,

@@ -558,6 +558,9 @@ run_case() {
 main() {
     local cases=(
         "tests/cases/backend_compare/basic"
+        "tests/cases/backend_compare/region_string_concat"
+        "tests/cases/backend_compare/region_string_concat_heap"
+        "tests/cases/backend_compare/role_override_mir"
         "tests/cases/backend_compare/inout_caller_mutation"
         "tests/cases/backend_compare/inout_nested_return_copyout"
         "tests/cases/backend_compare/long_cast_roundtrip"

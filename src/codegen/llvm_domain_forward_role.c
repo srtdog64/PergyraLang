@@ -7,12 +7,12 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_forward_internal.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
-#include "llvm_mir_type_helpers.h"
 
 static void
 llvm_emit_role_method_forward_decls_metadata_first(
@@ -54,6 +54,11 @@ llvm_emit_role_method_forward_decls_metadata_first(
         ASTNode *return_type =
             llvm_domain_method_return_type_metadata_first(
                 method_meta, NULL, false);
+        const MIRRoutine *method_routine =
+            llvm_mir_decl_method_routine(ctx, method_meta);
+        const MIRCallableSig *return_callable_sig = method_routine != NULL
+            ? llvm_mir_routine_return_callable_sig(method_routine)
+            : NULL;
         LLVMTypeRef ret = ctx->type_void;
         size_t user_pc = 0;
         LLVMTypeRef *ptypes;
@@ -85,12 +90,21 @@ llvm_emit_role_method_forward_decls_metadata_first(
                 "MIR-only LLVM path missing role method forward parameter type-name metadata for '%s.%s'")) {
             return;
         }
-        if (return_type_name != NULL) {
+        if (return_callable_sig != NULL) {
+            ret = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+            if (ctx->has_error || ret == NULL)
+                return;
+        } else if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
                 return;
         } else if (return_type != NULL) {
-            ret = ast_type_to_llvm(ctx, return_type);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing role method return ABI fact for '%s.%s'",
+                role_name, mname);
+            return;
+        } else {
+            ret = ctx->type_void;
             if (ctx->has_error || ret == NULL)
                 return;
         }
@@ -120,22 +134,31 @@ llvm_emit_role_method_forward_decls_metadata_first(
             const char *param_type_name =
                 llvm_domain_method_param_type_name_metadata_first(
                     method_meta, NULL, k, false);
+            const MIRCallableSig *param_callable_sig = method_routine != NULL
+                ? llvm_mir_routine_param_callable_sig(method_routine, k)
+                : NULL;
             LLVMClassTypeEntry *param_cls = param_type_name != NULL
                 ? llvm_lookup_class(ctx, param_type_name)
                 : NULL;
             LLVMTypeRef pt;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            if (param_type_name != NULL)
+            if (param_callable_sig != NULL)
+                pt = llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig);
+            else if (param_type_name != NULL)
                 pt = pergyra_type_to_llvm(ctx, param_type_name);
-            else
-                pt = llvm_domain_forward_required_param_type(
-                    ctx, NULL, p, "role method", mname);
+            else {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing role method parameter ABI fact for '%s.%s'",
+                    role_name, mname);
+                return;
+            }
             if (ctx->has_error || pt == NULL)
                 return;
             if ((param_cls != NULL && param_cls->is_pointer_self_host)
-                || (param_type_name == NULL && p != NULL && p->type != NULL
-                    && llvm_mir_param_uses_pointer_self(ctx, p->type))) {
+                || (param_callable_sig == NULL
+                    && param_type_name != NULL
+                    && llvm_type_name_uses_pointer_self(ctx, param_type_name))) {
                 pt = LLVMPointerType(pt, 0);
             }
             ptypes[pidx++] = pt;
@@ -167,7 +190,9 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     ASTNode *method = NULL;
     char opname[256];
     FuncParam *rhs_param = NULL;
+    size_t rhs_param_index = (size_t)-1;
     size_t rhs_param_count = 0;
+    const MIRRoutine *method_routine = NULL;
     LLVMTypeRef lhs_type;
     LLVMTypeRef rhs_type;
     LLVMTypeRef ret;
@@ -177,6 +202,7 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
 
     if (suffix == NULL || method_meta == NULL)
         return true;
+    method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
     if (llvm_domain_method_name_metadata_first(
             method_meta, method, false) == NULL) {
         llvm_set_mir_inventory_missing(ctx,
@@ -213,17 +239,32 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
                 method_meta, method, pj, false);
         if (!llvm_param_is_implicit_self_local(p)) {
             rhs_param = p;
+            rhs_param_index = pj;
             rhs_param_count++;
         }
     }
     if (rhs_param_count != 1)
         return true;
 
-    lhs_type = ast_type_to_llvm(ctx, for_type);
+    if (for_type_name != NULL) {
+        lhs_type = pergyra_type_to_llvm(ctx, for_type_name);
+    } else if (llvm_active_has_mir(ctx)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing role operator receiver type-name metadata for '%s'",
+            opname);
+        return false;
+    } else {
+        lhs_type = ast_type_to_llvm(ctx, for_type);
+    }
     if (ctx->has_error || lhs_type == NULL)
         return false;
     {
         const char *rhs_type_name = NULL;
+        const MIRCallableSig *rhs_callable_sig = method_routine != NULL
+            && rhs_param_index != (size_t)-1
+                ? llvm_mir_routine_param_callable_sig(
+                    method_routine, rhs_param_index)
+                : NULL;
         for (size_t pj = 0;
              pj < llvm_domain_method_param_count_metadata_first(
                  method_meta, method, false);
@@ -238,11 +279,15 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
                 break;
             }
         }
-        if (rhs_type_name != NULL) {
+        if (rhs_callable_sig != NULL) {
+            rhs_type = llvm_mir_callable_sig_to_llvm(ctx, rhs_callable_sig);
+        } else if (rhs_type_name != NULL) {
             rhs_type = pergyra_type_to_llvm(ctx, rhs_type_name);
         } else {
-            rhs_type = llvm_domain_forward_required_param_type(
-                ctx, method, rhs_param, "role operator", opname);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing role operator parameter ABI fact for '%s'",
+                opname);
+            return false;
         }
     }
     if (ctx->has_error || rhs_type == NULL)
@@ -254,12 +299,20 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         ASTNode *return_type =
             llvm_domain_method_return_type_metadata_first(
                 method_meta, method, false);
-        if (return_type_name != NULL) {
+        const MIRCallableSig *return_callable_sig = method_routine != NULL
+            ? llvm_mir_routine_return_callable_sig(method_routine)
+            : NULL;
+        if (return_callable_sig != NULL) {
+            ret = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+        } else if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
+        } else if (return_type != NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing role operator return ABI fact for '%s'",
+                opname);
+            return false;
         } else {
-            ret = return_type != NULL
-                ? ast_type_to_llvm(ctx, return_type)
-                : ctx->type_void;
+            ret = ctx->type_void;
         }
     }
     if (ctx->has_error || ret == NULL)
@@ -305,8 +358,11 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                 return;
         }
 
-        for_type = llvm_role_for_type_node(stmt);
-        for_type_name = llvm_role_for_type_name(stmt);
+        for_type = llvm_active_has_mir(ctx)
+            ? NULL : llvm_role_for_type_node(stmt);
+        for_type_name = llvm_role_for_type_name(ctx, stmt);
+        if (ctx->has_error)
+            return;
         for (size_t oi = 0; for_type_name != NULL
                && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
             if (!llvm_emit_role_operator_forward_decl(

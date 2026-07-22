@@ -28,6 +28,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LABEL="region-arena"
 
+# Git Bash launched non-login (as by `mingw32-make`) does not reliably carry
+# the native MinGW/LLVM tool directories into its PATH.  Use the shared tool
+# path owner before selecting CC so the runtime materialization gate exercises
+# the real Windows compiler instead of a missing or incompatible shell entry.
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
 CC="${CC:-gcc}"
 if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[$LABEL] SKIP: no C compiler ($CC)"
@@ -136,15 +143,30 @@ static void test_string_concat(void)
 /* (d) reset: reuse drops contents but keeps blocks, and re-allocation works. */
 static void test_reset(void)
 {
-    PgyRegion r = pgy_region_create(0);
-    char *first = (char *)pgy_region_alloc(&r, 100, 1);
+    PgyRegion r = pgy_region_create(64);
+    size_t blocks_before = 0;
+    size_t blocks_after = 0;
+    PgyRegionBlock *blk;
+    char *first = (char *)pgy_region_alloc(&r, 48, 1);
+    char *head = (char *)pgy_region_alloc(&r, 48, 1);
     CHECK(first != NULL, "reset: first alloc null");
-    memset(first, 'A', 100);
+    CHECK(head != NULL, "reset: head alloc null");
+    memset(first, 'A', 48);
+    for (blk = r.current; blk != NULL; blk = blk->next)
+        blocks_before++;
     pgy_region_reset(&r);
-    char *second = (char *)pgy_region_alloc(&r, 100, 1);
+    char *second = (char *)pgy_region_alloc(&r, 48, 1);
+    char *third = (char *)pgy_region_alloc(&r, 48, 1);
     CHECK(second != NULL, "reset: second alloc null");
-    /* on a fresh single-block region, reuse hands back the same address */
-    CHECK(second == first, "reset: did not reuse the block");
+    CHECK(third != NULL, "reset: third alloc null");
+    for (blk = r.current; blk != NULL; blk = blk->next)
+        blocks_after++;
+    CHECK(blocks_after == blocks_before,
+          "reset: retained blocks were not reused before acquiring another");
+    /* The head block is reused first; the second allocation must land in the
+     * older reset block rather than growing the chain. */
+    CHECK(second == head, "reset: did not reuse the head block");
+    CHECK(third != second, "reset: reused allocation overlapped");
     pgy_region_destroy(&r);
 }
 

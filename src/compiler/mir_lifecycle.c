@@ -126,6 +126,18 @@ mir_destroy(MIRProgram *mir)
             }
             free(mir->decl_headers[i].type_alias_target_type_name);
             free(mir->decl_headers[i].role_subject_type_name);
+            if (mir->decl_headers[i].event_param_names != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].event_param_count; j++)
+                    free(mir->decl_headers[i].event_param_names[j]);
+            }
+            if (mir->decl_headers[i].event_param_type_names != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].event_param_count; j++)
+                    free(mir->decl_headers[i].event_param_type_names[j]);
+            }
+            free(mir->decl_headers[i].event_param_names);
+            free(mir->decl_headers[i].event_param_type_names);
             if (mir->decl_headers[i].generic_metadata != NULL) {
                 for (size_t j = 0;
                      j < mir->decl_headers[i].generic_metadata_count;

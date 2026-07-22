@@ -141,6 +141,8 @@ hir_discard_routine(HIRRoutine *routine)
     free(routine->resource_flow_symbols);
     free(routine->loop_flow_summaries);
     free(routine->loop_flow_states);
+    pgy_arena_set_last_consumer(&routine->scratch, "hir-routine-analysis");
+    pgy_arena_set_release_point(&routine->scratch, "hir-routine-discard");
     pgy_arena_destroy(&routine->scratch);
 }
 
@@ -157,7 +159,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
         return true;
 
     memset(&routine, 0, sizeof(routine));
-    pgy_arena_init(&routine.scratch, 0);
+    pgy_arena_init_named(&routine.scratch, 0, "hir-hidden-method-scratch");
     routine.decl_id = decl_id;
     routine.source_syntax_id = ast_node_stable_id(method);
     routine.kind = HIR_TOPLEVEL_FUNCTION;
@@ -302,7 +304,16 @@ hir_append_role_impl_method_routines(HIRProgram *hir, size_t decl_id, ASTNode *r
 
     for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
         ASTNode *impl = ast_role_impl(role_decl, i);
-        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+        if (impl == NULL)
+            continue;
+        if (impl->type == AST_OVERRIDE_FUNC) {
+            if (!hir_append_hidden_method_routine(
+                    hir, decl_id, owner_name, AST_ROLE_DECL,
+                    ast_override_func_decl(impl)))
+                return false;
+            continue;
+        }
+        if (impl->type != AST_IMPL_ABILITY)
             continue;
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             if (!hir_append_hidden_method_routine(hir,
@@ -402,7 +413,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
             && item.ast->type == AST_FUNC_DECL)) {
         HIRRoutine routine;
         memset(&routine, 0, sizeof(routine));
-        pgy_arena_init(&routine.scratch, 0);
+        pgy_arena_init_named(&routine.scratch, 0, "hir-routine-scratch");
         routine.decl_id = decl.id;
         routine.source_syntax_id = ast_node_stable_id(item.ast);
         routine.kind = item.kind;

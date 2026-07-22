@@ -288,7 +288,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     size_t n_snapshots = 0;
     for (size_t i = 0; i < n_captured; i++) {
         LLVMTypeRef vt = captured[i].type;
-        const MIRParallelCaptureDispositionRow *row;
+        const PgyVerifiedParallelCaptureRow *row;
 
         /* Runtime-synchronized transports share safely by design and
          * never carry snapshot rows. */
@@ -296,8 +296,8 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             || captured[i].future_inner != NULL
             || captured[i].slot_inner != NULL)
             continue;
-        row = mir_parallel_capture_disposition_find(
-            capture_boundary, captured[i].name,
+        row = pgy_verified_parallel_capture_disposition_find(
+            ctx->parallel_capture_plan, capture_boundary, captured[i].name,
             MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY);
         if (row == NULL)
             continue;

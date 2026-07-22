@@ -271,6 +271,12 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
 
     generic_header = llvm_find_decl_header_in_context_of_type(ctx,
         AST_CLASS_DECL, base);
+    if (generic_header == NULL && llvm_active_has_mir(ctx)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM generic class specialization missing class header metadata for '%s'",
+            base);
+        return NULL;
+    }
     if (generic_header == NULL) {
         tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
         if (tmpl == NULL)
@@ -362,6 +368,13 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
         if (field_type_name != NULL) {
             ftypes[j] = pergyra_type_to_llvm(ctx, field_type_name);
         } else {
+            if (llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM generic class specialization missing field type metadata for '%s' field %zu",
+                    base, j);
+                llvm_type_subst_restore_owned(ctx, saved_subst);
+                return NULL;
+            }
             field_type = llvm_hosted_field_view_type(&fv, j);
             ftypes[j] = ast_type_to_llvm(ctx, field_type);
         }
@@ -641,6 +654,18 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (llvm_decl_exists_in_context(ctx, AST_ENUM_DECL, type_name))
         return ctx->type_i32;
 
+    /* Token<T> is a compiler-owned ABI value, not a user generic class.
+       Resolve it before generic-class specialization so the MIR-only path
+       does not ask the declaration inventory for a nonexistent `Token`
+       header and fail closed on an otherwise canonical runtime type. */
+    if (type_name != NULL && strncmp(type_name, "Token<", 6) == 0) {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Token<T>", inner_buf, sizeof(inner_buf)))
+            return NULL;
+        return llvm_secure_token_type(ctx, inner_buf);
+    }
+
     {
         LLVMTypeRef specialized =
             llvm_specialize_generic_class_type(ctx, type_name);
@@ -660,14 +685,6 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (type_name != NULL && type_name[0] >= 'A' && type_name[0] <= 'Z'
         && type_name[1] == '\0') {
         return ctx->type_i8ptr;
-    }
-
-    if (type_name != NULL && strncmp(type_name, "Token<", 6) == 0) {
-        char inner_buf[256];
-        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
-                "Token<T>", inner_buf, sizeof(inner_buf)))
-            return NULL;
-        return llvm_secure_token_type(ctx, inner_buf);
     }
 
     if (ctx != NULL && !ctx->has_error) {

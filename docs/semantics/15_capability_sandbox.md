@@ -115,6 +115,17 @@ The earlier coarse effect→capability cross-check is retired.
 
 ## 2. Not yet (the honest roadmap)
 
+### Current ownership rung: bound capability/budget context
+
+`src/runtime/pgy_runtime_context.h` now owns the capability mask pair and
+quantitative budget for an explicitly bound `PgyRuntimeContext`. C-inline and
+LLVM-linked gates select the current TLS context; an uninitialized context
+cannot bind. `runtime-context-test-smoke` proves that two contexts retain
+independent manifests and counters. This is not yet complete multi-tenant
+isolation: cancellation, scheduler, task handles, assets, linear memory,
+random streams, and diagnostics still need their own context carriage and
+cross-instance negative gates.
+
 - **Host grant channel — built (parity-verified).** A host now restricts the
   granted set out-of-band via `PGY_CAP_GRANT` (e.g. `PGY_CAP_GRANT="io_read,clock"`),
   the symmetric mirror of the budget's `PGY_BUDGET_*` channel. A shared parser

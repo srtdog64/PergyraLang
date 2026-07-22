@@ -4,6 +4,32 @@
 #include <stdio.h>
 #include <string.h>
 
+const MIRResourceRuntimeRow *
+mir_abi_resource_runtime_row_for_instruction(
+    const MIRInstruction *instruction,
+    const char *resource_op_name)
+{
+    if (instruction == NULL || resource_op_name == NULL)
+        return NULL;
+    if (instruction->resource_runtime_fact_present
+        && instruction->resource_runtime_fact.resource_op_name != NULL
+        && strcmp(instruction->resource_runtime_fact.resource_op_name,
+                  resource_op_name) == 0)
+        return &instruction->resource_runtime_fact;
+    if (instruction->resource_runtime_aux_fact_count
+        > sizeof(instruction->resource_runtime_aux_facts)
+            / sizeof(instruction->resource_runtime_aux_facts[0]))
+        return NULL;
+    for (size_t i = 0; i < instruction->resource_runtime_aux_fact_count; i++) {
+        const MIRResourceRuntimeRow *aux =
+            &instruction->resource_runtime_aux_facts[i];
+        if (aux->resource_op_name != NULL
+            && strcmp(aux->resource_op_name, resource_op_name) == 0)
+            return aux;
+    }
+    return NULL;
+}
+
 const MIRInstruction *
 mir_abi_resource_runtime_instruction_for_source(const MIRRoutine *routine,
                                                 uint32_t source_stable_id)
@@ -18,7 +44,8 @@ mir_abi_resource_runtime_instruction_for_source(const MIRRoutine *routine,
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
             if (inst->kind != MIR_INST_RESOURCE_OP
-                || !inst->resource_runtime_fact_present
+                || (!inst->resource_runtime_fact_present
+                    && inst->resource_runtime_aux_fact_count == 0)
                 || inst->source_stable_id != source_stable_id) {
                 continue;
             }
@@ -66,13 +93,11 @@ mir_abi_resource_runtime_instruction_for_abi(
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
             const MIRResourceRuntimeRow *row =
-                &inst->resource_runtime_fact;
-            if (inst->kind != MIR_INST_RESOURCE_OP
-                || !inst->resource_runtime_fact_present
-                || row->abi_type_name == NULL
+                mir_abi_resource_runtime_row_for_instruction(
+                    inst, resource_op_name);
+            if (row == NULL || row->abi_type_name == NULL
                 || strcmp(row->abi_type_name, abi_type_name) != 0
-                || row->resource_op_name == NULL
-                || strcmp(row->resource_op_name, resource_op_name) != 0)
+                || row->resource_op_name == NULL)
                 continue;
             return inst;
         }
@@ -113,16 +138,14 @@ mir_abi_resource_runtime_owner_for_mir_abi(const MIRRoutine *routine,
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
             const MIRResourceRuntimeRow *row =
-                &inst->resource_runtime_fact;
-            const bool is_resource_owner =
-                inst->kind == MIR_INST_RESOURCE_OP
-                || (inst->kind == MIR_INST_DEF
-                    && row->resource_op_name != NULL
-                    && strcmp(row->resource_op_name, "Claim") == 0);
-            if (is_resource_owner
-                && inst->resource_runtime_fact_present
-                && row->abi_type_name != NULL
-                && strcmp(row->abi_type_name, abi_type_name) == 0)
+                mir_abi_resource_runtime_row_for_instruction(inst, "Read");
+            const MIRResourceRuntimeRow *write_row =
+                mir_abi_resource_runtime_row_for_instruction(inst, "Write");
+            if (inst->kind == MIR_INST_RESOURCE_OP
+                && ((row != NULL && row->abi_type_name != NULL
+                     && strcmp(row->abi_type_name, abi_type_name) == 0)
+                    || (write_row != NULL && write_row->abi_type_name != NULL
+                        && strcmp(write_row->abi_type_name, abi_type_name) == 0)))
                 return inst;
         }
     }
@@ -136,48 +159,16 @@ mir_abi_resource_runtime_row_for_mir_abi(
     const char *inner_type_name,
     const char *resource_op_name)
 {
-    const MIRInstruction *owner;
-    const char *container_name;
-    char abi_type_name[96];
-    const MIRResourceRuntimeRow *row;
-    static _Thread_local MIRResourceRuntimeRow derived_row;
-    int written;
+    const MIRInstruction *instruction;
 
-    if (routine == NULL || inner_type_name == NULL
-        || resource_op_name == NULL)
-        return NULL;
-    switch (kind) {
-    case MIR_RESOURCE_ABI_SLOT:
-        container_name = "Slot";
-        break;
-    case MIR_RESOURCE_ABI_SECURE_SLOT:
-        container_name = "SecureSlot";
-        break;
-    case MIR_RESOURCE_ABI_DEVICE_SLOT:
-        container_name = "DeviceSlot";
-        break;
-    default:
-        return NULL;
-    }
-    written = snprintf(abi_type_name, sizeof(abi_type_name), "%s<%s>",
-                       container_name, inner_type_name);
-    if (written < 0 || (size_t)written >= sizeof(abi_type_name))
-        return NULL;
-    owner = mir_abi_resource_runtime_owner_for_mir_abi(
-        routine, kind, inner_type_name);
-    if (owner == NULL)
-        return NULL;
-    row = mir_abi_resource_runtime_row_by_type_name(abi_type_name,
-                                                    resource_op_name);
-    if (row == NULL)
-        row = mir_abi_resource_runtime_row_for_type_name(abi_type_name,
-                                                         resource_op_name);
-    if (row == NULL)
-        return NULL;
-    derived_row = *row;
-    derived_row.runtime_call_abi_id =
-        mir_abi_resource_runtime_row_id(&derived_row);
-    return &derived_row;
+    /* Active MIR may only borrow a runtime-call row that lowering attached to
+     * this routine.  In particular, do not reconstruct a row from the global
+     * ABI vocabulary after the owner lookup: that would let a missing MIR
+     * fact silently re-enter through a backend-side table lookup. */
+    instruction = mir_abi_resource_runtime_instruction_for_abi(
+        routine, kind, inner_type_name, resource_op_name);
+    return mir_abi_resource_runtime_row_for_instruction(
+        instruction, resource_op_name);
 }
 
 const MIRInstruction *
@@ -243,8 +234,6 @@ mir_abi_resource_runtime_pin_row_for_mir(const MIRRoutine *routine,
     const char *container_name;
     char abi_type_name[96];
     const MIRInstruction *owner_inst;
-    const MIRResourceRuntimeRow *derived_row;
-    static _Thread_local MIRResourceRuntimeRow pin_row;
     int written;
 
     if (routine == NULL || inner_type_name == NULL
@@ -273,14 +262,18 @@ mir_abi_resource_runtime_pin_row_for_mir(const MIRRoutine *routine,
     if (owner_inst == NULL)
         return NULL;
 
-    derived_row = mir_abi_resource_runtime_row_by_type_name(
-        abi_type_name, resource_op_name);
-    if (derived_row == NULL)
-        derived_row = mir_abi_resource_runtime_row_for_type_name(
-            abi_type_name, resource_op_name);
-    if (derived_row == NULL)
-        return NULL;
-    pin_row = *derived_row;
-    pin_row.runtime_call_abi_id = mir_abi_resource_runtime_row_id(&pin_row);
-    return &pin_row;
+    (void)owner_inst;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const MIRResourceRuntimeRow *row =
+                mir_abi_resource_runtime_row_for_instruction(
+                    inst, resource_op_name);
+            if (row != NULL && row->abi_type_name != NULL
+                && strcmp(row->abi_type_name, abi_type_name) == 0)
+                return row;
+        }
+    }
+    return NULL;
 }

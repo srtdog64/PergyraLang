@@ -25,7 +25,7 @@ llvm_result_alloc(void)
     if (res == NULL)
         return NULL;
     memset(res, 0, sizeof(LLVMGenResult));
-    pgy_arena_init(&res->owned_arena, 0);
+    pgy_arena_init_named(&res->owned_arena, 0, "llvm-result-error");
     return res;
 }
 

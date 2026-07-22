@@ -1029,6 +1029,7 @@ Inductive SpineFact : Type :=
   | SFAirEvidenceGraph
   | SFAbiLayoutRows
   | SFAbiRuntimeCallRows
+  | SFRegionAllocationPlan
   | SFTargetCapabilityProfile
   | SFProjectionPlan
   | SFDiagnosticCatalog
@@ -1070,6 +1071,7 @@ Inductive SpineOwner : Type :=
   | SOMir
   | SOAir
   | SOMirAbi
+  | SORegionPlan
   | SOTargetCapability
   | SOProjectionPlanner
   | SODiagnosticCatalog
@@ -1112,6 +1114,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFAirEvidenceGraph => SOAir
   | SFAbiLayoutRows => SOMirAbi
   | SFAbiRuntimeCallRows => SOMirAbi
+  | SFRegionAllocationPlan => SORegionPlan
   | SFTargetCapabilityProfile => SOTargetCapability
   | SFProjectionPlan => SOProjectionPlanner
   | SFDiagnosticCatalog => SODiagnosticCatalog

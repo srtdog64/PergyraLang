@@ -11,6 +11,7 @@ import "routine_fact_index_owner.pgy";
 import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
+import "abi_layout_fact_owner.pgy";
 
 func RoutineParamResourceMatchesType(
     resource_kind: String,
@@ -213,6 +214,11 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
         let kp: Int = inst_bounds[0];
         let inst_end: Int = inst_bounds[1];
         let ikind: String = BlockInstructionKind(json, kp, inst_end);
+        if !MirInstructionAbiLayoutFactReady(json, kp, inst_end) {
+            MirLowerFailClosed(
+                "instruction is missing or carries an invalid MIR ABI layout fact"
+            );
+        }
         if !MirResourceRuntimeRowFactReady(json, kp, inst_end) {
             MirLowerFailClosed(
                 "resource instruction or consumer is missing its lowered runtime-call ABI row"

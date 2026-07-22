@@ -289,14 +289,77 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
+        if (inst->resource_runtime_aux_fact_count
+            > sizeof(inst->resource_runtime_aux_facts)
+                / sizeof(inst->resource_runtime_aux_facts[0])) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] auxiliary runtime-call ABI row count exceeds capacity",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        for (size_t ai = 0; ai < inst->resource_runtime_aux_fact_count; ai++) {
+            const MIRResourceRuntimeRow *aux =
+                &inst->resource_runtime_aux_facts[ai];
+            if (!mir_abi_resource_runtime_row_matches_owner(aux)
+                || (inst->abi_type_name != NULL
+                    && (aux->abi_type_name == NULL
+                        || strcmp(aux->abi_type_name,
+                                  inst->abi_type_name) != 0))) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] carries an invalid auxiliary runtime-call ABI row",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+            for (size_t aj = 0; aj < ai; aj++) {
+                const MIRResourceRuntimeRow *prior =
+                    &inst->resource_runtime_aux_facts[aj];
+                if (prior->resource_op_name != NULL
+                    && aux->resource_op_name != NULL
+                    && strcmp(prior->resource_op_name,
+                              aux->resource_op_name) == 0) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] instruction[%zu] carries duplicate auxiliary runtime-call ABI rows",
+                            routine->name != NULL
+                                ? routine->name
+                                : "(anonymous)",
+                            block_index,
+                            i);
+                    }
+                    return false;
+                }
+            }
+            if (inst->resource_runtime_fact_present
+                && inst->resource_runtime_fact.resource_op_name != NULL
+                && aux->resource_op_name != NULL
+                && strcmp(inst->resource_runtime_fact.resource_op_name,
+                          aux->resource_op_name) == 0) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] auxiliary runtime-call ABI row duplicates the primary row",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+        }
         if (mir_resource_runtime_fact_requires_row(inst)) {
-            const MIRResourceRuntimeRow *row =
-                &inst->resource_runtime_fact;
             const char *operation =
                 mir_machine_layer_runtime_operation(inst);
+            const MIRResourceRuntimeRow *row;
             if (operation == NULL)
                 operation = inst->name;
-            if (!inst->resource_runtime_fact_present
+            row = mir_abi_resource_runtime_row_for_instruction(inst, operation);
+            if (row == NULL
                 || row->domain == NULL
                 || row->abi_type_name == NULL
                 || strcmp(row->abi_type_name, inst->abi_type_name) != 0

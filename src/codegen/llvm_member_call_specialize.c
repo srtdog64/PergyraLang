@@ -13,6 +13,7 @@
  */
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_limits_internal.h"
@@ -85,12 +86,9 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     char base[128];
     char full_name[256];
     size_t base_len;
-    ASTNode *tmpl;
     const MIRDeclHeader *generic_header;
     const MIRDeclMethod *method_meta;
     const MIRRoutine *mir_method;
-    ASTNode *method_decl;
-    GenericParams *gp;
     size_t gpc;
     LLVMClassTypeEntry *spec_cls;
     LLVMTypeRef self_ty;
@@ -101,13 +99,6 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     int saved_subst;
     LLVMTypeRef ft;
     LLVMValueRef fn;
-    LLVMBasicBlockRef entry;
-    LLVMValueRef saved_fn;
-    LLVMTypeRef saved_ret;
-    LLVMTypeRef saved_function_ret;
-    ASTNode *saved_func_decl;
-    LLVMBasicBlockRef saved_bb;
-    unsigned pidx;
 
     if (ctx == NULL || class_name == NULL || method_name == NULL)
         return false;
@@ -135,8 +126,6 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     method_meta = llvm_find_host_method_metadata_in_context(ctx, base,
         method_name);
     mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
-    tmpl = NULL;
-    method_decl = NULL;
     /* MIR-only: generic method specialization is owned by MIR metadata; the
      * non-MIR AST template/method lookup is retired and fails closed. */
     if (generic_header == NULL || method_meta == NULL
@@ -147,10 +136,7 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
             method_name != NULL ? method_name : "(anonymous)");
         return false;
     }
-    gp = generic_header == NULL ? ast_declaration_generic_params(tmpl) : NULL;
-    gpc = generic_header != NULL
-        ? mir_decl_header_generic_param_count(generic_header)
-        : ast_generic_param_count(gp);
+    gpc = mir_decl_header_generic_param_count(generic_header);
     if (gpc == 0 || gpc > MAX_TYPE_SUBST)
         return false;
 
@@ -159,12 +145,9 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
         const MIRDeclGenericParam *meta = generic_header != NULL
             ? mir_decl_header_generic_param(generic_header, gi)
             : NULL;
-        GenericParam *p = generic_header == NULL
-            ? ast_generic_param_at(gp, gi)
-            : NULL;
         const char *pname = meta != NULL
             ? mir_decl_generic_param_name(meta)
-            : ast_generic_param_name(p);
+            : NULL;
         char arg_buf[256];
         LLVMTypeRef arg_ty;
         if (pname == NULL
@@ -198,24 +181,29 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     }
 
     {
-        const char *return_type_name = mir_method != NULL
-            ? llvm_mir_decl_method_return_type_name(method_meta)
-            : NULL;
-        ASTNode *rt = mir_method != NULL
-            ? llvm_mir_decl_method_return_type(method_meta)
-            : ast_func_return_type(method_decl);
-        ret_ty = return_type_name != NULL
-            ? pergyra_type_to_llvm(ctx, return_type_name)
-            : (rt != NULL ? ast_type_to_llvm(ctx, rt) : ctx->type_void);
+        const char *return_type_name =
+            llvm_mir_decl_method_return_type_name(method_meta);
+        const MIRCallableSig *return_callable_sig =
+            llvm_mir_routine_return_callable_sig(mir_method);
+        ASTNode *rt = llvm_mir_decl_method_return_type(method_meta);
+        if (return_callable_sig != NULL)
+            ret_ty = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
+        else if (return_type_name != NULL)
+            ret_ty = pergyra_type_to_llvm(ctx, return_type_name);
+        else if (rt != NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing generic method return ABI fact for '%s.%s'",
+                base, method_name);
+            ret_ty = NULL;
+        } else
+            ret_ty = ctx->type_void;
         if (ret_ty == NULL) {
             llvm_type_subst_restore_owned(ctx, saved_subst);
             return false;
         }
     }
 
-    pc = mir_method != NULL
-        ? llvm_mir_decl_method_param_count(method_meta)
-        : ast_func_param_count(method_decl);
+    pc = llvm_mir_decl_method_param_count(method_meta);
     ptypes = pgy_arena_calloc(&ctx->scratch, (pc + 1) * sizeof(LLVMTypeRef));
     if (ptypes == NULL) {
         llvm_type_subst_restore_owned(ctx, saved_subst);
@@ -224,31 +212,30 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     real_pc = 0;
     ptypes[real_pc++] = self_ty;
     for (size_t k = 0; k < pc; k++) {
-        FuncParam *p = mir_method != NULL
-            ? llvm_mir_decl_method_param(method_meta, k)
-            : ast_func_param(method_decl, k);
-        const char *param_type_name = mir_method != NULL
-            ? llvm_mir_decl_method_param_type_name(method_meta, k)
-            : NULL;
+        FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
+        const char *param_type_name =
+            llvm_mir_decl_method_param_type_name(method_meta, k);
+        const MIRCallableSig *param_callable_sig =
+            llvm_mir_routine_param_callable_sig(mir_method, k);
         LLVMTypeRef pt;
         if (p == NULL || llvm_param_is_implicit_self(p))
             continue;
-        if (param_type_name != NULL)
+        if (param_callable_sig != NULL)
+            pt = llvm_mir_callable_sig_to_llvm(ctx, param_callable_sig);
+        else if (param_type_name != NULL)
             pt = pergyra_type_to_llvm(ctx, param_type_name);
-        else if (p->type != NULL)
-            pt = ast_type_to_llvm(ctx, p->type);
-        else
-            continue;
+        else {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing generic method parameter ABI fact for '%s.%s'",
+                base, method_name);
+            pt = NULL;
+        }
         if (pt == NULL) {
             llvm_type_subst_restore_owned(ctx, saved_subst);
             return false;
         }
-        if (param_type_name != NULL
-            ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
-            : (p->type != NULL
-                && ast_type_name(p->type) != NULL
-                && llvm_type_name_uses_pointer_self(ctx,
-                    ast_type_name(p->type)))) {
+        if (param_callable_sig == NULL && param_type_name != NULL
+            && llvm_type_name_uses_pointer_self(ctx, param_type_name)) {
             pt = LLVMPointerType(pt, 0);
         }
         ptypes[real_pc++] = pt;
@@ -257,7 +244,7 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     ft = LLVMFunctionType(ret_ty, ptypes, (unsigned)real_pc, 0);
     fn = LLVMAddFunction(ctx->module, full_name, ft);
     llvm_register_function(ctx, full_name, fn, ft, ret_ty);
-    if (mir_method != NULL) {
+    {
         MIRRoutine specialized = *mir_method;
         LLVMValueRef emitted;
 
@@ -266,64 +253,5 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
         llvm_type_subst_restore_owned(ctx, saved_subst);
         return emitted != NULL && !ctx->has_error;
     }
-
-    saved_fn = ctx->current_function;
-    saved_ret = ctx->current_ret_type;
-    saved_function_ret = ctx->current_function_ret_type;
-    saved_func_decl = ctx->current_func_decl;
-    saved_bb = LLVMGetInsertBlock(ctx->builder);
-
-    ctx->current_function = fn;
-    ctx->current_ret_type = ret_ty;
-    ctx->current_function_ret_type = ret_ty;
-    ctx->current_func_decl = method_decl;
-    entry = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
-    LLVMPositionBuilderAtEnd(ctx->builder, entry);
-    llvm_scope_push(ctx);
-
-    {
-        LLVMValueRef self_alloca =
-            llvm_create_entry_alloca(ctx, self_ty, "self");
-        LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), self_alloca);
-        llvm_scope_declare(ctx, "self", self_alloca, self_ty);
-        llvm_register_var_class(ctx, "self", class_name);
-    }
-    pidx = 1;
-    for (size_t k = 0; k < pc; k++) {
-        FuncParam *p = ast_func_param(method_decl, k);
-        LLVMTypeRef pt;
-        LLVMValueRef a;
-        if (p == NULL || llvm_param_is_implicit_self(p)
-            || p->name == NULL || p->type == NULL)
-            continue;
-        pt = ast_type_to_llvm(ctx, p->type);
-        if (pt == NULL)
-            continue;
-        a = llvm_create_entry_alloca(ctx, pt, p->name);
-        LLVMBuildStore(ctx->builder, LLVMGetParam(fn, pidx++), a);
-        llvm_scope_declare(ctx, p->name, a, pt);
-    }
-
-    {
-        ASTNode *body = ast_func_body(method_decl);
-        if (body != NULL)
-            llvm_emit_block(body, ctx);
-    }
-    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-        if (ret_ty == ctx->type_void)
-            LLVMBuildRetVoid(ctx->builder);
-        else
-            LLVMBuildRet(ctx->builder, LLVMConstNull(ret_ty));
-    }
-
-    llvm_scope_pop(ctx);
-    ctx->current_function = saved_fn;
-    ctx->current_ret_type = saved_ret;
-    ctx->current_function_ret_type = saved_function_ret;
-    ctx->current_func_decl = saved_func_decl;
-    if (saved_bb != NULL)
-        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
-    llvm_type_subst_restore_owned(ctx, saved_subst);
-    return !ctx->has_error;
 }
 #endif /* PGY_LLVM_ENABLED */

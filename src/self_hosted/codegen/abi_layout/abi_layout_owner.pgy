@@ -45,6 +45,14 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     }
     let array_element: Option<String> =
         SemanticArrayElementType(type_name);
+    if type_name == "Array<Float>" ||
+        type_name == "Array<Float: Float>" {
+        return "pgy_af";
+    }
+    if type_name == "Array<Double>" ||
+        type_name == "Array<Double: Double>" {
+        return "pgy_ad";
+    }
     if IsSome(array_element) {
         let element_type: String = UnwrapOption(array_element);
         if LookupKindType(struct_env, element_type, "s") == "struct" {

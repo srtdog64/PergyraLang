@@ -182,7 +182,9 @@ test_mir_lowering_part_i(void)
         if (routine != NULL) {
             saved_fact_count = routine->destructure_type_fact_count;
             routine->destructure_type_fact_count = 0;
-            mir = mir_lower(hir, rir, sem, &mir_error);
+            MIRLowerRequest mir_request;
+            mir_lower_request_init(&mir_request, hir, rir, sem);
+            mir = mir_lower(&mir_request, &mir_error);
             rejected_missing_fact = mir == NULL
                 && mir_error != NULL
                 && strstr(mir_error,

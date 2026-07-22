@@ -142,8 +142,10 @@ require_text "src/compiler/rir_flow.c" "widened_by_loop"
 require_text "src/compiler/rir_validation.c" "rir_validate(const RIRProgram *rir"
 require_text "src/compiler/rir_validation.c" "rir_merge_state_for_kind"
 
-require_text "src/compiler/mir.h" "mir_lower(const HIRProgram *hir, const RIRProgram *rir"
-require_text "src/compiler/mir.c" "mir_lower(const HIRProgram *hir, const RIRProgram *rir"
+require_text "src/compiler/mir.h" "mir_lower(const MIRLowerRequest *request"
+require_text "src/compiler/mir.c" "mir_lower(const MIRLowerRequest *request"
+require_text "src/compiler/mir.h" "PGY_MIR_LOWER_PROTOCOL_VERSION"
+require_text "src/compiler/mir.c" "unsupported protocol id/version"
 require_text "src/compiler/mir.c" "mir_find_matching_rir_scope(rir, hir_routine)"
 require_text "src/compiler/mir.c" "hir_routine->has_cfg"
 
@@ -165,9 +167,9 @@ require_text "src/compiler/compiler_llvm.c" \
 require_before "src/compiler/driver_app.c" "hir = hir_lower" "rir_enrich_with_hir_flow(rir, hir"
 require_before "src/compiler/driver_app.c" "rir = rir_lower" "rir_enrich_with_hir_flow(rir, hir"
 require_before "src/compiler/driver_app.c" "rir_enrich_with_hir_flow(rir, hir" "rir_validate(rir"
-require_before "src/compiler/driver_app.c" "rir_validate(rir" "mir = mir_lower(hir, rir"
+require_before "src/compiler/driver_app.c" "rir_validate(rir" "mir = mir_lower(&mir_request"
 require_before "src/compiler/driver_app.c" "air = air_synthesize(hir, dir, rir" "air_verify(air"
-require_before "src/compiler/driver_app.c" "mir = mir_lower(hir, rir" "air_collect_mir_evidence(air, mir"
+require_before "src/compiler/driver_app.c" "mir = mir_lower(&mir_request" "air_collect_mir_evidence(air, mir"
 require_before_last "src/compiler/driver_app.c" "air_collect_mir_evidence(air, mir" "air_verify(air"
 
 require_no_codegen_dependency

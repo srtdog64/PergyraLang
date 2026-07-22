@@ -176,7 +176,8 @@ semantic_context_create(void)
     ctx->diagnostic_capacity = INITIAL_DIAG_CAPACITY;
     ctx->diagnostics         = calloc(INITIAL_DIAG_CAPACITY,
                                       sizeof(Diagnostic *));
-    pgy_arena_init(&ctx->scratch_arena, 0);
+    pgy_arena_init_named(&ctx->scratch_arena, 0,
+                         "semantic-type-checker-scratch");
     if (ctx->scope == NULL || ctx->diagnostics == NULL) {
         scope_destroy(ctx->scope);
         free(ctx->diagnostics);
@@ -250,6 +251,9 @@ semantic_context_destroy(SemanticContext *ctx)
         ctx->parallel_capture_boundaries,
         ctx->parallel_capture_boundary_count);
     free(ctx->diagnostics);
+    pgy_arena_set_last_consumer(&ctx->scratch_arena, "semantic-type-checker");
+    pgy_arena_set_release_point(&ctx->scratch_arena,
+                                "semantic-context-destroy");
     pgy_arena_destroy(&ctx->scratch_arena);
     free(ctx);
 }

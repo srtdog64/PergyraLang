@@ -120,6 +120,12 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
 
             } else if (impl->type == AST_OVERRIDE_FUNC) {
+                if (transpiler_active_has_mir(ctx)) {
+                    /* Override methods are carried in the regular MIR method
+                     * sequence and emitted above with their linked routine;
+                     * they are not ability-vtable rows. */
+                    continue;
+                }
                 ASTNode *func = ast_override_func_decl(impl);
                 if (func == NULL || func->type != AST_FUNC_DECL)
                     continue;

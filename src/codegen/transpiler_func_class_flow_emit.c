@@ -408,12 +408,14 @@ return_value_ready:
         }
         transpiler_emit_defers_from(ctx, 0);
         transpiler_emit_mut_ref_writebacks(ctx);
+        transpiler_region_scope_destroy(ctx);
         write_indent(ctx);
         codebuf_write(ctx->out, "return %s;\n", return_expr);
         free(val);
     } else {
         transpiler_emit_defers_from(ctx, 0);
         transpiler_emit_mut_ref_writebacks(ctx);
+        transpiler_region_scope_destroy(ctx);
         write_indent(ctx);
         codebuf_write(ctx->out, "return;\n");
     }
