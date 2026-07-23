@@ -215,6 +215,36 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
 {
     const char *fixed_return;
 
+    if (callee_name != NULL && strcmp(callee_name, "ArrayFilter") == 0
+        && ast_call_arg_count(expr) >= 1) {
+        const char *array_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        char element_type[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (mir_source_local_unwrap_array_or_slice_type(array_type,
+                element_type, sizeof(element_type))) {
+            return mir_source_local_type_scratch_format(scratch, "Array",
+                element_type);
+        }
+        return NULL;
+    }
+    if (callee_name != NULL && strcmp(callee_name, "ArrayMap") == 0
+        && ast_call_arg_count(expr) >= 2) {
+        ASTNode *callback = ast_call_argument(expr, 1);
+        const MIRRoutine *callback_routine;
+        const char *return_type;
+        if (callback == NULL || callback->type != AST_IDENTIFIER)
+            return NULL;
+        callback_routine = mir_source_local_top_level_routine(program,
+            ast_identifier_name(callback));
+        return_type = callback_routine != NULL
+            ? callback_routine->return_type_name : NULL;
+        if (return_type == NULL || return_type[0] == '\0'
+            || strcmp(return_type, "Void") == 0) {
+            return NULL;
+        }
+        return mir_source_local_type_scratch_format(scratch, "Array",
+            return_type);
+    }
     if (callee_name != NULL && strcmp(callee_name, "MapKeys") == 0
         && ast_call_arg_count(expr) >= 1) {
         const char *map_type = mir_source_local_expr_type_name(program,
