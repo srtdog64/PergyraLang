@@ -9,9 +9,9 @@ when they disagree with this note.
 
 ## Resume checkpoint
 
-- Latest self-host executable checkpoint: `9a438da4` (`Close StringConcat alias
-  self-host rung`). At capture time `main` was one commit ahead of
-  `origin/main` at `4053192c`; the only dirty path was this handoff refresh.
+- Latest self-host executable checkpoint: `8afd9160` (`Close self-host
+  fieldless nominal owner SoT`). `main` and `origin/main` are equal at this
+  revision before this handoff refresh; the source/test tree is clean.
 - Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
   ArrayFilter result type SoT`), with handoff refresh `4053192c`. It is
   independent of the self-host alias rung.
@@ -36,7 +36,34 @@ when they disagree with this note.
 
 ## Last closed executable rung
 
-The counted DRV-2 executable frontier is fixture 249,
+The counted DRV-2 executable frontier is fixture 250,
+`tests/cases/backend_compare/fieldless_class_method/main.pgy`.
+
+Fieldless nominal owner closure:
+
+- Objective: carry the valid empty `Calc` field inventory from the nominal/type
+  environment owner into method binding, struct-call emission, and C layout.
+- Priority: owner-presence identity, fieldless ABI materialization, runtime
+  parity, then missing-fact failure.
+- Fact owner: `LookupKindTypeRowPresent` over the structured global/local type
+  environment rows.
+- Last consumers: `CodegenFunctionOwnerFieldEnvRows`,
+  `RewriteSemanticStructCall`, and `CollectStructsSelected`.
+- Forbidden fallback: missing row as empty row, fake field, or class-name
+  exception.
+- Falsifier: remove the `fields` owner row or pass `Calc(1)`; the codegen path
+  must fail closed rather than materialize an invented field.
+
+Observed and closed:
+
+- The rebuilt self-host driver emits `char _pgy_reserved;` for `Calc`, uses
+  `(Calc){ 0 }`, compiles standard C, and runs with output `r=7`.
+- Filtered producer-first source/MIR parity passes with
+  `backends=1 body_fixtures=20 mir_fixtures=1`; the fieldless constructor
+  mutation is rejected with `call_arity_mismatch` by both compilers.
+- Commit `8afd9160` is pushed to `origin/main`.
+
+The previous closed executable rung was fixture 249,
 `tests/cases/backend_compare/string_utility_aliases/main.pgy`.
 
 Objective card:
@@ -104,6 +131,12 @@ Green:
   declared skip and was not checked.
 - `tests/documentation_quality_smoke.sh`.
 - Shell syntax for the modified parity owners and cached-diff whitespace checks.
+- Rebuilt C self-host driver fieldless fixture: driver, GCC, and runtime all
+  passed; runtime output was `r=7`.
+- Filtered fieldless producer-first source/MIR parity passed:
+  `backends=1 body_fixtures=20 mir_fixtures=1`.
+- `tests/self_hosted_component_contract_smoke.sh` and shell syntax passed after
+  the fieldless owner changes.
 
 Not run or not available:
 
@@ -115,16 +148,7 @@ Not run or not available:
 
 ## Next executable work
 
-The next smaller observed synchronous failure is:
-
-- `tests/cases/backend_compare/fieldless_class_method/main.pgy`
-- Current Pergyra driver result after the StringConcat closure:
-  `CODEGEN ERROR: method owner field inventory is missing`.
-- Audit the nominal declaration/environment owner for a valid zero-field
-  inventory. Do not fake a field, emit a class-name exception, or treat missing
-  inventory as an empty inventory without owner evidence.
-
-The broader known async failure remains:
+The next observed executable failure is:
 
 - `tests/cases/backend_compare/await_inline_spawn/main.pgy`
 - Current Pergyra driver result: `initializer_type_unresolved` for
@@ -133,8 +157,7 @@ The broader known async failure remains:
   a leaf and lacks an owned async expression/type/codegen fact.
 
 The async case is still a multi-owner rung. Do not implement `spawn` by erasing
-concurrency or routing through a sequential call. Work the observed fieldless
-class inventory failure first unless a narrower failing gate disproves it.
+concurrency or routing through a sequential call.
 
 ## Workstation and repository recovery
 
@@ -166,7 +189,7 @@ class inventory failure first unless a narrower failing gate disproves it.
    `selfhost.expression_surface` row in
    `docs/semantics/sot_owner_spine_registry.md`.
 2. Run `git status --short --branch` and preserve any concurrent dirty paths.
-3. Confirm fixture 249 with the filtered C parity gate before broadening.
+3. Confirm fixture 250 with the filtered C parity gate before broadening.
 4. Select the next rung only from an observed failure and write its objective
    card before changing structure.
 5. Run the narrow negative first, then component/hard/substitution gates.

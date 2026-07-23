@@ -1,5 +1,27 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra stable fieldless nominal owner executable rung 250. Objective:
+carry a valid empty `fields` inventory for `Calc` through the nominal/type
+environment owner into C codegen. Priority is owner-presence identity,
+fieldless ABI materialization, runtime parity, then missing-fact failure. The
+type environment presence owner is `LookupKindTypeRowPresent`; method binding
+and semantic struct-call emission are its last consumers. Forbidden fallbacks
+are treating a missing row as an empty row, faking a field, or adding a
+class-name exception.
+
+The previous Pergyra driver reached codegen but failed with `method owner field
+inventory is missing` for `fieldless_class_method`. The owner now carries
+`Calc=fields:` as a present empty row, emits a reserved C storage byte and a
+zero initializer, and rejects `Calc(1)` with `call_arity_mismatch`. The rebuilt
+driver emitted and ran standard C with output `r=7`. Filtered producer-first
+source/MIR parity passed the fieldless fixture (`backends=1 body_fixtures=20
+mir_fixtures=1`), and component contracts plus shell syntax passed. Commit:
+`8afd9160`.
+
+The next observed broader failure is `await_inline_spawn`: `spawn` is still a
+leaf without an owned async expression/type/codegen fact. Do not erase
+concurrency or add a sequential fallback.
+
 2026-07-23 Pergyra stable StringConcat alias executable rung 249. Objective:
 project the stable `StringConcat(String, String) -> String` source name through
 the same semantic signature and generated concat runtime ABI already owned by
