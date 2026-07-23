@@ -9,11 +9,12 @@ when they disagree with this note.
 
 ## Resume checkpoint
 
-- Executable implementation checkpoint: `246682fe` (`Close C ArrayMap and
-  ArrayFilter result type SoT`); `origin/main` points to the same revision.
-- The latest native backend closure is independent of the concurrent self-host
-  edits listed below. Preserve those unstaged paths and do not claim them as
-  part of `246682fe`.
+- Latest self-host executable checkpoint: `9a438da4` (`Close StringConcat alias
+  self-host rung`). At capture time `main` was one commit ahead of
+  `origin/main` at `4053192c`; the only dirty path was this handoff refresh.
+- Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
+  ArrayFilter result type SoT`), with handoff refresh `4053192c`. It is
+  independent of the self-host alias rung.
 
 ## Latest native backend SoT closure
 
@@ -35,64 +36,64 @@ when they disagree with this note.
 
 ## Last closed executable rung
 
-The counted DRV-2 executable frontier is fixture 248,
-`tests/cases/backend_compare/result_as_class_field/main.pgy`.
+The counted DRV-2 executable frontier is fixture 249,
+`tests/cases/backend_compare/string_utility_aliases/main.pgy`.
 
 Objective card:
 
-- Objective: admit context-incomplete `Ok(T)`/`Err(E)` values into a nominal
-  constructor field declared as `Result<T, E>`.
-- Priority: declared field/parameter type, canonical wrapper assignability,
-  fail-closed mismatch, then patch size.
-- Fact owner: `ResultTypeAssignableTo` in
-  `src/self_hosted/semantic/wrapper_type_owner.pgy`.
-- Last consumers reached by the rung:
-  `SemanticExpressionGraphFieldValueAssignableTo` and `CompareCallArgs`.
-- Forbidden fallback: class/constructor/variant name branches, accepting every
-  Result pair, guessing `E`, or keeping strict type-string equality as a second
-  assignability authority.
-- Falsifier: mutate `Ok(100)` to `Ok("bad")`; the Pergyra driver must reject it
-  with `call_arg_type_mismatch` and the native compiler must also reject it.
+- Objective: project stable source alias
+  `StringConcat(String, String) -> String` through the same runtime concat ABI
+  as `Concat`.
+- Priority: preserve builtin row identity, one runtime symbol owner,
+  fail-closed argument types, then patch size.
+- Fact owners: `SemanticBuiltinSignatureRows` for the source signature and
+  `RuntimeCallCName` for its runtime-symbol projection.
+- Last consumers: semantic function-table seeding and semantic direct-call
+  emission.
+- Forbidden fallback: a `StringConcat` branch in semantic call emission, a
+  second C helper, source-text substitution, or shifting existing builtin row
+  identities.
+- Falsifier: mutate the second argument from the owned `String` local to `Int`;
+  both compilers must reject it and the Pergyra driver must report
+  `call_arg_type_mismatch`.
 
 Observed before the fix:
 
-- A freshly built Pergyra DRV-2 driver rejected
-  `Wallet(Ok(100))` as expected `Result<Int, CardErr>`, actual `Result<Int>`.
-- It independently rejected `Cell(10, Ok(5))` as expected
-  `Result<Int, FlagErr>`, actual `Result<Int>`.
+- A freshly built Pergyra DRV-2 driver rejected `StringConcat` in both
+  `string_utility_aliases` and `nested_array_string` as `undefined_function`.
 
 Closed design:
 
-- The field graph consumer delegates Result pairs to
-  `ResultTypeAssignableTo` instead of owning a `Result<Unknown>` exception.
-- The remaining non-generic call consumer delegates to
-  `ExpressionAssignableTo`, which in turn consumes the same Result owner,
-  instead of applying strict string equality.
-- No class, constructor, variant, or error-enum name is present in the semantic
-  implementation.
-- The manifest now has 256 DRV-2 MIR rows. Rows 246 and 247 remain historical
-  coverage-only ratchets; rung 248 is counted because the old Pergyra driver
-  failed and Pergyra semantic implementation changed to replace that path.
+- `StringConcat` is append-only builtin row 101, the 102nd row. All previous
+  builtin identities remain stable.
+- `Concat` and `StringConcat` both project through `StringRuntimeCConcatFn`.
+  Emitted C contains `pgy_concat` and no second `StringConcat` symbol.
+- The manifest now has 257 DRV-2 MIR rows. Rung 249 is counted because the old
+  Pergyra driver failed and Pergyra semantic/runtime projection owners changed.
+- Prior rung 248 remains closed: contextual `Result<T>` values enter declared
+  `Result<T, E>` nominal fields through `ResultTypeAssignableTo`, with payload
+  mismatch rejection and no constructor-name policy.
 
 Primary files:
 
-- `src/self_hosted/semantic/wrapper_type_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy`
-- `src/self_hosted/semantic/call_check_owner.pgy`
+- `src/self_hosted/semantic/builtin_signature_owner.pgy`
+- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`
+- `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy`
 - `src/self_hosted/compiler/driver_rung2_owner.pgy`
-- `tests/self_hosted/parity/driver_rung2_result_field_parity_owner.sh`
+- `tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh`
 - `src/self_hosted/PROGRESS.md`
-- `docs/semantics/sot_owner_spine_registry.md`
+- `src/self_hosted/OWNERS.md`
 
 ## Last observed verification
 
 Green:
 
 - C-built Pergyra driver, filtered producer-first source/MIR parity for
-  `result_as_class_field`: `backends=1 body_fixtures=20 mir_fixtures=1`.
+  `string_utility_aliases`: `backends=1 body_fixtures=20 mir_fixtures=1`.
 - LLVM-built Pergyra driver, same filtered parity and counts.
-- Both paths preserved the typed `Result<Int, CardErr>` ABI, compiled emitted C,
-  ran it, and matched the native oracle output.
+- Both paths projected the carried `StringConcat` target to `pgy_concat`,
+  compiled emitted C, ran it, and matched native output `HELLO`, `world`,
+  `ok:Hello World`.
 - `tests/self_hosted_component_contract_smoke.sh`.
 - `make self-host-hard-contract-test-smoke`.
 - `make self-host-substitution-velocity-test-smoke`.
@@ -106,28 +107,24 @@ Green:
 
 Not run or not available:
 
-- The full unfiltered 256-row DRV-2 matrix was not run.
+- The full unfiltered 257-row DRV-2 matrix was not run.
 - Coq/Rocq is not installed. Never report the formal model as checked on this
   workstation.
 - The aggregate documentation Make target was not used for this checkpoint;
   the direct documentation quality gate is the observed evidence.
 
-At handoff refresh time, the only unstaged paths are concurrent work not owned
-by the latest native closure:
-
-- `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy`
-- `src/self_hosted/compiler/driver_rung2_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`
-- `src/self_hosted/semantic/builtin_signature_owner.pgy`
-- `tests/self_hosted/parity/driver_rung2_body_parity.sh`
-- `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`
-- `tests/self_hosted_component_contract_smoke.sh`
-- `tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh`
-
 ## Next executable work
 
-No next synchronous fixture is selected by inference. The next known real
-failure is:
+The next smaller observed synchronous failure is:
+
+- `tests/cases/backend_compare/fieldless_class_method/main.pgy`
+- Current Pergyra driver result after the StringConcat closure:
+  `CODEGEN ERROR: method owner field inventory is missing`.
+- Audit the nominal declaration/environment owner for a valid zero-field
+  inventory. Do not fake a field, emit a class-name exception, or treat missing
+  inventory as an empty inventory without owner evidence.
+
+The broader known async failure remains:
 
 - `tests/cases/backend_compare/await_inline_spawn/main.pgy`
 - Current Pergyra driver result: `initializer_type_unresolved` for
@@ -135,13 +132,9 @@ failure is:
 - Observed cause: `await` is graph-typed, while `spawn` is still represented as
   a leaf and lacks an owned async expression/type/codegen fact.
 
-This is a multi-owner async rung. Before implementation, write a fresh objective
-card naming the async fact owner, the last legitimate semantic/codegen consumer,
-the forbidden sequential fallback, and a graph mutation that must fail closed.
-Do not implement `spawn` by erasing concurrency or routing through a sequential
-call. If that rung is too broad for one bounded edit, probe for a smaller
-observed synchronous failure and record the actual diagnostic before selecting
-it.
+The async case is still a multi-owner rung. Do not implement `spawn` by erasing
+concurrency or routing through a sequential call. Work the observed fieldless
+class inventory failure first unless a narrower failing gate disproves it.
 
 ## Workstation and repository recovery
 
@@ -160,8 +153,8 @@ it.
   has been revalidated.
 - `.gitignore` owns root temporary builders with `/.tmp_*`. Earlier recovery
   recycled 87 root temporary files and reduced `.tmp` from about 9.49 GB to an
-  active ignored cache. The four `codex_*` directories used for rung discovery
-  and parity were moved to the Windows recycle bin after verification.
+  active ignored cache. All `codex_*` directories used for Result, alias, and
+  next-rung discovery were moved to the Windows recycle bin after verification.
 - Credential hygiene: a prior local process inspection exposed configured
   Figma, GitHub, Render, and Tavily credentials in command-line output. Do not
   copy values into docs or logs. Rotate/revoke the affected credentials before
@@ -173,7 +166,7 @@ it.
    `selfhost.expression_surface` row in
    `docs/semantics/sot_owner_spine_registry.md`.
 2. Run `git status --short --branch` and preserve any concurrent dirty paths.
-3. Confirm fixture 248 with the filtered C parity gate before broadening.
+3. Confirm fixture 249 with the filtered C parity gate before broadening.
 4. Select the next rung only from an observed failure and write its objective
    card before changing structure.
 5. Run the narrow negative first, then component/hard/substitution gates.
