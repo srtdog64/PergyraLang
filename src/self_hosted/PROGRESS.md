@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra inline spawn/await executable rung 261. Objective: carry
+inline `spawn` identity, its `Future<T>` result type, and the owned worker-pool
+await boundary from the expression graph through MIR and C. Priority is async
+graph identity, carried type, real runtime lifetime, fail-closed unsupported
+shapes, then patch size. `AstExpressionNodeSpawn` and the semantic scalar-type
+owner provide the graph/type facts; `spawn_runtime_owner.pgy` owns the C ABI and
+is the last runtime consumer. Forbidden fallbacks are sequential call lowering,
+source-text spawn detection, fixture-name branching, and detached local-storage
+capture.
+
+Before this change the self-host driver rejected `await_inline_spawn` with
+`initializer_type_unresolved` because `spawn` was a leaf without an owned async
+fact. The parser now preserves `spawn` as a unary graph node, semantic typing
+derives `Future<Int>` for the bounded direct `Int -> Int` shape, and codegen
+dispatches through `pgy_selfhost_spawn_int1` plus the owned `pgy_await_take`
+boundary. Pool startup is explicit; unsupported spawn shapes fail closed.
+
+Filtered C producer-first parity passed (`backends=1 body_fixtures=20
+mir_fixtures=1`) with runtime output `5` and `10`. Component contracts and all
+modified shell syntax passed, and `git diff --check` passed. Implementation
+commit: `e98ba4ac`, pushed with `HEAD=origin/main=e98ba4ac`. The full unfiltered
+261-row matrix and LLVM async lane were not run; Coq/Rocq remains unavailable.
+
+The next observed executable failure is
+`tests/cases/backend_compare/async_spawn_await/main.pgy`: the self-host C
+driver returns `CODEGEN ERROR: unsupported let type ... Future<Int>`. The next
+owner seam is named Future binding/materialization plus `await task`; it must
+reuse the same resource/runtime owner and must not be treated as a scalar or
+lowered to a synchronous call.
+
 2026-07-23 Pergyra graph-owned foreach iterable executable rungs 251-252.
 Objective: derive a non-identifier foreach iterable type from the parser-owned
 expression graph and carry that type through iteration facts, the synthetic
@@ -27,10 +57,9 @@ rejects both. Component and shell contracts pass. Implementation commit:
 `8cc9ad68`; graph-only contract ratchet: `54bed08e`. The full unfiltered
 260-row matrix was not run.
 
-The next observed executable failure remains `await_inline_spawn`. Any active
-uncommitted spawn work is not completion evidence. Preserve real concurrency,
-an owned result/wait boundary, and runtime lifetime; do not lower it to a
-sequential call or a detached pointer capture.
+The former `await_inline_spawn` failure was closed by the subsequent inline
+spawn/await rung above. Preserve real concurrency, an owned result/wait
+boundary, and runtime lifetime in the next named-Future rung.
 
 2026-07-23 Pergyra stable fieldless nominal owner executable rung 250. Objective:
 carry a valid empty `fields` inventory for `Calc` through the nominal/type

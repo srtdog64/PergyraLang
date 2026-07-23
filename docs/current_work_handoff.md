@@ -8,74 +8,68 @@ Current source, registries, and executable evidence win when they disagree.
 
 ## Resume checkpoint
 
-- Latest self-host executable implementation: `8cc9ad68` (`Close graph-owned
-  foreach iterable rung`). Its negative contract ratchet is `54bed08e`
-  (`Ratchet foreach graph contract`).
+- Latest self-host executable implementation: `e98ba4ac` (`Close self-host
+  inline spawn await SoT`). The preceding foreach graph contract ratchet is
+  `54bed08e`, with handoff refresh `c98d0a42`.
 - Latest prior fieldless checkpoint: `8afd9160`, with handoff refresh
   `89625851`.
 - Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
   ArrayFilter result type SoT`), with handoff refresh `4053192c` and matching
   LLVM owner consumption in `a1678e8d`.
-- At this capture, a separate uncommitted `spawn` lane exists in the main
-  worktree. It was deliberately excluded from the foreach commits and has not
-  passed the full gate set. Preserve it and verify its exact status before any
-  staging or cleanup.
+- `HEAD` and `origin/main` are both `e98ba4ac`; the remaining dirty paths are
+  unrelated VS Code extension work and untracked editor packaging files. Do
+  not stage or clean those paths while continuing SoT closure.
 
 ## Last closed executable rungs
 
-The counted DRV-2 frontier adds fixtures 251 and 252:
+The counted DRV-2 frontier adds fixture 261:
 
-- `tests/cases/backend_compare/for_in_array_literal_iterable/main.pgy`
-- `tests/cases/backend_compare/for_in_member_iterable/main.pgy`
+- `tests/cases/backend_compare/await_inline_spawn/main.pgy`
 
-The manifest contains 260 MIR rows.
+The manifest contains 261 MIR rows.
 
 Objective card:
 
-- Objective: derive non-identifier foreach iterable types from parser-owned
-  expression graph facts and carry them through iteration facts, the one-time
-  synthetic hoist, MIR, and codegen.
-- Priority: graph identity, homogeneous array-literal typing, nominal member
-  typing, fail-closed mismatch, then patch size.
-- Fact owners: `SemanticExpressionGraphArrayLiteralTypeName` for recursive
-  literal topology/type and the existing nominal receiver/member type owner for
-  `b.items`.
-- Last semantic consumer: `SemanticAstIterationTypeFactsFromArtifact`; MIR and
-  codegen consume its explicit iterable/binding/hoist rows.
-- Forbidden fallback: reparsing loop payload text, assuming `Array<Int>`, a
-  fixture/member-name exception, or codegen-side iterable type recovery.
-- Falsifiers: `[10, "bad", 30]` must fail as `actual: Unknown`; replacing
-  `b.items` with `b` must fail as `actual: Bag`.
+- Objective: carry inline `spawn` identity, `Future<T>` result type, and the
+  owned await/runtime boundary from the expression graph through MIR and C.
+- Priority: async graph identity, carried result type, real worker-pool
+  lifetime, fail-closed unsupported shapes, then patch size.
+- Fact owners: `AstExpressionNodeSpawn`, semantic scalar-type ownership, and
+  `spawn_runtime_owner.pgy`; codegen consumes the carried graph/type facts.
+- Last semantic consumer: `RewriteSemanticSpawn` and the await graph branch;
+  the C runtime owner emits the worker dispatch and `pgy_await_take` boundary.
+- Forbidden fallback: sequential call lowering, source-text spawn detection,
+  fixture-name branching, or detached local-storage capture.
+- Falsifier: `async_spawn_await` must expose the next named-Future seam rather
+  than being silently treated as a scalar `Future<Int>` value.
 
 Observed before the fix:
 
-- A Pergyra-built driver rejected both fixtures with
-  `statement_type_unresolved`; the array literal and member expression were
-  both reported as `actual: Unknown`.
+- The self-host driver rejected `await spawn Inc(4)` with
+  `initializer_type_unresolved` because `spawn` was a leaf without an owned
+  async graph/type/codegen fact.
 
 Closed design and evidence:
 
-- Iteration typing consumes the carried value and auxiliary expression graph
-  roots. It no longer calls `SemanticAstExpressionVerdictFromPayload`.
-- Non-empty homogeneous literals derive recursive `Array<T>` evidence; empty
-  or heterogeneous literals do not acquire a guessed element type.
-- Both fixtures carry `binding_type: Int`, `iterable_type: Array<Int>`, and
-  `collection_hoisted: true`, plus one typed `__pgy_forin_0` local.
-- C-built filtered producer-first parity passed:
-  `backends=1 body_fixtures=20 mir_fixtures=2`.
-- LLVM-built filtered producer-first parity passed with the same counts.
-- Runtime output matched native: `60` for the literal loop and `15` for the
-  member loop. Both negative mutations were rejected by both compilers.
-- `tests/self_hosted_component_contract_smoke.sh` and shell syntax passed in an
-  isolated worktree containing exactly the foreach commits.
+- `spawn` is now a parser-owned unary graph node; semantic type ownership
+  derives `Future<Int>` for the bounded direct `Int -> Int` rung.
+- `spawn_runtime_owner.pgy` owns the worker-pool dispatch and await helper;
+  startup initializes the pool and unsupported direct-spawn shapes fail closed.
+- C producer-first parity passed:
+  `backends=1 body_fixtures=20 mir_fixtures=1`; runtime output is `5` and `10`.
+- MIR graph facts include two `spawn` and two `await` rows; emitted C consumes
+  `pgy_selfhost_spawn_int1` and `pgy_await_take` through the runtime owner.
+- Component contract and all modified shell syntax passed; `git diff --check`
+  passed before commit.
 
 Primary files:
 
-- `src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_verdict_owner.pgy`
-- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`
+- `src/self_hosted/parser/expr_precedence_owner.pgy`
+- `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy`
+- `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy`
+- `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy`
 - `src/self_hosted/compiler/driver_rung2_owner.pgy`
-- `tests/self_hosted/parity/driver_rung2_iteration_expression_parity_owner.sh`
+- `tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh`
 - `tests/self_hosted_component_contract_smoke.sh`
 
 ## Previous closed rungs retained
@@ -96,12 +90,12 @@ Primary files:
 
 ## Verification state
 
-Green for the latest foreach rung:
+Green for the latest inline-spawn rung:
 
-- C and LLVM filtered producer-first source/MIR parity, two MIR fixtures each.
-- Component contract and modified shell syntax in the isolated commit tree.
-- Direct self-host negative mutations and native-oracle rejection.
-- `git diff --check` for the implementation commits.
+- C filtered producer-first source/MIR parity for `await_inline_spawn`.
+- Component contract and all modified shell syntax.
+- Native C compile/run parity with output `5`, `10`.
+- `git diff --check` for the implementation commit.
 
 Green at the preceding fieldless/StringConcat checkpoint and to be rerun after
 the latest docs refresh:
@@ -117,22 +111,23 @@ the latest docs refresh:
 
 Not run or unavailable:
 
-- The full unfiltered 260-row DRV-2 matrix was not run.
+- The full unfiltered 261-row DRV-2 matrix was not run; LLVM was not run for
+  this async rung.
 - Coq/Rocq is not installed. Never report the formal model as checked here.
 
 ## Next executable work
 
 The next observed failure is
-`tests/cases/backend_compare/await_inline_spawn/main.pgy`:
+`tests/cases/backend_compare/async_spawn_await/main.pgy`:
 
-- Last clean driver result: `initializer_type_unresolved` for
-  `await spawn Inc(4)`.
-- `spawn` needs one carried expression kind, an owned semantic result type,
-  runtime ABI/lifetime, and codegen consumption.
+- Last probe result: `CODEGEN ERROR: unsupported let type ... Future<Int>`.
+- The next seam is a named `Future<Int>` binding: spawn result materialization,
+  resource-handle type ownership, and `await task` consumption must converge on
+  the same runtime owner.
 - Preserve actual concurrency. A sequential call, a class/test-name branch,
   or a detached capture of local storage is forbidden.
-- The dirty main-worktree spawn lane is only a proposal until its owner docs,
-  focused positive/negative/runtime parity, and broader gates pass.
+- The next falsifier is the `task` binding in `async_spawn_await`; it must not
+  be accepted as a scalar or replaced with a synchronous call.
 
 ## Workstation and repository recovery
 
