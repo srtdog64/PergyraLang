@@ -9,11 +9,11 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `7a5ea2d0019b585326efe5c7d9fb7a543bca30b9` on `main`.
+- Captured code HEAD: `e5dede8e4e6eb818954a80b8829cbba8ccc40c30` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 12 unstaged tracked entries and 63 untracked paths before this handoff
-  refresh. The fixture-235-241, progress, codegen, parity, and component
+  has 12 concurrent unstaged tracked entries and 52 untracked paths at this
+  committed checkpoint. The fixture-235-243, progress, codegen, parity, and component
   changes are concurrent work and remain unstaged; the retired Result-named
   parity owner is the tracked deletion. Preserve all of these paths
   separately. The untracked paths are the existing allocator, defer,
@@ -61,6 +61,14 @@ current owner fact and update this file after verification.
   Region/plan unit gates and C/LLVM compiler builds passed. The full component
   gate is currently blocked by concurrent `routine_fact_index_owner.pgy`
   exceeding its 600-line cap; that unrelated change remains unstaged.
+- This session created and pushed `e5dede8e` to extend the retention-summary
+  owner to resolved user callees with `ref String` parameters. Only a direct
+  approved synchronous sink is certified; return, assignment, nested-helper,
+  and unresolved-identity cases fail closed to HEAP. The C/LLVM good/bad
+  backend fixtures, region unit, self-host region-plan (16 projection pins and
+  8 producer rejections), and component contract gates passed. The collector
+  now routes `BUILTIN_NOT_BUILTIN` calls through the semantic user-callee
+  callback instead of treating the populated enum slot as a builtin fallback.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -390,6 +398,11 @@ current owner fact and update this file after verification.
   `LogBanner`, and `LogBlock` consumers to the same owner. `Log` accepts all
   argument positions; the other log consumers remain first-argument-only, and
   absent or unknown summaries still fail closed to HEAP.
+- The user-callee retention extension is now owned by
+  `src/semantic/region_retention_summary_user.c`; the direct-sink fixture is
+  `tests/cases/backend_compare/region_user_callee/main.pgy` and its
+  return-rooted falsifier is the adjacent `_bad` fixture. The old broad
+  callee-parameter class remains open.
 - Observed green gates for this slice are region unit, verified-plan unit,
   arena, C/LLVM backend wiring, self-host region-plan, component contract,
   alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
@@ -407,13 +420,15 @@ current owner fact and update this file after verification.
   escape and plan unit gates. The Log-family extension passed the region
   escape/plan gates and both C/LLVM compiler builds. The aggregate component
   gate stopped on the concurrent 613-line routine owner cap.
+- The user-callee extension then passed the region unit, backend wiring,
+  self-host-region-plan 16-pin, component, and both compiler build gates.
 - This closes the semantic producer-to-HIR-to-MIR retention and driver
-  direct-read fallback seams, plus the bounded synchronous-builtin retention
-  summary extension. The `resource.region_allocation_plan` row remains
-  `BRIDGE` until general callee-parameter retention summaries and complete
-  region allocation ownership are migrated. Before widening the certified
-  class, preserve the explicit HEAP default and choose the next missing owner
-  fact with a falsifying fixture.
+  direct-read fallback seams, plus the bounded synchronous-builtin and direct
+  user-callee retention-summary classes. The `resource.region_allocation_plan`
+  row remains `BRIDGE` until the broader callee-parameter cases and complete
+  region allocation ownership are migrated. Before widening the certified class,
+  preserve the explicit HEAP default and choose the next missing owner fact with
+  a falsifying fixture.
 
 ### 4. Runtime instance ownership rung
 
