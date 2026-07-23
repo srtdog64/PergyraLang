@@ -22,8 +22,8 @@ typedef struct PgyRegionEscapeFact {
 } PgyRegionEscapeFact;
 
 /*
- * Collect the currently certified direct-Print concat facts. `facts_out` and
- * `count_out` are always initialized on entry. A false return means the
+ * Collect the currently certified synchronous-consumer concat facts.
+ * `facts_out` and `count_out` are always initialized on entry. A false return means the
  * semantic owner could not produce a complete fact set (invalid stable id or
  * allocation failure); callers must reject the fact set, not use a prefix.
  */

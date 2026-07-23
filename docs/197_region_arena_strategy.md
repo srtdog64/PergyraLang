@@ -701,9 +701,10 @@ before plan materialization. Broader semantic retention summaries and complete
 region allocation ownership remain open, so the registry row remains `BRIDGE`.
 
 The first retention-summary rung is now explicit: `region_retention_summary.c`
-owns the semantic `BuiltinKind`/argument-position fact that `Print` borrows its
-argument for the call. The region collector consumes that summary and treats
-missing, unknown, or non-first-argument facts as HEAP. General callee parameter
+owns the semantic `BuiltinKind`/argument-position fact for the synchronous
+`Print` and `Log` family consumers. The region collector consumes that summary
+and treats missing, unknown, or non-first-argument facts as HEAP (except the
+variadic `Log` positions, which are all synchronous). General callee parameter
 retention and complete allocation-site ownership remain open.
 
 Process note worth keeping: the earlier "blocked" reading was correct at the

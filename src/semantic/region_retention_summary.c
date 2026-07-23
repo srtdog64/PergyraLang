@@ -10,10 +10,21 @@ semantic_region_retention_summary_for_builtin(
 {
     if (kind_out != NULL)
         *kind_out = PGY_REGION_RETENTION_UNKNOWN;
-    if (argument_index != 0)
-        return false;
-    if (builtin_kind != (uint32_t)BUILTIN_PRINT)
-        return false;
+    if (builtin_kind == (uint32_t)BUILTIN_LOG) {
+        /* Log consumes every formatted argument synchronously. */
+    } else {
+        if (argument_index != 0)
+            return false;
+        switch (builtin_kind) {
+        case (uint32_t)BUILTIN_PRINT:
+        case (uint32_t)BUILTIN_LOG_RAW:
+        case (uint32_t)BUILTIN_LOG_BANNER:
+        case (uint32_t)BUILTIN_LOG_BLOCK:
+            break;
+        default:
+            return false;
+        }
+    }
     if (kind_out != NULL)
         *kind_out = PGY_REGION_RETENTION_BORROWED_FOR_CALL;
     return true;

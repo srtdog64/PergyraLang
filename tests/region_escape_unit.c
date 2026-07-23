@@ -54,6 +54,22 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_WRITE, 0, &kind)
           && kind == PGY_REGION_RETENTION_UNKNOWN,
           "unknown builtin retention fails closed");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_LOG, 1, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "Log retains no argument beyond the synchronous call");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_LOG_RAW, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "LogRaw argument retention summary is borrowed");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_LOG_BANNER, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "LogBanner argument retention summary is borrowed");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_LOG_BLOCK, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "LogBlock argument retention summary is borrowed");
 }
 
 static ASTNode mk_string(const char *v)
@@ -101,6 +117,36 @@ static void test_print_concat_certified(void)
     CHECK(n == 1 && sites[0].allocation_site_id == concat.stable_id,
           "certified site carries the concat stable id");
     semantic_region_escape_facts_free(sites);
+}
+
+static void test_log_family_concat_certified(void)
+{
+    const struct {
+        BuiltinKind kind;
+        const char *name;
+    } cases[] = {
+        { BUILTIN_LOG, "Log" },
+        { BUILTIN_LOG_RAW, "LogRaw" },
+        { BUILTIN_LOG_BANNER, "LogBanner" },
+        { BUILTIN_LOG_BLOCK, "LogBlock" }
+    };
+
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        ASTNode sa = mk_string("a"), sb = mk_string("b");
+        ASTNode concat = mk_concat(&sa, &sb);
+        ASTNode callee = mk_ident(cases[i].name);
+        ASTNode *args[1] = { &concat };
+        ASTNode call = mk_call(&callee, args, 1);
+        PgyRegionEscapeFact *sites = NULL;
+        size_t n;
+
+        CHECK(ast_call_set_semantic_callee_builtin_kind(
+                  &call, (uint32_t)cases[i].kind),
+              "semantic log-family builtin fact records");
+        n = collect_sites(&call, &sites);
+        CHECK(n == 1, "synchronous log-family concat certifies 1 site");
+        semantic_region_escape_facts_free(sites);
+    }
 }
 
 /* Print("a" + "b" + "c") -> outer ((a+b)+c) and inner (a+b) both certified. */
@@ -219,6 +265,7 @@ int main(void)
 {
     test_retention_summary_owner();
     test_print_concat_certified();
+    test_log_family_concat_certified();
     test_chained_concat_spine();
     test_missing_builtin_fact_not_certified();
     test_non_print_not_certified();
