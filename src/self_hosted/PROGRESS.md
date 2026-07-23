@@ -1,5 +1,29 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra List operation call ABI executable closure.
+Objective: carry direct ListPush/ListGet/ListSet/ListRemove/ListSize target,
+receiver, arity, value, and return facts through one semantic-to-runtime ABI
+path. Priority was one semantic List-call owner, element-specific runtime
+symbols, addressable receiver enforcement, missing-target negative ratchet,
+then patch size.
+
+`ast_expression_graph_resolved_call_type_owner.pgy` owns the List-call
+protocol, `list_runtime_owner.pgy` owns element-specific operation symbols, and
+`list_call_emit_owner.pgy` is the last codegen consumer. Native and self-host
+MIR agree; self-host C emits `pgy_list_*_int` and runs with
+`3, 10, 30, 99, 2, 99`. `List<String>` independently emits and runs with
+`world`. Removing the carried `ListPush` target fails closed with
+`MIR instruction expression graph is missing or invalid`. Commit `0c19a8c5`
+is pushed.
+
+The focused producer-first, component, hard-contract, shell syntax,
+`git diff --check`, authority adequacy, and authority edge gates passed; Coq
+was explicitly skipped because `rocq`/`coqc` is not installed. The committed
+DRV-2 manifest is now 271 rows. The next executable seam is
+`list_int_loop`: `ListGet`'s resolved `Int` return fact is missing at the
+semantic addition operand consumer. `list_get_string` already passes its
+String ABI path.
+
 2026-07-24 Pergyra nested generic List ABI executable closure.
 Objective: carry contextual `ListNew` typing and the canonical
 `List<HashMap<String, Int>>` runtime ABI from parser-owned call/type facts
@@ -21,9 +45,9 @@ The focused producer-first gate passed with
 contract, shell syntax, `git diff --check`, authority adequacy, and authority
 edge gates passed. The edge gate reports 45 authorities, 39 derived carriers,
 `CLOSED=25 BRIDGE=20 ACTIVE=0`; Coq was explicitly skipped because no
-`rocq`/`coqc` is installed. The next observed seam is the
-`collection_call_target` artifact boundary on `list_ops`; the current driver
-fails closed there before codegen.
+`rocq`/`coqc` is installed. The next observed seam is ListGet return-type
+carriage on `list_int_loop`; the current driver reaches codegen but fails at
+the addition operand type consumer.
 
 2026-07-24 Pergyra ability generic multi-bound/default executable closure.
 Objective: carry declaration-site ability generic `where` bounds and defaults
