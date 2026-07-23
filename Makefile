@@ -627,6 +627,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/region_retention_summary.c \
+                   $(SEMANTIC_DIR)/region_retention_summary_user.c \
                    $(SEMANTIC_DIR)/semantic.c \
                    $(SEMANTIC_DIR)/semantic_diagnostic_json.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \

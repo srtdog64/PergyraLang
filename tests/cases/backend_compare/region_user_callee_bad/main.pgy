@@ -1,0 +1,7 @@
+func Retain(ref value: String) -> String {
+    return value;
+}
+
+func Main() -> Void {
+    Log(Retain("left" + "right"));
+}

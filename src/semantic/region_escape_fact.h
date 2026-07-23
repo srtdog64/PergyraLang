@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "region_retention_summary.h"
+
 struct ASTNode;
 
 typedef struct PgyRegionEscapeFact {
@@ -29,6 +31,8 @@ typedef struct PgyRegionEscapeFact {
  */
 bool semantic_region_escape_collect(
     const struct ASTNode *root,
+    PgyRegionRetentionSummaryLookup retention_lookup,
+    void *retention_userdata,
     PgyRegionEscapeFact **facts_out,
     size_t *count_out);
 

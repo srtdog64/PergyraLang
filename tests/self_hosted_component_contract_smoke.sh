@@ -2555,6 +2555,10 @@ require_text "src/semantic/region_retention_summary.c" "BUILTIN_LOG"
 require_text "src/semantic/region_retention_summary.c" "BUILTIN_LOG_RAW"
 require_text "src/semantic/region_retention_summary.c" "BUILTIN_LOG_BANNER"
 require_text "src/semantic/region_retention_summary.c" "BUILTIN_LOG_BLOCK"
+require_file "src/semantic/region_retention_summary_user.c"
+require_text "src/semantic/region_retention_summary_user.c" "semantic_region_retention_summary_for_user_call"
+require_text "src/semantic/region_retention_summary_user.c" "PARAM_MODE_REF"
+reject_text "src/semantic/region_escape_fact.c" "semantic_find_callable_decl_by_name"
 reject_text "src/semantic/region_escape_fact.c" "BUILTIN_LOG"
 reject_text "src/semantic/region_escape_fact.c" "BUILTIN_LOG_RAW"
 reject_text "src/semantic/region_escape_fact.c" "BUILTIN_LOG_BANNER"
@@ -2591,11 +2595,16 @@ require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbi
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|sem->region_escape_facts"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|hir->region_escape_facts"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "require|src/semantic/region_retention_summary.c|semantic_region_retention_summary_for_builtin"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "require|src/semantic/region_retention_summary_user.c|semantic_region_retention_summary_for_user_call"
 require_text "src/test_mir.c" "MIR carries HIR region escape facts"
 # The region artifact kind must be registered, or the comparator cannot diff it.
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRegionPlanArtifactKind"
 require_text "src/compiler/verified_region_plan.h" "PgyRegionAllocationSiteId"
 require_text "src/compiler/verified_region_plan.h" "allocation_site_id"
+require_file "tests/cases/backend_compare/region_user_callee/main.pgy"
+require_file "tests/cases/backend_compare/region_user_callee_bad/main.pgy"
+require_text "tests/region_backend_wiring_smoke.sh" "region_user_callee"
+require_text "tests/region_backend_wiring_smoke.sh" "direct user-callee sinks are region-backed"
 
 # Mechanism reachability contract: no mechanism without a consumer.
 # Both polarities must stay present or the census stops testing half of itself.

@@ -1,0 +1,7 @@
+func Sink(ref value: String) -> Void {
+    Log(value);
+}
+
+func Main() -> Void {
+    Sink("left" + "right");
+}

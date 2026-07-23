@@ -303,7 +303,11 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     size_t region_escape_fact_count = 0;
     if (!ctx->has_error
         && !semantic_region_escape_collect(
-            ast, &region_escape_facts, &region_escape_fact_count)) {
+            ast,
+            semantic_region_retention_summary_for_user_call,
+            ctx,
+            &region_escape_facts,
+            &region_escape_fact_count)) {
         semantic_error(ctx, ast,
             "Semantic region escape fact collection failed closed");
     }

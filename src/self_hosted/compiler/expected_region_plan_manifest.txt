@@ -28,6 +28,7 @@ require|src/compiler/driver_app.c|mir->region_escape_facts
 require|src/compiler/hir_region_escape_facts.c|hir_attach_region_escape_facts
 require|src/compiler/mir_region_escape_facts.c|mir_import_region_escape_facts
 require|src/semantic/region_retention_summary.c|semantic_region_retention_summary_for_builtin
+require|src/semantic/region_retention_summary_user.c|semantic_region_retention_summary_for_user_call
 forbid|src/codegen/transpiler_context.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/transpiler_context.c|pgy_region_escape_v1_collect

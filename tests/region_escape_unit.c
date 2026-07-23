@@ -32,7 +32,8 @@ static uint32_t next_test_stable_id = 1;
 static size_t collect_sites(const ASTNode *root, PgyRegionEscapeFact **sites)
 {
     size_t count = 0;
-    CHECK(semantic_region_escape_collect(root, sites, &count),
+    CHECK(semantic_region_escape_collect(
+              root, NULL, NULL, sites, &count),
           "semantic region escape fact collection succeeds");
     return count;
 }

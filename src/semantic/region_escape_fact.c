@@ -5,6 +5,7 @@
 #include "../lexer/lexer.h" /* TOKEN_PLUS */
 #include "../parser/ast.h"
 #include "../parser/ast_api.h"
+#include "builtin_kind.h"
 #include "region_retention_summary.h"
 
 typedef struct {
@@ -12,6 +13,8 @@ typedef struct {
     size_t count;
     size_t capacity;
     uint32_t next_scope;
+    PgyRegionRetentionSummaryLookup retention_lookup;
+    void *retention_userdata;
     bool failed;
 } RegionEscapeCollector;
 
@@ -35,16 +38,25 @@ region_escape_is_string_concat(const ASTNode *expr)
 }
 
 static bool
-region_escape_argument_is_borrowed(const ASTNode *call, size_t argument_index)
+region_escape_argument_is_borrowed(
+    const ASTNode *call,
+    size_t argument_index,
+    PgyRegionRetentionSummaryLookup retention_lookup,
+    void *retention_userdata)
 {
     uint32_t builtin_kind = 0;
     PgyRegionRetentionKind retention = PGY_REGION_RETENTION_UNKNOWN;
 
     if (call == NULL || call->type != AST_CALL)
         return false;
-    return ast_call_semantic_callee_builtin_kind(call, &builtin_kind)
-        && semantic_region_retention_summary_for_builtin(
-            builtin_kind, argument_index, &retention)
+    if (ast_call_semantic_callee_builtin_kind(call, &builtin_kind)
+        && builtin_kind != (uint32_t)BUILTIN_NOT_BUILTIN)
+        return semantic_region_retention_summary_for_builtin(
+                   builtin_kind, argument_index, &retention)
+            && retention == PGY_REGION_RETENTION_BORROWED_FOR_CALL;
+    return retention_lookup != NULL
+        && retention_lookup(call, argument_index, &retention,
+                            retention_userdata)
         && retention == PGY_REGION_RETENTION_BORROWED_FOR_CALL;
 }
 
@@ -134,7 +146,9 @@ region_escape_walk(RegionEscapeCollector *collector,
         break;
     case AST_CALL:
         for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            if (region_escape_argument_is_borrowed(node, i)) {
+            if (region_escape_argument_is_borrowed(
+                    node, i, collector->retention_lookup,
+                    collector->retention_userdata)) {
                 const ASTNode *arg = node->data.call.arguments[i];
                 if (region_escape_is_string_concat(arg))
                     region_escape_append_concat_spine(
@@ -152,10 +166,15 @@ region_escape_walk(RegionEscapeCollector *collector,
 
 bool
 semantic_region_escape_collect(const struct ASTNode *root,
+                               PgyRegionRetentionSummaryLookup retention_lookup,
+                               void *retention_userdata,
                                PgyRegionEscapeFact **facts_out,
                                size_t *count_out)
 {
-    RegionEscapeCollector collector = {0};
+    RegionEscapeCollector collector = {
+        .retention_lookup = retention_lookup,
+        .retention_userdata = retention_userdata
+    };
 
     if (facts_out != NULL)
         *facts_out = NULL;

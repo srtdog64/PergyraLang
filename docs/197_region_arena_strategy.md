@@ -704,8 +704,11 @@ The first retention-summary rung is now explicit: `region_retention_summary.c`
 owns the semantic `BuiltinKind`/argument-position fact for the synchronous
 `Print` and `Log` family consumers. The region collector consumes that summary
 and treats missing, unknown, or non-first-argument facts as HEAP (except the
-variadic `Log` positions, which are all synchronous). General callee parameter
-retention and complete allocation-site ownership remain open.
+variadic `Log` positions, which are all synchronous). The same owner now
+certifies a resolved user callee only when its `ref` parameter is passed
+directly to an approved synchronous sink; return, assignment, nested helper,
+and unresolved-identity cases remain HEAP. Complete allocation-site ownership
+remains open.
 
 Process note worth keeping: the earlier "blocked" reading was correct at the
 time but the *response* was too passive. What unblocked the track was checking
