@@ -9,13 +9,29 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `bccc5d50` (`Close LLVM runtime argument ABI ownership`)
-  on `main`.
-- `origin/main` was observed at `f5ef6cb9`; local `main` is one commit ahead.
-  No push was requested or performed in this session.
-- The working tree was clean at the code checkpoint. Preparing this navigation
-  refresh makes only `docs/current_work_handoff.md` dirty; there are no pending
-  source, test, or temporary-probe paths.
+- Captured code HEAD: `1ecadb4a` (`Close LLVM array index type SoT`) on `main`;
+  `origin/main` points to the same revision. The working tree was clean at this
+  checkpoint.
+- The preceding local runtime-ABI closure and its handoff refresh,
+  `bccc5d50` and `9faeab66`, were concurrent work preserved in the tree; both
+  are now pushed with this branch. This refresh changes only this handoff
+  document. The unrelated concurrent edit in
+  `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy` remains
+  unstaged and must be preserved.
+- `1ecadb4a` closes the bounded active-MIR LLVM local-expression seam for
+  `AST_ARRAY_ACCESS`: `mir_source_local_expr_type_name` owns the element type,
+  `llvm_mir_local_infer_expr_type` consumes that fact, and a missing or
+  unrepresentable fact reaches the existing unknown-expression diagnostic.
+  Active-MIR array access no longer falls back to the LLVM collection scan;
+  non-MIR compatibility retains the established inference path.
+- Focused evidence observed on 2026-07-23: the separate LLVM-enabled compiler
+  build produced `.tmp/verify_array_bin/pgy.exe`; `tests/backend_fail_closed_smoke.sh`
+  and its shell-syntax check passed; and the LLVM `array_index_assign` fixture
+  ran with output `13` and `zb` and exit code 0. The build emitted only existing
+  warnings; the full matrix remains an explicit budget omission.
+- At handoff refresh time, the only remaining dirty path is the concurrent
+  `ast_expression_graph_field_type_owner.pgy` edit above; no source or test
+  path from the `1ecadb4a` closure is dirty.
 - Commit `c2932d47` was created and pushed for the collection/let/try-let
   binding-consumer SoT follow-up. Collection mutation targets now require the
   owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
@@ -42,7 +58,7 @@ current owner fact and update this file after verification.
   `try-let`, range-loop, and foreach consumers use that fact. `EmitAssign` and
   the migrated statement emitters only consume owner-provided bindings; their
   symbol-owner import and target-text/name recovery paths are absent.
-- The latest SoT closure is `bccc5d50`: the registered
+- The prior SoT closure is `bccc5d50`: the registered
   `LLVMFuncEntry::fn_type` parameter is the runtime-call argument ABI owner.
   `llvm_emit_function_call_args` scopes that exact LLVM type during argument
   inference, restores the prior context, and rejects count or emitted-value
@@ -51,6 +67,13 @@ current owner fact and update this file after verification.
   removed; LLVM inference owns no helper-name policy. The assignment projection
   C/LLVM parity gate passed all positive and missing-fact negatives, and the
   8-fixture C/LLVM codegen shard passed `rung-0..21`.
+- The latest bounded LLVM SoT closure is `1ecadb4a`: array-index element typing
+  for active MIR is owner-directed through the MIR source-local expression
+  owner. The negative smoke gate rejects restoration of
+  `llvm_stmt_resolve_array_elem_type` in that consumer, and the positive
+  `array_index_assign` LLVM witness passes. This does not close the whole
+  `selfhost.expression_surface` registry row; aggregate/unknown wrapper and
+  other expression surfaces remain `BRIDGE`.
 - Executable witnesses: the assignment projection probe emits its five pinned
   Option/scalar/indexed rows and rejects missing expected type, indexed target
   type, direct call target, and C binding. `owner_field_assignment` proves
@@ -94,8 +117,11 @@ current owner fact and update this file after verification.
 - The prior active falsifier, LLVM `UnwrapOption` inference inside a registered
   runtime-call argument, is closed by `bccc5d50` through the runtime ABI owner.
   `e3cc1375` is retained in history as an interim C-owned AST re-inference path,
-  not as the final design. No next executable falsifier is selected from the
-  passing focused gates; the full matrix remains an explicit budget omission.
+  not as the final design. The next bounded falsifier is a missing MIR
+  source-local collection type fact for `AST_ARRAY_ACCESS`; it must produce
+  `MIR source-local array access type fact is missing`. No new fixture has been
+  admitted for that negative yet, and the full matrix remains an explicit
+  budget omission.
   `tests/mir_declaration_inventory_smoke.sh` still has a pre-existing baseline
   failure for `src/codegen/transpiler.c` missing
   `emit_class_decl_from_mir_header(header, ctx)` and is unrelated to this
@@ -871,14 +897,17 @@ current owner fact and update this file after verification.
 1. Run `git status --short --branch` and compare HEAD with this checkpoint.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
-3. Do not reopen the closed LLVM assignment probe. Select the next executable
-   falsifier from an actual failing self-host substitution rung, then write its
-   objective card with the missing fact, owner, last legitimate consumer,
-   forbidden fallback, and focused negative fixture. Prefer a real Pergyra
-   implementation replacing a C-owned compiler path over another SoT-only
-   cleanup.
-4. Run the narrow owner gate first. For the current tree, useful focused gates
-   include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
+3. Do not reopen the closed LLVM assignment or active-MIR array-index probes.
+   The next bounded negative is the missing MIR source-local collection type
+   fact for `AST_ARRAY_ACCESS`; before widening the slice, make that failure
+   executable and record its objective card with the missing fact, owner, last
+   legitimate consumer, forbidden fallback, and focused negative fixture.
+   Prefer a real Pergyra implementation replacing a C-owned compiler path over
+   another SoT-only cleanup.
+4. Run the narrow owner gate first. For the current tree, the array-index
+   closure gates are `tests/backend_fail_closed_smoke.sh` and the LLVM
+   `array_index_assign` fixture with the separate verification binary. Other
+   useful focused gates include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
    `region-plan-unit-test-smoke`, `region-escape-unit-test-smoke`,
    `runtime-context-test-smoke`, and the selected DRV-2 producer-first parity
