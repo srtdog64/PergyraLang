@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra ability generic multi-bound/default executable closure.
+Objective: carry declaration-site ability generic `where` bounds and defaults
+from parser/HIR facts through `SemanticAstRoleFacts`, native/self MIR, and
+emitted C dispatch under one SoT. Priority was one owner, owner-directed fact
+carriage, fail-closed malformed/missing bounds, the negative ratchet, then
+patch size. `SFAbilityGenericBounds` and the
+`selfhost.ability_generic_bounds` registry row now identify
+`SemanticAstRoleFacts` as the owner; the bound verdict consumes only those
+canonical rows.
+
+Native and self-host MIR agree on `Packable<T>` with
+`constraint: Comparable + Cloneable` and `default_type: Item`. The
+`MissingAbility` mutation fails closed with owner
+`SemanticAstAbilityGenericBoundVerdict`; emitted C vtable/adapter facts are
+checked by the focused producer-first gate. That gate passed with
+`backends=1 body_fixtures=20 mir_fixtures=1`; component contracts, shell
+syntax, `git diff --check`, authority adequacy, and the authority edge gate
+passed. The edge gate reports 45 authorities, 39 derived carriers, and
+`CLOSED=25 BRIDGE=20 ACTIVE=0`; the Coq model was explicitly skipped because
+no `rocq`/`coqc` is installed.
+
+Native C source compilation produced 736 objects. The Makefile's `/d/...`
+response-file link path is incompatible with the Windows GCC link invocation
+on this runner; an equivalent Windows-path response-file link of those objects
+succeeded. The full unfiltered 269-row matrix and LLVM lane were not run.
+Implementation commit `c5903680` is pushed. The next observed executable
+seam is `nested_generic_containers`, currently failing on undefined
+`ListNew`; verify whether its next owner is a missing collection constructor
+fact or a parser/semantic admission gap before changing consumers.
+
 2026-07-24 Pergyra dynamic ability-bind dispatch executable closure. Objective:
 carry party role-slot, role implementation, ability method, and bind identity
 from semantic facts through MIR JSON into one C vtable/bind ABI. Priority was

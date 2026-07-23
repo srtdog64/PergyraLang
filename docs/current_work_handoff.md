@@ -8,21 +8,60 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 ## Resume checkpoint
 
 - Latest executable implementation: `e09d680e` (`Close self-host ability bind
-  dispatch SoT`), pushed. The following documentation refresh is `15ae286f`
-  and was the observed `origin/main` at the start of this refresh.
-- The committed DRV-2 manifest now contains 268 MIR fixtures, with
-  `generic_default_ability_bind_dispatch` enrolled as the latest row and its
-  owner checks wired into the body/producer parity gates.
-- At documentation authoring, another active task owns uncommitted edits in
-  `ast_node_kind_owner.pgy`, `ast_text_inventory_owner.pgy`,
-  `declaration_rows_owner.pgy`, `decl_ability_owner.pgy`, and
-  `ast_generic_parameter_fact_owner.pgy`, `ast_role_fact_owner.pgy`, and
-  `ast_signature_fact_owner.pgy`. Do not absorb or revert them; verify exact
-  HEAD and dirty state before resuming.
+  dispatch SoT` and `c5903680` (`Close generic multi-bound default SoT`) are
+  pushed. The current implementation checkpoint is `c5903680`; this handoff
+  refresh is the documentation follow-up on the same clean `main` worktree.
+- The committed DRV-2 manifest now contains 269 MIR fixtures, with
+  `generic_multi_bound_defaults` enrolled as the latest row and its owner
+  checks wired into the body/producer parity gates.
+- The generic parser/HIR/semantic/MIR edits are committed. Resume by verifying
+  `git status --short --branch`, the registry row
+  `selfhost.ability_generic_bounds`, and the focused gate named below.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: ability generic multi-bound defaults
+
+Objective card:
+
+- Objective: carry declaration-site ability generic `where` bounds and
+  defaults from parser/HIR facts through `SemanticAstRoleFacts`, native/self
+  MIR, and emitted C dispatch, with one semantic owner.
+- Priority: one SoT owner, owner-directed fact carriage, fail-closed malformed
+  or missing bounds, negative ratchet, then patch size.
+- Fact owner: `SemanticAstRoleFacts` via `SFAbilityGenericBounds` and the
+  `selfhost.ability_generic_bounds` registry row. Last consumers are native MIR
+  generic metadata, self-host MIR lowering, the bound verdict, and role
+  dispatch C emission.
+- Forbidden fallback: source-text reparse by consumers, empty or guessed
+  constraint facts, accepting a default that does not implement every bound,
+  and dual-read compatibility authority.
+- Verification gate: `driver_rung2_generic_multi_bound_defaults_parity_owner.sh`;
+  falsifier is the `MissingAbility` mutation plus native/self MIR fact drift.
+
+Observed closure:
+
+- Native and self-host MIR now agree on
+  `Packable<T>` with `constraint: Comparable + Cloneable` and
+  `default_type: Item`. The self-host semantic owner validates both default
+  implementations and emits the stable
+  `SemanticAstAbilityGenericBoundVerdict` diagnostic on the negative mutation.
+- Focused producer-first parity passed with
+  `backends=1 body_fixtures=20 mir_fixtures=1`; emitted C vtable/adapter facts,
+  component contracts, shell syntax, `git diff --check`, and the authority edge
+  gate passed. The edge gate reports 45 authorities, 39 derived carriers, and
+  `CLOSED=25 BRIDGE=20 ACTIVE=0`. Authority adequacy passed its live
+  owner/consumer negative mutations.
+- Native C source compilation produced 736 objects. The repository Makefile's
+  `/d/...` response-file link path is incompatible with the Windows GCC link
+  invocation on this runner, so the same objects were linked successfully via
+  an equivalent Windows-path response file. This is an environment/build
+  invocation caveat, not a source compilation failure.
+- Commit `c5903680` is pushed. The full unfiltered 269-row matrix, LLVM lane,
+  and Coq model were not run; Coq was explicitly skipped because no
+  `rocq`/`coqc` is installed.
 
 ## Last closed executable family: dynamic ability bind dispatch
 
