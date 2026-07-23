@@ -2,180 +2,148 @@
 
 Updated: 2026-07-23 (Asia/Seoul)
 
-This file is a resume snapshot, not semantic authority. On resume, verify it
-with `git status --short --branch`, the named owners, and the focused gate.
-Current source, registries, and executable evidence win when they disagree.
+This is a resume snapshot, not semantic authority. Verify it against current
+source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest self-host executable implementation: `11367f33` (`Close self-host
-  named Future spawn await SoT`), with negative contract ratchet `3f2ba459`.
-  The preceding inline spawn closure is `e98ba4ac`, with handoff refresh
-  `7709890c`; foreach handoff is `c98d0a42`.
-- Latest prior fieldless checkpoint: `8afd9160`, with handoff refresh
-  `89625851`.
-- Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
-  ArrayFilter result type SoT`), with handoff refresh `4053192c` and matching
-  LLVM owner consumption in `a1678e8d`.
-- VS Code workspace/extension setup is closed in `720928c5` (`Configure VS
-  Code Pergyra workspace`). At capture, `HEAD=origin/main=3f2ba459`; unrelated
-  VS Code/editor packaging changes and `README.md` remain dirty and must not
-  be staged by the next SoT rung.
+- Latest executable implementation: `793b93e5` (`Close generic String spawn
+  payload SoT`).
+- Latest counted capstone ratchet: `366fc46b` (`Ratchet mixed scalar Future
+  spawn capstone`). The DRV-2 manifest contains 266 MIR fixtures.
+- At documentation authoring, `main` was one commit ahead of
+  `origin/main=793b93e5`; only this documentation refresh remained dirty.
+  Verify again because another Codex task may push concurrently.
+- Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
+  (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
+- VS Code setup remains closed in `720928c5`; its handoff refresh is
+  `bf79f07d`.
 
-## Last closed executable rungs
+## Last closed executable family: generic Future spawn
 
-The counted DRV-2 frontier adds fixture 262:
+Counted fixtures:
 
-- `tests/cases/backend_compare/async_spawn_await/main.pgy`
-
-The manifest contains 262 MIR rows.
+- 263 `generic_future_spawn_int`
+- 264 `generic_future_spawn_multi_arg`
+- 265 `generic_future_spawn_string`
+- 266 `generic_future_spawn_mixed`
 
 Objective card:
 
-- Objective: carry named `Future<Int>` handle materialization and `await task`
-  through one spawn/runtime owner after inline spawn closure.
-- Priority: handle identity, ABI type ownership, real worker-pool lifetime,
-  fail-closed payloads, then patch size.
-- Fact owners: `FuturePayloadTypeOpt`, `spawn_runtime_owner.pgy`, ABI layout,
-  and the semantic graph await branch; let codegen consumes those facts.
-- Last semantic consumer: `EmitLet` binds `Future<Int>` as `PgyTaskHandle`, and
-  named await projects the owned payload type into `pgy_await_take`.
-- Forbidden fallback: treating `Future<Int>` as a scalar, a synchronous call,
-  a fixture-name branch, or a detached local-storage capture.
-- Falsifier: `generic_future_spawn_int` must fail at its actual generic AST
-  artifact seam rather than being admitted by a Future-specific exception.
+- Objective: carry generic call-node specialization through `spawn` and await
+  Int/String payloads through one runtime ABI owner.
+- Priority: specialization identity, one Future handle ABI, real concurrency,
+  fail-closed payload/arity, then patch size.
+- Fact owners: generic specialization graph fact, `FuturePayloadTypeOpt`, ABI
+  layout, and `spawn_runtime_owner.pgy`.
+- Last consumer: semantic graph spawn/await C emission.
+- Forbidden fallback: source-name/fixture branching, synchronous lowering,
+  payload- or arity-specific C helpers, dual reads, and detached local capture.
+- Falsifiers: Int/String payload mutation, missing specialization carriage,
+  and reintroduction of payload-specific runtime entry points.
 
-Observed before the fix:
+Observed closure:
 
-- The self-host driver rejected `let task: Future<Int> = spawn Inc(4)` with
-  `unsupported let type ... Future<Int>` because Future handle materialization
-  was not an owned C ABI branch.
-
-Closed design and evidence:
-
-- `spawn_runtime_owner.pgy` now owns the bounded `Future<Int> -> PgyTaskHandle`
-  ABI type; `EmitLet` registers the typed handle before `await task` consumes it.
-- Named await validates the owned Future payload and emits
-  `pgy_await_take(task, long long)` through the runtime owner.
-- C producer-first parity passed:
-  `backends=1 body_fixtures=20 mir_fixtures=1`; runtime output is `5`.
-- MIR graph facts include `spawn Inc(4)` and `await task`; emitted C carries the
-  handle and worker dispatch without a sequential fallback.
-- The `Future<Int> -> Int` scalar mutation is rejected by self-host and native;
-  emitted C is also ratcheted against a scalar/sequential fallback.
-- Component contract and all modified shell syntax passed; `git diff --check`
-  passed before the implementation and ratchet commits.
+- Int specialization previously failed as `ast_artifact_invalid` because the
+  generic return fact was consumed only when the call was the graph root.
+- Two-argument spawn previously failed behind a one-argument codegen
+  assumption.
+- String spawn previously failed because `Future<String>` had no owned ABI
+  materialization.
+- Generic specialization is now resolved by call-node identity under the
+  parent spawn.
+- One tagged C descriptor owns Int-unary, Int-binary, and String-unary
+  signatures. One worker and one `pgy_selfhost_spawn` dispatch all three.
+- Named Future handles remain `PgyTaskHandle`; await projects the owned payload
+  to `long long` or `const char*` without guessing.
 
 Primary files:
 
-- `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy`
-- `src/self_hosted/codegen/emission/stmt_emit.pgy`
+- `src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy`
 - `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy`
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy`
+- `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy`
 - `src/self_hosted/compiler/driver_rung2_owner.pgy`
-- `tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh`
-- `tests/self_hosted_component_contract_smoke.sh`
+- `tests/self_hosted/parity/driver_rung2_generic_spawn_parity_owner.sh`
+- `tests/self_hosted/parity/driver_rung2_generic_string_spawn_parity_owner.sh`
+- `tests/self_hosted/parity/driver_rung2_generic_spawn_mixed_parity_owner.sh`
 
-## Previous closed rungs retained
+## Last observed verification
 
-- Fixture 250, `fieldless_class_method`: a present empty nominal field
-  inventory is distinct from a missing row. C uses ABI-owned reserved storage
-  and `(Calc){ 0 }`; `Calc(1)` fails with `call_arity_mismatch`. Commit:
-  `8afd9160`.
-- Fixture 249, `string_utility_aliases`: append-only builtin row 101 maps
-  `StringConcat` and `Concat` to the one `pgy_concat` ABI owner. Commit:
-  `9a438da4`.
-- Fixture 248, `result_as_class_field`: contextual `Result<T>` enters a
-  declared `Result<T, E>` field through `ResultTypeAssignableTo`, with payload
-  mismatch rejection. Commit: `5c2ba93b`.
-- Native ArrayMap/ArrayFilter: the active-MIR call fact owns `Array<T>` result
-  shape; C and LLVM consume it without local call-name guessing. Commits:
-  `246682fe` and `a1678e8d`.
+Green:
 
-## Verification state
-
-Green for the latest named-Future rung:
-
-- C filtered producer-first source/MIR parity for `async_spawn_await`.
-- Named-Future scalar negative mutation parity and fallback prevention.
-- Component contract and all modified shell syntax.
-- Native C compile/run parity with output `5`.
-- `git diff --check` for the implementation commit.
-
-Green for the VS Code workstation surface:
-
-- Workspace JSON parse, language-extension `node --check`, semantic-client
-  TypeScript compile, and both npm audits (`0 vulnerabilities`).
-- Pergyra language VSIX `0.3.1` and semantic-squiggle VSIX `0.0.1` packaged
-  and installed; C/C++, Makefile Tools, and ShellCheck are also installed.
-- The extension-equivalent Windows environment compiled the sample through
-  `bin/pgy.exe --backend=c`, ran with output `42`, and received an empty
-  diagnostic set from `bin/pgy-lsp.exe`.
-
-Green at the preceding fieldless/StringConcat checkpoint and to be rerun after
-the latest docs refresh:
-
+- C producer-first parity for fixtures 261-265:
+  `backends=1 body_fixtures=20 mir_fixtures=5`.
+- Fixture 266 mixed capstone parity:
+  `backends=1 body_fixtures=20 mir_fixtures=1`; output `42`, `77`, `hi`.
+- Generated driver build: 0 errors, 0 warnings.
+- String mutation: `let_type_mismatch`, `expected: String`, `actual: Int`;
+  native also rejects it. Int payload mutations remain ratcheted.
+- `tests/self_hosted_component_contract_smoke.sh` and modified shell syntax.
 - `make self-host-hard-contract-test-smoke`.
-- `make self-host-substitution-velocity-test-smoke`.
+- `make self-host-substitution-velocity-test-smoke`: 9 blockers, 5 direct and
+  4 process/evidence.
 - `make sot-authority-edge-test-smoke`: 43 authorities, 38 derived carriers,
-  `CLOSED=23 BRIDGE=20 ACTIVE=0`.
-- `PGY_ALLOW_MISSING_COQ=1 make sot-authority-adequacy-test-smoke`: live
-  owner/consumer and negative mutation checks passed; proof was a declared
-  skip, not a checked model.
-- `tests/documentation_quality_smoke.sh`.
+  `CLOSED=23 BRIDGE=20 ACTIVE=0`; single Gate SoT and 7 protocol rows valid.
+- `git diff --check` before both latest commits.
 
-Not run or unavailable:
+Not run:
 
-- The full unfiltered 262-row DRV-2 matrix was not run; LLVM was not run for
-  this async rung.
-- Coq/Rocq is not installed. Never report the formal model as checked here.
+- Full unfiltered 266-row DRV-2 matrix.
+- LLVM async parity for these rungs.
+- Coq/Rocq proof; the toolchain is not installed.
 
 ## Next executable work
 
-The next observed failure is
-`tests/cases/backend_compare/generic_future_spawn_int/main.pgy`:
+The first observed post-family failure is
+`tests/cases/backend_compare/generic_default_contracts/main.pgy`:
 
-- Last probe result: `ast_artifact_invalid`, owned by
-  `SemanticAstInitializerTypeFacts` (`node_count: 17`). The next seam is the
-  generic Future expression/initializer artifact, not another local C type
-  spelling branch.
-- Preserve actual concurrency. A sequential call, a class/test-name branch,
-  or a detached capture of local storage is forbidden.
-- The next falsifier is `generic_future_spawn_int`; repair the parser-owned AST
-  artifact or fail closed, without a generic-name exception or synchronous
-  fallback.
+- current self-host result: exit 1 with empty stdout and stderr;
+- therefore the immediate seam is the parser/AST admission boundary that loses
+  the failure fact before a structured diagnostic is emitted;
+- first falsifier: the fixture must either reach its declared owner facts or
+  fail with a stable structured diagnostic—never silent exit 1;
+- do not add ability, class, or fixture-name exceptions.
 
-## Workstation and repository recovery
+Adjacent evidence:
 
-- Global Codex baseline: `C:/Users/user/.codex/AGENTS.md`; the repository
-  `AGENTS.md` is more specific. Read both on resume.
+- `generic_spawn`, `generic_spawn_multi`, and `generic_call` already self-emit;
+  do not count duplicate fixture enrollment as executable substitution.
+- `nested_generic_containers` currently fails explicitly with
+  `undefined_function: ListNew`, but it is not the active rung until the
+  generic-default seam is closed or an objective card justifies reprioritizing.
+- Because `366fc46b` is one supporting ratchet after an executable commit, a
+  documentation-only handoff commit is the second allowed SoT-only commit. The
+  next code commit must be an executable replacement or record the exact
+  blocker per the hard progress guard.
+
+## Workstation and recovery facts
+
+- Global rules: `C:/Users/user/.codex/AGENTS.md`; repository `AGENTS.md` is
+  more specific.
 - Git for Windows, Git LFS, GitHub CLI, MSYS2 UCRT64 GCC/Make/Python/LLVM,
   Node, npm, and ripgrep are installed. GitHub CLI auth remains user-owned.
-- Repository `core.autocrlf=false`; Windows and MSYS safe-directory settings
-  are configured.
-- For Windows `bin/pgy.exe`, source `tests/pgy_binary_path_helpers.sh` and call
-  `pgy_prepend_windows_runtime_paths` before execution.
-- Tracked `.vscode` settings select `bin/pgy.exe`, `bin/pgy-lsp.exe`, the
-  MSYS2 UCRT64 terminal, focused build/self-host/doc tasks, and F5 Extension
-  Host launchers. Both Pergyra extensions prepend discovered MSYS2/LLVM DLL
-  directories themselves, so VS Code does not depend on a globally mutated
-  user `PATH`.
-- Use serial `make` unless Windows jobserver behavior is revalidated.
-- `.gitignore` owns root builders with `/.tmp_*`. Recovery recycled 87 root
-  temporary files and reduced `.tmp` from about 9.49 GB to an active cache.
-- Credential hygiene: prior process inspection exposed configured Figma,
-  GitHub, Render, and Tavily credentials in command-line output. Never copy
-  values into docs/logs; rotate or revoke the affected credentials.
+- Repository `core.autocrlf=false`; use the MSYS runtime path helpers for
+  Windows `bin/pgy.exe`. Prefer serial `make` unless jobserver behavior is
+  revalidated.
+- `.vscode` uses `bin/pgy.exe`, `bin/pgy-lsp.exe`, MSYS2 UCRT64, focused
+  build/self-host/doc tasks, and Extension Host launchers.
+- Temporary probe/build paths created during this session are cleanup-only and
+  must not be committed. Cleanup uses exact workspace paths and the Windows
+  Recycle Bin.
+- Credential hygiene: earlier process inspection exposed configured Figma,
+  GitHub, Render, and Tavily credentials in command output. Never copy values
+  into source/docs/logs; rotate or revoke those credentials.
 
 ## Resume sequence
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Run `git status --short --branch`; the tree should be clean after this
-   handoff refresh unless a newer task owns explicit dirty paths.
-3. Reconfirm fixture 261 with the filtered C parity gate before changing the
-   next async seam.
-4. Work `async_spawn_await` from its named `Future<Int>` binding owner; do not
-   turn it into a scalar or sequential-call fallback.
-5. Refresh this snapshot with exact HEAD, dirty state, last green gate, next
-   falsifier, and blockers.
+2. Verify `git status`, HEAD/origin, fixture count 266, and the latest focused
+   C gate.
+3. Reproduce the silent `generic_default_contracts` exit at the parser/AST
+   admission boundary and name the missing diagnostic owner.
+4. Make the next executable replacement; do not spend a third consecutive
+   commit on docs or fixture-only enrollment.
+5. Refresh exact revision, dirty state, last green gate, next falsifier, and
+   blockers.

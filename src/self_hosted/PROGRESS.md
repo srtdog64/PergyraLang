@@ -1,5 +1,44 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra generic Future spawn executable rungs 263-266. Objective:
+carry generic specialization identity through `spawn`, then materialize Int and
+String payloads through one tagged runtime invocation descriptor. Priority was
+generic call-node identity, one `Future<T>` ABI owner, real worker-pool
+execution, payload/arity fail-closed behavior, and negative ratchets. The
+generic specialization graph fact and wrapper payload owner are the semantic
+owners; `spawn_runtime_owner.pgy` is the last runtime consumer. Payload- or
+arity-specific C helpers, source-name branches, synchronous lowering, and
+detached local capture are forbidden.
+
+Before closure, the Int fixture failed as `ast_artifact_invalid`, the
+two-argument fixture failed behind a one-argument codegen assumption, and the
+String fixture failed because `Future<String>` had no owned ABI row. Generic
+specialization is now carried by call-node identity through the parent spawn.
+The runtime uses one closed descriptor (`signature`, function union, value
+union, and two bounded arguments) and one worker/dispatch function for Int
+unary, Int binary, and String unary calls. No `new ? old` path or payload-
+specific helper remains.
+
+Counted fixtures are 263 `generic_future_spawn_int`, 264
+`generic_future_spawn_multi_arg`, 265 `generic_future_spawn_string`, and 266
+`generic_future_spawn_mixed`. The 261-265 focused C gate passed with
+`backends=1 body_fixtures=20 mir_fixtures=5`; the mixed capstone passed as a
+separate one-fixture gate with runtime output `42`, `77`, and `hi`. String
+mutation fails as `let_type_mismatch` (`expected: String`, `actual: Int`), and
+the Int fixtures retain their symmetric payload mismatch gates. Component,
+shell, hard-contract, substitution-velocity, SoT authority, single-Gate-SoT,
+and protocol-registry gates passed. Commits: `0169b856`, `3d74c9dd`,
+`e6f321f2`, `793b93e5`, and capstone ratchet `366fc46b`. The full unfiltered
+266-row matrix, LLVM async lane, and Coq model were not run.
+
+The next observed executable seam is `generic_default_contracts`. The current
+self-host driver exits 1 with empty stdout/stderr, so parser/AST admission loses
+the failure fact before a structured diagnostic owner can report it. First
+identify that owner and add a falsifying diagnostic gate; do not mask it with
+an ability/class-name exception. Nearby `generic_spawn`, `generic_spawn_multi`,
+and `generic_call` already self-emit and should not become fixture-only progress
+in place of the next executable replacement.
+
 2026-07-23 Pergyra named Future spawn/await executable rung 262. Objective:
 materialize a named `Future<Int>` spawn result as the owner-directed
 `PgyTaskHandle` ABI value and consume it through `await task`. Priority is handle
@@ -39,8 +78,10 @@ Before this change the self-host driver rejected `await_inline_spawn` with
 `initializer_type_unresolved` because `spawn` was a leaf without an owned async
 fact. The parser now preserves `spawn` as a unary graph node, semantic typing
 derives `Future<Int>` for the bounded direct `Int -> Int` shape, and codegen
-dispatches through `pgy_selfhost_spawn_int1` plus the owned `pgy_await_take`
-boundary. Pool startup is explicit; unsupported spawn shapes fail closed.
+dispatches through the then-current unary spawn owner plus the owned
+`pgy_await_take` boundary. Pool startup is explicit; unsupported spawn shapes
+fail closed. That unary runtime shape was superseded by the tagged descriptor
+in rungs 264-266 above.
 
 Filtered C producer-first parity passed (`backends=1 body_fixtures=20
 mir_fixtures=1`) with runtime output `5` and `10`. Component contracts and all
