@@ -15,20 +15,29 @@ Native and self-host MIR agree on `Packable<T>` with
 `MissingAbility` mutation fails closed with owner
 `SemanticAstAbilityGenericBoundVerdict`; emitted C vtable/adapter facts are
 checked by the focused producer-first gate. That gate passed with
-`backends=1 body_fixtures=20 mir_fixtures=1`; component contracts, shell
-syntax, `git diff --check`, authority adequacy, and the authority edge gate
-passed. The edge gate reports 45 authorities, 39 derived carriers, and
+`backends=1 body_fixtures=20 mir_fixtures=1`; the current and previous ability
+rungs passed together with `mir_fixtures=2`. Full C codegen parity passed 85
+fixtures, including role-operator runtime parity. Component, hard-contract,
+shell syntax, `git diff --check`, authority adequacy, and the authority edge
+gate passed. The edge gate reports 45 authorities, 39 derived carriers, and
 `CLOSED=25 BRIDGE=20 ACTIVE=0`; the Coq model was explicitly skipped because
 no `rocq`/`coqc` is installed.
 
-Native C source compilation produced 736 objects. The Makefile's `/d/...`
-response-file link path is incompatible with the Windows GCC link invocation
-on this runner; an equivalent Windows-path response-file link of those objects
-succeeded. The full unfiltered 269-row matrix and LLVM lane were not run.
-Implementation commit `c5903680` is pushed. The next observed executable
-seam is `nested_generic_containers`, currently failing on undefined
-`ListNew`; verify whether its next owner is a missing collection constructor
-fact or a parser/semantic admission gap before changing consumers.
+The isolated current native compiler built and linked with `LLVM_ENABLED=0`
+and Windows `D:/...` build paths. A separate `/d/...` response-file invocation
+needed path normalization. The full unfiltered 269-row matrix and LLVM lane
+were not run. Implementation commit `c5903680` and handoff refresh `ae041e06`
+are pushed.
+
+The next observed executable seam is `nested_generic_containers`: native C
+compiles it, while self-host rejects `ListNew()` as `undefined_function` with
+`func: ListNew`. `SemanticBuiltinSignatureRows` must own constructor
+identity/arity, and the initializer-type owner must derive the exact contextual
+`List<HashMap<String, Int>>` result. Do not add a bare Unknown-return builtin,
+flatten the nested generic type, assume `Int`, or let codegen guess it. Another
+active task currently owns uncommitted prospective row-270 enrollment edits;
+those edits are not substitution progress until the fixture executes and a
+missing-context negative gate prevents fallback.
 
 2026-07-24 Pergyra dynamic ability-bind dispatch executable closure. Objective:
 carry party role-slot, role implementation, ability method, and bind identity

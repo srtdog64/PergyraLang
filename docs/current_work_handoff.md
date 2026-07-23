@@ -7,16 +7,20 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `e09d680e` (`Close self-host ability bind
-  dispatch SoT` and `c5903680` (`Close generic multi-bound default SoT`) are
-  pushed. The current implementation checkpoint is `c5903680`; this handoff
-  refresh is the documentation follow-up on the same clean `main` worktree.
+- Latest executable implementation: `c5903680` (`Close generic multi-bound
+  default SoT`) is pushed. Handoff refresh `ae041e06` is also pushed and was
+  the observed `HEAD=origin/main` before this correction.
 - The committed DRV-2 manifest now contains 269 MIR fixtures, with
   `generic_multi_bound_defaults` enrolled as the latest row and its owner
   checks wired into the body/producer parity gates.
 - The generic parser/HIR/semantic/MIR edits are committed. Resume by verifying
   `git status --short --branch`, the registry row
   `selfhost.ability_generic_bounds`, and the focused gate named below.
+- At this correction, another active task owns uncommitted prospective row-270
+  enrollment edits in `driver_rung2_owner.pgy`,
+  `driver_rung2_body_parity.sh`, and the component contract. Preserve them,
+  but do not count row 270 as substitution until contextual `ListNew` executes
+  and has a negative gate.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
@@ -50,15 +54,17 @@ Observed closure:
   `SemanticAstAbilityGenericBoundVerdict` diagnostic on the negative mutation.
 - Focused producer-first parity passed with
   `backends=1 body_fixtures=20 mir_fixtures=1`; emitted C vtable/adapter facts,
-  component contracts, shell syntax, `git diff --check`, and the authority edge
-  gate passed. The edge gate reports 45 authorities, 39 derived carriers, and
+  component contracts, shell syntax, `git diff --check`, hard-contract, and
+  the authority edge gate passed. The current and previous ability rungs also
+  passed together with `mir_fixtures=2`; full C codegen parity passed all 85
+  fixtures, including role-operator runtime parity. The edge gate reports 45
+  authorities, 39 derived carriers, and
   `CLOSED=25 BRIDGE=20 ACTIVE=0`. Authority adequacy passed its live
   owner/consumer negative mutations.
-- Native C source compilation produced 736 objects. The repository Makefile's
-  `/d/...` response-file link path is incompatible with the Windows GCC link
-  invocation on this runner, so the same objects were linked successfully via
-  an equivalent Windows-path response file. This is an environment/build
-  invocation caveat, not a source compilation failure.
+- The isolated current native compiler built and linked through the repository
+  Makefile with `LLVM_ENABLED=0` and Windows `D:/...` build paths. A separate
+  `/d/...` response-file invocation needed Windows-path normalization; that is
+  an invocation caveat, not a source compilation failure.
 - Commit `c5903680` is pushed. The full unfiltered 269-row matrix, LLVM lane,
   and Coq model were not run; Coq was explicitly skipped because no
   `rocq`/`coqc` is installed.
@@ -208,13 +214,16 @@ Primary files:
 
 Green:
 
-- C producer-first parity for the filtered DRV-2 row 268:
+- C producer-first parity for the filtered DRV-2 row 269:
   `backends=1 body_fixtures=20 mir_fixtures=1`.
-- The broader filtered 268-row body/producer gate completed with the dynamic
-  ability-bind row included; the component contract smoke and shell syntax
-  passed.
+- The ordered-bound row and previous dynamic ability-bind row passed together:
+  `backends=1 body_fixtures=20 mir_fixtures=2`.
 - Full C codegen parity: 85 fixtures, including fail-closed declaration and
   equality negatives; the role-operator runtime output was `123`.
+- Ordered multi-bound generated C ran with `bag=4` and
+  `multi-bound-defaults`; the missing-bound mutation was rejected by self and
+  native, with self owner `SemanticAstAbilityGenericBoundVerdict` and
+  `broken_bound: MissingAbility`.
 - Fixture 266 mixed capstone parity:
   `backends=1 body_fixtures=20 mir_fixtures=1`; output `42`, `77`, `hi`.
 - Generated driver build: 0 errors, 0 warnings.
@@ -224,44 +233,47 @@ Green:
 - `make self-host-hard-contract-test-smoke`.
 - `make self-host-substitution-velocity-test-smoke`: 9 blockers, 5 direct and
   4 process/evidence.
-- `make sot-authority-edge-test-smoke`: 44 authorities, 39 derived carriers,
-  `CLOSED=24 BRIDGE=20 ACTIVE=0`; single Gate SoT and 7 protocol rows valid.
+- SoT authority edge: 45 authorities, 39 derived carriers,
+  `CLOSED=25 BRIDGE=20 ACTIVE=0`.
 - `PGY_ALLOW_MISSING_COQ=1 make sot-authority-adequacy-test-smoke`: Coq was an
   explicit declared skip; live owner/consumer binding and negative mutations
   passed.
-- `git diff --check` before both latest commits.
+- `git diff --check` before the executable and handoff commits.
 
 Not run:
 
-- Full unfiltered 268-row DRV-2 matrix.
+- Full unfiltered 269-row DRV-2 matrix.
 - LLVM async parity for these rungs.
 - Coq/Rocq proof; the toolchain is not installed.
 
 ## Next executable work
 
 The next observed executable seam is
-`tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy`:
+`tests/cases/backend_compare/nested_generic_containers/main.pgy`:
 
-- current native/self-host boundary: parser admission stops at
-  `where T: Comparable + Cloneable`;
-- first falsifier: the parser/semantic generic-bound owner must carry the
-  ordered constraint facts, or reject the declaration with a stable owner
-  diagnostic; consumers must not split the source text again;
-- `nested_generic_containers` remains a later `ListNew` undefined-function
-  failure;
-- do not add fixture-name, party/class-name, or compatibility fallback paths.
+- native C compiles it, while the current Pergyra driver rejects `ListNew()`
+  as `undefined_function` with fact `func: ListNew`;
+- `SemanticBuiltinSignatureRows` must own constructor identity/arity, while
+  the initializer-type owner derives the exact contextual result
+  `List<HashMap<String, Int>>` from the declared binding type;
+- first falsifier: missing context must remain rejected. A bare
+  `ListNew^Unknown^none`, flattened nested type, implicit `Int` element, or
+  codegen-only type guess is not closure;
+- do not add fixture-name, local-variable-name, or compatibility fallback
+  paths.
 
 Adjacent evidence:
 
 - `generic_spawn`, `generic_spawn_multi`, and `generic_call` already self-emit;
   do not count duplicate fixture enrollment as executable substitution.
-- `generic_multi_bound_defaults` currently fails parser admission at
-  `where T: Comparable + Cloneable`; it is a later generic-bound rung.
-- `nested_generic_containers` currently fails explicitly with
-  `undefined_function: ListNew`; it is not the active rung.
-- The `StorageParty` dynamic ability-bind owner seam is closed. The next code
-  commit must advance the ordered generic-bound executable seam, not add a
-  docs-only or fixture-only substitute.
+- `generic_multi_bound_defaults` and the `StorageParty` dynamic ability-bind
+  owner seams are closed.
+- `nested_generic_containers` is the active executable rung, not a request to
+  add every collection builtin at once.
+- Its current uncommitted fixture/count enrollment is supporting evidence only;
+  it is not executable progress by itself.
+- The next code commit must advance contextual `ListNew` substitution and its
+  negative gate, not add a docs-only or fixture-only substitute.
 
 ## Workstation and recovery facts
 
@@ -285,10 +297,10 @@ Adjacent evidence:
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Verify `git status`, HEAD/origin, and committed fixture count 268 before
+2. Verify `git status`, HEAD/origin, and committed fixture count 269 before
    touching the next seam.
-3. Reproduce `generic_multi_bound_defaults` and name the generic-bound owner
-   before editing.
+3. Reproduce `nested_generic_containers` and name the contextual collection
+   constructor result owner before editing.
 4. Make the next executable replacement; do not spend a third consecutive
    commit on docs or fixture-only enrollment.
 5. Refresh exact revision, dirty state, last green gate, next falsifier, and
