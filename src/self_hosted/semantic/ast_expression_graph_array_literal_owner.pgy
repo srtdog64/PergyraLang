@@ -4,12 +4,60 @@ import "ast_expression_graph_fact_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
-import "array_type_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "expr_type_owner.pgy";
 
 struct SemanticArrayLiteralView {
     ok: Bool;
     element_nodes: Array<Int>;
+}
+
+func SemanticExpressionGraphArrayLiteralTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !view.ok || ArrayLength(view.element_nodes) == 0 { return None; }
+    let element_type: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let element: Int = view.element_nodes[i];
+        let actual: String = "Unknown";
+        let nested: Option<String> =
+            SemanticExpressionGraphArrayLiteralTypeName(
+                graph, element, constructors, names, types,
+                function_names, function_returns
+            );
+        if IsSome(nested) {
+            actual = UnwrapOption(nested);
+        } else {
+            actual = SemanticExpressionGraphScalarTypeName(
+                graph, element, constructors, names, types,
+                function_names, function_returns
+            );
+            if actual == "Unknown" || actual == "" {
+                let intrinsic: Option<String> =
+                    SemanticExpressionGraphIntrinsicTypeName(
+                        graph, element, function_names, function_returns
+                    );
+                if IsSome(intrinsic) { actual = UnwrapOption(intrinsic); }
+            }
+        }
+        if actual == "Unknown" || actual == "" { return None; }
+        if element_type == "" {
+            element_type = actual;
+        } else if element_type != actual {
+            return None;
+        }
+        i = i + 1;
+    }
+    return Some(Concat("Array<", Concat(element_type, ">")));
 }
 
 func SemanticArrayLiteralViewFromGraph(
@@ -137,7 +185,20 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let empty: Array<String> = [];
-    return SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+    let inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            graph, fact.root, constructors,
+            empty, empty, empty, empty
+        );
+    let nested_inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            nested_graph, nested_fact.root, constructors,
+            empty, empty, empty, empty
+        );
+    return IsSome(inferred) && UnwrapOption(inferred) == "Array<Int>" &&
+        IsSome(nested_inferred) &&
+        UnwrapOption(nested_inferred) == "Array<Array<Int>>" &&
+        SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             graph, fact.root, "Array<Int>", constructors,
             empty, empty, empty, empty
         ) && !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(

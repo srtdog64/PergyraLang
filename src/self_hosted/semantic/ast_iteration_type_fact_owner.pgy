@@ -161,6 +161,12 @@ func SemanticAstIterationTypeFactsFromArtifact(
     ) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
+    let member_root_names: Array<String> = [];
+    if !SemanticAstExpressionMemberRootNames(
+        constructors, enum_facts, member_root_names
+    ) {
+        return SemanticAstIterationTypeStructuralError(artifact);
+    }
 
     let node_ids: Array<Int> = [];
     let binding_types: Array<String> = [];
@@ -212,10 +218,22 @@ func SemanticAstIterationTypeFactsFromArtifact(
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
+        let first_root: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, statements.node_ids[i],
+                AstExpressionLaneValue()
+            );
+        if !IsSome(first_root) {
+            return SemanticAstIterationTypeStructuralError(artifact);
+        }
         let first: SemanticAstExpressionVerdict =
-            SemanticAstExpressionVerdictFromPayload(
-                statements.value_texts[i], names, types, modes,
-                function_names, function_returns, function_params
+            SemanticAstExpressionVerdictFromGraph(
+                statements.value_texts[i],
+                expression_surfaces.expression_graph,
+                UnwrapOption(first_root), constructors, signatures,
+                names, types, modes,
+                function_names, function_returns, function_params,
+                member_root_names
             );
         if !first.ok {
             row_verified = 0;
@@ -223,10 +241,22 @@ func SemanticAstIterationTypeFactsFromArtifact(
             row_message = first.diagnostic_message;
         } else if statements.auxiliary_texts[i] != "" {
             iterable_type = first.inferred_type_name;
+            let last_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    expression_surfaces, statements.node_ids[i],
+                    AstExpressionLaneAuxiliary()
+                );
+            if !IsSome(last_root) {
+                return SemanticAstIterationTypeStructuralError(artifact);
+            }
             let last: SemanticAstExpressionVerdict =
-                SemanticAstExpressionVerdictFromPayload(
-                    statements.auxiliary_texts[i], names, types, modes,
-                    function_names, function_returns, function_params
+                SemanticAstExpressionVerdictFromGraph(
+                    statements.auxiliary_texts[i],
+                    expression_surfaces.expression_graph,
+                    UnwrapOption(last_root), constructors, signatures,
+                    names, types, modes,
+                    function_names, function_returns, function_params,
+                    member_root_names
                 );
             binding_type = "Int";
             if !last.ok {
