@@ -6,6 +6,7 @@ import "../type_facts/type_env.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
+import "../runtime_abi/queue_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
@@ -14,6 +15,7 @@ import "../../semantic/ast_expression_graph_array_literal_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_rewrite.pgy";
+import "expr_semantic_option_value_owner.pgy";
 
 func RewriteSemanticExpectedValue(
     graph: SemanticExpressionGraphFacts,
@@ -23,6 +25,24 @@ func RewriteSemanticExpectedValue(
 ) -> String {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) { Die("semantic expected-value kind is missing"); }
+    if StartsWith(expected_type, "Option<") {
+        let option_value: CodegenOptionExpectedValueFact =
+            CodegenOptionExpectedValueFactFromGraph(
+            graph, node_id, expected_type, env
+        );
+        if option_value.is_none {
+            return Concat(option_value.none_fn, "()");
+        }
+        if option_value.is_some {
+            return Concat(option_value.some_fn, Concat("(", Concat(
+                RewriteSemanticExpectedValue(
+                    graph, option_value.payload_node,
+                    option_value.inner_type, env
+                ), ")"
+            )));
+        }
+        return RewriteExprFromSemanticGraph(graph, node_id, env);
+    }
     if IsResultType(expected_type) &&
         AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
         let result_fact: ResultRuntimeFact =
@@ -114,6 +134,27 @@ func RewriteSemanticExpectedValue(
         if !collection.ok { Die("List<T> runtime ABI fact is missing"); }
         return Concat(collection.c_new_fn, "()");
     }
+    if StartsWith(expected_type, "Queue<") &&
+        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, node_id
+        );
+        let target: Option<String> = None;
+        if call.ok {
+            target = SemanticExpressionGraphCallTargetName(
+                graph, call.call_node
+            );
+        }
+        if !call.ok || !IsSome(target) ||
+            UnwrapOption(target) != "QueueNew" ||
+            ArrayLength(call.argument_nodes) != 0 {
+            Die("Queue<T> initializer must be QueueNew with no arguments");
+        }
+        let collection: CollectionQueueRuntimeFact =
+            CollectionQueueRuntimeFactFromTypeName(expected_type);
+        if !collection.ok { Die("Queue<T> runtime ABI fact is missing"); }
+        return Concat(collection.c_new_fn, "()");
+    }
     if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {
         return RewriteSemanticArrayLiteralValue(
             graph, node_id, expected_type, env
@@ -155,6 +196,29 @@ func RewriteSemanticArrayLiteralValue(
                 graph, view.element_nodes[i], list_collection.element_type, env
             );
             out = Concat(out, Concat(list_collection.c_push_fn,
+                Concat("(&", Concat(temp, Concat(", ",
+                    Concat(value, "); "))))));
+            i = i + 1;
+        }
+        return Concat(out, Concat(temp, "; })"));
+    }
+    if StartsWith(expected_type, "Queue<") {
+        let queue_collection: CollectionQueueRuntimeFact =
+            CollectionQueueRuntimeFactFromTypeName(expected_type);
+        if !queue_collection.ok {
+            Die("semantic Queue-literal runtime fact is invalid");
+        }
+        let c_type: String = AbiLayoutCValueType(expected_type, env);
+        let temp: String = "_pgy_queue_value";
+        let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+            Concat(temp, Concat(" = ", Concat(
+                queue_collection.c_new_fn, "(); "))))));
+        let i: Int = 0;
+        while i < ArrayLength(view.element_nodes) {
+            let value: String = RewriteSemanticExpectedValue(
+                graph, view.element_nodes[i], queue_collection.element_type, env
+            );
+            out = Concat(out, Concat(queue_collection.c_push_fn,
                 Concat("(&", Concat(temp, Concat(", ",
                     Concat(value, "); "))))));
             i = i + 1;

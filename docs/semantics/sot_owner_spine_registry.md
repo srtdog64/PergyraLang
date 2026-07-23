@@ -152,10 +152,12 @@ closes array-literal initializer body ownership; the expression-surface row
 also carries array-literal call arguments as ordered element graphs, named
 struct-literal values as ordered field-binding graphs, and `Option<struct>`
 constructors as ordered call spines whose payload remains that struct graph.
-Contextual `Option<struct>` `None` initialization, reassignment, and return
-select the MIR-owned ABI constructor through expected-type facts; the native C
-and LLVM assignment consumers may not recover that type from AST text or fall
-back to `Option<Int>`.
+Contextual `Option<T>` `None`/`Some` initialization, reassignment, return, and
+typed call arguments select the MIR-owned ABI constructor through the shared
+expected-type value dispatcher and
+`expr_semantic_option_value_owner.pgy`; statement adapters may not duplicate
+that policy, and native C/LLVM consumers may not recover the type from AST text
+or fall back to `Option<Int>`.
 `Result<T,E>` match binding types follow the same single-owner direction. The
 semantic statement-result fact owns the match subject type; the canonical
 wrapper owner projects the `Ok` payload or `Err` error type; and

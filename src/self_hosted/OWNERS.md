@@ -666,8 +666,13 @@ inventory must not become a second fact-family owner registry.
   semantic-check cluster root for the mutually recursive call and composite
   literal projection owners below.
 - `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
-  expected-type array and named-struct literal emission from semantic graph
-  handles and field edges.
+  canonical expected-type value emission from semantic graph handles and
+  child edges, including arrays, named structs, Result, resource, and List
+  values; Option dispatch consumes the dedicated projection owner below.
+- `src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy` --
+  expected-type `Option<T>` constructor identity, payload edge, and MIR-owned
+  runtime ABI projection; it never reparses source text or chooses a default
+  payload ABI.
 - `src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy` --
   expression type projection from semantic graph handles plus codegen type
   rows; migrated emitters must not reparse node text to recover these types.
@@ -699,8 +704,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   graph-owned log expression projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/option_value_emit_owner.pgy` --
-  expected-type `Option<T>` constructor and payload emission from semantic call
-  spines plus MIR-owned runtime ABI rows.
+  statement-level `Option<T>` adapter; constructor and payload selection
+  delegates through the canonical expected-value dispatcher to the dedicated
+  Option projection owner and MIR-owned runtime ABI rows.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
   owners; stable source aliases such as `Concat`/`StringConcat` converge on one

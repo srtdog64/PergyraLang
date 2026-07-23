@@ -281,11 +281,12 @@ by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `emission/struct_value_emit.pgy` remains a legacy compact-expression owner for
 unmigrated lanes. Collection values and general struct-valued local
 initialization, assignment, and value return consume expected-type semantic
-graph facts. `emission/option_value_emit_owner.pgy` consumes the shared semantic
-call spine, direct-call target fact, and expected-type ABI row for
-`Option<struct>` constructors and
-payloads in the `Some` lane. Contextual `None` initialization, reassignment,
-and return consume that same expected-type row; C and LLVM native consumers
+graph facts. `emission/expr_semantic_option_value_owner.pgy` owns the shared
+semantic call spine, direct-call target fact, payload edge, and expected-type
+ABI row for contextual `Option<T>` constructors. The statement-level
+`emission/option_value_emit_owner.pgy` only adapts into that dispatcher.
+Contextual `None` initialization, reassignment, return, and typed call
+arguments consume that same expected-type row; C and LLVM native consumers
 must obtain the type from MIR local facts, and the parity owner requires the
 typed struct-option `None` constructor in emitted C. The semantic struct view
 first joins nominal field rows and rejects

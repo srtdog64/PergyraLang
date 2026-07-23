@@ -7239,14 +7239,26 @@ require_file "src/self_hosted/codegen/emission/option_value_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" 160
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "struct OptionExprEmissionFact"
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "func EmitOptionExprFactForType"
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallSpineViewFromGraph("
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticExpressionGraphCallTargetKind("
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticExpressionGraphCallTargetName("
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallTargetDirect()"
+require_file "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" 120
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "func CodegenOptionExpectedValueFactFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "SemanticCallSpineViewFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "SemanticExpressionGraphCallTargetKind("
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "SemanticExpressionGraphCallTargetName("
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    "SemanticCallTargetDirect()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    "CodegenOptionExpectedValueFactFromGraph("
 reject_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" \
     "UnwrapOption(callee_kind) != AstExpressionNodeLeaf()"
-require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "RewriteSemanticExpectedValue("
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" \
+    "RewriteSemanticExpectedValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, type_name, env, graph"
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
     "expr, expected_type, env, graph"

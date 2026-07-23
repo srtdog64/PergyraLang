@@ -2,8 +2,6 @@
 
 import "../type_facts/type_env.pgy";
 import "../text/text_owner.pgy";
-import "../runtime_abi/option_result_runtime_owner.pgy";
-import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 
 struct OptionExprEmissionFact {
@@ -27,75 +25,9 @@ func EmitOptionExprFactForType(
         Die("semantic Option graph does not match codegen expression");
     }
 
-    let inner_type: String = "";
-    let some_fn: String = "";
-    let none_fn: String = "";
-    let struct_fact: Option<OptionStructRuntimeFact> =
-        OptionResultRuntimeStructOptionFact(option_type, env.global_rows);
-    if IsSome(struct_fact) {
-        let option_struct: OptionStructRuntimeFact = UnwrapOption(struct_fact);
-        inner_type = option_struct.inner_type_name;
-        some_fn = option_struct.some_fn;
-        none_fn = option_struct.none_fn;
-    } else {
-        let kind: Int = OptionResultRuntimeOptionPayloadKindForType(option_type);
-        if kind == 0 {
-            Die(Concat("unsupported Option payload type: ", option_type));
-        }
-        inner_type = OptionResultRuntimeOptionValueTypeForPayloadKind(kind);
-        some_fn = OptionResultRuntimeCOptionSomeFnForPayloadKind(kind);
-        none_fn = OptionResultRuntimeCOptionNoneFnForPayloadKind(kind);
-    }
-    if inner_type == "" || some_fn == "" || none_fn == "" {
-        Die("Option runtime ABI fact is incomplete");
-    }
-
-    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        view.graph, view.root_id
-    );
-    if !IsSome(root_kind) {
-        Die("semantic Option root kind is missing");
-    }
-    if UnwrapOption(root_kind) == AstExpressionNodeLeaf() &&
-        UnwrapOption(root_text) == "None" {
-        return OptionExprEmissionFact(Concat(none_fn, "()"));
-    }
-
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        view.graph, view.root_id
-    );
-    if call.ok {
-        let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
-            view.graph, call.call_node
-        );
-        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-            view.graph, call.call_node
-        );
-        if !IsSome(target_kind) || !IsSome(target_name) {
-            Die("semantic Option call target fact is missing");
-        }
-        let target: String = UnwrapOption(target_name);
-        if UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
-            target == "None" {
-            if ArrayLength(call.argument_nodes) != 0 {
-                Die("None Option constructor must not carry a payload");
-            }
-            return OptionExprEmissionFact(Concat(none_fn, "()"));
-        }
-        if UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
-            target == "Some" {
-            if ArrayLength(call.argument_nodes) != 1 {
-                Die("Some Option constructor must carry exactly one payload");
-            }
-            let payload: String = RewriteSemanticExpectedValue(
-                view.graph, call.argument_nodes[0], inner_type, env
-            );
-            return OptionExprEmissionFact(Concat(
-                some_fn, Concat("(", Concat(payload, ")"))
-            ));
-        }
-    }
     return OptionExprEmissionFact(
-        RewriteExprFromSemanticGraph(view.graph, view.root_id, env)
+        RewriteSemanticExpectedValue(
+            view.graph, view.root_id, option_type, env
+        )
     );
 }
