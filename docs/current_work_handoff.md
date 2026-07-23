@@ -8,65 +8,68 @@ Current source, registries, and executable evidence win when they disagree.
 
 ## Resume checkpoint
 
-- Latest self-host executable implementation: `e98ba4ac` (`Close self-host
-  inline spawn await SoT`), with handoff refresh `7709890c`. The preceding
-  foreach graph contract ratchet is `54bed08e`, with handoff refresh
-  `c98d0a42`.
+- Latest self-host executable implementation: `11367f33` (`Close self-host
+  named Future spawn await SoT`), with negative contract ratchet `3f2ba459`.
+  The preceding inline spawn closure is `e98ba4ac`, with handoff refresh
+  `7709890c`; foreach handoff is `c98d0a42`.
 - Latest prior fieldless checkpoint: `8afd9160`, with handoff refresh
   `89625851`.
 - Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
   ArrayFilter result type SoT`), with handoff refresh `4053192c` and matching
   LLVM owner consumption in `a1678e8d`.
 - VS Code workspace/extension setup is closed in `720928c5` (`Configure VS
-  Code Pergyra workspace`). At capture, `main` is one commit ahead of
-  `origin/main` at `7709890c`; this handoff refresh is the only dirty path.
+  Code Pergyra workspace`). At capture, `HEAD=origin/main=3f2ba459`; unrelated
+  VS Code/editor packaging changes and `README.md` remain dirty and must not
+  be staged by the next SoT rung.
 
 ## Last closed executable rungs
 
-The counted DRV-2 frontier adds fixture 261:
+The counted DRV-2 frontier adds fixture 262:
 
-- `tests/cases/backend_compare/await_inline_spawn/main.pgy`
+- `tests/cases/backend_compare/async_spawn_await/main.pgy`
 
-The manifest contains 261 MIR rows.
+The manifest contains 262 MIR rows.
 
 Objective card:
 
-- Objective: carry inline `spawn` identity, `Future<T>` result type, and the
-  owned await/runtime boundary from the expression graph through MIR and C.
-- Priority: async graph identity, carried result type, real worker-pool
-  lifetime, fail-closed unsupported shapes, then patch size.
-- Fact owners: `AstExpressionNodeSpawn`, semantic scalar-type ownership, and
-  `spawn_runtime_owner.pgy`; codegen consumes the carried graph/type facts.
-- Last semantic consumer: `RewriteSemanticSpawn` and the await graph branch;
-  the C runtime owner emits the worker dispatch and `pgy_await_take` boundary.
-- Forbidden fallback: sequential call lowering, source-text spawn detection,
-  fixture-name branching, or detached local-storage capture.
-- Falsifier: `async_spawn_await` must expose the next named-Future seam rather
-  than being silently treated as a scalar `Future<Int>` value.
+- Objective: carry named `Future<Int>` handle materialization and `await task`
+  through one spawn/runtime owner after inline spawn closure.
+- Priority: handle identity, ABI type ownership, real worker-pool lifetime,
+  fail-closed payloads, then patch size.
+- Fact owners: `FuturePayloadTypeOpt`, `spawn_runtime_owner.pgy`, ABI layout,
+  and the semantic graph await branch; let codegen consumes those facts.
+- Last semantic consumer: `EmitLet` binds `Future<Int>` as `PgyTaskHandle`, and
+  named await projects the owned payload type into `pgy_await_take`.
+- Forbidden fallback: treating `Future<Int>` as a scalar, a synchronous call,
+  a fixture-name branch, or a detached local-storage capture.
+- Falsifier: `generic_future_spawn_int` must fail at its actual generic AST
+  artifact seam rather than being admitted by a Future-specific exception.
 
 Observed before the fix:
 
-- The self-host driver rejected `await spawn Inc(4)` with
-  `initializer_type_unresolved` because `spawn` was a leaf without an owned
-  async graph/type/codegen fact.
+- The self-host driver rejected `let task: Future<Int> = spawn Inc(4)` with
+  `unsupported let type ... Future<Int>` because Future handle materialization
+  was not an owned C ABI branch.
 
 Closed design and evidence:
 
-- `spawn` is now a parser-owned unary graph node; semantic type ownership
-  derives `Future<Int>` for the bounded direct `Int -> Int` rung.
-- `spawn_runtime_owner.pgy` owns the worker-pool dispatch and await helper;
-  startup initializes the pool and unsupported direct-spawn shapes fail closed.
+- `spawn_runtime_owner.pgy` now owns the bounded `Future<Int> -> PgyTaskHandle`
+  ABI type; `EmitLet` registers the typed handle before `await task` consumes it.
+- Named await validates the owned Future payload and emits
+  `pgy_await_take(task, long long)` through the runtime owner.
 - C producer-first parity passed:
-  `backends=1 body_fixtures=20 mir_fixtures=1`; runtime output is `5` and `10`.
-- MIR graph facts include two `spawn` and two `await` rows; emitted C consumes
-  `pgy_selfhost_spawn_int1` and `pgy_await_take` through the runtime owner.
+  `backends=1 body_fixtures=20 mir_fixtures=1`; runtime output is `5`.
+- MIR graph facts include `spawn Inc(4)` and `await task`; emitted C carries the
+  handle and worker dispatch without a sequential fallback.
+- The `Future<Int> -> Int` scalar mutation is rejected by self-host and native;
+  emitted C is also ratcheted against a scalar/sequential fallback.
 - Component contract and all modified shell syntax passed; `git diff --check`
-  passed before commit.
+  passed before the implementation and ratchet commits.
 
 Primary files:
 
-- `src/self_hosted/parser/expr_precedence_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy`
+- `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy`
+- `src/self_hosted/codegen/emission/stmt_emit.pgy`
 - `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy`
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy`
 - `src/self_hosted/compiler/driver_rung2_owner.pgy`
@@ -91,11 +94,12 @@ Primary files:
 
 ## Verification state
 
-Green for the latest inline-spawn rung:
+Green for the latest named-Future rung:
 
-- C filtered producer-first source/MIR parity for `await_inline_spawn`.
+- C filtered producer-first source/MIR parity for `async_spawn_await`.
+- Named-Future scalar negative mutation parity and fallback prevention.
 - Component contract and all modified shell syntax.
-- Native C compile/run parity with output `5`, `10`.
+- Native C compile/run parity with output `5`.
 - `git diff --check` for the implementation commit.
 
 Green for the VS Code workstation surface:
@@ -122,23 +126,24 @@ the latest docs refresh:
 
 Not run or unavailable:
 
-- The full unfiltered 261-row DRV-2 matrix was not run; LLVM was not run for
+- The full unfiltered 262-row DRV-2 matrix was not run; LLVM was not run for
   this async rung.
 - Coq/Rocq is not installed. Never report the formal model as checked here.
 
 ## Next executable work
 
 The next observed failure is
-`tests/cases/backend_compare/async_spawn_await/main.pgy`:
+`tests/cases/backend_compare/generic_future_spawn_int/main.pgy`:
 
-- Last probe result: `CODEGEN ERROR: unsupported let type ... Future<Int>`.
-- The next seam is a named `Future<Int>` binding: spawn result materialization,
-  resource-handle type ownership, and `await task` consumption must converge on
-  the same runtime owner.
+- Last probe result: `ast_artifact_invalid`, owned by
+  `SemanticAstInitializerTypeFacts` (`node_count: 17`). The next seam is the
+  generic Future expression/initializer artifact, not another local C type
+  spelling branch.
 - Preserve actual concurrency. A sequential call, a class/test-name branch,
   or a detached capture of local storage is forbidden.
-- The next falsifier is the `task` binding in `async_spawn_await`; it must not
-  be accepted as a scalar or replaced with a synchronous call.
+- The next falsifier is `generic_future_spawn_int`; repair the parser-owned AST
+  artifact or fail closed, without a generic-name exception or synchronous
+  fallback.
 
 ## Workstation and repository recovery
 

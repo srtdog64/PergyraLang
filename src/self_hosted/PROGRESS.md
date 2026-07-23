@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra named Future spawn/await executable rung 262. Objective:
+materialize a named `Future<Int>` spawn result as the owner-directed
+`PgyTaskHandle` ABI value and consume it through `await task`. Priority is handle
+identity, ABI type ownership, worker-pool lifetime, fail-closed payloads, then
+patch size. `FuturePayloadTypeOpt`, `spawn_runtime_owner.pgy`, ABI layout, and
+the semantic graph await branch are the owners/last consumers. Treating Future
+as a scalar, lowering synchronously, fixture-name branching, and detached
+local-storage capture are forbidden.
+
+The previous driver rejected `let task: Future<Int> = spawn Inc(4)` with
+`unsupported let type ... Future<Int>`. `EmitLet` now registers the typed
+`PgyTaskHandle`, and named await validates the owned payload before emitting
+`pgy_await_take(task, long long)`. Filtered C producer-first parity passed
+(`backends=1 body_fixtures=20 mir_fixtures=1`) with native output `5`;
+component contracts, shell syntax, and `git diff --check` passed. Implementation
+commit: `11367f33`; negative contract ratchet: `3f2ba459`; both are pushed with
+`HEAD=origin/main=3f2ba459`. The full unfiltered 262-row matrix and LLVM async
+lane were not run.
+
+The next observed executable failure is
+`tests/cases/backend_compare/generic_future_spawn_int/main.pgy`: the driver
+returns `ast_artifact_invalid`, owner `SemanticAstInitializerTypeFacts`, with
+`node_count: 17`. Repair the parser-owned generic Future artifact or fail
+closed; do not add a generic-name exception or synchronous fallback.
+
 2026-07-23 Pergyra inline spawn/await executable rung 261. Objective: carry
 inline `spawn` identity, its `Future<T>` result type, and the owned worker-pool
 await boundary from the expression graph through MIR and C. Priority is async
@@ -23,12 +48,9 @@ modified shell syntax passed, and `git diff --check` passed. Implementation
 commit: `e98ba4ac`, pushed with `HEAD=origin/main=e98ba4ac`. The full unfiltered
 261-row matrix and LLVM async lane were not run; Coq/Rocq remains unavailable.
 
-The next observed executable failure is
-`tests/cases/backend_compare/async_spawn_await/main.pgy`: the self-host C
-driver returns `CODEGEN ERROR: unsupported let type ... Future<Int>`. The next
-owner seam is named Future binding/materialization plus `await task`; it must
-reuse the same resource/runtime owner and must not be treated as a scalar or
-lowered to a synchronous call.
+The former `async_spawn_await` failure was closed by the named-Future rung
+above. Preserve the same owner-directed handle and await boundary in the next
+generic Future artifact rung.
 
 2026-07-23 Pergyra graph-owned foreach iterable executable rungs 251-252.
 Objective: derive a non-identifier foreach iterable type from the parser-owned
@@ -59,7 +81,7 @@ rejects both. Component and shell contracts pass. Implementation commit:
 
 The former `await_inline_spawn` failure was closed by the subsequent inline
 spawn/await rung above. Preserve real concurrency, an owned result/wait
-boundary, and runtime lifetime in the next named-Future rung.
+boundary, and runtime lifetime in the named-Future rung above.
 
 2026-07-23 Pergyra stable fieldless nominal owner executable rung 250. Objective:
 carry a valid empty `fields` inventory for `Calc` through the nominal/type
@@ -79,9 +101,9 @@ source/MIR parity passed the fieldless fixture (`backends=1 body_fixtures=20
 mir_fixtures=1`), and component contracts plus shell syntax passed. Commit:
 `8afd9160`.
 
-The next observed broader failure is `await_inline_spawn`: `spawn` is still a
-leaf without an owned async expression/type/codegen fact. Do not erase
-concurrency or add a sequential fallback.
+The former broader failure was `await_inline_spawn`; it was closed by the
+subsequent graph-owned spawn/await rung. Do not erase concurrency or add a
+sequential fallback in later async work.
 
 2026-07-23 Pergyra stable StringConcat alias executable rung 249. Objective:
 project the stable `StringConcat(String, String) -> String` source name through
