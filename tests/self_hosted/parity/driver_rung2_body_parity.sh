@@ -55,7 +55,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_ability_bind_dispatch_pa
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_multi_bound_defaults_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh"
-source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_expression_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh"
@@ -192,8 +192,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 273 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 273" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 274 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 274" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"

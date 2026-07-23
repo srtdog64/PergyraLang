@@ -265,12 +265,16 @@ same mapping bind at `Main` startup; it does not create a second physical fact
 owner or a backend-local target default.
 
 For the `List<T>` operation seam, `ast_expression_graph_resolved_call_type_owner.pgy`
-owns direct target, receiver, arity, index/value, and return-type facts;
-`list_runtime_owner.pgy` owns the element-specific C operation symbols; and
-`list_call_emit_owner.pgy` is the last codegen consumer. The DRV-2
-`list_ops` row checks native/self MIR parity, emitted `pgy_list_*` symbols,
-runtime output, and rejection of a missing `collection_call_target` fact.
-Source-level List operation names are not a codegen fallback.
+owns direct target, receiver, arity, index/value, and return-type facts. Scalar
+index/value expressions are projected through the operator policy in
+`ast_expression_graph_scalar_shape_owner.pgy`; the List owner must not grow a
+second scalar-type taxonomy. `list_runtime_owner.pgy` owns the element-specific
+C operation symbols, and `list_call_emit_owner.pgy` is the last codegen
+consumer. The DRV-2 `list_ops` and `list_push_get_loop` rows check native/self
+MIR parity, emitted `pgy_list_*` symbols, runtime output, rejection of a missing
+`collection_call_target` fact, rejection of a missing scalar operand edge, and
+rejection of a mixed scalar value type. Source-level List operation names and
+List-local operator typing are not compatibility fallbacks.
 
 For compound expressions, `list_call_type_owner.pgy` is the last codegen type
 consumer for the carried `ListGet` return element type. The `list_int_loop`

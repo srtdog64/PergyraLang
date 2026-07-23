@@ -222,16 +222,9 @@ func SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(left_opt), constructors, names, types,
         function_names, function_returns
     );
-    if kind == AstExpressionNodeLogicalNot() {
-        if left == "Bool" { return "Bool"; }
-        return "Unknown";
-    }
-    if kind == AstExpressionNodeNegate() {
-        if left == "Int" || left == "Long" || left == "Float" {
-            return left;
-        }
-        return "Unknown";
-    }
+    let unary_scalar: String =
+        SemanticExpressionGraphScalarUnaryResultTypeName(kind, left);
+    if unary_scalar != "Unknown" { return unary_scalar; }
     if kind == AstExpressionNodeTry() {
         let try_payload: Option<String> = TryPayloadTypeOpt(left);
         if IsSome(try_payload) { return UnwrapOption(try_payload); }
@@ -266,32 +259,9 @@ func SemanticExpressionGraphScalarTypeName(
         if IsSome(payload) { return UnwrapOption(payload); }
         return "Unknown";
     }
-    if kind == AstExpressionNodeLogicalAnd() ||
-        kind == AstExpressionNodeLogicalOr() {
-        if left == "Bool" && right == "Bool" { return "Bool"; }
-        return "Unknown";
-    }
-    if kind == AstExpressionNodeEquality() ||
-        kind == AstExpressionNodeInequality() ||
-        kind == AstExpressionNodeLess() ||
-        kind == AstExpressionNodeLessEqual() ||
-        kind == AstExpressionNodeGreater() ||
-        kind == AstExpressionNodeGreaterEqual() {
-        if left != "Unknown" && left == right { return "Bool"; }
-        return "Unknown";
-    }
-    if kind == AstExpressionNodeAdd() ||
-        kind == AstExpressionNodeSubtract() ||
-        kind == AstExpressionNodeMultiply() ||
-        kind == AstExpressionNodeDivide() ||
-        kind == AstExpressionNodeModulo() {
-        if left == right && (left == "Int" || left == "Long" ||
-            left == "Float" ||
-            (kind == AstExpressionNodeAdd() && left == "String")) {
-            return left;
-        }
-        return "Unknown";
-    }
+    let binary_scalar: String =
+        SemanticExpressionGraphScalarBinaryResultTypeName(kind, left, right);
+    if binary_scalar != "Unknown" { return binary_scalar; }
     if kind == AstExpressionNodeIndex() && right == "Int" &&
         StringLength(left) >= 8 &&
         StartsWith(left, "Array<") &&

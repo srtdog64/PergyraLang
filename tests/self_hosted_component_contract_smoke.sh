@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 273;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 274;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 273'
+    'mir_fixture_rows[@]}" -ne 274'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4037,6 +4037,14 @@ require_file "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.s
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh" 100
 require_file "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" 100
+require_file "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" 100
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy" \
+    "func SemanticExpressionGraphCallArgumentScalarTypeName("
+require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
+    "SemanticExpressionGraphCallArgumentScalarTypeName("
+reject_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
+    "func SemanticExpressionGraphListValueTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
     "struct SemanticExpressionGraphListCallFact"
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
@@ -4460,11 +4468,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 273;"
+    "return 274;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 273'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 274'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4479,6 +4487,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_list_int_loop"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_for_in_list"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_list_push_scalar_value"
 require_text "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" \
     "Code: initializer_type_unresolved"
 require_text "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" \
@@ -4487,6 +4497,8 @@ require_text "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.s
     "Code: ast_artifact_invalid"
 require_text "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" \
     '"binding_type":"Int","iterable_type":"List<Int>"'
+require_text "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" \
+    '"kind":"multiply","text":"i * i"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/nested_generic_containers/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

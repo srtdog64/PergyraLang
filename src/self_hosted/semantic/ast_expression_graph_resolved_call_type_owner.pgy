@@ -2,6 +2,7 @@
 
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_scalar_shape_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "env_owner.pgy";
@@ -48,39 +49,6 @@ func SemanticExpressionGraphListCallExpectedArity(name: String) -> Int {
     return -1;
 }
 
-func SemanticExpressionGraphListLocalValueTypeName(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    names: Array<String>,
-    types: Array<String>
-) -> String {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
-    if !IsSome(kind) { return "Unknown"; }
-    if UnwrapOption(kind) == AstExpressionNodeIntegerLiteral() {
-        return "Int";
-    }
-    if UnwrapOption(kind) == AstExpressionNodeLongLiteral() {
-        return "Long";
-    }
-    if UnwrapOption(kind) == AstExpressionNodeFloatLiteral() {
-        return "Float";
-    }
-    if UnwrapOption(kind) == AstExpressionNodeBoolLiteral() {
-        return "Bool";
-    }
-    if UnwrapOption(kind) == AstExpressionNodeStringLiteral() {
-        return "String";
-    }
-    if UnwrapOption(kind) != AstExpressionNodeLeaf() { return "Unknown"; }
-    let text: Option<String> = SemanticExpressionGraphNodeText(
-        graph, node_id
-    );
-    if !IsSome(text) { return "Unknown"; }
-    let bound: String = EnvLookup(names, types, UnwrapOption(text));
-    if bound == "" { return "Unknown"; }
-    return bound;
-}
-
 func SemanticExpressionGraphListCallFactFromResolvedTarget(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -125,7 +93,7 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
             )
         );
     }
-    let list_type: String = SemanticExpressionGraphListLocalValueTypeName(
+    let list_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
         graph, call.argument_nodes[0], names, types
     );
     let shape: SemanticConstructedTypeNameFact =
@@ -157,7 +125,7 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
         }
         if index_node >= 0 {
             let index_type: String =
-                SemanticExpressionGraphListLocalValueTypeName(
+                SemanticExpressionGraphCallArgumentScalarTypeName(
                     graph, index_node, names, types
                 );
             if index_type != "Int" {
@@ -175,7 +143,7 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
     if callee == "ListPush" { value_node = call.argument_nodes[1]; }
     if callee == "ListSet" { value_node = call.argument_nodes[2]; }
     if value_node >= 0 {
-        let value_type: String = SemanticExpressionGraphListLocalValueTypeName(
+        let value_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
             graph, value_node, names, types
         );
         let value_text: Option<String> = SemanticExpressionGraphNodeText(
