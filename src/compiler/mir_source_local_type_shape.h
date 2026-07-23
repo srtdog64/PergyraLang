@@ -31,6 +31,9 @@ bool mir_source_local_unwrap_channel_type(const char *type_name,
 bool mir_source_local_unwrap_array_or_slice_type(const char *type_name,
                                                  char *out,
                                                  size_t out_size);
+bool mir_source_local_unwrap_hash_map_key_type(const char *type_name,
+                                               char *out,
+                                               size_t out_size);
 bool mir_source_local_unwrap_future_type(const char *type_name,
                                          char *out,
                                          size_t out_size,

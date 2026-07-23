@@ -127,6 +127,63 @@ mir_source_local_unwrap_array_or_slice_type(const char *type_name,
 }
 
 bool
+mir_source_local_unwrap_hash_map_key_type(const char *type_name,
+                                          char *out,
+                                          size_t out_size)
+{
+    const char *prefix = "HashMap<";
+    const char *inner;
+    const char *end;
+    size_t start = 0;
+    unsigned depth = 0;
+    size_t arg_index = 0;
+    size_t inner_len;
+
+    if (type_name == NULL || out == NULL || out_size == 0
+        || strncmp(type_name, prefix, strlen(prefix)) != 0) {
+        return false;
+    }
+    inner = type_name + strlen(prefix);
+    end = strrchr(inner, '>');
+    if (end == NULL || end <= inner)
+        return false;
+    inner_len = (size_t)(end - inner);
+    for (size_t i = 0; i < inner_len; i++) {
+        if (inner[i] == '<') {
+            depth++;
+        } else if (inner[i] == '>') {
+            if (depth == 0)
+                return false;
+            depth--;
+        } else if (inner[i] == ',' && depth == 0) {
+            size_t arg_start = start;
+            size_t arg_end = i;
+            while (arg_start < arg_end
+                   && (inner[arg_start] == ' '
+                       || inner[arg_start] == '\t')) {
+                arg_start++;
+            }
+            while (arg_end > arg_start
+                   && (inner[arg_end - 1] == ' '
+                       || inner[arg_end - 1] == '\t')) {
+                arg_end--;
+            }
+            if (arg_index == 0) {
+                size_t len = arg_end - arg_start;
+                if (len == 0 || len >= out_size)
+                    return false;
+                memcpy(out, inner + arg_start, len);
+                out[len] = '\0';
+                return true;
+            }
+            arg_index++;
+            start = i + 1;
+        }
+    }
+    return false;
+}
+
+bool
 mir_source_local_unwrap_future_type(const char *type_name,
                                     char *out,
                                     size_t out_size,

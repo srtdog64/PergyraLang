@@ -215,6 +215,19 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
 {
     const char *fixed_return;
 
+    if (callee_name != NULL && strcmp(callee_name, "MapKeys") == 0
+        && ast_call_arg_count(expr) >= 1) {
+        const char *map_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        char key_type[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (mir_source_local_unwrap_hash_map_key_type(map_type, key_type,
+                sizeof(key_type))) {
+            return mir_source_local_type_scratch_format(scratch, "Array",
+                key_type);
+        }
+        return NULL;
+    }
+
     if (callee_name != NULL
         && (strcmp(callee_name, "Read") == 0
             || strcmp(callee_name, "DeviceRead") == 0)) {

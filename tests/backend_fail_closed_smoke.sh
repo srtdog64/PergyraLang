@@ -84,6 +84,10 @@ grep -Fq "case AST_ARRAY_ACCESS:" \
     "$ROOT_DIR/src/compiler/mir_source_local_expr_types.c"
 grep -Fq "mir_source_local_unwrap_array_or_slice_type(collection_type" \
     "$ROOT_DIR/src/compiler/mir_source_local_expr_types.c"
+grep -Fq "mir_source_local_unwrap_hash_map_key_type(map_type" \
+    "$ROOT_DIR/src/compiler/mir_source_local_expr_call_facts.c"
+grep -Fq "mir_source_local_unwrap_hash_map_key_type(const char *type_name" \
+    "$ROOT_DIR/src/compiler/mir_source_local_type_shape.c"
 grep -Fq "llvm_mir_local_array_access_type(" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_type_lookup.c"
 grep -Fq "MIR source-local array access type fact is missing" \
