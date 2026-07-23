@@ -4,6 +4,7 @@ import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "function_decl_owner.pgy";
+import "generic_parameter_list_owner.pgy";
 
 // `ability NAME { func SIG; ... }` declares an interface-shaped collection of
 // function signatures. AST emits as `  [export] Ability: NAME`.
@@ -23,35 +24,13 @@ func ParseAbilityDecl(
     if StringLength(ab_name) == 0 {
         Exit(1);
     }
-    let after_ab_ws: Int = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, after_ab_ws) == "<" {
-        i = after_ab_ws + 1;
-        let gp_list: String = "";
-        while true {
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let gp: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            if StringLength(gp) == 0 {
-                Exit(1);
-            }
-            if StringLength(gp_list) == 0 {
-                gp_list = gp;
-            } else {
-                gp_list = Concat(gp_list, Concat(", ", gp));
-            }
-            i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) == "," {
-                i = i + 1;
-                continue;
-            }
-            break;
-        }
-        if ParserCharAt(content, i) != ">" {
-            Exit(1);
-        }
-        i = i + 1;
-        ab_name = Concat(ab_name, Concat("<", Concat(gp_list, ">")));
+    ArraySet(cursor_out, 0, i);
+    let generic_parameters: String = ParseGenericParameterListText(
+        content, i, cursor_out
+    );
+    i = cursor_out[0];
+    if generic_parameters != "" {
+        ab_name = Concat(ab_name, generic_parameters);
     }
     i = Expect(content, i, "{");
     if i < 0 {

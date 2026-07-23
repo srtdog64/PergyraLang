@@ -5,6 +5,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
+import "generic_parameter_list_owner.pgy";
 
 func ParseNominalDecl(
     content: String,
@@ -63,37 +64,11 @@ func ParseNominalDecl(
         // Optional generic parameter list `<T, U>` after the type
         // name — emitted on its own `Generic params:` line at +4
         // before `Fields:` / `Methods:`.
-        let decl_generic: String = "";
-        let after_decl_name: Int = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, after_decl_name) == "<" {
-            i = after_decl_name + 1;
-            let gpl: String = "";
-            while true {
-                i = SkipWhitespaceAndComments(content, i);
-                ArraySet(cursor_out, 0, i);
-                let g: String = ReadIdent(content, i, cursor_out);
-                i = cursor_out[0];
-                if StringLength(g) == 0 {
-                    Exit(1);
-                }
-                if StringLength(gpl) == 0 {
-                    gpl = g;
-                } else {
-                    gpl = Concat(gpl, Concat(", ", g));
-                }
-                i = SkipWhitespaceAndComments(content, i);
-                if ParserCharAt(content, i) == "," {
-                    i = i + 1;
-                    continue;
-                }
-                break;
-            }
-            if ParserCharAt(content, i) != ">" {
-                Exit(1);
-            }
-            i = i + 1;
-            decl_generic = Concat("<", Concat(gpl, ">"));
-        }
+        ArraySet(cursor_out, 0, i);
+        let decl_generic: String = ParseGenericParameterListText(
+            content, i, cursor_out
+        );
+        i = cursor_out[0];
         let decl_suffix: String = "";
         i = SkipWhitespaceAndComments(content, i);
         if MatchKeyword(content, i, "extends") {

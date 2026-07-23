@@ -172,6 +172,32 @@ mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
 }
 
 static void
+mir_json_emit_decl_generic_params(FILE *out, const MIRDeclHeader *header)
+{
+    size_t count = mir_decl_header_generic_param_count(header);
+
+    if (count == 0)
+        return;
+    fputs(",\"generic_params\":[", out);
+    for (size_t i = 0; i < count; i++) {
+        const MIRDeclGenericParam *param =
+            mir_decl_header_generic_param(header, i);
+        if (i > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_generic_param_name(param));
+        fputs(",\"constraint\":", out);
+        mir_json_emit_str_or_null(
+            out, mir_decl_generic_param_constraint_type_name(param));
+        fputs(",\"default_type\":", out);
+        mir_json_emit_str_or_null(
+            out, mir_decl_generic_param_default_type_name(param));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
 mir_json_emit_decl_method_params(FILE *out, const MIRDeclMethod *method)
 {
     fputs(",\"params\":[", out);
@@ -323,6 +349,7 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str(out, mir_json_nominal_kind_name(nominal_kind));
         fputs(",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
         if (!is_struct_decl)
             mir_json_emit_decl_methods(out, header, false);
@@ -333,6 +360,7 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     if (ast_type == AST_ABILITY_DECL) {
         fputs("{\"kind\":\"ability\",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_methods(out, header, true);
         fputc('}', out);
         return;
@@ -352,6 +380,7 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         fputs(",\"for_type\":", out);
         mir_json_emit_str_or_null(
             out, mir_decl_header_role_subject_type_name(header));
+        mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_role_includes(out, header);
         mir_json_emit_role_impls(out, header);
         mir_json_emit_decl_methods(out, header, true);

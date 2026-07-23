@@ -656,6 +656,53 @@ require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_pat
 require_text "src/self_hosted/parser/run_owner.pgy" 'args[0] == "--source-unit-ast"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     '"$PARSER_BIN" --source-unit-ast "$src"'
+require_file "src/self_hosted/parser/generic_parameter_list_owner.pgy"
+require_text "src/self_hosted/parser/generic_parameter_list_owner.pgy" \
+    "func ParseGenericParameterListText("
+require_text "src/self_hosted/parser/generic_parameter_list_owner.pgy" \
+    "let default_type: String = ReadType"
+require_text "src/self_hosted/parser/generic_parameter_list_owner.pgy" \
+    "Fail(\"expected generic parameter default type\""
+require_text "src/self_hosted/parser/decl_ability_owner.pgy" \
+    'import "generic_parameter_list_owner.pgy";'
+require_text "src/self_hosted/parser/decl_nominal_owner.pgy" \
+    'import "generic_parameter_list_owner.pgy";'
+require_text "src/self_hosted/parser/function_decl_owner.pgy" \
+    'import "generic_parameter_list_owner.pgy";'
+reject_text "src/self_hosted/parser/decl_ability_owner.pgy" \
+    "let gp_list: String = \"\""
+reject_text "src/self_hosted/parser/decl_nominal_owner.pgy" \
+    "let gpl: String = \"\""
+reject_text "src/self_hosted/parser/function_decl_owner.pgy" \
+    "let gp_list: String = \"\""
+require_file "tests/self_hosted/parity/generic_default_contracts_parser_parity.sh"
+require_max_lines "tests/self_hosted/parity/generic_default_contracts_parser_parity.sh" 100
+require_text "tests/self_hosted/parity/generic_default_contracts_parser_parity.sh" \
+    "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+reject_text "tests/self_hosted/parity/generic_default_contracts_parser_parity.sh" \
+    "cmp -s"
+require_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "SemanticNestedCommaRangeFactsFromSource(inner)"
+reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    'Split(Substring(row, 1, n - 2), ",")'
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
+    "SemanticAstGenericDefaultTypeForName("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'source_type == "AST_RETURN_VOID"'
+require_text "src/compiler/mir_json_dump.c" \
+    "mir_json_emit_decl_generic_params(out, header);"
+require_text "src/compiler/mir_json_dump.c" \
+    'fputs(",\"generic_params\":[", out);'
+require_text "src/compiler/mir_json_dump.c" \
+    "mir_decl_generic_param_default_type_name(param)"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "func EmitDeclGenericParams("
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    'MirObjectStringFact('
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    '"default_type"'
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "generic_default_contracts"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureManifestRows"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureManifestCount() -> Int"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureDuplicateCoverageCount() -> Int"
@@ -3935,6 +3982,20 @@ require_file "tests/self_hosted/parity/driver_rung2_generic_string_spawn_parity_
 require_max_lines "tests/self_hosted/parity/driver_rung2_generic_string_spawn_parity_owner.sh" 100
 require_file "tests/self_hosted/parity/driver_rung2_generic_spawn_mixed_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_generic_spawn_mixed_parity_owner.sh" 80
+require_file "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity_owner.sh" 120
+require_file "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh" \
+    "pgy_selfhost_verify_driver_rung2_generic_default_contract "
+require_text "tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh" \
+    "source/MIR/C/runtime parity ok"
+require_make_target_text \
+    "self-host-generic-default-contract-parity-test-smoke" \
+    "generic_default_contracts_parser_parity.sh"
+require_make_target_text \
+    "self-host-generic-default-contract-parity-test-smoke" \
+    "driver_rung2_generic_default_contract_parity.sh"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_generic_spawn_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

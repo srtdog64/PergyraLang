@@ -4,48 +4,99 @@ import "../hir/typed_ast_arena_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "delimited_range_fact_owner.pgy";
 
-func SemanticAstGenericParameterRowsFromNode(
+func SemanticAstGenericParameterDefaultRowsFromNode(
     arena: AstArena,
     node_id: Int,
-    inout names: Array<String>
+    inout names: Array<String>,
+    inout default_type_names: Array<String>
 ) -> Bool {
+    if ArrayLength(names) != ArrayLength(default_type_names) {
+        return false;
+    }
+    let row_start: Int = ArrayLength(names);
     if !TypedAstArenaNodeKindIs(
         arena, node_id, TypedAstKindGenericParamsTag()
     ) {
         return false;
     }
     let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    if !IsSome(atom) {
-        return false;
-    }
+    if !IsSome(atom) { return false; }
     let row: String = UnwrapOption(atom);
     let n: Int = StringLength(row);
     if n < 3 || CharAt(row, 0) != "<" || CharAt(row, n - 1) != ">" {
         return false;
     }
-    let payload: String = Substring(row, 1, n - 2);
-    let parts: Array<String> = Split(payload, ",");
-    if ArrayLength(parts) == 0 {
-        return false;
-    }
+    let inner: String = Substring(row, 1, n - 2);
+    let parts: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(inner);
+    if SemanticDelimitedRangeCount(parts) == 0 { return false; }
     let i: Int = 0;
-    while i < ArrayLength(parts) {
-        let name: String = StringTrim(parts[i]);
-        if !IsIdentifier(name) {
+    while i < SemanticDelimitedRangeCount(parts) {
+        let part: String = SemanticDelimitedRangeText(parts, inner, i);
+        let equal: Int = StringIndexOf(part, "=");
+        let name: String = part;
+        let default_type: String = "";
+        if equal >= 0 {
+            name = StringTrim(Substring(part, 0, equal));
+            default_type = StringTrim(Substring(
+                part, equal + 1, StringLength(part) - equal - 1
+            ));
+        }
+        if !IsIdentifier(name) || (equal >= 0 && default_type == "") {
             return false;
         }
-        let previous: Int = 0;
-        while previous < i {
-            if StringTrim(parts[previous]) == name {
-                return false;
-            }
+        let previous: Int = row_start;
+        while previous < ArrayLength(names) {
+            if names[previous] == name { return false; }
             previous = previous + 1;
         }
         ArrayPush(names, name);
+        ArrayPush(
+            default_type_names,
+            SemanticCanonicalTypeName(default_type)
+        );
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstGenericParameterRowsFromNode(
+    arena: AstArena,
+    node_id: Int,
+    inout names: Array<String>
+) -> Bool {
+    let row_names: Array<String> = [];
+    let defaults: Array<String> = [];
+    if !SemanticAstGenericParameterDefaultRowsFromNode(
+        arena, node_id, row_names, defaults
+    ) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(row_names) {
+        ArrayPush(names, row_names[i]);
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstGenericDefaultTypeForName(
+    names: Array<String>, default_type_names: Array<String>, type_name: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(default_type_names) {
+        Die("generic parameter default rows are misaligned");
+    }
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == type_name && default_type_names[i] != "" {
+            return default_type_names[i];
+        }
+        i = i + 1;
+    }
+    return type_name;
 }
 
 func SemanticAstGenericParameterFactContractReady() -> Bool {
@@ -55,7 +106,30 @@ func SemanticAstGenericParameterFactContractReady() -> Bool {
     );
     let node: Option<Int> = TypedAstArenaChildAt(artifact.arena, 1, 0);
     let names: Array<String> = [];
-    return IsSome(node) && SemanticAstGenericParameterRowsFromNode(
-        artifact.arena, UnwrapOption(node), names
-    ) && ArrayLength(names) == 2 && names[0] == "T" && names[1] == "U";
+    let defaults: Array<String> = [];
+    if !IsSome(node) || !SemanticAstGenericParameterDefaultRowsFromNode(
+        artifact.arena, UnwrapOption(node), names, defaults
+    ) || ArrayLength(names) != 2 || names[0] != "T" || names[1] != "U" ||
+        defaults[0] != "" || defaults[1] != "" {
+        return false;
+    }
+    let default_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Defaulted\n" +
+        "    Generic params: <T = HashMap<String, Int>>\n" +
+        "    Parameters:\n    Returns: T\n    Body:\n      Block:\n"
+    );
+    let default_node: Option<Int> = TypedAstArenaChildAt(
+        default_artifact.arena, 1, 0
+    );
+    let default_names: Array<String> = [];
+    let default_types: Array<String> = [];
+    return IsSome(default_node) &&
+        SemanticAstGenericParameterDefaultRowsFromNode(
+            default_artifact.arena, UnwrapOption(default_node),
+            default_names, default_types
+        ) && ArrayLength(default_names) == 1 && default_names[0] == "T" &&
+        default_types[0] == "HashMap<String, Int>" &&
+        SemanticAstGenericDefaultTypeForName(
+            default_names, default_types, "T"
+        ) == "HashMap<String, Int>";
 }

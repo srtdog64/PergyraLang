@@ -1,0 +1,55 @@
+// Parser owner for declaration-site generic parameter lists and defaults.
+
+import "cursor_owner.pgy";
+import "error_owner.pgy";
+import "type_name_owner.pgy";
+
+func ParseGenericParameterListText(
+    content: String, start: Int, inout cursor_out: Array<Int>
+) -> String {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    if ParserCharAt(content, i) != "<" {
+        ArraySet(cursor_out, 0, i);
+        return "";
+    }
+    i = i + 1;
+    let parameters: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if name == "" {
+            Fail("expected generic parameter name", content, i);
+        }
+        let parameter: String = name;
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) == "=" {
+            i = i + 1;
+            ArraySet(cursor_out, 0, i);
+            let default_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if default_type == "" {
+                Fail("expected generic parameter default type", content, i);
+            }
+            parameter = Concat(parameter, Concat(" = ", default_type));
+        }
+        if parameters == "" {
+            parameters = parameter;
+        } else {
+            parameters = Concat(parameters, Concat(", ", parameter));
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) == "," {
+            i = i + 1;
+            continue;
+        }
+        if ParserCharAt(content, i) != ">" {
+            Fail("expected ',' or '>' in generic parameter list", content, i);
+        }
+        i = i + 1;
+        break;
+    }
+    ArraySet(cursor_out, 0, i);
+    return Concat("<", Concat(parameters, ">"));
+}

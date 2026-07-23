@@ -56,6 +56,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
 - `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
+- `src/self_hosted/parser/generic_parameter_list_owner.pgy` -- declaration-site
+  generic parameter/default type list parsing shared by functions, nominals,
+  and abilities; malformed lists fail closed.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
 - `src/self_hosted/parser/expression_fact_owner.pgy` -- canonical parser
   expression result plus unclassified leaf construction.
@@ -116,8 +119,9 @@ inventory must not become a second fact-family owner registry.
   facts, including ordered function node/name identity for entrypoint
   cardinality, selection, and top-level function declaration routing.
 - `src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy` -- typed
-  generic-list node to ordered formal-parameter rows; provenance parsing by
-  expression consumers is forbidden.
+  generic-list node to ordered formal-parameter/default-type rows; nested type
+  defaults are partitioned once by the delimited-range owner, and provenance
+  parsing by expression consumers is forbidden.
 - `src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy` --
   one flat parameter/return type-expression arena captured with signature
   rows; generic call consumers unify and materialize nodes without reparsing
@@ -129,9 +133,9 @@ inventory must not become a second fact-family owner registry.
   freshness, duplicate-row, owner, and runtime-callability contract for those
   signature facts.
 - `src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy` --
-  artifact-bound nominal constructor name, return type, and ordered field-type
-  rows consumed by expression typing and declaration routing; source
-  constructor scans are forbidden.
+  artifact-bound nominal constructor name, return type, and ordered effective
+  field-type rows after generic-default substitution, consumed by expression
+  typing and declaration routing; source constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
   payload facts, including array-literal body and `Let` statement-routing
@@ -488,7 +492,9 @@ inventory must not become a second fact-family owner registry.
 ## MIR Lower
 
 - `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.
-- `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction.
+- `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction,
+  including MIR-carried generic parameter constraints and default types; it
+  never guesses a missing declaration default.
 - `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower-specific
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware

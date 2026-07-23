@@ -217,6 +217,9 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
                 ArrayPush(chunks, RenderDeferFromFacts(
                     json, kp, inst_end, indent, arg0
                 ));
+            } else if (ikind == "return" && StringLength(expr0) == 0) ||
+                (ikind != "destructure" && source_type == "AST_RETURN_VOID") {
+                ArrayPush(chunks, Concat(indent, "Return\n"));
             } else if ikind != "destructure" && StringLength(expr0) > 0 {
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }

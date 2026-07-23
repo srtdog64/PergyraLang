@@ -2996,6 +2996,12 @@ self-host-driver-rung2-body-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
 
+self-host-generic-default-contract-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_default_contracts_parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh
+
+.PHONY: self-host-generic-default-contract-parity-test-smoke
+
 self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_SELFHOST_DRIVER_BACKENDS=hard \
