@@ -7,7 +7,7 @@ one semantic bind owner, declaration/MIR carriage, fail-closed missing ABI
 facts, direct-call fallback removal, then patch size. The new bind verdict,
 declaration rows, `slot_anchor`, dynamic-call owner, bind owner, nominal layout
 owner, and role-dispatch owner now form one consumer path. Commit `e09d680e`
-is pushed with `HEAD=origin/main=e09d680e`.
+is pushed; the following handoff refresh is `15ae286f`.
 
 Native and self-host MIR both carry party role slots, ability defaults, role
 implementations, `AST_BIND_STMT` with `slot_anchor`, and the resolved
@@ -16,10 +16,13 @@ bind helper, role adapter, and vtable call. The bad argument mutation fails
 closed as `call_arg_type_mismatch`; direct ability-call fallback is rejected.
 The focused producer-first gate passed with
 `backends=1 body_fixtures=20 mir_fixtures=1`; regenerated driver C built with
-GCC and the fixture ran with output `12`. Component contracts, SoT authority
-checks, shell syntax, and `git diff --check` passed. The Coq model was skipped
-because no `rocq`/`coqc` is installed. The full unfiltered 268-row matrix and
-LLVM lane were not run.
+GCC and the fixture ran with output `12`. Full C codegen parity covered 85
+fixtures, and the role-operator regression ran with output `123`. Component
+contracts, shell syntax, and `git diff --check` passed. The authority edge gate
+reports 44 authorities, 39 derived carriers, and
+`CLOSED=24 BRIDGE=20 ACTIVE=0`; live owner/consumer negative mutations pass.
+The Coq model was explicitly skipped because no `rocq`/`coqc` is installed.
+The full unfiltered 268-row matrix and LLVM lane were not run.
 
 The next observed executable seam is
 `generic_multi_bound_defaults`, where parser admission stops at
@@ -29,8 +32,10 @@ split source text again. `nested_generic_containers` remains a later
 `ListNew` undefined-function failure. Do not add fixture-name,
 party/class-name, or compatibility fallback paths.
 
-The worktree is clean at this handoff. The exact resume checkpoint is
-`HEAD=origin/main=e09d680e`; no uncommitted follow-up is being carried.
+The executable checkpoint is `e09d680e`, followed by handoff refresh
+`15ae286f`. At this refresh another active task owns uncommitted parser/HIR/
+semantic/MIR declaration edits, so the worktree is intentionally not recorded
+as clean. Resume from `git status --short --branch` and preserve those edits.
 
 2026-07-23 Pergyra generic Future spawn executable rungs 263-266. Objective:
 carry generic specialization identity through `spawn`, then materialize Int and

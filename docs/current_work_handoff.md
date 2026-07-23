@@ -8,12 +8,17 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 ## Resume checkpoint
 
 - Latest executable implementation: `e09d680e` (`Close self-host ability bind
-  dispatch SoT`), pushed with `HEAD=origin/main=e09d680e`.
+  dispatch SoT`), pushed. The following documentation refresh is `15ae286f`
+  and was the observed `origin/main` at the start of this refresh.
 - The committed DRV-2 manifest now contains 268 MIR fixtures, with
   `generic_default_ability_bind_dispatch` enrolled as the latest row and its
   owner checks wired into the body/producer parity gates.
-- At documentation authoring, `git status --short --branch` is clean and
-  `HEAD` matches `origin/main`.
+- At documentation authoring, another active task owns uncommitted edits in
+  `ast_node_kind_owner.pgy`, `ast_text_inventory_owner.pgy`,
+  `declaration_rows_owner.pgy`, `decl_ability_owner.pgy`, and
+  `ast_generic_parameter_fact_owner.pgy`, `ast_role_fact_owner.pgy`, and
+  `ast_signature_fact_owner.pgy`. Do not absorb or revert them; verify exact
+  HEAD and dirty state before resuming.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
@@ -49,9 +54,12 @@ Observed closure:
   `call_arg_type_mismatch`; no direct-call fallback is admitted.
 - The focused gate passed with `backends=1 body_fixtures=20 mir_fixtures=1`.
   Regenerated driver C built with GCC and the emitted fixture ran with output
-  `12`. Component contracts, SoT authority checks, shell syntax, and
-  `git diff --check` passed. The Coq model was declared skipped because no
-  `rocq`/`coqc` is installed.
+  `12`. The full C codegen parity covered 85 fixtures; the role-operator
+  regression ran with output `123`. Component contracts, shell syntax, and
+  `git diff --check` passed. The authority edge gate now reports 44
+  authorities, 39 derived carriers, and `CLOSED=24 BRIDGE=20 ACTIVE=0`; its
+  live owner/consumer negative mutations pass. The Coq model was declared
+  skipped because no `rocq`/`coqc` is installed.
 - Commit `e09d680e` is pushed. The full unfiltered 268-row matrix and LLVM
   lane were not run.
 
@@ -161,10 +169,13 @@ Primary files:
 
 Green:
 
-- C producer-first parity for the filtered DRV-2 row 267:
+- C producer-first parity for the filtered DRV-2 row 268:
   `backends=1 body_fixtures=20 mir_fixtures=1`.
-- The broader filtered 267-row body/producer gate completed with the generic
-  default row included; the component contract smoke and shell syntax passed.
+- The broader filtered 268-row body/producer gate completed with the dynamic
+  ability-bind row included; the component contract smoke and shell syntax
+  passed.
+- Full C codegen parity: 85 fixtures, including fail-closed declaration and
+  equality negatives; the role-operator runtime output was `123`.
 - Fixture 266 mixed capstone parity:
   `backends=1 body_fixtures=20 mir_fixtures=1`; output `42`, `77`, `hi`.
 - Generated driver build: 0 errors, 0 warnings.
@@ -174,13 +185,16 @@ Green:
 - `make self-host-hard-contract-test-smoke`.
 - `make self-host-substitution-velocity-test-smoke`: 9 blockers, 5 direct and
   4 process/evidence.
-- `make sot-authority-edge-test-smoke`: 43 authorities, 38 derived carriers,
-  `CLOSED=23 BRIDGE=20 ACTIVE=0`; single Gate SoT and 7 protocol rows valid.
+- `make sot-authority-edge-test-smoke`: 44 authorities, 39 derived carriers,
+  `CLOSED=24 BRIDGE=20 ACTIVE=0`; single Gate SoT and 7 protocol rows valid.
+- `PGY_ALLOW_MISSING_COQ=1 make sot-authority-adequacy-test-smoke`: Coq was an
+  explicit declared skip; live owner/consumer binding and negative mutations
+  passed.
 - `git diff --check` before both latest commits.
 
 Not run:
 
-- Full unfiltered 267-row DRV-2 matrix.
+- Full unfiltered 268-row DRV-2 matrix.
 - LLVM async parity for these rungs.
 - Coq/Rocq proof; the toolchain is not installed.
 
@@ -206,8 +220,9 @@ Adjacent evidence:
   `where T: Comparable + Cloneable`; it is a later generic-bound rung.
 - `nested_generic_containers` currently fails explicitly with
   `undefined_function: ListNew`; it is not the active rung.
-- The next code commit must be an executable replacement for the
-  `StorageParty` owner seam, not another docs-only or fixture-only delta.
+- The `StorageParty` dynamic ability-bind owner seam is closed. The next code
+  commit must advance the ordered generic-bound executable seam, not add a
+  docs-only or fixture-only substitute.
 
 ## Workstation and recovery facts
 
@@ -231,7 +246,7 @@ Adjacent evidence:
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Verify `git status`, HEAD/origin, and committed fixture count 267 before
+2. Verify `git status`, HEAD/origin, and committed fixture count 268 before
    touching the next seam.
 3. Reproduce `generic_multi_bound_defaults` and name the generic-bound owner
    before editing.

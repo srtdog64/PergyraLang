@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Owns dynamic role-slot ABI dispatch and fail-closed bind validation.
+# Registry forbidden-fallback inventory exercised below:
+# bind_party_slot_text_reparse, role_implementation_text_reparse,
+# direct_ability_call_fallback, missing_role_slot_abi_fact_success.
 
 pgy_selfhost_verify_driver_rung2_ability_bind_dispatch() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
@@ -40,6 +43,12 @@ pgy_selfhost_verify_driver_rung2_ability_bind_dispatch() {
 pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c() {
     local backend="$1" base="$2" emitted_c="$3"
     [[ "$base" == "generic_default_ability_bind_dispatch" ]] || return 0
+
+    grep -Fq 'Die("ability bind is missing its party role-slot ABI fact")' \
+        "$ROOT_DIR/src/self_hosted/codegen/emission/ability_bind_emit_owner.pgy" || {
+        echo "[self-host-parity:driver-rung2] ability-bind missing-fact boundary drifted" >&2
+        exit 1
+    }
 
     for term in \
         'const Bufferable_Int_vtable *buffer_Bufferable_Int_vt;' \

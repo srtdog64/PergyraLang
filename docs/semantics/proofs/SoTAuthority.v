@@ -1041,6 +1041,7 @@ Inductive SpineFact : Type :=
   | SFEnumDeclarationRows
   | SFNominalDeclarationRows
   | SFRoleDeclarationRows
+  | SFAbilityBindStatement
   | SFExpressionSurface
   | SFExpressionPlaceKind
   | SFInitializerTypeVerdict
@@ -1085,6 +1086,7 @@ Inductive SpineOwner : Type :=
   | SOSemanticEnum
   | SOSemanticNominalConstructor
   | SOSemanticRole
+  | SOAbilityBindStatement
   | SOSemanticExpressionSurface
   | SOSemanticExpressionPlace
   | SOSemanticInitializerType
@@ -1128,6 +1130,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFEnumDeclarationRows => SOSemanticEnum
   | SFNominalDeclarationRows => SOSemanticNominalConstructor
   | SFRoleDeclarationRows => SOSemanticRole
+  | SFAbilityBindStatement => SOAbilityBindStatement
   | SFExpressionSurface => SOSemanticExpressionSurface
   | SFExpressionPlaceKind => SOSemanticExpressionPlace
   | SFInitializerTypeVerdict => SOSemanticInitializerType
