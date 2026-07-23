@@ -1,31 +1,84 @@
 # Self-Host Progress
 
-2026-07-23 Pergyra generic enum-payload declaration/match SoT closure: the
-semantic enum owner now carries ordered `(variant, payload_index, type)` rows
-through the native MIR declaration metadata and JSON `param_types` array. The
-selfhost `mir_lower` declaration owner validates parameter count, ordered
-cardinality, and every concrete payload type; missing or `Unknown` facts fail
-closed. The codegen semantic enum view consumes that same payload owner to emit
-tagged C enums/constructors, and the tagged-match owner consumes the typed
-variant fields for tag conditions and ordered bindings. The former
-`payload enum variants are not supported` rejection and any singular
-`param_type` wire are removed; the equality path remains an explicit negative
-gate because tagged enum equality is not yet an owned semantic operation.
+2026-07-23 Pergyra canonical value-wrapper declaration SoT closure: semantic
+type identity now comes from `SemanticCanonicalTypeName`, while
+`codegen/input/value_wrapper_usage_owner.pgy` recursively inventories concrete
+by-value `Option` and explicit `Result` nodes from one semantic type surface.
+`type_declaration_emit_owner.pgy` schedules that inventory together with
+nominal and enum declarations. It no longer creates an Option wrapper as a
+side effect of every nominal/enum declaration, and there is no Result-only
+inventory or post-hoc wrapper scan. The graph for the active witness is
+`Payload/Failure -> Result<Payload, Failure> -> Option<Result<Payload,
+Failure>> -> Envelope`.
 
-Fresh evidence: `tests/self_hosted/parity/mir_json_parity.sh` with
-`PGY_SELFHOST_MIR_FIXTURES=enum_option_payload,enum_multi_payload` passed
-`2 fixtures, 0 clean rejects`; its missing/unknown payload-type mutations
-failed with the owner diagnostic. `tests/self_hosted_component_contract_smoke.sh`
-and `tests/match_binding_type_fact_smoke.sh` passed. The C backend codegen
-parity also passed all `78 fixtures`, including the payload-enum and tagged
-equality negative legs. A fresh current-tree
-DRV-2 driver emitted C for `enum_option_payload`; GCC compiled it and runtime
-output was `80`, `-8`, `-8`, `0`, `100`. The negative source
-`src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy` failed closed with
-`tagged enum equality requires a variant tag operand`. Direct DRV-2 source
-compilation of `enum_multi_payload` still fails at the pre-existing
-expression-graph validity boundary, so that is the next executable falsifier,
-not a claimed source-driver green result.
+The same canonical identity feeds runtime facts and C symbols. Result facts
+canonicalize at their boundary; Option facts carry both semantic inner type and
+owned C value type, recursively consume an already scheduled Result/Option,
+and derive helper/type names through `CompilerSymbolCMangledTypeName`. The C
+symbol owner trims trailing separators. The bootstrap C mirror uses the same
+generic `sanitize_c_suffix` projection for Option C types and contextual
+`None`, so it no longer emits `PgyOption_Result<Payload,Failure>`.
+
+The formal positive fixture
+`nested_option_result_field_declaration` compiles and runs as `0` through both
+native C and the Pergyra-origin codegen tool. A new
+`Loop -> Option<Result<Loop, Failure>> -> Loop` negative fixture fails closed
+in both paths with `cyclic by-value type declaration dependency`; it reaches
+neither an incomplete C type nor GCC. The existing direct and Result-mediated
+cycle negatives remain green. Component ratchets require the recursive
+canonical inventory and sanitized native Option projection, and reject the
+retired Result-only inventory and nominal-triggered Option path.
+
+Fresh evidence: focused C codegen parity reports rung `0..21` green with three
+fixtures, equal runtime output, three native cycle rejects, and the matching
+self-host rejects. Filtered producer-first DRV-2 reports `backends=1
+body_fixtures=20 mir_fixtures=3`; component contract passes. The active
+manifests are 84 codegen fixtures, 254 DRV-2 MIR rows, and 21 TestHarness
+codegen paths. The full unfiltered and LLVM matrices were not run for this
+focused rung.
+
+Next active falsifier is observed, not inferred. `Result<Option<Payload>,
+Failure>` and `Option<Option<Payload>>` both compile and run as `0` on native
+and Pergyra paths, so they are coverage-only. A nominal field
+`Option<Failure>` where `Failure` is payload-free compiles on native C but the
+Pergyra codegen fails closed with `constructed Option declaration fact is
+missing`. The next objective is one enum ABI value fact that lets Option
+materialization consume both payload-free and tagged enum layouts without an
+enum-name switch or a second wrapper scheduler.
+
+2026-07-23 Pergyra generic enum-payload declaration/match SoT closure: the
+semantic enum owner carries ordered `(variant, payload_index, type)` rows
+through native MIR declaration metadata and the JSON `param_types` array. The
+canonical HIR match-pattern fact owns an ordered binding array; the semantic
+environment validates binding/payload cardinality and type, MIR carries every
+binding/type row, and selfhost `mir_lower` emits one contiguous tagged-enum
+projection graph per payload field. Codegen consumes those same owner facts and
+maps bindings to `_0.._N`; it does not branch on a fixture name, variant name,
+or fixed arity. The former `payload enum variants are not supported` rejection,
+singular match binding, and singular `param_type` wire are retired. Tagged enum
+equality remains an explicit negative gate because it is not yet an owned
+semantic operation, not because payload enums are generically rejected.
+
+Fresh executable evidence: filtered MIR JSON parity passed
+`enum_option_payload,enum_multi_payload` as `2 fixtures, 0 clean rejects`, with
+missing/unknown payload rows rejected. Filtered source/codegen parity passed the
+multi-payload fixture and direct C execution produced `0`, `75`, `28`, `120`,
+`81`; the committed full C codegen checkpoint passed all 78 fixtures. The
+producer-first DRV-2 source/MIR gate now passes `enum_multi_payload` with
+`body_fixtures=20` and `mir_fixtures=1`, and its removed second `Rect` binding
+type mutation fails closed. Component, match-binding carrier, compiler-world,
+single-Gate-SoT, and registry authority-edge gates are green; authority-edge
+reports `CLOSED=23 BRIDGE=20 ACTIVE=0`. Coq/Rocq remains unavailable on this
+Windows runner, so the formal model is an explicit declared skip while the live
+owner/consumer and negative-mutation portion passes.
+
+The stale direct DRV-2 `enum_multi_payload` blocker is closed. The next
+falsifying case should challenge type generality rather than add another arity
+branch: an owner-carded heterogeneous or nested aggregate enum payload must
+flow through direct source codegen and DRV-2 using the same ordered facts. The
+exact fixture is not selected yet; tagged equality must stay negative unless a
+separate semantic-operation owner and diagnostic contract are deliberately
+defined.
 
 2026-07-23 Pergyra whole-language match-binding type carrier delta: the native
 semantic owner now records every payload binding type with stable

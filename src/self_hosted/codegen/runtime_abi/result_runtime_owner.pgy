@@ -1,6 +1,7 @@
 // C symbol facts for explicit Result<T, E> specializations.
 
 import "../../compiler/symbol_table_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 
 struct ResultRuntimeFact {
@@ -24,19 +25,20 @@ func ResultRuntimeFactInvalid(type_name: String) -> ResultRuntimeFact {
 }
 
 func ResultRuntimeFactForType(type_name: String) -> ResultRuntimeFact {
-    let payload: Option<String> = ResultPayloadTypeOpt(type_name);
-    let error: Option<String> = ResultErrorTypeOpt(type_name);
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let payload: Option<String> = ResultPayloadTypeOpt(canonical);
+    let error: Option<String> = ResultErrorTypeOpt(canonical);
     if !IsSome(payload) || !IsSome(error) ||
         UnwrapOption(payload) == "" || UnwrapOption(payload) == "Unknown" ||
         UnwrapOption(error) == "" || UnwrapOption(error) == "Unknown" {
-        return ResultRuntimeFactInvalid(type_name);
+        return ResultRuntimeFactInvalid(canonical);
     }
     let suffix: String = CompilerSymbolCMangledTypeName(Concat(
         UnwrapOption(payload), Concat("_", UnwrapOption(error))
     ));
-    if suffix == "" { return ResultRuntimeFactInvalid(type_name); }
+    if suffix == "" { return ResultRuntimeFactInvalid(canonical); }
     return ResultRuntimeFact(
-        true, type_name, UnwrapOption(payload), UnwrapOption(error),
+        true, canonical, UnwrapOption(payload), UnwrapOption(error),
         Concat("pgy_result_", suffix),
         Concat("pgy_result_ok_", suffix),
         Concat("pgy_result_err_", suffix),

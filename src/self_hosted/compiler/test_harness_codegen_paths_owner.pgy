@@ -75,6 +75,14 @@ func CompilerHarnessCodegenCyclicResultValueDeclarationRejectExpectedPath() -> S
     return "src/self_hosted/codegen/reject_expected/cyclic_result_value_declaration_stdout.txt";
 }
 
+func CompilerHarnessCodegenCyclicNestedOptionResultRejectSourcePath() -> String {
+    return "src/self_hosted/codegen/reject_fixture/cyclic_nested_option_result_value_declaration.pgy";
+}
+
+func CompilerHarnessCodegenCyclicNestedOptionResultRejectExpectedPath() -> String {
+    return "src/self_hosted/codegen/reject_expected/cyclic_nested_option_result_value_declaration_stdout.txt";
+}
+
 func CompilerHarnessAssignmentProjectionProbeSourcePath() -> String {
     return "src/self_hosted/tools/assignment_projection_probe/main.pgy";
 }
@@ -84,7 +92,7 @@ func CompilerHarnessAssignmentProjectionProbeExpectedPath() -> String {
 }
 
 func CompilerHarnessCodegenPathCount() -> Int {
-    return 19;
+    return 21;
 }
 
 func CompilerHarnessCodegenPathAt(index: Int) -> String {
@@ -119,11 +127,17 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 18 {
         return CompilerHarnessCodegenCyclicResultValueDeclarationRejectExpectedPath();
     }
+    if index == 19 {
+        return CompilerHarnessCodegenCyclicNestedOptionResultRejectSourcePath();
+    }
+    if index == 20 {
+        return CompilerHarnessCodegenCyclicNestedOptionResultRejectExpectedPath();
+    }
     return "";
 }
 
 func CompilerHarnessCodegenParityReady() -> Bool {
-    if CompilerHarnessCodegenPathCount() != 19 {
+    if CompilerHarnessCodegenPathCount() != 21 {
         return false;
     }
     let i: Int = 0;

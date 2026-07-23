@@ -1,0 +1,88 @@
+// Canonical by-value wrapper inventory for C declaration materialization.
+//
+// Semantic type surfaces may expose only the outer constructed type. This
+// owner recursively captures the concrete Option/Result nodes once so the
+// declaration graph never has to rediscover nested wrapper identity.
+
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../semantic/ast_type_surface_fact_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
+
+struct CodegenValueWrapperUsageFacts {
+    type_names: Array<String>;
+}
+
+func CodegenValueWrapperUsageContains(
+    type_names: Array<String>,
+    type_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(type_names) {
+        if type_names[i] == type_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenValueWrapperUsageCollectType(
+    type_name: String,
+    inout type_names: Array<String>
+) -> Void {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let option_payload: Option<String> = OptionPayloadTypeOpt(canonical);
+    if IsSome(option_payload) {
+        let payload: String = SemanticCanonicalTypeName(
+            UnwrapOption(option_payload)
+        );
+        if payload == "" || payload == "Unknown" { return; }
+        CodegenValueWrapperUsageCollectType(payload, type_names);
+        if !CodegenValueWrapperUsageContains(type_names, canonical) {
+            ArrayPush(type_names, canonical);
+        }
+        return;
+    }
+    let result_payload: Option<String> = ResultPayloadTypeOpt(canonical);
+    let result_error: Option<String> = ResultErrorTypeOpt(canonical);
+    if !IsSome(result_payload) || !IsSome(result_error) { return; }
+    let payload: String = SemanticCanonicalTypeName(
+        UnwrapOption(result_payload)
+    );
+    let error: String = SemanticCanonicalTypeName(UnwrapOption(result_error));
+    if payload == "" || payload == "Unknown" ||
+        error == "" || error == "Unknown" {
+        return;
+    }
+    CodegenValueWrapperUsageCollectType(payload, type_names);
+    CodegenValueWrapperUsageCollectType(error, type_names);
+    if !CodegenValueWrapperUsageContains(type_names, canonical) {
+        ArrayPush(type_names, canonical);
+    }
+}
+
+func CodegenValueWrapperUsageFactsFromSemantic(
+    facts: SemanticAstTypeSurfaceFacts
+) -> CodegenValueWrapperUsageFacts {
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let type_name: Option<String> =
+            SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(type_name) {
+            CodegenValueWrapperUsageCollectType(
+                UnwrapOption(type_name), type_names
+            );
+        }
+        i = i + 1;
+    }
+    return CodegenValueWrapperUsageFacts(type_names);
+}
+
+func CodegenValueWrapperUsageContractReady() -> Bool {
+    let type_names: Array<String> = [];
+    CodegenValueWrapperUsageCollectType(
+        " Option<Result<T: Payload,E: Failure>> ", type_names
+    );
+    return ArrayLength(type_names) == 2 &&
+        type_names[0] == "Result<Payload, Failure>" &&
+        type_names[1] == "Option<Result<Payload, Failure>>";
+}

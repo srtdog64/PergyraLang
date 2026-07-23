@@ -4,9 +4,10 @@ import "enum_emit_owner.pgy";
 import "function_emit.pgy";
 import "result_runtime_emit_owner.pgy";
 import "../text/text_owner.pgy";
-import "../input/result_usage_owner.pgy";
+import "../input/value_wrapper_usage_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 struct CodegenTypeDeclarationBlockFact {
@@ -50,8 +51,8 @@ func CodegenTypeDeclarationEnumIndexForName(
     return None;
 }
 
-func CodegenTypeDeclarationResultIndexForName(
-    facts: CodegenResultUsageFacts,
+func CodegenTypeDeclarationWrapperIndexForName(
+    facts: CodegenValueWrapperUsageFacts,
     name: String
 ) -> Option<Int> {
     let i: Int = 0;
@@ -66,35 +67,42 @@ func CodegenTypeDeclarationDependencyReady(
     type_name: String,
     nominal_facts: SemanticAstNominalConstructorFacts,
     enum_facts: SemanticAstEnumFacts,
-    result_facts: CodegenResultUsageFacts,
+    wrapper_facts: CodegenValueWrapperUsageFacts,
     nominal_emitted: Array<Int>,
     enum_emitted: Array<Int>,
-    result_emitted: Array<Int>
+    wrapper_emitted: Array<Int>
 ) -> Bool {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
     let option_inner: Option<String> =
-        OptionResultRuntimeOptionInnerTypeName(type_name);
+        OptionResultRuntimeOptionInnerTypeName(canonical);
     if IsSome(option_inner) {
-        return CodegenTypeDeclarationDependencyReady(
-            UnwrapOption(option_inner), nominal_facts, enum_facts, result_facts,
-            nominal_emitted, enum_emitted, result_emitted
-        );
-    }
-    let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
-    if result_fact.ok {
-        let result_index: Option<Int> =
-            CodegenTypeDeclarationResultIndexForName(result_facts, type_name);
-        if !IsSome(result_index) {
-            Die("Result declaration usage fact is missing");
+        let wrapper_index: Option<Int> =
+            CodegenTypeDeclarationWrapperIndexForName(
+                wrapper_facts, canonical
+            );
+        if !IsSome(wrapper_index) {
+            Die("constructed value declaration usage fact is missing");
         }
-        return result_emitted[UnwrapOption(result_index)] != 0;
+        return wrapper_emitted[UnwrapOption(wrapper_index)] != 0;
+    }
+    let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(canonical);
+    if result_fact.ok {
+        let wrapper_index: Option<Int> =
+            CodegenTypeDeclarationWrapperIndexForName(
+                wrapper_facts, canonical
+            );
+        if !IsSome(wrapper_index) {
+            Die("constructed value declaration usage fact is missing");
+        }
+        return wrapper_emitted[UnwrapOption(wrapper_index)] != 0;
     }
     let nominal_index: Option<Int> =
-        CodegenTypeDeclarationNominalIndexForName(nominal_facts, type_name);
+        CodegenTypeDeclarationNominalIndexForName(nominal_facts, canonical);
     if IsSome(nominal_index) {
         return nominal_emitted[UnwrapOption(nominal_index)] != 0;
     }
     let enum_index: Option<Int> =
-        CodegenTypeDeclarationEnumIndexForName(enum_facts, type_name);
+        CodegenTypeDeclarationEnumIndexForName(enum_facts, canonical);
     if IsSome(enum_index) {
         return enum_emitted[UnwrapOption(enum_index)] != 0;
     }
@@ -105,10 +113,10 @@ func CodegenNominalDeclarationDependenciesReady(
     nominal_index: Int,
     nominal_facts: SemanticAstNominalConstructorFacts,
     enum_facts: SemanticAstEnumFacts,
-    result_facts: CodegenResultUsageFacts,
+    wrapper_facts: CodegenValueWrapperUsageFacts,
     nominal_emitted: Array<Int>,
     enum_emitted: Array<Int>,
-    result_emitted: Array<Int>
+    wrapper_emitted: Array<Int>
 ) -> Bool {
     let field_count: Int = CodegenSemanticNominalFieldCountOrDie(
         nominal_facts, nominal_index
@@ -119,8 +127,8 @@ func CodegenNominalDeclarationDependenciesReady(
             nominal_facts, nominal_index, field_index
         );
         if !CodegenTypeDeclarationDependencyReady(
-            field_type, nominal_facts, enum_facts, result_facts,
-            nominal_emitted, enum_emitted, result_emitted
+            field_type, nominal_facts, enum_facts, wrapper_facts,
+            nominal_emitted, enum_emitted, wrapper_emitted
         ) {
             return false;
         }
@@ -133,10 +141,10 @@ func CodegenEnumDeclarationDependenciesReady(
     enum_index: Int,
     nominal_facts: SemanticAstNominalConstructorFacts,
     enum_facts: SemanticAstEnumFacts,
-    result_facts: CodegenResultUsageFacts,
+    wrapper_facts: CodegenValueWrapperUsageFacts,
     nominal_emitted: Array<Int>,
     enum_emitted: Array<Int>,
-    result_emitted: Array<Int>
+    wrapper_emitted: Array<Int>
 ) -> Bool {
     let enum_name: String = CodegenSemanticEnumNameAtOrDie(
         enum_facts, enum_index
@@ -160,8 +168,8 @@ func CodegenEnumDeclarationDependenciesReady(
                     enum_facts, enum_name, variant_name, payload_index
                 );
             if !CodegenTypeDeclarationDependencyReady(
-                payload_type, nominal_facts, enum_facts, result_facts,
-                nominal_emitted, enum_emitted, result_emitted
+                payload_type, nominal_facts, enum_facts, wrapper_facts,
+                nominal_emitted, enum_emitted, wrapper_emitted
             ) {
                 return false;
             }
@@ -172,54 +180,79 @@ func CodegenEnumDeclarationDependenciesReady(
     return true;
 }
 
-func CodegenResultDeclarationDependenciesReady(
-    result_index: Int,
-    result_facts: CodegenResultUsageFacts,
+func CodegenWrapperDeclarationDependenciesReady(
+    wrapper_index: Int,
+    wrapper_facts: CodegenValueWrapperUsageFacts,
     nominal_facts: SemanticAstNominalConstructorFacts,
     enum_facts: SemanticAstEnumFacts,
     nominal_emitted: Array<Int>,
     enum_emitted: Array<Int>,
-    result_emitted: Array<Int>
+    wrapper_emitted: Array<Int>
 ) -> Bool {
     let fact: ResultRuntimeFact = ResultRuntimeFactForType(
-        result_facts.type_names[result_index]
+        wrapper_facts.type_names[wrapper_index]
     );
-    if !fact.ok { Die("explicit Result<T, E> runtime fact is missing"); }
-    return CodegenTypeDeclarationDependencyReady(
-        fact.payload_type, nominal_facts, enum_facts, result_facts,
-        nominal_emitted, enum_emitted, result_emitted
-    ) && CodegenTypeDeclarationDependencyReady(
-        fact.error_type, nominal_facts, enum_facts, result_facts,
-        nominal_emitted, enum_emitted, result_emitted
-    );
+    if fact.ok {
+        return CodegenTypeDeclarationDependencyReady(
+            fact.payload_type, nominal_facts, enum_facts, wrapper_facts,
+            nominal_emitted, enum_emitted, wrapper_emitted
+        ) && CodegenTypeDeclarationDependencyReady(
+            fact.error_type, nominal_facts, enum_facts, wrapper_facts,
+            nominal_emitted, enum_emitted, wrapper_emitted
+        );
+    }
+    let option_inner: Option<String> =
+        OptionResultRuntimeOptionInnerTypeName(
+            wrapper_facts.type_names[wrapper_index]
+        );
+    if IsSome(option_inner) {
+        return CodegenTypeDeclarationDependencyReady(
+            UnwrapOption(option_inner), nominal_facts, enum_facts,
+            wrapper_facts, nominal_emitted, enum_emitted, wrapper_emitted
+        );
+    }
+    Die("constructed value declaration fact is invalid");
+    return false;
 }
 
-func CodegenTypeDeclarationNamedOptionDefinition(
-    name: String, env: String, required: Bool
+func CodegenWrapperDeclarationBlock(
+    type_name: String,
+    env: CodegenTypeEnv
 ) -> OptionStructDefinitionBlockFact {
-    let fact: OptionStructDefinitionBlockFact =
-        OptionResultRuntimeCNamedOptionDefinition(name, env);
-    if required && !fact.requires_bool_header {
-        Die("named Option declaration fact is missing");
+    let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
+    if result_fact.ok {
+        return OptionStructDefinitionBlockFact(
+            EmitResultRuntimeDefinition(type_name, env), true
+        );
     }
-    return fact;
+    if OptionResultRuntimeOptionPayloadKindForType(type_name) > 0 {
+        return OptionStructDefinitionBlockFact("", false);
+    }
+    let option_fact: OptionStructDefinitionBlockFact =
+        OptionResultRuntimeCValueOptionDefinition(
+            type_name, env.global_rows
+        );
+    if !option_fact.requires_bool_header {
+        Die("constructed Option declaration fact is missing");
+    }
+    return option_fact;
 }
 
 func CollectTypeDeclarations(
     enum_facts: SemanticAstEnumFacts,
     nominal_facts: SemanticAstNominalConstructorFacts,
-    result_facts: CodegenResultUsageFacts,
+    wrapper_facts: CodegenValueWrapperUsageFacts,
     inout env_box: Array<String>
 ) -> CodegenTypeDeclarationBlockFact {
     let enum_count: Int = SemanticAstEnumCount(enum_facts);
     let nominal_count: Int = SemanticAstNominalConstructorCount(nominal_facts);
-    let result_count: Int = ArrayLength(result_facts.type_names);
+    let wrapper_count: Int = ArrayLength(wrapper_facts.type_names);
     let enum_emitted: Array<Int> = CodegenTypeDeclarationZeroMask(enum_count);
     let nominal_emitted: Array<Int> =
         CodegenTypeDeclarationZeroMask(nominal_count);
-    let result_emitted: Array<Int> =
-        CodegenTypeDeclarationZeroMask(result_count);
-    let remaining: Int = enum_count + nominal_count + result_count;
+    let wrapper_emitted: Array<Int> =
+        CodegenTypeDeclarationZeroMask(wrapper_count);
+    let remaining: Int = enum_count + nominal_count + wrapper_count;
     let blocks: Array<String> = [];
     let requires_bool_header: Bool = false;
     while remaining > 0 {
@@ -231,8 +264,8 @@ func CollectTypeDeclarations(
         while enum_index < enum_count {
             if enum_emitted[enum_index] == 0 &&
                 CodegenEnumDeclarationDependenciesReady(
-                    enum_index, nominal_facts, enum_facts, result_facts,
-                    nominal_emitted, enum_emitted, result_emitted
+                    enum_index, nominal_facts, enum_facts, wrapper_facts,
+                    nominal_emitted, enum_emitted, wrapper_emitted
                 ) {
                 ArraySet(enum_selected, enum_index, 1);
                 enum_selected_count = enum_selected_count + 1;
@@ -247,19 +280,6 @@ func CollectTypeDeclarations(
             while enum_index < enum_count {
                 if enum_selected[enum_index] != 0 {
                     ArraySet(enum_emitted, enum_index, 1);
-                    let enum_name: String = CodegenSemanticEnumNameAtOrDie(
-                        enum_facts, enum_index
-                    );
-                    let option_definition: OptionStructDefinitionBlockFact =
-                        CodegenTypeDeclarationNamedOptionDefinition(
-                            enum_name, env_box[0], LookupKindTypeRows(
-                                env_box[0], enum_name, "enum"
-                            ) == "tagged"
-                        );
-                    if option_definition.requires_bool_header {
-                        ArrayPush(blocks, option_definition.c_block);
-                        requires_bool_header = true;
-                    }
                 }
                 enum_index = enum_index + 1;
             }
@@ -274,8 +294,8 @@ func CollectTypeDeclarations(
         while nominal_index < nominal_count {
             if nominal_emitted[nominal_index] == 0 &&
                 CodegenNominalDeclarationDependenciesReady(
-                    nominal_index, nominal_facts, enum_facts, result_facts,
-                    nominal_emitted, enum_emitted, result_emitted
+                    nominal_index, nominal_facts, enum_facts, wrapper_facts,
+                    nominal_emitted, enum_emitted, wrapper_emitted
                 ) {
                 ArraySet(nominal_selected, nominal_index, 1);
                 nominal_selected_count = nominal_selected_count + 1;
@@ -290,38 +310,35 @@ func CollectTypeDeclarations(
             while nominal_index < nominal_count {
                 if nominal_selected[nominal_index] != 0 {
                     ArraySet(nominal_emitted, nominal_index, 1);
-                    let option_definition: OptionStructDefinitionBlockFact =
-                        CodegenTypeDeclarationNamedOptionDefinition(
-                            CodegenSemanticNominalNameOrDie(
-                                nominal_facts, nominal_index
-                            ), env_box[0], true
-                        );
-                    if option_definition.requires_bool_header {
-                        ArrayPush(blocks, option_definition.c_block);
-                        requires_bool_header = true;
-                    }
                 }
                 nominal_index = nominal_index + 1;
             }
             remaining = remaining - nominal_selected_count;
             made_progress = true;
         }
-        let result_index: Int = 0;
-        while result_index < result_count {
-            if result_emitted[result_index] == 0 &&
-                CodegenResultDeclarationDependenciesReady(
-                    result_index, result_facts, nominal_facts, enum_facts,
-                    nominal_emitted, enum_emitted, result_emitted
+        let wrapper_index: Int = 0;
+        while wrapper_index < wrapper_count {
+            if wrapper_emitted[wrapper_index] == 0 &&
+                CodegenWrapperDeclarationDependenciesReady(
+                    wrapper_index, wrapper_facts, nominal_facts, enum_facts,
+                    nominal_emitted, enum_emitted, wrapper_emitted
                 ) {
-                ArrayPush(blocks, EmitResultRuntimeDefinition(
-                    result_facts.type_names[result_index],
-                    CodegenTypeEnv(env_box[0], "")
-                ));
-                ArraySet(result_emitted, result_index, 1);
+                let wrapper_block: OptionStructDefinitionBlockFact =
+                    CodegenWrapperDeclarationBlock(
+                        wrapper_facts.type_names[wrapper_index],
+                        CodegenTypeEnv(env_box[0], "")
+                    );
+                if wrapper_block.c_block != "" {
+                    ArrayPush(blocks, wrapper_block.c_block);
+                }
+                if wrapper_block.requires_bool_header {
+                    requires_bool_header = true;
+                }
+                ArraySet(wrapper_emitted, wrapper_index, 1);
                 remaining = remaining - 1;
                 made_progress = true;
             }
-            result_index = result_index + 1;
+            wrapper_index = wrapper_index + 1;
         }
         if !made_progress {
             Die("cyclic by-value type declaration dependency");

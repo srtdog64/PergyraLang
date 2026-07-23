@@ -3,10 +3,15 @@
 // Self-host C Option/Result runtime symbol facts for the supported codegen subset.
 
 import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "result_runtime_owner.pgy";
 
 struct OptionStructRuntimeFact {
     let inner_type_name: String;
+    let inner_c_type: String;
     let c_type: String;
     let some_fn: String;
     let none_fn: String;
@@ -61,37 +66,27 @@ func OptionResultRuntimeOptionPayloadKindFromExprKind(kind: String) -> Int {
 }
 
 func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
-    if type_name == "Option<String>" {
+    let inner: Option<String> = OptionResultRuntimeOptionInnerTypeName(
+        type_name
+    );
+    if !IsSome(inner) { return 0; }
+    let payload: String = UnwrapOption(inner);
+    if payload == "String" {
         return OptionResultRuntimeOptionPayloadKindString();
     }
-    if type_name == "Option<String: String>" {
-        return OptionResultRuntimeOptionPayloadKindString();
-    }
-    if type_name == "Option<Int>" {
+    if payload == "Int" {
         return OptionResultRuntimeOptionPayloadKindInt();
     }
-    if type_name == "Option<Int: Int>" {
+    if payload == "Long" {
         return OptionResultRuntimeOptionPayloadKindInt();
     }
-    if type_name == "Option<Long>" {
-        return OptionResultRuntimeOptionPayloadKindInt();
-    }
-    if type_name == "Option<Long: Long>" {
-        return OptionResultRuntimeOptionPayloadKindInt();
-    }
-    if type_name == "Option<Float>" {
+    if payload == "Float" {
         return OptionResultRuntimeOptionPayloadKindFloat();
     }
-    if type_name == "Option<Float: Float>" {
-        return OptionResultRuntimeOptionPayloadKindFloat();
-    }
-    if type_name == "Option<Double>" {
+    if payload == "Double" {
         return OptionResultRuntimeOptionPayloadKindDouble();
     }
-    if type_name == "Option<Double: Double>" {
-        return OptionResultRuntimeOptionPayloadKindDouble();
-    }
-    if type_name == "Option<Bool>" || type_name == "Option<Bool: Bool>" {
+    if payload == "Bool" {
         return OptionResultRuntimeOptionPayloadKindBool();
     }
     return 0;
@@ -100,39 +95,66 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
 func OptionResultRuntimeOptionInnerTypeName(
     type_name: String
 ) -> Option<String> {
-    let n: Int = StringLength(type_name);
-    if !StartsWith(type_name, "Option<") || n < 9 {
-        return None;
-    }
-    let inner: String = StringTrim(Substring(type_name, 7, n - 8));
-    let colon: Int = StringIndexOf(inner, ":");
-    if colon >= 0 {
-        inner = StringTrim(Substring(inner, 0, colon));
-    }
-    if StringLength(inner) == 0 {
-        return None;
-    }
-    return Some(inner);
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let inner: Option<String> = OptionPayloadTypeOpt(canonical);
+    if !IsSome(inner) || UnwrapOption(inner) == "" { return None; }
+    return Some(SemanticCanonicalTypeName(UnwrapOption(inner)));
 }
 
-func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Option<OptionStructRuntimeFact> {
+func OptionResultRuntimeStructOptionFact(
+    type_name: String,
+    env: String
+) -> Option<OptionStructRuntimeFact> {
     let inner_opt: Option<String> =
         OptionResultRuntimeOptionInnerTypeName(type_name);
     if !IsSome(inner_opt) {
         return None;
     }
     let inner: String = UnwrapOption(inner_opt);
+    let inner_c_type: String = "";
     let is_struct: Bool = LookupKindTypeRows(env, inner, "s") == "struct";
     let is_tagged_enum: Bool =
         LookupKindTypeRows(env, inner, "enum") == "tagged";
-    if !is_struct && !is_tagged_enum {
-        return None;
+    if is_struct || is_tagged_enum {
+        inner_c_type = CompilerSymbolCTypeName(inner);
+    } else {
+        let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(inner);
+        if result_fact.ok {
+            inner_c_type = result_fact.c_type;
+        } else {
+            let nested_option: Option<OptionStructRuntimeFact> =
+                OptionResultRuntimeStructOptionFact(inner, env);
+            if IsSome(nested_option) {
+                inner_c_type = UnwrapOption(nested_option).c_type;
+            } else {
+                let scalar_kind: Int =
+                    OptionResultRuntimeOptionPayloadKindForType(inner);
+                if scalar_kind == OptionResultRuntimeOptionPayloadKindInt() {
+                    inner_c_type = CompilerAbiLayoutOptionIntCValueType();
+                } else if scalar_kind ==
+                    OptionResultRuntimeOptionPayloadKindString() {
+                    inner_c_type = CompilerAbiLayoutOptionStringCValueType();
+                } else if scalar_kind ==
+                    OptionResultRuntimeOptionPayloadKindFloat() {
+                    inner_c_type = CompilerAbiLayoutOptionFloatCValueType();
+                } else if scalar_kind ==
+                    OptionResultRuntimeOptionPayloadKindDouble() {
+                    inner_c_type = CompilerAbiLayoutOptionDoubleCValueType();
+                } else if scalar_kind ==
+                    OptionResultRuntimeOptionPayloadKindBool() {
+                    inner_c_type = CompilerAbiLayoutOptionBoolCValueType();
+                } else {
+                    return None;
+                }
+            }
+        }
     }
+    let suffix: String = CompilerSymbolCMangledTypeName(inner);
     return Some(OptionStructRuntimeFact(
-        inner,
-        Concat("pgy_option_", inner),
-        Concat("pgy_option_some_", inner),
-        Concat("pgy_option_none_", inner)));
+        inner, inner_c_type,
+        Concat("pgy_option_", suffix),
+        Concat("pgy_option_some_", suffix),
+        Concat("pgy_option_none_", suffix)));
 }
 
 func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
@@ -258,13 +280,10 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
     return "";
 }
 
-func OptionResultRuntimeCNamedOptionDefinition(
-    inner_type_name: String,
+func OptionResultRuntimeCValueOptionDefinition(
+    option_type_name: String,
     env: String
 ) -> OptionStructDefinitionBlockFact {
-    let option_type_name: String = Concat(
-        "Option<", Concat(inner_type_name, ">")
-    );
     let runtime_fact_opt: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(option_type_name, env);
     if !IsSome(runtime_fact_opt) {
@@ -272,16 +291,17 @@ func OptionResultRuntimeCNamedOptionDefinition(
     }
     let runtime_fact: OptionStructRuntimeFact =
         UnwrapOption(runtime_fact_opt);
+    let inner_c_type: String = runtime_fact.inner_c_type;
     let out: String = Concat(
         "typedef struct { bool is_some; ",
-        Concat(inner_type_name, Concat(
+        Concat(inner_c_type, Concat(
             " value; } ", Concat(runtime_fact.c_type, ";\n")
         ))
     );
     out = Concat(out, Concat(
         "static ", Concat(runtime_fact.c_type, Concat(
             " ", Concat(runtime_fact.some_fn, Concat(
-                "(", Concat(inner_type_name, Concat(
+                "(", Concat(inner_c_type, Concat(
                     " v) { ", Concat(runtime_fact.c_type,
                     " o; o.is_some = true; o.value = v; return o; }\n")
                 ))
@@ -291,7 +311,7 @@ func OptionResultRuntimeCNamedOptionDefinition(
     out = Concat(out, Concat(
         "static ", Concat(runtime_fact.c_type, Concat(
             " ", Concat(runtime_fact.none_fn, Concat(
-                "(void) { ", Concat(inner_type_name, Concat(
+                "(void) { ", Concat(inner_c_type, Concat(
                     " z = {0}; ", Concat(runtime_fact.c_type,
                     " o; o.is_some = false; o.value = z; return o; }\n")
                 ))

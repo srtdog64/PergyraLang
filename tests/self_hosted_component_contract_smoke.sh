@@ -3824,9 +3824,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 253;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 254;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 253'
+    'mir_fixture_rows[@]}" -ne 254'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4175,11 +4175,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 253;"
+    "return 254;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 253'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 254'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -5297,22 +5297,37 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "facts: SemanticAstEnumFacts"
 require_file "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" 360
+require_file "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy"
+require_max_lines "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" 120
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "func CodegenValueWrapperUsageCollectType("
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "SemanticCanonicalTypeName(type_name)"
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    'type_names[0] == "Result<Payload, Failure>"'
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    'type_names[1] == "Option<Result<Payload, Failure>>"'
+reject_file "src/self_hosted/codegen/input/result_usage_owner.pgy"
+reject_regex_under "src/self_hosted/codegen/input" \
+    "CodegenTypeUsageFactsFromArena"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "CodegenResultUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "func CollectTypeDeclarations("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "struct CodegenTypeDeclarationBlockFact"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
-    "OptionResultRuntimeOptionInnerTypeName(type_name)"
+    "OptionResultRuntimeOptionInnerTypeName(canonical)"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
-    "OptionResultRuntimeCNamedOptionDefinition(name, env)"
+    "CodegenWrapperDeclarationDependenciesReady("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
-    "named Option declaration fact is missing"
+    "constructed Option declaration fact is missing"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "CodegenSemanticEnumVariantPayloadTypeAtOrDie("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "CodegenSemanticNominalFieldTypeOrDie("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
-    "CodegenResultDeclarationDependenciesReady("
+    "CodegenWrapperDeclarationBlock("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "EmitResultRuntimeDefinition("
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
@@ -5333,6 +5348,10 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "CollectStructs(semantic_analysis.constructors, env_acc)"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "EmitResultRuntimeDefinitions("
+reject_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
+    "CodegenTypeDeclarationNamedOptionDefinition("
+reject_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
+    "CodegenTypeDeclarationResultIndexForName("
 require_file "src/codegen/transpiler_type_decl_schedule.h"
 require_file "src/codegen/transpiler_type_decl_schedule.c"
 require_text "Makefile" "transpiler_type_decl_schedule.c"
@@ -5348,6 +5367,12 @@ require_text "src/codegen/transpiler_type_decl_schedule.c" \
     "transpiler_type_name_is_result(type_name)"
 require_text "src/codegen/transpiler_type_decl_schedule.c" \
     "transpiler_type_name_is_option(type_name)"
+require_text "src/codegen/transpiler_type_mapping.c" \
+    'transpiler_type_name_join(out, out_size, "PgyOption_", suffix)'
+reject_text "src/codegen/transpiler_type_mapping.c" \
+    'transpiler_type_name_join(out, out_size, "PgyOption_", inner)'
+require_text "src/codegen/transpiler_option_context.c" \
+    "sanitize_c_suffix(inner, suffix, sizeof(suffix))"
 require_text "src/codegen/transpiler_type_decl_schedule.c" \
     "cyclic by-value type declaration dependency"
 require_text "src/codegen/transpiler_type_decl_schedule.c" \
@@ -6786,7 +6811,14 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "requires_bool_header: Bool;"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeStructOptionFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionInnerTypeName"
-require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCNamedOptionDefinition"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCValueOptionDefinition"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "inner_c_type: String;"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    "SemanticCanonicalTypeName(type_name)"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    "CompilerSymbolCMangledTypeName(inner)"
+reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    "func OptionResultRuntimeCNamedOptionDefinition"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
     'LookupKindTypeRows(env, inner, "enum") == "tagged"'
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
@@ -7833,7 +7865,11 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
     "func CompilerHarnessCodegenCyclicResultValueDeclarationRejectSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
     "func CompilerHarnessCodegenCyclicResultValueDeclarationRejectExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 19;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "func CompilerHarnessCodegenCyclicNestedOptionResultRejectSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "func CompilerHarnessCodegenCyclicNestedOptionResultRejectExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 21;"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
     "CompilerHarnessCodegenRefTemporaryRejectSourcePath()"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
@@ -9238,10 +9274,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 83 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 83"
-[[ "$codegen_expected_count" -eq 83 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 83"
+[[ "$codegen_fixture_count" -eq 84 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 84"
+[[ "$codegen_expected_count" -eq 84 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 84"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -9255,7 +9291,7 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 83;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 84;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
@@ -9302,6 +9338,10 @@ require_file "src/self_hosted/codegen/fixture/result_nominal_field_declaration.p
 require_file "src/self_hosted/codegen/expected/result_nominal_field_declaration_stdout.txt"
 require_text "src/self_hosted/codegen/fixture/result_nominal_field_declaration.pgy" \
     "outcome: Result<Payload, Failure>;"
+require_file "src/self_hosted/codegen/fixture/nested_option_result_field_declaration.pgy"
+require_file "src/self_hosted/codegen/expected/nested_option_result_field_declaration_stdout.txt"
+require_text "src/self_hosted/codegen/fixture/nested_option_result_field_declaration.pgy" \
+    "outcome: Option<Result<Payload, Failure>>;"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
 require_text "tests/self_hosted/parity/codegen_parity.sh" "pgy_selfhost_read_test_harness_manifest"
@@ -9325,6 +9365,10 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" \
     'CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE="$ROOT_DIR/${harness_paths[17]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" \
     'CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[18]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    'CYCLIC_NESTED_OPTION_RESULT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[19]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    'CYCLIC_NESTED_OPTION_RESULT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[20]}"'
 require_file "src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy"
 require_file "src/self_hosted/codegen/reject_expected/tagged_enum_equality_stdout.txt"
 require_file "src/self_hosted/codegen/reject_fixture/event_decl.pgy"
@@ -9345,10 +9389,18 @@ require_text "src/self_hosted/codegen/reject_fixture/cyclic_result_value_declara
     "next: Result<Loop, Failure>;"
 require_text "src/self_hosted/codegen/reject_expected/cyclic_result_value_declaration_stdout.txt" \
     "cyclic by-value type declaration dependency"
+require_file "src/self_hosted/codegen/reject_fixture/cyclic_nested_option_result_value_declaration.pgy"
+require_file "src/self_hosted/codegen/reject_expected/cyclic_nested_option_result_value_declaration_stdout.txt"
+require_text "src/self_hosted/codegen/reject_fixture/cyclic_nested_option_result_value_declaration.pgy" \
+    "next: Option<Result<Loop, Failure>>;"
+require_text "src/self_hosted/codegen/reject_expected/cyclic_nested_option_result_value_declaration_stdout.txt" \
+    "cyclic by-value type declaration dependency"
 require_text "tests/self_hosted/parity/codegen_parity.sh" \
     "cyclic_value_declarations_reject"
 require_text "tests/self_hosted/parity/codegen_parity.sh" \
     "cyclic_result_value_declaration_reject"
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    "cyclic_nested_option_result_value_declaration_reject"
 require_text "tests/self_hosted/parity/codegen_parity.sh" \
     "run_native_cyclic_declaration_reject"
 require_text "tests/self_hosted/parity/codegen_parity.sh" \

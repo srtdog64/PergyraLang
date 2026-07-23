@@ -590,8 +590,9 @@ inventory must not become a second fact-family owner registry.
   nominal-record array usage facts derived from semantic type surfaces and the
   codegen type environment.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
-- `src/self_hosted/codegen/input/result_usage_owner.pgy` -- explicit
-  `Result<T, E>` runtime type inventory derived from semantic type surfaces.
+- `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy` -- canonical
+  recursive by-value Option/Result wrapper inventory derived from semantic type
+  surfaces.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
@@ -973,6 +974,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/reject_fixture/cyclic_result_value_declaration.pgy`
   -- TestHarness-owned negative artifact proving a nominal-to-Result-to-nominal
   by-value cycle fails closed in both declaration schedulers.
+- `src/self_hosted/codegen/reject_fixture/cyclic_nested_option_result_value_declaration.pgy`
+  -- TestHarness-owned negative artifact proving a nested
+  nominal-to-Option-to-Result-to-nominal by-value cycle fails closed in both
+  declaration schedulers.
 - `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
   positive role operator artifact proving role target and method identity rows
   through C/LLVM codegen parity.

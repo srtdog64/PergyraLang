@@ -54,6 +54,7 @@ char *
 transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
 {
     char inner_buf[128];
+    char suffix[128];
     const char *inner = NULL;
     if (transpiler_contextual_option_inner_type_copy(ctx, inner_buf,
             sizeof(inner_buf))) {
@@ -68,5 +69,14 @@ transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
         (void)site;
         return NULL;
     }
-    return strdup_fmt("None_%s()", inner);
+    if (!sanitize_c_suffix(inner, suffix, sizeof(suffix))) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "None requires a C-safe concrete Option<T> suffix");
+        (void)site;
+        return NULL;
+    }
+    return strdup_fmt("None_%s()", suffix);
 }

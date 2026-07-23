@@ -192,6 +192,10 @@ func CompilerSymbolCMangledTypeName(type_name: String) -> String {
         }
         i = i + 1;
     }
+    while StringLength(out) > 0 &&
+        CompilerSymbolCharAt(out, StringLength(out) - 1) == "_" {
+        out = Substring(out, 0, StringLength(out) - 1);
+    }
     if !wrote { return "Type"; }
     return out;
 }

@@ -2,17 +2,20 @@
 
 import "array_type_shape_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
 
 func IsOptionType(type_name: String) -> Bool {
-    let n: Int = StringLength(type_name);
-    return n >= 9 && Substring(type_name, 0, 7) == "Option<" &&
-        CharAt(type_name, n - 1) == ">";
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let n: Int = StringLength(canonical);
+    return n >= 9 && Substring(canonical, 0, 7) == "Option<" &&
+        CharAt(canonical, n - 1) == ">";
 }
 
 func IsResultType(type_name: String) -> Bool {
-    let n: Int = StringLength(type_name);
-    return n >= 9 && Substring(type_name, 0, 7) == "Result<" &&
-        CharAt(type_name, n - 1) == ">";
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let n: Int = StringLength(canonical);
+    return n >= 9 && Substring(canonical, 0, 7) == "Result<" &&
+        CharAt(canonical, n - 1) == ">";
 }
 
 func BoxPayloadTypeOpt(type_name: String) -> Option<String> {
@@ -49,8 +52,11 @@ func BoxArrayElementTypeOpt(type_name: String) -> Option<String> {
 }
 
 func OptionPayloadTypeOpt(type_name: String) -> Option<String> {
-    if !IsOptionType(type_name) { return None; }
-    return Some(Substring(type_name, 7, StringLength(type_name) - 8));
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if !IsOptionType(canonical) { return None; }
+    return Some(SemanticCanonicalTypeName(
+        Substring(canonical, 7, StringLength(canonical) - 8)
+    ));
 }
 
 func OptionCoalescePayloadTypeOpt(
@@ -69,9 +75,10 @@ func ResultTypeArgumentOpt(
     type_name: String,
     index: Int
 ) -> Option<String> {
-    if !IsResultType(type_name) { return None; }
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if !IsResultType(canonical) { return None; }
     let inner: String = Substring(
-        type_name, 7, StringLength(type_name) - 8
+        canonical, 7, StringLength(canonical) - 8
     );
     let arguments: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(inner);
@@ -83,7 +90,7 @@ func ResultTypeArgumentOpt(
         arguments, inner, index
     );
     if argument == "" { return None; }
-    return Some(argument);
+    return Some(SemanticCanonicalTypeName(argument));
 }
 
 func ResultPayloadTypeOpt(type_name: String) -> Option<String> {

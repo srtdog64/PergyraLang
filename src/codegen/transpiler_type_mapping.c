@@ -507,7 +507,9 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         if (type_arg_name_is_unknown(inner)
             || type_arg_name_is_void(inner))
             return false;
-        return transpiler_type_name_join(out, out_size, "PgyOption_", inner);
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
+        return transpiler_type_name_join(out, out_size, "PgyOption_", suffix);
     }
     if (name[0] == '(') {
         size_t off;

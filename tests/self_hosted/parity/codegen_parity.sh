@@ -90,8 +90,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 19 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 19 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 21 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 21 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -112,6 +112,8 @@ CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE="$ROOT_DIR/${harness_paths[15]}"
 CYCLIC_VALUE_DECLARATIONS_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[16]}"
 CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE="$ROOT_DIR/${harness_paths[17]}"
 CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[18]}"
+CYCLIC_NESTED_OPTION_RESULT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[19]}"
+CYCLIC_NESTED_OPTION_RESULT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[20]}"
 
 for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
     "$TAGGED_ENUM_EQUALITY_REJECT_SOURCE" \
@@ -121,7 +123,9 @@ for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
     "$CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE" \
     "$CYCLIC_VALUE_DECLARATIONS_REJECT_EXPECTED" \
     "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE" \
-    "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED"; do
+    "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED" \
+    "$CYCLIC_NESTED_OPTION_RESULT_REJECT_SOURCE" \
+    "$CYCLIC_NESTED_OPTION_RESULT_REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -523,6 +527,9 @@ run_native_cyclic_declaration_reject \
 run_native_cyclic_declaration_reject \
     "cyclic_result_value_declaration" \
     "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE"
+run_native_cyclic_declaration_reject \
+    "cyclic_nested_option_result_value_declaration" \
+    "$CYCLIC_NESTED_OPTION_RESULT_REJECT_SOURCE"
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
@@ -565,6 +572,12 @@ for backend in $BACKENDS; do
         "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE" \
         "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED" \
         "cyclic Result value declaration"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" \
+        "cyclic_nested_option_result_value_declaration_reject" \
+        "$CYCLIC_NESTED_OPTION_RESULT_REJECT_SOURCE" \
+        "$CYCLIC_NESTED_OPTION_RESULT_REJECT_EXPECTED" \
+        "cyclic nested Option<Result> value declaration"
     run_role_operator_parity "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done

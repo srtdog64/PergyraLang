@@ -1,0 +1,10 @@
+enum Failure { Timeout, Reset }
+class Payload { let value: Int; }
+class Envelope {
+    let outcome: Option<Result<Payload, Failure>>;
+    let bias: Int;
+}
+
+func Main() -> Void {
+    Log(0);
+}

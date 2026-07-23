@@ -372,14 +372,14 @@ func GenerateCUnitFromSemanticFacts(
     let env_acc: Array<String> = [BuildFunctionEnv(
         signatures, specializations
     )];
-    let result_types: CodegenResultUsageFacts =
-        CodegenResultUsageFactsFromSemantic(
+    let value_wrappers: CodegenValueWrapperUsageFacts =
+        CodegenValueWrapperUsageFactsFromSemantic(
             semantic_analysis.type_surfaces
         );
     let type_declaration_fact: CodegenTypeDeclarationBlockFact =
         CollectTypeDeclarations(
         semantic_analysis.enums, semantic_analysis.constructors,
-        result_types, env_acc
+        value_wrappers, env_acc
         );
     let type_declaration_block: String = type_declaration_fact.c_block;
     CollectRoleOperators(semantic_analysis.roles, signatures, env_acc);
@@ -391,7 +391,7 @@ func GenerateCUnitFromSemanticFacts(
             semantic_analysis.kind_surfaces,
             signatures,
             specializations,
-            result_types,
+            value_wrappers,
             base_env
         );
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }

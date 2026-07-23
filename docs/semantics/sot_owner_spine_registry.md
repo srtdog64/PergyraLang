@@ -77,7 +77,7 @@ selfhost.iteration_type_verdict | semantic | SyntaxNodeId | SFIterationTypeVerdi
 selfhost.assignment_type_verdict | semantic | SyntaxNodeId | SFAssignmentTypeVerdict | SOSemanticAssignmentType | src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy | SemanticAstAssignmentTypeFacts | src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy,src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy | source_assignment_type_rescan,backend_assignment_type_guess,missing_expected_type_success | tests/self_hosted/parity/assignment_projection_probe_parity.sh#missing-expected-type | CLOSED | none
 selfhost.call_target_identity | semantic | SyntaxNodeId | SFCallTargetIdentity | SOSemanticCallTarget | src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy | SemanticExpressionCallTargetFact | src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy,src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy,src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy,src/self_hosted/mir/expression_graph_fact_owner.pgy,src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy,src/self_hosted/compiler/driver_rung2_owner.pgy | callee_text_as_final_identity,namespace_name_join_fallback,codegen_receiver_type_method_join | tests/self_hosted/parity/initializer_projection_probe_parity.sh#missing-carried-direct-target | CLOSED | none
 selfhost.expression_place_kind | semantic | SyntaxNodeId | SFExpressionPlaceKind | SOSemanticExpressionPlace | src/self_hosted/semantic/ast_expression_place_fact_owner.pgy | SemanticAstAnalysisResolveExpressionPlacesFromBody | src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy | expr_semantic_addressability_owner.pgy,CodegenExpressionAddressabilityFromGraph,codegen_cbind_addressability_recovery | tests/self_hosted_component_contract_smoke.sh#func SemanticAstBodyTypeBundleMissingPlaceContractReady( | CLOSED | none
-selfhost.type_runtime_usage_surface | semantic | SyntaxNodeId | SFTypeRuntimeUsageSurface | SOSemanticTypeSurface | src/self_hosted/semantic/ast_type_surface_fact_owner.pgy | SemanticAstTypeSurfaceFacts | src/self_hosted/codegen/input/ast_type_usage_owner.pgy,src/self_hosted/codegen/input/result_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy,src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy | TypedAstArenaTypeName,CodegenAstArenaTypeFactPresent,CodegenTypeUsageFactsFromArena,EmitResultRuntimeDefinitions | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok,tests/self_hosted_component_contract_smoke.sh#result_nominal_field_declaration | CLOSED | none
+selfhost.type_runtime_usage_surface | semantic | SyntaxNodeId | SFTypeRuntimeUsageSurface | SOSemanticTypeSurface | src/self_hosted/semantic/ast_type_surface_fact_owner.pgy | SemanticAstTypeSurfaceFacts | src/self_hosted/codegen/input/ast_type_usage_owner.pgy,src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy,src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy | TypedAstArenaTypeName,CodegenAstArenaTypeFactPresent,CodegenTypeUsageFactsFromArena,CodegenValueWrapperUsageFactsFromSemantic,EmitResultRuntimeDefinition,OptionResultRuntimeCValueOptionDefinition | tests/self_hosted_component_contract_smoke.sh#nested_option_result_field_declaration,tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.node_kind_surface | semantic | SyntaxNodeId | SFNodeKindSurface | SOSemanticKindSurface | src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy | SemanticAstKindSurfaceFacts | src/self_hosted/codegen/input/ast_kind_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | TypedAstArenaNodeKindIs,CodegenAstArenaKindPresent,CodegenKindUsageFactsFromArena,CodegenAstKindArrayLiteral,CodegenAstArenaIsAbilityDecl,CodegenAstArenaIsEventDecl | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.entrypoint_selection | semantic | SyntaxNodeId | SFEntrypointSelection | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | SemanticAstArtifactIsMainFunction,CodegenAstArenaIsMainFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.function_declaration_rows | semantic | SyntaxNodeId | SFFunctionDeclarationRows | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
@@ -166,20 +166,22 @@ structure and its operand edge only. Payload type classification remains in the
 expression-surface `BRIDGE`, and the compact legacy/native canonicalization
 bridge must reproduce the same graph but is not hard-codegen authority.
 
-Explicit `Result<T,E>` C materialization is a derived projection of
+Concrete Option/Result C materialization is a derived projection of
 `selfhost.type_runtime_usage_surface` and `abi.layout_rows`, not a new ABI
-authority. Semantic type usage inventories each concrete pair once;
+authority. The canonical recursive value-wrapper inventory captures nested
+Option/Result nodes once from semantic type usage;
 `ResultRuntimeFactForType` owns its tagged C type and constructor/query/unwrap
-symbols; and result runtime, local, return, call, and composite-literal emitters
-consume that fact. When an explicit Result is stored by value in a nominal or
-enum declaration, `type_declaration_emit_owner.pgy` consumes the same inventory
-as a declaration node depending on both payload and error types. The bootstrap
-C scheduler mirrors those wrapper dependencies from MIR field/payload type
-names. A post-hoc `EmitResultRuntimeDefinitions(...)` pass is forbidden.
-`result_nominal_field_declaration` and the cyclic Result declaration reject are
-the positive and negative placement witnesses. `dish_result_collect` remains
-the executable value-flow witness for `Result<Dish,CookErr>` and its missing-
-binding-type mutation. Native C does not gain a parallel Result inference path.
+symbols; Option runtime facts consume canonical inner C value facts and the
+shared C symbol projection. `type_declaration_emit_owner.pgy` consumes the same
+inventory as declaration nodes, including wrapper-to-wrapper edges. The
+bootstrap C scheduler mirrors those dependencies from MIR field/payload type
+names. A Result-only inventory, nominal-triggered Option generation, and a
+post-hoc `EmitResultRuntimeDefinitions(...)` pass are forbidden.
+`nested_option_result_field_declaration` and the nested cyclic declaration
+reject are the current placement witnesses. `dish_result_collect` remains the
+executable value-flow witness for `Result<Dish,CookErr>` and its missing-
+binding-type mutation. Native C does not gain a parallel wrapper inference
+path.
 
 For `abi.runtime_call_rows`, the declared owner remains `SFAbiRuntimeCallRows`
 under `SOMirAbi`. The current stable-identity sub-rung is executable: MIR
