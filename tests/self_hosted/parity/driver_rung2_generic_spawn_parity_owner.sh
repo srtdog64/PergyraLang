@@ -2,13 +2,13 @@
 # Owns generic-call specialization carriage through spawn and await.
 
 pgy_selfhost_generic_spawn_reject_string_mutation() {
-    local backend="$1" driver_bin="$2" source="$3"
-    local mutated="$BUILD_DIR/generic_future_spawn_int_${backend}.string.pgy"
+    local backend="$1" driver_bin="$2" source="$3" base="$4"
+    local from="$5" to="$6"
+    local mutated="$BUILD_DIR/${base}_${backend}.string.pgy"
     local self_out="$mutated.self.out" self_err="$mutated.self.err"
     local oracle_bin="$mutated.oracle.exe" oracle_log="$mutated.oracle.log"
 
-    pgy_replace_first_literal "$source" "$mutated" \
-        'spawn Identity(42)' 'spawn Identity("bad")'
+    pgy_replace_first_literal "$source" "$mutated" "$from" "$to"
     if (cd "$ROOT_DIR" && "$driver_bin" \
         "$(pgy_selfhost_path_relative_to_root "$mutated")" \
         --emit-c-verified >"$self_out" 2>"$self_err"); then
@@ -54,10 +54,15 @@ pgy_selfhost_verify_driver_rung2_generic_spawn() {
             exit 1
         }
     done
+    source="$ROOT_DIR/tests/cases/backend_compare/$base/main.pgy"
     if [[ "$base" == "generic_future_spawn_int" ]]; then
-        source="$ROOT_DIR/tests/cases/backend_compare/$base/main.pgy"
-        pgy_selfhost_generic_spawn_reject_string_mutation \
-            "$backend" "$driver_bin" "$source"
+        pgy_selfhost_generic_spawn_reject_string_mutation "$backend" \
+            "$driver_bin" "$source" "$base" \
+            'spawn Identity(42)' 'spawn Identity("bad")'
+    else
+        pgy_selfhost_generic_spawn_reject_string_mutation "$backend" \
+            "$driver_bin" "$source" "$base" \
+            'spawn PickSecond(10, 77)' 'spawn PickSecond("bad", "worse")'
     fi
 }
 
