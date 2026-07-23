@@ -67,6 +67,16 @@ hir_lower_with_semantic_facts(const SemanticResult *semantic,
         hir_destroy(hir);
         return NULL;
     }
+    if (!hir_attach_region_escape_facts(
+            hir,
+            semantic->region_escape_facts,
+            semantic->region_escape_fact_count,
+            error_message)) {
+        if (failure != NULL)
+            *failure = HIR_SEMANTIC_PROJECTION_REGION_ESCAPE;
+        hir_destroy(hir);
+        return NULL;
+    }
     if (!hir_validate(hir, error_message)) {
         if (failure != NULL)
             *failure = HIR_SEMANTIC_PROJECTION_VALIDATE;

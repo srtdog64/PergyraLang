@@ -532,16 +532,25 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
-    /* Region selection is an AIR-admitted driver fact. Semantic analysis owns
-     * the bounded escape rows; the driver only gates and materializes them.
-     * Both MIR backends receive the verified immutable plan and must use its
-     * per-site lookup. A missing/empty result remains the HEAP default. */
+    /* Region selection is an AIR-admitted driver fact. HIR owns the projected
+     * semantic escape rows; the driver only checks projection completeness,
+     * gates, and materializes them. Both MIR backends receive the verified
+     * immutable plan and must use its per-site lookup. A missing/empty result
+     * remains the HEAP default. */
     driver_debug_stage("region_plan");
     {
         const char *region_error = NULL;
+        if (!hir->has_region_escape_facts
+            || hir->region_escape_fact_count
+                != sem->region_escape_fact_count) {
+            driver_emit_stage_fail(flags, "region_plan",
+                "HIR region escape fact carrier is missing or incomplete",
+                "semantic region escape facts did not reach HIR");
+            goto cleanup;
+        }
         PgyRegionEscapeResult region_escape = {
-            sem->region_escape_facts,
-            sem->region_escape_fact_count
+            hir->region_escape_facts,
+            hir->region_escape_fact_count
         };
         if (!pgy_verified_region_plan_from_escape(
                 (const PgyAirVerification *)air,

@@ -914,6 +914,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_routine_cfg.c \
                    $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/hir_semantic_fact_projection.c \
+                   $(COMPILER_DIR)/hir_region_escape_facts.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_hir_block_projection.c \
                    $(COMPILER_DIR)/mir_hir_fact_transfer.c \
@@ -1428,6 +1429,7 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_routine_cfg.o \
                    $(BUILD_DIR)/compiler/hir_callgraph.o \
                    $(BUILD_DIR)/compiler/hir_semantic_fact_projection.o \
+                   $(BUILD_DIR)/compiler/hir_region_escape_facts.o \
                    $(BUILD_DIR)/compiler/hir.o \
                    $(BUILD_DIR)/compiler/hir_iteration_flow_facts.o \
                    $(BUILD_DIR)/compiler/hir_destructure_type_facts.o \

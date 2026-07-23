@@ -694,8 +694,10 @@ through `pgy_verified_region_plan_from_escape`.
 
 The retired `src/compiler/region_escape_v1.{h,c}` path is deleted and the
 component contract rejects its reappearance. C and LLVM backend parity,
-semantic region unit, verified-plan, arena, and self-hosted owner gates pass
-for this slice. HIR/MIR retention carriage and broader semantic retention
+semantic region unit, HIR projection, verified-plan, arena, and self-hosted
+owner gates pass for this slice. HIR now retains the projected rows and the
+driver rejects missing or cardinality-mismatched HIR carriage before plan
+materialization. MIR retention carriage and broader semantic retention
 summaries remain the next open region seam; the registry row therefore remains
 `BRIDGE`.
 

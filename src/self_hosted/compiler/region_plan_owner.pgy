@@ -363,6 +363,10 @@ func RegionPlanDriverPath() -> String {
     return "src/compiler/driver_app.c";
 }
 
+func RegionPlanHirEscapeSourcePath() -> String {
+    return "src/compiler/hir_region_escape_facts.c";
+}
+
 func RegionPlanCConsumerPath() -> String {
     return "src/codegen/transpiler_context.c";
 }
@@ -372,7 +376,7 @@ func RegionPlanLlvmConsumerPath() -> String {
 }
 
 func RegionPlanRequiredCount() -> Int {
-    return 11;
+    return 13;
 }
 
 func RegionPlanRequiredPathAt(index: Int) -> String {
@@ -380,6 +384,8 @@ func RegionPlanRequiredPathAt(index: Int) -> String {
     if index <= 6 { return RegionPlanSourcePath(); }
     if index == 7 { return RegionPlanEscapeHeaderPath(); }
     if index <= 10 { return RegionPlanEscapeSourcePath(); }
+    if index == 11 { return RegionPlanDriverPath(); }
+    if index == 12 { return RegionPlanHirEscapeSourcePath(); }
     return "";
 }
 
@@ -401,6 +407,8 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
     if index == 8 { return "semantic_region_escape_collect"; }
     if index == 9 { return "ast_call_semantic_callee_builtin_kind"; }
     if index == 10 { return "region_escape_append_concat_spine"; }
+    if index == 11 { return "hir->region_escape_facts"; }
+    if index == 12 { return "hir_attach_region_escape_facts"; }
     return "";
 }
 
@@ -408,7 +416,7 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
 // they never re-run the escape analysis. Either one would re-open a private
 // lifetime decision inside codegen -- the exact drift this artifact removes.
 func RegionPlanForbiddenCount() -> Int {
-    return 6;
+    return 7;
 }
 
 func RegionPlanForbiddenPathAt(index: Int) -> String {
@@ -417,6 +425,7 @@ func RegionPlanForbiddenPathAt(index: Int) -> String {
     if index == 2 { return RegionPlanCConsumerPath(); }
     if index == 3 { return RegionPlanLlvmConsumerPath(); }
     if index == 4 || index == 5 { return RegionPlanDriverPath(); }
+    if index == 6 { return RegionPlanDriverPath(); }
     return "";
 }
 
@@ -427,6 +436,7 @@ func RegionPlanForbiddenTermAt(index: Int) -> String {
     if index == 3 { return "pgy_region_escape_v1_collect"; }
     if index == 4 { return "pgy_region_escape_v1_collect"; }
     if index == 5 { return "pgy_region_escape_v1_free"; }
+    if index == 6 { return "sem->region_escape_facts"; }
     return "";
 }
 
@@ -447,13 +457,13 @@ func RegionPlanReady() -> Bool {
         RegionPlanOwnerScopeFailsClosed() &&
         RegionPlanIncompletenessIsSound() &&
         RegionPlanDispositionsAreBounded() &&
-        RegionPlanRequiredCount() == 11 &&
-        RegionPlanForbiddenCount() == 6 &&
+        RegionPlanRequiredCount() == 13 &&
+        RegionPlanForbiddenCount() == 7 &&
         RegionPlanRequiredPathAt(0) == RegionPlanHeaderPath() &&
-        RegionPlanRequiredPathAt(10) == RegionPlanEscapeSourcePath() &&
+        RegionPlanRequiredPathAt(12) == RegionPlanHirEscapeSourcePath() &&
         RegionPlanRequiredTermAt(0) != "" &&
-        RegionPlanRequiredTermAt(9) != "" &&
-        RegionPlanForbiddenPathAt(5) == RegionPlanDriverPath() &&
+        RegionPlanRequiredTermAt(12) != "" &&
+        RegionPlanForbiddenPathAt(6) == RegionPlanDriverPath() &&
         RegionPlanForbiddenTermAt(0) != "" &&
         RegionPlanMissingSelfTestTerm() != "";
 }

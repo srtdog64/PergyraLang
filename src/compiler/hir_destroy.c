@@ -89,6 +89,7 @@ hir_destroy(HIRProgram *hir)
     free(hir->intents);
     free(hir->functions);
     free(hir->executables);
+    free(hir->region_escape_facts);
     hir_destroy_synthetic_executable_func(hir->synthetic_executable_func);
     free(hir);
 }

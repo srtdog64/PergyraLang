@@ -820,7 +820,8 @@ inventory must not become a second fact-family owner registry.
   third), the producer's fail-closed refusals (a null site; conflicting scope
   or owning function for one site), duplicate collapse, the v1 certification
   rule (a string concat that is a DIRECT Print argument under the semantic
-  BuiltinKind fact owner), and the
+  BuiltinKind fact owner), the HIR carriage and driver completeness boundary,
+  and the
   fail-closed ASYMMETRY that makes a narrow analysis safe to ship -- a lookup
   MISS is HEAP, today's byte-identical emission, so incompleteness costs
   performance and never correctness. Contrast the spawn-lane plan, where a

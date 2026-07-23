@@ -152,6 +152,61 @@ test_hir_function_param_flow_carriage(void)
     lexer_destroy(lexer);
 }
 
+static void
+test_hir_region_escape_fact_carriage(void)
+{
+    const char *source =
+        "func Main() -> Void { Print(\"a\" + \"b\"); }\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(ast);
+    HIRProgram *projected = NULL;
+    HIRProgram *unprojected = NULL;
+    char *projected_error = NULL;
+    char *unprojected_error = NULL;
+    bool carried = false;
+    bool identity_rejected = false;
+
+    if (!parser_has_error(parser) && sem != NULL && sem->success
+        && sem->region_escape_fact_count == 1) {
+        projected = hir_lower_with_semantic_facts(
+            sem, NULL, &projected_error);
+        if (projected != NULL && hir_validate(projected, &projected_error)) {
+            const PgyRegionEscapeFact *fact = projected->region_escape_facts;
+            carried = projected->has_region_escape_facts
+                && projected->region_escape_fact_count == 1
+                && fact != NULL
+                && fact->allocation_site_id != 0
+                && fact->scope_id != 0
+                && fact->function_syntax_id != 0
+                && fact != sem->region_escape_facts;
+        }
+
+        unprojected = hir_lower(sem->annotated_ast, &unprojected_error);
+        if (unprojected != NULL) {
+            PgyRegionEscapeFact forged = sem->region_escape_facts[0];
+            forged.function_syntax_id = UINT32_MAX;
+            identity_rejected = !hir_attach_region_escape_facts(
+                unprojected, &forged, 1, &unprojected_error);
+        }
+    }
+    TEST("HIR carries semantic region rows as owned stable facts");
+    EXPECT(carried);
+    TEST("HIR rejects region rows with unknown function identity");
+    EXPECT(identity_rejected);
+    if (projected != NULL)
+        hir_destroy(projected);
+    if (unprojected != NULL)
+        hir_destroy(unprojected);
+    free(projected_error);
+    free(unprojected_error);
+    semantic_result_destroy(sem);
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+}
+
 #include "tests/hir/test_hir_lowering_part_a.cases.h"
 #include "tests/hir/test_hir_lowering_part_b.cases.h"
 
@@ -162,6 +217,7 @@ main(void)
     test_hir_lowering_part_a();
     test_hir_lowering_part_b();
     test_hir_function_param_flow_carriage();
+    test_hir_region_escape_fact_carriage();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
