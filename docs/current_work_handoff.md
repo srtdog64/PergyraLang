@@ -9,20 +9,22 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured HEAD: `e87307855124c54740447687a4a3290ae07f020b` on `main`.
+- Captured code HEAD: `c435b4c179b8599d6bbd645a0a6d1505a31059e7` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 11 unstaged tracked entries and 48 untracked paths. The fixture-235 slice
-  owns seven tracked entries plus the untracked replacement
-  `driver_rung2_wrapper_match_loop_phi_parity_owner.sh`; the retired
-  Result-named owner is the matching deletion. The pre-existing
-  `stmt_emit.pgy` declaration-formatting edit remains separate. This handoff
-  and `src/self_hosted/PROGRESS.md` are the two documentation refreshes in the
-  remaining tracked set. The semantic region-escape SoT closure is committed
-  below; preserve the remaining concurrent edits separately. The other 46
-  untracked paths are the existing allocator, defer, TextBuilder,
-  bootstrap, and wrapper-policy probes. Build artifacts remain ignored; run
-  `git status --short --branch` before resuming because this count can change.
+  has 11 unstaged tracked entries and 49 untracked paths before this handoff
+  refresh. The fixture-235-239, progress, codegen, parity, and component
+  changes are concurrent work and remain unstaged; the retired Result-named
+  parity owner is the tracked deletion. Preserve all of these paths
+  separately. The untracked paths are existing allocator, defer, TextBuilder,
+  bootstrap, wrapper-policy, and parity probes. Build artifacts remain
+  ignored; run `git status --short --branch` before resuming because this
+  count can change.
+- This session created and pushed `c435b4c1` for the HIR region-fact carriage
+  SoT closure. The HIR projection now owns stable copies of semantic region
+  rows and the driver consumes only the HIR carrier; the semantic producer,
+  HIR projection, and driver completeness boundary are covered by negative
+  gates. The handoff refresh is the only remaining change for this closure.
 - This session created and pushed `18cf5e89` for the verified self-hosted
   `Double` emission SoT slice, refreshed this handoff in `00e8091b`, and
   created and pushed `2a21ef80` for the verified DRV-2 fixture-230 SoT slice.
@@ -39,6 +41,11 @@ current owner fact and update this file after verification.
 - This session then created and pushed `b3216b62` for the region escape
   callee-identity SoT closure; only the handoff and progress refresh remain
   for this slice.
+- This session created and pushed `c435b4c1` for the HIR region-fact carriage
+  SoT closure. The HIR projection now owns stable copies of semantic region
+  rows and the driver consumes only the HIR carrier; missing or incomplete HIR
+  carriage fails closed. The handoff refresh remains separate from the dirty
+  fixture slice.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -347,6 +354,11 @@ current owner fact and update this file after verification.
   verified plan. `src/compiler/region_escape_v1.{h,c}` was deleted, and the
   component contract rejects its return. This executable closure is committed
   and pushed as `e8730785`.
+- The follow-up moved the semantic region rows through the HIR projection owner
+  at `src/compiler/hir_region_escape_facts.c`. HIR retains an owned copy,
+  validates stable allocation/function identity, and the driver consumes only
+  `hir->region_escape_facts`; missing or incomplete HIR carriage fails closed.
+  This HIR SoT closure is committed and pushed as `c435b4c1`.
 - Observed green gates for this slice are region unit, verified-plan unit,
   arena, C/LLVM backend wiring, self-host region-plan, component contract,
   alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
@@ -354,12 +366,15 @@ current owner fact and update this file after verification.
   because no prover is installed on this runner; its live owner checks passed
   with `PGY_ALLOW_MISSING_COQ=1`. The hard contract remains red only because
   concurrent fixture-235 work removed an expected `P_V` term; that file was
-  not changed by this slice.
-- This closes the callee-identity fallback seam only. The
-  `resource.region_allocation_plan` registry row remains `BRIDGE` until the
-  remaining semantic HIR/MIR retention and producer migration are complete.
-  Before widening the certified class, preserve the explicit HEAP default and
-  choose the next missing owner fact with a falsifying fixture.
+  not changed by this slice. The HIR-specific `test-hir` gate passed with
+  25/25 tests, the region unit/backend gates passed, the self-host region-plan
+  contract passed with 13 projection pins and 7 producer rejections, and the
+  LLVM-enabled/disabled compiler builds passed.
+- This closes the semantic producer-to-HIR retention and driver direct-read
+  fallback seams. The `resource.region_allocation_plan` registry row remains
+  `BRIDGE` until MIR retention and the remaining producer migration are
+  complete. Before widening the certified class, preserve the explicit HEAP
+  default and choose the next missing owner fact with a falsifying fixture.
 
 ### 4. Runtime instance ownership rung
 
