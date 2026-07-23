@@ -831,6 +831,7 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+require_file "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy"
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "TypedAstKindAbilityDeclTag()"
@@ -2944,6 +2945,12 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func Sem
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeCompactBridge"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeTyped"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
+require_text "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy" \
+    "func SemanticAstAbilityGenericBoundsVerdict("
+require_text "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy" \
+    "roles.ability_generic_constraint_type_names[generic_row]"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    '"SemanticAstAbilityGenericBoundVerdict"'
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
@@ -3891,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 268;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 269;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 268'
+    'mir_fixture_rows[@]}" -ne 269'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4020,6 +4027,18 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_generic_default_contract_emitted_c "
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_default_contracts/main.pgy"'
+require_file "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy"
+require_file "tests/self_hosted/parity/driver_rung2_generic_multi_bound_defaults_parity_owner.sh"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" \
+    "ability_generic_constraint_type_names"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "SemanticAstAbilityGenericBoundsVerdict"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "EmitDeclGenericConstraints"
+require_text "src/compiler/mir_decl_header_generic_metadata.c" \
+    "mir_capture_where_constraint"
+require_text "tests/self_hosted/parity/driver_rung2_generic_multi_bound_defaults_parity_owner.sh" \
+    "missing generic bound was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_spawn_await_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
@@ -4411,11 +4430,15 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 268;"
+    "return 269;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 268'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 269'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_generic_multi_bound_defaults_parity_owner.sh'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

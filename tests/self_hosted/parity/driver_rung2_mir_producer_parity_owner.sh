@@ -103,6 +103,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_fieldless_class "$backend" "$base" "$self_mir_json" "$driver_bin"; pgy_selfhost_verify_driver_rung2_spawn_await "$backend" "$base" "$self_mir_json" "$driver_bin"; pgy_selfhost_verify_driver_rung2_generic_spawn "$backend" "$base" "$self_mir_json" "$driver_bin"; pgy_selfhost_verify_driver_rung2_generic_string_spawn "$backend" "$base" "$self_mir_json" "$driver_bin"; pgy_selfhost_verify_driver_rung2_generic_spawn_mixed "$backend" "$base" "$self_mir_json"; pgy_selfhost_verify_driver_rung2_generic_default_contract "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_ability_bind_dispatch \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_iteration_expression "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
@@ -256,6 +258,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_fieldless_class_emitted_c "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_spawn_await_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_spawn_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_string_spawn_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_spawn_mixed_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_default_contract_emitted_c "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c \
+            "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults_emitted_c \
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_generic_struct_emitted_c \
             "$backend" "$base" "$self_actual"

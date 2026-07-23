@@ -191,10 +191,16 @@ func CodegenSemanticRoleDispatchTypeBlock(
                 let method_count: Option<Int> = SemanticAstAbilityMethodCountAt(
                     roles, ability_index
                 );
-                if !IsSome(method_count) || UnwrapOption(method_count) == 0 {
-                    Die("dynamic ability vtable has no method facts");
+                if !IsSome(method_count) {
+                    Die("dynamic ability method count fact is missing");
                 }
-                let block: String = "typedef struct {\n";
+                if UnwrapOption(method_count) == 0 {
+                    impl_index = impl_index + 1;
+                    continue;
+                }
+                let block: String = Concat(
+                    "struct ", Concat(dispatch_type, "_vtable {\n")
+                );
                 let method_index: Int = 0;
                 while method_index < UnwrapOption(method_count) {
                     let signature_index: Int =
@@ -249,9 +255,7 @@ func CodegenSemanticRoleDispatchTypeBlock(
                     block = Concat(block, line);
                     method_index = method_index + 1;
                 }
-                block = Concat(block, Concat("} ", Concat(
-                    dispatch_type, "_vtable;\n"
-                )));
+                block = Concat(block, "};\n");
                 ArrayPush(blocks, block);
                 ArrayPush(emitted_types, dispatch_type);
             }
@@ -338,6 +342,69 @@ func CodegenSemanticRoleDispatchTypeBlock(
     return result;
 }
 
+func CodegenSemanticRoleDispatchForwardBlock(
+    roles: SemanticAstRoleFacts
+) -> String {
+    let emitted_types: Array<String> = [];
+    let blocks: Array<String> = [];
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let impl_count: Option<Int> = SemanticAstRoleImplAbilityCountAt(
+            roles, role_index
+        );
+        if !IsSome(impl_count) {
+            Die("semantic role implementation count fact missing");
+        }
+        let impl_index: Int = 0;
+        while impl_index < UnwrapOption(impl_count) {
+            let ability_name: String =
+                CodegenSemanticRoleImplAbilityNameOrDie(
+                    roles, role_index, impl_index
+                );
+            let dispatch_type: String =
+                CodegenSemanticRoleSlotDispatchTypeOrDie(
+                    roles, ability_name
+                );
+            let ability_index: Option<Int> =
+                SemanticAstAbilityIndexForName(roles, ability_name);
+            if !IsSome(ability_index) {
+                Die("semantic ability index fact missing");
+            }
+            let method_count: Option<Int> = SemanticAstAbilityMethodCountAt(
+                roles, UnwrapOption(ability_index)
+            );
+            if !IsSome(method_count) {
+                Die("semantic ability method count fact missing");
+            }
+            if UnwrapOption(method_count) == 0 {
+                impl_index = impl_index + 1;
+                continue;
+            }
+            let already_emitted: Bool = false;
+            let prior: Int = 0;
+            while prior < ArrayLength(emitted_types) {
+                if emitted_types[prior] == dispatch_type {
+                    already_emitted = true;
+                }
+                prior = prior + 1;
+            }
+            if !already_emitted {
+                ArrayPush(blocks, Concat(
+                    "typedef struct ", Concat(
+                        dispatch_type, Concat(
+                            "_vtable ", Concat(dispatch_type, "_vtable;\n")
+                        )
+                    )
+                ));
+                ArrayPush(emitted_types, dispatch_type);
+            }
+            impl_index = impl_index + 1;
+        }
+        role_index = role_index + 1;
+    }
+    return StringJoin(blocks, "");
+}
+
 func CodegenSemanticRoleDispatchRuntimeBlock(
     roles: SemanticAstRoleFacts,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -360,6 +427,13 @@ func CodegenSemanticRoleDispatchRuntimeBlock(
             let ability_index: Int = UnwrapOption(
                 SemanticAstAbilityIndexForName(roles, ability_name)
             );
+            let method_count: Int = UnwrapOption(
+                SemanticAstAbilityMethodCountAt(roles, ability_index)
+            );
+            if method_count == 0 {
+                impl_index = impl_index + 1;
+                continue;
+            }
             let dispatch_type: String = CodegenSemanticRoleSlotDispatchTypeOrDie(
                 roles, ability_name
             );
@@ -371,9 +445,6 @@ func CodegenSemanticRoleDispatchRuntimeBlock(
                 "static const ", Concat(dispatch_type, Concat(
                     "_vtable ", Concat(instance_name, " = {\n")
                 ))
-            );
-            let method_count: Int = UnwrapOption(
-                SemanticAstAbilityMethodCountAt(roles, ability_index)
             );
             let method_index: Int = 0;
             while method_index < method_count {

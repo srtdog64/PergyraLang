@@ -274,6 +274,8 @@ func GenerateCUnitFromSemanticFacts(
         semantic_analysis.roles, signatures,
         CodegenTypeEnv(env_acc[0], "")
     );
+    let dispatch_forward_block: String =
+        CodegenSemanticRoleDispatchForwardBlock(semantic_analysis.roles);
     let dispatch_runtime_block: String =
         CodegenSemanticRoleDispatchRuntimeBlock(
             semantic_analysis.roles, signatures,
@@ -283,9 +285,11 @@ func GenerateCUnitFromSemanticFacts(
         semantic_analysis.roles, signatures, env_acc
     );
     let type_declaration_block: String = Concat(
-        dispatch_type_block, Concat(
+        dispatch_forward_block, Concat(
             type_declaration_fact.c_block, Concat(
-                dispatch_runtime_block, operator_adapter_block
+                dispatch_type_block, Concat(
+                    dispatch_runtime_block, operator_adapter_block
+                )
             )
         )
     );

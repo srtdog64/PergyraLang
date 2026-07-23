@@ -29,6 +29,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Generic params:") {
         return TypedAstKindGenericParamsTag();
     }
+    if StartsWith(text, "Constraints:") {
+        return TypedAstKindGenericConstraintsTag();
+    }
     if text == "Body:" {
         return TypedAstKindBodyTag();
     }
@@ -148,6 +151,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == TypedAstKindGenericParamsTag() {
         return StringTrim(Substring(text, 15, StringLength(text) - 15));
+    }
+    if kind == TypedAstKindGenericConstraintsTag() {
+        return StringTrim(Substring(text, 12, StringLength(text) - 12));
     }
     if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Field: ") {

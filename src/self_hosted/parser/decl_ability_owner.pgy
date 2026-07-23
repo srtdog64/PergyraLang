@@ -32,6 +32,17 @@ func ParseAbilityDecl(
     if generic_parameters != "" {
         ab_name = Concat(ab_name, generic_parameters);
     }
+    let constraint_clause: String = "";
+    i = SkipWhitespaceAndComments(content, i);
+    if MatchKeyword(content, i, "where") {
+        let where_start: Int = i;
+        while i < n && ParserCharAt(content, i) != "{" {
+            i = i + 1;
+        }
+        constraint_clause = StringTrim(Substring(
+            content, where_start, i - where_start
+        ));
+    }
     i = Expect(content, i, "{");
     if i < 0 {
         Exit(1);
@@ -84,6 +95,18 @@ func ParseAbilityDecl(
         sig_blocks = AppendLine(sig_blocks, sig);
     }
     let ability_out: String = Concat("  [export] Ability: ", Concat(decl_prefix, ab_name));
+    if generic_parameters != "" {
+        ability_out = AppendLine(
+            ability_out,
+            Concat("    Generic params: ", generic_parameters)
+        );
+    }
+    if constraint_clause != "" {
+        ability_out = AppendLine(
+            ability_out,
+            Concat("    Constraints: ", constraint_clause)
+        );
+    }
     if StringLength(sig_blocks) > 0 {
         ability_out = AppendLine(ability_out, sig_blocks);
     }

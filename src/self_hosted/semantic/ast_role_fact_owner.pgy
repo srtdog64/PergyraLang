@@ -22,10 +22,80 @@ struct SemanticAstRoleFacts {
     ability_generic_starts: Array<Int>;
     ability_generic_counts: Array<Int>;
     ability_generic_names: Array<String>;
+    ability_generic_constraint_type_names: Array<String>;
     ability_generic_default_type_names: Array<String>;
     ability_method_starts: Array<Int>;
     ability_method_counts: Array<Int>;
     ability_method_node_ids: Array<Int>;
+}
+
+func SemanticAstAbilityGenericConstraintRowsFromNode(
+    arena: AstArena,
+    ability_node_id: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    inout generic_constraints: Array<String>
+) -> Bool {
+    let generic_i: Int = 0;
+    while generic_i < generic_count {
+        ArrayPush(generic_constraints, "");
+        generic_i = generic_i + 1;
+    }
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        arena, ability_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            arena, child_id, TypedAstKindGenericConstraintsTag()
+        ) {
+            let row_opt: Option<String> = TypedAstArenaAtomText(arena, child_id);
+            if !IsSome(row_opt) { return false; }
+            let row: String = UnwrapOption(row_opt);
+            if StartsWith(row, "where ") {
+                row = StringTrim(Substring(row, 6, StringLength(row) - 6));
+            }
+            let parts: SemanticDelimitedRangeFacts =
+                SemanticNestedCommaRangeFactsFromSource(row);
+            if SemanticDelimitedRangeCount(parts) == 0 {
+                return false;
+            }
+            let part_i: Int = 0;
+            while part_i < SemanticDelimitedRangeCount(parts) {
+                let part: String = SemanticDelimitedRangeText(parts, row, part_i);
+                let colon: Int = StringIndexOf(part, ":");
+                if colon <= 0 {
+                    return false;
+                }
+                let name: String = StringTrim(Substring(part, 0, colon));
+                let bounds: String = StringTrim(Substring(
+                    part, colon + 1, StringLength(part) - colon - 1
+                ));
+                let name_i: Int = 0;
+                let found: Bool = false;
+                while name_i < generic_count {
+                    if generic_names[generic_start + name_i] == name {
+                        if generic_constraints[generic_start + name_i] != "" ||
+                            bounds == "" {
+                            return false;
+                        }
+                        generic_constraints[generic_start + name_i] = bounds;
+                        found = true;
+                    }
+                    name_i = name_i + 1;
+                }
+                if !found {
+                    return false;
+                }
+                part_i = part_i + 1;
+            }
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, ability_node_id, child_index);
+    }
+    return true;
 }
 
 func SemanticAstRoleAncestorNodeId(
@@ -64,6 +134,7 @@ func SemanticAstRoleFactsFromArtifact(
     let ability_generic_starts: Array<Int> = [];
     let ability_generic_counts: Array<Int> = [];
     let ability_generic_names: Array<String> = [];
+    let ability_generic_constraints: Array<String> = [];
     let ability_generic_defaults: Array<String> = [];
     let ability_method_starts: Array<Int> = [];
     let ability_method_counts: Array<Int> = [];
@@ -158,6 +229,13 @@ func SemanticAstRoleFactsFromArtifact(
                 ) {
                     ok = false;
                 }
+                if ok && !SemanticAstAbilityGenericConstraintRowsFromNode(
+                    artifact.arena, node_id, generic_start,
+                    ArrayLength(ability_generic_names) - generic_start,
+                    ability_generic_names, ability_generic_constraints
+                ) {
+                    ok = false;
+                }
                 let child: Int = 0;
                 while child < artifact.count && ok {
                     let parent: Option<Int> = TypedAstArenaParentId(
@@ -197,7 +275,8 @@ func SemanticAstRoleFactsFromArtifact(
         impl_starts, impl_counts, impl_ability_names,
         ability_node_ids, ability_names,
         ability_generic_starts, ability_generic_counts,
-        ability_generic_names, ability_generic_defaults,
+        ability_generic_names, ability_generic_constraints,
+        ability_generic_defaults,
         ability_method_starts, ability_method_counts,
         ability_method_node_ids
     );
@@ -416,6 +495,8 @@ func SemanticAstRoleFactsMatchArtifact(
         SemanticAstAbilityCount(facts) != SemanticAstAbilityCount(rebuilt) ||
         ArrayLength(facts.ability_generic_names) !=
             ArrayLength(rebuilt.ability_generic_names) ||
+        ArrayLength(facts.ability_generic_constraint_type_names) !=
+            ArrayLength(rebuilt.ability_generic_constraint_type_names) ||
         ArrayLength(facts.ability_method_node_ids) !=
             ArrayLength(rebuilt.ability_method_node_ids) {
         return false;
@@ -470,6 +551,8 @@ func SemanticAstRoleFactsMatchArtifact(
     while generic_index < ArrayLength(facts.ability_generic_names) {
         if facts.ability_generic_names[generic_index] !=
                 rebuilt.ability_generic_names[generic_index] ||
+            facts.ability_generic_constraint_type_names[generic_index] !=
+                rebuilt.ability_generic_constraint_type_names[generic_index] ||
             facts.ability_generic_default_type_names[generic_index] !=
                 rebuilt.ability_generic_default_type_names[generic_index] {
             return false;

@@ -286,7 +286,11 @@ inventory must not become a second fact-family owner registry.
   declaration identity and variant facts for expression typing and codegen
   routing.
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
-  declaration identity, name, target type, and owned method `NodeId` rows.
+  declaration identity, name, target type, ability generic constraint rows,
+  and owned method `NodeId` rows.
+- `src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy` --
+  ordered ability-bound validation for canonical generic defaults against
+  role implementation facts; it does not re-read source text.
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
   artifact-bound atom/value/auxiliary expression surfaces, normalized
   top-level operator rows, and expression-graph bindings consumed by semantic

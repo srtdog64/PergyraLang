@@ -41,10 +41,11 @@ func TypedAstKindDestructureStmtTag() -> Int { return 38; }
 func TypedAstKindRoleSlotTag() -> Int { return 39; }
 func TypedAstKindImplAbilityTag() -> Int { return 40; }
 func TypedAstKindBindStmtTag() -> Int { return 41; }
+func TypedAstKindGenericConstraintsTag() -> Int { return 42; }
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindBindStmtTag();
+        kind <= TypedAstKindGenericConstraintsTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -102,14 +103,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindMatchStmtTag(), TypedAstKindMatchCaseStmtTag(),
         TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag(),
         TypedAstKindDestructureStmtTag(), TypedAstKindRoleSlotTag(),
-        TypedAstKindImplAbilityTag(), TypedAstKindBindStmtTag()
+        TypedAstKindImplAbilityTag(), TypedAstKindBindStmtTag(),
+        TypedAstKindGenericConstraintsTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 41 {
+    if ArrayLength(tags) != 42 {
         return false;
     }
     let i: Int = 0;
@@ -131,8 +133,9 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindRoleSlotTag()) &&
         TypedAstKindKnown(TypedAstKindImplAbilityTag()) &&
         TypedAstKindKnown(TypedAstKindBindStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindGenericConstraintsTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindBindStmtTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindGenericConstraintsTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

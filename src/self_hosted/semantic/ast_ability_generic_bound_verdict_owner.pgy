@@ -1,0 +1,115 @@
+// Ability generic default/bound verdict over the canonical role fact rows.
+
+import "ast_role_fact_owner.pgy";
+
+struct SemanticAstAbilityGenericBoundVerdict {
+    ok: Bool;
+    ability_name: String;
+    actual_type_name: String;
+    broken_bound_name: String;
+}
+
+func SemanticAstAbilityGenericBoundVerdictOk(
+) -> SemanticAstAbilityGenericBoundVerdict {
+    return SemanticAstAbilityGenericBoundVerdict(true, "", "", "");
+}
+
+func SemanticAstAbilityGenericBoundVerdictError(
+    ability_name: String,
+    actual_type_name: String,
+    broken_bound_name: String
+) -> SemanticAstAbilityGenericBoundVerdict {
+    return SemanticAstAbilityGenericBoundVerdict(
+        false, ability_name, actual_type_name, broken_bound_name
+    );
+}
+
+func SemanticAstTypeImplementsAbility(
+    roles: SemanticAstRoleFacts,
+    type_name: String,
+    ability_name: String
+) -> Bool {
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let target: Option<String> = SemanticAstRoleTargetTypeAt(
+            roles, role_index
+        );
+        if IsSome(target) && UnwrapOption(target) == type_name {
+            let impl_count: Option<Int> =
+                SemanticAstRoleImplAbilityCountAt(roles, role_index);
+            if !IsSome(impl_count) { return false; }
+            let impl_index: Int = 0;
+            while impl_index < UnwrapOption(impl_count) {
+                let implemented: Option<String> =
+                    SemanticAstRoleImplAbilityNameAt(
+                        roles, role_index, impl_index
+                    );
+                if IsSome(implemented) &&
+                    UnwrapOption(implemented) == ability_name {
+                    return true;
+                }
+                impl_index = impl_index + 1;
+            }
+        }
+        role_index = role_index + 1;
+    }
+    return false;
+}
+
+func SemanticAstAbilityGenericBoundsVerdict(
+    roles: SemanticAstRoleFacts
+) -> SemanticAstAbilityGenericBoundVerdict {
+    if !roles.ok {
+        return SemanticAstAbilityGenericBoundVerdictError(
+            "<invalid-role-facts>", "", ""
+        );
+    }
+    let ability_index: Int = 0;
+    while ability_index < SemanticAstAbilityCount(roles) {
+        let generic_index: Int = 0;
+        while generic_index < roles.ability_generic_counts[ability_index] {
+            let generic_row: Int =
+                roles.ability_generic_starts[ability_index] + generic_index;
+            let constraint: String =
+                roles.ability_generic_constraint_type_names[generic_row];
+            let default_type: String =
+                roles.ability_generic_default_type_names[generic_row];
+            if constraint != "" {
+                let bounds: Array<String> = Split(constraint, "+");
+                let bound_index: Int = 0;
+                while bound_index < ArrayLength(bounds) {
+                    let bound: String = StringTrim(bounds[bound_index]);
+                    if bound == "" {
+                        return SemanticAstAbilityGenericBoundVerdictError(
+                            roles.ability_names[ability_index],
+                            default_type, "<empty>"
+                        );
+                    }
+                    let bound_ability: Option<Int> =
+                        SemanticAstAbilityIndexForName(roles, bound);
+                    if default_type != "" {
+                        if IsSome(bound_ability) {
+                            if !SemanticAstTypeImplementsAbility(
+                                roles, default_type, bound
+                            ) {
+                                return SemanticAstAbilityGenericBoundVerdictError(
+                                    roles.ability_names[ability_index],
+                                    default_type, bound
+                                );
+                            }
+                        } else if default_type != bound {
+                            return SemanticAstAbilityGenericBoundVerdictError(
+                                roles.ability_names[ability_index],
+                                default_type, bound
+                            );
+                        }
+                    }
+                    bound_index = bound_index + 1;
+                }
+            }
+            generic_index = generic_index + 1;
+        }
+        ability_index = ability_index + 1;
+    }
+    return SemanticAstAbilityGenericBoundVerdictOk();
+}

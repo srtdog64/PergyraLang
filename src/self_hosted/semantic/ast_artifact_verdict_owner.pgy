@@ -9,6 +9,7 @@ import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
+import "ast_ability_generic_bound_verdict_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_call_target_capture_owner.pgy";
 import "ast_expression_typed_binding_owner.pgy";
@@ -146,6 +147,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         );
     }
     let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
+    let ability_generic_bounds: SemanticAstAbilityGenericBoundVerdict =
+        SemanticAstAbilityGenericBoundsVerdict(roles);
     let type_surfaces: SemanticAstTypeSurfaceFacts =
         SemanticAstTypeSurfaceFactsFromArtifact(artifact);
     let kind_surfaces: SemanticAstKindSurfaceFacts =
@@ -220,6 +223,28 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_role, signatures, constructors,
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
+            SemanticAstStatementFactsFromArtifact(artifact, signatures),
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
+        );
+    }
+    if !ability_generic_bounds.ok {
+        let rejected_ability_generic_bound: SemanticAstArtifactVerdict =
+            SemanticAstArtifactVerdictError(
+                "ast_artifact_invalid",
+                SemanticError3(
+                    "ast_artifact_invalid",
+                    "owner", "SemanticAstAbilityGenericBoundVerdict",
+                    "ability", ability_generic_bounds.ability_name,
+                    "broken_bound", ability_generic_bounds.broken_bound_name
+                ),
+                artifact.count,
+                0,
+                requires_entrypoint
+            );
+        return SemanticAstArtifactAnalysis(
+            rejected_ability_generic_bound, signatures, constructors,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),

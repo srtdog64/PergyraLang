@@ -46,9 +46,10 @@ func SemanticAstFunctionAbilityDefaultRows(
     ) {
         return true;
     }
-    return SemanticAstAbilityGenericParameterDefaultRowsFromNode(
+    let parsed: Bool = SemanticAstAbilityGenericParameterDefaultRowsFromNode(
         arena, UnwrapOption(parent), names, default_type_names
     );
+    return parsed;
 }
 
 func SemanticAstFunctionOwnerFactFromArena(

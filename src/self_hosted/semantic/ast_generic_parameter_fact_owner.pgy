@@ -111,10 +111,13 @@ func SemanticAstAbilityGenericParameterDefaultRowsFromNode(
     let row: String = UnwrapOption(provenance);
     let open: Int = StringIndexOf(row, "<");
     if open < 0 { return true; }
-    return SemanticAstGenericParameterDefaultRowsFromText(
-        Substring(row, open, StringLength(row) - open),
-        names, default_type_names
+    let close: Int = StringIndexOf(row, ">");
+    if close <= open { return false; }
+    let generic_row: String = Substring(row, open, close - open + 1);
+    let parsed: Bool = SemanticAstGenericParameterDefaultRowsFromText(
+        generic_row, names, default_type_names
     );
+    return parsed;
 }
 
 func SemanticAstGenericParameterRowsFromNode(

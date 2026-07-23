@@ -99,12 +99,6 @@ func EmitDeclGenericParams(
         }
         if row > 0 { out = Concat(out, ", "); }
         out = Concat(out, name);
-        let constraint: String = MirObjectStringFact(
-            json, row_bounds[0], row_bounds[1], "constraint"
-        );
-        if constraint != "" {
-            out = Concat(out, Concat(": ", constraint));
-        }
         let default_type: String = MirObjectStringFact(
             json, row_bounds[0], row_bounds[1], "default_type"
         );
@@ -114,6 +108,50 @@ func EmitDeclGenericParams(
         row = row + 1;
     }
     return Concat(out, ">\n");
+}
+
+func EmitDeclGenericConstraints(
+    json: String, decl_start: Int, decl_end: Int, owner_name: String
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(
+        json, decl_start, decl_end, "generic_params", bounds
+    ) {
+        return "";
+    }
+    let out: String = "";
+    let row: Int = 0;
+    while true {
+        let row_bounds: Array<Int> = [0, 0];
+        if !MirObjectArrayObjectBoundsAt(
+            json, decl_start, decl_end, "generic_params", row, row_bounds
+        ) {
+            break;
+        }
+        let constraint: String = MirObjectStringFact(
+            json, row_bounds[0], row_bounds[1], "constraint"
+        );
+        if constraint != "" {
+            let name: String = MirObjectStringFact(
+                json, row_bounds[0], row_bounds[1], "name"
+            );
+            if name == "" {
+                MirLowerFailClosed(Concat(
+                    "generic constraint is missing parameter name fact: ",
+                    owner_name
+                ));
+            }
+            if out == "" {
+                out = "    Constraints: where ";
+            } else {
+                out = Concat(out, ", ");
+            }
+            out = Concat(out, Concat(name, Concat(": ", constraint)));
+        }
+        row = row + 1;
+    }
+    if out == "" { return ""; }
+    return Concat(out, "\n");
 }
 
 func EmitClassMethods(ref routines: MirProgramRoutineIndex, json: String,
@@ -195,62 +233,97 @@ func EmitAbilityDecl(json: String, decl_start: Int, decl_end: Int, ability_name:
         out,
         Concat(
             EmitDeclGenericParams(json, decl_start, decl_end, ability_name),
-            EmitAbilityMethods(json, decl_start, decl_end, ability_name)
+            Concat(
+                EmitDeclGenericConstraints(
+                    json, decl_start, decl_end, ability_name
+                ),
+                EmitAbilityMethods(json, decl_start, decl_end, ability_name)
+            )
         )
     );
 }
 
-func EmitRoleMethods(ref routines: MirProgramRoutineIndex, json: String,
-                     decl_start: Int, decl_end: Int, role_name: String, for_type: String) -> String {
-    let out: String = "";
+func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, json: String,
+                        decl_start: Int, decl_end: Int, role_name: String,
+                        for_type: String) -> String {
+    let impls_bounds: Array<Int> = [0, 0];
     let methods_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBounds(json, decl_start, decl_end, "methods", methods_bounds) {
-        MirLowerFailClosed(Concat("role declaration is missing methods fact: ", role_name));
+    if !MirObjectArrayBounds(
+        json, decl_start, decl_end, "impls", impls_bounds
+    ) || !MirObjectArrayBounds(
+        json, decl_start, decl_end, "methods", methods_bounds
+    ) {
+        MirLowerFailClosed(Concat(
+            "role declaration is missing impl/method facts: ", role_name
+        ));
     }
-    let method_bounds: Array<Int> = [0, 0];
-    let row: Int = 0;
-    while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "methods", row, method_bounds) {
-        let mname: String = MirObjectStringFact(json, method_bounds[0], method_bounds[1], "name");
-        if StringLength(mname) == 0 {
-            MirLowerFailClosed(Concat("role declaration has unnamed method fact: ", role_name));
-        }
-        let routine_pos: Option<Int> = MirProgramRoutineIndexFind(routines, role_name, mname);
-        if !IsSome(routine_pos) {
-            MirLowerFailClosed(Concat("role method is missing routine fact: ", Concat(role_name, Concat(".", mname))));
-        }
-        out = Concat(out, EmitRoutineTreeWithSelfType(json, UnwrapOption(routine_pos), "      ", for_type));
-        row = row + 1;
-    }
-    if StringLength(out) > 0 {
-        // Reconstruct the parser-owned role shape.  A generic Methods block
-        // is not an AST role owner and causes the method routine's expression
-        // graph to disappear on the MIR -> AST round trip.
-        let impl_bounds: Array<Int> = [0, 0];
+    let out: String = "";
+    let impl_index: Int = 0;
+    let impl_bounds: Array<Int> = [0, 0];
+    while MirObjectArrayObjectBoundsAt(
+        json, decl_start, decl_end, "impls", impl_index, impl_bounds
+    ) {
         let ability_bounds: Array<Int> = [0, 0];
-        if !MirObjectArrayObjectBoundsAt(
-            json, decl_start, decl_end, "impls", 0, impl_bounds
-        ) || !MirObjectFieldValueBounds(
+        if !MirObjectFieldValueBounds(
             json, impl_bounds[0], impl_bounds[1], "ability", ability_bounds
         ) {
             MirLowerFailClosed(Concat(
-                "role method is missing impl ability fact: ", role_name
+                "role impl is missing ability fact: ", role_name
             ));
         }
         let ability_name: String = MirObjectStringFact(
             json, ability_bounds[0], ability_bounds[1], "base"
         );
-        if ability_name == "" || MirObjectArrayObjectBoundsAt(
-            json, decl_start, decl_end, "impls", 1, impl_bounds
-        ) {
+        let method_start_text: String = MirObjectNumberFact(
+            json, impl_bounds[0], impl_bounds[1], "method_start"
+        );
+        let method_count_text: String = MirObjectNumberFact(
+            json, impl_bounds[0], impl_bounds[1], "method_count"
+        );
+        let method_start: Int = ToInt(method_start_text);
+        let method_count: Int = ToInt(method_count_text);
+        if ability_name == "" || method_start < 0 || method_count < 0 ||
+            ToString(method_start) != method_start_text ||
+            ToString(method_count) != method_count_text {
             MirLowerFailClosed(Concat(
-                "role has unsupported impl ability cardinality: ", role_name
+                "role impl range fact is invalid: ", role_name
             ));
         }
-        return Concat(
-            "    Impl ability: ", Concat(ability_name, Concat("\n", out))
-        );
+        out = Concat(out, Concat(
+            "    Impl ability: ", Concat(ability_name, "\n")
+        ));
+        let local_method_index: Int = 0;
+        while local_method_index < method_count {
+            let method_row: Int = method_start + local_method_index;
+            let method_bounds: Array<Int> = [0, 0];
+            if !MirObjectArrayObjectBoundsAt(
+                json, decl_start, decl_end, "methods", method_row,
+                method_bounds
+            ) {
+                MirLowerFailClosed(Concat(
+                    "role impl method range exceeds method facts: ", role_name
+                ));
+            }
+            let method_name: String = MirObjectStringFact(
+                json, method_bounds[0], method_bounds[1], "name"
+            );
+            let routine_pos: Option<Int> = MirProgramRoutineIndexFind(
+                routines, role_name, method_name
+            );
+            if method_name == "" || !IsSome(routine_pos) {
+                MirLowerFailClosed(Concat(
+                    "role impl method is missing routine fact: ",
+                    Concat(role_name, Concat(".", method_name))
+                ));
+            }
+            out = Concat(out, EmitRoutineTreeWithSelfType(
+                json, UnwrapOption(routine_pos), "      ", for_type
+            ));
+            local_method_index = local_method_index + 1;
+        }
+        impl_index = impl_index + 1;
     }
-    return "";
+    return out;
 }
 
 func EmitRoleDecl(ref routines: MirProgramRoutineIndex, json: String,
@@ -260,7 +333,15 @@ func EmitRoleDecl(ref routines: MirProgramRoutineIndex, json: String,
         out,
         Concat(
             EmitDeclGenericParams(json, decl_start, decl_end, role_name),
-            EmitRoleMethods(routines, json, decl_start, decl_end, role_name, for_type)
+            Concat(
+                EmitDeclGenericConstraints(
+                    json, decl_start, decl_end, role_name
+                ),
+                EmitRoleImplBlocks(
+                    routines, json, decl_start, decl_end,
+                    role_name, for_type
+                )
+            )
         )
     );
 }
@@ -397,6 +478,9 @@ func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> Stri
             let nominal_kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "nominal_kind");
             ArrayPush(chunks, Concat("  ", Concat(NominalAstLabel(nominal_kind), Concat(": ", Concat(sname, "\n")))));
             ArrayPush(chunks, EmitDeclGenericParams(
+                json, decl_bounds[0], decl_bounds[1], sname
+            ));
+            ArrayPush(chunks, EmitDeclGenericConstraints(
                 json, decl_bounds[0], decl_bounds[1], sname
             ));
             let cfields: String = EmitDeclFields(json, decl_bounds[0], decl_bounds[1], sname);
