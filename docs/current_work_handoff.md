@@ -9,11 +9,12 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `657970f3afac4c90941a60580b6b0c4a569e82be`
-  on `main`.
-- `origin/main` remains at `c2932d47151526ee0cd7a4e8301b808c4724a7e9`.
-  The captured code HEAD is one local commit ahead; after this handoff refresh
-  is committed, `main` is two commits ahead and has not been pushed.
+- Captured code HEAD: `e3cc1375` (`Close LLVM call result type SoT`) on `main`.
+- `origin/main` is at the same revision `e3cc1375`.
+- The working tree has three intentional concurrent unstaged paths:
+  `src/codegen/llvm_expr_call_args.c`, `src/codegen/llvm_internal.h`, and the
+  concurrent hunk in `src/codegen/llvm_stmt_type_infer_call.c`; this handoff
+  refresh does not stage or claim those changes.
 - Commit `c2932d47` was created and pushed for the collection/let/try-let
   binding-consumer SoT follow-up. Collection mutation targets now require the
   owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
@@ -40,6 +41,11 @@ current owner fact and update this file after verification.
   `try-let`, range-loop, and foreach consumers use that fact. `EmitAssign` and
   the migrated statement emitters only consume owner-provided bindings; their
   symbol-owner import and target-text/name recovery paths are absent.
+- The latest SoT closure is `e3cc1375`: MIR source-local call-result facts own
+  `UnwrapOption(Option<T>)` payload typing, and LLVM call type inference reads
+  that active MIR owner. The assignment projection C/LLVM parity gate passed
+  all positive and missing-fact negatives; the 8-fixture C/LLVM codegen shard
+  passed `rung-0..21`.
 - Executable witnesses: the assignment projection probe emits its five pinned
   Option/scalar/indexed rows and rejects missing expected type, indexed target
   type, direct call target, and C binding. `owner_field_assignment` proves
@@ -78,14 +84,13 @@ current owner fact and update this file after verification.
   semantic environment, MIR match rows, and independent contiguous payload
   projection graphs carry arbitrary arity without variant-name or arity
   switches. Tagged enum equality remains a deliberate negative semantic gate.
-- Next active falsifier: the LLVM-enabled assignment projection leg fails while
-  compiling the Pergyra probe with `LLVM expression type inference requires a
-  concrete type: call 'UnwrapOption' requires registered function or expected
-  type metadata`. The C leg is green. Do not add a call-name special case to
-  `src/codegen/llvm_stmt_type_infer_call.c`; first locate the missing
-  semantic/MIR return-type fact owner, its last LLVM consumer, and a graph-only
-  falsifying fixture, then replace the C-owned inference seam with that carried
-  fact.
+- The prior active falsifier, LLVM `UnwrapOption` call-result inference, is
+  closed by `e3cc1375`. No next executable falsifier is selected from the
+  passing focused gates; the full matrix remains an explicit budget omission.
+  `tests/mir_declaration_inventory_smoke.sh` still has a pre-existing baseline
+  failure for `src/codegen/transpiler.c` missing
+  `emit_class_decl_from_mir_header(header, ctx)` and is unrelated to this
+  closure.
 - This session created and pushed `c435b4c1` for the HIR region-fact carriage
   SoT closure. The HIR projection now owns stable copies of semantic region
   rows and the driver consumes only the HIR carrier; the semantic producer,

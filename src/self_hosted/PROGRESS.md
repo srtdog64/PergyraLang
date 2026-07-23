@@ -1,5 +1,20 @@
 # Self-Host Progress
 
+2026-07-23 LLVM call-result type SoT closure: the native MIR
+`mir_source_local_call_expr_type_name` owner now carries the payload type for
+`UnwrapOption(Option<T>)`, and LLVM call type inference consumes that active
+MIR fact before backend-local inference. No LLVM call-name type special case,
+`Int` fallback, or graph-text recovery was added. The assignment projection
+probe passes on both C and LLVM, including missing expected type, target type,
+call target, C binding, and collection `cref`-only fail-closed negatives.
+The 8-fixture C/LLVM codegen shard also passes (`rung-0..21`).
+
+The next executable falsifier is not selected from the passing focused gates;
+the full matrix remains an explicit budget omission. The MIR declaration
+inventory smoke gate still has a pre-existing unrelated baseline failure in
+`src/codegen/transpiler.c` (`emit_class_decl_from_mir_header(header, ctx)`),
+so it is not evidence against this closure.
+
 2026-07-23 Pergyra function-binding consumer SoT follow-up: collection
 mutation targets (`ArraySet`, `ArrayPush`, `ArrayPop`) now read their C binding
 through `CodegenCollectionTargetCBindingOrDie`, and `let`, `try-let`, range-loop,
@@ -16,13 +31,10 @@ body_fixtures=20 mir_fixtures=1` and proves a reference collection parameter
 keeps the owner-projected dereferenced `cbind`. Coq/Rocq was explicitly skipped
 because no prover is installed.
 
-The next executable falsifier is now observed: after the native compiler was
-rebuilt with LLVM enabled, the assignment projection LLVM leg fails while
-compiling the Pergyra probe with `call 'UnwrapOption' requires registered
-function or expected type metadata`. Do not patch a call-name special case into
-the C LLVM inference path. First identify the missing semantic/MIR fact owner,
-its last LLVM consumer, and a graph-only negative fixture; then replace that
-C-owned inference seam with the Pergyra-carried fact.
+The next executable falsifier recorded at this checkpoint was the LLVM
+assignment projection `UnwrapOption` return-type failure. It is closed by the
+LLVM call-result type SoT entry above through the active MIR fact owner; no
+backend call-name special case was added.
 
 2026-07-23 Pergyra function-value binding SoT closure: the focused assignment
 projection gate first reproduced `assignment target C binding fact is missing`
