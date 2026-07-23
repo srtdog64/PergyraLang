@@ -41,7 +41,8 @@ func CompareCallArgs(
                 part, names, types, func_names, func_rets
             );
             if StringLength(expected) > 0 && expected != "Unknown" &&
-                actual != "Unknown" && expected != actual {
+                actual != "Unknown" &&
+                !ExpressionAssignableTo(expected, actual, part) {
                 return SemanticError3(
                     "call_arg_type_mismatch", "func", callee,
                     "expected", expected, "actual", actual

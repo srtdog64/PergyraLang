@@ -1,5 +1,43 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra contextual Result-field executable rung 248. Objective:
+allow an `Ok(T)` or `Err(E)` graph value to enter a nominal constructor field
+whose declared type is `Result<T, E>` without inventing the missing wrapper
+parameter or adding constructor-name policy. Priority is the declared
+field/parameter type, canonical wrapper assignability, fail-closed mismatch,
+then patch size. `ResultTypeAssignableTo` is the assignability fact owner;
+`SemanticExpressionGraphFieldValueAssignableTo` and `CompareCallArgs` are the
+last consumers reached by this rung. Forbidden fallbacks are `Wallet`/`Cell`
+branches, parsing `Ok` as a special constructor at the consumer, accepting all
+Result pairs, and guessing an error type into the produced value.
+
+The previous Pergyra-built driver rejected both `Wallet(Ok(100))` and
+`Cell(10, Ok(5))` as `Result<Int>` versus `Result<Int, E>`. The field graph
+consumer and the remaining non-generic call consumer now delegate to the same
+canonical assignability owner instead of maintaining `Result<Unknown>` and
+strict-string-equality rules. Manifest fixture 248 is
+`result_as_class_field`; the active manifest therefore contains 256 DRV-2 MIR
+rows and the counted executable frontier advances from 245 to 248. No class,
+variant, or error-enum name appears in the semantic implementation.
+
+Filtered producer-first source/MIR parity passes the new fixture for both the
+C-built and LLVM-built Pergyra drivers (`backends=1 body_fixtures=20
+mir_fixtures=1` in each lane). Both drivers preserve the declared
+`Result<Int, CardErr>` field, the carried `Wallet`/`Ok`/`Err` call graph, the
+typed Result C ABI, and native-oracle runtime output. A source mutation from
+`Ok(100)` to `Ok("bad")` fails closed with
+`call_arg_type_mismatch`; the native compiler also rejects that program. The
+wrapper policy contract independently keeps incompatible payload and explicit
+error types negative. Component contracts and shell syntax pass. The full
+unfiltered 256-row matrix was not run, and Coq/Rocq remains unavailable.
+
+The next known real failure is `await_inline_spawn`, where the Pergyra driver
+reports `initializer_type_unresolved` because `spawn` is still a leaf rather
+than an owned async expression/type/codegen fact. That is a multi-owner async
+rung, not a safe one-line continuation; the next session must either frame its
+objective card and falsifying graph or select a smaller observed synchronous
+failure. Do not add a sequential fallback for `spawn`.
+
 2026-07-23 LLVM runtime-call argument ABI closure. Objective: compile
 Pergyra-owned wrapper/assignment code when a dependent-return expression is a
 runtime call argument, without adding another C call-name policy. Priority is

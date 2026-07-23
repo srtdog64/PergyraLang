@@ -50,7 +50,9 @@ func SemanticExpressionGraphFieldValueAssignableTo(
 ) -> Bool {
     if expected == actual { return true; }
     if IsOptionType(expected) && actual == "Option<Unknown>" { return true; }
-    if IsResultType(expected) && actual == "Result<Unknown>" { return true; }
+    if IsResultType(expected) && IsResultType(actual) {
+        return ResultTypeAssignableTo(expected, actual);
+    }
     return expected == "Long" && actual == "Int" &&
         SemanticExpressionGraphIntLiteral(graph, node_id);
 }
