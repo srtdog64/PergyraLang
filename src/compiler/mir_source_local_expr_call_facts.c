@@ -227,6 +227,18 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
         }
         return NULL;
     }
+    if (callee_name != NULL && strcmp(callee_name, "SetValues") == 0
+        && ast_call_arg_count(expr) >= 1) {
+        const char *set_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        char element_type[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (mir_source_local_unwrap_set_element_type(set_type, element_type,
+                sizeof(element_type))) {
+            return mir_source_local_type_scratch_format(scratch, "Array",
+                element_type);
+        }
+        return NULL;
+    }
 
     if (callee_name != NULL
         && (strcmp(callee_name, "Read") == 0

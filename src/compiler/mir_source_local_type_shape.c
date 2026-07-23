@@ -126,23 +126,23 @@ mir_source_local_unwrap_array_or_slice_type(const char *type_name,
         sizeof(prefixes) / sizeof(prefixes[0]), out, out_size);
 }
 
-bool
-mir_source_local_unwrap_hash_map_key_type(const char *type_name,
-                                          char *out,
-                                          size_t out_size)
+static bool
+mir_source_local_unwrap_first_constructed_type_arg(const char *type_name,
+                                                    const char *prefix,
+                                                    bool require_separator,
+                                                    char *out,
+                                                    size_t out_size)
 {
-    const char *prefix = "HashMap<";
     const char *inner;
     const char *end;
     size_t start = 0;
     unsigned depth = 0;
-    size_t arg_index = 0;
     size_t inner_len;
+    bool saw_separator = false;
 
     if (type_name == NULL || out == NULL || out_size == 0
-        || strncmp(type_name, prefix, strlen(prefix)) != 0) {
+        || prefix == NULL || strncmp(type_name, prefix, strlen(prefix)) != 0)
         return false;
-    }
     inner = type_name + strlen(prefix);
     end = strrchr(inner, '>');
     if (end == NULL || end <= inner)
@@ -168,19 +168,60 @@ mir_source_local_unwrap_hash_map_key_type(const char *type_name,
                        || inner[arg_end - 1] == '\t')) {
                 arg_end--;
             }
-            if (arg_index == 0) {
+            if (!saw_separator) {
                 size_t len = arg_end - arg_start;
                 if (len == 0 || len >= out_size)
                     return false;
                 memcpy(out, inner + arg_start, len);
                 out[len] = '\0';
-                return true;
             }
-            arg_index++;
+            saw_separator = true;
             start = i + 1;
         }
     }
-    return false;
+    if (!saw_separator && require_separator)
+        return false;
+    if (saw_separator)
+        return out[0] != '\0';
+    {
+        size_t arg_start = start;
+        size_t arg_end = inner_len;
+        size_t len;
+        while (arg_start < arg_end
+               && (inner[arg_start] == ' '
+                   || inner[arg_start] == '\t')) {
+            arg_start++;
+        }
+        while (arg_end > arg_start
+               && (inner[arg_end - 1] == ' '
+                   || inner[arg_end - 1] == '\t')) {
+            arg_end--;
+        }
+        len = arg_end - arg_start;
+        if (len == 0 || len >= out_size)
+            return false;
+        memcpy(out, inner + arg_start, len);
+        out[len] = '\0';
+        return true;
+    }
+}
+
+bool
+mir_source_local_unwrap_hash_map_key_type(const char *type_name,
+                                          char *out,
+                                          size_t out_size)
+{
+    return mir_source_local_unwrap_first_constructed_type_arg(type_name,
+        "HashMap<", true, out, out_size);
+}
+
+bool
+mir_source_local_unwrap_set_element_type(const char *type_name,
+                                         char *out,
+                                         size_t out_size)
+{
+    return mir_source_local_unwrap_first_constructed_type_arg(type_name,
+        "Set<", false, out, out_size);
 }
 
 bool
