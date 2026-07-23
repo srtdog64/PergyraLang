@@ -1,5 +1,29 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra enum ABI value SoT closure: the new
+`codegen/abi_layout/enum_abi_value_fact_owner.pgy` owns one explicit projection from
+semantic enum layout to C value type and bare-return default. Payload-free and
+tagged layouts differ only inside that owner. General ABI value/field/default
+consumers and `Option<T>` materialization now consume `EnumAbiValueFact`; they
+no longer repeat layout switches or maintain an Option-private enum mapping.
+Unknown or missing enum layout returns an invalid fact, and the ABI readiness
+contract fails closed rather than guessing storage.
+
+The executable fixture `option_payload_free_enum_field_declaration` covers an
+`Option<Failure>` nominal field plus `Some(Timeout)`, `Some(Reset)`, contextual
+`None`, outer Option match, and inner payload-free enum match. Native C and the
+Pergyra-origin codegen tool both run as `7`, `9`, `0`. Focused C codegen parity
+reports rung `0..21` green; filtered producer-first DRV-2 reports `backends=1
+body_fixtures=20 mir_fixtures=1`; shell syntax and component contract pass.
+The active manifests are 85 codegen fixtures, 255 DRV-2 MIR rows, and 21
+TestHarness codegen paths. LLVM was unavailable for the focused DRV-2 gate,
+and the full unfiltered matrix was not run.
+
+The next observed executable failure remains the assignment-projection C leg:
+after consuming the 21-path TestHarness manifest it fails closed with
+`assignment target C binding fact is missing`. That seam requires a fresh
+owner/last-consumer audit; it is not silently attributed to the enum ABI work.
+
 2026-07-23 Pergyra canonical value-wrapper declaration SoT closure: semantic
 type identity now comes from `SemanticCanonicalTypeName`, while
 `codegen/input/value_wrapper_usage_owner.pgy` recursively inventories concrete
@@ -37,7 +61,8 @@ manifests are 84 codegen fixtures, 254 DRV-2 MIR rows, and 21 TestHarness
 codegen paths. The full unfiltered and LLVM matrices were not run for this
 focused rung.
 
-Next active falsifier is observed, not inferred. `Result<Option<Payload>,
+At that checkpoint, the next falsifier was observed rather than inferred.
+`Result<Option<Payload>,
 Failure>` and `Option<Option<Payload>>` both compile and run as `0` on native
 and Pergyra paths, so they are coverage-only. A nominal field
 `Option<Failure>` where `Failure` is payload-free compiles on native C but the

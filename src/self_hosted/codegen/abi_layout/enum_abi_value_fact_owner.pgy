@@ -1,0 +1,85 @@
+// src/self_hosted/codegen/abi_layout/enum_abi_value_fact_owner.pgy
+//
+// One semantic-enum-to-C-value fact for self-host C ABI consumers.
+
+import "../type_facts/type_env.pgy";
+import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct EnumAbiValueFact {
+    let ok: Bool;
+    let semantic_type_name: String;
+    let layout: String;
+    let c_value_type: String;
+    let default_return_value: String;
+}
+
+func EnumAbiValueFactMissing(type_name: String) -> EnumAbiValueFact {
+    return EnumAbiValueFact(false, type_name, "", "", "");
+}
+
+func EnumAbiValueFactForRows(
+    type_name: String,
+    env_rows: String
+) -> EnumAbiValueFact {
+    let layout: String = LookupKindTypeRows(
+        env_rows, type_name, "enum"
+    );
+    if layout == "payload_free" {
+        return EnumAbiValueFact(
+            true,
+            type_name,
+            layout,
+            CompilerAbiLayoutPayloadFreeEnumCValueType(),
+            CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue()
+        );
+    }
+    if layout == "tagged" {
+        let c_value_type: String = CompilerSymbolCTypeName(type_name);
+        return EnumAbiValueFact(
+            true,
+            type_name,
+            layout,
+            c_value_type,
+            Concat("(", Concat(c_value_type, "){0}"))
+        );
+    }
+    return EnumAbiValueFactMissing(type_name);
+}
+
+func EnumAbiValueFactFor(
+    type_name: String,
+    env: CodegenTypeEnv
+) -> EnumAbiValueFact {
+    let global_fact: EnumAbiValueFact = EnumAbiValueFactForRows(
+        type_name, env.global_rows
+    );
+    if global_fact.ok {
+        return global_fact;
+    }
+    return EnumAbiValueFactForRows(type_name, env.local_rows);
+}
+
+func EnumAbiValueFactContractReady() -> Bool {
+    let payload_free: EnumAbiValueFact = EnumAbiValueFactForRows(
+        "Failure", "|Failure=enum:payload_free|"
+    );
+    let tagged: EnumAbiValueFact = EnumAbiValueFactForRows(
+        "Cell", "|Cell=enum:tagged|"
+    );
+    let missing: EnumAbiValueFact = EnumAbiValueFactForRows(
+        "Unknown", "|Unknown=s:struct|"
+    );
+    return payload_free.ok &&
+        payload_free.c_value_type ==
+            CompilerAbiLayoutPayloadFreeEnumCValueType() &&
+        payload_free.default_return_value ==
+            CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue() &&
+        tagged.ok &&
+        tagged.c_value_type == CompilerSymbolCTypeName("Cell") &&
+        tagged.default_return_value == Concat(
+            "(", Concat(CompilerSymbolCTypeName("Cell"), "){0}")
+        ) &&
+        !missing.ok && missing.c_value_type == "" &&
+        missing.default_return_value == "";
+}

@@ -4,6 +4,7 @@
 
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "enum_abi_value_fact_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
@@ -17,6 +18,9 @@ import "../../semantic/array_type_shape_owner.pgy";
 func AbiLayoutRequireCompilerRows() -> Void {
     if !CompilerAbiLayoutRowsReady() {
         Die("compiler ABI/layout row owner is not ready");
+    }
+    if !EnumAbiValueFactContractReady() {
+        Die("enum ABI value fact owner is not ready");
     }
 }
 
@@ -75,14 +79,11 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return AbiLayoutCStructTypeName(type_name);
     }
-    let enum_layout: String = LookupKindType(
-        struct_env, type_name, "enum"
+    let enum_fact: EnumAbiValueFact = EnumAbiValueFactFor(
+        type_name, struct_env
     );
-    if enum_layout == "payload_free" {
-        return CompilerAbiLayoutPayloadFreeEnumCValueType();
-    }
-    if enum_layout == "tagged" {
-        return CompilerSymbolCTypeName(type_name);
+    if enum_fact.ok {
+        return enum_fact.c_value_type;
     }
     Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/Double/String/Array/Result/Option/struct/enum): ", type_name));
     return "";
@@ -124,13 +125,11 @@ func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: CodegenTypeEnv)
             return default_value;
         }
     }
-    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
-        return CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue();
-    }
-    if LookupKindType(struct_env, type_name, "enum") == "tagged" {
-        return Concat("(", Concat(
-            CompilerSymbolCTypeName(type_name), "){0}"
-        ));
+    let enum_fact: EnumAbiValueFact = EnumAbiValueFactFor(
+        type_name, struct_env
+    );
+    if enum_fact.ok {
+        return enum_fact.default_return_value;
     }
     Die(Concat("unsupported bare return default for C ABI type: ", type_name));
     return "";
@@ -144,12 +143,6 @@ func AbiLayoutCFieldType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
         Die(Concat("struct/class fields must be Int/Long/Bool/Float/Double/String/previous struct, got: ", type_name));
-    }
-    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
-        return CompilerAbiLayoutPayloadFreeEnumCValueType();
-    }
-    if LookupKindType(struct_env, type_name, "enum") == "tagged" {
-        return CompilerSymbolCTypeName(type_name);
     }
     return AbiLayoutCValueType(type_name, struct_env);
 }

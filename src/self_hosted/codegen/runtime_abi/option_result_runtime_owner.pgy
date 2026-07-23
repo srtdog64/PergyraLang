@@ -6,6 +6,7 @@ import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
+import "../abi_layout/enum_abi_value_fact_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "result_runtime_owner.pgy";
 
@@ -112,10 +113,12 @@ func OptionResultRuntimeStructOptionFact(
     }
     let inner: String = UnwrapOption(inner_opt);
     let inner_c_type: String = "";
+    let enum_fact: EnumAbiValueFact =
+        EnumAbiValueFactForRows(inner, env);
     let is_struct: Bool = LookupKindTypeRows(env, inner, "s") == "struct";
-    let is_tagged_enum: Bool =
-        LookupKindTypeRows(env, inner, "enum") == "tagged";
-    if is_struct || is_tagged_enum {
+    if enum_fact.ok {
+        inner_c_type = enum_fact.c_value_type;
+    } else if is_struct {
         inner_c_type = CompilerSymbolCTypeName(inner);
     } else {
         let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(inner);

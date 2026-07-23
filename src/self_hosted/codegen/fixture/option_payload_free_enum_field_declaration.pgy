@@ -1,0 +1,31 @@
+enum Failure {
+    Timeout,
+    Reset
+}
+class Envelope {
+    let outcome: Option<Failure>;
+    let bias: Int;
+}
+
+func PickFailure(code: Int) -> Option<Failure> {
+    if code == 1 { return Some(Timeout); }
+    if code == 2 { return Some(Reset); }
+    return None;
+}
+
+func FailureScore(outcome: Option<Failure>) -> Int {
+    match outcome {
+        case Some(failure):
+            match failure {
+                case Timeout: return 7;
+                case Reset: return 9;
+            }
+        case None: return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(FailureScore(PickFailure(1)));
+    Log(FailureScore(PickFailure(2)));
+    Log(FailureScore(PickFailure(0)));
+}

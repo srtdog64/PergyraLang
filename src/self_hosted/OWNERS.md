@@ -602,6 +602,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
 - `src/self_hosted/codegen/text/struct_field_access_owner.pgy` -- dotted member-access field spelling projection facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
+- `src/self_hosted/codegen/abi_layout/enum_abi_value_fact_owner.pgy` -- one
+  semantic-enum-to-C-value/default ABI fact for payload-free and tagged enum
+  consumers.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
