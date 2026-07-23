@@ -9,9 +9,9 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `368b5aba` (`Close LLVM MapKeys element type SoT`) on
+- Captured code HEAD: `fa1b08af` (`Close LLVM SetValues element type SoT`) on
   `main`; `origin/main` points to the same revision. The code checkpoint has
-  exactly seven unrelated concurrent dirty paths listed below.
+  exactly nine unrelated concurrent dirty paths listed below.
 - The preceding local runtime-ABI closure and its handoff refresh,
   `bccc5d50` and `9faeab66`, were concurrent work preserved in the tree; both
   are now pushed with this branch. This refresh changes only this handoff
@@ -21,9 +21,10 @@ current owner fact and update this file after verification.
   `src/self_hosted/semantic/call_check_owner.pgy`,
   `tests/self_hosted/parity/driver_rung2_body_parity.sh`,
   `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`,
-  `tests/self_hosted_component_contract_smoke.sh`, and the untracked
-  `tests/self_hosted/parity/driver_rung2_result_field_parity_owner.sh` remain
-  unstaged and must be preserved.
+  `tests/self_hosted_component_contract_smoke.sh`,
+  `docs/semantics/sot_owner_spine_registry.md`, `src/self_hosted/PROGRESS.md`,
+  and the untracked `tests/self_hosted/parity/driver_rung2_result_field_parity_owner.sh`
+  remain unstaged and must be preserved.
 - `1ecadb4a` closes the bounded active-MIR LLVM local-expression seam for
   `AST_ARRAY_ACCESS`: `mir_source_local_expr_type_name` owns the element type,
   `llvm_mir_local_infer_expr_type` consumes that fact, and a missing or
@@ -35,9 +36,9 @@ current owner fact and update this file after verification.
   and its shell-syntax check passed; and the LLVM `array_index_assign` fixture
   ran with output `13` and `zb` and exit code 0. The build emitted only existing
   warnings; the full matrix remains an explicit budget omission.
-- At handoff refresh time, the only remaining dirty paths are the seven
+- At handoff refresh time, the only remaining dirty paths are the nine
   concurrent edits above; no source or test path from the `1ecadb4a`,
-  `3552092a`, or `368b5aba` closures is dirty.
+  `3552092a`, `368b5aba`, or `fa1b08af` closures is dirty.
 - `3552092a` extends that owner-directed type through the actual LLVM array
   value emitter. `llvm_emit_array_access_expr` uses the shared MIR local
   array-access projection for active MIR identifier and aggregate loads, while
@@ -46,6 +47,11 @@ current owner fact and update this file after verification.
   `HashMap<K,V>` key fact projects to `Array<K>` before active-MIR array access
   emission. The direct `MapKeys(labels)[0]` falsifier now passes in both C and
   LLVM; malformed or missing map-key shape remains fail-closed.
+- `fa1b08af` extends the same constructed-type owner to `SetValues`: a concrete
+  `Set<T>` payload projects to `Array<T>` before active-MIR array access
+  emission. The direct `SetValues(seen)[0]` witness and the collection-
+  iteration fixture pass in C/LLVM; malformed or missing Set shape remains
+  fail-closed.
 - Commit `c2932d47` was created and pushed for the collection/let/try-let
   binding-consumer SoT follow-up. Collection mutation targets now require the
   owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
@@ -100,6 +106,10 @@ current owner fact and update this file after verification.
   relies on backend registry inference for the active-MIR array element type.
   The `map_keys` and `map_key_variants` witnesses pass in C/LLVM, while the
   broader collection-result/element family remains `BRIDGE`.
+- The latest collection-result closure is `fa1b08af`: `SetValues` no longer
+  depends on backend Set registry inference for active-MIR array element type.
+  `selfhost.expression_surface` remains `BRIDGE`; ArrayMap/ArrayFilter and
+  other collection-returning call facts are not claimed closed.
 - Executable witnesses: the assignment projection probe emits its five pinned
   Option/scalar/indexed rows and rejects missing expected type, indexed target
   type, direct call target, and C binding. `owner_field_assignment` proves
@@ -144,10 +154,11 @@ current owner fact and update this file after verification.
   runtime-call argument, is closed by `bccc5d50` through the runtime ABI owner.
   `e3cc1375` is retained in history as an interim C-owned AST re-inference path,
   not as the final design. The next bounded falsifier is an active-MIR
-  `AST_ARRAY_ACCESS` over `SetValues(set)` without a carried Set element type
-  fact; it must produce `MIR source-local array access type fact is missing`.
-  No new fixture has been admitted for that negative yet, and the full matrix
-  remains an explicit budget omission.
+  `AST_ARRAY_ACCESS` over `ArrayMap` or `ArrayFilter` without a carried
+  collection-result element fact; it must produce
+  `MIR source-local array access type fact is missing`. No new fixture has been
+  admitted for that negative yet, and the full matrix remains an explicit
+  budget omission.
   `tests/mir_declaration_inventory_smoke.sh` still has a pre-existing baseline
   failure for `src/codegen/transpiler.c` missing
   `emit_class_decl_from_mir_header(header, ctx)` and is unrelated to this
@@ -923,17 +934,18 @@ current owner fact and update this file after verification.
 1. Run `git status --short --branch` and compare HEAD with this checkpoint.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
-3. Do not reopen the closed LLVM assignment, array-index, or `MapKeys` probes.
-   The next bounded negative is an `AST_ARRAY_ACCESS` over `SetValues(set)`
-   without a carried Set element type fact; before widening the slice, make
-   that failure executable and record its objective card with the missing fact,
-   owner, last legitimate consumer, forbidden fallback, and focused negative
-   fixture. Prefer a real Pergyra implementation replacing a C-owned compiler
-   path over another SoT-only cleanup.
+3. Do not reopen the closed LLVM assignment, array-index, `MapKeys`, or
+   `SetValues` probes. The next bounded negative is an `AST_ARRAY_ACCESS` over
+   `ArrayMap` or `ArrayFilter` without a carried collection-result element
+   fact; before widening the slice, make that failure executable and record its
+   objective card with the missing fact, owner, last legitimate consumer,
+   forbidden fallback, and focused negative fixture. Prefer a real Pergyra
+   implementation replacing a C-owned compiler path over another SoT-only
+   cleanup.
 4. Run the narrow owner gate first. For the current tree, the array-index
    closure gates are `tests/backend_fail_closed_smoke.sh`, the separate LLVM
-   build, and the array-index aggregate plus `map_keys`/`map_key_variants`
-   fixtures. Other useful focused gates include
+   build, the array-index aggregate plus `map_keys`/`map_key_variants`, and the
+   SetValues collection-iteration fixtures. Other useful focused gates include
    `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
    `region-plan-unit-test-smoke`, `region-escape-unit-test-smoke`,
