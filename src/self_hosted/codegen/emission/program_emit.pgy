@@ -528,7 +528,7 @@ func GenerateCUnitFromSemanticFacts(
     }
     TextBuilderAppend(output, "\n");
     if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
-    if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCIntBlock()); }
+    if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(
             usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array),

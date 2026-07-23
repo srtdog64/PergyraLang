@@ -71,10 +71,10 @@ pgy_selfhost_verify_driver_rung2_generic_spawn_emitted_c() {
     local signature spawn_call
     if [[ "$base" == "generic_future_spawn_int" ]]; then
         signature='long long Identity_Int(long long x)'
-        spawn_call='PgyTaskHandle task = pgy_selfhost_spawn_int((PgySelfHostSpawnIntFunction){ .unary = Identity_Int }, 1, 42, 0)'
+        spawn_call='PgyTaskHandle task = pgy_selfhost_spawn((PgySelfHostSpawnFunction){ .int_unary = Identity_Int }, PGY_SELFHOST_SPAWN_INT1, (PgySelfHostSpawnValue){ .int_value = 42 }, (PgySelfHostSpawnValue){0})'
     elif [[ "$base" == "generic_future_spawn_multi_arg" ]]; then
         signature='long long PickSecond_Int(long long left, long long right)'
-        spawn_call='PgyTaskHandle task = pgy_selfhost_spawn_int((PgySelfHostSpawnIntFunction){ .binary = PickSecond_Int }, 2, 10, 77)'
+        spawn_call='PgyTaskHandle task = pgy_selfhost_spawn((PgySelfHostSpawnFunction){ .int_binary = PickSecond_Int }, PGY_SELFHOST_SPAWN_INT2, (PgySelfHostSpawnValue){ .int_value = 10 }, (PgySelfHostSpawnValue){ .int_value = 77 })'
     else
         return 0
     fi
@@ -88,9 +88,8 @@ pgy_selfhost_verify_driver_rung2_generic_spawn_emitted_c() {
             exit 1
         }
     done
-    if grep -Fq 'pgy_selfhost_spawn_int1' "$emitted_c" ||
-        grep -Fq 'pgy_selfhost_spawn_int2' "$emitted_c"; then
-        echo "[self-host-parity:driver-rung2] $backend generic spawn fragmented by arity" >&2
+    if grep -Fq 'pgy_selfhost_spawn_int' "$emitted_c"; then
+        echo "[self-host-parity:driver-rung2] $backend generic spawn fragmented by payload or arity" >&2
         exit 1
     fi
 }

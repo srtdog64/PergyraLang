@@ -70,7 +70,8 @@ pgy_selfhost_verify_driver_rung2_spawn_await_emitted_c() {
         for term in \
             'PgyTaskHandle task' \
             'pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL' \
-            '.unary = Inc }, 1, 4, 0)' \
+            '.int_unary = Inc }, PGY_SELFHOST_SPAWN_INT1' \
+            '.int_value = 4' \
             'pgy_await_take('; do
             grep -Fq "$term" "$emitted_c" || {
                 echo "[self-host-parity:driver-rung2] $backend named Future C fact drifted: $term" >&2
@@ -90,8 +91,9 @@ pgy_selfhost_verify_driver_rung2_spawn_await_emitted_c() {
         'pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL' \
         'pgy_await_take(' \
         'pgy_pool_init(0)' \
-        '.unary = Inc }, 1, 4, 0)' \
-        '.unary = Inc }, 1, 9, 0)'; do
+        '.int_unary = Inc }, PGY_SELFHOST_SPAWN_INT1' \
+        '.int_value = 4' \
+        '.int_value = 9'; do
         grep -Fq "$term" "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend spawn/await C fact drifted: $term" >&2
             exit 1

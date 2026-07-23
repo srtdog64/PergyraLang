@@ -130,23 +130,27 @@ func RewriteSemanticSpawn(
         if alias != "" { call_symbol = alias; }
     }
     let arity: Int = ArrayLength(view.argument_nodes);
-    let expected_params: String = "Int";
-    if arity == 2 { expected_params = "Int,Int"; }
-    if LookupKindType(env, call_symbol, "f") != "Int" ||
+    let payload_type: String = LookupKindType(env, call_symbol, "f");
+    if payload_type != "Int" && payload_type != "String" {
+        Die("self-host spawn requires a bounded scalar return fact");
+    }
+    let expected_params: String = payload_type;
+    if arity == 2 { expected_params = Concat(payload_type, Concat(",", payload_type)); }
+    if (payload_type == "String" && arity != 1) ||
         LookupKindType(env, call_symbol, "pt") != expected_params {
-        Die("self-host spawn requires a bounded Int-call signature fact");
+        Die("self-host spawn requires a bounded scalar-call signature fact");
     }
     let arguments: Array<String> = [];
     let argument_index: Int = 0;
     while argument_index < arity {
         ArrayPush(arguments, RewriteSemanticCallArgument(
             graph, view.argument_nodes[argument_index],
-            "Int", "default", env
+            payload_type, "default", env
         ));
         argument_index = argument_index + 1;
     }
-    return SpawnRuntimeCIntCall(
-        CompilerSymbolCIdentifier(call_symbol), arguments
+    return SpawnRuntimeCCall(
+        CompilerSymbolCIdentifier(call_symbol), payload_type, arguments
     );
 }
 

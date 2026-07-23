@@ -1,75 +1,77 @@
-// Runtime ABI owner for bounded Int-call spawn and named Future<Int>.
+// Runtime ABI owner for bounded scalar-call spawn and named Future<T>.
 
 import "../text/text_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 
 func SpawnRuntimeCFutureCValueType(type_name: String) -> String {
     let payload: Option<String> = FuturePayloadTypeOpt(type_name);
-    if !IsSome(payload) || UnwrapOption(payload) != "Int" {
-        return "";
-    }
+    if !IsSome(payload) { return ""; }
+    let scalar: String = UnwrapOption(payload);
+    if scalar != "Int" && scalar != "String" { return ""; }
     return "PgyTaskHandle";
 }
 
-func SpawnRuntimeCIntBlock() -> String {
-    let block: String = "typedef union {\n";
-    block = Concat(block, "    long long (*unary)(long long);\n");
-    block = Concat(block, "    long long (*binary)(long long, long long);\n");
-    block = Concat(block, "} PgySelfHostSpawnIntFunction;\n");
-    block = Concat(block, "typedef struct {\n");
-    block = Concat(block, "    PgySelfHostSpawnIntFunction fn;\n");
-    block = Concat(block, "    int arity;\n");
-    block = Concat(block, "    long long args[2];\n");
-    block = Concat(block, "} PgySelfHostSpawnIntArgs;\n");
-    block = Concat(block, "static void *pgy_selfhost_spawn_int_wrapper(void *raw) {\n");
-    block = Concat(block, "    PgySelfHostSpawnIntArgs *args = (PgySelfHostSpawnIntArgs *)raw;\n");
-    block = Concat(block, "    long long value = 0;\n");
-    block = Concat(block, "    if (args->arity == 1 && args->fn.unary != NULL) { value = args->fn.unary(args->args[0]); }\n");
-    block = Concat(block, "    else if (args->arity == 2 && args->fn.binary != NULL) { value = args->fn.binary(args->args[0], args->args[1]); }\n");
+func SpawnRuntimeCBlock() -> String {
+    let block: String = "typedef enum { PGY_SELFHOST_SPAWN_INT1 = 1, PGY_SELFHOST_SPAWN_INT2 = 2, PGY_SELFHOST_SPAWN_STRING1 = 3 } PgySelfHostSpawnSignature;\n";
+    block = Concat(block, "typedef union { long long int_value; const char *string_value; } PgySelfHostSpawnValue;\n");
+    block = Concat(block, "typedef union {\n");
+    block = Concat(block, "    long long (*int_unary)(long long);\n");
+    block = Concat(block, "    long long (*int_binary)(long long, long long);\n");
+    block = Concat(block, "    const char *(*string_unary)(const char *);\n");
+    block = Concat(block, "} PgySelfHostSpawnFunction;\n");
+    block = Concat(block, "typedef struct { PgySelfHostSpawnFunction fn; PgySelfHostSpawnSignature signature; PgySelfHostSpawnValue args[2]; } PgySelfHostSpawnArgs;\n");
+    block = Concat(block, "static void *pgy_selfhost_spawn_wrapper(void *raw) {\n");
+    block = Concat(block, "    PgySelfHostSpawnArgs *args = (PgySelfHostSpawnArgs *)raw;\n");
+    block = Concat(block, "    void *result = NULL;\n");
+    block = Concat(block, "    if (args->signature == PGY_SELFHOST_SPAWN_INT1 && args->fn.int_unary != NULL) { long long *value = (long long *)malloc(sizeof(long long)); if (value != NULL) { *value = args->fn.int_unary(args->args[0].int_value); result = value; } }\n");
+    block = Concat(block, "    else if (args->signature == PGY_SELFHOST_SPAWN_INT2 && args->fn.int_binary != NULL) { long long *value = (long long *)malloc(sizeof(long long)); if (value != NULL) { *value = args->fn.int_binary(args->args[0].int_value, args->args[1].int_value); result = value; } }\n");
+    block = Concat(block, "    else if (args->signature == PGY_SELFHOST_SPAWN_STRING1 && args->fn.string_unary != NULL) { const char **value = (const char **)malloc(sizeof(const char *)); if (value != NULL) { *value = args->fn.string_unary(args->args[0].string_value); result = value; } }\n");
     block = Concat(block, "    else { free(args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn invocation descriptor is invalid\"); }\n");
-    block = Concat(block, "    long long *result = (long long *)malloc(sizeof(long long));\n");
-    block = Concat(block, "    if (result == NULL) { free(args); PGY_PANIC(\"spawn result allocation failed\"); }\n");
-    block = Concat(block, "    *result = value;\n");
     block = Concat(block, "    free(args);\n");
-    block = Concat(block, "    return result;\n");
-    block = Concat(block, "}\n");
-    block = Concat(block, "static PgyTaskHandle pgy_selfhost_spawn_int(PgySelfHostSpawnIntFunction fn, int arity, long long arg0, long long arg1) {\n");
-    block = Concat(block, "    if ((arity == 1 && fn.unary == NULL) || (arity == 2 && fn.binary == NULL) || (arity != 1 && arity != 2)) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn invocation descriptor is invalid\"); }\n");
-    block = Concat(block, "    PgySelfHostSpawnIntArgs *args = (PgySelfHostSpawnIntArgs *)malloc(sizeof(PgySelfHostSpawnIntArgs));\n");
+    block = Concat(block, "    if (result == NULL) { PGY_PANIC(\"spawn result allocation failed\"); }\n");
+    block = Concat(block, "    return result;\n}\n");
+    block = Concat(block, "static PgyTaskHandle pgy_selfhost_spawn(PgySelfHostSpawnFunction fn, PgySelfHostSpawnSignature signature, PgySelfHostSpawnValue arg0, PgySelfHostSpawnValue arg1) {\n");
+    block = Concat(block, "    if ((signature == PGY_SELFHOST_SPAWN_INT1 && fn.int_unary == NULL) || (signature == PGY_SELFHOST_SPAWN_INT2 && fn.int_binary == NULL) || (signature == PGY_SELFHOST_SPAWN_STRING1 && fn.string_unary == NULL) || signature < PGY_SELFHOST_SPAWN_INT1 || signature > PGY_SELFHOST_SPAWN_STRING1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn invocation descriptor is invalid\"); }\n");
+    block = Concat(block, "    PgySelfHostSpawnArgs *args = (PgySelfHostSpawnArgs *)malloc(sizeof(PgySelfHostSpawnArgs));\n");
     block = Concat(block, "    if (args == NULL) { PGY_PANIC(\"spawn argument allocation failed\"); }\n");
-    block = Concat(block, "    args->fn = fn;\n");
-    block = Concat(block, "    args->arity = arity;\n");
-    block = Concat(block, "    args->args[0] = arg0;\n");
-    block = Concat(block, "    args->args[1] = arg1;\n");
-    block = Concat(block, "    PgyTaskHandle handle = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, pgy_selfhost_spawn_int_wrapper, args);\n");
+    block = Concat(block, "    args->fn = fn; args->signature = signature; args->args[0] = arg0; args->args[1] = arg1;\n");
+    block = Concat(block, "    PgyTaskHandle handle = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, pgy_selfhost_spawn_wrapper, args);\n");
     block = Concat(block, "    if (handle.task == NULL) { free(args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); }\n");
     block = Concat(block, "    return handle;\n");
     return Concat(block, "}\n");
 }
 
-func SpawnRuntimeCIntCall(
-    function_name: String, arguments: Array<String>
+func SpawnRuntimeCCall(
+    function_name: String, payload_type: String, arguments: Array<String>
 ) -> String {
     let arity: Int = ArrayLength(arguments);
     if function_name == "" || arity < 1 || arity > 2 {
         Die("spawn runtime call fact is missing");
     }
-    let member: String = "unary";
-    let argument1: String = "0";
-    if arity == 2 {
-        member = "binary";
-        argument1 = arguments[1];
+    let fn_member: String = "int_unary";
+    let value_member: String = "int_value";
+    let signature: String = "PGY_SELFHOST_SPAWN_INT1";
+    if payload_type == "Int" && arity == 2 {
+        fn_member = "int_binary";
+        signature = "PGY_SELFHOST_SPAWN_INT2";
+    } else if payload_type == "String" && arity == 1 {
+        fn_member = "string_unary";
+        value_member = "string_value";
+        signature = "PGY_SELFHOST_SPAWN_STRING1";
+    } else if payload_type != "Int" || arity > 2 {
+        Die("spawn runtime scalar signature is unsupported");
     }
-    return Concat(
-        "pgy_selfhost_spawn_int((PgySelfHostSpawnIntFunction){ .",
-        Concat(member, Concat(" = ", Concat(
-            function_name, Concat(" }, ", Concat(
-                ToString(arity), Concat(", ", Concat(
-                    arguments[0], Concat(", ", Concat(argument1, ")"))
-                ))
+    let argument1: String = "(PgySelfHostSpawnValue){0}";
+    if arity == 2 {
+        argument1 = Concat("(PgySelfHostSpawnValue){ .int_value = ", Concat(arguments[1], " }"));
+    }
+    return Concat("pgy_selfhost_spawn((PgySelfHostSpawnFunction){ .", Concat(
+        fn_member, Concat(" = ", Concat(function_name, Concat(" }, ", Concat(
+            signature, Concat(", (PgySelfHostSpawnValue){ .", Concat(
+                value_member, Concat(" = ", Concat(arguments[0], Concat(" }, ", Concat(argument1, ")"))))
             ))
-        )))
-    );
+        ))))
+    ));
 }
 
 func SpawnRuntimeCAwaitTake(operand: String, payload_c: String) -> String {
