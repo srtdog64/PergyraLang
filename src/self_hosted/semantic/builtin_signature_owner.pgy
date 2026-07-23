@@ -104,7 +104,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "AllocatorScratch^Allocator^none",
         "AllocatorPersistent^Allocator^none",
         "AllocatorPool^Allocator^Unknown",
-        "BoxArray^Box<Unknown>^Int|Allocator"
+        "BoxArray^Box<Unknown>^Int|Allocator",
+        "StringConcat^String^String|String"
     ];
     return rows;
 }
@@ -200,8 +201,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 101 && ArrayLength(returns) == 101 &&
-        ArrayLength(params) == 101 && names[0] == "StringLength" &&
+        ArrayLength(names) == 102 && ArrayLength(returns) == 102 &&
+        ArrayLength(params) == 102 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -223,6 +224,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[98] == "AllocatorPersistent" && names[99] == "AllocatorPool" &&
         returns[99] == "Allocator" && names[100] == "BoxArray" &&
         returns[100] == "Box<Unknown>" && params[100] == "Int|Allocator" &&
+        names[101] == "StringConcat" && returns[101] == "String" &&
+        params[101] == "String|String" &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

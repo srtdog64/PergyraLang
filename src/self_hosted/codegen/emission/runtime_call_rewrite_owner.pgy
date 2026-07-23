@@ -88,7 +88,9 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "Unwrap" { return Some(OptionResultRuntimeCResultUnwrapFn()); }
     if source_name == "ToFloat" { return Some(StringRuntimeCToFloatFn()); }
     if source_name == "ToString" { return Some(StringRuntimeCToStringFn()); }
-    if source_name == "Concat" { return Some(StringRuntimeCConcatFn()); }
+    if source_name == "Concat" || source_name == "StringConcat" {
+        return Some(StringRuntimeCConcatFn());
+    }
     return None;
 }
 

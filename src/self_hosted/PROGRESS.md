@@ -1,5 +1,38 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra stable StringConcat alias executable rung 249. Objective:
+project the stable `StringConcat(String, String) -> String` source name through
+the same semantic signature and generated concat runtime ABI already owned by
+`Concat`. Priority is stable builtin row identity, one runtime symbol owner,
+fail-closed argument types, then patch size. `SemanticBuiltinSignatureRows` is
+the source signature owner and `RuntimeCallCName` is the last runtime-symbol
+consumer. Forbidden fallbacks are a `StringConcat` branch in semantic call
+emission, a second C helper, source-text substitution, or shifting existing
+builtin row identities.
+
+The previous Pergyra driver rejected both `string_utility_aliases` and
+`nested_array_string` with `undefined_function: StringConcat`. The new
+signature is append-only row 101 (the 102nd row), so every existing builtin
+index stays stable. `Concat` and `StringConcat` both project to
+`StringRuntimeCConcatFn`; the emitted program contains `pgy_concat` and no
+`StringConcat` C symbol. Manifest fixture 249 is `string_utility_aliases`, and
+the DRV-2 MIR manifest now contains 257 rows.
+
+Filtered producer-first source/MIR parity passes fixture 249 for both the
+C-built and LLVM-built Pergyra drivers (`backends=1 body_fixtures=20
+mir_fixtures=1` in each lane). Runtime output matches the native oracle:
+`HELLO`, `world`, `ok:Hello World`. Mutating the second alias argument from the
+owned `String` local to `Int` fails closed with `call_arg_type_mismatch`; the
+native compiler rejects the same mutation. Component contracts and shell
+syntax pass. The full unfiltered 257-row matrix was not run.
+
+The next smaller observed synchronous failure is
+`fieldless_class_method`: after the alias closure, the driver reaches codegen
+and fails with `method owner field inventory is missing`. Audit the nominal
+declaration/environment owner for a valid zero-field inventory before changing
+emission; do not fake a field or add a class-name exception. `await_inline_spawn`
+remains the broader async failure and still must not gain a sequential fallback.
+
 2026-07-23 Pergyra contextual Result-field executable rung 248. Objective:
 allow an `Ok(T)` or `Err(E)` graph value to enter a nominal constructor field
 whose declared type is `Result<T, E>` without inventing the missing wrapper

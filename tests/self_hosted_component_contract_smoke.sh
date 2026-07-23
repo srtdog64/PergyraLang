@@ -3833,9 +3833,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 256;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 257;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 256'
+    'mir_fixture_rows[@]}" -ne 257'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3868,6 +3868,24 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_result_field "
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_result_field_emitted_c "
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/string_utility_aliases/main.pgy"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    '"StringConcat^String^String|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    'names[101] == "StringConcat"'
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    'source_name == "Concat" || source_name == "StringConcat"'
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'StringConcat'
+require_file "tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh" 140
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_string_concat_alias_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_string_concat_alias "
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_string_concat_alias_emitted_c "
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_chain_slot/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4200,11 +4218,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 256;"
+    "return 257;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 256'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 257'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4493,7 +4511,7 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
 require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
-require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 305
+require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 310
 require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" 180
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

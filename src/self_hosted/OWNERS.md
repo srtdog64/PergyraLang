@@ -256,7 +256,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/builtin_signature_owner.pgy` -- canonical builtin
   name, return-type, and parameter-type rows shared by source and artifact
-  semantic paths.
+  semantic paths; stable aliases append rows without shifting existing builtin
+  identity.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/callable_resolution_owner.pgy` -- exact-first,
   unique namespace-local callable resolution.
@@ -644,7 +645,8 @@ inventory must not become a second fact-family owner registry.
   spines plus MIR-owned runtime ABI rows.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
-  owners; string literals remain opaque.
+  owners; stable source aliases such as `Concat`/`StringConcat` converge on one
+  ABI symbol and string literals remain opaque.
 - `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- C aggregate
   emission from already-rendered array items; recursive expression evaluation
   remains owned by `expr_rewrite.pgy`.
