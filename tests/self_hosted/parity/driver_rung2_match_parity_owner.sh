@@ -17,6 +17,7 @@ pgy_selfhost_verify_driver_rung2_match() {
         "$base" != "class_bump_option_match" &&
         "$base" != "enum_match" &&
         "$base" != "enum_multi_payload" &&
+        "$base" != "option_enum_with_payload" &&
         "$base" != "class_holds_enum_field" &&
         "$base" != "dish_result_collect" &&
         "$base" != "class_factory_result_wrap" &&
@@ -94,6 +95,37 @@ pgy_selfhost_verify_driver_rung2_match() {
         grep -Eq "(routine MIR fact index is incomplete: Area \[match_binding_type_count\]|binding/type cardinality is inconsistent|MIR instruction expression graph is missing or invalid)" \
             "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
             echo "[self-host-parity:driver-rung2] $backend ordered enum binding diagnostic drifted" >&2
+            cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
+            exit 1
+        }
+        return 0
+    fi
+    if [[ "$base" == "option_enum_with_payload" ]]; then
+        local option_enum_patterns=(
+            '"match_patterns":["Some(c)"],"match_variant":"Some","match_bindings":["c"],"match_binding_types":["Cell"]'
+            '"match_patterns":["Empty"],"match_variant":null,"match_bindings":[],"match_binding_types":[]'
+            '"match_patterns":["Number(n)"],"match_variant":"Number","match_bindings":["n"],"match_binding_types":["Int"]'
+            '"match_patterns":["Marker(m)"],"match_variant":"Marker","match_bindings":["m"],"match_binding_types":["Int"]'
+        )
+        for match_pattern in "${option_enum_patterns[@]}"; do
+            grep -Fq "$match_pattern" "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Option enum aggregate match fact was lost: $match_pattern" >&2
+                exit 1
+            }
+        done
+        missing_match_binding_type="$BUILD_DIR/${base}_${backend}.missing-option-enum-binding-type.mir.json"
+        pgy_replace_first_literal "$self_mir_json" "$missing_match_binding_type" \
+            '"match_patterns":["Some(c)"],"match_variant":"Some","match_bindings":["c"],"match_binding_types":["Cell"]' \
+            '"match_patterns":["Some(c)"],"match_variant":"Some","match_bindings":["c"],"match_binding_types":[]'
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$missing_match_binding_type")" \
+            >"$missing_match_binding_type.out" 2>"$missing_match_binding_type.err"); then
+            echo "[self-host-parity:driver-rung2] $backend missing Option enum binding type was accepted" >&2
+            exit 1
+        fi
+        grep -Eq "(routine MIR fact index is incomplete: Score \[match_binding_type_count\]|MIR instruction expression graph is missing or invalid|MIR expression graph facts are missing or inconsistent)" \
+            "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
+            echo "[self-host-parity:driver-rung2] $backend missing Option enum binding diagnostic drifted" >&2
             cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
             exit 1
         }

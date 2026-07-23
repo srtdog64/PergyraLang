@@ -3819,9 +3819,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 248;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 249;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 248'
+    'mir_fixture_rows[@]}" -ne 249'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4168,11 +4168,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 248;"
+    "return 249;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 248'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 249'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -6713,6 +6713,12 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "requires_bool_header: Bool;"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeStructOptionFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCStructOptionDefinitionBlock"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    'LookupKindTypeRows(env, inner, "enum") == "tagged"'
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    'let enum_marker: String = "=enum:tagged|";'
+reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    'LookupKindTypeRows(env, inner, "s") != "struct"'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "option_struct_block_fact.requires_bool_header"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows)"
@@ -9145,10 +9151,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 78 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 78"
-[[ "$codegen_expected_count" -eq 78 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 78"
+[[ "$codegen_fixture_count" -eq 79 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 79"
+[[ "$codegen_expected_count" -eq 79 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 79"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -9162,7 +9168,7 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 78;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 79;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
@@ -9183,6 +9189,12 @@ require_text "src/self_hosted/codegen/fixture/enum_multi_payload.pgy" \
     "Rect(Int, Int)"
 require_text "src/self_hosted/codegen/fixture/enum_multi_payload.pgy" \
     "case Triangle(a, b, c):"
+require_file "src/self_hosted/codegen/fixture/option_enum_with_payload.pgy"
+require_file "src/self_hosted/codegen/expected/option_enum_with_payload_stdout.txt"
+require_text "src/self_hosted/codegen/fixture/option_enum_with_payload.pgy" \
+    "Option<Cell>"
+require_text "src/self_hosted/codegen/fixture/option_enum_with_payload.pgy" \
+    "case Some(c):"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
 require_text "tests/self_hosted/parity/codegen_parity.sh" "pgy_selfhost_read_test_harness_manifest"

@@ -107,8 +107,10 @@ func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Opti
     if colon >= 0 {
         inner = StringTrim(Substring(inner, 0, colon));
     }
-    if StringLength(inner) == 0 ||
-        LookupKindTypeRows(env, inner, "s") != "struct" {
+    let is_struct: Bool = LookupKindTypeRows(env, inner, "s") == "struct";
+    let is_tagged_enum: Bool =
+        LookupKindTypeRows(env, inner, "enum") == "tagged";
+    if StringLength(inner) == 0 || (!is_struct && !is_tagged_enum) {
         return None;
     }
     return Some(OptionStructRuntimeFact(
@@ -244,10 +246,18 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
 func OptionResultRuntimeCStructOptionDefinitionBlock(env: String) -> OptionStructDefinitionBlockFact {
     let out: String = "";
     let scan: Int = 0;
-    let marker: String = "=s:struct|";
+    let struct_marker: String = "=s:struct|";
+    let enum_marker: String = "=enum:tagged|";
     while scan < StringLength(env) {
         let rest: String = Substring(env, scan, StringLength(env) - scan);
-        let rel: Int = StringIndexOf(rest, marker);
+        let struct_rel: Int = StringIndexOf(rest, struct_marker);
+        let enum_rel: Int = StringIndexOf(rest, enum_marker);
+        let marker: String = struct_marker;
+        let rel: Int = struct_rel;
+        if enum_rel >= 0 && (rel < 0 || enum_rel < rel) {
+            marker = enum_marker;
+            rel = enum_rel;
+        }
         if rel < 0 {
             return OptionStructDefinitionBlockFact(
                 out, StringLength(out) > 0

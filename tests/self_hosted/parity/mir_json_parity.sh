@@ -480,6 +480,23 @@ for fixture_entry in "${FIXTURES[@]}"; do
             exit 1
         fi
     fi
+    if [[ "$base" == "option_enum_with_payload" ]]; then
+        for required in \
+            '"name":"Cell","variants":[{"name":"Empty","param_count":0,"param_types":[]},{"name":"Number","param_count":1,"param_types":["Int"]},{"name":"Marker","param_count":1,"param_types":["Int"]}]' \
+            '"return":"Option<Cell>"' \
+            '"match_patterns":["Some(c)"],"match_variant":"Some","match_bindings":["c"],"match_binding_types":["Cell"]' \
+            '"match_patterns":["Number(n)"],"match_variant":"Number","match_bindings":["n"],"match_binding_types":["Int"]' \
+            '"match_patterns":["Marker(m)"],"match_variant":"Marker","match_bindings":["m"],"match_binding_types":["Int"]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] option_enum_with_payload: missing Option enum aggregate fact: $required" >&2
+                exit 1
+            fi
+        done
+        if grep -Fq '"param_type":' "$mj"; then
+            echo "[self-host-parity:mir-json] option_enum_with_payload: retired singular param_type wire returned" >&2
+            exit 1
+        fi
+    fi
     if [[ "$base" == "role_operator_dispatch" ]]; then
         for required in \
             '"kind":"role","name":"IntMath","for_type":"Int"' \
@@ -582,6 +599,18 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 cat "$mutation_out" "$mutation_err" >&2
                 exit 1
             }
+        done
+    fi
+    if [[ "$base" == "option_enum_with_payload" ]]; then
+        for required in \
+            'Enum: Cell { Empty, Number(Int), Marker(Int) }' \
+            'Let: c : Cell = UnwrapOption(o)' \
+            'Let: n : Int = c.Number._0' \
+            'Let: m : Int = c.Marker._0'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] option_enum_with_payload: Pergyra lowering lost Option enum aggregate fact: $required" >&2
+                exit 1
+            fi
         done
     fi
     if [[ "$base" == "for_continue" ]]; then

@@ -12,7 +12,7 @@ func CodegenParityExpectedDir() -> String {
 }
 
 func CodegenParityFixtureExpectedCount() -> Int {
-    return 78;
+    return 79;
 }
 
 func CodegenParityPathEndsWith(path: String, suffix: String) -> Bool {
