@@ -1,0 +1,45 @@
+// Runtime ABI owner for the bounded direct Int -> Int spawn rung.
+
+import "../text/text_owner.pgy";
+
+func SpawnRuntimeCIntUnaryBlock() -> String {
+    let block: String = "typedef struct {\n";
+    block = Concat(block, "    long long (*fn)(long long);\n");
+    block = Concat(block, "    long long arg0;\n");
+    block = Concat(block, "} PgySelfHostSpawnIntArgs;\n");
+    block = Concat(block, "static void *pgy_selfhost_spawn_int_wrapper(void *raw) {\n");
+    block = Concat(block, "    PgySelfHostSpawnIntArgs *args = (PgySelfHostSpawnIntArgs *)raw;\n");
+    block = Concat(block, "    long long *result = (long long *)malloc(sizeof(long long));\n");
+    block = Concat(block, "    if (result == NULL) { PGY_PANIC(\"spawn result allocation failed\"); }\n");
+    block = Concat(block, "    *result = args->fn(args->arg0);\n");
+    block = Concat(block, "    free(args);\n");
+    block = Concat(block, "    return result;\n");
+    block = Concat(block, "}\n");
+    block = Concat(block, "static PgyTaskHandle pgy_selfhost_spawn_int1(long long (*fn)(long long), long long arg0) {\n");
+    block = Concat(block, "    PgySelfHostSpawnIntArgs *args = (PgySelfHostSpawnIntArgs *)malloc(sizeof(PgySelfHostSpawnIntArgs));\n");
+    block = Concat(block, "    if (args == NULL) { PGY_PANIC(\"spawn argument allocation failed\"); }\n");
+    block = Concat(block, "    args->fn = fn;\n");
+    block = Concat(block, "    args->arg0 = arg0;\n");
+    block = Concat(block, "    PgyTaskHandle handle = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, pgy_selfhost_spawn_int_wrapper, args);\n");
+    block = Concat(block, "    if (handle.task == NULL) { free(args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); }\n");
+    block = Concat(block, "    return handle;\n");
+    return Concat(block, "}\n");
+}
+
+func SpawnRuntimeCIntUnaryCall(function_name: String, argument: String) -> String {
+    if function_name == "" || argument == "" {
+        Die("spawn runtime call fact is missing");
+    }
+    return Concat("pgy_selfhost_spawn_int1(", Concat(
+        function_name, Concat(", ", Concat(argument, ")"))
+    ));
+}
+
+func SpawnRuntimeCAwaitTake(operand: String, payload_c: String) -> String {
+    if operand == "" || payload_c == "" {
+        Die("spawn await runtime fact is missing");
+    }
+    return Concat("pgy_await_take(", Concat(
+        operand, Concat(", ", Concat(payload_c, ")"))
+    ));
+}

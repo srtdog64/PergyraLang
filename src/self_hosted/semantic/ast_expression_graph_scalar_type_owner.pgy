@@ -248,6 +248,10 @@ func SemanticExpressionGraphScalarTypeName(
         if IsSome(future_payload) { return UnwrapOption(future_payload); }
         return "Unknown";
     }
+    if kind == AstExpressionNodeSpawn() {
+        if left == "Unknown" || left == "Void" { return "Unknown"; }
+        return Concat("Future<", Concat(left, ">"));
+    }
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
         graph, root_id
     );

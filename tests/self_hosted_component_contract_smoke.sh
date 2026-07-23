@@ -3725,7 +3725,7 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 50
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_box_array)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -3840,9 +3840,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 260;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 261;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 260'
+    'mir_fixture_rows[@]}" -ne 261'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3873,6 +3873,34 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/for_in_array_literal_iterable/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/for_in_member_iterable/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/await_inline_spawn/main.pgy"'
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeSpawn() -> Int"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "AstExpressionNodeSpawn()"
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'return "spawn"'
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'kind == "spawn"'
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "Future<"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticSpawn("
+require_text "src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy" \
+    "pgy_selfhost_spawn_int1"
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+    "pgy_lane_scheduler.h"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
+    "CodegenSemanticExpressionGraphSpawnPresent("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "pgy_pool_init(0)"
+require_file "tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_spawn_await_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_spawn_await "
 require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
     "func SemanticExpressionGraphArrayLiteralTypeName("
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
@@ -4260,11 +4288,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 260;"
+    "return 261;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 260'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 261'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

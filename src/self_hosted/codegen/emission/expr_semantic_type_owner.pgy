@@ -194,6 +194,12 @@ func CodegenExpressionTypeFromGraph(
         }
         return FuturePayloadTypeOpt(UnwrapOption(left));
     }
+    if kind == AstExpressionNodeSpawn() {
+        if UnwrapOption(left) == "Unknown" || UnwrapOption(left) == "Void" {
+            return None;
+        }
+        return Some(Concat("Future<", Concat(UnwrapOption(left), ">")));
+    }
     let right_id: Option<Int> = SemanticExpressionGraphRightChild(
         graph, node_id
     );

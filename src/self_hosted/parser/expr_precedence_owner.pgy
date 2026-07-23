@@ -41,7 +41,9 @@ func ParseUnaryFact(
         let after_spawn: Int = SkipWhitespaceAndComments(content, i);
         if MatchKeyword(content, after_spawn, "blocking") { i = after_spawn + 8; }
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
-        return ParserExpressionLeaf(Concat("spawn ", operand.text));
+        return ParserExpressionUnary(
+            AstExpressionNodeSpawn(), Concat("spawn ", operand.text), operand
+        );
     }
     if MatchKeyword(content, i, "await") {
         i = i + 5;
@@ -454,13 +456,19 @@ func ParserExpressionUnaryGraphContractReady() -> Bool {
     let awaited: ParserExpressionFact = ParseExprFact(
         "await pending", 0, await_cursor
     );
-    if !logical.ok || !numeric.ok || !awaited.ok ||
+    let spawn_cursor: Array<Int> = [0];
+    let spawned: ParserExpressionFact = ParseExprFact(
+        "spawn Inc(4)", 0, spawn_cursor
+    );
+    if !logical.ok || !numeric.ok || !awaited.ok || !spawned.ok ||
         logical_cursor[0] != 6 || numeric_cursor[0] != 9 ||
         await_cursor[0] != 13 ||
+        spawn_cursor[0] != 12 ||
         logical.arena.node_kinds[logical.root] !=
             AstExpressionNodeLogicalNot() ||
         numeric.arena.node_kinds[numeric.root] != AstExpressionNodeNegate() ||
         awaited.arena.node_kinds[awaited.root] != AstExpressionNodeAwait() ||
+        spawned.arena.node_kinds[spawned.root] != AstExpressionNodeSpawn() ||
         logical.arena.right_children[logical.root] != 0 ||
         numeric.arena.right_children[numeric.root] != 0 ||
         awaited.arena.right_children[awaited.root] != 0 {
@@ -469,12 +477,16 @@ func ParserExpressionUnaryGraphContractReady() -> Bool {
     let logical_operand: Int = logical.arena.left_children[logical.root];
     let numeric_operand: Int = numeric.arena.left_children[numeric.root];
     let await_operand: Int = awaited.arena.left_children[awaited.root];
+    let spawn_operand: Int = spawned.arena.left_children[spawned.root];
     return logical.arena.node_kinds[logical_operand] ==
             AstExpressionNodeLogicalNot() &&
         numeric.arena.node_kinds[numeric_operand] ==
             AstExpressionNodeNegate() &&
         awaited.arena.node_kinds[await_operand] == AstExpressionNodeLeaf() &&
-        awaited.arena.node_texts[await_operand] == "pending";
+        awaited.arena.node_texts[await_operand] == "pending" &&
+        spawned.arena.node_kinds[spawn_operand] ==
+            AstExpressionNodeCallArgument() &&
+        spawned.arena.node_texts[spawned.root] == "spawn Inc(4)";
 }
 
 func ParserExpressionPipeGraphContractReady() -> Bool {

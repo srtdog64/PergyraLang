@@ -6,14 +6,20 @@
 func RuntimeCHeaderRequired(
     uses_allocator: Bool,
     uses_text_builder: Bool,
-    uses_box_array: Bool
+    uses_box_array: Bool,
+    uses_spawn: Bool
 ) -> Bool {
-    return uses_allocator || uses_text_builder || uses_box_array;
+    return uses_allocator || uses_text_builder || uses_box_array || uses_spawn;
 }
 
-func RuntimeCHeaderIncludeBlock(uses_box_array: Bool) -> String {
+func RuntimeCHeaderIncludeBlock(
+    uses_box_array: Bool, uses_spawn: Bool
+) -> String {
     if uses_box_array {
         return "#include \"pgy_runtime.h\"\n";
+    }
+    if uses_spawn {
+        return "#include <stdint.h>\n#include <time.h>\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_parallel.h\"\n#include \"pgy_lane_scheduler.h\"\n";
     }
     return "#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_allocator_inline.h\"\n#include \"pgy_runtime_text_builder_inline.h\"\n";
 }
@@ -24,7 +30,7 @@ func RuntimeCHeaderOwnsCheckedArithmetic(
     uses_box_array: Bool
 ) -> Bool {
     return RuntimeCHeaderRequired(
-        uses_allocator, uses_text_builder, uses_box_array
+        uses_allocator, uses_text_builder, uses_box_array, false
     );
 }
 

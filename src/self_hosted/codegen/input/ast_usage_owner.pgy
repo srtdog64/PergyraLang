@@ -42,6 +42,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_slot: Bool;
     let uses_machine_layer: Bool;
     let uses_remote_future: Bool;
+    let uses_spawn: Bool;
     let uses_checked_int_cast: Bool;
     let uses_checked_long_cast: Bool;
 }
@@ -111,6 +112,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_slot: Bool = type_usage.has_slot;
     let uses_machine_layer: Bool = type_usage.has_machine_layer;
     let uses_remote_future: Bool = type_usage.has_remote_future;
+    let uses_spawn: Bool = expr_usage.has_spawn;
     let uses_checked_int_cast: Bool = expr_usage.has_checked_int_cast;
     let uses_checked_long_cast: Bool = expr_usage.has_checked_long_cast;
     return CodegenRuntimeUsageFacts(
@@ -146,6 +148,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_slot,
         uses_machine_layer,
         uses_remote_future,
+        uses_spawn,
         uses_checked_int_cast,
         uses_checked_long_cast
     );

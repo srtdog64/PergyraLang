@@ -33,6 +33,7 @@ struct CodegenExpressionUsageFacts {
     let has_none: Bool;
     let has_checked_int_cast: Bool;
     let has_checked_long_cast: Bool;
+    let has_spawn: Bool;
 }
 
 struct CodegenExpressionParts {
@@ -301,6 +302,20 @@ func CodegenSemanticCheckedIntegerCastTargetPresent(
     return false;
 }
 
+func CodegenSemanticExpressionGraphSpawnPresent(
+    facts: SemanticAstExpressionSurfaceFacts
+) -> Bool {
+    let graph: SemanticExpressionGraphFacts = facts.expression_graph;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeSpawn() {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurfaceFacts) -> CodegenExpressionUsageFacts {
     return CodegenExpressionUsageFacts(
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArgs()),
@@ -326,7 +341,8 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSeedRandom()),
         CodegenSemanticExpressionTokenPresent(facts, "None"),
         CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Int"),
-        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Long")
+        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Long"),
+        CodegenSemanticExpressionGraphSpawnPresent(facts)
     );
 }
 

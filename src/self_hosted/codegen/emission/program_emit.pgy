@@ -27,6 +27,7 @@ import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "type_declaration_emit_owner.pgy";
 import "generic_function_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
+import "../runtime_abi/spawn_runtime_owner.pgy";
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
                   assignments: SemanticAstAssignmentFacts,
@@ -183,7 +184,6 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
 }
 func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     RejectUnsupportedCodegenBuiltins(tree_text);
-
     let nodes: Array<CodegenAstTextNode> = [];
     let node_count_box: Array<Int> = [0];
     CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
@@ -401,6 +401,7 @@ func GenerateCUnitFromSemanticFacts(
         Die("self-host machine-layer startup declaration is missing");
     }
     let machine_startup: String = CompilerMachineLayerRuntimeBindingStatement(machine_declaration);
+    if usage.uses_spawn { machine_startup = Concat("    pgy_pool_init(0);\n    atexit(pgy_pool_shutdown);\n", machine_startup); }
     let defs: Array<String> = [];
     let cur: Array<Int> = [0];
     while cur[0] < count {
@@ -502,8 +503,8 @@ func GenerateCUnitFromSemanticFacts(
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
-    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array);
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder;
+    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn);
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "#include <stdio.h>\n");
@@ -517,7 +518,7 @@ func GenerateCUnitFromSemanticFacts(
     if uses_str || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
-    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_box_array)); }
+    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn)); }
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
@@ -527,6 +528,7 @@ func GenerateCUnitFromSemanticFacts(
     }
     TextBuilderAppend(output, "\n");
     if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
+    if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCIntUnaryBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(
             usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array),

@@ -5,6 +5,7 @@ import "../text/text_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/checked_arithmetic_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -94,6 +95,43 @@ func RewriteSemanticIndex(
     ));
 }
 
+func RewriteSemanticSpawn(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !view.ok || ArrayLength(view.argument_nodes) != 1 {
+        Die("self-host spawn requires a direct one-argument call fact");
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, view.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, view.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() {
+        Die("self-host spawn requires a direct call target fact");
+    }
+    let source_name: String = UnwrapOption(target_name);
+    let call_symbol: String = source_name;
+    let alias: String = LookupKindType(env, source_name, "call");
+    if alias != "" { call_symbol = alias; }
+    if LookupKindType(env, call_symbol, "f") != "Int" ||
+        LookupKindType(env, call_symbol, "pt") != "Int" {
+        Die("self-host spawn requires an Int -> Int signature fact");
+    }
+    let argument: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[0], "Int", "default", env
+    );
+    return SpawnRuntimeCIntUnaryCall(
+        CompilerSymbolCIdentifier(call_symbol), argument
+    );
+}
+
 func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -163,7 +201,27 @@ func RewriteExprFromSemanticGraph(
         if kind == AstExpressionNodeNegate() {
             return Concat("-", operand);
         }
+        if kind == AstExpressionNodeSpawn() {
+            return RewriteSemanticSpawn(graph, left_id, env);
+        }
         if kind == AstExpressionNodeAwait() {
+            if UnwrapOption(operand_kind) == AstExpressionNodeSpawn() {
+                let awaited_type: Option<String> =
+                    CodegenExpressionTypeFromGraph(graph, left_id, env);
+                if !IsSome(awaited_type) {
+                    Die("self-host await spawn type fact is missing");
+                }
+                let payload: Option<String> = FuturePayloadTypeOpt(
+                    UnwrapOption(awaited_type)
+                );
+                if !IsSome(payload) {
+                    Die("self-host await spawn Future payload fact is missing");
+                }
+                let payload_c: String = AbiLayoutCValueType(
+                    UnwrapOption(payload), env
+                );
+                return SpawnRuntimeCAwaitTake(operand, payload_c);
+            }
             if UnwrapOption(operand_kind) != AstExpressionNodeLeaf() {
                 Die("self-host await requires a named future binding node");
             }
