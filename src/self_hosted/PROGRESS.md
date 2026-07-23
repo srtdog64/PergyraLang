@@ -1,5 +1,48 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra List foreach executable closure.
+Objective: carry the semantic iteration row for `List<Int>` through self-host
+MIR reconstruction and project one canonical List size/get ABI in C codegen.
+Priority was the `selfhost.iteration_type_verdict` SoT, fail-closed MIR row
+admission, shared Array/List foreach shape, runtime ABI projection, then patch
+size. Source-local type guessing, MIR-side collection guessing, and a separate
+List statement emitter are forbidden.
+
+`SemanticAstIterationTypeFacts` remains the authority. The routine-local MIR
+index validates `iteration_type_facts`; `iteration_type_fact_owner.pgy`
+admits foreach only when iterable, element, and binding types agree; and
+`foreach_collection_runtime_owner.pgy` is the final Array/List ABI projection.
+`for_in_list_int` now has native/self MIR parity, emits
+`pgy_list_size_int`/`pgy_list_get_int`, and runs with output `12`. Removing the
+MIR iteration row fails closed. Executable commit `67033cad` is pushed and the
+DRV-2 manifest contains 273 rows.
+
+Focused C and hard producer-first parity passed with
+`body_fixtures=20 mir_fixtures=1`. The full C codegen matrix passed all 85
+fixtures plus tagged-enum, event, temporary-ref, cyclic value/Result/nested
+Option<Result>, and role-operator regressions. Component, hard-contract, SoT
+authority edge, authority adequacy, shell syntax, and `git diff --check`
+passed. The edge gate reports 45 authorities, 40 derived carriers,
+`CLOSED=25 BRIDGE=20 ACTIVE=0`; Coq/Rocq was an explicit declared skip because
+no prover is installed. The full unfiltered 273-row DRV-2 matrix and LLVM lane
+were not run.
+
+The next observed executable seam is
+`tests/cases/backend_compare/list_push_get_loop/main.pgy`. Native C runs with
+`5` then `55`; the current self-host driver fails closed as
+`ast_artifact_invalid` with owner `collection_value_type` for
+`ListPush(xs, i * i)`. The next owner must route that argument through the
+existing graph scalar-type verdict instead of the List call owner's local
+literal/leaf-only classifier. A changed arithmetic operand type and a missing
+carried expression edge are the first falsifiers.
+
+2026-07-24 Pergyra ListGet compound return-type executable closure.
+`list_call_type_owner.pgy` carries the resolved `ListGet` element type into the
+compound-expression consumer, so `list_int_loop` emits and runs instead of
+failing at addition typing. The focused hard producer-first gate passed with
+one MIR fixture. Executable commit `7fdef5aa` is pushed; this is the direct
+predecessor of the List foreach closure above.
+
 2026-07-24 Pergyra List operation call ABI executable closure.
 Objective: carry direct ListPush/ListGet/ListSet/ListRemove/ListSize target,
 receiver, arity, value, and return facts through one semantic-to-runtime ABI

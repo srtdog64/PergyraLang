@@ -7,24 +7,61 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `0c19a8c5` (`Close List operation call
-  lowering SoT`) is pushed; `HEAD=origin/main` for the committed tree.
-- The committed DRV-2 manifest contains 271 MIR fixtures, with `list_ops`
-  enrolled as the latest row and its owner checks wired into the body/producer
-  parity gates.
-- The worktree has one pre-existing local edit in
-  `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`; preserve
-  it and re-check it before the next commit.
+- Latest executable implementation: `67033cad` (`Close List foreach iteration
+  SoT`) is pushed; the executable checkpoint has `HEAD=origin/main` and a clean
+  worktree before this handoff refresh.
+- The committed DRV-2 manifest contains 273 MIR fixtures, with
+  `for_in_list_int` as the latest executable row and a missing-iteration-row
+  negative gate.
+- `7fdef5aa` closed the preceding `list_int_loop` ListGet return-type seam.
 - The nested List path is executable: contextual `ListNew` resolves the
   declared `List<HashMap<String, Int>>`, self-host and native MIR agree, and
   emitted C compiles and runs.
 - Resume by verifying `git status --short --branch`, the registry rows
-  `selfhost.expression_surface`, `selfhost.initializer_type_verdict`, and
+  `selfhost.iteration_type_verdict`, `selfhost.expression_surface`, and
   `selfhost.type_runtime_usage_surface`, plus the focused gate below.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: List foreach iteration and ABI
+
+Objective card:
+
+- Objective: carry `List<Int>` foreach identity from the semantic iteration row
+  through MIR reconstruction into one shared Array/List runtime ABI projection.
+- Priority: iteration SoT, routine-local MIR validation, fallback removal,
+  missing-row negative ratchet, then patch size.
+- Fact owner: `SemanticAstIterationTypeFacts` under
+  `selfhost.iteration_type_verdict`; last consumers are
+  `iteration_type_fact_owner.pgy`, `routine_lower.pgy`,
+  `foreach_collection_runtime_owner.pgy`, and `stmt_emit.pgy`.
+- Forbidden fallback: source-local type as iteration authority, MIR collection
+  guessing, source-text reparse, or a second List-only statement emitter.
+- Verification gate: `driver_rung2_for_in_list_parity_owner.sh`; falsifier is
+  removal of the carried `iteration_type_facts` array.
+
+Observed closure:
+
+- Native/self MIR agree on `binding_type=Int`, `iterable_type=List<Int>`.
+- Self-host C emits `pgy_list_size_int` and `pgy_list_get_int`; native/self run
+  output is `12`.
+- Focused C and hard producer-first parity passed with
+  `body_fixtures=20 mir_fixtures=1`.
+- Full C codegen parity passed 85 fixtures and all named negative/role legs.
+- Component, hard contract, authority edge, authority adequacy, shell syntax,
+  and `git diff --check` passed. The edge registry reports 45 authorities and
+  40 derived carriers; Coq/Rocq was an explicit declared skip.
+- Commit `67033cad` is pushed.
+
+## Last closed executable family: ListGet compound return type
+
+- `list_call_type_owner.pgy` is the final codegen type consumer for the carried
+  ListGet element type.
+- `list_int_loop` now carries `Int` into `total + ListGet(xs, i)`, emits C, and
+  runs under the focused hard producer-first gate.
+- Commit `7fdef5aa` is pushed.
 
 ## Last closed executable family: List operation call ABI
 
@@ -311,20 +348,19 @@ Not run:
 
 ## Next executable work
 
-The next observed executable seam is ListGet return-type carriage in
-`tests/cases/backend_compare/list_int_loop/main.pgy`:
+The next observed executable seam is the compound ListPush value in
+`tests/cases/backend_compare/list_push_get_loop/main.pgy`:
 
-- `list_get_string` already emits and runs through the String List ABI;
-- `list_int_loop` currently reaches codegen but loses the `Int` return fact for
-  `total + ListGet(xs, i)`, producing `semantic addition operand type fact is
-  missing`;
-- the next owner must carry the resolved ListGet return fact through the
-  semantic expression type consumer without re-scanning source text or
-  inventing an operator-side default;
-- first falsifier: removing or mutating the ListGet return fact must fail closed
-  at the existing semantic addition/type diagnostic;
-- do not add fixture-name, local-variable-name, or compatibility fallback
-  paths.
+- Native C compiles and runs with output `5` then `55`.
+- The current self-host driver fails closed as `ast_artifact_invalid`, owner
+  `collection_value_type`, at `ListPush(xs, i * i)`.
+- `SemanticExpressionGraphScalarTypeName` already owns arithmetic graph typing;
+  the List call protocol must consume that owner instead of maintaining a
+  literal/leaf-only local classifier.
+- First falsifiers: changing an arithmetic operand to a non-numeric type and
+  removing a required expression edge must both fail closed.
+- Forbidden paths are source-text arithmetic inference, an `i * i` special
+  case, fixture/local-name branching, and a List-only parallel type taxonomy.
 
 Adjacent evidence:
 
@@ -333,10 +369,13 @@ Adjacent evidence:
 - `generic_multi_bound_defaults` and the `StorageParty` dynamic ability-bind
   owner seams are closed.
 - `list_ops` is closed by `0c19a8c5`, including its call-target negative.
+- `list_int_loop` is closed by `7fdef5aa`, including its return-type negative.
+- `for_in_list_int` is closed by `67033cad`, including its missing iteration
+  row negative.
 - `nested_generic_containers` is closed by `474e6e76`, including its
   contextual-type and unsupported-element negatives.
-- The next code commit must advance ListGet return-type carriage into the
-  addition consumer, not add a docs-only or duplicate-fixture substitute.
+- The next code commit must advance arithmetic ListPush argument typing through
+  the existing graph owner, not add a docs-only or duplicate-fixture substitute.
 
 ## Workstation and recovery facts
 
@@ -360,10 +399,10 @@ Adjacent evidence:
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Verify `git status`, HEAD/origin, and committed fixture count 271 before
+2. Verify `git status`, HEAD/origin, and committed fixture count 273 before
    touching the next seam.
-3. Reproduce `list_int_loop` and name the ListGet return-type consumer before
-   editing.
+3. Reproduce `list_push_get_loop` and verify the `collection_value_type`
+   diagnostic plus native output `5`/`55` before editing.
 4. Make the next executable replacement; do not spend a third consecutive
    commit on docs or fixture-only enrollment.
 5. Refresh exact revision, dirty state, last green gate, next falsifier, and
