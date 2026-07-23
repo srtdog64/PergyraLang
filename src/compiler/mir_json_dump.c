@@ -315,13 +315,14 @@ static bool
 mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
                                    NominalDeclKind nominal_kind)
 {
-    return ast_type == AST_CLASS_DECL
+    return ast_type == AST_ZONE_DECL
+        || (ast_type == AST_CLASS_DECL
         && (nominal_kind == NOMINAL_DECL_STRUCT
             || nominal_kind == NOMINAL_DECL_CLASS
             || nominal_kind == NOMINAL_DECL_SUBJECT
             || nominal_kind == NOMINAL_DECL_VESSEL
             || nominal_kind == NOMINAL_DECL_OBJECT
-            || nominal_kind == NOMINAL_DECL_TOBJECT);
+            || nominal_kind == NOMINAL_DECL_TOBJECT));
 }
 
 static bool
@@ -342,11 +343,13 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS);
 
     if (mir_json_decl_is_supported_nominal(ast_type, nominal_kind)) {
-        bool is_struct_decl = nominal_kind == NOMINAL_DECL_STRUCT;
+        bool is_struct_decl = ast_type == AST_CLASS_DECL
+            && nominal_kind == NOMINAL_DECL_STRUCT;
         fputs("{\"kind\":", out);
         mir_json_emit_str(out, is_struct_decl ? "struct" : "class");
         fputs(",\"nominal_kind\":", out);
-        mir_json_emit_str(out, mir_json_nominal_kind_name(nominal_kind));
+        mir_json_emit_str(out, ast_type == AST_ZONE_DECL
+            ? "zone" : mir_json_nominal_kind_name(nominal_kind));
         fputs(",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         mir_json_emit_decl_generic_params(out, header);
