@@ -7,16 +7,20 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `ec719baa` (`Close ListPush scalar
-  argument SoT`) is the local checkpoint. `origin/main` remains at `67033cad`;
-  the branch is two commits ahead before this handoff refresh.
-- The committed DRV-2 manifest contains 274 MIR fixtures, with
-  `list_push_get_loop` as the latest executable row. Missing multiply-edge and
-  mixed scalar-value mutations are its negative gates.
-- Two pre-existing/concurrent edits are intentionally preserved and are not
-  part of `ec719baa`:
-  `src/self_hosted/codegen/emission/stmt_emit.pgy` and
-  `src/self_hosted/codegen/emission/try_let_emit_owner.pgy`.
+- Latest executable implementation: `564de5be` (`Close lexical List shadow
+  scope SoT`) is pushed to `origin/main`. The branch is clean relative to
+  origin for committed work, with three intentionally preserved unstaged
+  edits from a concurrent Option-emission slice:
+  `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy`,
+  `src/self_hosted/codegen/emission/option_value_emit_owner.pgy`, and
+  `tests/self_hosted_component_contract_smoke.sh`.
+- The committed DRV-2 manifest contains 275 MIR fixtures, with
+  `list_shadow_scope_metadata` as the latest executable row. Missing inner
+  declaration ABI type is its negative gate; `items.2` must restore to
+  `items.1` after the branch.
+- `564de5be` includes the previously carried `stmt_emit.pgy` and
+  `try_let_emit_owner.pgy` scope changes; they are no longer separate dirty
+  files.
 - `67033cad` closed the preceding `for_in_list_int` iteration seam, and
   `7fdef5aa` closed the earlier `list_int_loop` ListGet return-type seam.
 - The nested List path is executable: contextual `ListNew` resolves the
@@ -29,6 +33,36 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: lexical List shadow identity
+
+Objective card:
+
+- Objective: preserve parser/semantic local-binding identity through MIR SSA
+  construction and restore the active typed environment at lexical block exit.
+- Priority: binding identity, MIR declaration ABI carriage, scope restoration,
+  codegen typed-environment restoration, negative ratchet, then patch size.
+- Fact owner: `ast_local_binding_fact_owner.pgy` owns the artifact-bound
+  per-name binding ordinal; MIR routine owners carry it into `items.1` and
+  `items.2` identity.
+- Forbidden fallback: source-name-only SSA lookup, function-wide local env
+  reuse across nested blocks, and backend List ABI recovery from spelling.
+- Verification gate:
+  `driver_rung2_list_shadow_scope_parity_owner.sh`; falsifier removes the
+  inner `abi_type_name` fact.
+
+Observed closure:
+
+- Native/self MIR agree on outer `items: List<Int>`, inner
+  `items: List<String>`, and restored outer uses after the branch.
+- Self-host C emits both List ABIs and runs with `shadow`, `10`, `20`.
+- Focused hard producer-first parity passed with `body_fixtures=20
+  mir_fixtures=1`; component and hard-contract gates passed. The clean
+  bootstrap seed gate remains blocked by the pre-existing generated-C
+  `None` identifier error; the focused driver used an isolated compile define
+  only for verification.
+- Commit `564de5be` is pushed. Full unfiltered 275-row DRV-2 and LLVM lanes
+  were not run.
 
 ## Last closed executable family: ListPush scalar graph value typing
 
@@ -59,20 +93,20 @@ Observed closure:
   documentation quality, shell syntax, and `git diff --check` passed. The edge
   registry remains 45 authorities and 40 derived carriers; Coq/Rocq was an
   explicit declared skip because no prover is installed.
-- Commit `ec719baa` is local and not pushed. The full unfiltered 274-row DRV-2
-  matrix and LLVM lane were not run.
+- Commit `ec719baa` is pushed. The full unfiltered 274-row DRV-2 matrix and
+  LLVM lane were not run.
 
-## Next observed executable seam: lexical List shadow identity
+## Next observed executable seam: contextual sequence literal typing
 
-- Native MIR accepts
-  `tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy`; the current
-  self-host driver fails with `MIR shadowed local type changed: items`.
-- The fixture uses outer `items: List<Int>` and inner
-  `items: List<String>`, then resumes the outer binding after the branch.
-- Next objective: preserve parser/semantic binding identity and lexical scope
-  through routine SSA construction instead of indexing locals only by source
-  name. The first falsifiers are loss of the inner binding identity and failure
-  to restore the outer List ABI after block exit.
+- The current next fixture is
+  `tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`.
+- The self-host driver fails closed at the semantic owner with
+  `let_type_mismatch`, `expected: List<Int>`, `actual: Array<Int>` for its
+  typed sequence literal initializer.
+- Next objective: route contextual sequence-literal element/container typing
+  through one initializer/array-literal owner; do not make the List consumer
+  guess Array-to-List compatibility. The first falsifier is a missing or
+  mismatched declared element type fact.
 
 ## Last closed executable family: List foreach iteration and ABI
 

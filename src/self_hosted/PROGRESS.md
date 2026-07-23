@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra lexical List shadow identity executable closure.
+Objective: preserve parser/semantic local-binding identity through MIR SSA
+construction and restore the active typed environment at lexical block exit.
+Priority was binding identity, MIR declaration ABI carriage, scope restoration,
+codegen typed-environment restoration, fail-closed negative evidence, then
+patch size. Source-name-only SSA lookup, function-wide nested-block local
+reuse, and backend List ABI recovery are forbidden.
+
+`ast_local_binding_fact_owner.pgy` now owns a per-name binding ordinal;
+`SelfMirRoutineDeclareLocal` carries that identity into `items.1`/`items.2`,
+and block lowering restores the prior local inventory at branch exit. Codegen
+threads copied typed environments into nested blocks, so the inner
+`List<String>` binding cannot overwrite the outer `List<Int>` ABI. Native/self
+MIR agree, emitted C runs with `shadow`, `10`, `20`, and removing the inner
+`abi_type_name` fails closed with `local declaration is missing its MIR ABI type
+fact`.
+
+Focused hard producer-first parity passed with `body_fixtures=20
+mir_fixtures=1`; component and hard-contract gates passed. The clean bootstrap
+seed gate remains blocked by the pre-existing generated-C `None` identifier
+error; an isolated compile define was used only to build the focused driver.
+Executable commit `564de5be` is pushed and the DRV-2 manifest contains 275
+rows. Full unfiltered 275-row DRV-2 and LLVM lanes were not run.
+
+The next observed executable seam is
+`tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`: the
+self-host semantic owner reports `let_type_mismatch` for `expected: List<Int>`
+versus `actual: Array<Int>`. The next owner must close contextual
+sequence-literal typing without making List consumers recover Array facts.
+
 2026-07-24 Pergyra ListPush scalar graph value executable closure.
 Objective: carry the arithmetic value in `ListPush(xs, i * i)` through one
 parser-owned expression graph operator policy rather than teaching the List
@@ -15,7 +45,7 @@ consumes that projection for receiver, index, and value validation. Native and
 self-host MIR agree on direct `ListPush`, multiply `i * i`, and `i: Int`;
 self-host C emits the element-specific List push/size/get ABI and both programs
 print `5` then `55`. Removing the multiply right edge and changing the value to
-`i * "bad"` both fail closed. Executable commit `ec719baa` is local, and the
+`i * "bad"` both fail closed. Executable commit `ec719baa` is pushed, and the
 DRV-2 manifest contains 274 rows.
 
 Focused C and hard producer-first parity passed with
@@ -28,14 +58,8 @@ carriers, `CLOSED=25 BRIDGE=20 ACTIVE=0`; Coq/Rocq was an explicit declared
 skip because no prover is installed. The full unfiltered 274-row DRV-2 matrix
 and LLVM lane were not run.
 
-The next observed executable seam is
-`tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy`. Native MIR
-accepts the outer `items: List<Int>` and inner `items: List<String>` scopes,
-then resumes the outer binding. The current self-host driver fails as
-`MIR shadowed local type changed: items` because routine SSA construction still
-indexes the local by source name. The next owner must carry parser/semantic
-binding identity through lexical scope entry/exit; loss of the inner identity
-and failure to restore the outer List ABI are the first falsifiers.
+The next observed executable seam is now recorded at the top of this file:
+`sequence_literal_list_queue` contextual typing.
 
 2026-07-24 Pergyra List foreach executable closure.
 Objective: carry the semantic iteration row for `List<Int>` through self-host
