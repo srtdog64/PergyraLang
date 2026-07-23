@@ -27,6 +27,7 @@ import "value_return_emit_owner.pgy";
 import "box_array_let_emit_owner.pgy";
 import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
+import "option_match_owner.pgy";
 func EmitLet(
     local_bindings: SemanticAstLocalBindingFacts,
     arena: AstArena,
@@ -531,9 +532,11 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticStatementInferredTypeOrDie(
                     body_types.statement_types, idx, TypedAstKindMatchStmtTag()
                 );
-            let tagged_match: Bool = LookupKindType(env, match_subject_type, "enum") == "tagged"; let match_tmp: String = CompilerSymbolCMatchTempName(idx);
+            let option_match: Bool = StartsWith(match_subject_type, "Option<");
+            let tagged_match: Bool = LookupKindType(env, match_subject_type, "enum") == "tagged";
+            let match_tmp: String = CompilerSymbolCMatchTempName(idx);
             ArrayPush(result, Concat(pad, "{\n"));
-            if !tagged_match {
+            if !tagged_match && !option_match {
                 let match_tmp_type: String = AbiLayoutCLocalType("Int", env);
                 let match_tmp_cast: String = AbiLayoutCValueType("Int", env);
                 let match_tmp_decl: String = Concat(match_tmp_type, " ");
@@ -550,15 +553,28 @@ func EmitStmtList(count: Int, arena: AstArena,
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
                 if CodegenSemanticStatementIs(statements, cur[0], TypedAstKindMatchCaseStmtTag()) {
                     let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0]);
-                    let case_line: String = EmitMatchCaseLine(
-                        tagged_match, case_pattern, match_subject_type,
-                        match_tmp, match_case_count, match_subject, env
-                    );
+                    let case_line: String = "";
+                    if option_match {
+                        case_line = EmitOptionMatchCaseLine(
+                            case_pattern, match_subject_type, match_subject,
+                            match_case_count, env
+                        );
+                    } else {
+                        case_line = EmitMatchCaseLine(
+                            tagged_match, case_pattern, match_subject_type,
+                            match_tmp, match_case_count, match_subject, env
+                        );
+                    }
                     ArrayPush(result, Concat(inner_pad, case_line));
                     ArraySet(cur, 0, cur[0] + 1);
                     CodegenAstArenaExpectBlock(arena, count, cur);
                     let case_env: Array<String> = [env_state[0], env_state[1]];
-                    if tagged_match {
+                    if option_match {
+                        BindOptionMatchPayload(
+                            case_pattern, match_subject, match_subject_type,
+                            case_env, env
+                        );
+                    } else if tagged_match {
                         BindTaggedEnumMatchPayload(
                             case_pattern, match_subject, match_subject_type,
                             case_env, env

@@ -538,6 +538,14 @@ for fallback in \
     "CodegenAstArenaIsFieldsHeader(arena, j)"; do
     reject_text "$NOMINAL_EMITTER" "$fallback"
 done
+reject_text "$PROGRAM_EMITTER" \
+    "CollectStructs(semantic_analysis.constructors, env_acc)"
+reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
+    "OptionResultRuntimeCStructOptionDefinitionBlock"
+reject_text "$PROGRAM_EMITTER" "option_struct_block"
+reject_text "$PROGRAM_EMITTER" "EmitResultRuntimeDefinitions("
+reject_text "src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy" \
+    "func EmitResultRuntimeDefinitions"
 reject_text "$ENUM_CONSUMER" "ExprSequenceItemCount"
 reject_text "$ENUM_CONSUMER" "ExprSequenceItemAt"
 reject_text "$ENUM_CONSUMER" "facts.variant_names"

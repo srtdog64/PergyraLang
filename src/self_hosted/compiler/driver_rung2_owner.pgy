@@ -91,7 +91,11 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/array_return_literal.pgy",
         "src/self_hosted/codegen/fixture/enum_match.pgy",
         "src/self_hosted/codegen/fixture/enum_multi_payload.pgy",
+        "src/self_hosted/codegen/fixture/enum_aggregate_payload.pgy",
+        "src/self_hosted/codegen/fixture/enum_nominal_enum_chain.pgy",
         "src/self_hosted/codegen/fixture/option_enum_with_payload.pgy",
+        "src/self_hosted/codegen/fixture/option_enum_field_declaration.pgy",
+        "src/self_hosted/codegen/fixture/result_nominal_field_declaration.pgy",
         "src/self_hosted/mir_lower/fixture/match_case_int.pgy",
         "src/self_hosted/mir_lower/fixture/match_case_assign.pgy",
         "src/self_hosted/mir_lower/fixture/option_match.pgy",
@@ -279,7 +283,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 249;
+    return 253;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

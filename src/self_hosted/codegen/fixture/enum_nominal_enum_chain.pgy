@@ -1,0 +1,39 @@
+enum Leaf {
+    Quiet,
+    Count(Int)
+}
+
+struct Envelope {
+    leaf: Leaf;
+    bias: Int;
+}
+
+enum Message {
+    Empty,
+    Wrapped(Envelope)
+}
+
+func MakeEnvelope(leaf: Leaf, bias: Int) -> Envelope {
+    return Envelope { leaf: leaf, bias: bias };
+}
+
+func LeafScore(leaf: Leaf) -> Int {
+    match leaf {
+        case Quiet: return 0;
+        case Count(value): return value;
+    }
+}
+
+func Score(message: Message) -> Int {
+    match message {
+        case Empty: return 0;
+        case Wrapped(envelope):
+            return LeafScore(envelope.leaf) + envelope.bias;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Empty));
+    Log(Score(Wrapped(MakeEnvelope(Quiet, 4))));
+    Log(Score(Wrapped(MakeEnvelope(Count(7), 5))));
+}

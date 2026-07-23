@@ -94,6 +94,12 @@ participant, not a zone.
   this owner instead of locally spelling those `pgy_*` or target-library names.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
+- `TypeDeclarationEmitter` owns dependency-ordered nominal/enum/generated
+  wrapper declaration projection from semantic field, payload, and Result-usage
+  rows. It places named `Option<T>` declarations after their inner type and
+  explicit `Result<T,E>` declarations after both payload and error types.
+  `ProgramEmitter` may not restore separate enum-first, nominal-first, or
+  post-hoc wrapper passes; a missing fact or direct by-value cycle fails closed.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
 `struct_value_emit` are participants in the emission action graph, not zones.

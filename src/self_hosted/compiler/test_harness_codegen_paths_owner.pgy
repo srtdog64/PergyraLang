@@ -59,6 +59,22 @@ func CompilerHarnessCodegenRefTemporaryRejectExpectedPath() -> String {
     return "src/self_hosted/codegen/reject_expected/ref_temporary_member_stdout.txt";
 }
 
+func CompilerHarnessCodegenCyclicValueDeclarationsRejectSourcePath() -> String {
+    return "src/self_hosted/codegen/reject_fixture/cyclic_value_declarations.pgy";
+}
+
+func CompilerHarnessCodegenCyclicValueDeclarationsRejectExpectedPath() -> String {
+    return "src/self_hosted/codegen/reject_expected/cyclic_value_declarations_stdout.txt";
+}
+
+func CompilerHarnessCodegenCyclicResultValueDeclarationRejectSourcePath() -> String {
+    return "src/self_hosted/codegen/reject_fixture/cyclic_result_value_declaration.pgy";
+}
+
+func CompilerHarnessCodegenCyclicResultValueDeclarationRejectExpectedPath() -> String {
+    return "src/self_hosted/codegen/reject_expected/cyclic_result_value_declaration_stdout.txt";
+}
+
 func CompilerHarnessAssignmentProjectionProbeSourcePath() -> String {
     return "src/self_hosted/tools/assignment_projection_probe/main.pgy";
 }
@@ -68,7 +84,7 @@ func CompilerHarnessAssignmentProjectionProbeExpectedPath() -> String {
 }
 
 func CompilerHarnessCodegenPathCount() -> Int {
-    return 15;
+    return 19;
 }
 
 func CompilerHarnessCodegenPathAt(index: Int) -> String {
@@ -91,11 +107,23 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 12 { return CompilerHarnessAssignmentProjectionProbeExpectedPath(); }
     if index == 13 { return CompilerHarnessCodegenRefTemporaryRejectSourcePath(); }
     if index == 14 { return CompilerHarnessCodegenRefTemporaryRejectExpectedPath(); }
+    if index == 15 {
+        return CompilerHarnessCodegenCyclicValueDeclarationsRejectSourcePath();
+    }
+    if index == 16 {
+        return CompilerHarnessCodegenCyclicValueDeclarationsRejectExpectedPath();
+    }
+    if index == 17 {
+        return CompilerHarnessCodegenCyclicResultValueDeclarationRejectSourcePath();
+    }
+    if index == 18 {
+        return CompilerHarnessCodegenCyclicResultValueDeclarationRejectExpectedPath();
+    }
     return "";
 }
 
 func CompilerHarnessCodegenParityReady() -> Bool {
-    if CompilerHarnessCodegenPathCount() != 15 {
+    if CompilerHarnessCodegenPathCount() != 19 {
         return false;
     }
     let i: Int = 0;

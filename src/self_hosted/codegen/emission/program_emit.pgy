@@ -24,7 +24,7 @@ import "../runtime_abi/runtime_header_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
-import "enum_emit_owner.pgy";
+import "type_declaration_emit_owner.pgy";
 import "generic_function_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
@@ -372,10 +372,16 @@ func GenerateCUnitFromSemanticFacts(
     let env_acc: Array<String> = [BuildFunctionEnv(
         signatures, specializations
     )];
-    let enum_block: String = CollectEnums(semantic_analysis.enums, env_acc);
-    let typedef_block: String = CollectStructs(
-        semantic_analysis.constructors, env_acc
-    );
+    let result_types: CodegenResultUsageFacts =
+        CodegenResultUsageFactsFromSemantic(
+            semantic_analysis.type_surfaces
+        );
+    let type_declaration_fact: CodegenTypeDeclarationBlockFact =
+        CollectTypeDeclarations(
+        semantic_analysis.enums, semantic_analysis.constructors,
+        result_types, env_acc
+        );
+    let type_declaration_block: String = type_declaration_fact.c_block;
     CollectRoleOperators(semantic_analysis.roles, signatures, env_acc);
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts =
@@ -385,6 +391,7 @@ func GenerateCUnitFromSemanticFacts(
             semantic_analysis.kind_surfaces,
             signatures,
             specializations,
+            result_types,
             base_env
         );
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }
@@ -466,9 +473,6 @@ func GenerateCUnitFromSemanticFacts(
     let proto_block: String = CollectProtos(
         signatures, semantic_analysis.roles, base_env, specializations
     );
-    let option_struct_block_fact: OptionStructDefinitionBlockFact =
-        OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows);
-    let option_struct_block: String = option_struct_block_fact.c_block;
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
@@ -481,7 +485,7 @@ func GenerateCUnitFromSemanticFacts(
     let uses_result: Bool = usage.uses_result;
     let uses_option: Bool = usage.uses_option;
     let uses_bool: Bool = usage.uses_bool || usage.uses_array || usage.uses_log ||
-        option_struct_block_fact.requires_bool_header;
+        type_declaration_fact.requires_bool_header;
     let uses_exit: Bool = usage.uses_exit;
     let uses_array: Bool = usage.uses_array;
     let uses_ast_text_node_array: Bool = usage.uses_ast_text_node_array;
@@ -579,10 +583,7 @@ func GenerateCUnitFromSemanticFacts(
     if uses_dirwalk {
         TextBuilderAppend(output, HostIORuntimeCDirWalkBlock());
     }
-    TextBuilderAppend(output, enum_block);
-    TextBuilderAppend(output, typedef_block);
-    TextBuilderAppend(output, EmitResultRuntimeDefinitions(usage.result_types, base_env));
-    TextBuilderAppend(output, option_struct_block);
+    TextBuilderAppend(output, type_declaration_block);
     TextBuilderAppend(output, record_array_block);
     if usage.uses_machine_layer { TextBuilderAppend(output, CompilerMachineLayerRuntimeBindingBlock(machine_declaration)); }
     TextBuilderAppend(output, proto_block);

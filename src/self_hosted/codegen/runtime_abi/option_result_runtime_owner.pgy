@@ -97,7 +97,9 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
     return 0;
 }
 
-func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Option<OptionStructRuntimeFact> {
+func OptionResultRuntimeOptionInnerTypeName(
+    type_name: String
+) -> Option<String> {
     let n: Int = StringLength(type_name);
     if !StartsWith(type_name, "Option<") || n < 9 {
         return None;
@@ -107,10 +109,23 @@ func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Opti
     if colon >= 0 {
         inner = StringTrim(Substring(inner, 0, colon));
     }
+    if StringLength(inner) == 0 {
+        return None;
+    }
+    return Some(inner);
+}
+
+func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Option<OptionStructRuntimeFact> {
+    let inner_opt: Option<String> =
+        OptionResultRuntimeOptionInnerTypeName(type_name);
+    if !IsSome(inner_opt) {
+        return None;
+    }
+    let inner: String = UnwrapOption(inner_opt);
     let is_struct: Bool = LookupKindTypeRows(env, inner, "s") == "struct";
     let is_tagged_enum: Bool =
         LookupKindTypeRows(env, inner, "enum") == "tagged";
-    if StringLength(inner) == 0 || (!is_struct && !is_tagged_enum) {
+    if !is_struct && !is_tagged_enum {
         return None;
     }
     return Some(OptionStructRuntimeFact(
@@ -243,53 +258,47 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
     return "";
 }
 
-func OptionResultRuntimeCStructOptionDefinitionBlock(env: String) -> OptionStructDefinitionBlockFact {
-    let out: String = "";
-    let scan: Int = 0;
-    let struct_marker: String = "=s:struct|";
-    let enum_marker: String = "=enum:tagged|";
-    while scan < StringLength(env) {
-        let rest: String = Substring(env, scan, StringLength(env) - scan);
-        let struct_rel: Int = StringIndexOf(rest, struct_marker);
-        let enum_rel: Int = StringIndexOf(rest, enum_marker);
-        let marker: String = struct_marker;
-        let rel: Int = struct_rel;
-        if enum_rel >= 0 && (rel < 0 || enum_rel < rel) {
-            marker = enum_marker;
-            rel = enum_rel;
-        }
-        if rel < 0 {
-            return OptionStructDefinitionBlockFact(
-                out, StringLength(out) > 0
-            );
-        }
-        let mark: Int = scan + rel;
-        let start: Int = mark - 1;
-        while start >= 0 && CodegenCharAt(env, start) != "|" {
-            start = start - 1;
-        }
-        let name: String = Substring(env, start + 1, mark - start - 1);
-        if StringLength(name) > 0 {
-            let opt_name: String = Concat("pgy_option_", name);
-            let typedef_line: String = Concat("typedef struct { bool is_some; ", name);
-            typedef_line = Concat(typedef_line, Concat(" value; } ", Concat(opt_name, ";\n")));
-            out = Concat(out, typedef_line);
-
-            let some_line: String = Concat("static ", opt_name);
-            some_line = Concat(some_line, Concat(" pgy_option_some_", name));
-            some_line = Concat(some_line, Concat("(", Concat(name, " v) { ")));
-            some_line = Concat(some_line, Concat(opt_name, " o; o.is_some = true; o.value = v; return o; }\n"));
-            out = Concat(out, some_line);
-
-            let none_line: String = Concat("static ", opt_name);
-            none_line = Concat(none_line, Concat(" pgy_option_none_", name));
-            none_line = Concat(none_line, Concat("(void) { ", Concat(name, " z = {0}; ")));
-            none_line = Concat(none_line, Concat(opt_name, " o; o.is_some = false; o.value = z; return o; }\n"));
-            out = Concat(out, none_line);
-        }
-        scan = mark + StringLength(marker);
+func OptionResultRuntimeCNamedOptionDefinition(
+    inner_type_name: String,
+    env: String
+) -> OptionStructDefinitionBlockFact {
+    let option_type_name: String = Concat(
+        "Option<", Concat(inner_type_name, ">")
+    );
+    let runtime_fact_opt: Option<OptionStructRuntimeFact> =
+        OptionResultRuntimeStructOptionFact(option_type_name, env);
+    if !IsSome(runtime_fact_opt) {
+        return OptionStructDefinitionBlockFact("", false);
     }
-    return OptionStructDefinitionBlockFact(out, StringLength(out) > 0);
+    let runtime_fact: OptionStructRuntimeFact =
+        UnwrapOption(runtime_fact_opt);
+    let out: String = Concat(
+        "typedef struct { bool is_some; ",
+        Concat(inner_type_name, Concat(
+            " value; } ", Concat(runtime_fact.c_type, ";\n")
+        ))
+    );
+    out = Concat(out, Concat(
+        "static ", Concat(runtime_fact.c_type, Concat(
+            " ", Concat(runtime_fact.some_fn, Concat(
+                "(", Concat(inner_type_name, Concat(
+                    " v) { ", Concat(runtime_fact.c_type,
+                    " o; o.is_some = true; o.value = v; return o; }\n")
+                ))
+            ))
+        ))
+    ));
+    out = Concat(out, Concat(
+        "static ", Concat(runtime_fact.c_type, Concat(
+            " ", Concat(runtime_fact.none_fn, Concat(
+                "(void) { ", Concat(inner_type_name, Concat(
+                    " z = {0}; ", Concat(runtime_fact.c_type,
+                    " o; o.is_some = false; o.value = z; return o; }\n")
+                ))
+            ))
+        ))
+    ));
+    return OptionStructDefinitionBlockFact(out, true);
 }
 
 func OptionResultRuntimeCResultIntBlock() -> String {

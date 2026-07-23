@@ -1,0 +1,88 @@
+// Option match condition and payload-binding owner.
+
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../../hir/ast_match_pattern_fact_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "expr_rewrite.pgy";
+
+func CodegenOptionMatchInnerTypeOrDie(
+    subject_type: String,
+    env: CodegenTypeEnv
+) -> String {
+    let inner_opt: Option<String> =
+        OptionResultRuntimeOptionInnerTypeName(subject_type);
+    if !IsSome(inner_opt) {
+        Die(Concat("Option match subject type fact is missing: ", subject_type));
+    }
+    let inner_type: String = UnwrapOption(inner_opt);
+    let payload_kind: Int =
+        OptionResultRuntimeOptionPayloadKindForType(subject_type);
+    if payload_kind == 0 &&
+        !IsSome(OptionResultRuntimeStructOptionFact(
+            subject_type, env.global_rows
+        )) {
+        Die(Concat("Option match payload type fact is missing: ", inner_type));
+    }
+    return inner_type;
+}
+
+func EmitOptionMatchCaseLine(
+    pattern: String,
+    subject_type: String,
+    match_value: String,
+    match_case_count: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
+    if !fact.ok {
+        Die(Concat("Option match pattern fact is invalid: ", pattern));
+    }
+    let inner_type: String =
+        CodegenOptionMatchInnerTypeOrDie(subject_type, env);
+    let condition: String = "";
+    if fact.variant == "None" && ArrayLength(fact.bindings) == 0 {
+        condition = Concat(
+            "!", Concat(OptionResultRuntimeCOptionIsSomeFn(),
+            Concat("(", Concat(RewriteExpr(match_value, env), ")")))
+        );
+    } else if fact.variant == "Some" && ArrayLength(fact.bindings) == 1 {
+        condition = Concat(
+            OptionResultRuntimeCOptionIsSomeFn(),
+            Concat("(", Concat(RewriteExpr(match_value, env), ")"))
+        );
+    } else {
+        Die(Concat("Option match case shape is invalid: ", pattern));
+    }
+    let prefix: String = "if (";
+    if match_case_count != 0 { prefix = "} else if ("; }
+    return Concat(prefix, Concat(condition, ") {\n"));
+}
+
+func BindOptionMatchPayload(
+    pattern: String,
+    match_value: String,
+    subject_type: String,
+    inout env_state: Array<String>,
+    env: CodegenTypeEnv
+) -> Void {
+    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
+    if !fact.ok || fact.variant != "Some" {
+        return;
+    }
+    if ArrayLength(fact.bindings) != 1 {
+        Die("Option Some match requires exactly one binding");
+    }
+    let inner_type: String =
+        CodegenOptionMatchInnerTypeOrDie(subject_type, env);
+    let c_value: String = Concat(
+        OptionResultRuntimeCOptionUnwrapFn(),
+        Concat("(", Concat(RewriteExpr(match_value, env), ")"))
+    );
+    CodegenTypeEnvStateAppendTypedValueBinding(
+        env_state, fact.bindings[0], inner_type,
+        CodegenBindingEnvKind(inner_type, env.global_rows), c_value
+    );
+}

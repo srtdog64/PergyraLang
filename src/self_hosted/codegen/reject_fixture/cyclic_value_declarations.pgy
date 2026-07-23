@@ -1,0 +1,11 @@
+struct Left {
+    right: Right;
+}
+
+struct Right {
+    left: Left;
+}
+
+func Main() -> Void {
+    Log(0);
+}

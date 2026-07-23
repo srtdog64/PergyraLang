@@ -655,6 +655,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/thread_pool_usage.c \
                    $(CODEGEN_DIR)/transpiler_channel_type_query.c \
                    $(CODEGEN_DIR)/transpiler_class_decl_emit.c \
+                   $(CODEGEN_DIR)/transpiler_type_decl_schedule.c \
                    $(CODEGEN_DIR)/transpiler_collection_runtime_suffix.c \
                    $(CODEGEN_DIR)/transpiler_block_intent_helpers.c \
                    $(CODEGEN_DIR)/transpiler_block_intent_rebind_helpers.c \

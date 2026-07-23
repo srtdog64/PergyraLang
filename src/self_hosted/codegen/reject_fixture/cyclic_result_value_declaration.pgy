@@ -1,0 +1,11 @@
+enum Failure {
+    Broken
+}
+
+class Loop {
+    let next: Result<Loop, Failure>;
+}
+
+func Main() -> Void {
+    Log(0);
+}

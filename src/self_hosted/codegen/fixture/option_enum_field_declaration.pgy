@@ -1,0 +1,18 @@
+enum Leaf {
+    Quiet,
+    Count(Int)
+}
+
+struct Envelope {
+    leaf: Option<Leaf>;
+    bias: Int;
+}
+
+enum Message {
+    Empty,
+    Wrapped(Envelope)
+}
+
+func Main() -> Void {
+    Log(0);
+}

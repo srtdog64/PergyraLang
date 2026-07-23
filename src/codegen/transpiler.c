@@ -32,6 +32,7 @@
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_decl_schedule.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
@@ -299,7 +300,7 @@ emit_program(TranspilerCtx *ctx)
     /*
      * Multi-pass strategy for valid C output:
      *   Pass 1: ability declarations (vtable typedefs)
-     *   Pass 2: class declarations (type completeness)
+     *   Pass 1.5: owner-scheduled enum/class value declarations
      *   Pass 3: role declarations (vtable instances + methods)
      *   Pass 4: function declarations (file scope)
      *   Pass 5: remaining top-level statements wrapped in main()
@@ -313,35 +314,16 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < ability_count; i++)
         emit_ability_decl(abilities[i], ctx);
 
-    /* Pass 1.5: enums + type aliases */
+    /* Type aliases do not own nominal/enum by-value layout dependencies. */
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *type_decl = types[i];
-        if (type_decl != NULL
-            && (type_decl->type == AST_ENUM_DECL
-                || type_decl->type == AST_TYPE_ALIAS))
+        if (type_decl != NULL && type_decl->type == AST_TYPE_ALIAS)
             emit_statement(type_decl, ctx);
     }
 
-    /* Pass 2: classes */
-    if (transpiler_active_has_mir(ctx)) {
-        MIRDeclHeaderInventory header_inventory;
-        transpiler_active_decl_header_inventory(ctx, &header_inventory);
-        for (size_t i = 0; i < header_inventory.count; i++) {
-            const MIRDeclHeader *header =
-                mir_decl_header_inventory_get(&header_inventory, i);
-            if (header != NULL
-                && mir_decl_header_ast_type_or(header, AST_PROGRAM)
-                    == AST_CLASS_DECL) {
-                emit_class_decl_from_mir_header(header, ctx);
-            }
-        }
-    } else {
-        for (size_t i = 0; i < type_count; i++) {
-            ASTNode *type_decl = types[i];
-            if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
-                emit_class_decl(type_decl, ctx);
-        }
-    }
+    /* Semantic MIR field/payload rows own the by-value dependency schedule. */
+    if (!transpiler_emit_mir_type_declarations(ctx, types, type_count))
+        return;
 
     /* Pass 2.5: extern declarations */
     for (size_t i = 0; i < exten_count; i++)

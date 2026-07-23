@@ -5,14 +5,22 @@ import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 
-func CollectEnums(
+func CollectEnumsSelected(
     facts: SemanticAstEnumFacts,
+    selected: Array<Int>,
     inout env_box: Array<String>
 ) -> String {
+    if ArrayLength(selected) != SemanticAstEnumCount(facts) {
+        Die("enum declaration selection mask does not match semantic rows");
+    }
     let blocks: Array<String> = [];
     let env_rows: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
+        if selected[i] == 0 {
+            i = i + 1;
+            continue;
+        }
         let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
         let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
         let payload_free: Bool = CodegenSemanticEnumPayloadFree(
@@ -275,4 +283,17 @@ func CollectEnums(
         ));
     }
     return StringJoin(blocks, "");
+}
+
+func CollectEnums(
+    facts: SemanticAstEnumFacts,
+    inout env_box: Array<String>
+) -> String {
+    let selected: Array<Int> = [];
+    let i: Int = 0;
+    while i < SemanticAstEnumCount(facts) {
+        ArrayPush(selected, 1);
+        i = i + 1;
+    }
+    return CollectEnumsSelected(facts, selected, env_box);
 }

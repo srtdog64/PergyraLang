@@ -90,8 +90,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 15 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 15 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 19 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 19 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -108,12 +108,20 @@ EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"
 EVENT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[10]}"
 REF_TEMPORARY_REJECT_SOURCE="$ROOT_DIR/${harness_paths[13]}"
 REF_TEMPORARY_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[14]}"
+CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE="$ROOT_DIR/${harness_paths[15]}"
+CYCLIC_VALUE_DECLARATIONS_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[16]}"
+CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE="$ROOT_DIR/${harness_paths[17]}"
+CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[18]}"
 
 for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
     "$TAGGED_ENUM_EQUALITY_REJECT_SOURCE" \
     "$TAGGED_ENUM_EQUALITY_REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED" \
     "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" \
-    "$REF_TEMPORARY_REJECT_SOURCE" "$REF_TEMPORARY_REJECT_EXPECTED"; do
+    "$REF_TEMPORARY_REJECT_SOURCE" "$REF_TEMPORARY_REJECT_EXPECTED" \
+    "$CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE" \
+    "$CYCLIC_VALUE_DECLARATIONS_REJECT_EXPECTED" \
+    "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE" \
+    "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -366,6 +374,35 @@ check_oracle_drift() {
     compare_run_output_with_owner "c-oracle" "$base" "$expected_file" "$oracle_norm" 0
 }
 
+run_native_cyclic_declaration_reject() {
+    local label="$1"
+    local source="$2"
+    local reject_out="$ABS_BUILD/${label}_native.out"
+    local reject_err="$ABS_BUILD/${label}_native.err"
+    local reject_exe="$ABS_BUILD/${label}_native.exe"
+    local reject_rc
+
+    set +e
+    run_native_capture "$ROOT_DIR" "$reject_out" "$reject_err" "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$source")" \
+        --backend=c \
+        -o "$(pgy_path_for_compiler "$PGY" "$reject_exe")"
+    reject_rc="$?"
+    set -e
+    if [[ "$reject_rc" -eq 0 ]]; then
+        echo "[self-host-parity:codegen] native C backend accepted $label" >&2
+        exit 1
+    fi
+    if ! grep -Fq \
+        "C backend: cyclic by-value type declaration dependency" \
+        "$reject_out" "$reject_err"; then
+        echo "[self-host-parity:codegen] native C backend lost the cyclic declaration diagnostic" >&2
+        cat "$reject_out" "$reject_err" >&2
+        exit 1
+    fi
+    echo "[self-host-parity:codegen] native C $label fail-closed"
+}
+
 run_tool_fixture() {
     local backend="$1"
     local tool_bin="$2"
@@ -481,6 +518,11 @@ run_oracle_drift_checks() {
 compile_backend_output_comparator
 read_codegen_fixture_manifest
 run_oracle_drift_checks
+run_native_cyclic_declaration_reject \
+    "cyclic_value_declarations" "$CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE"
+run_native_cyclic_declaration_reject \
+    "cyclic_result_value_declaration" \
+    "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE"
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
@@ -513,6 +555,16 @@ for backend in $BACKENDS; do
         "$backend" "$tool_bin" "ref_temporary_member_reject" \
         "$REF_TEMPORARY_REJECT_SOURCE" \
         "$REF_TEMPORARY_REJECT_EXPECTED" "temporary member ref"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" "cyclic_value_declarations_reject" \
+        "$CYCLIC_VALUE_DECLARATIONS_REJECT_SOURCE" \
+        "$CYCLIC_VALUE_DECLARATIONS_REJECT_EXPECTED" \
+        "cyclic by-value declarations"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" "cyclic_result_value_declaration_reject" \
+        "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_SOURCE" \
+        "$CYCLIC_RESULT_VALUE_DECLARATION_REJECT_EXPECTED" \
+        "cyclic Result value declaration"
     run_role_operator_parity "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done

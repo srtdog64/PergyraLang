@@ -43,6 +43,17 @@ self-parser AST text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Option<String>` / `Void` function subset and emit a
 self-contained C program
 whose **run-stdout** matches the C/LLVM oracle.
+
+Nominal and enum value declarations are not emitted by a fixed category pass.
+`emission/type_declaration_emit_owner.pgy` derives a dependency schedule from
+semantic nominal-field and enum-payload type rows, then delegates selected
+declarations to the existing emitters. Named `Option<T>` wrappers are generated
+as dependent declaration nodes immediately after their inner nominal/tagged
+enum. Explicit `Result<T,E>` materializations are graph nodes depending on both
+payload and error types. Neither wrapper family is appended by a later
+whole-program scan. Missing wrapper facts and direct by-value cycles fail
+closed. The bootstrap C seed mirrors the dependency policy from MIR declaration
+headers; neither path branches on a fixture, variant name, or payload arity.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
 `ToFloat`. Array combinators: `ArraySort`, `ArrayReverse`, `ArrayMap`,

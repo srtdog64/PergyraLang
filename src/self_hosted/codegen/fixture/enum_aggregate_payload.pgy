@@ -1,0 +1,30 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+enum Packet {
+    Empty,
+    Text(String, Int),
+    PairValue(Pair, String)
+}
+
+func PairOf(left: Int, right: Int) -> Pair {
+    return Pair { left: left, right: right };
+}
+
+func Score(packet: Packet) -> Int {
+    match packet {
+        case Empty: return 0;
+        case Text(text, weight):
+            return StringLength(text) + weight * 10;
+        case PairValue(pair, label):
+            return pair.left + pair.right + StringLength(label);
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Empty));
+    Log(Score(Text("ok", 3)));
+    Log(Score(PairValue(PairOf(4, 7), "id")));
+}

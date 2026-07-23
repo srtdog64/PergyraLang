@@ -659,9 +659,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
+- `src/self_hosted/codegen/emission/option_match_owner.pgy` -- Option match
+  condition and typed payload-binding projection from wrapper and pattern facts.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
-- `src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy` -- explicit
-  `Result<T, E>` C runtime materialization from semantic usage facts.
+- `src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy` -- one-node
+  explicit `Result<T, E>` C declaration materialization for the declaration
+  dependency owner.
 - `src/self_hosted/codegen/emission/result_let_emit_owner.pgy` -- explicit
   `Result<T, E>` local binding materialization from expected semantic facts.
 - `src/self_hosted/codegen/emission/program_entry_owner.pgy` -- public source,
@@ -671,6 +674,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy` -- tagged
   enum match tag conditions and typed payload-binding projection.
+- `src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy` --
+  dependency-ordered nominal/enum/generated-wrapper C declaration emission
+  from semantic field, payload, and Result-usage facts. Named `Option<T>` and
+  explicit `Result<T,E>` materializations participate in the same graph;
+  missing wrapper facts and direct by-value cycles fail closed.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 - `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression
   local-binding control flow from semantic graph edges and Option/Result ABI
@@ -958,6 +966,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/reject_fixture/ref_temporary_member.pgy` --
   TestHarness-owned negative codegen artifact proving that a nominal field on
   temporary storage cannot cross a `ref` boundary under C/LLVM tool parity.
+- `src/self_hosted/codegen/reject_fixture/cyclic_value_declarations.pgy` --
+  TestHarness-owned negative artifact proving direct by-value nominal/enum
+  declaration cycles fail closed in both the bootstrap C seed and self-host
+  codegen tool.
+- `src/self_hosted/codegen/reject_fixture/cyclic_result_value_declaration.pgy`
+  -- TestHarness-owned negative artifact proving a nominal-to-Result-to-nominal
+  by-value cycle fails closed in both declaration schedulers.
 - `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
   positive role operator artifact proving role target and method identity rows
   through C/LLVM codegen parity.
