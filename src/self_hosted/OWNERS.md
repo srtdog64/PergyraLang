@@ -170,21 +170,25 @@ inventory must not become a second fact-family owner registry.
   parameter-mode classification consumed by MIR assignment verification; the
   assignment type-fact owner remains the row owner.
 - `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy` -- fail-closed
-  range/foreach header verdicts and lexical loop-binding type facts.
+  range/foreach header verdicts and lexical loop-binding type facts derived
+  from parser-owned expression graph roots; non-identifier foreach iterables
+  carry one explicit synthetic-hoist fact.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
   return, condition, loop, defer, break/continue, log, exit, match/default,
   array mutation, and bare-call kind/payload rows used for statement routing.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
-  undefined-use, try, logical, binary, and inferred-type expression verdicts.
+  undefined-use, try, logical, binary, and graph-derived inferred-type
+  expression verdicts, including owner-projected array-literal types.
 - `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
   undefined-identifier evidence from parser graph node roles.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.
 - `src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy` --
-  canonical ordered element projection and declared-element compatibility over
-  parser-owned array-literal spines; initializer typing and codegen share this
-  view without bracket trimming or argument splitting.
+  canonical ordered element projection, recursive homogeneous literal type,
+  and declared-element compatibility over parser-owned array-literal spines;
+  semantic iteration/initializer typing and codegen share this view without
+  bracket trimming or argument splitting.
 - `src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy` --
   canonical receiver/member handle projection over parser-owned member-access
   nodes; semantic and codegen consumers share this view.

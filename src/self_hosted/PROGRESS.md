@@ -1,5 +1,37 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra graph-owned foreach iterable executable rungs 251-252.
+Objective: derive a non-identifier foreach iterable type from the parser-owned
+expression graph and carry that type through iteration facts, the synthetic
+hoist, MIR, and codegen. Priority is graph identity, homogeneous array-literal
+typing, nominal member typing, fail-closed mismatch, then patch size. The
+array-literal graph owner owns recursive literal element/type evidence;
+`SemanticAstIterationTypeFacts` is the last semantic consumer. Forbidden
+fallbacks are reparsing the loop payload, assuming `Array<Int>`, special-casing
+fixture/member names, or letting codegen rediscover the iterable type.
+
+The previous driver rejected both `for_in_array_literal_iterable` and
+`for_in_member_iterable` with `statement_type_unresolved` and `actual:
+Unknown`. Iteration verdicts now consume the carried value/auxiliary graph
+roots. A non-empty homogeneous literal derives `Array<T>` recursively, while
+`b.items` resolves through the nominal member owner. Both produce an explicit
+`Array<Int>` iteration fact and one `__pgy_forin_0` hoist. The DRV-2 MIR
+manifest now contains 260 rows.
+
+Filtered producer-first parity passed both fixtures for C-built and LLVM-built
+Pergyra drivers (`backends=1 body_fixtures=20 mir_fixtures=2` in each lane).
+Runtime matches the native oracle: the literal loop prints `60` and the member
+loop prints `15`. A heterogeneous literal fails closed as `actual: Unknown`;
+replacing `b.items` with `b` fails closed as `actual: Bag`; the native compiler
+rejects both. Component and shell contracts pass. Implementation commit:
+`8cc9ad68`; graph-only contract ratchet: `54bed08e`. The full unfiltered
+260-row matrix was not run.
+
+The next observed executable failure remains `await_inline_spawn`. Any active
+uncommitted spawn work is not completion evidence. Preserve real concurrency,
+an owned result/wait boundary, and runtime lifetime; do not lower it to a
+sequential call or a detached pointer capture.
+
 2026-07-23 Pergyra stable fieldless nominal owner executable rung 250. Objective:
 carry a valid empty `fields` inventory for `Calc` through the nominal/type
 environment owner into C codegen. Priority is owner-presence identity,

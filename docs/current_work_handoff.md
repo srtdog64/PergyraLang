@@ -2,196 +2,163 @@
 
 Updated: 2026-07-23 (Asia/Seoul)
 
-This file is a resume snapshot, not semantic authority. On resume, verify this
-checkpoint with `git status --short --branch`, the named owner documents, and
-the named focused gate. Current source, registries, and executable evidence win
-when they disagree with this note.
+This file is a resume snapshot, not semantic authority. On resume, verify it
+with `git status --short --branch`, the named owners, and the focused gate.
+Current source, registries, and executable evidence win when they disagree.
 
 ## Resume checkpoint
 
-- Latest self-host executable checkpoint: `8afd9160` (`Close self-host
-  fieldless nominal owner SoT`). `main` and `origin/main` are equal at this
-  revision before this handoff refresh; the source/test tree is clean.
+- Latest self-host executable implementation: `8cc9ad68` (`Close graph-owned
+  foreach iterable rung`). Its negative contract ratchet is `54bed08e`
+  (`Ratchet foreach graph contract`).
+- Latest prior fieldless checkpoint: `8afd9160`, with handoff refresh
+  `89625851`.
 - Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
-  ArrayFilter result type SoT`), with handoff refresh `4053192c`. It is
-  independent of the self-host alias rung.
+  ArrayFilter result type SoT`), with handoff refresh `4053192c` and matching
+  LLVM owner consumption in `a1678e8d`.
+- At this capture, a separate uncommitted `spawn` lane exists in the main
+  worktree. It was deliberately excluded from the foreach commits and has not
+  passed the full gate set. Preserve it and verify its exact status before any
+  staging or cleanup.
 
-## Latest native backend SoT closure
+## Last closed executable rungs
 
-- `mir_source_local_expr_call_facts` owns the active-MIR `ArrayMap` and
-  `ArrayFilter` result shape as `Array<T>`: the map callback must be a named
-  top-level routine with a concrete non-`Void` return, and filter derives its
-  element from the source collection.
-- The C backend call-type consumer now reads that owner through
-  `mir_source_local_call_expr_type_name` while an active MIR routine exists.
-  Missing callback/collection facts return `Unknown`; no C-local call-name
-  result guess is used as a fallback. LLVM already consumed the same owner in
-  `a1678e8d`.
-- Focused evidence observed on 2026-07-23: static
-  `tests/backend_fail_closed_smoke.sh`, shell syntax, and diff checks passed;
-  the separate LLVM-enabled build produced
-  `.tmp/verify_c_array_bin/pgy.exe`; the direct C and LLVM probe both ran with
-  output `6` and `4`; a `Void` ArrayMap callback failed closed with
-  `C index access requires an Array<T> or Slice<T> receiver, got 'Unknown'`.
+The counted DRV-2 frontier adds fixtures 251 and 252:
 
-## Last closed executable rung
+- `tests/cases/backend_compare/for_in_array_literal_iterable/main.pgy`
+- `tests/cases/backend_compare/for_in_member_iterable/main.pgy`
 
-The counted DRV-2 executable frontier is fixture 250,
-`tests/cases/backend_compare/fieldless_class_method/main.pgy`.
-
-Fieldless nominal owner closure:
-
-- Objective: carry the valid empty `Calc` field inventory from the nominal/type
-  environment owner into method binding, struct-call emission, and C layout.
-- Priority: owner-presence identity, fieldless ABI materialization, runtime
-  parity, then missing-fact failure.
-- Fact owner: `LookupKindTypeRowPresent` over the structured global/local type
-  environment rows.
-- Last consumers: `CodegenFunctionOwnerFieldEnvRows`,
-  `RewriteSemanticStructCall`, and `CollectStructsSelected`.
-- Forbidden fallback: missing row as empty row, fake field, or class-name
-  exception.
-- Falsifier: remove the `fields` owner row or pass `Calc(1)`; the codegen path
-  must fail closed rather than materialize an invented field.
-
-Observed and closed:
-
-- The rebuilt self-host driver emits `char _pgy_reserved;` for `Calc`, uses
-  `(Calc){ 0 }`, compiles standard C, and runs with output `r=7`.
-- Filtered producer-first source/MIR parity passes with
-  `backends=1 body_fixtures=20 mir_fixtures=1`; the fieldless constructor
-  mutation is rejected with `call_arity_mismatch` by both compilers.
-- Commit `8afd9160` is pushed to `origin/main`.
-
-The previous closed executable rung was fixture 249,
-`tests/cases/backend_compare/string_utility_aliases/main.pgy`.
+The manifest contains 260 MIR rows.
 
 Objective card:
 
-- Objective: project stable source alias
-  `StringConcat(String, String) -> String` through the same runtime concat ABI
-  as `Concat`.
-- Priority: preserve builtin row identity, one runtime symbol owner,
-  fail-closed argument types, then patch size.
-- Fact owners: `SemanticBuiltinSignatureRows` for the source signature and
-  `RuntimeCallCName` for its runtime-symbol projection.
-- Last consumers: semantic function-table seeding and semantic direct-call
-  emission.
-- Forbidden fallback: a `StringConcat` branch in semantic call emission, a
-  second C helper, source-text substitution, or shifting existing builtin row
-  identities.
-- Falsifier: mutate the second argument from the owned `String` local to `Int`;
-  both compilers must reject it and the Pergyra driver must report
-  `call_arg_type_mismatch`.
+- Objective: derive non-identifier foreach iterable types from parser-owned
+  expression graph facts and carry them through iteration facts, the one-time
+  synthetic hoist, MIR, and codegen.
+- Priority: graph identity, homogeneous array-literal typing, nominal member
+  typing, fail-closed mismatch, then patch size.
+- Fact owners: `SemanticExpressionGraphArrayLiteralTypeName` for recursive
+  literal topology/type and the existing nominal receiver/member type owner for
+  `b.items`.
+- Last semantic consumer: `SemanticAstIterationTypeFactsFromArtifact`; MIR and
+  codegen consume its explicit iterable/binding/hoist rows.
+- Forbidden fallback: reparsing loop payload text, assuming `Array<Int>`, a
+  fixture/member-name exception, or codegen-side iterable type recovery.
+- Falsifiers: `[10, "bad", 30]` must fail as `actual: Unknown`; replacing
+  `b.items` with `b` must fail as `actual: Bag`.
 
 Observed before the fix:
 
-- A freshly built Pergyra DRV-2 driver rejected `StringConcat` in both
-  `string_utility_aliases` and `nested_array_string` as `undefined_function`.
+- A Pergyra-built driver rejected both fixtures with
+  `statement_type_unresolved`; the array literal and member expression were
+  both reported as `actual: Unknown`.
 
-Closed design:
+Closed design and evidence:
 
-- `StringConcat` is append-only builtin row 101, the 102nd row. All previous
-  builtin identities remain stable.
-- `Concat` and `StringConcat` both project through `StringRuntimeCConcatFn`.
-  Emitted C contains `pgy_concat` and no second `StringConcat` symbol.
-- The manifest now has 257 DRV-2 MIR rows. Rung 249 is counted because the old
-  Pergyra driver failed and Pergyra semantic/runtime projection owners changed.
-- Prior rung 248 remains closed: contextual `Result<T>` values enter declared
-  `Result<T, E>` nominal fields through `ResultTypeAssignableTo`, with payload
-  mismatch rejection and no constructor-name policy.
+- Iteration typing consumes the carried value and auxiliary expression graph
+  roots. It no longer calls `SemanticAstExpressionVerdictFromPayload`.
+- Non-empty homogeneous literals derive recursive `Array<T>` evidence; empty
+  or heterogeneous literals do not acquire a guessed element type.
+- Both fixtures carry `binding_type: Int`, `iterable_type: Array<Int>`, and
+  `collection_hoisted: true`, plus one typed `__pgy_forin_0` local.
+- C-built filtered producer-first parity passed:
+  `backends=1 body_fixtures=20 mir_fixtures=2`.
+- LLVM-built filtered producer-first parity passed with the same counts.
+- Runtime output matched native: `60` for the literal loop and `15` for the
+  member loop. Both negative mutations were rejected by both compilers.
+- `tests/self_hosted_component_contract_smoke.sh` and shell syntax passed in an
+  isolated worktree containing exactly the foreach commits.
 
 Primary files:
 
-- `src/self_hosted/semantic/builtin_signature_owner.pgy`
-- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`
-- `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy`
+- `src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy`
+- `src/self_hosted/semantic/ast_expression_verdict_owner.pgy`
+- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`
 - `src/self_hosted/compiler/driver_rung2_owner.pgy`
-- `tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh`
-- `src/self_hosted/PROGRESS.md`
-- `src/self_hosted/OWNERS.md`
+- `tests/self_hosted/parity/driver_rung2_iteration_expression_parity_owner.sh`
+- `tests/self_hosted_component_contract_smoke.sh`
 
-## Last observed verification
+## Previous closed rungs retained
 
-Green:
+- Fixture 250, `fieldless_class_method`: a present empty nominal field
+  inventory is distinct from a missing row. C uses ABI-owned reserved storage
+  and `(Calc){ 0 }`; `Calc(1)` fails with `call_arity_mismatch`. Commit:
+  `8afd9160`.
+- Fixture 249, `string_utility_aliases`: append-only builtin row 101 maps
+  `StringConcat` and `Concat` to the one `pgy_concat` ABI owner. Commit:
+  `9a438da4`.
+- Fixture 248, `result_as_class_field`: contextual `Result<T>` enters a
+  declared `Result<T, E>` field through `ResultTypeAssignableTo`, with payload
+  mismatch rejection. Commit: `5c2ba93b`.
+- Native ArrayMap/ArrayFilter: the active-MIR call fact owns `Array<T>` result
+  shape; C and LLVM consume it without local call-name guessing. Commits:
+  `246682fe` and `a1678e8d`.
 
-- C-built Pergyra driver, filtered producer-first source/MIR parity for
-  `string_utility_aliases`: `backends=1 body_fixtures=20 mir_fixtures=1`.
-- LLVM-built Pergyra driver, same filtered parity and counts.
-- Both paths projected the carried `StringConcat` target to `pgy_concat`,
-  compiled emitted C, ran it, and matched native output `HELLO`, `world`,
-  `ok:Hello World`.
-- `tests/self_hosted_component_contract_smoke.sh`.
+## Verification state
+
+Green for the latest foreach rung:
+
+- C and LLVM filtered producer-first source/MIR parity, two MIR fixtures each.
+- Component contract and modified shell syntax in the isolated commit tree.
+- Direct self-host negative mutations and native-oracle rejection.
+- `git diff --check` for the implementation commits.
+
+Green at the preceding fieldless/StringConcat checkpoint and to be rerun after
+the latest docs refresh:
+
 - `make self-host-hard-contract-test-smoke`.
 - `make self-host-substitution-velocity-test-smoke`.
 - `make sot-authority-edge-test-smoke`: 43 authorities, 38 derived carriers,
   `CLOSED=23 BRIDGE=20 ACTIVE=0`.
 - `PGY_ALLOW_MISSING_COQ=1 make sot-authority-adequacy-test-smoke`: live
-  owner/consumer and negative-mutation checks passed; the proof model was a
-  declared skip and was not checked.
+  owner/consumer and negative mutation checks passed; proof was a declared
+  skip, not a checked model.
 - `tests/documentation_quality_smoke.sh`.
-- Shell syntax for the modified parity owners and cached-diff whitespace checks.
-- Rebuilt C self-host driver fieldless fixture: driver, GCC, and runtime all
-  passed; runtime output was `r=7`.
-- Filtered fieldless producer-first source/MIR parity passed:
-  `backends=1 body_fixtures=20 mir_fixtures=1`.
-- `tests/self_hosted_component_contract_smoke.sh` and shell syntax passed after
-  the fieldless owner changes.
 
-Not run or not available:
+Not run or unavailable:
 
-- The full unfiltered 257-row DRV-2 matrix was not run.
-- Coq/Rocq is not installed. Never report the formal model as checked on this
-  workstation.
-- The aggregate documentation Make target was not used for this checkpoint;
-  the direct documentation quality gate is the observed evidence.
+- The full unfiltered 260-row DRV-2 matrix was not run.
+- Coq/Rocq is not installed. Never report the formal model as checked here.
 
 ## Next executable work
 
-The next observed executable failure is:
+The next observed failure is
+`tests/cases/backend_compare/await_inline_spawn/main.pgy`:
 
-- `tests/cases/backend_compare/await_inline_spawn/main.pgy`
-- Current Pergyra driver result: `initializer_type_unresolved` for
+- Last clean driver result: `initializer_type_unresolved` for
   `await spawn Inc(4)`.
-- Observed cause: `await` is graph-typed, while `spawn` is still represented as
-  a leaf and lacks an owned async expression/type/codegen fact.
-
-The async case is still a multi-owner rung. Do not implement `spawn` by erasing
-concurrency or routing through a sequential call.
+- `spawn` needs one carried expression kind, an owned semantic result type,
+  runtime ABI/lifetime, and codegen consumption.
+- Preserve actual concurrency. A sequential call, a class/test-name branch,
+  or a detached capture of local storage is forbidden.
+- The dirty main-worktree spawn lane is only a proposal until its owner docs,
+  focused positive/negative/runtime parity, and broader gates pass.
 
 ## Workstation and repository recovery
 
-- Global Codex baseline: `C:/Users/user/.codex/AGENTS.md`. It was reviewed and
-  reduced to a compact cross-project policy; repository `AGENTS.md` remains more
-  specific. Read both on resume.
-- Git for Windows, Git LFS, GitHub CLI, MSYS2 UCRT64 GCC/Make/Python/LLVM, Node,
-  npm, and ripgrep are installed. GitHub CLI authentication remains user-owned;
-  verify with `gh auth status` rather than assuming it.
-- Repository safe-directory configuration exists for both Windows Git and the
-  MSYS gate user. Repository `core.autocrlf=false` preserves the LF policy.
-- For Windows `bin/pgy.exe` in tests, source
-  `tests/pgy_binary_path_helpers.sh` and call
+- Global Codex baseline: `C:/Users/user/.codex/AGENTS.md`; the repository
+  `AGENTS.md` is more specific. Read both on resume.
+- Git for Windows, Git LFS, GitHub CLI, MSYS2 UCRT64 GCC/Make/Python/LLVM,
+  Node, npm, and ripgrep are installed. GitHub CLI auth remains user-owned.
+- Repository `core.autocrlf=false`; Windows and MSYS safe-directory settings
+  are configured.
+- For Windows `bin/pgy.exe`, source `tests/pgy_binary_path_helpers.sh` and call
   `pgy_prepend_windows_runtime_paths` before execution.
-- Use serial `make` on this workstation unless the Windows jobserver behavior
-  has been revalidated.
-- `.gitignore` owns root temporary builders with `/.tmp_*`. Earlier recovery
-  recycled 87 root temporary files and reduced `.tmp` from about 9.49 GB to an
-  active ignored cache. All `codex_*` directories used for Result, alias, and
-  next-rung discovery were moved to the Windows recycle bin after verification.
-- Credential hygiene: a prior local process inspection exposed configured
-  Figma, GitHub, Render, and Tavily credentials in command-line output. Do not
-  copy values into docs or logs. Rotate/revoke the affected credentials before
-  relying on them again.
+- Use serial `make` unless Windows jobserver behavior is revalidated.
+- `.gitignore` owns root builders with `/.tmp_*`. Recovery recycled 87 root
+  temporary files and reduced `.tmp` from about 9.49 GB to an active cache.
+- Credential hygiene: prior process inspection exposed configured Figma,
+  GitHub, Render, and Tavily credentials in command-line output. Never copy
+  values into docs/logs; rotate or revoke the affected credentials.
 
 ## Resume sequence
 
-1. Read this file, `src/self_hosted/PROGRESS.md`, and the
-   `selfhost.expression_surface` row in
-   `docs/semantics/sot_owner_spine_registry.md`.
-2. Run `git status --short --branch` and preserve any concurrent dirty paths.
-3. Confirm fixture 250 with the filtered C parity gate before broadening.
-4. Select the next rung only from an observed failure and write its objective
-   card before changing structure.
-5. Run the narrow negative first, then component/hard/substitution gates.
-6. Refresh this handoff with the exact implementation revision, dirty state,
-   last green gate, next falsifier, and blockers.
+1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
+   and `selfhost.expression_surface` in the SoT registry.
+2. Run `git status --short --branch`; preserve the dirty spawn lane unless it
+   has since been committed or explicitly abandoned.
+3. Reconfirm fixtures 251-252 with the filtered C parity gate.
+4. Audit the spawn objective card and its negative/runtime evidence before
+   accepting or extending that lane.
+5. Refresh this snapshot with exact HEAD, dirty state, last green gate, next
+   falsifier, and blockers.
