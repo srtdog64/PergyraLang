@@ -17,10 +17,14 @@ negative gate passed. The C producer-first source/MIR/C/runtime gate passed with
 runtime output `save=9` and `box=7`; mutating `Box<T = Int>` to
 `Box<T = String>` fails closed as `call_arg_type_mismatch` with `expected:
 String` and `actual: Int`. Native MIR JSON visibly carries the `Box` and
-`Bufferable` default rows. Component contracts, shell syntax, and
-`git diff --check` passed. The focused C backend build used `LLVM_ENABLED=0`;
-the full unfiltered 266-row DRV-2 matrix and LLVM generic-default lane were not
-run. Executable commit `ce712b8e` is pushed as `HEAD=origin/main=ce712b8e`.
+`Bufferable` default rows. The fixture is now committed as DRV-2 MIR row 267;
+the filtered producer-first row-267 gate passed with
+`backends=1 body_fixtures=20 mir_fixtures=1`, and the broader body/producer
+owner wiring, component contracts, shell syntax, and `git diff --check` passed.
+The focused C backend build used `LLVM_ENABLED=0`; the full unfiltered 267-row
+DRV-2 matrix and LLVM generic-default lane were not run. Declaration/default
+owner closure is `ce712b8e`; executable DRV-2 integration is `030c82e7`;
+both are pushed with `HEAD=origin/main=030c82e7`.
 
 The next observed executable seam is
 `generic_default_ability_bind_dispatch`: the self-host driver reaches semantic
@@ -31,10 +35,9 @@ at `where T: Comparable + Cloneable`; `nested_generic_containers` remains a
 later `ListNew` undefined-function failure. Do not add fixture-name or
 party/class-name exceptions.
 
-At this handoff, a concurrent uncommitted follow-up is enrolling
-`generic_default_contracts` as DRV-2 MIR row 267 and wiring its owner checks into
-the broader body/producer/component gates. It is preserved as dirty work and
-is not part of `ce712b8e` until its focused and broader gates are observed.
+The worktree is clean at this handoff and no concurrent follow-up is being
+carried as uncommitted state. The next observed executable seam remains the
+ability-bind falsifier described below.
 
 2026-07-23 Pergyra generic Future spawn executable rungs 263-266. Objective:
 carry generic specialization identity through `spawn`, then materialize Int and

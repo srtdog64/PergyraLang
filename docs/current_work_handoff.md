@@ -7,17 +7,13 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `ce712b8e` (`Close self-host generic
-  default contract SoT`), pushed with `HEAD=origin/main=ce712b8e`.
-- The committed DRV-2 manifest remains at 266 MIR fixtures. A concurrent,
-  uncommitted follow-up currently enrolls `generic_default_contracts` as row
-  267 and wires its owner checks into the broader gate.
-- At documentation authoring, the worktree is intentionally dirty in that
-  follow-up: `src/compiler/mir_json_dump.c`,
-  `src/self_hosted/compiler/driver_rung2_owner.pgy`,
-  `tests/self_hosted/parity/driver_rung2_body_parity.sh`,
-  `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`, and
-  `tests/self_hosted_component_contract_smoke.sh`. Preserve these changes.
+- Latest executable implementation: `030c82e7` (`Integrate generic default
+  contract into DRV-2`), pushed with `HEAD=origin/main=030c82e7`.
+- The committed DRV-2 manifest now contains 267 MIR fixtures, with
+  `generic_default_contracts` enrolled as row 267 and its owner checks wired
+  into the broader body/producer/component gates.
+- At documentation authoring, `git status --short --branch` is clean and
+  `HEAD` matches `origin/main`.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
@@ -58,9 +54,10 @@ Observed closure:
   contract smoke all passed. Mutating `Box<T = Int>` to `Box<T = String>` is
   rejected as `call_arg_type_mismatch` with `expected: String` and
   `actual: Int`.
-- Commit `ce712b8e` is pushed. The focused native build used the C backend
-  (`LLVM_ENABLED=0`); the full unfiltered 266-row matrix and LLVM lane were
-  not run.
+- Commit `ce712b8e` closed the declaration/default owner; commit `030c82e7`
+  enrolled the fixture in the executable DRV-2 rung and is pushed. The
+  focused native build used the C backend (`LLVM_ENABLED=0`); the full
+  unfiltered 267-row matrix and LLVM lane were not run.
 
 Primary files:
 
@@ -71,6 +68,9 @@ Primary files:
 - `src/self_hosted/mir_lower/decl_lower.pgy`
 - `tests/self_hosted/parity/generic_default_contracts_parser_parity.sh`
 - `tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh`
+- `tests/self_hosted/parity/driver_rung2_generic_default_contract_parity_owner.sh`
+- `tests/self_hosted/parity/driver_rung2_body_parity.sh`
+- `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`
 
 ## Previous closed executable family: generic Future spawn
 
@@ -125,8 +125,10 @@ Primary files:
 
 Green:
 
-- C producer-first parity for fixtures 261-265:
-  `backends=1 body_fixtures=20 mir_fixtures=5`.
+- C producer-first parity for the filtered DRV-2 row 267:
+  `backends=1 body_fixtures=20 mir_fixtures=1`.
+- The broader filtered 267-row body/producer gate completed with the generic
+  default row included; the component contract smoke and shell syntax passed.
 - Fixture 266 mixed capstone parity:
   `backends=1 body_fixtures=20 mir_fixtures=1`; output `42`, `77`, `hi`.
 - Generated driver build: 0 errors, 0 warnings.
@@ -142,7 +144,7 @@ Green:
 
 Not run:
 
-- Full unfiltered 266-row DRV-2 matrix.
+- Full unfiltered 267-row DRV-2 matrix.
 - LLVM async parity for these rungs.
 - Coq/Rocq proof; the toolchain is not installed.
 
@@ -192,8 +194,8 @@ Adjacent evidence:
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Verify `git status`, HEAD/origin, committed fixture count 266, and the
-   concurrent dirty integration's fixture count 267 before touching it.
+2. Verify `git status`, HEAD/origin, and committed fixture count 267 before
+   touching the next seam.
 3. Reproduce `generic_default_ability_bind_dispatch` and name the
    `StorageParty`/ability-bind owner before editing.
 4. Make the next executable replacement; do not spend a third consecutive
