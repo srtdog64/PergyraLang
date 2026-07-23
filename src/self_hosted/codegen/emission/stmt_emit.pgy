@@ -21,6 +21,7 @@ import "expr_semantic_graph_emit_owner.pgy";
 import "collection_element_emit_owner.pgy";
 import "option_value_emit_owner.pgy";
 import "assign_emit_owner.pgy";
+import "function_binding_env_owner.pgy";
 import "log_emit_owner.pgy";
 import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
@@ -37,8 +38,10 @@ func EmitLet(
 ) -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
-    let c_name: String = CompilerSymbolCBindingName(name);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
+    let c_name: String = CodegenFunctionValueBindingFactFor(
+        name, type_name, env_state[0]
+    ).c_name;
     let expr: String = CodegenSemanticLocalBindingInitializerOrDie(
         local_bindings, idx
     );
@@ -314,7 +317,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
             let a_arr: String = CodegenSemanticArraySetTargetOrDie(statements, idx);
-            let c_a_arr: String = CompilerSymbolCBindingName(a_arr);
+            let c_a_arr: String = CodegenCollectionTargetCBindingOrDie(env, a_arr);
             let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx);
             let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx);
             let a_graph: SemanticExpressionGraphView =
@@ -334,7 +337,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) {
             // `ArrayPush(arr, val)` lowers through the collection push helper owner.
             let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx);
-            let c_p_arr: String = CompilerSymbolCBindingName(p_arr);
+            let c_p_arr: String = CodegenCollectionTargetCBindingOrDie(env, p_arr);
             let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx);
             let p_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
@@ -353,7 +356,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) {
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
             let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx);
-            let c_q_arr: String = CompilerSymbolCBindingName(q_arr);
+            let c_q_arr: String = CodegenCollectionTargetCBindingOrDie(env, q_arr);
             let q_kind: String = LookupKindType(env, q_arr, "v");
             let pop_fn: String =
                 CollectionRuntimeFactFromKind(q_kind, env).c_pop_fn;
@@ -386,12 +389,14 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindForStmtTag()) {
             // Integer ranges are exclusive at the upper bound.
             let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx);
-            let c_loop_var: String = CompilerSymbolCBindingName(loop_var);
             let iteration_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneValue()
                 );
             if CodegenSemanticForIsRange(statements, idx) {
+                let c_loop_var: String = CodegenFunctionValueBindingFactFor(
+                    loop_var, "Int", env_state[0]
+                ).c_name;
                 let start_v: String = CodegenSemanticForRangeStartOrDie(statements, idx);
                 let end_v: String = CodegenSemanticForRangeEndOrDie(statements, idx);
                 let stop_graph: SemanticExpressionGraphView =
@@ -451,6 +456,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                 get_fn = collection.c_get_fn;
                 len_fn = collection.c_len_fn;
                 elem_kind = collection.element_type;
+                let c_loop_var: String = CodegenFunctionValueBindingFactFor(
+                    loop_var, elem_kind, env_state[0]
+                ).c_name;
                 let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
                 let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
                 CodegenTypeEnvStateAppendTypedValueBinding(

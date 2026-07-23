@@ -57,6 +57,16 @@ func CodegenFunctionValueBindingFactFor(
     );
 }
 
+func CodegenCollectionTargetCBindingOrDie(
+    env: CodegenTypeEnv, source_name: String
+) -> String {
+    let c_name: String = LookupKindType(env, source_name, "cbind");
+    if c_name == "" {
+        Die("collection target C binding fact is missing");
+    }
+    return c_name;
+}
+
 func CodegenFunctionOwnerFieldEnvRows(
     owner_name: String,
     env: CodegenTypeEnv

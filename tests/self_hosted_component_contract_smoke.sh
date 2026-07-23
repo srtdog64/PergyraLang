@@ -5530,11 +5530,21 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "TypeEnvTypedValueBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedReadonlyRefBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenFunctionValueBindingFactFor("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendValueBinding("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, name,"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, loop_var,"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCollectionTargetCBindingOrDie(env,"
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenCollectionTargetCBindingOrDie("
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "collection target C binding fact is missing"
+reject_function_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenCollectionTargetCBindingOrDie(" '"cref"'
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "CodegenFunctionValueBindingFactFor("
+reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "CompilerSymbolCBindingName("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachCollectionTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachIndexTempName(loop_var)"

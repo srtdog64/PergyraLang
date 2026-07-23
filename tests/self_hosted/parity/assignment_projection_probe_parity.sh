@@ -55,12 +55,37 @@ done
 # - missing_direct_call_target_success: call identity must come from semantic facts.
 # - assignment_target_name_as_c_binding: target text is not a C binding fact.
 # - assignment_target_local_sanitize: EmitAssign must not remangle target text.
+# - collection_target_name_as_c_binding: ArraySet/ArrayPush/ArrayPop targets
+#   read the env-owned C binding row and fail closed when it is missing.
+# - collection_target_cref_fallback: readonly-ref rows already own their exact
+#   dereferenced `cbind`; the raw `cref` pointer is not an interchangeable name.
+# - let_binding_name_as_c_binding: let/try-let/loop-var C names come from the
+#   function value binding fact owner, never a statement-local sanitize call.
+STMT_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
+TRY_LET_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
 if grep -Fq 'ExprKind(expr, env)' "$ASSIGN_EMITTER"; then
     echo "[$LABEL] assignment expected type was re-derived from source text" >&2
     exit 1
 fi
 if grep -Fq 'LookupKindType(env, arr_name' "$ASSIGN_EMITTER"; then
     echo "[$LABEL] indexed assignment target type was guessed by codegen" >&2
+    exit 1
+fi
+if grep -Fq 'CompilerSymbolCBindingName(' "$STMT_EMITTER" "$TRY_LET_EMITTER"; then
+    echo "[$LABEL] statement emitter re-sanitized a binding name instead of consuming the binding fact owner" >&2
+    exit 1
+fi
+BINDING_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_binding_env_owner.pgy"
+if ! grep -Fq 'CodegenCollectionTargetCBindingOrDie(env,' "$STMT_EMITTER"; then
+    echo "[$LABEL] collection mutation targets stopped consuming the binding fact owner" >&2
+    exit 1
+fi
+if ! grep -Fq 'collection target C binding fact is missing' "$BINDING_OWNER"; then
+    echo "[$LABEL] binding fact owner lost the fail-closed missing-binding diagnostic" >&2
+    exit 1
+fi
+if grep -Fq 'LookupKindType(env, source_name, "cref")' "$BINDING_OWNER"; then
+    echo "[$LABEL] collection target restored a raw cref fallback instead of consuming cbind" >&2
     exit 1
 fi
 
@@ -133,6 +158,8 @@ run_backend() {
         "semantic direct-call target fact is missing"
     run_missing_fact_negative "$backend" "missing-c-binding" \
         "assignment target C binding fact is missing"
+    run_missing_fact_negative "$backend" "collection-cref-only" \
+        "collection target C binding fact is missing"
 }
 
 run_backend c

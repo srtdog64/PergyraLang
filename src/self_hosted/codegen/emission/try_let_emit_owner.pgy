@@ -12,6 +12,7 @@ import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "function_binding_env_owner.pgy";
 
 func EmitTryLet(
     local_bindings: SemanticAstLocalBindingFacts,
@@ -27,10 +28,12 @@ func EmitTryLet(
     let name: String = CodegenSemanticLocalBindingNameOrDie(
         local_bindings, idx
     );
-    let c_name: String = CompilerSymbolCBindingName(name);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(
         local_bindings, idx
     );
+    let c_name: String = CodegenFunctionValueBindingFactFor(
+        name, type_name, env_state[0]
+    ).c_name;
     let operand_node: Int = CodegenSemanticTryOperandNodeOrDie(graph);
     let rendered_inner: String = RewriteExprFromSemanticGraph(
         graph.graph, operand_node, env

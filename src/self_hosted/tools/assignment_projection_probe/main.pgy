@@ -111,6 +111,13 @@ func ProbeIndexedAssignment(target_type: String) -> String {
     );
 }
 
+func ProbeCollectionCrefOnly() -> String {
+    let env: CodegenTypeEnv = CodegenTypeEnv(
+        "|", "|xs=v:ArrayInt|xs=type:Array<Int>|xs=cref:pgy_ref_xs|"
+    );
+    return CodegenCollectionTargetCBindingOrDie(env, "xs");
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == "--missing-expected-type" {
@@ -133,6 +140,10 @@ func Main() -> Void {
     }
     if ArrayLength(args) > 0 && args[0] == "--missing-target-type" {
         Log(ProbeIndexedAssignment(""));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--collection-cref-only" {
+        Log(ProbeCollectionCrefOnly());
         return;
     }
     Log(ProbeOptionAssignment(
