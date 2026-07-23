@@ -1,0 +1,84 @@
+// List<T> call return-type projection for codegen expression consumers.
+
+import "../type_facts/type_env.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../runtime_abi/list_runtime_owner.pgy";
+
+func CodegenListCallName(name: String) -> Bool {
+    return name == "ListPush" || name == "ListGet" ||
+        name == "ListSet" || name == "ListRemove" ||
+        name == "ListSize";
+}
+
+func CodegenListCallApplies(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> Bool {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok { return false; }
+    let callee: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    return IsSome(callee) && CodegenListCallName(UnwrapOption(callee));
+}
+
+func CodegenListCallReceiverType(
+    graph: SemanticExpressionGraphFacts,
+    receiver_node: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, receiver_node
+    );
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, receiver_node
+    );
+    if !IsSome(kind) || !IsSome(text) ||
+        UnwrapOption(kind) != AstExpressionNodeLeaf() {
+        return "";
+    }
+    return TypeEnvSemanticValueType(env, UnwrapOption(text));
+}
+
+func CodegenListCallReturnTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok { return None; }
+    let callee: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee) || !CodegenListCallName(UnwrapOption(callee)) {
+        return None;
+    }
+    let name: String = UnwrapOption(callee);
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_name) || UnwrapOption(target_name) != name {
+        return None;
+    }
+    if name == "ListSize" {
+        if ArrayLength(call.argument_nodes) != 1 { return None; }
+        return Some("Int");
+    }
+    let expected_arity: Int = 2;
+    if name == "ListSet" { expected_arity = 3; }
+    if ArrayLength(call.argument_nodes) != expected_arity { return None; }
+    let receiver_type: String = CodegenListCallReceiverType(
+        graph, call.argument_nodes[0], env
+    );
+    let fact: CollectionListRuntimeFact =
+        CollectionListRuntimeFactFromTypeName(receiver_type);
+    if !fact.ok { return None; }
+    if name == "ListGet" { return Some(fact.element_type); }
+    return Some("Void");
+}

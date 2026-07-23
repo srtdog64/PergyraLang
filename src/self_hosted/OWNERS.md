@@ -673,6 +673,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
   `List<T>` operation lowering from semantic receiver type and List runtime ABI
   facts; source callee spelling is not an ABI fallback.
+- `src/self_hosted/codegen/emission/list_call_type_owner.pgy` -- canonical
+  `List<T>` return-type projection consumed by compound-expression codegen.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method

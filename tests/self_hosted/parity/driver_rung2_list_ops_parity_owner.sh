@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Owns List<T> collection-call lowering and fail-closed call-target evidence.
+# missing List call target fails closed
+# List operation ABI calls
 
 pgy_selfhost_verify_driver_rung2_list_ops() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
