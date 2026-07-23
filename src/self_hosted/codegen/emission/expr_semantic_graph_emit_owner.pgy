@@ -104,8 +104,9 @@ func RewriteSemanticSpawn(
     let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, node_id
     );
-    if !view.ok || ArrayLength(view.argument_nodes) != 1 {
-        Die("self-host spawn requires a direct one-argument call fact");
+    if !view.ok || ArrayLength(view.argument_nodes) < 1 ||
+        ArrayLength(view.argument_nodes) > 2 {
+        Die("self-host spawn requires a direct one-or-two-argument call fact");
     }
     let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
         graph, view.call_node
@@ -128,15 +129,24 @@ func RewriteSemanticSpawn(
         let alias: String = LookupKindType(env, source_name, "call");
         if alias != "" { call_symbol = alias; }
     }
+    let arity: Int = ArrayLength(view.argument_nodes);
+    let expected_params: String = "Int";
+    if arity == 2 { expected_params = "Int,Int"; }
     if LookupKindType(env, call_symbol, "f") != "Int" ||
-        LookupKindType(env, call_symbol, "pt") != "Int" {
-        Die("self-host spawn requires an Int -> Int signature fact");
+        LookupKindType(env, call_symbol, "pt") != expected_params {
+        Die("self-host spawn requires a bounded Int-call signature fact");
     }
-    let argument: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[0], "Int", "default", env
-    );
-    return SpawnRuntimeCIntUnaryCall(
-        CompilerSymbolCIdentifier(call_symbol), argument
+    let arguments: Array<String> = [];
+    let argument_index: Int = 0;
+    while argument_index < arity {
+        ArrayPush(arguments, RewriteSemanticCallArgument(
+            graph, view.argument_nodes[argument_index],
+            "Int", "default", env
+        ));
+        argument_index = argument_index + 1;
+    }
+    return SpawnRuntimeCIntCall(
+        CompilerSymbolCIdentifier(call_symbol), arguments
     );
 }
 
