@@ -7,17 +7,53 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `030c82e7` (`Integrate generic default
-  contract into DRV-2`), pushed with `HEAD=origin/main=030c82e7`.
-- The committed DRV-2 manifest now contains 267 MIR fixtures, with
-  `generic_default_contracts` enrolled as row 267 and its owner checks wired
-  into the broader body/producer/component gates.
+- Latest executable implementation: `e09d680e` (`Close self-host ability bind
+  dispatch SoT`), pushed with `HEAD=origin/main=e09d680e`.
+- The committed DRV-2 manifest now contains 268 MIR fixtures, with
+  `generic_default_ability_bind_dispatch` enrolled as the latest row and its
+  owner checks wired into the body/producer parity gates.
 - At documentation authoring, `git status --short --branch` is clean and
   `HEAD` matches `origin/main`.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: dynamic ability bind dispatch
+
+Objective card:
+
+- Objective: carry party role-slot, role implementation, ability method, and
+  bind identity from semantic facts through MIR JSON into one C vtable/bind
+  ABI.
+- Priority: one semantic bind owner, declaration/MIR carriage, fail-closed
+  missing ABI facts, direct-call fallback removal, then patch size.
+- Fact owners: `ast_bind_statement_type_fact_owner.pgy`, declaration rows,
+  role/nominal semantic views, and the native `slot_anchor` MIR projection.
+- Last consumers: `ability_bind_emit_owner.pgy`,
+  `expr_semantic_dynamic_ability_call_emit_owner.pgy`, and
+  `role_dispatch_emit_owner.pgy`.
+- Forbidden fallback: party/slot/role text reparse, direct ability-call
+  fallback, guessed vtable identity, or successful emission when dispatch ABI
+  facts are missing.
+- Verification gate: `driver_rung2_ability_bind_dispatch_parity_owner.sh`,
+  focused DRV-2 producer-first parity, C compilation, and runtime output.
+
+Observed closure:
+
+- Native and self-host MIR carry party role slots, ability defaults, role
+  implementations, `AST_BIND_STMT` with `slot_anchor`, and the resolved
+  `Bufferable_Put` member target.
+- Self-host C emission now owns the dynamic vtable field, bind helper, role
+  adapter, and vtable call. The bad argument mutation fails closed as
+  `call_arg_type_mismatch`; no direct-call fallback is admitted.
+- The focused gate passed with `backends=1 body_fixtures=20 mir_fixtures=1`.
+  Regenerated driver C built with GCC and the emitted fixture ran with output
+  `12`. Component contracts, SoT authority checks, shell syntax, and
+  `git diff --check` passed. The Coq model was declared skipped because no
+  `rocq`/`coqc` is installed.
+- Commit `e09d680e` is pushed. The full unfiltered 268-row matrix and LLVM
+  lane were not run.
 
 ## Last closed executable family: declaration-site generic defaults
 
@@ -150,16 +186,17 @@ Not run:
 
 ## Next executable work
 
-The first observed post-closure failure is
-`tests/cases/backend_compare/generic_default_ability_bind_dispatch/main.pgy`:
+The next observed executable seam is
+`tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy`:
 
-- current self-host result: semantic `undefined_function` for `StorageParty`;
-- therefore the next seam is party/role ability-bind declaration ownership and
-  its consumer admission, not generic-default substitution itself;
-- first falsifier: the same fixture must reach `StorageParty`'s declared
-  `dyn role` binding and emit the `IntBuffer` dispatch, or fail with a stable
-  owner diagnostic rather than a generic undefined-function result;
-- do not add party/class-name or fixture-name exceptions.
+- current native/self-host boundary: parser admission stops at
+  `where T: Comparable + Cloneable`;
+- first falsifier: the parser/semantic generic-bound owner must carry the
+  ordered constraint facts, or reject the declaration with a stable owner
+  diagnostic; consumers must not split the source text again;
+- `nested_generic_containers` remains a later `ListNew` undefined-function
+  failure;
+- do not add fixture-name, party/class-name, or compatibility fallback paths.
 
 Adjacent evidence:
 
@@ -196,8 +233,8 @@ Adjacent evidence:
    and `selfhost.expression_surface` in the SoT registry.
 2. Verify `git status`, HEAD/origin, and committed fixture count 267 before
    touching the next seam.
-3. Reproduce `generic_default_ability_bind_dispatch` and name the
-   `StorageParty`/ability-bind owner before editing.
+3. Reproduce `generic_multi_bound_defaults` and name the generic-bound owner
+   before editing.
 4. Make the next executable replacement; do not spend a third consecutive
    commit on docs or fixture-only enrollment.
 5. Refresh exact revision, dirty state, last green gate, next falsifier, and

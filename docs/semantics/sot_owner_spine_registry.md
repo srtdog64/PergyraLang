@@ -1,7 +1,7 @@
 # SoT Owner Spine Registry
 
 Status: `architecture-owner-registry`  
-Date: 2026-07-23
+Date: 2026-07-24
 
 This registry fixes the first whole-compiler owner outline. It is the
 machine-gated companion to `docs/125_source_of_truth_spine.md` and
