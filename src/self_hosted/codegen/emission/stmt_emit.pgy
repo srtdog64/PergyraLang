@@ -16,6 +16,7 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "../runtime_abi/spawn_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "collection_element_emit_owner.pgy";
@@ -99,6 +100,16 @@ func EmitLet(
         );
     }
     if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" {
+        CodegenTypeEnvStateAppendValueBinding(
+            env_state, name, type_name, c_name
+        );
+        let value: String = RewriteExpectedValueWithSemanticGraph(
+            expr, type_name, env, graph
+        );
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+            Concat(c_name, Concat(" = ", Concat(value, ";")))));
+    }
+    if SpawnRuntimeCFutureCValueType(type_name) != "" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, type_name, c_name
         );

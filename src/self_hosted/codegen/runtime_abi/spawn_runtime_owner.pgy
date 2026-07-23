@@ -1,6 +1,15 @@
 // Runtime ABI owner for the bounded direct Int -> Int spawn rung.
 
 import "../text/text_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
+
+func SpawnRuntimeCFutureCValueType(type_name: String) -> String {
+    let payload: Option<String> = FuturePayloadTypeOpt(type_name);
+    if !IsSome(payload) || UnwrapOption(payload) != "Int" {
+        return "";
+    }
+    return "PgyTaskHandle";
+}
 
 func SpawnRuntimeCIntUnaryBlock() -> String {
     let block: String = "typedef struct {\n";

@@ -8,6 +8,7 @@ import "enum_abi_value_fact_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
+import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/abi_layout_nominal_array_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -38,6 +39,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
         CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name);
     if remote_future_type != "" {
         return remote_future_type;
+    }
+    let future_type: String = SpawnRuntimeCFutureCValueType(type_name);
+    if future_type != "" {
+        return future_type;
     }
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) {

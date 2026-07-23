@@ -230,6 +230,18 @@ func RewriteExprFromSemanticGraph(
             if !IsSome(awaited_type) {
                 Die("self-host await binding type fact is missing");
             }
+            let future_payload: Option<String> = FuturePayloadTypeOpt(
+                UnwrapOption(awaited_type)
+            );
+            if IsSome(future_payload) {
+                if SpawnRuntimeCFutureCValueType(UnwrapOption(awaited_type)) == "" {
+                    Die("self-host await Future<T> ABI row is unsupported");
+                }
+                let payload_c: String = AbiLayoutCValueType(
+                    UnwrapOption(future_payload), env
+                );
+                return SpawnRuntimeCAwaitTake(operand, payload_c);
+            }
             let await_name: String =
                 CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
                     UnwrapOption(awaited_type)

@@ -3840,9 +3840,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 261;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 262;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 261'
+    'mir_fixture_rows[@]}" -ne 262'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3875,6 +3875,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/for_in_member_iterable/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/await_inline_spawn/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/async_spawn_await/main.pgy"'
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeSpawn() -> Int"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
@@ -3889,6 +3891,12 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
     "func RewriteSemanticSpawn("
 require_text "src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy" \
     "pgy_selfhost_spawn_int1"
+require_text "src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy" \
+    "SpawnRuntimeCFutureCValueType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
+    "SpawnRuntimeCFutureCValueType"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "SpawnRuntimeCFutureCValueType"
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     "pgy_lane_scheduler.h"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
@@ -4288,11 +4296,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 261;"
+    "return 262;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 261'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 262'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
