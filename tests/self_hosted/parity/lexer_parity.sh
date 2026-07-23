@@ -68,14 +68,6 @@ path_relative_to_root() {
     printf '%s\n' "${path#"$ROOT_DIR"/}"
 }
 
-normalize_text_artifact() {
-    local input="$1"
-    local output="$2"
-
-    tr -d '\r' < "$input" \
-        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$output"
-}
-
 compile_backend_output_comparator() {
     local compile_log="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.compile.log"
 
@@ -124,7 +116,7 @@ compare_lexer_output_with_owner() {
     local expected_rel
     local actual_rel
 
-    normalize_text_artifact "$expected_file" "$expected_norm"
+    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
 
     expected_rel="$(path_relative_to_root "$expected_norm")"
     actual_rel="$(path_relative_to_root "$actual_file")"

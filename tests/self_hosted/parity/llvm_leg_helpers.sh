@@ -37,7 +37,18 @@ pgy_selfhost_path_relative_to_root() {
 }
 
 pgy_selfhost_normalize_text_artifact() {
-    tr -d '\r' | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }'
+    tr -d '\r' | awk '
+        { lines[NR] = $0 }
+        END {
+            last = NR
+            while (last > 0 && lines[last] == "")
+                last--
+            for (i = 1; i <= last; i++) {
+                if (i > 1) printf "\n"
+                printf "%s", lines[i]
+            }
+            if (last > 0) printf "\n"
+        }'
 }
 
 pgy_selfhost_backend_output_comparator_bin() {
