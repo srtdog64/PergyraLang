@@ -626,6 +626,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
+                   $(SEMANTIC_DIR)/region_retention_summary.c \
                    $(SEMANTIC_DIR)/semantic.c \
                    $(SEMANTIC_DIR)/semantic_diagnostic_json.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
@@ -2520,8 +2521,8 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)

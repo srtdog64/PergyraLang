@@ -371,6 +371,10 @@ func RegionPlanMirEscapeSourcePath() -> String {
     return "src/compiler/mir_region_escape_facts.c";
 }
 
+func RegionPlanRetentionSummarySourcePath() -> String {
+    return "src/semantic/region_retention_summary.c";
+}
+
 func RegionPlanCConsumerPath() -> String {
     return "src/codegen/transpiler_context.c";
 }
@@ -380,7 +384,7 @@ func RegionPlanLlvmConsumerPath() -> String {
 }
 
 func RegionPlanRequiredCount() -> Int {
-    return 14;
+    return 15;
 }
 
 func RegionPlanRequiredPathAt(index: Int) -> String {
@@ -391,6 +395,7 @@ func RegionPlanRequiredPathAt(index: Int) -> String {
     if index == 11 { return RegionPlanDriverPath(); }
     if index == 12 { return RegionPlanHirEscapeSourcePath(); }
     if index == 13 { return RegionPlanMirEscapeSourcePath(); }
+    if index == 14 { return RegionPlanRetentionSummarySourcePath(); }
     return "";
 }
 
@@ -415,6 +420,7 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
     if index == 11 { return "mir->region_escape_facts"; }
     if index == 12 { return "hir_attach_region_escape_facts"; }
     if index == 13 { return "mir_import_region_escape_facts"; }
+    if index == 14 { return "semantic_region_retention_summary_for_builtin"; }
     return "";
 }
 
@@ -464,12 +470,12 @@ func RegionPlanReady() -> Bool {
         RegionPlanOwnerScopeFailsClosed() &&
         RegionPlanIncompletenessIsSound() &&
         RegionPlanDispositionsAreBounded() &&
-        RegionPlanRequiredCount() == 14 &&
+        RegionPlanRequiredCount() == 15 &&
         RegionPlanForbiddenCount() == 8 &&
         RegionPlanRequiredPathAt(0) == RegionPlanHeaderPath() &&
-        RegionPlanRequiredPathAt(13) == RegionPlanMirEscapeSourcePath() &&
+        RegionPlanRequiredPathAt(14) == RegionPlanRetentionSummarySourcePath() &&
         RegionPlanRequiredTermAt(0) != "" &&
-        RegionPlanRequiredTermAt(13) != "" &&
+        RegionPlanRequiredTermAt(14) != "" &&
         RegionPlanForbiddenPathAt(7) == RegionPlanDriverPath() &&
         RegionPlanForbiddenTermAt(0) != "" &&
         RegionPlanMissingSelfTestTerm() != "";

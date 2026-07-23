@@ -5,7 +5,7 @@
 #include "../lexer/lexer.h" /* TOKEN_PLUS */
 #include "../parser/ast.h"
 #include "../parser/ast_api.h"
-#include "builtin_kind.h"
+#include "region_retention_summary.h"
 
 typedef struct {
     PgyRegionEscapeFact *facts;
@@ -35,14 +35,17 @@ region_escape_is_string_concat(const ASTNode *expr)
 }
 
 static bool
-region_escape_is_print_call(const ASTNode *call)
+region_escape_argument_is_borrowed(const ASTNode *call, size_t argument_index)
 {
     uint32_t builtin_kind = 0;
+    PgyRegionRetentionKind retention = PGY_REGION_RETENTION_UNKNOWN;
 
     if (call == NULL || call->type != AST_CALL)
         return false;
     return ast_call_semantic_callee_builtin_kind(call, &builtin_kind)
-        && builtin_kind == (uint32_t)BUILTIN_PRINT;
+        && semantic_region_retention_summary_for_builtin(
+            builtin_kind, argument_index, &retention)
+        && retention == PGY_REGION_RETENTION_BORROWED_FOR_CALL;
 }
 
 static bool
@@ -130,8 +133,8 @@ region_escape_walk(RegionEscapeCollector *collector,
                                scope_id, function_syntax_id);
         break;
     case AST_CALL:
-        if (region_escape_is_print_call(node)) {
-            for (size_t i = 0; i < node->data.call.arg_count; i++) {
+        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+            if (region_escape_argument_is_borrowed(node, i)) {
                 const ASTNode *arg = node->data.call.arguments[i];
                 if (region_escape_is_string_concat(arg))
                     region_escape_append_concat_spine(

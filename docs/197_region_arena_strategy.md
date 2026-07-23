@@ -700,6 +700,12 @@ MIR owns a second stable copy and the driver rejects a missing MIR carrier
 before plan materialization. Broader semantic retention summaries and complete
 region allocation ownership remain open, so the registry row remains `BRIDGE`.
 
+The first retention-summary rung is now explicit: `region_retention_summary.c`
+owns the semantic `BuiltinKind`/argument-position fact that `Print` borrows its
+argument for the call. The region collector consumes that summary and treats
+missing, unknown, or non-first-argument facts as HEAP. General callee parameter
+retention and complete allocation-site ownership remain open.
+
 Process note worth keeping: the earlier "blocked" reading was correct at the
 time but the *response* was too passive. What unblocked the track was checking
 whether the tree still built (it did), then landing every piece that did not

@@ -2546,6 +2546,10 @@ require_text "src/self_hosted/compiler/region_plan_owner.pgy" "ast_call_semantic
 require_file "src/semantic/region_escape_fact.h"
 require_file "src/semantic/region_escape_fact.c"
 require_text "src/semantic/region_escape_fact.c" "semantic_region_escape_collect"
+require_file "src/semantic/region_retention_summary.h"
+require_file "src/semantic/region_retention_summary.c"
+require_text "src/semantic/region_retention_summary.c" "semantic_region_retention_summary_for_builtin"
+reject_text "src/semantic/region_escape_fact.c" "BUILTIN_PRINT"
 require_file "src/compiler/hir_region_escape_facts.c"
 require_text "src/compiler/hir_region_escape_facts.c" "hir_attach_region_escape_facts"
 require_file "src/compiler/mir_region_escape_facts.c"
@@ -2577,6 +2581,7 @@ require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "invar
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|pgy_region_escape_v1_collect"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|sem->region_escape_facts"
 require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "forbid|src/compiler/driver_app.c|hir->region_escape_facts"
+require_text "src/self_hosted/compiler/expected_region_plan_manifest.txt" "require|src/semantic/region_retention_summary.c|semantic_region_retention_summary_for_builtin"
 require_text "src/test_mir.c" "MIR carries HIR region escape facts"
 # The region artifact kind must be registered, or the comparator cannot diff it.
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRegionPlanArtifactKind"

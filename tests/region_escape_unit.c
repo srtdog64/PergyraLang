@@ -20,6 +20,7 @@
 #include "parser/ast_api.h"
 #include "lexer/lexer.h"
 #include "semantic/region_escape_fact.h"
+#include "semantic/region_retention_summary.h"
 #include "semantic/builtin_kind.h"
 
 static int failures = 0;
@@ -34,6 +35,25 @@ static size_t collect_sites(const ASTNode *root, PgyRegionEscapeFact **sites)
     CHECK(semantic_region_escape_collect(root, sites, &count),
           "semantic region escape fact collection succeeds");
     return count;
+}
+
+static void test_retention_summary_owner(void)
+{
+    PgyRegionRetentionKind kind = PGY_REGION_RETENTION_UNKNOWN;
+
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_PRINT, 0, &kind),
+          "Print argument retention summary is present");
+    CHECK(kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "Print argument retention summary is borrowed");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_PRINT, 1, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "non-borrowed Print argument fails closed");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_WRITE, 0, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "unknown builtin retention fails closed");
 }
 
 static ASTNode mk_string(const char *v)
@@ -197,6 +217,7 @@ static void test_per_function_scope(void)
 
 int main(void)
 {
+    test_retention_summary_owner();
     test_print_concat_certified();
     test_chained_concat_spine();
     test_missing_builtin_fact_not_certified();
