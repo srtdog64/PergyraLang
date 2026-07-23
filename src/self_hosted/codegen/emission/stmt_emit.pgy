@@ -25,6 +25,7 @@ import "assign_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "log_emit_owner.pgy";
 import "try_let_emit_owner.pgy";
+import "foreach_collection_runtime_owner.pgy";
 import "value_return_emit_owner.pgy";
 import "ability_bind_emit_owner.pgy";
 import "box_array_let_emit_owner.pgy";
@@ -452,18 +453,14 @@ func EmitStmtList(count: Int, arena: AstArena,
                 );
                 let arr_c: String = "";
                 let elem_c: String = "";
-                let get_fn: String = "";
-                let len_fn: String = "";
-                let elem_kind: String = "";
-                let collection: CollectionRuntimeFact =
-                    CollectionRuntimeFactFromKind(ck, env);
-                arr_c = collection.c_array_type;
-                elem_c = AbiLayoutCLocalType(
-                    collection.element_type, env
-                );
-                get_fn = collection.c_get_fn;
-                len_fn = collection.c_len_fn;
-                elem_kind = collection.element_type;
+                let runtime: CodegenForEachCollectionRuntimeFact =
+                    CodegenForEachCollectionRuntimeFactFromTypeName(ck, env);
+                if !runtime.ok {
+                    Die("for-each collection runtime ABI fact is missing");
+                }
+                arr_c = runtime.collection_c_type;
+                elem_c = runtime.element_c_type;
+                let elem_kind: String = runtime.element_type;
                 let c_loop_var: String = CodegenFunctionValueBindingFactFor(
                     loop_var, elem_kind, env_state[0]
                 ).c_name;
@@ -472,16 +469,21 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenTypeEnvStateAppendTypedValueBinding(
                     env_state, loop_var, elem_kind, elem_kind, c_loop_var
                 );
+                let len_call: String = CodegenForEachCollectionCLengthCall(
+                    runtime, tc
+                );
+                let get_call: String = CodegenForEachCollectionCGetCall(
+                    runtime, tc, ti
+                );
                 ArrayPush(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(coll_c, ";\n")))))));
                 let foreach_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
                 foreach_hdr = Concat(foreach_hdr, Concat(" ", ti));
                 foreach_hdr = Concat(foreach_hdr, Concat(" = 0; ", ti));
-                foreach_hdr = Concat(foreach_hdr, Concat(" < ", len_fn));
-                foreach_hdr = Concat(foreach_hdr, Concat("(", tc));
-                foreach_hdr = Concat(foreach_hdr, Concat("); ", ti));
+                foreach_hdr = Concat(foreach_hdr, Concat(" < ", len_call));
+                foreach_hdr = Concat(foreach_hdr, Concat("; ", ti));
                 foreach_hdr = Concat(foreach_hdr, "++) {\n");
                 ArrayPush(result, Concat(pad, foreach_hdr));
-                ArrayPush(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(c_loop_var, Concat(" = ", Concat(get_fn, Concat("(", Concat(tc, Concat(", ", Concat(ti, ");\n")))))))))));
+                ArrayPush(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(c_loop_var, Concat(" = ", Concat(get_call, ";\n")))))));
             }
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);

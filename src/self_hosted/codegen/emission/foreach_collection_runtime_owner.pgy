@@ -1,0 +1,88 @@
+// For-each collection ABI projection from semantic iterable type facts.
+
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/list_runtime_owner.pgy";
+import "../text/text_owner.pgy";
+
+struct CodegenForEachCollectionRuntimeFact {
+    ok: Bool;
+    collection_c_type: String;
+    element_c_type: String;
+    element_type: String;
+    c_get_fn: String;
+    c_length_fn: String;
+    pass_by_address: Bool;
+}
+
+func CodegenForEachCollectionRuntimeFactMissing(
+) -> CodegenForEachCollectionRuntimeFact {
+    return CodegenForEachCollectionRuntimeFact(
+        false, "", "", "", "", "", false
+    );
+}
+
+func CodegenForEachCollectionRuntimeFactFromTypeName(
+    type_name: String,
+    env: CodegenTypeEnv
+) -> CodegenForEachCollectionRuntimeFact {
+    if StartsWith(type_name, "List<") {
+        let list_fact: CollectionListRuntimeFact =
+            CollectionListRuntimeFactFromTypeName(type_name);
+        if !list_fact.ok {
+            return CodegenForEachCollectionRuntimeFactMissing();
+        }
+        return CodegenForEachCollectionRuntimeFact(
+            true, list_fact.c_value_type,
+            AbiLayoutCLocalType(list_fact.element_type, env),
+            list_fact.element_type, list_fact.c_get_fn,
+            list_fact.c_size_fn, true
+        );
+    }
+    let collection: CollectionRuntimeFact =
+        CollectionRuntimeFactFromKind(type_name, env);
+    if !collection.ok {
+        return CodegenForEachCollectionRuntimeFactMissing();
+    }
+    return CodegenForEachCollectionRuntimeFact(
+        true, collection.c_array_type,
+        AbiLayoutCLocalType(collection.element_type, env),
+        collection.element_type, collection.c_get_fn,
+        collection.c_len_fn, false
+    );
+}
+
+func CodegenForEachCollectionCArgument(
+    fact: CodegenForEachCollectionRuntimeFact,
+    collection_c_name: String
+) -> String {
+    if !fact.ok { Die("for-each collection runtime fact is missing"); }
+    if fact.pass_by_address {
+        return Concat("&", collection_c_name);
+    }
+    return collection_c_name;
+}
+
+func CodegenForEachCollectionCLengthCall(
+    fact: CodegenForEachCollectionRuntimeFact,
+    collection_c_name: String
+) -> String {
+    let argument: String = CodegenForEachCollectionCArgument(
+        fact, collection_c_name
+    );
+    return Concat(fact.c_length_fn, Concat("(", Concat(argument, ")")));
+}
+
+func CodegenForEachCollectionCGetCall(
+    fact: CodegenForEachCollectionRuntimeFact,
+    collection_c_name: String,
+    index_c_name: String
+) -> String {
+    let argument: String = CodegenForEachCollectionCArgument(
+        fact, collection_c_name
+    );
+    return Concat(fact.c_get_fn, Concat("(", Concat(
+        argument, Concat(", ", Concat(index_c_name, ")"))
+    )));
+}

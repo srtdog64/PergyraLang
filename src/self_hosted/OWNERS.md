@@ -538,6 +538,9 @@ inventory must not become a second fact-family owner registry.
   for match pattern arrays consumed during graph reconstruction.
 - `src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy` -- validates
   carried match binding/type rows and admits them into the routine-local view.
+- `src/self_hosted/mir_lower/iteration_type_fact_owner.pgy` -- validates the
+  routine-owned MIR iteration rows and admits Array/List foreach reconstruction
+  only when binding, iterable, and element types agree.
 - `src/self_hosted/mir_lower/match_binding_render_owner.pgy` -- reconstructs
   typed match binding statements and the oracle-only inferred legacy form.
 - `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
@@ -673,6 +676,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
   `List<T>` operation lowering from semantic receiver type and List runtime ABI
   facts; source callee spelling is not an ABI fallback.
+- `src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy` --
+  canonical Array/List for-each runtime projection, including collection and
+  element C types, address-passing policy, and get/length ABI calls.
 - `src/self_hosted/codegen/emission/list_call_type_owner.pgy` -- canonical
   `List<T>` return-type projection consumed by compound-expression codegen.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --

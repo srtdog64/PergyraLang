@@ -1,0 +1,148 @@
+// Routine-owned MIR iteration type fact decoder and foreach verdict.
+//
+// The semantic producer owns these rows. MIR reconstruction may validate and
+// consume them, but may not infer collection identity from source spelling.
+
+import "json_fact_read.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+
+struct MirIterationTypeFacts {
+    valid: Bool;
+    function_syntax_ids: Array<Int>;
+    iteration_syntax_ids: Array<Int>;
+    binding_types: Array<String>;
+    iterable_types: Array<String>;
+    collection_hoists: Array<Int>;
+}
+
+func BuildMirIterationTypeFacts(
+    json: String,
+    routine_start: Int,
+    routine_end: Int,
+    routine_syntax_id: String
+) -> MirIterationTypeFacts {
+    let function_ids: Array<Int> = [];
+    let iteration_ids: Array<Int> = [];
+    let binding_types: Array<String> = [];
+    let iterable_types: Array<String> = [];
+    let collection_hoists: Array<Int> = [];
+    let valid: Bool = StringLength(routine_syntax_id) > 0;
+    let declared_count: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "iteration_type_fact_count"
+    );
+    let rows: Array<Int> = [0, 0];
+    if StringLength(declared_count) == 0 || !MirObjectArrayBounds(
+        json, routine_start, routine_end, "iteration_type_facts", rows
+    ) {
+        valid = false;
+    } else {
+        let cursor: Int = rows[0] + 1;
+        let row: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(json, cursor, rows[1], row) {
+            let function_id: String = MirObjectNumberFact(
+                json, row[0], row[1], "function_syntax_id"
+            );
+            let iteration_id: String = MirObjectNumberFact(
+                json, row[0], row[1], "iteration_syntax_id"
+            );
+            let binding_type: String = MirObjectStringFact(
+                json, row[0], row[1], "binding_type"
+            );
+            let iterable_type: String = MirObjectStringFact(
+                json, row[0], row[1], "iterable_type"
+            );
+            let hoisted: Int = 0 - 1;
+            if JsonObjectBoolFieldEquals(
+                json, row[0], row[1], "collection_hoisted", true
+            ) {
+                hoisted = 1;
+            } else if JsonObjectBoolFieldEquals(
+                json, row[0], row[1], "collection_hoisted", false
+            ) {
+                hoisted = 0;
+            }
+            if function_id == "" || iteration_id == "" ||
+                function_id != routine_syntax_id || binding_type == "" ||
+                binding_type == "Unknown" || iterable_type == "" ||
+                iterable_type == "Unknown" || hoisted < 0 {
+                valid = false;
+            } else {
+                let numeric_iteration_id: Int = ToInt(iteration_id);
+                let prior: Int = 0;
+                while prior < ArrayLength(iteration_ids) {
+                    if iteration_ids[prior] == numeric_iteration_id {
+                        valid = false;
+                    }
+                    prior = prior + 1;
+                }
+                ArrayPush(function_ids, ToInt(function_id));
+                ArrayPush(iteration_ids, numeric_iteration_id);
+                ArrayPush(binding_types, binding_type);
+                ArrayPush(iterable_types, iterable_type);
+                ArrayPush(collection_hoists, hoisted);
+            }
+            cursor = row[1];
+        }
+    }
+    if StringLength(declared_count) > 0 &&
+        ToInt(declared_count) != ArrayLength(iteration_ids) {
+        valid = false;
+    }
+    return MirIterationTypeFacts(
+        valid, function_ids, iteration_ids, binding_types,
+        iterable_types, collection_hoists
+    );
+}
+
+func MirIterationTypeIsSupportedCollection(type_name: String) -> Bool {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    return shape.ok && ArrayLength(shape.actual_type_names) == 1 &&
+        (shape.nominal_base_name == "Array" ||
+         shape.nominal_base_name == "List");
+}
+
+func MirIterationTypeFactsAdmitForEach(
+    facts: MirIterationTypeFacts,
+    binding_type: String,
+    iterable_type: String
+) -> Bool {
+    if !facts.valid || !MirIterationTypeIsSupportedCollection(iterable_type) {
+        return false;
+    }
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(iterable_type);
+    if shape.actual_type_names[0] != binding_type { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(facts.iteration_syntax_ids) {
+        if facts.binding_types[i] == binding_type &&
+            facts.iterable_types[i] == iterable_type {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func MirIterationHeaderTextFromFacts(
+    facts: MirIterationTypeFacts,
+    binding: String,
+    start: String,
+    stop: String,
+    binding_type: String,
+    iterable_type: String
+) -> String {
+    if start == stop {
+        if MirIterationTypeFactsAdmitForEach(
+            facts, binding_type, iterable_type
+        ) {
+            return Concat("for ", Concat(binding, Concat(" in ", start)));
+        }
+        if MirIterationTypeIsSupportedCollection(iterable_type) { return ""; }
+    }
+    return Concat(
+        "for ", Concat(binding, Concat(
+            " in ", Concat(start, Concat("..", stop))
+        ))
+    );
+}

@@ -61,14 +61,20 @@ func SelfMirLowerForFromArtifact(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
     );
-    if !iteration.is_foreach {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces,
-                node_id, AstExpressionLaneAuxiliary()
-            ), input.machine_declaration
+    let branch_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAuxiliary()
+        );
+    if iteration.is_foreach {
+        branch_graph = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
         );
     }
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, branch_graph, input.machine_declaration
+    );
     build = SelfMirRoutineAddBlock(build);
     let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, body);

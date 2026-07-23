@@ -57,13 +57,13 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
             }
         done
         grep -Fq '"arg0":"n","arg1":null' "$self_mir_json" && \
-        grep -Fq '"expr0":"nums","expr0_graph":null,"expr1":"nums"' \
+        grep -Fq '"expr0":"nums","expr0_graph":{"root":0' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend Int foreach branch drifted" >&2
             exit 1
         }
         grep -Fq '"arg0":"name","arg1":null' "$self_mir_json" && \
-        grep -Fq '"expr0":"names","expr0_graph":null,"expr1":"names"' \
+        grep -Fq '"expr0":"names","expr0_graph":{"root":0' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend String foreach branch drifted" >&2
             exit 1

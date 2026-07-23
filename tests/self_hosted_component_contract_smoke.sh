@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 272;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 273;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 272'
+    'mir_fixture_rows[@]}" -ne 273'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4035,6 +4035,8 @@ require_file "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" 120
 require_file "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh" 100
+require_file "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" 100
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
     "struct SemanticExpressionGraphListCallFact"
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
@@ -4048,6 +4050,9 @@ require_text "src/self_hosted/codegen/emission/list_call_emit_owner.pgy" \
 require_file "src/self_hosted/codegen/emission/list_call_type_owner.pgy"
 require_text "src/self_hosted/codegen/emission/list_call_type_owner.pgy" \
     "CodegenListCallReturnTypeFromGraph"
+require_file "src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy"
+require_text "src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy" \
+    "CodegenForEachCollectionRuntimeFactFromTypeName"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy" \
     "CodegenListCallReturnTypeFromGraph(graph, node_id, env)"
 require_text "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" \
@@ -4455,11 +4460,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 272;"
+    "return 273;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 272'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 273'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4472,18 +4477,28 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_list_ops"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_list_int_loop"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_for_in_list"
 require_text "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" \
     "Code: initializer_type_unresolved"
 require_text "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" \
     "MIR instruction expression graph is missing or invalid"
 require_text "tests/self_hosted/parity/driver_rung2_list_int_loop_parity_owner.sh" \
     "Code: ast_artifact_invalid"
+require_text "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" \
+    '"binding_type":"Int","iterable_type":"List<Int>"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/nested_generic_containers/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/list_ops/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/list_int_loop/main.pgy"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"source_syntax_id", ToString(rows.node_ids[routine_index])'
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'node_id, AstExpressionLaneValue()'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'BuildMirIterationTypeFacts('
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -9398,6 +9413,9 @@ require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "Js
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" 'JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol)'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirResourceRuntimeRowFactReady"
+require_file "src/self_hosted/mir_lower/iteration_type_fact_owner.pgy"
+require_text "src/self_hosted/mir_lower/iteration_type_fact_owner.pgy" \
+    "func BuildMirIterationTypeFacts("
 require_file "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy"
 require_file "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy"
 require_file "src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy"
