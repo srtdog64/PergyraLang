@@ -9,17 +9,29 @@ when they disagree with this note.
 
 ## Resume checkpoint
 
-- Executable implementation checkpoint: `5c2ba93b` (`Close contextual Result
-  field assignment rung`).
-- After concurrent work completed, capture-time HEAD and `origin/main` were
-  both `a1678e8d` (`Close LLVM ArrayMap element type SoT`). The only dirty path
-  was this handoff refresh. Establish the final handoff commit with `git log -3`
-  because a file cannot contain its own commit hash.
-- Concurrent `ArrayFilter`/`ArrayMap` native work is committed after the Result
-  rung. It was not implemented as part of `5c2ba93b`; use its own owner facts
-  and gates before changing it.
-- No push was performed by this Result-rung session. A concurrent process
-  pushed `main`, including `5c2ba93b` as an ancestor.
+- Executable implementation checkpoint: `246682fe` (`Close C ArrayMap and
+  ArrayFilter result type SoT`); `origin/main` points to the same revision.
+- The latest native backend closure is independent of the concurrent self-host
+  edits listed below. Preserve those unstaged paths and do not claim them as
+  part of `246682fe`.
+
+## Latest native backend SoT closure
+
+- `mir_source_local_expr_call_facts` owns the active-MIR `ArrayMap` and
+  `ArrayFilter` result shape as `Array<T>`: the map callback must be a named
+  top-level routine with a concrete non-`Void` return, and filter derives its
+  element from the source collection.
+- The C backend call-type consumer now reads that owner through
+  `mir_source_local_call_expr_type_name` while an active MIR routine exists.
+  Missing callback/collection facts return `Unknown`; no C-local call-name
+  result guess is used as a fallback. LLVM already consumed the same owner in
+  `a1678e8d`.
+- Focused evidence observed on 2026-07-23: static
+  `tests/backend_fail_closed_smoke.sh`, shell syntax, and diff checks passed;
+  the separate LLVM-enabled build produced
+  `.tmp/verify_c_array_bin/pgy.exe`; the direct C and LLVM probe both ran with
+  output `6` and `4`; a `Void` ArrayMap callback failed closed with
+  `C index access requires an Array<T> or Slice<T> receiver, got 'Unknown'`.
 
 ## Last closed executable rung
 
@@ -99,6 +111,18 @@ Not run or not available:
   workstation.
 - The aggregate documentation Make target was not used for this checkpoint;
   the direct documentation quality gate is the observed evidence.
+
+At handoff refresh time, the only unstaged paths are concurrent work not owned
+by the latest native closure:
+
+- `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy`
+- `src/self_hosted/compiler/driver_rung2_owner.pgy`
+- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`
+- `src/self_hosted/semantic/builtin_signature_owner.pgy`
+- `tests/self_hosted/parity/driver_rung2_body_parity.sh`
+- `tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh`
+- `tests/self_hosted_component_contract_smoke.sh`
+- `tests/self_hosted/parity/driver_rung2_string_concat_alias_parity_owner.sh`
 
 ## Next executable work
 
