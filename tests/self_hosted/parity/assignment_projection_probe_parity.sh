@@ -61,8 +61,13 @@ done
 #   dereferenced `cbind`; the raw `cref` pointer is not an interchangeable name.
 # - let_binding_name_as_c_binding: let/try-let/loop-var C names come from the
 #   function value binding fact owner, never a statement-local sanitize call.
+# - call_return_type_mir_owner: LLVM call type inference consumes the active
+#   MIR source-local call fact owner, while Option payload typing stays in the
+#   MIR owner rather than becoming a backend call-name guess.
 STMT_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
 TRY_LET_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
+CALL_TYPE_INFER="$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+CALL_FACT_OWNER="$ROOT_DIR/src/compiler/mir_source_local_expr_call_facts.c"
 if grep -Fq 'ExprKind(expr, env)' "$ASSIGN_EMITTER"; then
     echo "[$LABEL] assignment expected type was re-derived from source text" >&2
     exit 1
@@ -86,6 +91,18 @@ if ! grep -Fq 'collection target C binding fact is missing' "$BINDING_OWNER"; th
 fi
 if grep -Fq 'LookupKindType(env, source_name, "cref")' "$BINDING_OWNER"; then
     echo "[$LABEL] collection target restored a raw cref fallback instead of consuming cbind" >&2
+    exit 1
+fi
+if ! grep -Fq 'mir_source_local_call_expr_type_name' "$CALL_TYPE_INFER"; then
+    echo "[$LABEL] LLVM call type inference stopped consuming the MIR call fact owner" >&2
+    exit 1
+fi
+if grep -Fq '"UnwrapOption"' "$CALL_TYPE_INFER"; then
+    echo "[$LABEL] LLVM call type inference reintroduced a direct UnwrapOption type guess" >&2
+    exit 1
+fi
+if ! grep -Fq 'mir_source_local_unwrap_option_type' "$CALL_FACT_OWNER"; then
+    echo "[$LABEL] MIR call fact owner lost Option payload shape ownership" >&2
     exit 1
 fi
 

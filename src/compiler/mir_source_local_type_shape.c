@@ -113,6 +113,17 @@ mir_source_local_unwrap_channel_type(const char *type_name,
 }
 
 bool
+mir_source_local_unwrap_option_type(const char *type_name,
+                                    char *out,
+                                    size_t out_size)
+{
+    static const char *const prefixes[] = {"Option<"};
+
+    return mir_source_local_unwrap_prefixed_type(type_name, prefixes, 1,
+        out, out_size);
+}
+
+bool
 mir_source_local_unwrap_array_or_slice_type(const char *type_name,
                                             char *out,
                                             size_t out_size)
