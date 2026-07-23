@@ -8,6 +8,7 @@ import "ast_type_name_canonical_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_expression_graph_queue_call_owner.pgy";
 
 struct SemanticExpressionGraphListCallFact {
     applies: Bool;
@@ -228,6 +229,16 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
     if list_call.applies {
         if !list_call.ok { return None; }
         return Some(list_call.return_type_name);
+    }
+    if SemanticExpressionGraphQueueCallName(target.name) {
+        let queue_call: SemanticExpressionGraphQueueCallFact =
+            SemanticExpressionGraphQueueCallFactFromResolvedTarget(
+                graph, root_id, target, names, types
+            );
+        if queue_call.applies {
+            if !queue_call.ok { return None; }
+            return Some(queue_call.return_type_name);
+        }
     }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name

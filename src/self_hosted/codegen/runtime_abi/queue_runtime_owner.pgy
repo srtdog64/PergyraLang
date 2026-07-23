@@ -1,0 +1,96 @@
+// Self-host Queue<T> runtime ABI projection from canonical type facts.
+
+import "../text/text_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CollectionQueueRuntimeFact {
+    ok: Bool;
+    type_name: String;
+    element_type: String;
+    element_c_type: String;
+    c_value_type: String;
+    c_new_fn: String;
+    c_push_fn: String;
+    c_pop_fn: String;
+    c_size_fn: String;
+    c_empty_fn: String;
+}
+
+func CollectionQueueRuntimeFactMissing() -> CollectionQueueRuntimeFact {
+    return CollectionQueueRuntimeFact(
+        false, "", "", "", "", "", "", "", "", ""
+    );
+}
+
+func CollectionQueueRuntimeElementTypeOpt(
+    type_name: String
+) -> Option<String> {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "Queue" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return None;
+    }
+    return Some(shape.actual_type_names[0]);
+}
+
+func CollectionQueueRuntimeElementCValueType(
+    element_type: String
+) -> String {
+    if element_type == "Int" { return "int32_t"; }
+    if element_type == "String" { return "const char *"; }
+    return "";
+}
+
+func CollectionQueueRuntimeFactFromTypeName(
+    type_name: String
+) -> CollectionQueueRuntimeFact {
+    let element: Option<String> =
+        CollectionQueueRuntimeElementTypeOpt(type_name);
+    if !IsSome(element) { return CollectionQueueRuntimeFactMissing(); }
+    let element_type: String = UnwrapOption(element);
+    let element_c_type: String =
+        CollectionQueueRuntimeElementCValueType(element_type);
+    if element_c_type == "" { return CollectionQueueRuntimeFactMissing(); }
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    return CollectionQueueRuntimeFact(
+        true, canonical, element_type, element_c_type,
+        CompilerSymbolCQueueValueTypeName(element_type),
+        CompilerSymbolCQueueOperationName("new", element_type),
+        CompilerSymbolCQueueOperationName("push", element_type),
+        CompilerSymbolCQueueOperationName("pop", element_type),
+        CompilerSymbolCQueueOperationName("size", element_type),
+        CompilerSymbolCQueueOperationName("empty", element_type)
+    );
+}
+
+func CollectionQueueRuntimeSpecializationBlock(type_name: String) -> String {
+    let fact: CollectionQueueRuntimeFact =
+        CollectionQueueRuntimeFactFromTypeName(type_name);
+    if !fact.ok {
+        Die(Concat("unsupported Queue<T> runtime ABI fact: ", type_name));
+    }
+    return "";
+}
+
+func CollectionQueueRuntimeContractReady() -> Bool {
+    let int_fact: CollectionQueueRuntimeFact =
+        CollectionQueueRuntimeFactFromTypeName("Queue<Int>");
+    let string_fact: CollectionQueueRuntimeFact =
+        CollectionQueueRuntimeFactFromTypeName("Queue<String>");
+    return int_fact.ok && int_fact.type_name == "Queue<Int>" &&
+        int_fact.element_type == "Int" &&
+        int_fact.element_c_type == "int32_t" &&
+        int_fact.c_value_type == "PgyQueue_Int" &&
+        int_fact.c_new_fn == "pgy_queue_new_int" &&
+        int_fact.c_push_fn == "pgy_queue_push_int" &&
+        int_fact.c_pop_fn == "pgy_queue_pop_int" &&
+        int_fact.c_size_fn == "pgy_queue_size_int" &&
+        int_fact.c_empty_fn == "pgy_queue_empty_int" &&
+        string_fact.ok && string_fact.c_value_type == "PgyQueue_String" &&
+        string_fact.c_empty_fn == "pgy_queue_empty_string" &&
+        !CollectionQueueRuntimeFactFromTypeName("Queue<Unknown>").ok &&
+        !CollectionQueueRuntimeFactFromTypeName("List<Int>").ok;
+}

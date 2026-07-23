@@ -206,6 +206,9 @@ inventory must not become a second fact-family owner registry.
   receiver-bound call targets, the bounded `List<T>` call protocol over
   carried target/local-type facts, and the explicit concrete-scalar capability
   filter used by scalar validation.
+- `src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy` --
+  canonical `Queue<T>` direct-call receiver, element, arity, argument, and
+  return-type verdicts from graph-owned target and local-type facts.
 - `src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy` --
   exact and nested generic argument binding plus structured return
   substitution from one signature type-expression arena and graph argument
@@ -647,6 +650,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy` -- canonical `List<T>` runtime ABI fact, supported element ABI, specialization macro, and constructor/operation-symbol projection.
+- `src/self_hosted/codegen/runtime_abi/queue_runtime_owner.pgy` -- canonical
+  `Queue<T>` runtime ABI fact, supported element ABI, and constructor/operation
+  symbol projection.
 - `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
   fail-closed numeric conversion runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.
@@ -685,11 +691,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
   `List<T>` operation lowering from semantic receiver type and List runtime ABI
   facts; source callee spelling is not an ABI fallback.
+- `src/self_hosted/codegen/emission/queue_call_emit_owner.pgy` -- canonical
+  `Queue<T>` operation lowering from semantic Queue-call facts and the Queue
+  runtime ABI; source callee spelling is not an ABI fallback.
 - `src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy` --
   canonical Array/List for-each runtime projection, including collection and
   element C types, address-passing policy, and get/length ABI calls.
 - `src/self_hosted/codegen/emission/list_call_type_owner.pgy` -- canonical
   `List<T>` return-type projection consumed by compound-expression codegen.
+- `src/self_hosted/codegen/emission/queue_call_type_owner.pgy` -- canonical
+  `Queue<T>` return-type projection consumed by compound-expression codegen.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method

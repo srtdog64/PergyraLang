@@ -13,6 +13,7 @@ import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/queue_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
@@ -157,7 +158,7 @@ func EmitLet(
         let option_expr: String = option_expr_fact.c_expr;
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
-    if StartsWith(type_name, "List<") ||
+    if StartsWith(type_name, "List<") || StartsWith(type_name, "Queue<") ||
         LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
         CodegenTypeEnvStateAppendTypedValueBinding(
@@ -169,7 +170,7 @@ func EmitLet(
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
-    Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Option/struct/enum): ", type_name));
+    Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/List/Queue/Option/struct/enum): ", type_name));
     return "";
 }
 

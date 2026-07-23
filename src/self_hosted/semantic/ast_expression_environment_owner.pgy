@@ -497,7 +497,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
         ArrayLength(modes) == 3 && modes[0] == "default_param" &&
         modes[1] == "local" && modes[2] == "local" &&
-        ArrayLength(function_names) == 109 &&
+         ArrayLength(function_names) == 114 &&
         function_names[101] == "StringConcat" &&
         function_returns[101] == "String" &&
         function_params[101] == "String|String" &&
@@ -519,8 +519,23 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         function_names[107] == "ListSize" &&
         function_returns[107] == "Int" &&
         function_params[107] == "Unknown" &&
-        function_names[108] == "F" && function_returns[108] == "Void" &&
-        function_params[108] == "Int" &&
+        function_names[108] == "QueueNew" &&
+        function_returns[108] == "Queue<Unknown>" &&
+        function_params[108] == "" &&
+        function_names[109] == "QueuePush" &&
+        function_returns[109] == "Void" &&
+        function_params[109] == "Unknown|Unknown" &&
+        function_names[110] == "QueuePop" &&
+        function_returns[110] == "Unknown" &&
+        function_params[110] == "Unknown" &&
+        function_names[111] == "QueueSize" &&
+        function_returns[111] == "Int" &&
+        function_params[111] == "Unknown" &&
+        function_names[112] == "QueueEmpty" &&
+        function_returns[112] == "Bool" &&
+        function_params[112] == "Unknown" &&
+        function_names[113] == "F" && function_returns[113] == "Void" &&
+        function_params[113] == "Int" &&
         SemanticAstExpressionEnumValueContractReady() &&
         SemanticAstExpressionOwnerFieldEnvironmentContractReady();
 }

@@ -111,7 +111,12 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ListGet^Unknown^Unknown|Int",
         "ListSet^Void^Unknown|Int|Unknown",
         "ListRemove^Void^Unknown|Int",
-        "ListSize^Int^Unknown"
+        "ListSize^Int^Unknown",
+        "QueueNew^Queue<Unknown>^none",
+        "QueuePush^Void^Unknown|Unknown",
+        "QueuePop^Unknown^Unknown",
+        "QueueSize^Int^Unknown",
+        "QueueEmpty^Bool^Unknown"
     ];
     return rows;
 }
@@ -203,13 +208,15 @@ func SemanticContextualBuiltinReturnTypeOpt(
     argument_count: Int,
     declared_type: Option<String>
 ) -> Option<String> {
-    if name != "ListNew" || argument_count != 0 ||
+    if (name != "ListNew" && name != "QueueNew") || argument_count != 0 ||
         !IsSome(declared_type) {
         return None;
     }
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(UnwrapOption(declared_type));
-    if !shape.ok || shape.nominal_base_name != "List" ||
+    if !shape.ok ||
+        (name == "ListNew" && shape.nominal_base_name != "List") ||
+        (name == "QueueNew" && shape.nominal_base_name != "Queue") ||
         ArrayLength(shape.actual_type_names) != 1 ||
         SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
         return None;
@@ -230,8 +237,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
             "ListNew", 0, Some("List<HashMap<String, Int>>")
         );
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 108 && ArrayLength(returns) == 108 &&
-        ArrayLength(params) == 108 && names[0] == "StringLength" &&
+        ArrayLength(names) == 113 && ArrayLength(returns) == 113 &&
+        ArrayLength(params) == 113 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -264,8 +271,21 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[106] == "ListRemove" && returns[106] == "Void" &&
         params[106] == "Unknown|Int" && names[107] == "ListSize" &&
         returns[107] == "Int" && params[107] == "Unknown" &&
+        names[108] == "QueueNew" && returns[108] == "Queue<Unknown>" &&
+        params[108] == "" && names[109] == "QueuePush" &&
+        returns[109] == "Void" && params[109] == "Unknown|Unknown" &&
+        names[110] == "QueuePop" && returns[110] == "Unknown" &&
+        params[110] == "Unknown" && names[111] == "QueueSize" &&
+        returns[111] == "Int" && params[111] == "Unknown" &&
+        names[112] == "QueueEmpty" && returns[112] == "Bool" &&
+        params[112] == "Unknown" &&
         IsSome(contextual_list) && UnwrapOption(contextual_list) ==
             "List<HashMap<String, Int>>" &&
+        IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "QueueNew", 0, Some("Queue<String>")
+        )) && UnwrapOption(SemanticContextualBuiltinReturnTypeOpt(
+            "QueueNew", 0, Some("Queue<String>")
+        )) == "Queue<String>" &&
         !IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, None
         )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
@@ -274,6 +294,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
             "ListNew", 0, Some("HashMap<String, Int>")
         )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, Some("List<Unknown>")
+        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "QueueNew", 0, Some("List<Int>")
         )) &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(

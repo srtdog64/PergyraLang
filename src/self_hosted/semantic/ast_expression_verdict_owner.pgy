@@ -14,6 +14,8 @@ import "ast_expression_graph_struct_type_verdict_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_expression_graph_wrapper_value_owner.pgy";
 import "ast_expression_graph_collection_mutation_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_queue_call_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -150,6 +152,29 @@ func SemanticAstExpressionVerdictFromGraph(
         return SemanticAstExpressionVerdict(
             false, list_call.diagnostic_code,
             list_call.diagnostic_message, text, "Unknown"
+        );
+    }
+    let queue_call: SemanticExpressionGraphQueueCallFact =
+        SemanticExpressionGraphQueueCallNotApplicable();
+    let call_view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if call_view.ok {
+        let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call_view.callee_node
+        );
+        if IsSome(callee_text) &&
+            SemanticExpressionGraphQueueCallName(UnwrapOption(callee_text)) {
+            queue_call = SemanticExpressionGraphQueueCallFactFromGraph(
+                graph, root_id, constructors, names, types,
+                function_names, function_returns
+            );
+        }
+    }
+    if queue_call.applies && !queue_call.ok {
+        return SemanticAstExpressionVerdict(
+            false, queue_call.diagnostic_code,
+            queue_call.diagnostic_message, text, "Unknown"
         );
     }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =

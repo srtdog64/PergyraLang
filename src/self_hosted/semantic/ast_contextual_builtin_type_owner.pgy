@@ -26,7 +26,9 @@ func SemanticContextualBuiltinInitializerTypeFromGraph(
     verdict_ok: Bool,
     inferred_type: String
 ) -> String {
-    if !verdict_ok || inferred_type != "List<Unknown>" {
+    if !verdict_ok ||
+        (inferred_type != "List<Unknown>" &&
+         inferred_type != "Queue<Unknown>") {
         return inferred_type;
     }
     let contextual: Option<String> =

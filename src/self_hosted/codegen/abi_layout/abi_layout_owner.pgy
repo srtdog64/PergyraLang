@@ -8,6 +8,7 @@ import "enum_abi_value_fact_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
+import "../runtime_abi/queue_runtime_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
@@ -65,6 +66,9 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     let list_fact: CollectionListRuntimeFact =
         CollectionListRuntimeFactFromTypeName(type_name);
     if list_fact.ok { return list_fact.c_value_type; }
+    let queue_fact: CollectionQueueRuntimeFact =
+        CollectionQueueRuntimeFactFromTypeName(type_name);
+    if queue_fact.ok { return queue_fact.c_value_type; }
     let array_element: Option<String> =
         SemanticArrayElementType(type_name);
     if type_name == "Array<Float>" ||

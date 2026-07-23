@@ -24,6 +24,8 @@ struct CodegenRuntimeUsageFacts {
     let uses_array: Bool;
     let uses_list: Bool;
     list_type_names: Array<String>;
+    let uses_queue: Bool;
+    queue_type_names: Array<String>;
     let uses_ast_text_node_array: Bool;
     nominal_record_arrays: CodegenNominalArrayUsageFacts;
     value_wrappers: CodegenValueWrapperUsageFacts;
@@ -92,6 +94,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         || uses_array_filter
         || uses_args;
     let uses_list: Bool = type_usage.has_list;
+    let uses_queue: Bool = type_usage.has_queue;
     let uses_ast_text_node_array: Bool = type_usage.has_ast_text_node_array;
     let nominal_record_arrays: CodegenNominalArrayUsageFacts =
         CodegenNominalArrayUsageFactsFromSemantic(
@@ -133,6 +136,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_array,
         uses_list,
         type_usage.list_type_names,
+        uses_queue,
+        type_usage.queue_type_names,
         uses_ast_text_node_array,
         nominal_record_arrays,
         value_wrappers,

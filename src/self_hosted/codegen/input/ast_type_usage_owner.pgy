@@ -15,6 +15,8 @@ struct CodegenTypeUsageFacts {
     let has_array: Bool;
     let has_list: Bool;
     list_type_names: Array<String>;
+    let has_queue: Bool;
+    queue_type_names: Array<String>;
     let has_ast_text_node_array: Bool;
     let has_float: Bool;
     let has_allocator: Bool;
@@ -25,7 +27,7 @@ struct CodegenTypeUsageFacts {
     let has_remote_future: Bool;
 }
 
-func CodegenTypeUsageListTypeKnown(
+func CodegenTypeUsageTypeNameKnown(
     type_names: Array<String>,
     type_name: String
 ) -> Bool {
@@ -51,7 +53,32 @@ func CodegenTypeUsageListTypeNames(
                 ArrayLength(shape.actual_type_names) == 1 &&
                 !SemanticTypeNameContainsUnresolvedUnknown(
                     shape.canonical_name
-                ) && !CodegenTypeUsageListTypeKnown(
+                ) && !CodegenTypeUsageTypeNameKnown(
+                    type_names, shape.canonical_name
+                ) {
+                ArrayPush(type_names, shape.canonical_name);
+            }
+        }
+        i = i + 1;
+    }
+    return type_names;
+}
+
+func CodegenTypeUsageQueueTypeNames(
+    facts: SemanticAstTypeSurfaceFacts
+) -> Array<String> {
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(name) {
+            let shape: SemanticConstructedTypeNameFact =
+                SemanticConstructedTypeNameFactFrom(UnwrapOption(name));
+            if shape.ok && shape.nominal_base_name == "Queue" &&
+                ArrayLength(shape.actual_type_names) == 1 &&
+                !SemanticTypeNameContainsUnresolvedUnknown(
+                    shape.canonical_name
+                ) && !CodegenTypeUsageTypeNameKnown(
                     type_names, shape.canonical_name
                 ) {
                 ArrayPush(type_names, shape.canonical_name);
@@ -75,6 +102,8 @@ func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
 func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> CodegenTypeUsageFacts {
     let list_type_names: Array<String> =
         CodegenTypeUsageListTypeNames(facts);
+    let queue_type_names: Array<String> =
+        CodegenTypeUsageQueueTypeNames(facts);
     return CodegenTypeUsageFacts(
         SemanticAstTypeSurfaceContains(facts, "String"),
         SemanticAstTypeSurfaceContains(facts, "Result<"),
@@ -83,6 +112,8 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         SemanticAstTypeSurfaceContains(facts, "Array<"),
         ArrayLength(list_type_names) > 0,
         list_type_names,
+        ArrayLength(queue_type_names) > 0,
+        queue_type_names,
         SemanticAstTypeSurfaceContains(facts, "Array<CodegenAstTextNode"),
         SemanticAstTypeSurfaceContains(facts, "Float"),
         SemanticAstTypeSurfaceContains(facts, "Allocator"),

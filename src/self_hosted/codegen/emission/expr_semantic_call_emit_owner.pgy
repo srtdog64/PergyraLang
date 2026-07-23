@@ -13,6 +13,7 @@ import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "list_call_emit_owner.pgy";
+import "queue_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
 
@@ -399,6 +400,11 @@ func RewriteSemanticDirectCall(
         source_name == "ListSet" || source_name == "ListRemove" ||
         source_name == "ListSize" {
         return RewriteSemanticListCall(graph, view, source_name, env);
+    }
+    if source_name == "QueueNew" || source_name == "QueuePush" ||
+        source_name == "QueuePop" || source_name == "QueueSize" ||
+        source_name == "QueueEmpty" {
+        return RewriteSemanticQueueCall(graph, view, source_name, env);
     }
     if source_name == "ClaimSlot" || source_name == "Read" ||
         source_name == "Write" || source_name == "Release" {
