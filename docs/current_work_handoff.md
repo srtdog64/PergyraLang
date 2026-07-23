@@ -9,31 +9,83 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `2151b84026e0b0e7126f0c3bd8038d1f9925f3ba` on `main`.
-- `main` and `origin/main` are equal at the captured HEAD.
-- After the generic enum-payload SoT commit and this handoff refresh, the live
-  worktree remains dirty with one unstaged tracked component-contract hunk and
-  47 untracked probe/generated paths; the index is clean. The unstaged tracked
-  hunk is the concurrent region-contract ratchet and is intentionally separate.
-  The untracked paths are allocator/defer probes and the generated
-  `enum_option_payload.c` fixture artifact; preserve them. The generic enum
-  payload closure itself is on `origin/main` in `2151b840`. Build artifacts
-  remain ignored; run `git status --short --branch` before resuming because
-  concurrent work can change this count.
+- Captured code HEAD: `657970f3afac4c90941a60580b6b0c4a569e82be`
+  on `main`.
+- `origin/main` remains at `c2932d47151526ee0cd7a4e8301b808c4724a7e9`.
+  The captured code HEAD is one local commit ahead; after this handoff refresh
+  is committed, `main` is two commits ahead and has not been pushed.
+- Commit `c2932d47` was created and pushed for the collection/let/try-let
+  binding-consumer SoT follow-up. Collection mutation targets now require the
+  owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
+  consume `CodegenFunctionValueBindingFact`; a cref-only probe fails closed.
+- Commit `e9ac5829` was created and pushed for the assignment C-binding SoT
+  closure. `CodegenFunctionValueBindingFact` now owns source identity,
+  semantic type, runtime kind, C binding name, and typed environment rows for
+  function definitions, prototypes, locals, parameters, and assignment
+  emission. The enum ABI closure remains at `373e210c`, and the nested
+  value-wrapper closure remains at `1a850129`.
+  Commit `657970f3` adds the root `/.tmp_*` ignore boundary, records the current
+  owner/ABI documents, aligns stale hard-contract assertions, and preserves the
+  existing component-region ratchet. At that code checkpoint only this handoff
+  remained unstaged; committing this snapshot leaves 0 tracked changes, 0
+  staged paths, and 0 untracked paths.
+- Workspace cleanup recycled 87 root `.tmp*` files and reduced the ignored
+  `.tmp` cache from 260,543 files / 9,489,609,184 bytes. Fresh verification
+  rebuilt 1,869 files / 54,692,516 bytes under `.tmp`; that cache is ignored
+  and may be deleted when no gate is running. No tracked temporary file exists.
+- Current closed executable rung: `CodegenFunctionValueBindingFact` owns source
+  identity, semantic type, runtime kind, C binding name, and typed environment
+  rows together. Function definitions, ordinary and generic prototypes,
+  parameters, locals, assignment emission, collection mutation, `let`,
+  `try-let`, range-loop, and foreach consumers use that fact. `EmitAssign` and
+  the migrated statement emitters only consume owner-provided bindings; their
+  symbol-owner import and target-text/name recovery paths are absent.
+- Executable witnesses: the assignment projection probe emits its five pinned
+  Option/scalar/indexed rows and rejects missing expected type, indexed target
+  type, direct call target, and C binding. `owner_field_assignment` proves
+  `balance = balance + amount` reaches `self.balance` through the implicit
+  owner-field binding row without source rewriting. `func_call` and
+  `option_int_core` cover prototypes, parameters, locals, and Option assignment;
+  `collection-cref-only` proves a raw reference row is not accepted as a C
+  binding. The focused array/loop/try codegen shard covers
+  `array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`.
+- Fresh combined-tree evidence: the assignment projection C leg passes,
+  including the `collection-cref-only` negative. Focused C codegen parity
+  reports rung `0..21` green for the eight-fixture
+  `array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`
+  shard. Filtered producer-first DRV-2 for `class_with_array_param` reports
+  `backends=1 body_fixtures=20 mir_fixtures=1`. MIR JSON coverage reports all
+  nine control/value probes PASS. Shell syntax, component
+  contract, hard-substitution contract, substitution-velocity contract,
+  authority-edge (`43 authorities`, `38 derived`, `CLOSED=23 BRIDGE=20
+  ACTIVE=0`), and live owner/negative-mutation adequacy pass. Coq/Rocq is
+  unavailable, so the proof model was explicitly skipped and was not claimed
+  checked. Manifests remain 85 codegen fixtures, 255 DRV-2 MIR rows, and 21
+  TestHarness codegen paths; the full unfiltered matrix was omitted.
+- Concurrent `option_match_owner.pgy`/`stmt_emit.pgy` work was preserved. Its
+  direct text-owner import, OWNERS entry, and component size signal were aligned
+  so the current combined tree passes the component contract.
 - This session created and pushed `2151b840` for generic enum-payload
   declaration/match SoT closure. Semantic enum payload rows now flow through
   MIR declaration metadata and `param_types`, selfhost `mir_lower` validates
   ordered concrete facts, and tagged codegen consumes the same owner for
-  constructors, tag conditions, and ordered payload bindings. MIR parity passed
-  for `enum_option_payload` and `enum_multi_payload`; C codegen parity passed
-  all 78 fixtures; component and match-binding gates passed. The tagged-enum
-  equality fixture remains a deliberate negative gate. Coq/Rocq was unavailable
-  locally, so authority smoke declared the formal model skip with
-  `PGY_ALLOW_MISSING_COQ=1` while live owner/consumer checks passed.
-- The next executable falsifier is direct DRV-2 source compilation of
-  `src/self_hosted/mir_lower/fixture/enum_multi_payload.pgy`, which currently
-  fails at the expression-graph validity boundary before payload codegen; this
-  is not recorded as a generic payload SoT failure.
+  constructors, tag conditions, and ordered payload bindings. Commit `8b60ebd7`
+  refreshed the earlier checkpoint. The subsequent current-tree verification
+  closed its stale blocker: direct source codegen produces `0`, `75`, `28`,
+  `120`, `81`, filtered MIR JSON parity passes both enum fixtures, and
+  producer-first DRV-2 source/MIR parity passes `enum_multi_payload` with
+  `body_fixtures=20` and `mir_fixtures=1`. The HIR ordered binding owner,
+  semantic environment, MIR match rows, and independent contiguous payload
+  projection graphs carry arbitrary arity without variant-name or arity
+  switches. Tagged enum equality remains a deliberate negative semantic gate.
+- Next active falsifier: the LLVM-enabled assignment projection leg fails while
+  compiling the Pergyra probe with `LLVM expression type inference requires a
+  concrete type: call 'UnwrapOption' requires registered function or expected
+  type metadata`. The C leg is green. Do not add a call-name special case to
+  `src/codegen/llvm_stmt_type_infer_call.c`; first locate the missing
+  semantic/MIR return-type fact owner, its last LLVM consumer, and a graph-only
+  falsifying fixture, then replace the C-owned inference seam with that carried
+  fact.
 - This session created and pushed `c435b4c1` for the HIR region-fact carriage
   SoT closure. The HIR projection now owns stable copies of semantic region
   rows and the driver consumes only the HIR carrier; the semantic producer,
@@ -131,15 +183,18 @@ current owner fact and update this file after verification.
   the carrier is an additional executable integration rung. At that checkpoint
   generic user-enum payload reconstruction was still open; commit `2151b840`
   closes that later MIR→C/codegen SoT seam as recorded above.
-- Exact safe-directory exception: `D:/PergyraLang`. Repository-local
-  `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
+- Exact safe-directory exception: `D:/PergyraLang`. It is present in both the
+  normal Windows Git config and the MSYS gate user's config at
+  `C:/msys64/home/user/.gitconfig`; this is required because those shells use
+  different global homes. Repository-local `core.autocrlf=false` preserves the
+  LF policy in `.gitattributes`.
 
 ## Workstation recovery
 
 - Global Codex rules at `C:/Users/user/.codex/AGENTS.md` were reviewed on
   2026-07-22. They define a cross-project baseline while the nearest repository
   `AGENTS.md` and existing owner contracts remain more specific. The baseline
-  was reduced from 748 example-heavy lines to 215 enforceable lines covering
+  was reduced from 748 example-heavy lines to 214 enforceable lines covering
   authorization, evidence, SoT, explicit failure, retry/idempotency,
   observability, safe filesystem/Git work, verification, and handoff. Current
   SHA-256 is `4A37B095AF2DBFD6E1DAD49CCB3F1C93CF0EEEA80EEAE94E92C05DBDCEA3D6AC`.
@@ -202,9 +257,10 @@ current owner fact and update this file after verification.
   validation, and tagged C constructors/match bindings all use owner-directed
   facts; missing, `Unknown`, singular-wire, and old payload-rejection paths are
   negative-gated. `option_match` still reaches runtime output `42`, while the
-  enum payload fixtures cover one and multiple ordered bindings. Direct source
-  DRV-2 compilation of the multi-payload fixture remains the next expression-
-  graph falsifier and is not implied complete.
+  enum payload fixtures cover one and multiple ordered bindings. Direct-source
+  DRV-2 for `enum_multi_payload`, `Option<Cell>`, and the nominal aggregate
+  payload now passes. Declaration scheduling is owner-directed and its direct
+  cycle and missing-inventory cases fail closed.
 - Focused evidence for that integration delta: native `Option`, `Result`, and
   multi-arity enum MIR probes carry exact type rows;
   `match-binding-type-fact-test-smoke` passes; the native MIR unit slice passes
@@ -801,12 +857,11 @@ current owner fact and update this file after verification.
 1. Run `git status --short --branch` and compare HEAD with this checkpoint.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
-3. Choose one active executable rung and write its objective card: owner, last
-   consumer, forbidden fallback, focused gate, and falsifying fixture. For the
-   match track, the next falsifier is direct DRV-2 source compilation of
-   `enum_multi_payload.pgy`: resolve the expression-graph validity boundary
-   before extending payload behavior. Do not reintroduce a `Some`/`Ok`/`Err`
-   name switch or a variant-name type guess.
+3. Resume the observed LLVM assignment-probe failure. Write its objective card
+   only after locating the semantic/MIR owner of `UnwrapOption`'s concrete
+   result type and the last LLVM consumer. The forbidden fallback is a
+   call-name special case or text-derived return type; the focused gate is
+   `tests/self_hosted/parity/assignment_projection_probe_parity.sh`.
 4. Run the narrow owner gate first. For the current tree, useful focused gates
    include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
