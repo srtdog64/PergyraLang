@@ -9,16 +9,17 @@ Current source, registries, and executable evidence win when they disagree.
 ## Resume checkpoint
 
 - Latest self-host executable implementation: `e98ba4ac` (`Close self-host
-  inline spawn await SoT`). The preceding foreach graph contract ratchet is
-  `54bed08e`, with handoff refresh `c98d0a42`.
+  inline spawn await SoT`), with handoff refresh `7709890c`. The preceding
+  foreach graph contract ratchet is `54bed08e`, with handoff refresh
+  `c98d0a42`.
 - Latest prior fieldless checkpoint: `8afd9160`, with handoff refresh
   `89625851`.
 - Latest native backend checkpoint: `246682fe` (`Close C ArrayMap and
   ArrayFilter result type SoT`), with handoff refresh `4053192c` and matching
   LLVM owner consumption in `a1678e8d`.
-- `HEAD` and `origin/main` are both `e98ba4ac`; the remaining dirty paths are
-  unrelated VS Code extension work and untracked editor packaging files. Do
-  not stage or clean those paths while continuing SoT closure.
+- VS Code workspace/extension setup is closed in `720928c5` (`Configure VS
+  Code Pergyra workspace`). At capture, `main` is one commit ahead of
+  `origin/main` at `7709890c`; this handoff refresh is the only dirty path.
 
 ## Last closed executable rungs
 
@@ -97,6 +98,16 @@ Green for the latest inline-spawn rung:
 - Native C compile/run parity with output `5`, `10`.
 - `git diff --check` for the implementation commit.
 
+Green for the VS Code workstation surface:
+
+- Workspace JSON parse, language-extension `node --check`, semantic-client
+  TypeScript compile, and both npm audits (`0 vulnerabilities`).
+- Pergyra language VSIX `0.3.1` and semantic-squiggle VSIX `0.0.1` packaged
+  and installed; C/C++, Makefile Tools, and ShellCheck are also installed.
+- The extension-equivalent Windows environment compiled the sample through
+  `bin/pgy.exe --backend=c`, ran with output `42`, and received an empty
+  diagnostic set from `bin/pgy-lsp.exe`.
+
 Green at the preceding fieldless/StringConcat checkpoint and to be rerun after
 the latest docs refresh:
 
@@ -139,6 +150,11 @@ The next observed failure is
   are configured.
 - For Windows `bin/pgy.exe`, source `tests/pgy_binary_path_helpers.sh` and call
   `pgy_prepend_windows_runtime_paths` before execution.
+- Tracked `.vscode` settings select `bin/pgy.exe`, `bin/pgy-lsp.exe`, the
+  MSYS2 UCRT64 terminal, focused build/self-host/doc tasks, and F5 Extension
+  Host launchers. Both Pergyra extensions prepend discovered MSYS2/LLVM DLL
+  directories themselves, so VS Code does not depend on a globally mutated
+  user `PATH`.
 - Use serial `make` unless Windows jobserver behavior is revalidated.
 - `.gitignore` owns root builders with `/.tmp_*`. Recovery recycled 87 root
   temporary files and reduced `.tmp` from about 9.49 GB to an active cache.
@@ -150,10 +166,11 @@ The next observed failure is
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and `selfhost.expression_surface` in the SoT registry.
-2. Run `git status --short --branch`; preserve the dirty spawn lane unless it
-   has since been committed or explicitly abandoned.
-3. Reconfirm fixtures 251-252 with the filtered C parity gate.
-4. Audit the spawn objective card and its negative/runtime evidence before
-   accepting or extending that lane.
+2. Run `git status --short --branch`; the tree should be clean after this
+   handoff refresh unless a newer task owns explicit dirty paths.
+3. Reconfirm fixture 261 with the filtered C parity gate before changing the
+   next async seam.
+4. Work `async_spawn_await` from its named `Future<Int>` binding owner; do not
+   turn it into a scalar or sequential-call fallback.
 5. Refresh this snapshot with exact HEAD, dirty state, last green gate, next
    falsifier, and blockers.
