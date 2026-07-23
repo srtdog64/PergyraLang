@@ -1,6 +1,7 @@
 // Focused executable proof for semantic-owned assignment projections.
 
 import "../../codegen/emission/assign_emit_owner.pgy";
+import "../../codegen/emission/function_binding_env_owner.pgy";
 import "../../semantic/ast_expression_call_target_capture_owner.pgy";
 
 func ProbeAssignmentFacts(
@@ -63,8 +64,10 @@ func ProbeExpressionGraph(
 func ProbeOptionAssignment(
     name: String,
     expression: String,
+    binding_type: String,
     expected_type: String,
-    carry_call_targets: Bool
+    carry_call_targets: Bool,
+    carry_c_binding: Bool
 ) -> String {
     let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
         name, name, 0, "", expression
@@ -75,7 +78,15 @@ func ProbeOptionAssignment(
     let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
         name, true
     );
-    let env_state: Array<String> = ["|", "|"];
+    let local_rows: String = "|";
+    if carry_c_binding {
+        let binding: CodegenFunctionValueBindingFact =
+            CodegenFunctionValueBindingFactFor(
+                name, binding_type, "|"
+            );
+        local_rows = Concat(local_rows, binding.env_rows);
+    }
+    let env_state: Array<String> = ["|", local_rows];
     return EmitAssign(
         assignments, 0, expected_type, expected_type,
         env_state, graph, target_graph
@@ -103,12 +114,20 @@ func ProbeIndexedAssignment(target_type: String) -> String {
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == "--missing-expected-type" {
-        Log(ProbeOptionAssignment("a", "Some(7)", "", true));
+        Log(ProbeOptionAssignment(
+            "a", "Some(7)", "Option<Int>", "", true, true
+        ));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--missing-call-target" {
         Log(ProbeOptionAssignment(
-            "a", "Some(7)", "Option<Int>", false
+            "a", "Some(7)", "Option<Int>", "Option<Int>", false, true
+        ));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--missing-c-binding" {
+        Log(ProbeOptionAssignment(
+            "a", "Some(7)", "Option<Int>", "Option<Int>", true, false
         ));
         return;
     }
@@ -116,11 +135,18 @@ func Main() -> Void {
         Log(ProbeIndexedAssignment(""));
         return;
     }
-    Log(ProbeOptionAssignment("a", "Some(7)", "Option<Int>", true));
-    Log(ProbeOptionAssignment("a", "None()", "Option<Int>", true));
     Log(ProbeOptionAssignment(
-        "s", "Some(\"ok\")", "Option<String>", true
+        "a", "Some(7)", "Option<Int>", "Option<Int>", true, true
     ));
-    Log(ProbeOptionAssignment("s", "None", "Option<String>", true));
+    Log(ProbeOptionAssignment(
+        "a", "None()", "Option<Int>", "Option<Int>", true, true
+    ));
+    Log(ProbeOptionAssignment(
+        "s", "Some(\"ok\")", "Option<String>", "Option<String>",
+        true, true
+    ));
+    Log(ProbeOptionAssignment(
+        "s", "None", "Option<String>", "Option<String>", true, true
+    ));
     Log(ProbeIndexedAssignment("Array<Int>"));
 }

@@ -82,7 +82,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         let p_name: String = CodegenSemanticFunctionParamNameForNodeOrDie(
             signatures, signature_index, param_n, cur[0]
         );
-        let c_p_name: String = CompilerSymbolCBindingName(p_name);
         let p_type: String = CodegenGenericResolvedParamTypeOrDie(
             signatures, signature_index, param_n, generic_actuals
         );
@@ -94,6 +93,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 p_type = UnwrapOption(role_receiver);
             }
         }
+        let p_binding: CodegenFunctionValueBindingFact =
+            CodegenFunctionValueBindingFactFor(
+                p_name, p_type, base_env.global_rows
+            );
+        let c_p_name: String = p_binding.c_name;
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
         let c_ref_name: String = c_p_name;
@@ -113,21 +117,12 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         } else {
             params = Concat(params, Concat(", ", c_param));
         }
-        // Register the param under a canonical kind so array indexing/length
-        // rewriting recognizes it (`Array<Int...>` -> ArrayInt, etc.).
-        let p_kind: String = p_type;
-        if StartsWith(p_type, "Array<") {
-            p_kind =
-                CollectionRuntimeFactFromTypeName(p_type, base_env).kind;
-        }
         if p_mode == 3 {
             ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
-                p_name, p_type, p_kind, c_ref_name
+                p_name, p_type, p_binding.value_kind, c_ref_name
             ));
         } else {
-            ArrayPush(function_env_rows, TypeEnvTypedValueBindingRows(
-                p_name, p_type, p_kind, c_p_name
-            ));
+            ArrayPush(function_env_rows, p_binding.env_rows);
         }
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
@@ -473,7 +468,6 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 let p_name: String = CodegenSemanticFunctionParamNameOrDie(
                     signatures, i, pn
                 );
-                let c_p_name: String = CompilerSymbolCBindingName(p_name);
                 let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
                     signatures, i, pn
                 );
@@ -487,6 +481,10 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                         p_type = UnwrapOption(role_receiver);
                     }
                 }
+                let c_p_name: String =
+                    CodegenFunctionValueBindingFactFor(
+                        p_name, p_type, struct_env.global_rows
+                    ).c_name;
                 let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                 let cp: String = Concat(cpt, Concat(" ", c_p_name));
                 if p_mode == 1 {
@@ -535,10 +533,12 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
             let p_name: String = CodegenSemanticFunctionParamNameOrDie(
                 signatures, signature_index, pn
             );
-            let c_p_name: String = CompilerSymbolCBindingName(p_name);
             let p_type: String = CodegenGenericResolvedParamTypeOrDie(
                 signatures, signature_index, pn, actuals
             );
+            let c_p_name: String = CodegenFunctionValueBindingFactFor(
+                p_name, p_type, struct_env.global_rows
+            ).c_name;
             let cpt: String = AbiLayoutCParamType(p_type, struct_env);
             let cp: String = Concat(cpt, Concat(" ", c_p_name));
             if p_mode == 1 {

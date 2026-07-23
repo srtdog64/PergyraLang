@@ -279,6 +279,11 @@ source-to-C binding rows in `type_facts/type_env.pgy`, and
 `emission/expr_binding_rewrite_owner.pgy` consumes those rows before expression
 emission so C-reserved source names do not reopen a backend-local spelling path.
 Projection also fails closed if the symbol row envelope is not ready.
+`emission/function_binding_env_owner.pgy` owns one function-value binding fact
+that joins source name, semantic type, runtime kind, C name, and environment
+rows. Definitions, prototypes, parameters, locals, and assignment probes
+consume that same fact. Assignment emission only reads `cbind`; it does not
+treat target text as a C name or invoke the symbol projection again.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
 return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that

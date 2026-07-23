@@ -657,8 +657,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/enum_emit_owner.pgy` -- enum declaration
   emission and semantic enum-value projection into the codegen environment.
 - `src/self_hosted/codegen/emission/function_binding_env_owner.pgy` --
-  function-local and implicit owner-field C binding rows derived from semantic
-  locals and MIR-carried nominal declaration facts.
+  one function-value binding fact for source identity, semantic type, runtime
+  kind, C name, and environment rows, plus implicit owner-field C binding rows
+  derived from semantic locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.

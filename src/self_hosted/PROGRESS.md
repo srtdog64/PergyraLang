@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra function-value binding SoT closure: the focused assignment
+projection gate first reproduced `assignment target C binding fact is missing`
+after its TestHarness path manifest grew from 15 to 21 rows. The compiler
+emitter was already correctly fail-closed; the probe had supplied an empty
+`cbind` environment. `function_binding_env_owner.pgy` now owns one
+`CodegenFunctionValueBindingFact` carrying source identity, semantic type,
+runtime kind, C binding name, and the complete type-environment row. Function
+definitions, prototypes, generic prototypes, locals, and the focused probe
+consume that fact. `EmitAssign` no longer imports the symbol owner and cannot
+use target text or locally remangle it as a C binding.
+
+The positive assignment probe still emits the five pinned scalar/Option/indexed
+rows. Missing expected type, indexed target type, direct call target, and C
+binding each fail closed with distinct diagnostics. The default focused gate
+passes; its LLVM leg is an explicit unavailable-backend skip. Focused C codegen
+parity passes `func_call,option_int_core` through rung `0..21`, and filtered
+producer-first DRV-2 passes `owner_field_assignment` with `body_fixtures=20
+mir_fixtures=1`. Component contract, shell syntax, authority-edge (`43
+authorities`, `38 derived`, `CLOSED=23 BRIDGE=20 ACTIVE=0`), and live
+owner/negative-mutation adequacy pass. The hard-substitution and
+substitution-velocity contracts also pass after their stale scalar call-target
+and payload-free-only enum assertions were aligned with the ordered member
+array and common enum ABI path. Coq/Rocq remains unavailable and was explicitly
+skipped, not claimed checked.
+
+No next executable failure was observed by these focused gates. Select the next
+rung from a failing probe against one of the ledger's five direct substitution
+blockers; do not convert a passing coverage fixture into an inferred blocker.
+
 2026-07-23 Pergyra enum ABI value SoT closure: the new
 `codegen/abi_layout/enum_abi_value_fact_owner.pgy` owns one explicit projection from
 semantic enum layout to C value type and bare-return default. Payload-free and
@@ -19,7 +48,8 @@ The active manifests are 85 codegen fixtures, 255 DRV-2 MIR rows, and 21
 TestHarness codegen paths. LLVM was unavailable for the focused DRV-2 gate,
 and the full unfiltered matrix was not run.
 
-The next observed executable failure remains the assignment-projection C leg:
+The next observed executable failure at that checkpoint was the
+assignment-projection C leg:
 after consuming the 21-path TestHarness manifest it fails closed with
 `assignment target C binding fact is missing`. That seam requires a fresh
 owner/last-consumer audit; it is not silently attributed to the enum ABI work.

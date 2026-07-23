@@ -36,8 +36,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && paths+=("$line")
 done <"$PATHS_FILE"
-if [[ "${#paths[@]}" -ne 15 ]]; then
-    echo "[$LABEL] expected 15 codegen TestHarness paths, got ${#paths[@]}" >&2
+if [[ "${#paths[@]}" -ne 21 ]]; then
+    echo "[$LABEL] expected 21 codegen TestHarness paths, got ${#paths[@]}" >&2
     exit 1
 fi
 
@@ -53,6 +53,8 @@ done
 # - backend_assignment_type_guess: indexed target type must not come from env lookup.
 # - missing_expected_type_success: missing facts must fail in both generated probes.
 # - missing_direct_call_target_success: call identity must come from semantic facts.
+# - assignment_target_name_as_c_binding: target text is not a C binding fact.
+# - assignment_target_local_sanitize: EmitAssign must not remangle target text.
 if grep -Fq 'ExprKind(expr, env)' "$ASSIGN_EMITTER"; then
     echo "[$LABEL] assignment expected type was re-derived from source text" >&2
     exit 1
@@ -129,6 +131,8 @@ run_backend() {
         "indexed assignment target type is missing"
     run_missing_fact_negative "$backend" "missing-call-target" \
         "semantic direct-call target fact is missing"
+    run_missing_fact_negative "$backend" "missing-c-binding" \
+        "assignment target C binding fact is missing"
 }
 
 run_backend c
@@ -147,6 +151,8 @@ if [[ " $BACKENDS " == *" llvm "* ]]; then
             "indexed assignment target type is missing"
         run_missing_fact_negative llvm "missing-call-target" \
             "semantic direct-call target fact is missing"
+        run_missing_fact_negative llvm "missing-c-binding" \
+            "assignment target C binding fact is missing"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
             "$BUILD_DIR/probe_c.out" "$BUILD_DIR/probe_llvm.out"

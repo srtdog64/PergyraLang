@@ -3219,6 +3219,10 @@ require_max_lines "src/self_hosted/codegen/emission/function_binding_env_owner.p
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'import "../runtime_abi/option_result_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "struct CodegenFunctionValueBindingFact"
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionValueBindingFactFor("
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionOwnerFieldEnvRows("
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'CompilerSymbolCBindingName("self")'
@@ -5518,9 +5522,12 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCForEachIndexTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCBindingName(p_name)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedValueBindingRows("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "p_name, p_type, p_kind, c_p_name"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "CodegenFunctionValueBindingFactFor("
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "CompilerSymbolCBindingName(p_name)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "TypeEnvTypedValueBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedReadonlyRefBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
@@ -9474,6 +9481,10 @@ require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'ProbeIndexedAssignment("Array<Int>")'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'args[0] == "--missing-target-type"'
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    "CodegenFunctionValueBindingFactFor("
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'args[0] == "--missing-c-binding"'
 require_file "tests/self_hosted/parity/assignment_projection_probe_parity.sh"
 require_max_lines "tests/self_hosted/parity/assignment_projection_probe_parity.sh" 599
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
@@ -9482,6 +9493,14 @@ require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-target-type"'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-call-target"'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'run_missing_fact_negative "$backend" "missing-c-binding"'
+reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    'import "../../compiler/symbol_table_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "CompilerSymbolCBindingName("
+reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "c_name = name"
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'assert_llvm_leg_with_artifact_owner'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \

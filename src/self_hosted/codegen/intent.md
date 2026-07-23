@@ -198,6 +198,11 @@ from initializer text or a parallel local-binding string row.
 index, and RHS rows. `input/semantic_assignment_codegen_view_owner.pgy`
 projects those rows fail-closed; codegen does not reinterpret assignment arena
 payloads.
+`emission/function_binding_env_owner.pgy` owns the function-value binding
+projection from source identity and semantic type to runtime kind, C name, and
+typed environment rows. Function definitions/prototypes/locals and assignment
+probes consume one `CodegenFunctionValueBindingFact`; `EmitAssign` is only a
+`cbind` consumer and may not recover from target text or locally sanitize it.
 `../semantic/ast_statement_fact_owner.pgy` also owns `ArrayPush` target/value
 and `ArraySet` target/index/value rows. The semantic statement codegen view
 projects them fail-closed; no collection mutation AST-text owner exists. One

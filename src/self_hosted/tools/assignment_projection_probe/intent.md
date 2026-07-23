@@ -12,13 +12,14 @@ array assignments without recovering types from source text or codegen state.
 
 - The probe has no source-file input.
 - Normal execution uses the typed facts constructed in `main.pgy`.
-- `--missing-expected-type` and `--missing-target-type` deliberately remove a
-  required semantic fact and must fail closed.
+- `--missing-expected-type`, `--missing-target-type`,
+  `--missing-call-target`, and `--missing-c-binding` deliberately remove one
+  required owner fact and must fail closed.
 
 ## Output Contract
 
 Normal execution emits the five C assignment rows pinned by `expected.txt`.
-The two negative modes must exit nonzero with their owned missing-fact
+The four negative modes must exit nonzero with their owned missing-fact
 diagnostic. C and LLVM output must remain byte-identical when LLVM is enabled.
 
 ## Oracle
