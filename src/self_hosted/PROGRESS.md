@@ -1,5 +1,41 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra declaration-site generic-default executable closure. Objective:
+keep generic parameter/default facts behind one parser and semantic declaration
+owner, carry them through native MIR JSON, and consume them in self-host MIR
+lowering and C emission. Priority was one owner, effective nominal field types,
+MIR carriage, fail-closed malformed/default mismatch diagnostics, then patch
+size. The parser owner now serves functions, nominals, and abilities; semantic
+generic rows use the delimited-range owner for nested defaults; nominal
+constructor facts substitute defaults once; and `mir_json_dump.c` carries
+`generic_params` with `name`, `constraint`, and `default_type` from the native
+`MIRDeclHeader` owner. `decl_lower.pgy` consumes those carried facts and never
+guesses a missing default.
+
+The focused `generic_default_contracts` parser AST parity and malformed-default
+negative gate passed. The C producer-first source/MIR/C/runtime gate passed with
+runtime output `save=9` and `box=7`; mutating `Box<T = Int>` to
+`Box<T = String>` fails closed as `call_arg_type_mismatch` with `expected:
+String` and `actual: Int`. Native MIR JSON visibly carries the `Box` and
+`Bufferable` default rows. Component contracts, shell syntax, and
+`git diff --check` passed. The focused C backend build used `LLVM_ENABLED=0`;
+the full unfiltered 266-row DRV-2 matrix and LLVM generic-default lane were not
+run. Executable commit `ce712b8e` is pushed as `HEAD=origin/main=ce712b8e`.
+
+The next observed executable seam is
+`generic_default_ability_bind_dispatch`: the self-host driver reaches semantic
+validation but returns `undefined_function` for `StorageParty`. The immediate
+owner question is party/role ability-bind declaration admission and dispatch
+carriage. `generic_multi_bound_defaults` separately stops in parser admission
+at `where T: Comparable + Cloneable`; `nested_generic_containers` remains a
+later `ListNew` undefined-function failure. Do not add fixture-name or
+party/class-name exceptions.
+
+At this handoff, a concurrent uncommitted follow-up is enrolling
+`generic_default_contracts` as DRV-2 MIR row 267 and wiring its owner checks into
+the broader body/producer/component gates. It is preserved as dirty work and
+is not part of `ce712b8e` until its focused and broader gates are observed.
+
 2026-07-23 Pergyra generic Future spawn executable rungs 263-266. Objective:
 carry generic specialization identity through `spawn`, then materialize Int and
 String payloads through one tagged runtime invocation descriptor. Priority was
@@ -31,13 +67,10 @@ and protocol-registry gates passed. Commits: `0169b856`, `3d74c9dd`,
 `e6f321f2`, `793b93e5`, and capstone ratchet `366fc46b`. The full unfiltered
 266-row matrix, LLVM async lane, and Coq model were not run.
 
-The next observed executable seam is `generic_default_contracts`. The current
-self-host driver exits 1 with empty stdout/stderr, so parser/AST admission loses
-the failure fact before a structured diagnostic owner can report it. First
-identify that owner and add a falsifying diagnostic gate; do not mask it with
-an ability/class-name exception. Nearby `generic_spawn`, `generic_spawn_multi`,
-and `generic_call` already self-emit and should not become fixture-only progress
-in place of the next executable replacement.
+The declaration-site generic-default seam described above was the next
+executable seam from this point and is now closed by `ce712b8e`. The following
+ability-bind falsifier is recorded in the current handoff; do not turn nearby
+generic fixture enrollment into a substitute for that executable replacement.
 
 2026-07-23 Pergyra named Future spawn/await executable rung 262. Objective:
 materialize a named `Future<Int>` spawn result as the owner-directed
