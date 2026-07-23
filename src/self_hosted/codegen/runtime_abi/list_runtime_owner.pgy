@@ -11,10 +11,17 @@ struct CollectionListRuntimeFact {
     element_c_type: String;
     c_value_type: String;
     c_new_fn: String;
+    c_push_fn: String;
+    c_get_fn: String;
+    c_set_fn: String;
+    c_remove_fn: String;
+    c_size_fn: String;
 }
 
 func CollectionListRuntimeFactMissing() -> CollectionListRuntimeFact {
-    return CollectionListRuntimeFact(false, "", "", "", "", "");
+    return CollectionListRuntimeFact(
+        false, "", "", "", "", "", "", "", "", "", ""
+    );
 }
 
 func CollectionListRuntimeElementTypeOpt(
@@ -67,7 +74,12 @@ func CollectionListRuntimeFactFromTypeName(
     return CollectionListRuntimeFact(
         true, canonical, element_type, element_c_type,
         CompilerSymbolCListValueTypeName(element_type),
-        CompilerSymbolCListOperationName("new", element_type)
+        CompilerSymbolCListOperationName("new", element_type),
+        CompilerSymbolCListOperationName("push", element_type),
+        CompilerSymbolCListOperationName("get", element_type),
+        CompilerSymbolCListOperationName("set", element_type),
+        CompilerSymbolCListOperationName("remove", element_type),
+        CompilerSymbolCListOperationName("size", element_type)
     );
 }
 
@@ -101,6 +113,11 @@ func CollectionListRuntimeContractReady() -> Bool {
         fact.element_c_type == "PgyHashMap_Int" &&
         fact.c_value_type == "PgyList_HashMap_String_Int" &&
         fact.c_new_fn == "pgy_list_new_HashMap_String_Int" &&
+        fact.c_push_fn == "pgy_list_push_HashMap_String_Int" &&
+        fact.c_get_fn == "pgy_list_get_HashMap_String_Int" &&
+        fact.c_set_fn == "pgy_list_set_HashMap_String_Int" &&
+        fact.c_remove_fn == "pgy_list_remove_HashMap_String_Int" &&
+        fact.c_size_fn == "pgy_list_size_HashMap_String_Int" &&
         CollectionListRuntimeSpecializationBlock(
             "List<HashMap<String, Int>>"
         ) == "/* PGY_COLLECTION_LIST_HashMap_String_Int */\nPGY_LIST_DEFINE(HashMap_String_Int, PgyHashMap_Int)\n" &&

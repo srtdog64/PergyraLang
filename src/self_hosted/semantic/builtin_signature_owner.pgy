@@ -106,7 +106,12 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "AllocatorPool^Allocator^Unknown",
         "BoxArray^Box<Unknown>^Int|Allocator",
         "StringConcat^String^String|String",
-        "ListNew^List<Unknown>^none"
+        "ListNew^List<Unknown>^none",
+        "ListPush^Void^Unknown|Unknown",
+        "ListGet^Unknown^Unknown|Int",
+        "ListSet^Void^Unknown|Int|Unknown",
+        "ListRemove^Void^Unknown|Int",
+        "ListSize^Int^Unknown"
     ];
     return rows;
 }
@@ -225,8 +230,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
             "ListNew", 0, Some("List<HashMap<String, Int>>")
         );
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 103 && ArrayLength(returns) == 103 &&
-        ArrayLength(params) == 103 && names[0] == "StringLength" &&
+        ArrayLength(names) == 108 && ArrayLength(returns) == 108 &&
+        ArrayLength(params) == 108 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -251,6 +256,14 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[101] == "StringConcat" && returns[101] == "String" &&
         params[101] == "String|String" && names[102] == "ListNew" &&
         returns[102] == "List<Unknown>" && params[102] == "" &&
+        names[103] == "ListPush" && returns[103] == "Void" &&
+        params[103] == "Unknown|Unknown" && names[104] == "ListGet" &&
+        returns[104] == "Unknown" && params[104] == "Unknown|Int" &&
+        names[105] == "ListSet" && returns[105] == "Void" &&
+        params[105] == "Unknown|Int|Unknown" &&
+        names[106] == "ListRemove" && returns[106] == "Void" &&
+        params[106] == "Unknown|Int" && names[107] == "ListSize" &&
+        returns[107] == "Int" && params[107] == "Unknown" &&
         IsSome(contextual_list) && UnwrapOption(contextual_list) ==
             "List<HashMap<String, Int>>" &&
         !IsSome(SemanticContextualBuiltinReturnTypeOpt(

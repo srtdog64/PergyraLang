@@ -1,0 +1,84 @@
+// List<T> direct-call lowering from semantic receiver and runtime ABI facts.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../runtime_abi/list_runtime_owner.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+
+func RewriteSemanticListCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    source_name: String,
+    env: CodegenTypeEnv
+) -> String {
+    let argc: Int = ArrayLength(view.argument_nodes);
+    let expected_argc: Int = 0;
+    if source_name == "ListPush" || source_name == "ListGet" {
+        expected_argc = 2;
+    } else if source_name == "ListSet" {
+        expected_argc = 3;
+    } else if source_name == "ListRemove" {
+        expected_argc = 2;
+    } else if source_name == "ListSize" {
+        expected_argc = 1;
+    } else {
+        Die(Concat(source_name, " is not a supported List<T> call"));
+    }
+    if argc != expected_argc {
+        Die(Concat(source_name, " has an invalid argument count"));
+    }
+    let receiver_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.argument_nodes[0], env
+    );
+    if !IsSome(receiver_type_opt) {
+        Die(Concat(source_name, " receiver type fact is missing"));
+    }
+    let receiver_type: String = UnwrapOption(receiver_type_opt);
+    let fact: CollectionListRuntimeFact =
+        CollectionListRuntimeFactFromTypeName(receiver_type);
+    if !fact.ok {
+        Die(Concat(source_name, " List<T> runtime ABI fact is missing"));
+    }
+    let receiver: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[0], receiver_type, "inout", env
+    );
+    if source_name == "ListPush" {
+        let value: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], fact.element_type, "default", env
+        );
+        return Concat(fact.c_push_fn, Concat("(", Concat(
+            receiver, Concat(", ", Concat(value, ")"))
+        )));
+    }
+    if source_name == "ListGet" {
+        let index: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], "Int", "default", env
+        );
+        return Concat(fact.c_get_fn, Concat("(", Concat(
+            receiver, Concat(", ", Concat(index, ")"))
+        )));
+    }
+    if source_name == "ListSet" {
+        let index: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], "Int", "default", env
+        );
+        let value: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[2], fact.element_type, "default", env
+        );
+        return Concat(fact.c_set_fn, Concat("(", Concat(
+            receiver, Concat(", ", Concat(index, Concat(", ",
+                Concat(value, ")"))))
+        )));
+    }
+    if source_name == "ListRemove" {
+        let index: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], "Int", "default", env
+        );
+        return Concat(fact.c_remove_fn, Concat("(", Concat(
+            receiver, Concat(", ", Concat(index, ")"))
+        )));
+    }
+    return Concat(fact.c_size_fn, Concat("(", Concat(receiver, ")")));
+}

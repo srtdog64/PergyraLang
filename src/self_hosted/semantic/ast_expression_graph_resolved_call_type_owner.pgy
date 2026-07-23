@@ -1,7 +1,233 @@
 // Canonical return types for semantically resolved graph calls.
 
 import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "env_owner.pgy";
+import "expr_type_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticExpressionGraphListCallFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    return_type_name: String;
+    list_type_name: String;
+    element_type_name: String;
+}
+
+func SemanticExpressionGraphListCallNotApplicable(
+) -> SemanticExpressionGraphListCallFact {
+    return SemanticExpressionGraphListCallFact(
+        false, true, "", "", "", "", ""
+    );
+}
+
+func SemanticExpressionGraphListCallError(
+    code: String,
+    message: String
+) -> SemanticExpressionGraphListCallFact {
+    return SemanticExpressionGraphListCallFact(
+        true, false, code, message, "", "", ""
+    );
+}
+
+func SemanticExpressionGraphListCallName(name: String) -> Bool {
+    return name == "ListPush" || name == "ListGet" ||
+        name == "ListSet" || name == "ListRemove" ||
+        name == "ListSize";
+}
+
+func SemanticExpressionGraphListCallExpectedArity(name: String) -> Int {
+    if name == "ListSize" { return 1; }
+    if name == "ListPush" || name == "ListGet" ||
+        name == "ListRemove" { return 2; }
+    if name == "ListSet" { return 3; }
+    return -1;
+}
+
+func SemanticExpressionGraphListLocalValueTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    names: Array<String>,
+    types: Array<String>
+) -> String {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { return "Unknown"; }
+    if UnwrapOption(kind) == AstExpressionNodeIntegerLiteral() {
+        return "Int";
+    }
+    if UnwrapOption(kind) == AstExpressionNodeLongLiteral() {
+        return "Long";
+    }
+    if UnwrapOption(kind) == AstExpressionNodeFloatLiteral() {
+        return "Float";
+    }
+    if UnwrapOption(kind) == AstExpressionNodeBoolLiteral() {
+        return "Bool";
+    }
+    if UnwrapOption(kind) == AstExpressionNodeStringLiteral() {
+        return "String";
+    }
+    if UnwrapOption(kind) != AstExpressionNodeLeaf() { return "Unknown"; }
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id
+    );
+    if !IsSome(text) { return "Unknown"; }
+    let bound: String = EnvLookup(names, types, UnwrapOption(text));
+    if bound == "" { return "Unknown"; }
+    return bound;
+}
+
+func SemanticExpressionGraphListCallFactFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    names: Array<String>,
+    types: Array<String>
+) -> SemanticExpressionGraphListCallFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok { return SemanticExpressionGraphListCallNotApplicable(); }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || !IsSome(callee_text) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !SemanticExpressionGraphListCallName(UnwrapOption(callee_text)) {
+        return SemanticExpressionGraphListCallNotApplicable();
+    }
+    let callee: String = UnwrapOption(callee_text);
+    if !target.ok || target.kind != SemanticCallTargetDirect() ||
+        target.name != callee {
+        return SemanticExpressionGraphListCallError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_call_target"
+            )
+        );
+    }
+    let expected_arity: Int =
+        SemanticExpressionGraphListCallExpectedArity(callee);
+    if ArrayLength(call.argument_nodes) != expected_arity {
+        return SemanticExpressionGraphListCallError(
+            "call_arity_mismatch",
+            SemanticError3(
+                "call_arity_mismatch", "func", callee,
+                "expected", ToString(expected_arity),
+                "actual", ToString(ArrayLength(call.argument_nodes))
+            )
+        );
+    }
+    let list_type: String = SemanticExpressionGraphListLocalValueTypeName(
+        graph, call.argument_nodes[0], names, types
+    );
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(list_type);
+    if !shape.ok || shape.nominal_base_name != "List" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        if list_type == "Unknown" {
+            return SemanticExpressionGraphListCallError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "collection_receiver_type"
+                )
+            );
+        }
+        return SemanticExpressionGraphListCallError(
+            "builtin_arg_type_mismatch",
+            SemanticError3(
+                "builtin_arg_type_mismatch", "func", callee,
+                "expected", "List<T>", "actual", list_type
+            )
+        );
+    }
+    let element_type: String = shape.actual_type_names[0];
+    if callee != "ListSize" {
+        let index_node: Int = call.argument_nodes[1];
+        if callee == "ListPush" {
+            index_node = -1;
+        }
+        if index_node >= 0 {
+            let index_type: String =
+                SemanticExpressionGraphListLocalValueTypeName(
+                    graph, index_node, names, types
+                );
+            if index_type != "Int" {
+                return SemanticExpressionGraphListCallError(
+                    "builtin_arg_type_mismatch",
+                    SemanticError3(
+                        "builtin_arg_type_mismatch", "func", callee,
+                        "expected", "Int", "actual", index_type
+                    )
+                );
+            }
+        }
+    }
+    let value_node: Int = -1;
+    if callee == "ListPush" { value_node = call.argument_nodes[1]; }
+    if callee == "ListSet" { value_node = call.argument_nodes[2]; }
+    if value_node >= 0 {
+        let value_type: String = SemanticExpressionGraphListLocalValueTypeName(
+            graph, value_node, names, types
+        );
+        let value_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, value_node
+        );
+        if value_type == "Unknown" || !IsSome(value_text) {
+            return SemanticExpressionGraphListCallError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "collection_value_type"
+                )
+            );
+        }
+        if !ExpressionAssignableTo(
+            element_type, value_type, UnwrapOption(value_text)
+        ) {
+            return SemanticExpressionGraphListCallError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", callee,
+                    "expected", element_type, "actual", value_type
+                )
+            );
+        }
+    }
+    let return_type: String = "Void";
+    if callee == "ListGet" { return_type = element_type; }
+    if callee == "ListSize" { return_type = "Int"; }
+    return SemanticExpressionGraphListCallFact(
+        true, true, "", "", return_type,
+        shape.canonical_name, element_type
+    );
+}
+
+func SemanticExpressionGraphListCallFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> SemanticExpressionGraphListCallFact {
+    let target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    return SemanticExpressionGraphListCallFactFromResolvedTarget(
+        graph, root_id, target, names, types
+    );
+}
 
 func SemanticResolvedCallConcreteScalarType(type_name: String) -> Bool {
     return type_name == "Bool" || type_name == "Int" ||
@@ -27,6 +253,14 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             function_names, function_returns
         );
     if !target.ok { return None; }
+    let list_call: SemanticExpressionGraphListCallFact =
+        SemanticExpressionGraphListCallFactFromResolvedTarget(
+            graph, root_id, target, names, types
+        );
+    if list_call.applies {
+        if !list_call.ok { return None; }
+        return Some(list_call.return_type_name);
+    }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name
     );
@@ -71,8 +305,13 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
     let member_fact: ParserExpressionFact = ParseExprFact(
         "box.Get()", 0, member_cursor
     );
+    let list_cursor: Array<Int> = [0];
+    let list_fact: ParserExpressionFact = ParseExprFact(
+        "ListGet(items, 0)", 0, list_cursor
+    );
     if !direct_fact.ok || direct_cursor[0] != 8 ||
-        !member_fact.ok || member_cursor[0] != 9 {
+        !member_fact.ok || member_cursor[0] != 9 || !list_fact.ok ||
+        list_cursor[0] != 17 {
         return false;
     }
     let direct_graph: SemanticExpressionGraphFacts =
@@ -87,6 +326,13 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
             AstExpressionGraphRows(
                 true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
                 [member_fact.root], member_fact.arena
+            ), [0], 1
+        );
+    let list_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
+                [list_fact.root], list_fact.arena
             ), [0], 1
         );
     let empty: Array<String> = [];
@@ -110,8 +356,23 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
             direct_graph, direct_fact.root, constructors, empty, empty,
             ["ToInt"], ["Option<Int>"]
         );
+    let list_call: SemanticExpressionGraphListCallFact =
+        SemanticExpressionGraphListCallFactFromGraph(
+            list_graph, list_fact.root, constructors,
+            ["items"], ["List<Int>"], ["ListGet"], ["Unknown"]
+        );
+    let wrong_list_call: SemanticExpressionGraphListCallFact =
+        SemanticExpressionGraphListCallFactFromGraph(
+            list_graph, list_fact.root, constructors,
+            ["items"], ["Int"], ["ListGet"], ["Unknown"]
+        );
     return IsSome(resolved) && UnwrapOption(resolved) == "Int" &&
         IsSome(member) && UnwrapOption(member) == "String" &&
         IsSome(deferred) && UnwrapOption(deferred) == "Option<Int>" &&
-        !IsSome(deferred_scalar);
+        !IsSome(deferred_scalar) && list_call.applies && list_call.ok &&
+        list_call.return_type_name == "Int" &&
+        list_call.list_type_name == "List<Int>" &&
+        list_call.element_type_name == "Int" &&
+        wrong_list_call.applies && !wrong_list_call.ok &&
+        wrong_list_call.diagnostic_code == "builtin_arg_type_mismatch";
 }

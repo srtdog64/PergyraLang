@@ -201,7 +201,8 @@ inventory must not become a second fact-family owner registry.
   nodes; semantic and codegen consumers share this view.
 - `src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy`
   -- canonical return-type projection from graph-owned direct, namespace, and
-  receiver-bound call targets, plus the explicit concrete-scalar capability
+  receiver-bound call targets, the bounded `List<T>` call protocol over
+  carried target/local-type facts, and the explicit concrete-scalar capability
   filter used by scalar validation.
 - `src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy` --
   exact and nested generic argument binding plus structured return
@@ -638,7 +639,7 @@ inventory must not become a second fact-family owner registry.
   consumers.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
-- `src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy` -- canonical `List<T>` runtime ABI fact, supported element ABI, specialization macro, and constructor-symbol projection.
+- `src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy` -- canonical `List<T>` runtime ABI fact, supported element ABI, specialization macro, and constructor/operation-symbol projection.
 - `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
   fail-closed numeric conversion runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.
@@ -666,10 +667,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy` --
   call-spine return-type projection, including explicit Result error payloads,
   from semantic graph facts.
+- `src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy` --
+  shared call-argument value projection and graph-owned `ref`/`inout`
+  addressability consumption; family emitters must not rebuild this policy.
+- `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
+  `List<T>` operation lowering from semantic receiver type and List runtime ABI
+  facts; source callee spelling is not an ABI fallback.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
-  symbol fact consumption.
+  symbol fact consumption, delegating List family calls to their named owner.
 - `src/self_hosted/codegen/emission/expr_semantic_dynamic_ability_call_emit_owner.pgy`
   -- dynamic party role-slot call projection from semantic graph identity,
   dispatch ABI rows, and vtable field ownership; direct-call fallback is

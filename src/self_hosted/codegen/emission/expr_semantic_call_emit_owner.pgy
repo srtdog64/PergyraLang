@@ -11,57 +11,10 @@ import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_rewrite.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+import "list_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
-
-func RewriteSemanticCallArgument(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    expected_type: String,
-    mode: String,
-    env: CodegenTypeEnv
-) -> String {
-    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
-    if !IsSome(text) {
-        Die("semantic call argument fact is missing");
-    }
-    let source: String = UnwrapOption(text);
-    let rendered: String = RewriteSemanticExpectedValue(
-        graph, node_id, expected_type, env);
-    if mode != "inout" && mode != "ref" { return rendered; }
-    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node_id);
-    if !IsSome(place_kind) {
-        Die("semantic call argument place fact is missing");
-    }
-    let carried_place_kind: Int = UnwrapOption(place_kind);
-    let addressable: Bool = SemanticExpressionPlaceKindAddressable(
-        carried_place_kind
-    );
-    let direct_binding: Bool =
-        SemanticExpressionPlaceKindDirectBinding(carried_place_kind);
-    if mode == "inout" {
-        if !direct_binding {
-            Die(Concat("inout argument must be a variable: ", source));
-        }
-        return Concat("&", rendered);
-    }
-    if mode == "ref" {
-        let already_ref: Bool = carried_place_kind ==
-            SemanticExpressionPlaceReadonlyRefBinding();
-        if already_ref {
-            let c_name: Option<String> = TypeEnvReadonlyRefCName(env, source);
-            if !IsSome(c_name) {
-                Die(Concat("readonly ref binding fact missing: ", source));
-            }
-            return UnwrapOption(c_name);
-        }
-        if !addressable {
-            Die(Concat("ref argument must be addressable: ", source));
-        }
-        return Concat("&", rendered);
-    }
-    return rendered;
-}
 
 func RewriteSemanticStructCall(
     graph: SemanticExpressionGraphFacts,
@@ -442,6 +395,11 @@ func RewriteSemanticDirectCall(
         Die("semantic direct-call target fact is missing");
     }
     let source_name: String = UnwrapOption(target_name);
+    if source_name == "ListPush" || source_name == "ListGet" ||
+        source_name == "ListSet" || source_name == "ListRemove" ||
+        source_name == "ListSize" {
+        return RewriteSemanticListCall(graph, view, source_name, env);
+    }
     if source_name == "ClaimSlot" || source_name == "Read" ||
         source_name == "Write" || source_name == "Release" {
         return RewriteSemanticSlotCall(graph, view, source_name, env);

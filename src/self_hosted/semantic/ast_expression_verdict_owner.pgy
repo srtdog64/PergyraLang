@@ -141,6 +141,17 @@ func SemanticAstExpressionVerdictFromGraph(
             text, "Unknown"
         );
     }
+    let list_call: SemanticExpressionGraphListCallFact =
+        SemanticExpressionGraphListCallFactFromGraph(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if list_call.applies && !list_call.ok {
+        return SemanticAstExpressionVerdict(
+            false, list_call.diagnostic_code,
+            list_call.diagnostic_message, text, "Unknown"
+        );
+    }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
             graph, root_id, names, types, modes

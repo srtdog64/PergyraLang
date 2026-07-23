@@ -262,3 +262,11 @@ The self-host declaration consumer then hands the verified fingerprints and
 grant window to `machine_layer_runtime_binding_owner.pgy`, which emits the
 same mapping bind at `Main` startup; it does not create a second physical fact
 owner or a backend-local target default.
+
+For the `List<T>` operation seam, `ast_expression_graph_resolved_call_type_owner.pgy`
+owns direct target, receiver, arity, index/value, and return-type facts;
+`list_runtime_owner.pgy` owns the element-specific C operation symbols; and
+`list_call_emit_owner.pgy` is the last codegen consumer. The DRV-2
+`list_ops` row checks native/self MIR parity, emitted `pgy_list_*` symbols,
+runtime output, and rejection of a missing `collection_call_target` fact.
+Source-level List operation names are not a codegen fallback.
