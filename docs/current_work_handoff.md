@@ -9,10 +9,10 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `26a736934afc43ea60197e695ed2ddc183e8cb7b` on `main`.
+- Captured code HEAD: `4e4b5d9ab6bf6afcc81ed22152ec689540322e01` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 11 unstaged tracked entries and 51 untracked paths before this handoff
+  has 11 unstaged tracked entries and 62 untracked paths before this handoff
   refresh. The fixture-235-241, progress, codegen, parity, and component
   changes are concurrent work and remain unstaged; the retired Result-named
   parity owner is the tracked deletion. Preserve all of these paths
@@ -46,6 +46,14 @@ current owner fact and update this file after verification.
   rows and the driver consumes only the HIR carrier; missing or incomplete HIR
   carriage fails closed. The handoff refresh remains separate from the dirty
   fixture slice.
+- This session created and pushed `4e4b5d9a` for the first bounded semantic
+  retention-summary rung. `src/semantic/region_retention_summary.c` now owns
+  the `BuiltinKind` plus argument-position fact for `Print` borrowing, and the
+  region collector consumes that owner instead of checking `BUILTIN_PRINT`
+  directly. Unknown, missing, or non-first-argument summaries remain HEAP by
+  default. The focused region, self-host region-plan, component, authority,
+  and C/LLVM compiler-build gates were green; the handoff refresh is the next
+  separate commit.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -364,6 +372,13 @@ current owner fact and update this file after verification.
   validates allocation-site/function identity, and the driver consumes only
   the MIR carrier before AIR-gated plan materialization. This closure is
   committed and pushed as `26a73693`.
+- The next retention-summary follow-up moved the bounded `Print` argument
+  policy behind `src/semantic/region_retention_summary.c`; the collector now
+  asks that semantic owner for each argument and fails closed to HEAP when the
+  summary is absent, unknown, or not for the first argument. Its self-host
+  region-plan contract passed with 15 projection pins and 8 producer
+  rejections, and the component contract rejects a direct `BUILTIN_PRINT`
+  read in the collector.
 - Observed green gates for this slice are region unit, verified-plan unit,
   arena, C/LLVM backend wiring, self-host region-plan, component contract,
   alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
@@ -377,13 +392,16 @@ current owner fact and update this file after verification.
   LLVM-enabled/disabled compiler builds passed. The MIR-specific test gate
   passed with 152/152 tests, the self-host region-plan contract passed with
   14 projection pins and 8 producer rejections, and both compiler build lanes
-  passed.
+  passed. The retention-summary owner/collector slice then passed the region
+  escape and plan unit gates, the component contract, and the 15-pin/8-
+  rejection self-host region-plan contract.
 - This closes the semantic producer-to-HIR-to-MIR retention and driver
-  direct-read fallback seams. The `resource.region_allocation_plan` registry
-  row remains `BRIDGE` until broader semantic retention summaries and complete
-  region allocation ownership are migrated. Before widening the certified
-  class, preserve the explicit HEAP default and choose the next missing owner
-  fact with a falsifying fixture.
+  direct-read fallback seams, plus the first bounded semantic retention
+  summary. The `resource.region_allocation_plan` registry row remains `BRIDGE`
+  until general callee-parameter retention summaries and complete region
+  allocation ownership are migrated. Before widening the certified class,
+  preserve the explicit HEAP default and choose the next missing owner fact
+  with a falsifying fixture.
 
 ### 4. Runtime instance ownership rung
 
