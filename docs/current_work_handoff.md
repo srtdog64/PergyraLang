@@ -9,15 +9,31 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `15eb290393b52916c170a38b386dde4dc18504bf` on `main`.
+- Captured code HEAD: `2151b84026e0b0e7126f0c3bd8038d1f9925f3ba` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
-- The live worktree is dirty and the index is clean. The latest observed state
-  has 2 unstaged tracked entries and 46 untracked paths before this handoff
-  refresh. The pre-existing `stmt_emit.pgy` edit and the component contract's
-  concurrent region ratchet remain unstaged. The 235-245 fixture, progress,
-  MIR-lowering, and parity changes are now on `origin/main`. Preserve the
-  remaining paths separately. Build artifacts remain ignored; run `git status
-  --short --branch` before resuming because this count can change.
+- After the generic enum-payload SoT commit and this handoff refresh, the live
+  worktree remains dirty with one unstaged tracked component-contract hunk and
+  47 untracked probe/generated paths; the index is clean. The unstaged tracked
+  hunk is the concurrent region-contract ratchet and is intentionally separate.
+  The untracked paths are allocator/defer probes and the generated
+  `enum_option_payload.c` fixture artifact; preserve them. The generic enum
+  payload closure itself is on `origin/main` in `2151b840`. Build artifacts
+  remain ignored; run `git status --short --branch` before resuming because
+  concurrent work can change this count.
+- This session created and pushed `2151b840` for generic enum-payload
+  declaration/match SoT closure. Semantic enum payload rows now flow through
+  MIR declaration metadata and `param_types`, selfhost `mir_lower` validates
+  ordered concrete facts, and tagged codegen consumes the same owner for
+  constructors, tag conditions, and ordered payload bindings. MIR parity passed
+  for `enum_option_payload` and `enum_multi_payload`; C codegen parity passed
+  all 78 fixtures; component and match-binding gates passed. The tagged-enum
+  equality fixture remains a deliberate negative gate. Coq/Rocq was unavailable
+  locally, so authority smoke declared the formal model skip with
+  `PGY_ALLOW_MISSING_COQ=1` while live owner/consumer checks passed.
+- The next executable falsifier is direct DRV-2 source compilation of
+  `src/self_hosted/mir_lower/fixture/enum_multi_payload.pgy`, which currently
+  fails at the expression-graph validity boundary before payload codegen; this
+  is not recorded as a generic payload SoT failure.
 - This session created and pushed `c435b4c1` for the HIR region-fact carriage
   SoT closure. The HIR projection now owns stable copies of semantic region
   rows and the driver consumes only the HIR carrier; the semantic producer,
@@ -90,14 +106,31 @@ current owner fact and update this file after verification.
   pushed `beb7458f` for fixture 245, where the coalesce semantic owner carries
   `Array<Int> -> Option<Int> -> ?? -> loop phi`; 3-backend producer-first parity
   and component/shell gates passed. Both revisions are on `origin/main`.
-- This session then created and pushed `15eb2903` for fixture 246,
-  `coalesce_in_if_condition`. The existing coalesce semantic owner now has a
-  Boolean branch consumer covered by an indexed `Array<Int>` loop; the
-  direct-target, index, operator-kind, and loop-phi mutations fail closed.
-  Focused C/LLVM/fresh-hard parity, component, and shell gates passed. The
-  current code frontier is on `origin/main`; remaining tracked changes are
-  only the pre-existing statement-emission formatting and concurrent region
-  component ratchet.
+- This session then created and pushed `15eb2903` for manifest row 246,
+  `coalesce_in_if_condition`, and `93c04f46` refreshed the handoff. The existing
+  coalesce semantic owner has a Boolean branch consumer covered by an indexed
+  `Array<Int>` loop; the direct-target, index, operator-kind, and loop-phi
+  mutations fail closed. Focused C/LLVM/245-hard parity, component, and shell
+  gates passed. Because the pre-existing 245-hard driver already accepted the
+  row and `15eb2903` contains no Pergyra semantic implementation change, this is
+  coverage breadth rather than substitution progress. The counted executable
+  frontier remains fixture 245.
+- Concurrent work then created and pushed `ecb65c62` for manifest row 247,
+  `nested_coalesce_chain`. The pre-existing 245-hard driver accepts the normal
+  row, so this also remains a non-counting coverage ratchet rather than an
+  executable replacement. The row pins two direct `HalvedIfPositive` targets,
+  two nested `Option<Int> ?? Int` graph nodes, and fail-closed missing-target and
+  coalesce-kind mutations. Focused C, LLVM, and 245-hard producer-first parity,
+  shell syntax, and the current-tree component contract are green.
+- This dirty session closed the language-wide match-binding type carrier, not a
+  numbered fixture. Native semantic analysis records stable Option, Result, and
+  user-enum payload binding types; HIR and MIR copy the facts, MIR JSON reads
+  only the execution owner, and Pergyra `mir_lower` rejects missing/Unknown
+  rows and emits typed bindings. The real Pergyra path produced runtime `42`
+  equal to the native oracle. The numbered executable frontier is still 245;
+  the carrier is an additional executable integration rung. At that checkpoint
+  generic user-enum payload reconstruction was still open; commit `2151b840`
+  closes that later MIR→C/codegen SoT seam as recorded above.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -138,7 +171,7 @@ current owner fact and update this file after verification.
   errors and warnings. Focused gates `mir-lowering-api-test-smoke` and
   `runtime-context-test-smoke` pass after installing MSYS2 ripgrep.
 - After the documentation consistency corrections,
-  `sot-authority-edge-test-smoke` passes with `CLOSED=22 BRIDGE=20 ACTIVE=0`
+  `sot-authority-edge-test-smoke` passes with `CLOSED=23 BRIDGE=20 ACTIVE=0`
   and seven valid protocol rows with no duplicated authority;
   `self-host-substitution-velocity-test-smoke` also passes with the accepted
   nine-blocker executable-first process contract.
@@ -151,15 +184,37 @@ current owner fact and update this file after verification.
 ### 1. Hard self-host DRV-2 executable replacement
 
 - Resume owner: `src/self_hosted/PROGRESS.md`.
-- The current-tree closed executable frontier is fixture 246,
-  `coalesce_in_if_condition`, after `coalesce_accumulate_loop` fixture 245.
-  Focused C/LLVM/fresh-hard producer-first parity is green with the dedicated
-  Option<Bool>/coalesce/array-loop negative owner. Fixture 246 carries
-  `MaybeFlag(arr[i]): Option<Bool>` through `?? false` into an `if`; missing
-  direct target, index identity, coalesce operator, or loop-phi input fails
-  closed. The last complete unfiltered current-hard matrix remains 230/230;
-  released/default-driver replacement remains open, and fixture 247 has not
-  been selected.
+- The current-tree closed executable frontier is fixture 245,
+  `coalesce_accumulate_loop`. It is the latest rung with an observed rejection
+  by the previous hard driver and a Pergyra semantic implementation change that
+  replaces the failed path. Manifest row 246, `coalesce_in_if_condition`, is a
+  non-counting Option<Bool>/coalesce/array-loop coverage ratchet: its negative
+  owner is useful, but the pre-existing 245-hard driver already accepted it and
+  no semantic owner changed. Manifest row 247 is the same kind of non-counting
+  coverage for a nested `Option<Int>` coalesce chain; 245-hard also accepts it
+  without a semantic implementation change. The last complete unfiltered
+  current-hard matrix remains 230/230; released/default-driver replacement
+  remains open, and fixture 248 has not been selected.
+- Above that numbered fixture frontier, the language-wide
+  `semantic.match_binding_type` carrier is closed, and the generic enum-payload
+  declaration/match slice is now also closed in the MIR→C/codegen rung. Native
+  semantic rows, HIR/MIR copies, MIR JSON `param_types`, selfhost `mir_lower`
+  validation, and tagged C constructors/match bindings all use owner-directed
+  facts; missing, `Unknown`, singular-wire, and old payload-rejection paths are
+  negative-gated. `option_match` still reaches runtime output `42`, while the
+  enum payload fixtures cover one and multiple ordered bindings. Direct source
+  DRV-2 compilation of the multi-payload fixture remains the next expression-
+  graph falsifier and is not implied complete.
+- Focused evidence for that integration delta: native `Option`, `Result`, and
+  multi-arity enum MIR probes carry exact type rows;
+  `match-binding-type-fact-test-smoke` passes; the native MIR unit slice passes
+  `152/152`; C and LLVM compiler builds pass with pre-existing warnings; and
+  component, substitution-velocity, AST-to-MIR loss, and SoT authority gates
+  pass. An earlier unfiltered `mir_json_parity.sh` run stopped before
+  `option_match` on concurrent Pergyra codegen compile errors. The later
+  current-tree `option_match`-filtered lane passes end to end (`1 fixtures, 0
+  clean rejects`), so that compile blocker no longer reproduces on this slice.
+  The full unfiltered matrix was not rerun; do not report it as green.
 - The current whole-tree component contract is green. It briefly exposed an
   in-progress missing `hir->region_escape_facts` connection while the
   concurrent MIR-region slice was changing; the current dirty tree has closed
@@ -558,8 +613,9 @@ current owner fact and update this file after verification.
   closed. Component, shell syntax, diff, loop-flow, SoT authority,
   single-gate-owner, seven-row protocol-registry, and substitution-velocity
   gates pass. Full 245 remains an explicit budget omission, the last complete
-  unfiltered matrix is 230/230, and fixture 246 was selected and closed below.
-- Fixture 246,
+  unfiltered matrix is 230/230, and the next executable replacement rung has
+  not been selected. Row 246 below is coverage only.
+- Manifest row 246,
   `tests/cases/backend_compare/coalesce_in_if_condition/main.pgy`, carries
   `MaybeFlag(arr[i]): Option<Bool>` through `?? false` into a Boolean branch
   inside the `count`/`i` loop. The existing coalesce payload owner is the
@@ -567,8 +623,32 @@ current owner fact and update this file after verification.
   element, coalesce, and loop-phi facts and rejects missing target, index,
   operator-kind, and phi-input mutations. Focused C/LLVM/fresh-hard
   producer-first parity passes with `body_fixtures=20` and `mir_fixtures=1`;
-  runtime output is `3`, `0`, `1`. Component and shell syntax gates pass; full
-  246 remains an explicit budget omission and fixture 247 is not selected.
+  canonical MIR SHA-256 is
+  `CB6F19B233F03FC3C16551F9DEA57A80801020B509FB658E2601AE4B9CF79138`,
+  emitted-C SHA-256 is
+  `CDFFD8220B8FD9943D0DB116E55D1B687BB046BDB8E79EFB486A5DE6A0BF767B`,
+  and runtime output is `3`, `0`, `1`. Component and shell syntax gates pass.
+  The pre-existing 245-hard driver already accepted this row, and the slice has
+  no Pergyra semantic implementation delta, so it must not be counted as an
+  executable substitution frontier. The full 246-row manifest matrix remains
+  an explicit budget omission.
+- Manifest row 247,
+  `tests/cases/backend_compare/nested_coalesce_chain/main.pgy`, carries two
+  `HalvedIfPositive` calls through `Option<Int> ?? Int` into the local
+  `first -> second` value chain. The parity owner checks both graph nodes and
+  exactly two direct target facts; deleting a target or changing the first
+  coalesce node fails closed, with the latter pinned to
+  `initializer_type_unresolved` at the owned initializer boundary.
+- Focused C, LLVM, and pre-existing 245-hard producer-first parity pass with
+  `body_fixtures=20` and `mir_fixtures=1`. Hard canonical MIR SHA-256 is
+  `3C518BBC3E89A82FFA538F99F6E205F8F60A8A4E16DF18E6BA20283A0ACDF7CF`;
+  emitted-C SHA-256 is
+  `B5E682F33D9CED51C492C5C4ED6BDC5AC12A47CE21519457DFB7543BE8F50F6E`;
+  runtime output is `10`, `5`, `2`, `49`, `0`. Shell syntax and the current-tree
+  component contract pass. Because 245-hard accepts the normal row and no
+  Pergyra semantic implementation owner changed, row 247 is coverage only; it
+  does not move the counted executable frontier beyond 245. The next executable
+  replacement fixture has not been selected.
 - Fixture 233,
   `tests/cases/backend_compare/class_result_chain_loop/main.pgy`, carries a
   `Wizard` through `Result<Wizard,DraftErr>`, match-bound next state, match
@@ -722,9 +802,13 @@ current owner fact and update this file after verification.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
 3. Choose one active executable rung and write its objective card: owner, last
-   consumer, forbidden fallback, focused gate, and falsifying fixture.
+   consumer, forbidden fallback, focused gate, and falsifying fixture. For the
+   match track, the next falsifier is direct DRV-2 source compilation of
+   `enum_multi_payload.pgy`: resolve the expression-graph validity boundary
+   before extending payload behavior. Do not reintroduce a `Some`/`Ok`/`Err`
+   name switch or a variant-name type guess.
 4. Run the narrow owner gate first. For the current tree, useful focused gates
-   include `mir-lowering-api-test-smoke`,
+   include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
    `region-plan-unit-test-smoke`, `region-escape-unit-test-smoke`,
    `runtime-context-test-smoke`, and the selected DRV-2 producer-first parity
