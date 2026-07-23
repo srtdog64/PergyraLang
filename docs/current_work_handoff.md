@@ -9,12 +9,13 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `e3cc1375` (`Close LLVM call result type SoT`) on `main`.
-- `origin/main` is at the same revision `e3cc1375`.
-- The working tree has three intentional concurrent unstaged paths:
-  `src/codegen/llvm_expr_call_args.c`, `src/codegen/llvm_internal.h`, and the
-  concurrent hunk in `src/codegen/llvm_stmt_type_infer_call.c`; this handoff
-  refresh does not stage or claim those changes.
+- Captured code HEAD: `bccc5d50` (`Close LLVM runtime argument ABI ownership`)
+  on `main`.
+- `origin/main` was observed at `f5ef6cb9`; local `main` is one commit ahead.
+  No push was requested or performed in this session.
+- The working tree was clean at the code checkpoint. Preparing this navigation
+  refresh makes only `docs/current_work_handoff.md` dirty; there are no pending
+  source, test, or temporary-probe paths.
 - Commit `c2932d47` was created and pushed for the collection/let/try-let
   binding-consumer SoT follow-up. Collection mutation targets now require the
   owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
@@ -41,11 +42,15 @@ current owner fact and update this file after verification.
   `try-let`, range-loop, and foreach consumers use that fact. `EmitAssign` and
   the migrated statement emitters only consume owner-provided bindings; their
   symbol-owner import and target-text/name recovery paths are absent.
-- The latest SoT closure is `e3cc1375`: MIR source-local call-result facts own
-  `UnwrapOption(Option<T>)` payload typing, and LLVM call type inference reads
-  that active MIR owner. The assignment projection C/LLVM parity gate passed
-  all positive and missing-fact negatives; the 8-fixture C/LLVM codegen shard
-  passed `rung-0..21`.
+- The latest SoT closure is `bccc5d50`: the registered
+  `LLVMFuncEntry::fn_type` parameter is the runtime-call argument ABI owner.
+  `llvm_emit_function_call_args` scopes that exact LLVM type during argument
+  inference, restores the prior context, and rejects count or emitted-value
+  type drift before `LLVMBuildCall2`. The interim `e3cc1375` AST/MIR call
+  re-scan, direct `UnwrapOption` branch, and Option type-text helper were
+  removed; LLVM inference owns no helper-name policy. The assignment projection
+  C/LLVM parity gate passed all positive and missing-fact negatives, and the
+  8-fixture C/LLVM codegen shard passed `rung-0..21`.
 - Executable witnesses: the assignment projection probe emits its five pinned
   Option/scalar/indexed rows and rejects missing expected type, indexed target
   type, direct call target, and C binding. `owner_field_assignment` proves
@@ -55,14 +60,16 @@ current owner fact and update this file after verification.
   `collection-cref-only` proves a raw reference row is not accepted as a C
   binding. The focused array/loop/try codegen shard covers
   `array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`.
-- Fresh combined-tree evidence: the assignment projection C leg passes,
-  including the `collection-cref-only` negative. Focused C codegen parity
-  reports rung `0..21` green for the eight-fixture
+- Fresh combined-tree evidence: the wrapper-policy LLVM probe compiles and the
+  assignment projection C/LLVM legs pass, including the
+  `collection-cref-only` negative. Focused C/LLVM codegen parity reports rung
+  `0..21` green for the eight-fixture
   `array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`
   shard. Filtered producer-first DRV-2 for `class_with_array_param` reports
   `backends=1 body_fixtures=20 mir_fixtures=1`. MIR JSON coverage reports all
-  nine control/value probes PASS. Shell syntax, component
-  contract, hard-substitution contract, substitution-velocity contract,
+  nine control/value probes PASS. The LLVM-enabled compiler build, shell syntax,
+  performance contract, component contract, hard-substitution contract,
+  substitution-velocity contract,
   authority-edge (`43 authorities`, `38 derived`, `CLOSED=23 BRIDGE=20
   ACTIVE=0`), and live owner/negative-mutation adequacy pass. Coq/Rocq is
   unavailable, so the proof model was explicitly skipped and was not claimed
@@ -84,8 +91,10 @@ current owner fact and update this file after verification.
   semantic environment, MIR match rows, and independent contiguous payload
   projection graphs carry arbitrary arity without variant-name or arity
   switches. Tagged enum equality remains a deliberate negative semantic gate.
-- The prior active falsifier, LLVM `UnwrapOption` call-result inference, is
-  closed by `e3cc1375`. No next executable falsifier is selected from the
+- The prior active falsifier, LLVM `UnwrapOption` inference inside a registered
+  runtime-call argument, is closed by `bccc5d50` through the runtime ABI owner.
+  `e3cc1375` is retained in history as an interim C-owned AST re-inference path,
+  not as the final design. No next executable falsifier is selected from the
   passing focused gates; the full matrix remains an explicit budget omission.
   `tests/mir_declaration_inventory_smoke.sh` still has a pre-existing baseline
   failure for `src/codegen/transpiler.c` missing
@@ -862,11 +871,12 @@ current owner fact and update this file after verification.
 1. Run `git status --short --branch` and compare HEAD with this checkpoint.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
-3. Resume the observed LLVM assignment-probe failure. Write its objective card
-   only after locating the semantic/MIR owner of `UnwrapOption`'s concrete
-   result type and the last LLVM consumer. The forbidden fallback is a
-   call-name special case or text-derived return type; the focused gate is
-   `tests/self_hosted/parity/assignment_projection_probe_parity.sh`.
+3. Do not reopen the closed LLVM assignment probe. Select the next executable
+   falsifier from an actual failing self-host substitution rung, then write its
+   objective card with the missing fact, owner, last legitimate consumer,
+   forbidden fallback, and focused negative fixture. Prefer a real Pergyra
+   implementation replacing a C-owned compiler path over another SoT-only
+   cleanup.
 4. Run the narrow owner gate first. For the current tree, useful focused gates
    include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
