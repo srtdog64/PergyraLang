@@ -7,23 +7,72 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `67033cad` (`Close List foreach iteration
-  SoT`) is pushed; the executable checkpoint has `HEAD=origin/main` and a clean
-  worktree before this handoff refresh.
-- The committed DRV-2 manifest contains 273 MIR fixtures, with
-  `for_in_list_int` as the latest executable row and a missing-iteration-row
-  negative gate.
-- `7fdef5aa` closed the preceding `list_int_loop` ListGet return-type seam.
+- Latest executable implementation: `ec719baa` (`Close ListPush scalar
+  argument SoT`) is the local checkpoint. `origin/main` remains at `67033cad`;
+  the branch is two commits ahead before this handoff refresh.
+- The committed DRV-2 manifest contains 274 MIR fixtures, with
+  `list_push_get_loop` as the latest executable row. Missing multiply-edge and
+  mixed scalar-value mutations are its negative gates.
+- Two pre-existing/concurrent edits are intentionally preserved and are not
+  part of `ec719baa`:
+  `src/self_hosted/codegen/emission/stmt_emit.pgy` and
+  `src/self_hosted/codegen/emission/try_let_emit_owner.pgy`.
+- `67033cad` closed the preceding `for_in_list_int` iteration seam, and
+  `7fdef5aa` closed the earlier `list_int_loop` ListGet return-type seam.
 - The nested List path is executable: contextual `ListNew` resolves the
   declared `List<HashMap<String, Int>>`, self-host and native MIR agree, and
   emitted C compiles and runs.
 - Resume by verifying `git status --short --branch`, the registry rows
-  `selfhost.iteration_type_verdict`, `selfhost.expression_surface`, and
-  `selfhost.type_runtime_usage_surface`, plus the focused gate below.
+  `selfhost.expression_surface`, `selfhost.call_target_identity`, and
+  `selfhost.local_binding_statement_routing`, plus the focused gate below.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: ListPush scalar graph value typing
+
+Objective card:
+
+- Objective: admit arithmetic ListPush values from the parser-owned expression
+  graph without adding a List-local expression type system.
+- Priority: one scalar graph operator policy, List call validation, target/ABI
+  carriage, negative ratchet, then patch size.
+- Fact owner: `ast_expression_graph_scalar_shape_owner.pgy` owns the shared
+  scalar operator result policy; the last semantic consumer is
+  `SemanticExpressionGraphListCallFactFromResolvedTarget`.
+- Forbidden fallback: source-text arithmetic inference, a List-only scalar
+  taxonomy, fixture/name special cases, or backend type guessing.
+- Verification gate:
+  `driver_rung2_list_push_scalar_value_parity_owner.sh`; falsifiers remove the
+  multiply right edge and change the source value to `i * "bad"`.
+
+Observed closure:
+
+- Native/self MIR agree on direct `ListPush`, `i * i`, and local `i: Int`.
+- Self-host C emits `pgy_list_push_int`, `pgy_list_size_int`, and
+  `pgy_list_get_int`; native/self execution prints `5` then `55`.
+- Focused C and hard producer-first parity passed with
+  `body_fixtures=20 mir_fixtures=1`; the DRV-2 manifest is 274.
+- Full C codegen parity passed all 85 fixtures and all named negative/role
+  legs. Component, hard contract, authority edge, authority adequacy,
+  documentation quality, shell syntax, and `git diff --check` passed. The edge
+  registry remains 45 authorities and 40 derived carriers; Coq/Rocq was an
+  explicit declared skip because no prover is installed.
+- Commit `ec719baa` is local and not pushed. The full unfiltered 274-row DRV-2
+  matrix and LLVM lane were not run.
+
+## Next observed executable seam: lexical List shadow identity
+
+- Native MIR accepts
+  `tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy`; the current
+  self-host driver fails with `MIR shadowed local type changed: items`.
+- The fixture uses outer `items: List<Int>` and inner
+  `items: List<String>`, then resumes the outer binding after the branch.
+- Next objective: preserve parser/semantic binding identity and lexical scope
+  through routine SSA construction instead of indexing locals only by source
+  name. The first falsifiers are loss of the inner binding identity and failure
+  to restore the outer List ABI after block exit.
 
 ## Last closed executable family: List foreach iteration and ABI
 

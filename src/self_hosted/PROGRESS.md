@@ -1,5 +1,42 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra ListPush scalar graph value executable closure.
+Objective: carry the arithmetic value in `ListPush(xs, i * i)` through one
+parser-owned expression graph operator policy rather than teaching the List
+call owner a second scalar type system. Priority was shared scalar policy,
+List call validation, target/ABI carriage, fail-closed negative evidence, then
+patch size. Source-text arithmetic inference, fixture/name special cases, a
+List-local operator taxonomy, and backend type guessing are forbidden.
+
+`ast_expression_graph_scalar_shape_owner.pgy` now owns the common unary/binary
+scalar result policy used by the general scalar type owner and List call
+argument projection. `ast_expression_graph_resolved_call_type_owner.pgy`
+consumes that projection for receiver, index, and value validation. Native and
+self-host MIR agree on direct `ListPush`, multiply `i * i`, and `i: Int`;
+self-host C emits the element-specific List push/size/get ABI and both programs
+print `5` then `55`. Removing the multiply right edge and changing the value to
+`i * "bad"` both fail closed. Executable commit `ec719baa` is local, and the
+DRV-2 manifest contains 274 rows.
+
+Focused C and hard producer-first parity passed with
+`body_fixtures=20 mir_fixtures=1`. Full C codegen parity passed 85 fixtures plus
+the tagged-enum, event, temporary-ref, cyclic value/Result/nested
+Option<Result>, and role-operator legs. Component, hard-contract, authority
+edge, authority adequacy, documentation quality, shell syntax, and
+`git diff --check` passed. The edge gate reports 45 authorities, 40 derived
+carriers, `CLOSED=25 BRIDGE=20 ACTIVE=0`; Coq/Rocq was an explicit declared
+skip because no prover is installed. The full unfiltered 274-row DRV-2 matrix
+and LLVM lane were not run.
+
+The next observed executable seam is
+`tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy`. Native MIR
+accepts the outer `items: List<Int>` and inner `items: List<String>` scopes,
+then resumes the outer binding. The current self-host driver fails as
+`MIR shadowed local type changed: items` because routine SSA construction still
+indexes the local by source name. The next owner must carry parser/semantic
+binding identity through lexical scope entry/exit; loss of the inner identity
+and failure to restore the outer List ABI are the first falsifiers.
+
 2026-07-24 Pergyra List foreach executable closure.
 Objective: carry the semantic iteration row for `List<Int>` through self-host
 MIR reconstruction and project one canonical List size/get ABI in C codegen.
