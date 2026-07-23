@@ -9,10 +9,10 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `4e4b5d9ab6bf6afcc81ed22152ec689540322e01` on `main`.
+- Captured code HEAD: `7a5ea2d0019b585326efe5c7d9fb7a543bca30b9` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 11 unstaged tracked entries and 62 untracked paths before this handoff
+  has 12 unstaged tracked entries and 63 untracked paths before this handoff
   refresh. The fixture-235-241, progress, codegen, parity, and component
   changes are concurrent work and remain unstaged; the retired Result-named
   parity owner is the tracked deletion. Preserve all of these paths
@@ -54,6 +54,13 @@ current owner fact and update this file after verification.
   default. The focused region, self-host region-plan, component, authority,
   and C/LLVM compiler-build gates were green; the handoff refresh is the next
   separate commit.
+- This session then created and pushed `7a5ea2d0` to extend the same semantic
+  retention owner to synchronous `Log`, `LogRaw`, `LogBanner`, and `LogBlock`
+  consumers. The collector still reads only the summary owner; variadic `Log`
+  positions are accepted, while missing/unknown non-owner facts remain HEAP.
+  Region/plan unit gates and C/LLVM compiler builds passed. The full component
+  gate is currently blocked by concurrent `routine_fact_index_owner.pgy`
+  exceeding its 600-line cap; that unrelated change remains unstaged.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -379,6 +386,10 @@ current owner fact and update this file after verification.
   region-plan contract passed with 15 projection pins and 8 producer
   rejections, and the component contract rejects a direct `BUILTIN_PRINT`
   read in the collector.
+- The following retention-summary extension added synchronous `Log`, `LogRaw`,
+  `LogBanner`, and `LogBlock` consumers to the same owner. `Log` accepts all
+  argument positions; the other log consumers remain first-argument-only, and
+  absent or unknown summaries still fail closed to HEAP.
 - Observed green gates for this slice are region unit, verified-plan unit,
   arena, C/LLVM backend wiring, self-host region-plan, component contract,
   alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
@@ -392,16 +403,17 @@ current owner fact and update this file after verification.
   LLVM-enabled/disabled compiler builds passed. The MIR-specific test gate
   passed with 152/152 tests, the self-host region-plan contract passed with
   14 projection pins and 8 producer rejections, and both compiler build lanes
-  passed. The retention-summary owner/collector slice then passed the region
-  escape and plan unit gates, the component contract, and the 15-pin/8-
-  rejection self-host region-plan contract.
+  passed. The retention-summary owner/collector slice passed the region
+  escape and plan unit gates. The Log-family extension passed the region
+  escape/plan gates and both C/LLVM compiler builds. The aggregate component
+  gate stopped on the concurrent 613-line routine owner cap.
 - This closes the semantic producer-to-HIR-to-MIR retention and driver
-  direct-read fallback seams, plus the first bounded semantic retention
-  summary. The `resource.region_allocation_plan` registry row remains `BRIDGE`
-  until general callee-parameter retention summaries and complete region
-  allocation ownership are migrated. Before widening the certified class,
-  preserve the explicit HEAP default and choose the next missing owner fact
-  with a falsifying fixture.
+  direct-read fallback seams, plus the bounded synchronous-builtin retention
+  summary extension. The `resource.region_allocation_plan` row remains
+  `BRIDGE` until general callee-parameter retention summaries and complete
+  region allocation ownership are migrated. Before widening the certified
+  class, preserve the explicit HEAP default and choose the next missing owner
+  fact with a falsifying fixture.
 
 ### 4. Runtime instance ownership rung
 
