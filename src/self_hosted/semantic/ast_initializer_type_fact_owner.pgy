@@ -227,9 +227,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
             ) {
             inferred = "Int";
         }
-        if expression_verdict.ok &&
-            (inferred == "Unknown" || inferred == "") &&
-            IsSome(declared) &&
+        if expression_verdict.ok && IsSome(declared) &&
             SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                 expression_surfaces.expression_graph,
                 UnwrapOption(graph_root), UnwrapOption(declared),

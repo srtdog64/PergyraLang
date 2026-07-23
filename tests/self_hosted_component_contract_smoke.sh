@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 275;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 276;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 275'
+    'mir_fixture_rows[@]}" -ne 276'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4041,6 +4041,8 @@ require_file "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parit
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" 100
 require_file "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh" 100
+require_file "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_owner.sh" 100
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy" \
     "func SemanticExpressionGraphCallArgumentScalarTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
@@ -4470,11 +4472,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 275;"
+    "return 276;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 275'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 276'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4493,6 +4495,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_list_push_scalar_value"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_list_shadow_scope"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_list_literal_context"
 require_text "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" \
     "Code: initializer_type_unresolved"
 require_text "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" \
@@ -4505,10 +4509,20 @@ require_text "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parit
     '"kind":"multiply","text":"i * i"'
 require_text "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh" \
     'local declaration is missing its MIR ABI type fact'
+require_text "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_owner.sh" \
+    'Code: let_type_mismatch'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/list_literal_context/main.pgy"'
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
+require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
+    "func SemanticSequenceElementType("
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticExpressionGraphArrayLiteralMatchesDeclaredType("
+require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    'StartsWith(expected_type, "List<")'
 require_text "src/self_hosted/mir/routine_let_owner.pgy" \
     "SelfMirRoutineDeclareLocal("
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \

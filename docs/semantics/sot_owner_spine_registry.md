@@ -290,3 +290,13 @@ binding stack rather than a function-wide name table, so an inner
 restores the outer List ABI after the branch, and rejects a missing declaration
 ABI type fact. Source-name-only SSA lookup and backend type recovery remain
 forbidden.
+
+The contextual sequence-literal sub-rung keeps its fact owner at
+`ast_expression_graph_array_literal_owner.pgy` plus the dependency-light
+`SemanticSequenceElementType` shape owner. `ast_initializer_type_fact_owner.pgy`
+promotes a graph-verified `[ ... ]` initializer to the declared `List<T>` type;
+the composite emission owner consumes the declared List runtime ABI and emits
+the element-specific constructor/push symbols. The `list_literal_context`
+DRV-2 row proves `List<Int>`, `List<String>`, and empty `List<String>` values,
+rejects a mismatched element and a missing declaration ABI type, and does not
+promote the broader Queue surface, which remains the next open seam.

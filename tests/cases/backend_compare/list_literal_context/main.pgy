@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let nums: List<Int> = [3, 4, 5];
+    Log(ListSize(nums));
+    Log(ListGet(nums, 0));
+    Log(ListGet(nums, 2));
+
+    let names: List<String> = ["alpha", "beta"];
+    Log(ListSize(names));
+    Log(ListGet(names, 1));
+
+    let empty: List<String> = [];
+    Log(ListSize(empty));
+}

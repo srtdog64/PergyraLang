@@ -10,8 +10,33 @@ func SemanticArrayElementType(type_name: String) -> Option<String> {
     return None;
 }
 
+func SemanticSequenceElementType(type_name: String) -> Option<String> {
+    if IsSome(SemanticArrayElementType(type_name)) {
+        return SemanticArrayElementType(type_name);
+    }
+    let prefixes: Array<String> = ["Slice<", "List<", "Queue<"];
+    let i: Int = 0;
+    while i < ArrayLength(prefixes) {
+        let prefix: String = prefixes[i];
+        if StringLength(type_name) > StringLength(prefix) &&
+            StartsWith(type_name, prefix) &&
+            SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
+            return Some(Substring(
+                type_name, StringLength(prefix),
+                StringLength(type_name) - StringLength(prefix) - 1
+            ));
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
 func SemanticArrayTypeShapeContractReady() -> Bool {
     let element: Option<String> = SemanticArrayElementType("Array<Int>");
     return IsSome(element) && UnwrapOption(element) == "Int" &&
-        !IsSome(SemanticArrayElementType("Int"));
+        !IsSome(SemanticArrayElementType("Int")) &&
+        IsSome(SemanticSequenceElementType("List<Int>")) &&
+        UnwrapOption(SemanticSequenceElementType("Queue<String>")) ==
+            "String" &&
+        !IsSome(SemanticSequenceElementType("Int"));
 }

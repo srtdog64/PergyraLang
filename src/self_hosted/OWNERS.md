@@ -151,7 +151,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and parser expression-graph facts without source re-scanning
-  or projection-text recovery.
+  or projection-text recovery; declared List<T> sequence literals are
+  contextualized here from the graph-owned element compatibility fact.
 - `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy` --
   loop-body initializer refinement that consumes verified iteration binding
   facts after the header pass.
@@ -283,7 +284,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
   direct index-access verdicts.
 - `src/self_hosted/semantic/array_type_shape_owner.pgy` -- dependency-light
-  canonical `Array<T>` element projection shared by semantic and codegen views.
+  canonical sequence element projection for Array/Slice/List/Queue shared by
+  semantic and codegen views.
 - `src/self_hosted/semantic/tuple_type_shape_owner.pgy` -- canonical positional
   tuple arity and element-type projection consumed by destructure initializer
   typing; source-expression recovery and array-only fallback are forbidden.

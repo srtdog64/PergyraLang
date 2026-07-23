@@ -106,7 +106,7 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
     function_returns: Array<String>
 ) -> Bool {
     let element_type_opt: Option<String> =
-        SemanticArrayElementType(declared_type);
+        SemanticSequenceElementType(declared_type);
     if !IsSome(element_type_opt) { return false; }
     let view: SemanticArrayLiteralView =
         SemanticArrayLiteralViewFromGraph(graph, root_id);
@@ -116,7 +116,7 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
     while i < ArrayLength(view.element_nodes) {
         let element: Int = view.element_nodes[i];
         let nested_type: Option<String> =
-            SemanticArrayElementType(element_type);
+            SemanticSequenceElementType(element_type);
         if IsSome(nested_type) &&
             SemanticArrayLiteralViewFromGraph(graph, element).ok {
             if !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
