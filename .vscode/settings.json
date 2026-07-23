@@ -1,0 +1,38 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.associations": {
+    "*.pgy": "pergyra"
+  },
+  "pergyra.compilerPath": "bin/pgy.exe",
+  "pergyra.serverPath": "bin/pgy-lsp.exe",
+  "pergyra.runFlags": "--backend=c --run",
+  "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64",
+  "terminal.integrated.profiles.windows": {
+    "MSYS2 UCRT64": {
+      "path": "C:\\msys64\\usr\\bin\\bash.exe",
+      "args": [
+        "--login",
+        "-i"
+      ],
+      "env": {
+        "CHERE_INVOKING": "1",
+        "MSYSTEM": "UCRT64",
+        "MSYS2_PATH_TYPE": "inherit"
+      }
+    }
+  },
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.tmp/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/.tmp/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true
+  }
+}

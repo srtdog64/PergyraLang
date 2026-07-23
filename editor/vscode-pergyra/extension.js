@@ -87,6 +87,41 @@ function findInPath(binaryName) {
     return null;
 }
 
+function pgyProcessEnvironment() {
+    const env = { ...process.env };
+    if (!isWindows) {
+        return env;
+    }
+
+    const runtimeCandidates = [
+        'C:\\LLVM\\bin',
+        'C:\\Program Files\\LLVM\\bin',
+        'C:\\msys64\\ucrt64\\bin',
+        'C:\\msys64\\clang64\\bin',
+        'C:\\msys64\\mingw64\\bin',
+        'C:\\ProgramData\\mingw64\\mingw64\\bin',
+    ].filter((candidate) => {
+        try {
+            return fs.existsSync(candidate) && fs.statSync(candidate).isDirectory();
+        } catch {
+            return false;
+        }
+    });
+    const inherited = (env.PATH || '').split(path.delimiter).filter(Boolean);
+    const seen = new Set();
+    env.PATH = [...runtimeCandidates, ...inherited]
+        .filter((candidate) => {
+            const identity = candidate.toLowerCase();
+            if (seen.has(identity)) {
+                return false;
+            }
+            seen.add(identity);
+            return true;
+        })
+        .join(path.delimiter);
+    return env;
+}
+
 /**
  * Find pgy compiler path.
  * Priority: settings > workspace bin/pgy(.exe) > PATH
@@ -171,7 +206,7 @@ function runFile(filePath, flags) {
     channel.clear();
     channel.show(true);
     const compilerLabel = path.basename(compiler);
-    const spawnShell = isWindows || shouldUseShellForCompiler(compiler);
+    const spawnShell = shouldUseShellForCompiler(compiler);
 
     const folders = vscode.workspace.workspaceFolders;
     const cwd = (folders && folders.length > 0) ? folders[0].uri.fsPath : path.dirname(filePath);
@@ -186,6 +221,7 @@ function runFile(filePath, flags) {
         cwd,
         shell: spawnShell,
         windowsHide: true,
+        env: pgyProcessEnvironment(),
     });
     bindProcessHandlers(proc, channel);
 
@@ -199,8 +235,9 @@ function runFile(filePath, flags) {
                 attemptedFallback = true;
                 proc = cp.spawn(exeCandidate, args, {
                     cwd,
-                    shell: true,
+                    shell: false,
                     windowsHide: true,
+                    env: pgyProcessEnvironment(),
                 });
                 bindProcessHandlers(proc, channel);
                 proc.on('error', handleError);
@@ -241,7 +278,7 @@ function activate(context) {
         }
 
         editor.document.save().then(() => {
-            runFile(editor.document.fileName, '--compile');
+            runFile(editor.document.fileName, '--backend=c');
         });
     });
 

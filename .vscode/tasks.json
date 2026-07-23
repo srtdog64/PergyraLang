@@ -1,0 +1,113 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Pergyra: Build compiler",
+      "type": "process",
+      "command": "make",
+      "args": [
+        "-j1",
+        "pgy"
+      ],
+      "windows": {
+        "command": "C:\\msys64\\usr\\bin\\bash.exe",
+        "args": [
+          "-c",
+          "export PATH=/usr/bin:/ucrt64/bin:/mingw64/bin:$PATH; make -j1 pgy"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CHERE_INVOKING": "1",
+          "MSYSTEM": "UCRT64"
+        }
+      },
+      "problemMatcher": "$gcc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Pergyra: Focused self-host gates",
+      "type": "process",
+      "command": "make",
+      "args": [
+        "self-host-component-contract-test-smoke",
+        "self-host-hard-contract-test-smoke",
+        "self-host-substitution-velocity-test-smoke"
+      ],
+      "windows": {
+        "command": "C:\\msys64\\usr\\bin\\bash.exe",
+        "args": [
+          "-c",
+          "export PATH=/usr/bin:/ucrt64/bin:/mingw64/bin:$PATH; make self-host-component-contract-test-smoke self-host-hard-contract-test-smoke self-host-substitution-velocity-test-smoke"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CHERE_INVOKING": "1",
+          "MSYSTEM": "UCRT64"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pergyra: Documentation quality",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "tests/documentation_quality_smoke.sh"
+      ],
+      "windows": {
+        "command": "C:\\msys64\\usr\\bin\\bash.exe",
+        "args": [
+          "-c",
+          "export PATH=/usr/bin:/ucrt64/bin:/mingw64/bin:$PATH; bash tests/documentation_quality_smoke.sh"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CHERE_INVOKING": "1",
+          "MSYSTEM": "UCRT64"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pergyra: Verify VS Code extensions",
+      "type": "process",
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "editors/vscode",
+        "run",
+        "compile"
+      ],
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Pergyra: Check language extension JavaScript"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Pergyra: Check language extension JavaScript",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "--check",
+        "editor/vscode-pergyra/extension.js"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

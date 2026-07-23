@@ -643,7 +643,12 @@ If a build looks stale ("Nothing to be done" while sources changed), see
 
 - File extension: `.pgy`
 - TextMate scope: `source.pergyra`
-- VSCode extension: [editor/vscode-pergyra/](editor/vscode-pergyra/) (marketplace publication pending)
+- VS Code language extension: [editor/vscode-pergyra/](editor/vscode-pergyra/)
+  (marketplace publication pending)
+- Semantic squiggle/LSP client: [editors/vscode/](editors/vscode/)
+- Tracked [`.vscode/`](.vscode/) settings select the workspace-local compiler
+  and LSP, an MSYS2 UCRT64 terminal on Windows, and focused build/self-host/doc
+  tasks. F5 configurations run either extension in an Extension Host.
 - tree-sitter / Vim / Emacs: not yet provided
 
 ## GitHub Language Recognition

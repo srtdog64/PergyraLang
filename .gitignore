@@ -127,7 +127,11 @@ tests/cases/backend_compare/**/main.c
 *.swp
 *.swo
 *~
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 .DS_Store
 Thumbs.db

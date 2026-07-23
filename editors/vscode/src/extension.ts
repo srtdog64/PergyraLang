@@ -25,6 +25,8 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let client: LanguageClient | undefined;
 
@@ -39,6 +41,48 @@ const SQUIGGLE_COLORS: Record<SquiggleClass, string> = {
 /* Latest diagnostics per document, captured from the LSP publish stream. */
 const diagnosticsByUri = new Map<string, Diagnostic[]>();
 
+function resolveServerPath(configuredPath: string): string {
+  if (path.isAbsolute(configuredPath)) {
+    return configuredPath;
+  }
+  const root = workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (root !== undefined) {
+    const workspaceCandidate = path.join(root, configuredPath);
+    if (fs.existsSync(workspaceCandidate)) {
+      return workspaceCandidate;
+    }
+  }
+  return configuredPath;
+}
+
+function pgyServerEnvironment(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  if (process.platform !== 'win32') {
+    return env;
+  }
+  const runtimeCandidates = [
+    'C:\\LLVM\\bin',
+    'C:\\Program Files\\LLVM\\bin',
+    'C:\\msys64\\ucrt64\\bin',
+    'C:\\msys64\\clang64\\bin',
+    'C:\\msys64\\mingw64\\bin',
+    'C:\\ProgramData\\mingw64\\mingw64\\bin',
+  ].filter((candidate) => fs.existsSync(candidate));
+  const inherited = (env.PATH ?? '').split(path.delimiter).filter(Boolean);
+  const seen = new Set<string>();
+  env.PATH = [...runtimeCandidates, ...inherited]
+    .filter((candidate) => {
+      const identity = candidate.toLowerCase();
+      if (seen.has(identity)) {
+        return false;
+      }
+      seen.add(identity);
+      return true;
+    })
+    .join(path.delimiter);
+  return env;
+}
+
 export function activate(context: ExtensionContext): void {
   const decorations = {} as Record<SquiggleClass, TextEditorDecorationType>;
   (Object.keys(SQUIGGLE_COLORS) as SquiggleClass[]).forEach((cls) => {
@@ -48,13 +92,24 @@ export function activate(context: ExtensionContext): void {
     context.subscriptions.push(decorations[cls]);
   });
 
-  const serverPath = workspace
+  const configuredServerPath = workspace
     .getConfiguration('pergyra')
     .get<string>('serverPath', 'pgy-lsp');
+  const serverPath = resolveServerPath(configuredServerPath);
+  const serverOptionsEnvironment = pgyServerEnvironment();
+  const serverCwd = workspace.workspaceFolders?.[0]?.uri.fsPath;
 
   const serverOptions: ServerOptions = {
-    run: { command: serverPath, transport: TransportKind.stdio },
-    debug: { command: serverPath, transport: TransportKind.stdio },
+    run: {
+      command: serverPath,
+      transport: TransportKind.stdio,
+      options: { cwd: serverCwd, env: serverOptionsEnvironment },
+    },
+    debug: {
+      command: serverPath,
+      transport: TransportKind.stdio,
+      options: { cwd: serverCwd, env: serverOptionsEnvironment },
+    },
   };
 
   const clientOptions: LanguageClientOptions = {

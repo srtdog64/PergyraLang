@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 (2026-07-23)
+
+- Resolve workspace-relative compiler paths on Windows
+- Prepend discovered MSYS2/LLVM runtime directories when launching `pgy.exe`
+- Launch native executables without a command shell so paths remain stable
+- Use the supported C backend flag for the editor build command
+
 ## 0.3.0 (2026-04-06)
 
 - Run button (play icon) for `.pgy` files

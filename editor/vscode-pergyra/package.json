@@ -4,6 +4,23 @@
   "description": "Language support for Pergyra (.pgy)",
   "version": "0.3.1",
   "publisher": "pergyra",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/srtdog64/PergyraLang.git",
+    "directory": "editor/vscode-pergyra"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "extension.js",
+    "fileicons",
+    "icons",
+    "language-configuration.json",
+    "snippets",
+    "syntaxes"
+  ],
   "icon": "icons/pergyra-logo.png",
   "engines": {
     "vscode": "^1.80.0"

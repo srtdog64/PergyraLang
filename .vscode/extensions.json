@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "pergyra.pergyra-lang",
+    "pergyra.pergyra-semantic-squiggle",
+    "ms-vscode.cpptools",
+    "ms-vscode.makefile-tools",
+    "timonwong.shellcheck"
+  ]
+}

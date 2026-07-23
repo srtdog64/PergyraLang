@@ -1,0 +1,8 @@
+.vscode/**
+.vscode-test/**
+src/**
+tsconfig.json
+*.vsix
+node_modules/@types/**
+node_modules/@vscode/**
+node_modules/typescript/**
