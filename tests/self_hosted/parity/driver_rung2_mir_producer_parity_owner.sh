@@ -94,19 +94,15 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_class_enum_composition "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_nominal_builtin_collision "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_class_array_composition "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_collection_enum_match_loop \
-            "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_collection_option_coalesce_loop \
-            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_collection_enum_match_loop "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_collection_option_coalesce_loop "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_coalesce_bool_loop "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_generic_struct_value \
-            "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_inferred_generic_value \
-            "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_generic_member_specialization \
-            "$backend" "$base" "$self_mir_json" "$mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_generic_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_inferred_generic_value "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_generic_member_specialization "$backend" "$base" "$self_mir_json" "$mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_option_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_collection_mutation_graph "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_array_literal_graph "$backend" "$base" "$self_mir_json"

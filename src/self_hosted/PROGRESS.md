@@ -1,5 +1,24 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra Option-Bool coalesce-condition delta: DRV-2 MIR fixture 246
+is `coalesce_in_if_condition`. The typed `MaybeFlag(arr[i]): Option<Bool>` fact
+flows through `?? false` into an `if` inside the `count`/`i` array loop. This
+fixture extends the existing coalesce payload owner to the Boolean branch
+consumer; it adds no source reparse, fixture-name branch, native-MIR injection,
+backend reconstruction, or fallback inference. The dedicated parity owner
+checks the direct target, indexed element, coalesce graph, and loop phis, then
+rejects missing target, index identity, operator kind, and phi input mutations.
+
+Focused C, LLVM, and the freshly Pergyra-built 245-hard driver pass producer-
+first parity with `body_fixtures=20` and `mir_fixtures=1`. Hard native/self
+canonical MIR is byte-equal at SHA-256
+`CB6F19B233F03FC3C16551F9DEA57A80801020B509FB658E2601AE4B9CF79138`; hard
+oracle/self/source emitted C is byte-equal at SHA-256
+`CDFFD8220B8FD9943D0DB116E55D1B687BB046BDB8E79EFB486A5DE6A0BF767B`; runtime
+output is `3`, `0`, `1`. The focused component and shell-syntax gates pass.
+Full 246 remains omitted under the 30-minute budget; the last complete
+unfiltered matrix is 230/230 and fixture 247 is not selected.
+
 2026-07-23 Pergyra collection-option-coalesce-loop delta: DRV-2 MIR fixture
 245 is `coalesce_accumulate_loop`. The executable seam keeps the typed
 `Array<Int>` element identity through `ParityVal(arr[i]): Option<Int>`, the
@@ -8,12 +27,15 @@
 only when `OptionCoalescePayloadTypeOpt` proves the wrapped and fallback scalar
 types compatible; MIR and the parity owner consume that fact without source
 reparse, fixture-name branching, native-MIR injection, backend reconstruction,
-or fallback inference.
+or fallback inference. The previous 244-hard and its native-oracle bridge are
+the rejection witnesses: both classified the enclosing addition as `Int +
+Option<Int>` and failed with `binop_type_mismatch` instead of silently lowering
+the expression.
 
 Focused C, LLVM, and freshly Pergyra-built 245-hard producer-first parity pass
 with `body_fixtures=20` and `mir_fixtures=1`. The hard driver is
-`.tmp/bin_coalesce_accumulate_loop_245_probe/pgy-self-driver.exe`, SHA-256
-`3A53054266035DEFEDCDDBA3AB32C9FAA4B3404B7FB703DAFB6B62E57D18B894`, with a
+`.tmp/bin_coalesce_accumulate_loop_245_hard/pgy-self-driver.exe`, SHA-256
+`30D5204624512EEBDF39827F271E611AAC0C4AC73CAAA616CC4BC5729ED79ED3`, with a
 245-row manifest. Hard oracle/self canonical MIR is byte-equal at SHA-256
 `779AC39186B42C828EB671016B4A3D9B02FBAED97550F2BE899FF37A63E2B84D`; hard
 oracle/self/source emitted C is byte-equal at SHA-256
@@ -21,8 +43,11 @@ oracle/self/source emitted C is byte-equal at SHA-256
 runtime output is `117`, `18`, `-1`, `0`. Removing `ParityVal`, changing the
 index node to a leaf, changing `coalesce` to `logical_or`, or deleting a loop-
 phi input fails closed. The focused component and shell-syntax gates pass.
-The full 245-row matrix remains omitted under the 30-minute budget; the last
-complete unfiltered matrix is 230/230 and fixture 246 is not selected.
+The eight-fixture current-hard Option/coalesce/array impact shard, loop-flow,
+diff, SoT authority, single-gate-owner, seven-row protocol registry, and
+substitution-velocity gates also pass. The full 245-row matrix remains omitted
+under the 30-minute budget; the last complete unfiltered matrix is 230/230 and
+fixture 246 is not selected.
 
 2026-07-23 Pergyra collection-enum-match-loop delta: DRV-2 MIR fixture 244 is
 `array_match_action_sim`. The executable seam is intentionally whole-language:
@@ -58,7 +83,8 @@ stopped at the pre-existing `option_match` carrier gap: native MIR carries
 `match_bindings` but not `match_binding_types`, and the Pergyra renderer
 correctly refuses to infer the missing type. This is recorded as an open broader
 gate, not fixture-244 success. Full 244 remains omitted under the 30-minute
-budget; the last complete matrix is 230/230 and fixture 245 is not selected.
+budget; the last complete matrix is 230/230 and fixture 245 was not selected at
+that checkpoint.
 
 2026-07-23 Pergyra indexed-array-to-method composition delta: DRV-2 MIR
 fixture 243 is `class_param_method_arr`. `rates[i]` keeps its `Int` identity

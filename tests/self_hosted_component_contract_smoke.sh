@@ -3814,9 +3814,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 245;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 246;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 245'
+    'mir_fixture_rows[@]}" -ne 246'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3875,6 +3875,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/array_match_action_sim/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/coalesce_accumulate_loop/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/coalesce_in_if_condition/main.pgy"'
 require_file "tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh" 80
@@ -4159,11 +4161,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 245;"
+    "return 246;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 245'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 246'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4518,6 +4520,15 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_collection_option_coalesce_loop"
 require_text "tests/self_hosted/parity/driver_rung2_collection_option_coalesce_loop_parity_owner.sh" \
     'collection element -> Option call -> coalesce -> scalar loop state as one Pergyra seam'
+require_file "tests/self_hosted/parity/driver_rung2_coalesce_bool_loop_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_coalesce_bool_loop_parity_owner.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_coalesce_bool_loop_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_coalesce_bool_loop"
+require_text "tests/self_hosted/parity/driver_rung2_coalesce_bool_loop_parity_owner.sh" \
+    'Option<Bool> coalesce inside an indexed collection loop'
 require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
     'if kind == AstExpressionNodeCoalesce() {'
 require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
