@@ -74,6 +74,15 @@ func RewriteSemanticStructCall(
     env: CodegenTypeEnv
 ) -> String {
     let fields: String = LookupKindType(env, type_name, "fields");
+    if !LookupKindTypeRowPresent(env, type_name, "fields") {
+        Die(Concat("struct call field inventory is missing: ", type_name));
+    }
+    if ArrayLength(view.argument_nodes) == 0 {
+        if fields != "" {
+            Die(Concat("struct call argument fact is missing: ", type_name));
+        }
+        return Concat("(", Concat(AbiLayoutCStructTypeName(type_name), Concat("){ ", Concat(AbiLayoutCFieldlessNominalInitializer(), " }"))));
+    }
     let out: String = Concat(
         "(", Concat(AbiLayoutCStructTypeName(type_name), "){ ")
     );

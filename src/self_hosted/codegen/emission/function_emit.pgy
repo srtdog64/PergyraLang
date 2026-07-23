@@ -413,7 +413,11 @@ func CollectStructsSelected(
             ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
             field_index = field_index + 1;
         }
-        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(StringJoin(fields_c, ""), Concat("} ", Concat(c_sname, ";\n\n")))));
+        let field_block: String = StringJoin(fields_c, "");
+        if field_count == 0 {
+            field_block = AbiLayoutCFieldlessNominalFieldBlock();
+        }
+        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
         ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
         ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
         ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));

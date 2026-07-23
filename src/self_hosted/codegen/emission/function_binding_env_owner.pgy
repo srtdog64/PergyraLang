@@ -73,7 +73,7 @@ func CodegenFunctionOwnerFieldEnvRows(
 ) -> String {
     if owner_name == "" { return ""; }
     let fields: String = LookupKindType(env, owner_name, "fields");
-    if fields == "" {
+    if !LookupKindTypeRowPresent(env, owner_name, "fields") {
         Die("method owner field inventory is missing");
     }
     let rows: Array<String> = [];

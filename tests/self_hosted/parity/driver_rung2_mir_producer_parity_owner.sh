@@ -100,6 +100,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_nested_coalesce "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_result_field "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_string_concat_alias "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_fieldless_class "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
@@ -248,6 +249,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_result_field_emitted_c \
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_string_concat_alias_emitted_c \
+            "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_fieldless_class_emitted_c \
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_generic_struct_emitted_c \
             "$backend" "$base" "$self_actual"

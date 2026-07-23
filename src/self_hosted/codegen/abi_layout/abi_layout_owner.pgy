@@ -97,6 +97,14 @@ func AbiLayoutCStructTypeName(type_name: String) -> String {
     return CompilerSymbolCTypeName(type_name);
 }
 
+func AbiLayoutCFieldlessNominalFieldBlock() -> String {
+    return "    char _pgy_reserved;\n";
+}
+
+func AbiLayoutCFieldlessNominalInitializer() -> String {
+    return "0";
+}
+
 func AbiLayoutCReturnType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     if type_name == CompilerAbiLayoutVoidTypeName() {
         return CompilerAbiLayoutVoidCValueType();

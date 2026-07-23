@@ -55,6 +55,16 @@ func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
     return "";
 }
 
+func LookupKindTypeRowPresentRows(
+    rows: String, name: String, kind: String
+) -> Bool {
+    if name == "" || kind == "" { return false; }
+    let row_prefix: String = Concat(
+        "|", Concat(name, Concat("=", Concat(kind, ":")))
+    );
+    return StringIndexOf(rows, row_prefix) >= 0;
+}
+
 func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     // Preserve the flat owner's established first-row semantics while the
     // rows live in separate storage. Scope-aware shadowing needs typed scope
@@ -64,6 +74,13 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
         return global_value;
     }
     return LookupKindTypeRows(env.local_rows, name, kind);
+}
+
+func LookupKindTypeRowPresent(
+    env: CodegenTypeEnv, name: String, kind: String
+) -> Bool {
+    return LookupKindTypeRowPresentRows(env.global_rows, name, kind) ||
+        LookupKindTypeRowPresentRows(env.local_rows, name, kind);
 }
 
 func TypeEnvAppendLocalRows(
