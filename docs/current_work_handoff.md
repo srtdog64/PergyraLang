@@ -9,15 +9,15 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `beb7458f503cf78697c1b6f3dce6368a85cfd328` on `main`.
+- Captured code HEAD: `15eb290393b52916c170a38b386dde4dc18504bf` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 3 unstaged tracked entries and 46 untracked paths before this handoff
-  refresh. The handoff itself, the pre-existing `stmt_emit.pgy` edit, and the
-  component contract's concurrent region ratchet remain unstaged. The 235-245
-  fixture, progress, MIR-lowering, and parity changes are now on `origin/main`.
-  Preserve the remaining paths separately. Build artifacts remain ignored; run
-  `git status --short --branch` before resuming because this count can change.
+  has 2 unstaged tracked entries and 46 untracked paths before this handoff
+  refresh. The pre-existing `stmt_emit.pgy` edit and the component contract's
+  concurrent region ratchet remain unstaged. The 235-245 fixture, progress,
+  MIR-lowering, and parity changes are now on `origin/main`. Preserve the
+  remaining paths separately. Build artifacts remain ignored; run `git status
+  --short --branch` before resuming because this count can change.
 - This session created and pushed `c435b4c1` for the HIR region-fact carriage
   SoT closure. The HIR projection now owns stable copies of semantic region
   rows and the driver consumes only the HIR carrier; the semantic producer,
@@ -90,6 +90,14 @@ current owner fact and update this file after verification.
   pushed `beb7458f` for fixture 245, where the coalesce semantic owner carries
   `Array<Int> -> Option<Int> -> ?? -> loop phi`; 3-backend producer-first parity
   and component/shell gates passed. Both revisions are on `origin/main`.
+- This session then created and pushed `15eb2903` for fixture 246,
+  `coalesce_in_if_condition`. The existing coalesce semantic owner now has a
+  Boolean branch consumer covered by an indexed `Array<Int>` loop; the
+  direct-target, index, operator-kind, and loop-phi mutations fail closed.
+  Focused C/LLVM/fresh-hard parity, component, and shell gates passed. The
+  current code frontier is on `origin/main`; remaining tracked changes are
+  only the pre-existing statement-emission formatting and concurrent region
+  component ratchet.
 - Exact safe-directory exception: `D:/PergyraLang`. Repository-local
   `core.autocrlf=false` preserves the LF policy in `.gitattributes`.
 
@@ -143,14 +151,14 @@ current owner fact and update this file after verification.
 ### 1. Hard self-host DRV-2 executable replacement
 
 - Resume owner: `src/self_hosted/PROGRESS.md`.
-- The current-tree closed executable frontier is fixture 245,
-  `coalesce_accumulate_loop`, after `array_match_action_sim` fixture 244.
+- The current-tree closed executable frontier is fixture 246,
+  `coalesce_in_if_condition`, after `coalesce_accumulate_loop` fixture 245.
   Focused C/LLVM/fresh-hard producer-first parity is green with the dedicated
-  Option/coalesce/loop negative owner. Fixture 245 carries `Array<Int>` through
-  `ParityVal(arr[i]): Option<Int>`, `??`, and the `total`/`i` loop phis; missing
+  Option<Bool>/coalesce/array-loop negative owner. Fixture 246 carries
+  `MaybeFlag(arr[i]): Option<Bool>` through `?? false` into an `if`; missing
   direct target, index identity, coalesce operator, or loop-phi input fails
   closed. The last complete unfiltered current-hard matrix remains 230/230;
-  released/default-driver replacement remains open, and fixture 246 has not
+  released/default-driver replacement remains open, and fixture 247 has not
   been selected.
 - The current whole-tree component contract is green. It briefly exposed an
   in-progress missing `hir->region_escape_facts` connection while the
@@ -533,11 +541,34 @@ current owner fact and update this file after verification.
   coalesce node, and `total`/`i` loop state. The Pergyra semantic owner admits
   the coalesce only after `OptionCoalescePayloadTypeOpt` proves payload
   compatibility; no source reparse, fixture branch, native-MIR injection, or
-  backend fallback exists. Focused C/LLVM/fresh-hard producer-first parity
-  passes with `body_fixtures=20` and `mir_fixtures=1`; runtime output is
-  `117`, `18`, `-1`, `0`. Missing `ParityVal`, index identity, coalesce kind,
-  or a loop-phi input fails closed. The component and shell syntax gates pass;
-  full 245 remains an explicit budget omission and fixture 246 is not selected.
+  backend fallback exists. The previous 244-hard and native-oracle bridge both
+  reject the fixture with `binop_type_mismatch` (`Int + Option<Int>`), providing
+  the executable replacement witness.
+- Focused C/LLVM/fresh-hard producer-first parity passes with
+  `body_fixtures=20` and `mir_fixtures=1`; the eight-fixture current-hard
+  Option/coalesce/array impact shard also passes. The current-tree hard driver
+  is `.tmp/bin_coalesce_accumulate_loop_245_hard/pgy-self-driver.exe`, SHA-256
+  `30D5204624512EEBDF39827F271E611AAC0C4AC73CAAA616CC4BC5729ED79ED3`,
+  with 245 manifest rows. Hard oracle/self canonical MIR SHA-256 is
+  `779AC39186B42C828EB671016B4A3D9B02FBAED97550F2BE899FF37A63E2B84D`;
+  oracle/self/source emitted-C SHA-256 is
+  `2D044764A426ACF6AB5BFFE44D7E639668197CD44D8A74CD298817DD0ED0D549`;
+  runtime output is `117`, `18`, `-1`, `0`.
+- Missing `ParityVal`, index identity, coalesce kind, or a loop-phi input fails
+  closed. Component, shell syntax, diff, loop-flow, SoT authority,
+  single-gate-owner, seven-row protocol-registry, and substitution-velocity
+  gates pass. Full 245 remains an explicit budget omission, the last complete
+  unfiltered matrix is 230/230, and fixture 246 was selected and closed below.
+- Fixture 246,
+  `tests/cases/backend_compare/coalesce_in_if_condition/main.pgy`, carries
+  `MaybeFlag(arr[i]): Option<Bool>` through `?? false` into a Boolean branch
+  inside the `count`/`i` loop. The existing coalesce payload owner is the
+  semantic fact owner; the new parity owner consumes direct target, indexed
+  element, coalesce, and loop-phi facts and rejects missing target, index,
+  operator-kind, and phi-input mutations. Focused C/LLVM/fresh-hard
+  producer-first parity passes with `body_fixtures=20` and `mir_fixtures=1`;
+  runtime output is `3`, `0`, `1`. Component and shell syntax gates pass; full
+  246 remains an explicit budget omission and fixture 247 is not selected.
 - Fixture 233,
   `tests/cases/backend_compare/class_result_chain_loop/main.pgy`, carries a
   `Wizard` through `Result<Wizard,DraftErr>`, match-bound next state, match
