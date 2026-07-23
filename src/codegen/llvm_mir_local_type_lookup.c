@@ -8,7 +8,9 @@
 
 #include <string.h>
 
+#include "llvm_stmt_type_infer_helpers.h"
 #include "llvm_mir_type_helpers.h"
+#include "../compiler/mir_source_local_expr_types.h"
 #include "parser/ast_api.h"
 
 LLVMTypeRef
@@ -127,6 +129,33 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
     }
 
     return NULL;
+}
+
+LLVMTypeRef
+llvm_mir_local_array_access_type(const MIRRoutine *routine,
+                                 LLVMGenCtx *ctx,
+                                 ASTNode *expr)
+{
+    MIRSourceLocalTypeScratch scratch = {0};
+    const char *type_name;
+    LLVMTypeRef type;
+
+    if (routine == NULL || ctx == NULL || expr == NULL
+        || expr->type != AST_ARRAY_ACCESS || !llvm_active_has_mir(ctx)) {
+        return NULL;
+    }
+    type_name = mir_source_local_expr_type_name(
+        llvm_active_mir_identity(ctx), routine, &scratch, expr);
+    if (type_name == NULL || type_name[0] == '\0') {
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "MIR source-local array access type fact is missing");
+    }
+    type = pergyra_type_to_llvm(ctx, type_name);
+    if (type == NULL) {
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "MIR source-local array access type fact is not representable");
+    }
+    return type;
 }
 
 #endif

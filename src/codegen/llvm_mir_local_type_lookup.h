@@ -13,5 +13,8 @@ ASTNode *llvm_mir_local_initializer_expr(ASTNode *expr);
 LLVMTypeRef llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
                                                 LLVMMirVar *vars,
                                                 size_t var_count);
+LLVMTypeRef llvm_mir_local_array_access_type(const MIRRoutine *routine,
+                                             LLVMGenCtx *ctx,
+                                             ASTNode *expr);
 
 #endif

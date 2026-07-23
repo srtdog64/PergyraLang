@@ -6,11 +6,16 @@
 
 #include "llvm_expr_emit_support.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_local_type_lookup.h"
 
 LLVMValueRef
 llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     ASTNode *array_node = ast_array_access_array(node);
+    LLVMTypeRef owner_elem_type = llvm_mir_local_array_access_type(
+        ctx != NULL ? ctx->current_mir_routine : NULL, ctx, node);
+    if (ctx != NULL && ctx->has_error)
+        return NULL;
     LLVMValueRef arr = llvm_emit_expression(array_node, ctx);
     LLVMValueRef idx = llvm_emit_expression(ast_array_access_index(node), ctx);
     if (arr == NULL || idx == NULL)
@@ -23,7 +28,9 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
         bool has_arr_var = llvm_scope_lookup_snapshot(ctx, name, &arr_var);
         LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
         if (has_arr_var && entry != NULL) {
-            const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+            LLVMTypeRef elem_type = owner_elem_type != NULL
+                ? owner_elem_type : entry->elem_type;
+            const char *suffix = llvm_type_to_suffix(ctx, elem_type);
             bool use_raw_nominal = (suffix == NULL
                 || strcmp(suffix, "Unknown") == 0)
                 && entry->elem_name != NULL && entry->elem_name[0] != '\0';
@@ -33,7 +40,7 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
                     arr_var.type, arr_var.alloca, llvm_tmp_name(ctx));
                 LLVMValueRef inlined = llvm_emit_inline_array_get(ctx,
-                    aggregate, entry->elem_type, idx, struct_name);
+                    aggregate, elem_type, idx, struct_name);
                 if (inlined != NULL)
                     return inlined;
                 if (ctx->has_error)
@@ -51,12 +58,12 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
                     if (LLVMTypeOf(index64) != ctx->type_i64)
                         index64 = LLVMBuildSExtOrBitCast(ctx->builder,
                             index64, ctx->type_i64, llvm_tmp_name(ctx));
-                    elem_size = LLVMSizeOf(entry->elem_type);
+                    elem_size = LLVMSizeOf(elem_type);
                     if (LLVMTypeOf(elem_size) != ctx->type_i64)
                         elem_size = LLVMBuildZExtOrBitCast(ctx->builder,
                             elem_size, ctx->type_i64, llvm_tmp_name(ctx));
                     out_alloca = llvm_create_entry_alloca(ctx,
-                        entry->elem_type, llvm_tmp_name(ctx));
+                        elem_type, llvm_tmp_name(ctx));
                     args[0] = LLVMBuildBitCast(ctx->builder, arr_var.alloca,
                         ctx->type_i8ptr, llvm_tmp_name(ctx));
                     args[1] = index64;
@@ -65,7 +72,7 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
                     args[3] = elem_size;
                     LLVMBuildCall2(ctx->builder, raw_get_fn->fn_type,
                         raw_get_fn->fn, args, 4, "");
-                    return LLVMBuildLoad2(ctx->builder, entry->elem_type,
+                    return LLVMBuildLoad2(ctx->builder, elem_type,
                         out_alloca, llvm_tmp_name(ctx));
                 }
                 {
@@ -139,8 +146,9 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
                 return NULL;
 
             data_ptr = llvm_array_data_ptr(ctx, arr);
-            elem_ty = llvm_stmt_resolve_array_elem_type(
-                ctx, array_node, data_ptr);
+            elem_ty = owner_elem_type != NULL
+                ? owner_elem_type
+                : llvm_stmt_resolve_array_elem_type(ctx, array_node, data_ptr);
             if (elem_ty == NULL)
                 return llvm_expression_error(ctx, node,
                     "LLVM aggregate array access requires concrete element metadata");
