@@ -14,6 +14,7 @@ import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_binding_rewrite_owner.pgy";
+import "function_binding_env_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 import "literal_rewrite.pgy";
 import "array_value_emit_owner.pgy";
@@ -280,7 +281,7 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Codeg
                 cval = IntEval(val, env);
             } else if StartsWith(ftype, "Array<") {
                 let array_kind: String =
-                    CollectionRuntimeFactFromTypeName(ftype, env).kind;
+                    CodegenBindingEnvKind(ftype, env.global_rows);
                 let array_val: String = StringTrim(val);
                 if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
                     cval = EmitArrayLiteralValue(array_val, ftype, env);

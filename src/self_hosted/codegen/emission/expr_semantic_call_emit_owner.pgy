@@ -16,6 +16,7 @@ import "list_call_emit_owner.pgy";
 import "queue_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
+import "function_binding_env_owner.pgy";
 
 func RewriteSemanticStructCall(
     graph: SemanticExpressionGraphFacts,
@@ -517,11 +518,9 @@ func RewriteSemanticDirectCall(
         if !IsSome(array_type) {
             Die("ArrayLength argument type fact is missing");
         }
-        let array_kind: String = UnwrapOption(array_type);
-        if StartsWith(array_kind, "Array<") {
-            array_kind =
-                CollectionRuntimeFactFromTypeName(array_kind, env).kind;
-        }
+        let array_kind: String = CodegenBindingEnvKind(
+            UnwrapOption(array_type), env.global_rows
+        );
         call_symbol =
             CollectionRuntimeFactFromKind(array_kind, env).c_len_fn;
     } else {

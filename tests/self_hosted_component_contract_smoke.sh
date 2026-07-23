@@ -5931,6 +5931,18 @@ reject_function_text "src/self_hosted/codegen/emission/function_binding_env_owne
 require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
     "CodegenFunctionValueBindingFactFor("
 reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "CompilerSymbolCBindingName("
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" \
+    "CodegenBindingEnvKind(ftype, env.global_rows)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" \
+    "CollectionRuntimeFactFromTypeName(ftype, env).kind"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" \
+    "CodegenBindingEnvKind(ftype, env.global_rows)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" \
+    "CollectionRuntimeFactFromTypeName(ftype, env).kind"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CodegenBindingEnvKind("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CollectionRuntimeFactFromTypeName(array_kind, env).kind"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachCollectionTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachIndexTempName(loop_var)"
@@ -6905,11 +6917,11 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StringIndexOf(p
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringIndexOf(part, ": ")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CsvAt(field_names, field_pos)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CsvAt(field_names, field_pos)"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeFactFromTypeName(ftype, env).kind"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CodegenBindingEnvKind(ftype, env.global_rows)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CollectionRuntimeFactFromTypeName(ftype, env).kind"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CodegenBindingEnvKind(ftype, env.global_rows)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, p, "e")'
