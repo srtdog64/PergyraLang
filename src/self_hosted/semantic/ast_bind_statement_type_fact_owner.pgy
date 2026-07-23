@@ -1,0 +1,43 @@
+// Party role-slot bind verdicts from nominal, role, and local environment facts.
+
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_role_fact_owner.pgy";
+import "env_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstBindStatementTypeVerdict {
+    verified: Int;
+    diagnostic_code: String;
+    diagnostic_message: String;
+}
+
+func SemanticAstBindStatementTypeVerdictFor(
+    constructors: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    names: Array<String>,
+    types: Array<String>,
+    party_binding: String,
+    role_name: String,
+    slot_name: String
+) -> SemanticAstBindStatementTypeVerdict {
+    let party_type: String = EnvLookup(names, types, party_binding);
+    let ability_type: Option<String> = SemanticAstNominalFieldType(
+        constructors, party_type, slot_name
+    );
+    if party_binding == "" || role_name == "" || slot_name == "" ||
+        party_type == "" || !IsSome(ability_type) ||
+        !SemanticAstRoleImplementsAbility(
+            roles, role_name, UnwrapOption(ability_type)
+        ) {
+        return SemanticAstBindStatementTypeVerdict(
+            0, "statement_type_unresolved",
+            SemanticError3(
+                "statement_type_unresolved",
+                "party", party_binding,
+                "slot", slot_name,
+                "role", role_name
+            )
+        );
+    }
+    return SemanticAstBindStatementTypeVerdict(1, "", "");
+}

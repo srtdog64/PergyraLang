@@ -11,6 +11,9 @@ func SelfMirInstructionRowsValidationError(
     if ArrayLength(rows.results) != count { return "result row count differs"; }
     if ArrayLength(rows.arg0s) != count { return "arg0 row count differs"; }
     if ArrayLength(rows.arg1s) != count { return "arg1 row count differs"; }
+    if ArrayLength(rows.slot_anchors) != count {
+        return "slot-anchor row count differs";
+    }
     if ArrayLength(rows.expr0s) != count { return "expr0 row count differs"; }
     if ArrayLength(rows.expr1s) != count { return "expr1 row count differs"; }
     if ArrayLength(rows.source_types) != count {
@@ -104,8 +107,23 @@ func SelfMirInstructionRowsValidationError(
              rows.source_types[i] == "") {
             return Concat(row_prefix, " definition payload is incomplete");
         }
-        if kind == "stmt" && rows.expr0s[i] == "" {
+        let ability_bind: Bool = kind == "stmt" &&
+            rows.source_types[i] == "AST_BIND_STMT" &&
+            rows.names[i] == "bind" && rows.arg0s[i] != "" &&
+            rows.arg1s[i] != "" && rows.slot_anchors[i] != "";
+        if kind == "stmt" && rows.expr0s[i] == "" && !ability_bind {
             return Concat(row_prefix, " statement payload is empty");
+        }
+        if rows.source_types[i] == "AST_BIND_STMT" && !ability_bind {
+            return Concat(
+                row_prefix, " ability-bind slot fact is missing or invalid"
+            );
+        }
+        if rows.source_types[i] != "AST_BIND_STMT" &&
+            rows.slot_anchors[i] != "" {
+            return Concat(
+                row_prefix, " slot anchor is attached to a non-bind row"
+            );
         }
         let typed_defer: Bool = kind == "stmt" &&
             (rows.arg0s[i] == "Log" || rows.arg0s[i] == "Call") &&

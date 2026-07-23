@@ -61,7 +61,7 @@ pgy_selfhost_verify_driver_rung2_generic_default_contract_emitted_c() {
 
     for term in \
         'long long value;' \
-        'void IntBuffer_Put(long long value)' \
+        'void IntBuffer_Put(void *_pgy_raw_self, long long value)' \
         'void Bag_Save(Bag self)' \
         'Bag_Save(bag);'; do
         grep -Fq "$term" "$emitted_c" || {

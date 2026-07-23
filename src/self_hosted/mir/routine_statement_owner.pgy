@@ -10,7 +10,8 @@ func SelfMirSimpleStatementKind(kind: Int) -> Bool {
         kind == TypedAstKindArrayPopStmtTag() ||
         kind == TypedAstKindArraySetStmtTag() ||
         kind == TypedAstKindArrayPushStmtTag() ||
-        kind == TypedAstKindExitStmtTag();
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindBindStmtTag();
 }
 
 func SelfMirSimpleStatementExpressionGraphLane(
@@ -37,6 +38,25 @@ func SelfMirLowerSimpleStatement(
     value_payload: String,
     auxiliary_payload: String
 ) -> SelfMirRoutineBuild {
+    if kind == TypedAstKindBindStmtTag() {
+        if payload == "" || value_payload == "" ||
+            auxiliary_payload == "" {
+            return SelfMirRoutineBuildError(
+                build, "ability bind is missing party/slot/role facts"
+            );
+        }
+        let bind_uses: Array<String> = [];
+        build = SelfMirRoutineAddInstruction(
+            build, "stmt", "bind", "", payload, value_payload,
+            "", "", "AST_BIND_STMT", bind_uses
+        );
+        return SelfMirRoutineWithCfg(
+            build,
+            SelfMirCfgAttachLastSlotAnchor(
+                build.cfg, auxiliary_payload
+            )
+        );
+    }
     let expression: String = payload;
     let secondary_expression: String = "";
     let arg0: String = "";

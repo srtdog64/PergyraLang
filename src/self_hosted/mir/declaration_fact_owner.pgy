@@ -1,0 +1,53 @@
+// Flat MIR declaration rows shared by producer, verifier, JSON, and lowering.
+
+struct SelfMirDeclarationRows {
+    kinds: Array<String>;
+    nominal_kinds: Array<String>;
+    names: Array<String>;
+    target_types: Array<String>;
+    field_starts: Array<Int>;
+    field_counts: Array<Int>;
+    field_names: Array<String>;
+    field_types: Array<String>;
+    method_starts: Array<Int>;
+    method_counts: Array<Int>;
+    method_names: Array<String>;
+    method_returns: Array<String>;
+    variant_starts: Array<Int>;
+    variant_counts: Array<Int>;
+    variant_names: Array<String>;
+    variant_param_starts: Array<Int>;
+    variant_param_counts: Array<Int>;
+    variant_param_type_names: Array<String>;
+    generic_starts: Array<Int>;
+    generic_counts: Array<Int>;
+    generic_names: Array<String>;
+    generic_constraint_type_names: Array<String>;
+    generic_default_type_names: Array<String>;
+    method_param_starts: Array<Int>;
+    method_param_counts: Array<Int>;
+    method_param_names: Array<String>;
+    method_param_type_names: Array<String>;
+    role_slot_starts: Array<Int>;
+    role_slot_counts: Array<Int>;
+    role_slot_names: Array<String>;
+    role_slot_type_names: Array<String>;
+    role_slot_dynamic: Array<Int>;
+    role_impl_starts: Array<Int>;
+    role_impl_counts: Array<Int>;
+    role_impl_ability_names: Array<String>;
+    role_impl_method_starts: Array<Int>;
+    role_impl_method_counts: Array<Int>;
+}
+func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirDeclarationRows(
+        strings, strings, strings, strings, ints, ints, strings, strings,
+        ints, ints, strings, strings, ints, ints, strings, ints, ints, strings,
+        ints, ints, strings, strings, strings,
+        ints, ints, strings, strings,
+        ints, ints, strings, strings, ints,
+        ints, ints, strings, ints, ints
+    );
+}

@@ -1,0 +1,110 @@
+// Structural verifier for flat MIR declaration row ranges.
+
+import "declaration_fact_owner.pgy";
+import "enum_declaration_verify_owner.pgy";
+
+func SelfMirDeclarationParallelCount(count: Int, rows: Array<Int>) -> Bool {
+    return ArrayLength(rows) == count;
+}
+func SelfMirDeclarationParallelStringCount(
+    count: Int, rows: Array<String>
+) -> Bool {
+    return ArrayLength(rows) == count;
+}
+
+func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
+    let count: Int = ArrayLength(rows.names);
+    if !SelfMirDeclarationParallelStringCount(count, rows.kinds) ||
+        !SelfMirDeclarationParallelStringCount(count, rows.nominal_kinds) ||
+        !SelfMirDeclarationParallelStringCount(count, rows.target_types) ||
+        !SelfMirDeclarationParallelCount(count, rows.field_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.field_counts) ||
+        !SelfMirDeclarationParallelCount(count, rows.method_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.method_counts) ||
+        !SelfMirDeclarationParallelCount(count, rows.variant_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.variant_counts) ||
+        !SelfMirDeclarationParallelCount(count, rows.generic_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.generic_counts) ||
+        !SelfMirDeclarationParallelCount(count, rows.role_slot_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.role_slot_counts) ||
+        !SelfMirDeclarationParallelCount(count, rows.role_impl_starts) ||
+        !SelfMirDeclarationParallelCount(count, rows.role_impl_counts) ||
+        ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_param_starts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_param_counts) ||
+        ArrayLength(rows.method_param_names) !=
+            ArrayLength(rows.method_param_type_names) ||
+        ArrayLength(rows.generic_names) !=
+            ArrayLength(rows.generic_constraint_type_names) ||
+        ArrayLength(rows.generic_names) !=
+            ArrayLength(rows.generic_default_type_names) ||
+        ArrayLength(rows.role_slot_names) !=
+            ArrayLength(rows.role_slot_type_names) ||
+        ArrayLength(rows.role_slot_names) !=
+            ArrayLength(rows.role_slot_dynamic) ||
+        ArrayLength(rows.role_impl_ability_names) !=
+            ArrayLength(rows.role_impl_method_starts) ||
+        ArrayLength(rows.role_impl_ability_names) !=
+            ArrayLength(rows.role_impl_method_counts) ||
+        !SelfMirEnumDeclarationPayloadRowsReady(rows) {
+        return false;
+    }
+    let field_cursor: Int = 0;
+    let method_cursor: Int = 0;
+    let variant_cursor: Int = 0;
+    let generic_cursor: Int = 0;
+    let role_slot_cursor: Int = 0;
+    let role_impl_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if rows.names[i] == "" || rows.kinds[i] == "" ||
+            rows.nominal_kinds[i] == "" ||
+            (rows.kinds[i] == "role" && rows.target_types[i] == "") ||
+            rows.field_starts[i] != field_cursor || rows.field_counts[i] < 0 ||
+            rows.method_starts[i] != method_cursor ||
+            rows.method_counts[i] < 0 ||
+            rows.variant_starts[i] != variant_cursor ||
+            rows.variant_counts[i] < 0 ||
+            rows.generic_starts[i] != generic_cursor ||
+            rows.generic_counts[i] < 0 ||
+            rows.role_slot_starts[i] != role_slot_cursor ||
+            rows.role_slot_counts[i] < 0 ||
+            rows.role_impl_starts[i] != role_impl_cursor ||
+            rows.role_impl_counts[i] < 0 {
+            return false;
+        }
+        field_cursor = field_cursor + rows.field_counts[i];
+        method_cursor = method_cursor + rows.method_counts[i];
+        variant_cursor = variant_cursor + rows.variant_counts[i];
+        generic_cursor = generic_cursor + rows.generic_counts[i];
+        role_slot_cursor = role_slot_cursor + rows.role_slot_counts[i];
+        role_impl_cursor = role_impl_cursor + rows.role_impl_counts[i];
+        i = i + 1;
+    }
+    if field_cursor != ArrayLength(rows.field_names) ||
+        method_cursor != ArrayLength(rows.method_names) ||
+        variant_cursor != ArrayLength(rows.variant_names) ||
+        generic_cursor != ArrayLength(rows.generic_names) ||
+        role_slot_cursor != ArrayLength(rows.role_slot_names) ||
+        role_impl_cursor != ArrayLength(rows.role_impl_ability_names) {
+        return false;
+    }
+    let method_param_cursor: Int = 0;
+    i = 0;
+    while i < ArrayLength(rows.method_names) {
+        if rows.method_param_starts[i] != method_param_cursor ||
+            rows.method_param_counts[i] < 0 {
+            return false;
+        }
+        method_param_cursor = method_param_cursor +
+            rows.method_param_counts[i];
+        i = i + 1;
+    }
+    if method_param_cursor != ArrayLength(rows.method_param_names) {
+        return false;
+    }
+    return true;
+}

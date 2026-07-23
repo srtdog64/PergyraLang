@@ -3,7 +3,78 @@
 import "program_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 
+func SelfMirDeclarationSignatureIndexForNode(
+    signatures: SemanticAstFunctionSignatureFacts,
+    method_node_id: Int
+) -> Option<Int> {
+    return SemanticAstFunctionSignatureIndexForNode(
+        signatures, method_node_id
+    );
+}
+
+func SelfMirDeclarationRawReturnType(
+    artifact: AstTreeArtifact,
+    method_node_id: Int
+) -> String {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, method_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindReturnsTag()
+        ) {
+            let type_name: Option<String> = TypedAstArenaTypeName(
+                artifact.arena, child_id
+            );
+            if IsSome(type_name) { return UnwrapOption(type_name); }
+            return "";
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, method_node_id, child_index
+        );
+    }
+    return "";
+}
+
+func SelfMirDeclarationAppendMethodParams(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    method_node_id: Int,
+    inout method_param_starts: Array<Int>,
+    inout method_param_counts: Array<Int>,
+    inout method_param_names: Array<String>,
+    inout method_param_types: Array<String>
+) -> Bool {
+    let signature_index: Option<Int> =
+        SelfMirDeclarationSignatureIndexForNode(
+            signatures, method_node_id
+        );
+    if !IsSome(signature_index) { return false; }
+    let row: Int = UnwrapOption(signature_index);
+    let start: Int = ArrayLength(method_param_names);
+    let p: Int = 0;
+    while p < signatures.param_counts[row] {
+        let param_row: Int = signatures.param_starts[row] + p;
+        let param_node_id: Int = signatures.param_node_ids[param_row];
+        let raw_type: String = "";
+        let raw_type_opt: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, param_node_id
+        );
+        if IsSome(raw_type_opt) { raw_type = UnwrapOption(raw_type_opt); }
+        ArrayPush(method_param_names, signatures.param_names[param_row]);
+        ArrayPush(method_param_types, raw_type);
+        p = p + 1;
+    }
+    ArrayPush(method_param_starts, start);
+    ArrayPush(method_param_counts, ArrayLength(method_param_names) - start);
+    return true;
+}
+
 func SelfMirDeclarationsFromAnalysis(
+    artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     enum_facts: SemanticAstEnumFacts
 ) -> SelfMirDeclarationRows {
@@ -27,12 +98,34 @@ func SelfMirDeclarationsFromAnalysis(
     let variant_param_counts: Array<Int> = rows.variant_param_counts;
     let variant_param_type_names: Array<String> =
         rows.variant_param_type_names;
+    let generic_starts: Array<Int> = rows.generic_starts;
+    let generic_counts: Array<Int> = rows.generic_counts;
+    let generic_names: Array<String> = rows.generic_names;
+    let generic_constraints: Array<String> =
+        rows.generic_constraint_type_names;
+    let generic_defaults: Array<String> = rows.generic_default_type_names;
+    let method_param_starts: Array<Int> = rows.method_param_starts;
+    let method_param_counts: Array<Int> = rows.method_param_counts;
+    let method_param_names: Array<String> = rows.method_param_names;
+    let method_param_types: Array<String> = rows.method_param_type_names;
+    let role_slot_starts: Array<Int> = rows.role_slot_starts;
+    let role_slot_counts: Array<Int> = rows.role_slot_counts;
+    let role_slot_names: Array<String> = rows.role_slot_names;
+    let role_slot_types: Array<String> = rows.role_slot_type_names;
+    let role_slot_dynamic: Array<Int> = rows.role_slot_dynamic;
+    let role_impl_starts: Array<Int> = rows.role_impl_starts;
+    let role_impl_counts: Array<Int> = rows.role_impl_counts;
+    let role_impl_ability_names: Array<String> = rows.role_impl_ability_names;
+    let role_impl_method_starts: Array<Int> = rows.role_impl_method_starts;
+    let role_impl_method_counts: Array<Int> = rows.role_impl_method_counts;
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(analysis.constructors) {
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(names, analysis.constructors.names[i]);
         ArrayPush(target_types, "");
+        ArrayPush(generic_starts, ArrayLength(generic_names));
+        ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, analysis.constructors.param_counts[i]);
         let field_i: Int = 0;
@@ -64,11 +157,40 @@ func SelfMirDeclarationsFromAnalysis(
                     method_returns,
                     analysis.signatures.return_types[signature_i]
                 );
+                if !SelfMirDeclarationAppendMethodParams(
+                    artifact, analysis.signatures,
+                    analysis.signatures.function_node_ids[signature_i],
+                    method_param_starts, method_param_counts,
+                    method_param_names, method_param_types
+                ) {
+                    return SelfMirDeclarationRowsEmpty();
+                }
                 method_count = method_count + 1;
             }
             signature_i = signature_i + 1;
         }
         ArrayPush(method_counts, method_count);
+        ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
+        let role_slot_count: Int = 0;
+        let slot_i: Int = 0;
+        while slot_i < analysis.constructors.role_slot_counts[i] {
+            let slot_row: Int = analysis.constructors.role_slot_starts[i] +
+                slot_i;
+            ArrayPush(
+                role_slot_names,
+                analysis.constructors.role_slot_names[slot_row]
+            );
+            ArrayPush(
+                role_slot_types,
+                analysis.constructors.role_slot_type_names[slot_row]
+            );
+            ArrayPush(role_slot_dynamic, 1);
+            role_slot_count = role_slot_count + 1;
+            slot_i = slot_i + 1;
+        }
+        ArrayPush(role_slot_counts, role_slot_count);
+        ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
+        ArrayPush(role_impl_counts, 0);
         ArrayPush(variant_starts, ArrayLength(variant_names));
         ArrayPush(variant_counts, 0);
         i = i + 1;
@@ -86,8 +208,12 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, "role");
         ArrayPush(names, role_name);
         ArrayPush(target_types, target_type);
+        ArrayPush(generic_starts, ArrayLength(generic_names));
+        ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, 0);
+        ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
+        ArrayPush(role_slot_counts, 0);
         ArrayPush(method_starts, ArrayLength(method_names));
         let method_i: Int = 0;
         while method_i < method_count {
@@ -110,14 +236,114 @@ func SelfMirDeclarationsFromAnalysis(
             ArrayPush(method_names, analysis.signatures.names[signature_i]);
             ArrayPush(
                 method_returns,
-                analysis.signatures.return_types[signature_i]
+                SelfMirDeclarationRawReturnType(
+                    artifact, method_node_id
+                )
             );
+            if !SelfMirDeclarationAppendMethodParams(
+                artifact, analysis.signatures, method_node_id,
+                method_param_starts, method_param_counts,
+                method_param_names, method_param_types
+            ) {
+                return SelfMirDeclarationRowsEmpty();
+            }
             method_i = method_i + 1;
         }
         ArrayPush(method_counts, method_count);
+        ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
+        let impl_count: Int = analysis.roles.impl_counts[role_i];
+        if impl_count > 1 {
+            return SelfMirDeclarationRowsEmpty();
+        }
+        let impl_i: Int = 0;
+        while impl_i < impl_count {
+            ArrayPush(
+                role_impl_ability_names,
+                analysis.roles.impl_ability_names[
+                    analysis.roles.impl_starts[role_i] + impl_i
+                ]
+            );
+            ArrayPush(role_impl_method_starts, 0);
+            ArrayPush(role_impl_method_counts, method_count);
+            impl_i = impl_i + 1;
+        }
+        ArrayPush(role_impl_counts, impl_count);
         ArrayPush(variant_starts, ArrayLength(variant_names));
         ArrayPush(variant_counts, 0);
         role_i = role_i + 1;
+    }
+    let ability_i: Int = 0;
+    while ability_i < SemanticAstAbilityCount(analysis.roles) {
+        let ability_name: String = analysis.roles.ability_names[ability_i];
+        if ability_name == "" {
+            return SelfMirDeclarationRowsEmpty();
+        }
+        ArrayPush(kinds, "ability");
+        ArrayPush(nominal_kinds, "ability");
+        ArrayPush(names, ability_name);
+        ArrayPush(target_types, "");
+        ArrayPush(generic_starts, ArrayLength(generic_names));
+        let ability_generic_count: Int =
+            analysis.roles.ability_generic_counts[ability_i];
+        let ability_generic_i: Int = 0;
+        while ability_generic_i < ability_generic_count {
+            let generic_row: Int =
+                analysis.roles.ability_generic_starts[ability_i] +
+                ability_generic_i;
+            ArrayPush(
+                generic_names,
+                analysis.roles.ability_generic_names[generic_row]
+            );
+            ArrayPush(generic_constraints, "");
+            ArrayPush(
+                generic_defaults,
+                analysis.roles.ability_generic_default_type_names[generic_row]
+            );
+            ability_generic_i = ability_generic_i + 1;
+        }
+        ArrayPush(generic_counts, ability_generic_count);
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, 0);
+        ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
+        ArrayPush(role_slot_counts, 0);
+        ArrayPush(method_starts, ArrayLength(method_names));
+        let ability_method_count: Int =
+            analysis.roles.ability_method_counts[ability_i];
+        let ability_method_i: Int = 0;
+        while ability_method_i < ability_method_count {
+            let method_node_id: Int =
+                analysis.roles.ability_method_node_ids[
+                    analysis.roles.ability_method_starts[ability_i] +
+                    ability_method_i
+                ];
+            let signature_i_opt: Option<Int> =
+                SelfMirDeclarationSignatureIndexForNode(
+                    analysis.signatures, method_node_id
+                );
+            if !IsSome(signature_i_opt) {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            let signature_i: Int = UnwrapOption(signature_i_opt);
+            ArrayPush(method_names, analysis.signatures.names[signature_i]);
+            ArrayPush(
+                method_returns,
+                SelfMirDeclarationRawReturnType(artifact, method_node_id)
+            );
+            if !SelfMirDeclarationAppendMethodParams(
+                artifact, analysis.signatures, method_node_id,
+                method_param_starts, method_param_counts,
+                method_param_names, method_param_types
+            ) {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            ability_method_i = ability_method_i + 1;
+        }
+        ArrayPush(method_counts, ability_method_count);
+        ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
+        ArrayPush(role_impl_counts, 0);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        ArrayPush(variant_counts, 0);
+        ability_i = ability_i + 1;
     }
     let enum_i: Int = 0;
     while enum_i < ArrayLength(enum_facts.enum_names) {
@@ -126,10 +352,16 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, "enum");
         ArrayPush(names, enum_name);
         ArrayPush(target_types, "");
+        ArrayPush(generic_starts, ArrayLength(generic_names));
+        ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, 0);
+        ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
+        ArrayPush(role_slot_counts, 0);
         ArrayPush(method_starts, ArrayLength(method_names));
         ArrayPush(method_counts, 0);
+        ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
+        ArrayPush(role_impl_counts, 0);
         ArrayPush(variant_starts, ArrayLength(variant_names));
         let enum_variant_count: Int = 0;
         let variant_i: Int = 0;
@@ -175,6 +407,14 @@ func SelfMirDeclarationsFromAnalysis(
         field_names, field_types, method_starts, method_counts,
         method_names, method_returns, variant_starts, variant_counts,
         variant_names, variant_param_starts, variant_param_counts,
-        variant_param_type_names
+        variant_param_type_names,
+        generic_starts, generic_counts, generic_names,
+        generic_constraints, generic_defaults,
+        method_param_starts, method_param_counts,
+        method_param_names, method_param_types,
+        role_slot_starts, role_slot_counts, role_slot_names,
+        role_slot_types, role_slot_dynamic,
+        role_impl_starts, role_impl_counts, role_impl_ability_names,
+        role_impl_method_starts, role_impl_method_counts
     );
 }

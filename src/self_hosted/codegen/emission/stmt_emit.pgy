@@ -26,6 +26,7 @@ import "function_binding_env_owner.pgy";
 import "log_emit_owner.pgy";
 import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
+import "ability_bind_emit_owner.pgy";
 import "box_array_let_emit_owner.pgy";
 import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
@@ -198,11 +199,7 @@ func EmitLet(
     Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Option/struct/enum): ", type_name));
     return "";
 }
-// Emit the C for a sequence of statements at AST indentation `stmt_indent`,
-// starting at line cur[0]. `pad` is the C indentation prefix. `env_state`
-// carries global/local rows behind the CodegenTypeEnv owner.
-// the mutable variable type environment; `cur_fn_ret` is the enclosing
-// function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
+
 func EmitStmtList(count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
                   assignments: SemanticAstAssignmentFacts,
@@ -265,6 +262,14 @@ func EmitStmtList(count: Int, arena: AstArena,
                     ), env_state, assign_graph,
                     assign_target_graph
                 ), "\n"
+            )));
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindBindStmtTag()
+        ) {
+            ArrayPush(result, Concat(pad, Concat(
+                EmitAbilityBind(statements, idx, env), "\n"
             )));
             ArraySet(cur, 0, idx + 1); continue;
         }

@@ -1,0 +1,123 @@
+// Recursive statement-shape admission for program-level C emission.
+
+import "../text/text_owner.pgy";
+import "../input/ast_arena_codegen_view_owner.pgy";
+import "../input/semantic_local_binding_codegen_view_owner.pgy";
+import "../input/semantic_assignment_codegen_view_owner.pgy";
+import "../input/semantic_statement_codegen_view_owner.pgy";
+
+func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+                  local_bindings: SemanticAstLocalBindingFacts,
+                  assignments: SemanticAstAssignmentFacts,
+                  statements: SemanticAstStatementFacts,
+                  stmt_indent: Int, inout cur: Array<Int>) -> Bool {
+    while cur[0] < count {
+        let idx: Int = cur[0];
+        let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
+        if ind < stmt_indent {
+            return true;
+        }
+        if ind > stmt_indent {
+            Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
+        }
+        if CodegenSemanticLocalBindingIs(local_bindings, idx) ||
+            CodegenSemanticAssignmentIs(assignments, idx) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindContinueStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBindStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
+            ArraySet(cur, 0, idx + 1);
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindDeferStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindForStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindWhileStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindIfStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectThen(arena, count, cur);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 6, cur
+            );
+            if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
+                ArraySet(cur, 0, cur[0] + 1);
+                if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindIfStmtTag()
+                ) {
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, CodegenAstArenaIndentOrDie(arena, cur[0]), cur
+                    );
+                } else {
+                    CodegenAstArenaExpectBlock(arena, count, cur);
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, stmt_indent + 6, cur
+                    );
+                }
+            }
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindMatchStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            let match_case_count: Int = 0;
+            while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
+                if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindMatchCaseStmtTag()
+                ) {
+                    ArraySet(cur, 0, cur[0] + 1);
+                    CodegenAstArenaExpectBlock(arena, count, cur);
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, stmt_indent + 6, cur
+                    );
+                    match_case_count = match_case_count + 1;
+                } else if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindMatchDefaultStmtTag()
+                ) {
+                    Die("match default is not supported in self-host codegen subset");
+                } else {
+                    Die(Concat("expected match case in self-host codegen subset: ", CodegenAstTextProvenance(nodes[cur[0]])));
+                }
+            }
+            if match_case_count == 0 {
+                Die(Concat("match statement has no cases: ", CodegenAstTextProvenance(nodes[idx])));
+            }
+        } else {
+            Die(Concat("unsupported AST line in supported subset: ", CodegenAstTextProvenance(nodes[idx])));
+        }
+    }
+    return true;
+}

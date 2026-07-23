@@ -26,122 +26,10 @@ import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "type_declaration_emit_owner.pgy";
 import "generic_function_emit_owner.pgy";
+import "role_dispatch_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
+import "program_statement_shape_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
-func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
-                  local_bindings: SemanticAstLocalBindingFacts,
-                  assignments: SemanticAstAssignmentFacts,
-                  statements: SemanticAstStatementFacts,
-                  stmt_indent: Int, inout cur: Array<Int>) -> Bool {
-    while cur[0] < count {
-        let idx: Int = cur[0];
-        let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
-        if ind < stmt_indent {
-            return true;
-        }
-        if ind > stmt_indent {
-            Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
-        }
-        if CodegenSemanticLocalBindingIs(local_bindings, idx) ||
-            CodegenSemanticAssignmentIs(assignments, idx) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindContinueStmtTag()) ||
-            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(
-            statements, idx, TypedAstKindDeferStmtTag()
-        ) {
-            ArraySet(cur, 0, idx + 1);
-            CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(
-                nodes, count, arena, local_bindings, assignments, statements,
-                stmt_indent + 4, cur
-            );
-        } else if CodegenSemanticStatementIs(
-            statements, idx, TypedAstKindForStmtTag()
-        ) {
-            ArraySet(cur, 0, idx + 1);
-            CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(
-                nodes, count, arena, local_bindings, assignments, statements,
-                stmt_indent + 4, cur
-            );
-        } else if CodegenSemanticStatementIs(
-            statements, idx, TypedAstKindWhileStmtTag()
-        ) {
-            ArraySet(cur, 0, idx + 1);
-            CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(
-                nodes, count, arena, local_bindings, assignments, statements,
-                stmt_indent + 4, cur
-            );
-        } else if CodegenSemanticStatementIs(
-            statements, idx, TypedAstKindIfStmtTag()
-        ) {
-            ArraySet(cur, 0, idx + 1);
-            CodegenAstArenaExpectThen(arena, count, cur);
-            CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(
-                nodes, count, arena, local_bindings, assignments, statements,
-                stmt_indent + 6, cur
-            );
-            if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
-                ArraySet(cur, 0, cur[0] + 1);
-                if CodegenSemanticStatementIs(
-                    statements, cur[0], TypedAstKindIfStmtTag()
-                ) {
-                    CheckStmtList(
-                        nodes, count, arena, local_bindings, assignments,
-                        statements, CodegenAstArenaIndentOrDie(arena, cur[0]), cur
-                    );
-                } else {
-                    CodegenAstArenaExpectBlock(arena, count, cur);
-                    CheckStmtList(
-                        nodes, count, arena, local_bindings, assignments,
-                        statements, stmt_indent + 6, cur
-                    );
-                }
-            }
-        } else if CodegenSemanticStatementIs(
-            statements, idx, TypedAstKindMatchStmtTag()
-        ) {
-            ArraySet(cur, 0, idx + 1);
-            let match_case_count: Int = 0;
-            while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
-                if CodegenSemanticStatementIs(
-                    statements, cur[0], TypedAstKindMatchCaseStmtTag()
-                ) {
-                    ArraySet(cur, 0, cur[0] + 1);
-                    CodegenAstArenaExpectBlock(arena, count, cur);
-                    CheckStmtList(
-                        nodes, count, arena, local_bindings, assignments,
-                        statements, stmt_indent + 6, cur
-                    );
-                    match_case_count = match_case_count + 1;
-                } else if CodegenSemanticStatementIs(
-                    statements, cur[0], TypedAstKindMatchDefaultStmtTag()
-                ) {
-                    Die("match default is not supported in self-host codegen subset");
-                } else {
-                    Die(Concat("expected match case in self-host codegen subset: ", CodegenAstTextProvenance(nodes[cur[0]])));
-                }
-            }
-            if match_case_count == 0 {
-                Die(Concat("match statement has no cases: ", CodegenAstTextProvenance(nodes[idx])));
-            }
-        } else {
-            Die(Concat("unsupported AST line in supported subset: ", CodegenAstTextProvenance(nodes[idx])));
-        }
-    }
-    return true;
-}
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
@@ -379,10 +267,28 @@ func GenerateCUnitFromSemanticFacts(
     let type_declaration_fact: CodegenTypeDeclarationBlockFact =
         CollectTypeDeclarations(
         semantic_analysis.enums, semantic_analysis.constructors,
+        semantic_analysis.roles,
         value_wrappers, env_acc
         );
-    let type_declaration_block: String = type_declaration_fact.c_block;
-    CollectRoleOperators(semantic_analysis.roles, signatures, env_acc);
+    let dispatch_type_block: String = CodegenSemanticRoleDispatchTypeBlock(
+        semantic_analysis.roles, signatures,
+        CodegenTypeEnv(env_acc[0], "")
+    );
+    let dispatch_runtime_block: String =
+        CodegenSemanticRoleDispatchRuntimeBlock(
+            semantic_analysis.roles, signatures,
+            semantic_analysis.constructors, env_acc
+        );
+    let operator_adapter_block: String = CollectRoleOperators(
+        semantic_analysis.roles, signatures, env_acc
+    );
+    let type_declaration_block: String = Concat(
+        dispatch_type_block, Concat(
+            type_declaration_fact.c_block, Concat(
+                dispatch_runtime_block, operator_adapter_block
+            )
+        )
+    );
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts =
         CodegenRuntimeUsageFactsFromSemantic(

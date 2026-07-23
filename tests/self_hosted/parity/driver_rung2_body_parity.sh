@@ -50,6 +50,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_spawn_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_string_spawn_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_spawn_mixed_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_default_contract_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_ability_bind_dispatch_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_expression_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh"
@@ -158,7 +159,11 @@ compile_driver() {
 }
 
 C_DRIVER="$BUILD_DIR/driver_c.exe"
-compile_driver c "$C_DRIVER"
+if [[ -n "$PREBUILT_DRIVER" ]]; then
+    C_DRIVER="$PREBUILT_DRIVER"
+else
+    compile_driver c "$C_DRIVER"
+fi
 if ! (cd "$ROOT_DIR" && "$C_DRIVER" --fixture-manifest >"$FIXTURE_ROWS"); then
     echo "[self-host-parity:driver-rung2] fixture manifest emission failed" >&2
     exit 1
@@ -182,8 +187,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 267 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 267" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 268 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 268" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"

@@ -3,6 +3,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_generic_parameter_fact_owner.pgy";
 
 struct SemanticAstRoleFacts {
     ok: Bool;
@@ -13,6 +14,18 @@ struct SemanticAstRoleFacts {
     method_starts: Array<Int>;
     method_counts: Array<Int>;
     method_node_ids: Array<Int>;
+    impl_starts: Array<Int>;
+    impl_counts: Array<Int>;
+    impl_ability_names: Array<String>;
+    ability_node_ids: Array<Int>;
+    ability_names: Array<String>;
+    ability_generic_starts: Array<Int>;
+    ability_generic_counts: Array<Int>;
+    ability_generic_names: Array<String>;
+    ability_generic_default_type_names: Array<String>;
+    ability_method_starts: Array<Int>;
+    ability_method_counts: Array<Int>;
+    ability_method_node_ids: Array<Int>;
 }
 
 func SemanticAstRoleAncestorNodeId(
@@ -43,6 +56,18 @@ func SemanticAstRoleFactsFromArtifact(
     let method_starts: Array<Int> = [];
     let method_counts: Array<Int> = [];
     let method_node_ids: Array<Int> = [];
+    let impl_starts: Array<Int> = [];
+    let impl_counts: Array<Int> = [];
+    let impl_ability_names: Array<String> = [];
+    let ability_node_ids: Array<Int> = [];
+    let ability_names: Array<String> = [];
+    let ability_generic_starts: Array<Int> = [];
+    let ability_generic_counts: Array<Int> = [];
+    let ability_generic_names: Array<String> = [];
+    let ability_generic_defaults: Array<String> = [];
+    let ability_method_starts: Array<Int> = [];
+    let ability_method_counts: Array<Int> = [];
+    let ability_method_node_ids: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -61,8 +86,12 @@ func SemanticAstRoleFactsFromArtifact(
                 ok = false;
             } else {
                 let method_start: Int = ArrayLength(method_node_ids);
+                let impl_start: Int = ArrayLength(impl_ability_names);
                 let candidate: Int = 0;
                 while candidate < artifact.count {
+                    let candidate_parent: Option<Int> = TypedAstArenaParentId(
+                        artifact.arena, candidate
+                    );
                     if TypedAstArenaNodeKindIs(
                         artifact.arena, candidate, TypedAstKindFuncDeclTag()
                     ) {
@@ -71,6 +100,26 @@ func SemanticAstRoleFactsFromArtifact(
                         );
                         if IsSome(owner) && UnwrapOption(owner) == node_id {
                             ArrayPush(method_node_ids, candidate);
+                        }
+                    } else if IsSome(candidate_parent) &&
+                        UnwrapOption(candidate_parent) == node_id &&
+                        TypedAstArenaNodeKindIs(
+                            artifact.arena, candidate,
+                            TypedAstKindImplAbilityTag()
+                        ) {
+                        let impl_name: Option<String> = TypedAstArenaAtomText(
+                            artifact.arena, candidate
+                        );
+                        if !IsSome(impl_name) ||
+                            StringLength(UnwrapOption(impl_name)) == 0 {
+                            ok = false;
+                        } else {
+                            ArrayPush(
+                                impl_ability_names,
+                                SemanticCanonicalTypeName(
+                                    UnwrapOption(impl_name)
+                                )
+                            );
                         }
                     }
                     candidate = candidate + 1;
@@ -85,13 +134,72 @@ func SemanticAstRoleFactsFromArtifact(
                 ArrayPush(
                     method_counts, ArrayLength(method_node_ids) - method_start
                 );
+                ArrayPush(impl_starts, impl_start);
+                ArrayPush(
+                    impl_counts,
+                    ArrayLength(impl_ability_names) - impl_start
+                );
+            }
+        } else if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindAbilityDeclTag()
+        ) {
+            let ability_name: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            if !IsSome(ability_name) ||
+                StringLength(UnwrapOption(ability_name)) == 0 {
+                ok = false;
+            } else {
+                let generic_start: Int = ArrayLength(ability_generic_names);
+                let method_start: Int = ArrayLength(ability_method_node_ids);
+                if !SemanticAstAbilityGenericParameterDefaultRowsFromNode(
+                    artifact.arena, node_id,
+                    ability_generic_names, ability_generic_defaults
+                ) {
+                    ok = false;
+                }
+                let child: Int = 0;
+                while child < artifact.count && ok {
+                    let parent: Option<Int> = TypedAstArenaParentId(
+                        artifact.arena, child
+                    );
+                    if IsSome(parent) && UnwrapOption(parent) == node_id {
+                        if TypedAstArenaNodeKindIs(
+                            artifact.arena, child, TypedAstKindFuncDeclTag()
+                        ) {
+                            ArrayPush(ability_method_node_ids, child);
+                        }
+                    }
+                    child = child + 1;
+                }
+                ArrayPush(ability_node_ids, node_id);
+                ArrayPush(
+                    ability_names,
+                    SemanticCanonicalTypeName(UnwrapOption(ability_name))
+                );
+                ArrayPush(ability_generic_starts, generic_start);
+                ArrayPush(
+                    ability_generic_counts,
+                    ArrayLength(ability_generic_names) - generic_start
+                );
+                ArrayPush(ability_method_starts, method_start);
+                ArrayPush(
+                    ability_method_counts,
+                    ArrayLength(ability_method_node_ids) - method_start
+                );
             }
         }
         node_id = node_id + 1;
     }
     return SemanticAstRoleFacts(
         ok, artifact.count, role_node_ids, names, target_types,
-        method_starts, method_counts, method_node_ids
+        method_starts, method_counts, method_node_ids,
+        impl_starts, impl_counts, impl_ability_names,
+        ability_node_ids, ability_names,
+        ability_generic_starts, ability_generic_counts,
+        ability_generic_names, ability_generic_defaults,
+        ability_method_starts, ability_method_counts,
+        ability_method_node_ids
     );
 }
 
@@ -179,6 +287,119 @@ func SemanticAstRoleTargetTypeForMethodNode(
     return None;
 }
 
+func SemanticAstRoleImplAbilityCountAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int
+) -> Option<Int> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) {
+        return None;
+    }
+    return Some(facts.impl_counts[role_index]);
+}
+
+func SemanticAstRoleImplAbilityNameAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int,
+    impl_index: Int
+) -> Option<String> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) ||
+        impl_index < 0 || impl_index >= facts.impl_counts[role_index] {
+        return None;
+    }
+    return Some(facts.impl_ability_names[
+        facts.impl_starts[role_index] + impl_index
+    ]);
+}
+
+func SemanticAstAbilityCount(facts: SemanticAstRoleFacts) -> Int {
+    return ArrayLength(facts.ability_node_ids);
+}
+
+func SemanticAstAbilityIndexForName(
+    facts: SemanticAstRoleFacts,
+    ability_name: String
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstAbilityCount(facts) {
+        if facts.ability_names[i] == ability_name { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstAbilityGenericCountAt(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int
+) -> Option<Int> {
+    if !facts.ok || ability_index < 0 ||
+        ability_index >= SemanticAstAbilityCount(facts) {
+        return None;
+    }
+    return Some(facts.ability_generic_counts[ability_index]);
+}
+
+func SemanticAstAbilityMethodCountAt(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int
+) -> Option<Int> {
+    if !facts.ok || ability_index < 0 ||
+        ability_index >= SemanticAstAbilityCount(facts) {
+        return None;
+    }
+    return Some(facts.ability_method_counts[ability_index]);
+}
+
+func SemanticAstAbilityMethodNodeAt(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int,
+    method_index: Int
+) -> Option<Int> {
+    if !facts.ok || ability_index < 0 ||
+        ability_index >= SemanticAstAbilityCount(facts) ||
+        method_index < 0 ||
+        method_index >= facts.ability_method_counts[ability_index] {
+        return None;
+    }
+    return Some(facts.ability_method_node_ids[
+        facts.ability_method_starts[ability_index] + method_index
+    ]);
+}
+
+func SemanticAstRoleIndexForName(
+    facts: SemanticAstRoleFacts,
+    role_name: String
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstRoleCount(facts) {
+        if facts.names[i] == role_name { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstRoleImplementsAbility(
+    facts: SemanticAstRoleFacts,
+    role_name: String,
+    ability_name: String
+) -> Bool {
+    let role_index: Option<Int> = SemanticAstRoleIndexForName(
+        facts, role_name
+    );
+    if !IsSome(role_index) { return false; }
+    let row: Int = UnwrapOption(role_index);
+    let i: Int = 0;
+    while i < facts.impl_counts[row] {
+        if facts.impl_ability_names[facts.impl_starts[row] + i] ==
+            ability_name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func SemanticAstRoleFactsMatchArtifact(
     artifact: AstTreeArtifact,
     facts: SemanticAstRoleFacts
@@ -187,7 +408,16 @@ func SemanticAstRoleFactsMatchArtifact(
     let count: Int = SemanticAstRoleCount(facts);
     if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
         SemanticAstRoleCount(rebuilt) != count ||
-        ArrayLength(facts.method_node_ids) != ArrayLength(rebuilt.method_node_ids) {
+        ArrayLength(facts.method_node_ids) != ArrayLength(rebuilt.method_node_ids) ||
+        ArrayLength(facts.impl_starts) != count ||
+        ArrayLength(facts.impl_counts) != count ||
+        ArrayLength(facts.impl_ability_names) !=
+            ArrayLength(rebuilt.impl_ability_names) ||
+        SemanticAstAbilityCount(facts) != SemanticAstAbilityCount(rebuilt) ||
+        ArrayLength(facts.ability_generic_names) !=
+            ArrayLength(rebuilt.ability_generic_names) ||
+        ArrayLength(facts.ability_method_node_ids) !=
+            ArrayLength(rebuilt.ability_method_node_ids) {
         return false;
     }
     let i: Int = 0;
@@ -196,7 +426,9 @@ func SemanticAstRoleFactsMatchArtifact(
             facts.names[i] != rebuilt.names[i] ||
             facts.target_type_names[i] != rebuilt.target_type_names[i] ||
             facts.method_starts[i] != rebuilt.method_starts[i] ||
-            facts.method_counts[i] != rebuilt.method_counts[i] {
+            facts.method_counts[i] != rebuilt.method_counts[i] ||
+            facts.impl_starts[i] != rebuilt.impl_starts[i] ||
+            facts.impl_counts[i] != rebuilt.impl_counts[i] {
             return false;
         }
         i = i + 1;
@@ -204,6 +436,50 @@ func SemanticAstRoleFactsMatchArtifact(
     let method_index: Int = 0;
     while method_index < ArrayLength(facts.method_node_ids) {
         if facts.method_node_ids[method_index] != rebuilt.method_node_ids[method_index] {
+            return false;
+        }
+        method_index = method_index + 1;
+    }
+    let impl_index: Int = 0;
+    while impl_index < ArrayLength(facts.impl_ability_names) {
+        if facts.impl_ability_names[impl_index] !=
+            rebuilt.impl_ability_names[impl_index] {
+            return false;
+        }
+        impl_index = impl_index + 1;
+    }
+    let ability_index: Int = 0;
+    while ability_index < SemanticAstAbilityCount(facts) {
+        if facts.ability_node_ids[ability_index] !=
+                rebuilt.ability_node_ids[ability_index] ||
+            facts.ability_names[ability_index] !=
+                rebuilt.ability_names[ability_index] ||
+            facts.ability_generic_starts[ability_index] !=
+                rebuilt.ability_generic_starts[ability_index] ||
+            facts.ability_generic_counts[ability_index] !=
+                rebuilt.ability_generic_counts[ability_index] ||
+            facts.ability_method_starts[ability_index] !=
+                rebuilt.ability_method_starts[ability_index] ||
+            facts.ability_method_counts[ability_index] !=
+                rebuilt.ability_method_counts[ability_index] {
+            return false;
+        }
+        ability_index = ability_index + 1;
+    }
+    let generic_index: Int = 0;
+    while generic_index < ArrayLength(facts.ability_generic_names) {
+        if facts.ability_generic_names[generic_index] !=
+                rebuilt.ability_generic_names[generic_index] ||
+            facts.ability_generic_default_type_names[generic_index] !=
+                rebuilt.ability_generic_default_type_names[generic_index] {
+            return false;
+        }
+        generic_index = generic_index + 1;
+    }
+    method_index = 0;
+    while method_index < ArrayLength(facts.ability_method_node_ids) {
+        if facts.ability_method_node_ids[method_index] !=
+            rebuilt.ability_method_node_ids[method_index] {
             return false;
         }
         method_index = method_index + 1;

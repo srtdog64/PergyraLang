@@ -239,6 +239,9 @@ inventory must not become a second fact-family owner registry.
   return, condition, call, match-scrutinee, and statement expression type
   verdict rows; graph-owned statement expressions cannot reopen projection
   text.
+- `src/self_hosted/semantic/ast_bind_statement_type_fact_owner.pgy` --
+  fail-closed party role-slot bind verdict from nominal slot, visible local,
+  and role implementation facts; missing or mismatched facts are not guessed.
 - `src/self_hosted/semantic/ast_statement_type_contract_owner.pgy` -- executable
   statement-type contracts, including graph-owned `Exit(Int)`, collection
   mutation, and match-scrutinee validation.
@@ -397,8 +400,17 @@ inventory must not become a second fact-family owner registry.
 
 ## MIR Producer
 
-- `src/self_hosted/mir/program_fact_owner.pgy` -- flat declaration, routine,
-  block, instruction, source-local, and use-row ownership.
+- `src/self_hosted/mir/program_fact_owner.pgy` -- flat routine, block,
+  instruction, source-local, use-row, and assembled program ownership.
+- `src/self_hosted/mir/declaration_fact_owner.pgy` -- flat declaration,
+  generic parameter, method parameter, party role-slot, and role implementation
+  row ownership shared by producer, verifier, JSON, and MIR lowering.
+- `src/self_hosted/mir/declaration_verify_owner.pgy` -- structural range and
+  parallel-row verification for MIR declarations, including generic, method,
+  role-slot, and role-implementation inventories.
+- `src/self_hosted/mir/declaration_json_projection_owner.pgy` -- verified MIR
+  declaration projection to `pgy.mir.v1`, including generic parameters,
+  method parameters, party role slots, and role implementation ranges.
 - `src/self_hosted/mir/runtime_call_abi_fact_owner.pgy` -- instruction-aligned
   MIR resource runtime-call ABI facts, including auxiliary operations; missing
   producer-declared rows fail before JSON projection or backend consumption.
@@ -650,6 +662,13 @@ inventory must not become a second fact-family owner registry.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption.
+- `src/self_hosted/codegen/emission/expr_semantic_dynamic_ability_call_emit_owner.pgy`
+  -- dynamic party role-slot call projection from semantic graph identity,
+  dispatch ABI rows, and vtable field ownership; direct-call fallback is
+  forbidden once a role-slot row exists.
+- `src/self_hosted/codegen/emission/ability_bind_emit_owner.pgy` -- party
+  role-slot bind C emission from semantic bind identity and dispatch ABI rows;
+  missing bind facts fail closed.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   graph-owned log expression projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/option_value_emit_owner.pgy` --
@@ -674,7 +693,17 @@ inventory must not become a second fact-family owner registry.
   one function-value binding fact for source identity, semantic type, runtime
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
-- `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
+- `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition,
+  signature-environment, and prototype emission.
+- `src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy` -- ability
+  vtable types and instances, role method ABI declarations, party bind
+  boundaries, and value-to-receiver operator adapters from semantic role facts.
+- `src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy` -- nominal C
+  struct layout and environment rows, including dynamic party role-slot
+  storage and its dispatch-vtable field identity.
+- `src/self_hosted/codegen/emission/program_statement_shape_owner.pgy` --
+  recursive statement/block shape admission before program-level C assembly;
+  semantic kind rows remain authoritative for each accepted statement.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.

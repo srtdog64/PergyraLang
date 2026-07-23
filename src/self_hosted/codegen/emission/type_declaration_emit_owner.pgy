@@ -1,7 +1,7 @@
 // Owner-directed value declaration scheduling; direct by-value cycles fail closed.
 
 import "enum_emit_owner.pgy";
-import "function_emit.pgy";
+import "nominal_struct_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 import "../text/text_owner.pgy";
 import "../input/value_wrapper_usage_owner.pgy";
@@ -241,6 +241,7 @@ func CodegenWrapperDeclarationBlock(
 func CollectTypeDeclarations(
     enum_facts: SemanticAstEnumFacts,
     nominal_facts: SemanticAstNominalConstructorFacts,
+    role_facts: SemanticAstRoleFacts,
     wrapper_facts: CodegenValueWrapperUsageFacts,
     inout env_box: Array<String>
 ) -> CodegenTypeDeclarationBlockFact {
@@ -304,7 +305,7 @@ func CollectTypeDeclarations(
         }
         if nominal_selected_count > 0 {
             ArrayPush(blocks, CollectStructsSelected(
-                nominal_facts, nominal_selected, env_box
+                nominal_facts, role_facts, nominal_selected, env_box
             ));
             nominal_index = 0;
             while nominal_index < nominal_count {

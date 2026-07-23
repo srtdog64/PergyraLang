@@ -42,7 +42,8 @@ func SelfMirCfgSetInstructionUses(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, instructions.machine_contact_kinds,
             instructions.machine_layer_manifest_ids,
             instructions.machine_layer_physical_grant_ids,
@@ -77,7 +78,8 @@ func SelfMirCfgAttachLastRuntimeCallAbiAux(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, instructions.machine_contact_kinds,
             instructions.machine_layer_manifest_ids,
             instructions.machine_layer_physical_grant_ids,
@@ -112,7 +114,8 @@ func SelfMirCfgAttachLastRuntimeCallAbi(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, instructions.machine_contact_kinds,
             instructions.machine_layer_manifest_ids,
             instructions.machine_layer_physical_grant_ids,

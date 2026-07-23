@@ -1,5 +1,6 @@
 // Structural verifier for the self-host MIR fact graph.
 import "program_fact_owner.pgy";
+import "declaration_verify_owner.pgy";
 import "instruction_validation_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
 import "../semantic/assignment_binding_mode_owner.pgy";
@@ -134,50 +135,6 @@ func SelfMirAssignmentTargetGraphReady(
     ) == "";
 }
 
-func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
-    let count: Int = ArrayLength(rows.names);
-    if !SelfMirParallelStringCount(count, rows.kinds) ||
-        !SelfMirParallelStringCount(count, rows.nominal_kinds) ||
-        !SelfMirParallelStringCount(count, rows.target_types) ||
-        !SelfMirParallelCount(count, rows.field_starts) ||
-        !SelfMirParallelCount(count, rows.field_counts) ||
-        !SelfMirParallelCount(count, rows.method_starts) ||
-        !SelfMirParallelCount(count, rows.method_counts) ||
-        !SelfMirParallelCount(count, rows.variant_starts) ||
-        !SelfMirParallelCount(count, rows.variant_counts) ||
-        ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
-        ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
-        !SelfMirEnumDeclarationPayloadRowsReady(rows) {
-        return false;
-    }
-    let field_cursor: Int = 0;
-    let method_cursor: Int = 0;
-    let variant_cursor: Int = 0;
-    let i: Int = 0;
-    while i < count {
-        if rows.names[i] == "" || rows.kinds[i] == "" ||
-            rows.nominal_kinds[i] == "" ||
-            (rows.kinds[i] == "role" && rows.target_types[i] == "") ||
-            rows.field_starts[i] != field_cursor || rows.field_counts[i] < 0 ||
-            rows.method_starts[i] != method_cursor ||
-            rows.method_counts[i] < 0 ||
-            rows.variant_starts[i] != variant_cursor ||
-            rows.variant_counts[i] < 0 {
-            return false;
-        }
-        field_cursor = field_cursor + rows.field_counts[i];
-        method_cursor = method_cursor + rows.method_counts[i];
-        variant_cursor = variant_cursor + rows.variant_counts[i];
-        i = i + 1;
-    }
-    if field_cursor != ArrayLength(rows.field_names) ||
-        method_cursor != ArrayLength(rows.method_names) ||
-        variant_cursor != ArrayLength(rows.variant_names) {
-        return false;
-    }
-    return true;
-}
-
 func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
     return SelfMirInstructionRowsValidationError(rows) == "";
 }
@@ -223,7 +180,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
              SemanticCallTargetNone()], ["", "", ""]
         );
     let valid: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
@@ -231,7 +188,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         no_runtime_call_abi
     );
     let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
+        [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""], [""],
         ["1"], ["x"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses,
@@ -239,21 +196,21 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         no_destructure_facts, no_runtime_call_abi
     );
     let valid_member: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""],
+        [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""], [""],
         ["1"], ["base.text"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["base.1"], simple_value_graph, member_target_graph,
         no_match_facts, no_destructure_facts, no_runtime_call_abi
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
         ["i.1", "j.1"], value_graph, target_graph, no_match_facts,
         no_destructure_facts, no_runtime_call_abi
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"], value_graph,
@@ -262,7 +219,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     );
     let missing_member_base_use: SelfMirInstructionRows =
         SelfMirInstructionRows(
-            [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""],
+            [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""], [""],
             ["1"], ["base.text"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses, simple_value_graph, member_target_graph,
@@ -270,7 +227,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         );
     let missing_simple_target_graph: SelfMirInstructionRows =
         SelfMirInstructionRows(
-            [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
+            [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""], [""],
             ["1"], ["x"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses,
@@ -286,7 +243,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             no_match_bindings, no_match_binding_types
         );
     let valid_match: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["branch"], ["branch"], [""], [""], [""],
+        [0], ["branch"], ["branch"], [""], [""], [""], [""],
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
@@ -294,7 +251,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         no_destructure_facts, no_runtime_call_abi
     );
     let missing_match: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["branch"], ["branch"], [""], [""], [""],
+        [0], ["branch"], ["branch"], [""], [""], [""], [""],
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
@@ -306,7 +263,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             SelfMirDestructureFactRowsEmpty(), 0, "String", ["a", "b"]
         );
     let valid_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["destructure"], ["destructure"], [""], [""], [""],
+        [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
         ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph,
@@ -314,7 +271,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         destructure_facts, no_runtime_call_abi
     );
     let missing_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
-        [0], ["destructure"], ["destructure"], [""], [""], [""],
+        [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
         ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph,

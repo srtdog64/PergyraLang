@@ -211,9 +211,31 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
             let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             let expr1: String = MirObjectStringFact(json, kp, inst_end, "expr1");
             let arg0: String = MirObjectStringFact(json, kp, inst_end, "arg0");
+            let arg1: String = MirObjectStringFact(json, kp, inst_end, "arg1");
+            let slot_anchor: String = MirObjectStringFact(
+                json, kp, inst_end, "slot_anchor"
+            );
             let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
             let local_type: String = MirRoutineFactIndexSourceLocalType(index, arg0);
-            if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
+            if ikind == "stmt" && source_type == "AST_BIND_STMT" {
+                if arg0 == "" || arg1 == "" || slot_anchor == "" ||
+                    expr0 != "" || expr1 != "" {
+                    MirLowerFailClosed(
+                        "ability bind is missing party/slot/role MIR facts"
+                    );
+                }
+                ArrayPush(chunks, Concat(
+                    indent, Concat(
+                        "BindStmt: ", Concat(
+                            arg0, Concat(
+                                ".", Concat(
+                                    slot_anchor, Concat(" = ", Concat(arg1, "\n"))
+                                )
+                            )
+                        )
+                    )
+                ));
+            } else if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
                 ArrayPush(chunks, RenderDeferFromFacts(
                     json, kp, inst_end, indent, arg0
                 ));

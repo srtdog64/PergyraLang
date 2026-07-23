@@ -1,0 +1,87 @@
+// Dynamic party role-slot call emission from semantic graph and ABI facts.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_member_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+
+func RewriteSemanticDynamicAbilityCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    member: SemanticMemberAccessView,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, member.receiver_node, env
+    );
+    if !IsSome(receiver_type) { return None; }
+    let slot_member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, member.receiver_node);
+    if !slot_member.ok { return None; }
+    let party_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, slot_member.receiver_node, env
+    );
+    let slot_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, slot_member.member_node
+    );
+    let method_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, member.member_node
+    );
+    if !IsSome(party_type) || !IsSome(slot_name) ||
+        !IsSome(method_name) || !IsIdentifier(UnwrapOption(slot_name)) ||
+        !IsIdentifier(UnwrapOption(method_name)) {
+        Die("dynamic ability call is missing its party/slot/method facts");
+    }
+    let slot_key: String = Concat(
+        UnwrapOption(party_type), Concat(".", UnwrapOption(slot_name))
+    );
+    let dispatch_identity: String = LookupKindType(
+        env, slot_key, "role_slot"
+    );
+    if dispatch_identity == "" { return None; }
+    let call_target: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, view.call_node
+    );
+    if !IsSome(call_target) || UnwrapOption(call_target) == "" {
+        Die("dynamic ability call target fact is missing");
+    }
+    let call_symbol: String = CompilerSymbolCIdentifier(
+        UnwrapOption(call_target)
+    );
+    let modes: String = LookupKindType(env, call_symbol, "pm");
+    let param_types: String = LookupKindType(env, call_symbol, "pt");
+    if LookupKindType(env, call_symbol, "f") == "" {
+        Die("dynamic ability call ABI method fact is missing");
+    }
+    let party_expr: String = RewriteExprFromSemanticGraph(
+        graph, slot_member.receiver_node, env
+    );
+    let c_slot: String = CompilerSymbolCFieldName(
+        UnwrapOption(slot_name)
+    );
+    let prefix_argument: String = Concat(
+        party_expr, Concat(".", c_slot)
+    );
+    let param_offset: Int = ParamModeCsvCount(modes) -
+        ArrayLength(view.argument_nodes);
+    if param_offset < 0 || param_offset > 1 {
+        Die("dynamic ability call parameter carriage does not match");
+    }
+    let args: String = RewriteSemanticCallArguments(
+        graph, view, modes, param_types,
+        param_offset, prefix_argument, env
+    );
+    let vtable_field: String = Concat(
+        c_slot, Concat("_", Concat(dispatch_identity, "_vt"))
+    );
+    return Some(Concat(
+        party_expr, Concat(".", Concat(
+            vtable_field, Concat("->", Concat(
+                CompilerSymbolCFieldName(UnwrapOption(method_name)),
+                Concat("(", Concat(args, ")"))
+            ))
+        ))
+    ));
+}

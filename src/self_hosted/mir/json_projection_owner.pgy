@@ -6,6 +6,7 @@ import "match_json_projection_owner.pgy";
 import "destructure_json_projection_owner.pgy";
 import "destructure_type_json_projection_owner.pgy";
 import "generic_specialization_json_projection_owner.pgy";
+import "declaration_json_projection_owner.pgy";
 import "runtime_call_abi_json_projection_owner.pgy";
 import "abi_layout_json_projection_owner.pgy";
 import "machine_layer_json_projection_owner.pgy";
@@ -132,6 +133,11 @@ func SelfMirJsonInstruction(
         JsonEmitFieldRaw(
             "arg1", SelfMirJsonOptionalString(
                 SelfMirOptionalString(rows.arg1s[instruction_index])
+            )
+        ),
+        JsonEmitFieldRaw(
+            "slot_anchor", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.slot_anchors[instruction_index])
             )
         ),
         JsonEmitFieldRaw(
@@ -446,82 +452,6 @@ func SelfMirJsonRoutine(
     ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));
     ArrayPush(fields3, JsonEmitFieldRaw("source_locals", JsonEmitArray(locals)));
     return JsonEmitObject(fields3);
-}
-
-func SelfMirJsonDeclaration(
-    facts: SelfMirProgramFacts,
-    declaration_index: Int
-) -> String {
-    let rows: SelfMirDeclarationRows = facts.declarations;
-    let fields_rows: Array<String> = [];
-    let field_i: Int = 0;
-    while field_i < rows.field_counts[declaration_index] {
-        let row: Int = rows.field_starts[declaration_index] + field_i;
-        let field: Array<String> = [
-            JsonEmitFieldString("name", rows.field_names[row]),
-            JsonEmitFieldString("type", rows.field_types[row])
-        ];
-        ArrayPush(fields_rows, JsonEmitObject(field));
-        field_i = field_i + 1;
-    }
-    let methods: Array<String> = [];
-    let method_i: Int = 0;
-    while method_i < rows.method_counts[declaration_index] {
-        let row2: Int = rows.method_starts[declaration_index] + method_i;
-        let method: Array<String> = [
-            JsonEmitFieldString("name", rows.method_names[row2]),
-            JsonEmitFieldString("return", rows.method_returns[row2])
-        ];
-        ArrayPush(methods, JsonEmitObject(method));
-        method_i = method_i + 1;
-    }
-    let variants: Array<String> = [];
-    let variant_i: Int = 0;
-    while variant_i < rows.variant_counts[declaration_index] {
-        let variant_row: Int =
-            rows.variant_starts[declaration_index] + variant_i;
-        let variant: Array<String> = [
-            JsonEmitFieldString("name", rows.variant_names[variant_row]),
-            JsonEmitFieldNumber(
-                "param_count",
-                ToString(rows.variant_param_counts[variant_row])
-            )
-        ];
-        let param_types: Array<String> = []; let param_index: Int = 0;
-        while param_index < rows.variant_param_counts[variant_row] {
-            ArrayPush(
-                param_types,
-                JsonStringLiteral(rows.variant_param_type_names[
-                    rows.variant_param_starts[variant_row] + param_index
-                ])
-            );
-            param_index = param_index + 1;
-        }
-        ArrayPush(
-            variant,
-            JsonEmitFieldRaw("param_types", JsonEmitArray(param_types))
-        );
-        ArrayPush(variants, JsonEmitObject(variant));
-        variant_i = variant_i + 1;
-    }
-    let fields: Array<String> = [
-        JsonEmitFieldString("kind", rows.kinds[declaration_index]),
-        JsonEmitFieldString(
-            "nominal_kind", rows.nominal_kinds[declaration_index]
-        ),
-        JsonEmitFieldString("name", rows.names[declaration_index]),
-        JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
-        JsonEmitFieldRaw("methods", JsonEmitArray(methods))
-    ];
-    if rows.kinds[declaration_index] == "role" {
-        ArrayPush(fields, JsonEmitFieldString(
-            "for_type", rows.target_types[declaration_index]
-        ));
-    }
-    if rows.kinds[declaration_index] == "enum" {
-        ArrayPush(fields, JsonEmitFieldRaw("variants", JsonEmitArray(variants)));
-    }
-    return JsonEmitObject(fields);
 }
 
 func SelfMirJsonParallelCaptureBoundary(

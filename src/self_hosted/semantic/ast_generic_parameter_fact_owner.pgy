@@ -7,9 +7,8 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 
-func SemanticAstGenericParameterDefaultRowsFromNode(
-    arena: AstArena,
-    node_id: Int,
+func SemanticAstGenericParameterDefaultRowsFromText(
+    row: String,
     inout names: Array<String>,
     inout default_type_names: Array<String>
 ) -> Bool {
@@ -17,14 +16,6 @@ func SemanticAstGenericParameterDefaultRowsFromNode(
         return false;
     }
     let row_start: Int = ArrayLength(names);
-    if !TypedAstArenaNodeKindIs(
-        arena, node_id, TypedAstKindGenericParamsTag()
-    ) {
-        return false;
-    }
-    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    if !IsSome(atom) { return false; }
-    let row: String = UnwrapOption(atom);
     let n: Int = StringLength(row);
     if n < 3 || CharAt(row, 0) != "<" || CharAt(row, n - 1) != ">" {
         return false;
@@ -61,6 +52,69 @@ func SemanticAstGenericParameterDefaultRowsFromNode(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstGenericParameterDefaultRowsFromNode(
+    arena: AstArena,
+    node_id: Int,
+    inout names: Array<String>,
+    inout default_type_names: Array<String>
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(
+        arena, node_id, TypedAstKindGenericParamsTag()
+    ) {
+        return false;
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    return IsSome(atom) && SemanticAstGenericParameterDefaultRowsFromText(
+        UnwrapOption(atom), names, default_type_names
+    );
+}
+
+func SemanticAstAbilityGenericParameterDefaultRowsFromNode(
+    arena: AstArena,
+    ability_node_id: Int,
+    inout names: Array<String>,
+    inout default_type_names: Array<String>
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(
+        arena, ability_node_id, TypedAstKindAbilityDeclTag()
+    ) {
+        return false;
+    }
+    let generic_child_count: Int = 0;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        arena, ability_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            arena, child_id, TypedAstKindGenericParamsTag()
+        ) {
+            generic_child_count = generic_child_count + 1;
+            if generic_child_count > 1 ||
+                !SemanticAstGenericParameterDefaultRowsFromNode(
+                    arena, child_id, names, default_type_names
+                ) {
+                return false;
+            }
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, ability_node_id, child_index);
+    }
+    if generic_child_count == 1 { return true; }
+    let provenance: Option<String> = TypedAstArenaProvenanceText(
+        arena, ability_node_id
+    );
+    if !IsSome(provenance) { return false; }
+    let row: String = UnwrapOption(provenance);
+    let open: Int = StringIndexOf(row, "<");
+    if open < 0 { return true; }
+    return SemanticAstGenericParameterDefaultRowsFromText(
+        Substring(row, open, StringLength(row) - open),
+        names, default_type_names
+    );
 }
 
 func SemanticAstGenericParameterRowsFromNode(

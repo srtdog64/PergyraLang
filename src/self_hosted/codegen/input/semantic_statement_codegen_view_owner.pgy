@@ -138,6 +138,32 @@ func CodegenSemanticArrayPushValueOrDie(
     return facts.value_texts[index];
 }
 
+func CodegenSemanticBindPartyOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    return CodegenSemanticStatementPayloadOrDie(
+        facts, node_id, TypedAstKindBindStmtTag()
+    );
+}
+
+func CodegenSemanticBindRoleOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindBindStmtTag()
+    );
+    return facts.value_texts[index];
+}
+
+func CodegenSemanticBindSlotOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindBindStmtTag()
+    );
+    return facts.auxiliary_texts[index];
+}
+
 func CodegenSemanticWhileConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindWhileStmtTag());
 }

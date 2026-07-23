@@ -63,3 +63,42 @@ func CodegenSemanticNominalFieldTypeOrDie(
     }
     return UnwrapOption(type_name);
 }
+
+func CodegenSemanticNominalRoleSlotCountOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> Int {
+    let count: Option<Int> = SemanticAstNominalRoleSlotCountAt(
+        facts, constructor_index
+    );
+    if !IsSome(count) {
+        Die("semantic party role-slot count fact missing");
+    }
+    return UnwrapOption(count);
+}
+
+func CodegenSemanticNominalRoleSlotNameOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    slot_index: Int
+) -> String {
+    let name: Option<String> = SemanticAstNominalRoleSlotNameAt(
+        facts, constructor_index, slot_index
+    );
+    if !IsSome(name) { Die("semantic party role-slot name fact missing"); }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticNominalRoleSlotTypeOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    slot_index: Int
+) -> String {
+    let type_name: Option<String> = SemanticAstNominalRoleSlotTypeAt(
+        facts, constructor_index, slot_index
+    );
+    if !IsSome(type_name) {
+        Die("semantic party role-slot ability fact missing");
+    }
+    return UnwrapOption(type_name);
+}

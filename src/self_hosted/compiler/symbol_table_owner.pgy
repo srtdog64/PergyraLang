@@ -240,6 +240,14 @@ func CompilerSymbolCMatchTempName(node_index: Int) -> String {
 func CompilerSymbolCRoleOperatorName(role_name: String, op_name: String) -> String {
     return CompilerSymbolCQualifiedName(role_name, op_name);
 }
+func CompilerSymbolCOperatorAdapterName(type_name: String, op_name: String) -> String {
+    return Concat(
+        "operator_", Concat(
+            CompilerSymbolCIdentifier(op_name),
+            Concat("_", CompilerSymbolCIdentifier(type_name))
+        )
+    );
+}
 func CompilerSymbolCEnumVariantName(enum_name: String, variant_name: String) -> String {
     return CompilerSymbolCQualifiedName(enum_name, variant_name);
 }

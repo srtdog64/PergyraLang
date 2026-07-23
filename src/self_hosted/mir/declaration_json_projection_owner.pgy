@@ -1,0 +1,207 @@
+// Declaration-specific pgy.mir.v1 projection rows.
+
+import "declaration_rows_owner.pgy";
+import "json_projection_support_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonDeclarationMethodParams(
+    rows: SelfMirDeclarationRows,
+    method_row: Int
+) -> String {
+    let params: Array<String> = [];
+    let param_i: Int = 0;
+    while param_i < rows.method_param_counts[method_row] {
+        let param_row: Int = rows.method_param_starts[method_row] + param_i;
+        ArrayPush(params, JsonEmitObject([
+            JsonEmitFieldString("name", rows.method_param_names[param_row]),
+            JsonEmitFieldRaw(
+                "type", SelfMirJsonOptionalString(
+                    SelfMirOptionalString(rows.method_param_type_names[param_row])
+                )
+            )
+        ]));
+        param_i = param_i + 1;
+    }
+    return JsonEmitArray(params);
+}
+
+func SelfMirJsonDeclarationGenericParams(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int
+) -> String {
+    let generics: Array<String> = [];
+    let generic_i: Int = 0;
+    while generic_i < rows.generic_counts[declaration_index] {
+        let generic_row: Int = rows.generic_starts[declaration_index] +
+            generic_i;
+        ArrayPush(generics, JsonEmitObject([
+            JsonEmitFieldString("name", rows.generic_names[generic_row]),
+            JsonEmitFieldRaw(
+                "constraint", SelfMirJsonOptionalString(
+                    SelfMirOptionalString(
+                        rows.generic_constraint_type_names[generic_row]
+                    )
+                )
+            ),
+            JsonEmitFieldRaw(
+                "default_type", SelfMirJsonOptionalString(
+                    SelfMirOptionalString(
+                        rows.generic_default_type_names[generic_row]
+                    )
+                )
+            )
+        ]));
+        generic_i = generic_i + 1;
+    }
+    return JsonEmitArray(generics);
+}
+
+func SelfMirJsonDeclarationRoleSlots(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int
+) -> String {
+    let slots: Array<String> = [];
+    let no_ability_actuals: Array<String> = [];
+    let slot_i: Int = 0;
+    while slot_i < rows.role_slot_counts[declaration_index] {
+        let slot_row: Int = rows.role_slot_starts[declaration_index] + slot_i;
+        let ability_json: String = JsonEmitObject([
+            JsonEmitFieldString("base", rows.role_slot_type_names[slot_row]),
+            JsonEmitFieldRaw("actuals", JsonEmitArray(no_ability_actuals))
+        ]);
+        ArrayPush(slots, JsonEmitObject([
+            JsonEmitFieldString("name", rows.role_slot_names[slot_row]),
+            JsonEmitFieldBool(
+                "dynamic", rows.role_slot_dynamic[slot_row] == 1
+            ),
+            JsonEmitFieldRaw("abilities", JsonEmitArray([ability_json]))
+        ]));
+        slot_i = slot_i + 1;
+    }
+    return JsonEmitArray(slots);
+}
+
+func SelfMirJsonDeclarationRoleImpls(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int
+) -> String {
+    let impls: Array<String> = [];
+    let no_impl_actuals: Array<String> = [];
+    let impl_i: Int = 0;
+    while impl_i < rows.role_impl_counts[declaration_index] {
+        let impl_row: Int = rows.role_impl_starts[declaration_index] + impl_i;
+        ArrayPush(impls, JsonEmitObject([
+            JsonEmitFieldRaw("ability", JsonEmitObject([
+                JsonEmitFieldString(
+                    "base", rows.role_impl_ability_names[impl_row]
+                ),
+                JsonEmitFieldRaw(
+                    "actuals", JsonEmitArray(no_impl_actuals)
+                )
+            ])),
+            JsonEmitFieldNumber(
+                "method_start", ToString(rows.role_impl_method_starts[impl_row])
+            ),
+            JsonEmitFieldNumber(
+                "method_count", ToString(rows.role_impl_method_counts[impl_row])
+            )
+        ]));
+        impl_i = impl_i + 1;
+    }
+    return JsonEmitArray(impls);
+}
+
+func SelfMirJsonDeclaration(
+    facts: SelfMirProgramFacts,
+    declaration_index: Int
+) -> String {
+    let rows: SelfMirDeclarationRows = facts.declarations;
+    let fields_rows: Array<String> = [];
+    let field_i: Int = 0;
+    while field_i < rows.field_counts[declaration_index] {
+        let row: Int = rows.field_starts[declaration_index] + field_i;
+        ArrayPush(fields_rows, JsonEmitObject([
+            JsonEmitFieldString("name", rows.field_names[row]),
+            JsonEmitFieldString("type", rows.field_types[row])
+        ]));
+        field_i = field_i + 1;
+    }
+    let methods: Array<String> = [];
+    let method_i: Int = 0;
+    while method_i < rows.method_counts[declaration_index] {
+        let row: Int = rows.method_starts[declaration_index] + method_i;
+        let method: Array<String> = [
+            JsonEmitFieldString("name", rows.method_names[row]),
+            JsonEmitFieldString("return", rows.method_returns[row])
+        ];
+        if rows.kinds[declaration_index] == "ability" ||
+            rows.kinds[declaration_index] == "role" {
+            ArrayPush(method, JsonEmitFieldRaw(
+                "params", SelfMirJsonDeclarationMethodParams(rows, row)
+            ));
+        }
+        ArrayPush(methods, JsonEmitObject(method));
+        method_i = method_i + 1;
+    }
+    let variants: Array<String> = [];
+    let variant_i: Int = 0;
+    while variant_i < rows.variant_counts[declaration_index] {
+        let variant_row: Int = rows.variant_starts[declaration_index] +
+            variant_i;
+        let variant: Array<String> = [
+            JsonEmitFieldString("name", rows.variant_names[variant_row]),
+            JsonEmitFieldNumber(
+                "param_count", ToString(rows.variant_param_counts[variant_row])
+            )
+        ];
+        let param_types: Array<String> = [];
+        let param_index: Int = 0;
+        while param_index < rows.variant_param_counts[variant_row] {
+            ArrayPush(param_types, JsonStringLiteral(
+                rows.variant_param_type_names[
+                    rows.variant_param_starts[variant_row] + param_index
+                ]
+            ));
+            param_index = param_index + 1;
+        }
+        ArrayPush(
+            variant, JsonEmitFieldRaw("param_types", JsonEmitArray(param_types))
+        );
+        ArrayPush(variants, JsonEmitObject(variant));
+        variant_i = variant_i + 1;
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", rows.kinds[declaration_index]),
+        JsonEmitFieldString(
+            "nominal_kind", rows.nominal_kinds[declaration_index]
+        ),
+        JsonEmitFieldString("name", rows.names[declaration_index]),
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
+        JsonEmitFieldRaw("methods", JsonEmitArray(methods))
+    ];
+    if rows.generic_counts[declaration_index] > 0 {
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "generic_params",
+            SelfMirJsonDeclarationGenericParams(rows, declaration_index)
+        ));
+    }
+    if rows.role_slot_counts[declaration_index] > 0 {
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "role_slots", SelfMirJsonDeclarationRoleSlots(
+                rows, declaration_index
+            )
+        ));
+    }
+    if rows.kinds[declaration_index] == "role" {
+        ArrayPush(fields, JsonEmitFieldString(
+            "for_type", rows.target_types[declaration_index]
+        ));
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "impls", SelfMirJsonDeclarationRoleImpls(rows, declaration_index)
+        ));
+    }
+    if rows.kinds[declaration_index] == "enum" {
+        ArrayPush(fields, JsonEmitFieldRaw("variants", JsonEmitArray(variants)));
+    }
+    return JsonEmitObject(fields);
+}

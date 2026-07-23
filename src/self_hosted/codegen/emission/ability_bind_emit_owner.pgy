@@ -1,0 +1,48 @@
+// Party role-slot bind C emission from semantic statement and ABI rows.
+
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../input/semantic_statement_codegen_view_owner.pgy";
+
+func EmitAbilityBind(
+    statements: SemanticAstStatementFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let party_name: String = CodegenSemanticBindPartyOrDie(
+        statements, node_id
+    );
+    let role_name: String = CodegenSemanticBindRoleOrDie(
+        statements, node_id
+    );
+    let slot_name: String = CodegenSemanticBindSlotOrDie(
+        statements, node_id
+    );
+    let party_type: String = LookupKindType(env, party_name, "v");
+    let party_c: String = TypeEnvBindingCName(env, party_name);
+    let bind_key: String = Concat(
+        party_type, Concat(".", Concat(
+            slot_name, Concat(".", role_name)
+        ))
+    );
+    let bind_function: String = LookupKindType(env, bind_key, "bind");
+    let vtable_instance: String = LookupKindType(
+        env, bind_key, "vtable"
+    );
+    if party_type == "" || party_c == "" || bind_function == "" ||
+        vtable_instance == "" {
+        Die("ability bind is missing its party role-slot ABI fact");
+    }
+    return Concat(
+        bind_function, Concat("(&", Concat(
+            party_c, Concat(", NULL, &", Concat(
+                vtable_instance, ");"
+            ))
+        ))
+    );
+}
+// Emit the C for a sequence of statements at AST indentation `stmt_indent`,
+// starting at line cur[0]. `pad` is the C indentation prefix. `env_state`
+// carries global/local rows behind the CodegenTypeEnv owner.
+// the mutable variable type environment; `cur_fn_ret` is the enclosing
+// function's return type. Recurses for `while` / `if` bodies. Advances cur[0].

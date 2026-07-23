@@ -17,7 +17,7 @@ func SelfMirAssignmentParameterZeroUseRows(mode: String) -> SelfMirInstructionRo
         [0], [0], [SemanticCallTargetNone()], [""]
     );
     return SelfMirInstructionRows(
-        [0], ["def"], ["ssa-def"], ["arr.1"], ["arr"], [mode],
+        [0], ["def"], ["ssa-def"], ["arr.1"], ["arr"], [mode], [""],
         ["other"], ["arr[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph, target_graph,

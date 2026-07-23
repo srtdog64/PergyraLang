@@ -55,3 +55,90 @@ func CodegenSemanticRoleReceiverType(
 ) -> Option<String> {
     return SemanticAstRoleTargetTypeForMethodNode(facts, method_node_id);
 }
+
+func CodegenSemanticRoleImplAbilityNameOrDie(
+    facts: SemanticAstRoleFacts,
+    role_index: Int,
+    impl_index: Int
+) -> String {
+    let value: Option<String> = SemanticAstRoleImplAbilityNameAt(
+        facts, role_index, impl_index
+    );
+    if !IsSome(value) { Die("semantic role impl-ability fact missing"); }
+    return UnwrapOption(value);
+}
+
+func CodegenSemanticRoleImplAbilityCountOrDie(
+    facts: SemanticAstRoleFacts,
+    role_index: Int
+) -> Int {
+    let value: Option<Int> = SemanticAstRoleImplAbilityCountAt(
+        facts, role_index
+    );
+    if !IsSome(value) { Die("semantic role impl-count fact missing"); }
+    return UnwrapOption(value);
+}
+
+func CodegenSemanticAbilityCount(facts: SemanticAstRoleFacts) -> Int {
+    return SemanticAstAbilityCount(facts);
+}
+
+func CodegenSemanticAbilityNameOrDie(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int
+) -> String {
+    if !facts.ok || ability_index < 0 ||
+        ability_index >= SemanticAstAbilityCount(facts) {
+        Die("semantic ability name fact missing");
+    }
+    return facts.ability_names[ability_index];
+}
+
+func CodegenSemanticAbilityGenericCountOrDie(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int
+) -> Int {
+    let value: Option<Int> = SemanticAstAbilityGenericCountAt(
+        facts, ability_index
+    );
+    if !IsSome(value) { Die("semantic ability generic-count fact missing"); }
+    return UnwrapOption(value);
+}
+
+func CodegenSemanticAbilityGenericDefaultOrDie(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int,
+    generic_index: Int
+) -> String {
+    if !facts.ok || ability_index < 0 ||
+        ability_index >= SemanticAstAbilityCount(facts) || generic_index < 0 ||
+        generic_index >= facts.ability_generic_counts[ability_index] {
+        Die("semantic ability generic-default fact missing");
+    }
+    return facts.ability_generic_default_type_names[
+        facts.ability_generic_starts[ability_index] + generic_index
+    ];
+}
+
+func CodegenSemanticAbilityMethodCountOrDie(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int
+) -> Int {
+    let value: Option<Int> = SemanticAstAbilityMethodCountAt(
+        facts, ability_index
+    );
+    if !IsSome(value) { Die("semantic ability method-count fact missing"); }
+    return UnwrapOption(value);
+}
+
+func CodegenSemanticAbilityMethodNodeOrDie(
+    facts: SemanticAstRoleFacts,
+    ability_index: Int,
+    method_index: Int
+) -> Int {
+    let value: Option<Int> = SemanticAstAbilityMethodNodeAt(
+        facts, ability_index, method_index
+    );
+    if !IsSome(value) { Die("semantic ability method-node fact missing"); }
+    return UnwrapOption(value);
+}

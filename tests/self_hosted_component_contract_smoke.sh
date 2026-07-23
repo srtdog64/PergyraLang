@@ -3558,7 +3558,7 @@ require_text "src/self_hosted/mir/routine_if_owner.pgy" 'while merge_local_i < A
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, merge_local_i, 0'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'let false_block: Int = merge_block;'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, branch_block, then_block, false_block'
-require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldRaw("variants", JsonEmitArray(variants))'
+require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" 'JsonEmitFieldRaw("variants", JsonEmitArray(variants))'
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'
@@ -3891,9 +3891,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 267;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 268;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 267'
+    'mir_fixture_rows[@]}" -ne 268'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4411,11 +4411,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 267;"
+    "return 268;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 267'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 268'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -5519,11 +5519,11 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "specializations: CodegenGenericSpecializationFacts"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "roles: SemanticAstRoleFacts"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructsSelected("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstNominalConstructorFacts"
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" "func CollectRoleOperators("
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" "roles: SemanticAstRoleFacts"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "func CollectStructs("
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "func CollectStructsSelected("
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "facts: SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnums("
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnumsSelected("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -5703,15 +5703,15 @@ require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldTypeOrDie"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_role_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_nominal_codegen_view_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstNominalConstructorCount(facts)"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "while i < SemanticAstNominalConstructorCount(facts)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstRoleCount(roles)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticRoleMethodNodeOrDie("
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" "while i < SemanticAstRoleCount(roles)"
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" "CodegenSemanticRoleMethodNodeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "owner = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let role_name: String = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i)"
@@ -5729,7 +5729,7 @@ reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'Concat(env_b
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName(owner, fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCBindingName"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvAppendValueBinding"
@@ -5797,7 +5797,7 @@ require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "while i < S
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCStructTypeName(sname)"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "AbiLayoutCStructTypeName(sname)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsRoleDecl(nodes[i])"
@@ -5842,8 +5842,8 @@ reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTe
 reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(indents:"
+reject_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" "func CollectRoleOperators(indents:"
+reject_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "func CollectStructs(indents:"
 reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnums(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(indents:"
@@ -6998,7 +6998,7 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_option_som
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_option_none'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCReturnType"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutIsVoidReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEntrypointBodyReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEmptyParameterList"

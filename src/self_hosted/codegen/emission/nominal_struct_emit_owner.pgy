@@ -1,0 +1,126 @@
+// Nominal C struct declaration and role-slot layout emission owner.
+
+import "../text/text_owner.pgy";
+import "../input/semantic_nominal_codegen_view_owner.pgy";
+import "../input/semantic_role_codegen_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "role_dispatch_emit_owner.pgy";
+
+func CollectStructsSelected(
+    facts: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    selected: Array<Int>,
+    inout env_box: Array<String>
+) -> String {
+    if ArrayLength(selected) != SemanticAstNominalConstructorCount(facts) {
+        Die("nominal declaration selection mask does not match semantic rows");
+    }
+    let typedefs: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(facts) {
+        if selected[i] == 0 {
+            i = i + 1;
+            continue;
+        }
+        let struct_env_rows: Array<String> = [];
+        let sname: String = CodegenSemanticNominalNameOrDie(facts, i);
+        let c_sname: String = AbiLayoutCStructTypeName(sname);
+        let fields_c: Array<String> = [];
+        let field_names: Array<String> = [];
+        let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
+        let role_slot_count: Int = CodegenSemanticNominalRoleSlotCountOrDie(
+            facts, i
+        );
+        let field_index: Int = 0;
+        while field_index < field_count {
+            let fname: String = CodegenSemanticNominalFieldNameOrDie(
+                facts, i, field_index
+            );
+            let ftype: String = CodegenSemanticNominalFieldTypeOrDie(
+                facts, i, field_index
+            );
+            let cfield_type: String = AbiLayoutCFieldType(
+                ftype, CodegenTypeEnv(env_box[0], "")
+            );
+            let c_fname: String = CompilerSymbolCFieldName(fname);
+            ArrayPush(field_names, fname);
+            ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
+            ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
+            field_index = field_index + 1;
+        }
+        let slot_index: Int = 0;
+        while slot_index < role_slot_count {
+            let slot_name: String = CodegenSemanticNominalRoleSlotNameOrDie(
+                facts, i, slot_index
+            );
+            let slot_type: String = CodegenSemanticNominalRoleSlotTypeOrDie(
+                facts, i, slot_index
+            );
+            let dispatch_type: String = CodegenSemanticRoleSlotDispatchTypeOrDie(
+                roles, slot_type
+            );
+            let c_slot_name: String = CompilerSymbolCFieldName(slot_name);
+            ArrayPush(fields_c, Concat(
+                "    void *", Concat(c_slot_name, ";\n")
+            ));
+            ArrayPush(fields_c, Concat(
+                "    const ", Concat(dispatch_type, Concat(
+                    "_vtable *", Concat(c_slot_name, Concat(
+                        "_", Concat(dispatch_type, "_vt; /* dyn */\n")
+                    )
+                )))
+            ));
+            ArrayPush(struct_env_rows, Concat(
+                sname, Concat(".", Concat(slot_name, Concat(
+                    "=field:", Concat(slot_type, "|")
+                )))
+            ));
+            ArrayPush(struct_env_rows, Concat(
+                sname, Concat(".", Concat(slot_name, Concat(
+                    "=role_slot:", Concat(dispatch_type, "|")
+                )))
+            ));
+            ArrayPush(struct_env_rows, Concat(
+                sname, Concat(".", Concat(slot_name, Concat(
+                    "=role_slot_vt_field:", Concat(
+                        c_slot_name, Concat("_", Concat(
+                            dispatch_type, "_vt|"
+                        ))
+                    )
+                )))
+            ));
+            slot_index = slot_index + 1;
+        }
+        let field_block: String = StringJoin(fields_c, "");
+        if field_count == 0 && role_slot_count == 0 {
+            field_block = AbiLayoutCFieldlessNominalFieldBlock();
+        }
+        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
+        ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+        ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
+        i = i + 1;
+    }
+    return StringJoin(typedefs, "");
+}
+
+func CollectStructs(
+    facts: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    inout env_box: Array<String>
+) -> String {
+    let selected: Array<Int> = [];
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(facts) {
+        ArrayPush(selected, 1);
+        i = i + 1;
+    }
+    return CollectStructsSelected(facts, roles, selected, env_box);
+}
+
+// Build the C forward-declaration block for every non-Main function, in
+// GenerateC's own scope. (A pre-pass is required because Pergyra arrays pass by
+// value with a shared element buffer: `ArraySet` mutations persist across calls
+// but `ArrayPush` growth does not -- so a callee cannot append to the caller's
+// `protos`. Emitting prototypes here makes forward references compile.)

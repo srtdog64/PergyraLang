@@ -1,0 +1,483 @@
+// Role/ability vtable, party bind, and operator ABI emission owner.
+
+import "../text/text_owner.pgy";
+import "../input/semantic_signature_codegen_view_owner.pgy";
+import "../input/semantic_role_codegen_view_owner.pgy";
+import "../input/semantic_nominal_codegen_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+
+func CollectRoleOperators(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    inout env_box: Array<String>
+) -> String {
+    let rows: Array<String> = [];
+    let blocks: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstRoleCount(roles) {
+        let role_name: String = CodegenSemanticRoleNameOrDie(roles, i);
+        let for_type: String = CodegenSemanticRoleTargetTypeOrDie(roles, i);
+        let method_count: Int = CodegenSemanticRoleMethodCountOrDie(roles, i);
+        let method_index: Int = 0;
+        while method_index < method_count {
+            let method_node: Int = CodegenSemanticRoleMethodNodeOrDie(
+                roles, i, method_index
+            );
+            let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+                signatures, method_node
+            );
+            let mname: String = CodegenSemanticFunctionNameOrDie(
+                signatures, signature_index
+            );
+            if for_type == "Int" && mname == "Add" {
+                let role_method: String = CompilerSymbolCRoleOperatorName(
+                    role_name, "Add"
+                );
+                let adapter: String = CompilerSymbolCOperatorAdapterName(
+                    for_type, "add"
+                );
+                let c_type: String = AbiLayoutCValueType(
+                    for_type, CodegenTypeEnv(env_box[0], "")
+                );
+                ArrayPush(rows, Concat("Int+=op:", Concat(adapter, "|")));
+                ArrayPush(blocks, Concat(
+                    "static inline ", Concat(c_type, Concat(
+                        " ", Concat(adapter, Concat("(", Concat(
+                            c_type, Concat(" lhs, ", Concat(c_type, Concat(
+                                " rhs) {\n    ", Concat(c_type, Concat(
+                                    " lhs_copy = lhs;\n    return ", Concat(
+                                        role_method,
+                                        "(&lhs_copy, rhs);\n}\n"
+                                    )
+                                ))
+                            )))
+                        )))
+                    ))
+                ));
+            }
+            method_index = method_index + 1;
+        }
+        i = i + 1;
+    }
+    if ArrayLength(rows) > 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(rows, "")));
+    }
+    return StringJoin(blocks, "\n");
+}
+
+func CodegenSemanticRoleSlotDispatchTypeOrDie(
+    roles: SemanticAstRoleFacts,
+    ability_name: String
+) -> String {
+    let ability_index: Option<Int> = SemanticAstAbilityIndexForName(
+        roles, ability_name
+    );
+    if !IsSome(ability_index) {
+        Die(Concat("semantic ability declaration fact missing: ", ability_name));
+    }
+    let row: Int = UnwrapOption(ability_index);
+    let actual_types: Array<String> = [];
+    let generic_index: Int = 0;
+    while generic_index < roles.ability_generic_counts[row] {
+        let default_type: String = roles.ability_generic_default_type_names[
+            roles.ability_generic_starts[row] + generic_index
+        ];
+        if default_type == "" {
+            Die(Concat(
+                "dynamic role slot ability generic default is missing: ",
+                ability_name
+            ));
+        }
+        ArrayPush(actual_types, default_type);
+        generic_index = generic_index + 1;
+    }
+    if ArrayLength(actual_types) == 0 {
+        return CompilerSymbolCIdentifier(ability_name);
+    }
+    return CompilerSymbolCGenericSpecializationName(
+        ability_name, actual_types
+    );
+}
+
+func CodegenSemanticAbilityMethodSignatureIndexOrDie(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ability_index: Int,
+    method_index: Int
+) -> Int {
+    let method_node: Option<Int> = SemanticAstAbilityMethodNodeAt(
+        roles, ability_index, method_index
+    );
+    if !IsSome(method_node) {
+        Die("semantic ability method-node fact missing");
+    }
+    return CodegenSemanticSignatureIndexOrDie(
+        signatures, UnwrapOption(method_node)
+    );
+}
+
+func CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    role_index: Int,
+    method_name: String
+) -> Int {
+    let method_count: Int = CodegenSemanticRoleMethodCountOrDie(
+        roles, role_index
+    );
+    let method_index: Int = 0;
+    while method_index < method_count {
+        let method_node: Int = CodegenSemanticRoleMethodNodeOrDie(
+            roles, role_index, method_index
+        );
+        let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+            signatures, method_node
+        );
+        if CodegenSemanticFunctionNameOrDie(signatures, signature_index) ==
+            method_name {
+            return signature_index;
+        }
+        method_index = method_index + 1;
+    }
+    Die(Concat(
+        "role implementation method is missing for ability method: ",
+        method_name
+    ));
+    return -1;
+}
+
+func CodegenSemanticRoleDispatchTypeBlock(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    struct_env: CodegenTypeEnv
+) -> String {
+    let emitted_types: Array<String> = [];
+    let blocks: Array<String> = [];
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let impl_count: Option<Int> = SemanticAstRoleImplAbilityCountAt(
+            roles, role_index
+        );
+        if !IsSome(impl_count) {
+            Die("semantic role implementation count fact missing");
+        }
+        let impl_index: Int = 0;
+        while impl_index < UnwrapOption(impl_count) {
+            let ability_name: String =
+                CodegenSemanticRoleImplAbilityNameOrDie(
+                    roles, role_index, impl_index
+                );
+            let dispatch_type: String =
+                CodegenSemanticRoleSlotDispatchTypeOrDie(
+                    roles, ability_name
+                );
+            let already_emitted: Bool = false;
+            let prior: Int = 0;
+            while prior < ArrayLength(emitted_types) {
+                if emitted_types[prior] == dispatch_type {
+                    already_emitted = true;
+                }
+                prior = prior + 1;
+            }
+            if !already_emitted {
+                let ability_opt: Option<Int> = SemanticAstAbilityIndexForName(
+                    roles, ability_name
+                );
+                if !IsSome(ability_opt) {
+                    Die("semantic ability index fact missing");
+                }
+                let ability_index: Int = UnwrapOption(ability_opt);
+                let method_count: Option<Int> = SemanticAstAbilityMethodCountAt(
+                    roles, ability_index
+                );
+                if !IsSome(method_count) || UnwrapOption(method_count) == 0 {
+                    Die("dynamic ability vtable has no method facts");
+                }
+                let block: String = "typedef struct {\n";
+                let method_index: Int = 0;
+                while method_index < UnwrapOption(method_count) {
+                    let signature_index: Int =
+                        CodegenSemanticAbilityMethodSignatureIndexOrDie(
+                            roles, signatures, ability_index, method_index
+                        );
+                    let method_name: String = CodegenSemanticFunctionNameOrDie(
+                        signatures, signature_index
+                    );
+                    let return_type: String = CodegenSemanticFunctionReturnTypeOrDie(
+                        signatures, signature_index
+                    );
+                    let line: String = Concat(
+                        "    ", Concat(
+                            AbiLayoutCReturnType(return_type, struct_env),
+                            Concat(" (*", Concat(
+                                CompilerSymbolCFieldName(method_name),
+                                ")(void *self"
+                            ))
+                        )
+                    );
+                    let param_index: Int = 0;
+                    while param_index < CodegenSemanticFunctionParamCountOrDie(
+                        signatures, signature_index
+                    ) {
+                        if CodegenSemanticFunctionParamNameOrDie(
+                            signatures, signature_index, param_index
+                        ) != "self" {
+                            let param_type: String =
+                                CodegenSemanticFunctionParamTypeOrDie(
+                                    signatures, signature_index, param_index
+                                );
+                            let c_param_type: String = AbiLayoutCParamType(
+                                param_type, struct_env
+                            );
+                            let param_mode: Int =
+                                CodegenSemanticFunctionParamModeOrDie(
+                                    signatures, signature_index, param_index
+                                );
+                            if param_mode == 1 {
+                                c_param_type = Concat(c_param_type, " *");
+                            } else if param_mode == 3 {
+                                c_param_type = Concat(
+                                    "const ", Concat(c_param_type, " *")
+                                );
+                            }
+                            line = Concat(line, Concat(", ", c_param_type));
+                        }
+                        param_index = param_index + 1;
+                    }
+                    line = Concat(line, ");\n");
+                    block = Concat(block, line);
+                    method_index = method_index + 1;
+                }
+                block = Concat(block, Concat("} ", Concat(
+                    dispatch_type, "_vtable;\n"
+                )));
+                ArrayPush(blocks, block);
+                ArrayPush(emitted_types, dispatch_type);
+            }
+            impl_index = impl_index + 1;
+        }
+        role_index = role_index + 1;
+    }
+    let result: String = StringJoin(blocks, "\n");
+    role_index = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let role_name: String = CodegenSemanticRoleNameOrDie(roles, role_index);
+        let impl_count: Option<Int> = SemanticAstRoleImplAbilityCountAt(
+            roles, role_index
+        );
+        if !IsSome(impl_count) { Die("semantic role implementation count missing"); }
+        let impl_index: Int = 0;
+        while impl_index < UnwrapOption(impl_count) {
+            let ability_name: String = CodegenSemanticRoleImplAbilityNameOrDie(
+                roles, role_index, impl_index
+            );
+            let ability_index: Int = UnwrapOption(
+                SemanticAstAbilityIndexForName(roles, ability_name)
+            );
+            let method_count: Int = UnwrapOption(
+                SemanticAstAbilityMethodCountAt(roles, ability_index)
+            );
+            let method_index: Int = 0;
+            while method_index < method_count {
+                let ability_signature: Int =
+                    CodegenSemanticAbilityMethodSignatureIndexOrDie(
+                        roles, signatures, ability_index, method_index
+                    );
+                let method_name: String = CodegenSemanticFunctionNameOrDie(
+                    signatures, ability_signature
+                );
+                let role_signature: Int =
+                    CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
+                        roles, signatures, role_index, method_name
+                    );
+                let line: String = Concat(
+                    AbiLayoutCReturnType(
+                        CodegenSemanticFunctionReturnTypeOrDie(
+                            signatures, role_signature
+                        ), struct_env
+                    ), Concat(" ", Concat(
+                        CompilerSymbolCQualifiedName(role_name, method_name),
+                        "(void *self"
+                    ))
+                );
+                let param_index: Int = 0;
+                while param_index < CodegenSemanticFunctionParamCountOrDie(
+                    signatures, role_signature
+                ) {
+                    if CodegenSemanticFunctionParamNameOrDie(
+                        signatures, role_signature, param_index
+                    ) != "self" {
+                        let role_param_type: String = AbiLayoutCParamType(
+                            CodegenSemanticFunctionParamTypeOrDie(
+                                signatures, role_signature, param_index
+                            ), struct_env
+                        );
+                        let role_param_mode: Int =
+                            CodegenSemanticFunctionParamModeOrDie(
+                                signatures, role_signature, param_index
+                            );
+                        if role_param_mode == 1 {
+                            role_param_type = Concat(role_param_type, " *");
+                        } else if role_param_mode == 3 {
+                            role_param_type = Concat(
+                                "const ", Concat(role_param_type, " *")
+                            );
+                        }
+                        line = Concat(line, Concat(", ", role_param_type));
+                    }
+                    param_index = param_index + 1;
+                }
+                result = Concat(result, Concat(line, ");\n"));
+                method_index = method_index + 1;
+            }
+            impl_index = impl_index + 1;
+        }
+        role_index = role_index + 1;
+    }
+    return result;
+}
+
+func CodegenSemanticRoleDispatchRuntimeBlock(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    nominals: SemanticAstNominalConstructorFacts,
+    inout env_box: Array<String>
+) -> String {
+    let blocks: Array<String> = [];
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let role_name: String = CodegenSemanticRoleNameOrDie(roles, role_index);
+        let impl_count: Option<Int> = SemanticAstRoleImplAbilityCountAt(
+            roles, role_index
+        );
+        if !IsSome(impl_count) { Die("semantic role implementation count missing"); }
+        let impl_index: Int = 0;
+        while impl_index < UnwrapOption(impl_count) {
+            let ability_name: String = CodegenSemanticRoleImplAbilityNameOrDie(
+                roles, role_index, impl_index
+            );
+            let ability_index: Int = UnwrapOption(
+                SemanticAstAbilityIndexForName(roles, ability_name)
+            );
+            let dispatch_type: String = CodegenSemanticRoleSlotDispatchTypeOrDie(
+                roles, ability_name
+            );
+            let instance_name: String = Concat(
+                CompilerSymbolCQualifiedName(role_name, ability_name),
+                Concat("_", Concat(dispatch_type, "_vtable_instance"))
+            );
+            let block: String = Concat(
+                "static const ", Concat(dispatch_type, Concat(
+                    "_vtable ", Concat(instance_name, " = {\n")
+                ))
+            );
+            let method_count: Int = UnwrapOption(
+                SemanticAstAbilityMethodCountAt(roles, ability_index)
+            );
+            let method_index: Int = 0;
+            while method_index < method_count {
+                let ability_signature: Int =
+                    CodegenSemanticAbilityMethodSignatureIndexOrDie(
+                        roles, signatures, ability_index, method_index
+                    );
+                let method_name: String = CodegenSemanticFunctionNameOrDie(
+                    signatures, ability_signature
+                );
+                block = Concat(block, Concat(
+                    "    .", Concat(
+                        CompilerSymbolCFieldName(method_name), Concat(
+                            " = ", Concat(
+                                CompilerSymbolCQualifiedName(
+                                    role_name, method_name
+                                ), ",\n"
+                            )
+                        )
+                    )
+                ));
+                method_index = method_index + 1;
+            }
+            block = Concat(block, "};\n");
+            ArrayPush(blocks, block);
+            impl_index = impl_index + 1;
+        }
+        role_index = role_index + 1;
+    }
+    let nominal_index: Int = 0;
+    while nominal_index < SemanticAstNominalConstructorCount(nominals) {
+        let nominal_name: String = CodegenSemanticNominalNameOrDie(
+            nominals, nominal_index
+        );
+        let slot_count: Int = CodegenSemanticNominalRoleSlotCountOrDie(
+            nominals, nominal_index
+        );
+        let slot_index: Int = 0;
+        while slot_index < slot_count {
+            let slot_name: String = CodegenSemanticNominalRoleSlotNameOrDie(
+                nominals, nominal_index, slot_index
+            );
+            let ability_name: String = CodegenSemanticNominalRoleSlotTypeOrDie(
+                nominals, nominal_index, slot_index
+            );
+            let dispatch_type: String = CodegenSemanticRoleSlotDispatchTypeOrDie(
+                roles, ability_name
+            );
+            let bind_name: String = CompilerSymbolCQualifiedName(
+                nominal_name, Concat("bind_", slot_name)
+            );
+            let c_nominal: String = AbiLayoutCStructTypeName(nominal_name);
+            let c_slot: String = CompilerSymbolCFieldName(slot_name);
+            let bind_block: String = Concat(
+                "static inline void ", Concat(bind_name, "(")
+            );
+            bind_block = Concat(bind_block, c_nominal);
+            bind_block = Concat(bind_block, " *self, void *impl, const ");
+            bind_block = Concat(bind_block, dispatch_type);
+            bind_block = Concat(bind_block, "_vtable *vt) {\n    self->");
+            bind_block = Concat(bind_block, c_slot);
+            bind_block = Concat(bind_block, " = impl;\n    self->");
+            bind_block = Concat(bind_block, c_slot);
+            bind_block = Concat(bind_block, "_");
+            bind_block = Concat(bind_block, dispatch_type);
+            bind_block = Concat(bind_block, "_vt = vt;\n}\n");
+            ArrayPush(blocks, bind_block);
+            let role_index2: Int = 0;
+            while role_index2 < SemanticAstRoleCount(roles) {
+                let role_name: String = CodegenSemanticRoleNameOrDie(
+                    roles, role_index2
+                );
+                if SemanticAstRoleImplementsAbility(
+                    roles, role_name, ability_name
+                ) {
+                    let dispatch_instance: String = Concat(
+                        CompilerSymbolCQualifiedName(role_name, ability_name),
+                        Concat("_", Concat(
+                            dispatch_type, "_vtable_instance"
+                        ))
+                    );
+                    let bind_key: String = Concat(
+                        nominal_name, Concat(".", Concat(
+                            slot_name, Concat(".", Concat(role_name, ""))
+                        ))
+                    );
+                    ArraySet(env_box, 0, Concat(env_box[0], Concat(
+                        bind_key, Concat("=bind:", Concat(
+                            bind_name, Concat("|", Concat(
+                                bind_key, Concat("=vtable:", Concat(
+                                    dispatch_instance, "|"
+                                ))
+                            ))
+                        ))
+                    )));
+                }
+                role_index2 = role_index2 + 1;
+            }
+            slot_index = slot_index + 1;
+        }
+        nominal_index = nominal_index + 1;
+    }
+    return StringJoin(blocks, "\n");
+}
+
+// Scan top-level nominal declarations into C typedefs, and append
+// `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].

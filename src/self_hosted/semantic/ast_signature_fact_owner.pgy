@@ -32,6 +32,25 @@ struct SemanticAstFunctionOwnerFact {
     runtime_callable: Bool;
 }
 
+func SemanticAstFunctionAbilityDefaultRows(
+    arena: AstArena,
+    function_node_id: Int,
+    inout names: Array<String>,
+    inout default_type_names: Array<String>
+) -> Bool {
+    let parent: Option<Int> = TypedAstArenaParentId(
+        arena, function_node_id
+    );
+    if !IsSome(parent) || !TypedAstArenaNodeKindIs(
+        arena, UnwrapOption(parent), TypedAstKindAbilityDeclTag()
+    ) {
+        return true;
+    }
+    return SemanticAstAbilityGenericParameterDefaultRowsFromNode(
+        arena, UnwrapOption(parent), names, default_type_names
+    );
+}
+
 func SemanticAstFunctionOwnerFactFromArena(
     arena: AstArena,
     function_node_id: Int
@@ -132,6 +151,20 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             );
             continue;
         }
+        let ability_generic_names: Array<String> = [];
+        let ability_generic_defaults: Array<String> = [];
+        if !SemanticAstFunctionAbilityDefaultRows(
+            artifact.arena, node_id,
+            ability_generic_names, ability_generic_defaults
+        ) {
+            ok = false;
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "ability_generic_defaults"
+            );
+            continue;
+        }
 
         let saw_generic_params: Bool = false;
         let saw_parameters: Bool = false;
@@ -209,6 +242,12 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         resolved_param_type = SemanticCanonicalTypeName(
                             UnwrapOption(param_type)
                         );
+                        resolved_param_type =
+                            SemanticAstGenericDefaultTypeForName(
+                                ability_generic_names,
+                                ability_generic_defaults,
+                                resolved_param_type
+                            );
                     } else if UnwrapOption(param_name) == "self" &&
                         StringLength(UnwrapOption(owner).name) > 0 {
                         resolved_param_type = UnwrapOption(owner).name;
@@ -268,6 +307,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                 saw_returns = true;
                 return_type = SemanticCanonicalTypeName(
                     UnwrapOption(return_type_fact)
+                );
+                return_type = SemanticAstGenericDefaultTypeForName(
+                    ability_generic_names, ability_generic_defaults,
+                    return_type
                 );
             }
             child_index = child_index + 1;

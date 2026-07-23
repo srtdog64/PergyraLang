@@ -155,18 +155,58 @@ mir_json_nominal_kind_name(NominalDeclKind kind)
 }
 
 static void
+mir_json_emit_ability_ref(FILE *out, const MIRAbilityRef *ref);
+
+static void
 mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
 {
+    size_t emitted = 0;
     fputs(",\"fields\":[", out);
     for (size_t f = 0; f < mir_decl_header_field_count(header); f++) {
         const MIRDeclField *field = mir_decl_header_field(header, f);
-        if (f > 0)
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            == MIR_DECL_FIELD_ROLE_SLOT)
+            continue;
+        if (emitted > 0)
             fputc(',', out);
         fputs("{\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_field_name(field));
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out, mir_decl_field_type_name(field));
         fputc('}', out);
+        emitted++;
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_decl_role_slots(FILE *out, const MIRDeclHeader *header)
+{
+    size_t emitted = 0;
+
+    fputs(",\"role_slots\":[", out);
+    for (size_t f = 0; f < mir_decl_header_field_count(header); f++) {
+        const MIRDeclField *field = mir_decl_header_field(header, f);
+        size_t ability_count;
+
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            != MIR_DECL_FIELD_ROLE_SLOT)
+            continue;
+        if (emitted > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_field_name(field));
+        fprintf(out, ",\"dynamic\":%s,\"abilities\":[",
+                mir_decl_field_is_dynamic(field) ? "true" : "false");
+        ability_count = mir_decl_field_required_ability_count(field);
+        for (size_t a = 0; a < ability_count; a++) {
+            if (a > 0)
+                fputc(',', out);
+            mir_json_emit_ability_ref(
+                out, mir_decl_field_required_ability_ref(field, a));
+        }
+        fputs("]}", out);
+        emitted++;
     }
     fputc(']', out);
 }
@@ -316,6 +356,7 @@ mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
                                    NominalDeclKind nominal_kind)
 {
     return ast_type == AST_ZONE_DECL
+        || ast_type == AST_PARTY_DECL
         || (ast_type == AST_CLASS_DECL
         && (nominal_kind == NOMINAL_DECL_STRUCT
             || nominal_kind == NOMINAL_DECL_CLASS
@@ -345,15 +386,20 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     if (mir_json_decl_is_supported_nominal(ast_type, nominal_kind)) {
         bool is_struct_decl = ast_type == AST_CLASS_DECL
             && nominal_kind == NOMINAL_DECL_STRUCT;
+        const char *json_nominal_kind = ast_type == AST_ZONE_DECL
+            ? "zone" : mir_json_nominal_kind_name(nominal_kind);
+        if (ast_type == AST_PARTY_DECL)
+            json_nominal_kind = "party";
         fputs("{\"kind\":", out);
         mir_json_emit_str(out, is_struct_decl ? "struct" : "class");
         fputs(",\"nominal_kind\":", out);
-        mir_json_emit_str(out, ast_type == AST_ZONE_DECL
-            ? "zone" : mir_json_nominal_kind_name(nominal_kind));
+        mir_json_emit_str(out, json_nominal_kind);
         fputs(",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
+        if (ast_type == AST_PARTY_DECL)
+            mir_json_emit_decl_role_slots(out, header);
         if (!is_struct_decl)
             mir_json_emit_decl_methods(out, header, false);
         fputc('}', out);
@@ -532,6 +578,8 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_str_or_null(out, inst->arg0);
     fputs(",\"arg1\":", out);
     mir_json_emit_str_or_null(out, inst->arg1);
+    fputs(",\"slot_anchor\":", out);
+    mir_json_emit_str_or_null(out, inst->slot_anchor);
     mir_json_emit_instruction_abi_layout(out, inst);
     fputs(",\"machine_layer\":", out);
     if (inst->machine_layer_fact_present) {

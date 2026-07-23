@@ -38,10 +38,13 @@ func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
 func TypedAstKindGenericParamsTag() -> Int { return 37; }
 func TypedAstKindDestructureStmtTag() -> Int { return 38; }
+func TypedAstKindRoleSlotTag() -> Int { return 39; }
+func TypedAstKindImplAbilityTag() -> Int { return 40; }
+func TypedAstKindBindStmtTag() -> Int { return 41; }
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindDestructureStmtTag();
+        kind <= TypedAstKindBindStmtTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -63,6 +66,7 @@ func TypedAstNominalSubkindTObject() -> Int { return 5; }
 func TypedAstNominalSubkindVessel() -> Int { return 6; }
 func TypedAstNominalSubkindZone() -> Int { return 7; }
 func TypedAstNominalSubkindWorld() -> Int { return 8; }
+func TypedAstNominalSubkindParty() -> Int { return 9; }
 
 func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindStruct() { return "struct"; }
@@ -73,6 +77,7 @@ func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindVessel() { return "vessel"; }
     if subkind == TypedAstNominalSubkindZone() { return "zone"; }
     if subkind == TypedAstNominalSubkindWorld() { return "world"; }
+    if subkind == TypedAstNominalSubkindParty() { return "party"; }
     return "";
 }
 
@@ -96,14 +101,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindBodyTag(), TypedAstKindBlockTag(), TypedAstKindThenTag(),
         TypedAstKindMatchStmtTag(), TypedAstKindMatchCaseStmtTag(),
         TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag(),
-        TypedAstKindDestructureStmtTag()
+        TypedAstKindDestructureStmtTag(), TypedAstKindRoleSlotTag(),
+        TypedAstKindImplAbilityTag(), TypedAstKindBindStmtTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 38 {
+    if ArrayLength(tags) != 41 {
         return false;
     }
     let i: Int = 0;
@@ -122,8 +128,11 @@ func TypedAstKindOwnerReady() -> Bool {
     }
     return TypedAstKindKnown(TypedAstKindUnknownTag()) &&
         TypedAstKindKnown(TypedAstKindDestructureStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindRoleSlotTag()) &&
+        TypedAstKindKnown(TypedAstKindImplAbilityTag()) &&
+        TypedAstKindKnown(TypedAstKindBindStmtTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindDestructureStmtTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindBindStmtTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&
@@ -137,6 +146,7 @@ func TypedAstKindOwnerReady() -> Bool {
             "vessel" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindZone()) == "zone" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindWorld()) == "world" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindParty()) == "party" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "" &&
         TypedAstCallStatementKindForCallee("Log") ==
             TypedAstKindLogStmtTag() &&

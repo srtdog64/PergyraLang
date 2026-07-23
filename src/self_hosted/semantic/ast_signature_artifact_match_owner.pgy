@@ -28,6 +28,14 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             facts.runtime_callables[signature_index] {
         return false;
     }
+    let ability_generic_names: Array<String> = [];
+    let ability_generic_defaults: Array<String> = [];
+    if !SemanticAstFunctionAbilityDefaultRows(
+        artifact.arena, function_node_id,
+        ability_generic_names, ability_generic_defaults
+    ) {
+        return false;
+    }
 
     let saw_generic_params: Bool = false;
     let saw_parameters: Bool = false;
@@ -104,6 +112,10 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 } else {
                     return false;
                 }
+                resolved_type = SemanticAstGenericDefaultTypeForName(
+                    ability_generic_names, ability_generic_defaults,
+                    resolved_type
+                );
                 if !TypedAstArenaNodeKindIs(
                     artifact.arena, parameter_id, TypedAstKindParamTag()
                 ) || !IsSome(parameter_name) || !IsSome(parameter_mode) ||
@@ -128,9 +140,15 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             let return_type: Option<String> = TypedAstArenaTypeName(
                 artifact.arena, child_id
             );
-            if !IsSome(return_type) || SemanticCanonicalTypeName(
-                UnwrapOption(return_type)
-            ) != facts.return_types[signature_index] {
+            let resolved_return_type: String = "";
+            if IsSome(return_type) {
+                resolved_return_type = SemanticAstGenericDefaultTypeForName(
+                    ability_generic_names, ability_generic_defaults,
+                    SemanticCanonicalTypeName(UnwrapOption(return_type))
+                );
+            }
+            if !IsSome(return_type) || resolved_return_type !=
+                facts.return_types[signature_index] {
                 return false;
             }
             saw_returns = true;

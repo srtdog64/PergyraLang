@@ -42,7 +42,8 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindMatchStmtTag() ||
         kind == TypedAstKindMatchCaseStmtTag() ||
         kind == TypedAstKindMatchDefaultStmtTag() ||
-        kind == TypedAstKindBareCallStmtTag();
+        kind == TypedAstKindBareCallStmtTag() ||
+        kind == TypedAstKindBindStmtTag();
 }
 
 func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {

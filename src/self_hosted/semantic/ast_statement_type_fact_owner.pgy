@@ -11,6 +11,7 @@ import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
+import "ast_bind_statement_type_fact_owner.pgy";
 
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
@@ -114,8 +115,13 @@ func SemanticAstStatementTypeFactsFromArtifact(
     let function_params: Array<String> = [];
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
+    let role_facts: SemanticAstRoleFacts =
+        SemanticAstRoleFactsFromArtifact(artifact);
     if !enum_facts.ok {
         return SemanticAstStatementTypeStructuralError(artifact, "enum");
+    }
+    if !role_facts.ok {
+        return SemanticAstStatementTypeStructuralError(artifact, "role");
     }
     if !SemanticAstExpressionFunctionTables(
         signatures, constructors, enum_facts,
@@ -199,7 +205,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
             kind != TypedAstKindForStmtTag() &&
             kind != TypedAstKindArrayPopStmtTag() &&
             kind != TypedAstKindArraySetStmtTag() &&
-            kind != TypedAstKindArrayPushStmtTag();
+            kind != TypedAstKindArrayPushStmtTag() &&
+            kind != TypedAstKindBindStmtTag();
         if checks_expression {
             let expression_verdict: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictError(
@@ -475,6 +482,14 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     "actual", inferred
                 );
             }
+        }
+        if row_verified == 1 && kind == TypedAstKindBindStmtTag() {
+            let bind_verdict: SemanticAstBindStatementTypeVerdict = SemanticAstBindStatementTypeVerdictFor(
+                constructors, role_facts, names, types, statements.payload_texts[i],
+                statements.value_texts[i], statements.auxiliary_texts[i]);
+            row_verified = bind_verdict.verified;
+            row_code = bind_verdict.diagnostic_code;
+            row_message = bind_verdict.diagnostic_message;
         }
         ArrayPush(node_ids, statements.node_ids[i]);
         ArrayPush(kind_tags, kind);

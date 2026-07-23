@@ -44,7 +44,8 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
     let payload: String = input.payload;
     if kind == TypedAstKindFuncDeclTag() ||
         kind == TypedAstKindNominalDeclTag() ||
-        kind == TypedAstKindEnumDeclTag() {
+        kind == TypedAstKindEnumDeclTag() ||
+        kind == TypedAstKindImplAbilityTag() {
         return payload;
     }
     if kind == TypedAstKindRoleDeclTag() {
@@ -53,6 +54,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
             return Substring(payload, 0, pos);
         }
         return "";
+    }
+    if kind == TypedAstKindAbilityDeclTag() {
+        let generic_pos: Int = StringIndexOf(payload, "<");
+        if generic_pos >= 0 {
+            return StringTrim(Substring(payload, 0, generic_pos));
+        }
+        return payload;
     }
     if kind == TypedAstKindParamTag() {
         let row: String = CodegenAstTextParamPayloadForMode(payload, input.mode);
@@ -80,6 +88,17 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
         if IsSome(assign_sep) {
             return Substring(payload, 0, UnwrapOption(assign_sep));
+        }
+        return "";
+    }
+    if kind == TypedAstKindBindStmtTag() {
+        let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(assign_sep) {
+            let target: String = Substring(payload, 0, UnwrapOption(assign_sep));
+            let dot: Int = StringIndexOf(target, ".");
+            if dot > 0 {
+                return Substring(target, 0, dot);
+            }
         }
         return "";
     }
@@ -111,6 +130,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == TypedAstKindRoleSlotTag() {
+        let requires_pos: Int = StringIndexOf(payload, " requires ");
+        if requires_pos > 0 {
+            return Substring(payload, 0, requires_pos);
+        }
+        return "";
+    }
     return "";
 }
 
@@ -130,6 +156,16 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         if IsSome(pos2) {
             let start2: Int = UnwrapOption(pos2) + 3;
             return Substring(payload, start2, StringLength(payload) - start2);
+        }
+        return "";
+    }
+    if kind == TypedAstKindBindStmtTag() {
+        let bind_pos: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(bind_pos) {
+            let start: Int = UnwrapOption(bind_pos) + 3;
+            return StringTrim(Substring(
+                payload, start, StringLength(payload) - start
+            ));
         }
         return "";
     }
@@ -182,6 +218,19 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
         if open > 0 && open + 1 < n &&
             CodegenCharCodeAt(target, n, n - 1) == 93 {
             return target;
+        }
+        return "";
+    }
+    if kind == TypedAstKindBindStmtTag() {
+        let bind_pos: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(bind_pos) {
+            let target: String = Substring(payload, 0, UnwrapOption(bind_pos));
+            let dot: Int = StringIndexOf(target, ".");
+            if dot > 0 && dot + 1 < StringLength(target) {
+                return Substring(
+                    target, dot + 1, StringLength(target) - (dot + 1)
+                );
+            }
         }
         return "";
     }
@@ -259,6 +308,16 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
             }
             return StringTrim(Substring(
                 payload, type_start, type_end - type_start
+            ));
+        }
+        return "";
+    }
+    if kind == TypedAstKindRoleSlotTag() {
+        let requires_pos: Int = StringIndexOf(payload, " requires ");
+        if requires_pos > 0 {
+            let start: Int = requires_pos + 10;
+            return StringTrim(Substring(
+                payload, start, StringLength(payload) - start
             ));
         }
         return "";

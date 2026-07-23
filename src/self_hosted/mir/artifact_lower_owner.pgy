@@ -45,6 +45,7 @@ func SelfMirAppendCfg(
     let results: Array<String> = target_instructions.results;
     let arg0s: Array<String> = target_instructions.arg0s;
     let arg1s: Array<String> = target_instructions.arg1s;
+    let slot_anchors: Array<String> = target_instructions.slot_anchors;
     let expr0s: Array<String> = target_instructions.expr0s;
     let expr1s: Array<String> = target_instructions.expr1s;
     let source_types: Array<String> = target_instructions.source_types;
@@ -80,6 +81,9 @@ func SelfMirAppendCfg(
         ArrayPush(results, source.instructions.results[instruction_i]);
         ArrayPush(arg0s, source.instructions.arg0s[instruction_i]);
         ArrayPush(arg1s, source.instructions.arg1s[instruction_i]);
+        ArrayPush(
+            slot_anchors, source.instructions.slot_anchors[instruction_i]
+        );
         ArrayPush(expr0s, source.instructions.expr0s[instruction_i]);
         ArrayPush(expr1s, source.instructions.expr1s[instruction_i]);
         ArrayPush(
@@ -169,7 +173,8 @@ func SelfMirAppendCfg(
             has_true, succ_true, has_false, succ_false
         ),
         SelfMirInstructionRows(
-            ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
+            ids, kinds, names, results, arg0s, arg1s, slot_anchors,
+            expr0s, expr1s,
             source_types, machine_contact_kinds, machine_layer_manifest_ids,
             machine_layer_physical_grant_ids, machine_layer_physical_bases,
             machine_layer_physical_sizes, machine_layer_physical_modes,
@@ -407,7 +412,8 @@ func SelfMirCanonicalInstructionIds(
             SelfMirInstructionRows(
                 ids, instructions.kinds, instructions.names,
                 instructions.results, instructions.arg0s, instructions.arg1s,
-                instructions.expr0s, instructions.expr1s,
+                instructions.slot_anchors, instructions.expr0s,
+                instructions.expr1s,
                 instructions.source_types, instructions.machine_contact_kinds,
                 instructions.machine_layer_manifest_ids,
                 instructions.machine_layer_physical_grant_ids,
@@ -511,7 +517,7 @@ func SelfMirProgramFactsFromArtifact(
     }
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count,
-        SelfMirDeclarationsFromAnalysis(analysis, enum_facts),
+        SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts),
         generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg
     );

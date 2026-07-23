@@ -49,6 +49,12 @@ func TypedAstTextKindOf(text: String) -> Int {
         StartsWith(text, "WorldZone:") {
         return TypedAstKindFieldTag();
     }
+    if StartsWith(text, "RoleSlot:") {
+        return TypedAstKindRoleSlotTag();
+    }
+    if StartsWith(text, "Impl ability:") {
+        return TypedAstKindImplAbilityTag();
+    }
     if StartsWith(text, "Function:") || StartsWith(text, "Action:") {
         return TypedAstKindFuncDeclTag();
     }
@@ -58,7 +64,7 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
         StartsWith(text, "Vessel:") || StartsWith(text, "Zone:") ||
-        StartsWith(text, "World:") {
+        StartsWith(text, "World:") || StartsWith(text, "Party:") {
         return TypedAstKindNominalDeclTag();
     }
     if StartsWith(text, "Enum:") {
@@ -84,6 +90,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     }
     if StartsWith(text, "Assign: ") {
         return TypedAstKindAssignStmtTag();
+    }
+    if StartsWith(text, "BindStmt: ") {
+        return TypedAstKindBindStmtTag();
     }
     if StartsWith(text, "For: ") {
         return TypedAstKindForStmtTag();
@@ -160,6 +169,12 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         return text;
     }
+    if kind == TypedAstKindRoleSlotTag() {
+        return Substring(text, 10, StringLength(text) - 10);
+    }
+    if kind == TypedAstKindImplAbilityTag() {
+        return StringTrim(Substring(text, 13, StringLength(text) - 13));
+    }
     if kind == TypedAstKindParamTag() {
         return text;
     }
@@ -192,6 +207,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 6, StringLength(text) - 6);
         }
         if StartsWith(text, "World: ") {
+            return Substring(text, 7, StringLength(text) - 7);
+        }
+        if StartsWith(text, "Party: ") {
             return Substring(text, 7, StringLength(text) - 7);
         }
     }
@@ -239,6 +257,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == TypedAstKindAssignStmtTag() {
         return Substring(text, 8, StringLength(text) - 8);
+    }
+    if kind == TypedAstKindBindStmtTag() {
+        return Substring(text, 10, StringLength(text) - 10);
     }
     if kind == TypedAstKindForStmtTag() {
         return Substring(text, 5, StringLength(text) - 5);

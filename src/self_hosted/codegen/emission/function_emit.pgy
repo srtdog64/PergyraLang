@@ -75,6 +75,24 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let env_state: Array<String> = [base_env.global_rows, ""];
     let prologue: String = "";
     let copyout: String = "";
+    let role_receiver_type: Option<String> = CodegenSemanticRoleReceiverType(
+        roles, function_node_id
+    );
+    let role_receiver: Bool = IsSome(role_receiver_type);
+    let role_declares_self: Bool = false;
+    let signature_param_index: Int = 0;
+    while signature_param_index < expected_param_count {
+        if CodegenSemanticFunctionParamNameOrDie(
+            signatures, signature_index, signature_param_index
+        ) == "self" {
+            role_declares_self = true;
+        }
+        signature_param_index = signature_param_index + 1;
+    }
+    if role_receiver && !role_declares_self {
+        params = "void *_pgy_raw_self";
+        prologue = "    (void)_pgy_raw_self;\n";
+    }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
             signatures, signature_index, param_n
@@ -86,11 +104,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             signatures, signature_index, param_n, generic_actuals
         );
         if p_name == "self" {
-            let role_receiver: Option<String> = CodegenSemanticRoleReceiverType(
-                roles, function_node_id
-            );
-            if IsSome(role_receiver) {
-                p_type = UnwrapOption(role_receiver);
+            if IsSome(role_receiver_type) {
+                p_type = UnwrapOption(role_receiver_type);
             }
         }
         let p_binding: CodegenFunctionValueBindingFact =
@@ -100,6 +115,26 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         let c_p_name: String = p_binding.c_name;
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
+        if p_name == "self" && role_receiver {
+            let raw_self_name: String = "_pgy_raw_self";
+            c_param = Concat("void *", Concat(" ", raw_self_name));
+            let receiver_c_type: String = AbiLayoutCLocalType(
+                p_type, base_env
+            );
+            let cast_line: String = Concat("    ", receiver_c_type);
+            cast_line = Concat(cast_line, Concat(" ", c_p_name));
+            cast_line = Concat(
+                cast_line, Concat(" = ", raw_self_name)
+            );
+            cast_line = Concat(cast_line, Concat(
+                " ? *(", Concat(receiver_c_type, Concat(
+                    " *)", Concat(raw_self_name, Concat(
+                        " : (", Concat(receiver_c_type, "){0};\n")
+                    ))
+                ))
+            ));
+            prologue = Concat(prologue, cast_line);
+        }
         let c_ref_name: String = c_p_name;
         if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);
@@ -112,7 +147,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 "const ", Concat(c_param_type, Concat(" *", c_ref_name))
             );
         }
-        if param_n == 0 {
+        if params == "" {
             params = c_param;
         } else {
             params = Concat(params, Concat(", ", c_param));
@@ -253,8 +288,7 @@ func BuildFunctionEnv(
     ArrayPush(rows, Concat(TextBuilderRuntimeCDropFn(), "=pt:TextBuilder|"));
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
-        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
-            CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
+        if CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
             i = i + 1;
             continue;
         }
@@ -337,113 +371,6 @@ func BuildFunctionEnv(
     return StringJoin(rows, "");
 }
 
-func CollectRoleOperators(
-    roles: SemanticAstRoleFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
-    inout env_box: Array<String>
-) -> String {
-    let rows: Array<String> = [];
-    let i: Int = 0;
-    while i < SemanticAstRoleCount(roles) {
-        let role_name: String = CodegenSemanticRoleNameOrDie(roles, i);
-        let for_type: String = CodegenSemanticRoleTargetTypeOrDie(roles, i);
-        let method_count: Int = CodegenSemanticRoleMethodCountOrDie(roles, i);
-        let method_index: Int = 0;
-        while method_index < method_count {
-            let method_node: Int = CodegenSemanticRoleMethodNodeOrDie(
-                roles, i, method_index
-            );
-            let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
-                signatures, method_node
-            );
-            let mname: String = CodegenSemanticFunctionNameOrDie(
-                signatures, signature_index
-            );
-            if for_type == "Int" && mname == "Add" {
-                let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
-                ArrayPush(rows, Concat("Int+=op:", Concat(c_name, "|")));
-            }
-            method_index = method_index + 1;
-        }
-        i = i + 1;
-    }
-    if ArrayLength(rows) > 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(rows, "")));
-    }
-    return "";
-}
-
-// Scan top-level nominal declarations into C typedefs, and append
-// `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
-func CollectStructsSelected(
-    facts: SemanticAstNominalConstructorFacts,
-    selected: Array<Int>,
-    inout env_box: Array<String>
-) -> String {
-    if ArrayLength(selected) != SemanticAstNominalConstructorCount(facts) {
-        Die("nominal declaration selection mask does not match semantic rows");
-    }
-    let typedefs: Array<String> = [];
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(facts) {
-        if selected[i] == 0 {
-            i = i + 1;
-            continue;
-        }
-        let struct_env_rows: Array<String> = [];
-        let sname: String = CodegenSemanticNominalNameOrDie(facts, i);
-        let c_sname: String = AbiLayoutCStructTypeName(sname);
-        let fields_c: Array<String> = [];
-        let field_names: Array<String> = [];
-        let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
-        let field_index: Int = 0;
-        while field_index < field_count {
-            let fname: String = CodegenSemanticNominalFieldNameOrDie(
-                facts, i, field_index
-            );
-            let ftype: String = CodegenSemanticNominalFieldTypeOrDie(
-                facts, i, field_index
-            );
-            let cfield_type: String = AbiLayoutCFieldType(
-                ftype, CodegenTypeEnv(env_box[0], "")
-            );
-            let c_fname: String = CompilerSymbolCFieldName(fname);
-            ArrayPush(field_names, fname);
-            ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
-            ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
-            field_index = field_index + 1;
-        }
-        let field_block: String = StringJoin(fields_c, "");
-        if field_count == 0 {
-            field_block = AbiLayoutCFieldlessNominalFieldBlock();
-        }
-        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
-        ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
-        ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
-        i = i + 1;
-    }
-    return StringJoin(typedefs, "");
-}
-
-func CollectStructs(
-    facts: SemanticAstNominalConstructorFacts,
-    inout env_box: Array<String>
-) -> String {
-    let selected: Array<Int> = [];
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(facts) {
-        ArrayPush(selected, 1);
-        i = i + 1;
-    }
-    return CollectStructsSelected(facts, selected, env_box);
-}
-
-// Build the C forward-declaration block for every non-Main function, in
-// GenerateC's own scope. (A pre-pass is required because Pergyra arrays pass by
-// value with a shared element buffer: `ArraySet` mutations persist across calls
-// but `ArrayPush` growth does not -- so a callee cannot append to the caller's
-// `protos`. Emitting prototypes here makes forward references compile.)
 func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
                    struct_env: CodegenTypeEnv,
@@ -465,6 +392,24 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
             let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
                 signatures, i
             );
+            let function_node: Int = CodegenSemanticFunctionNodeOrDie(
+                signatures, i
+            );
+            let role_receiver_type: Option<String> =
+                CodegenSemanticRoleReceiverType(roles, function_node);
+            let role_declares_self: Bool = false;
+            let signature_param_index: Int = 0;
+            while signature_param_index < param_count {
+                if CodegenSemanticFunctionParamNameOrDie(
+                    signatures, i, signature_param_index
+                ) == "self" {
+                    role_declares_self = true;
+                }
+                signature_param_index = signature_param_index + 1;
+            }
+            if IsSome(role_receiver_type) && !role_declares_self {
+                params = "void *_pgy_raw_self";
+            }
             while pn < param_count {
                 let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
                     signatures, i, pn
@@ -475,14 +420,11 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
                     signatures, i, pn
                 );
+                let role_receiver_param: Bool = false;
                 if p_name == "self" {
-                    let function_node: Int = CodegenSemanticFunctionNodeOrDie(
-                        signatures, i
-                    );
-                    let role_receiver: Option<String> =
-                        CodegenSemanticRoleReceiverType(roles, function_node);
-                    if IsSome(role_receiver) {
-                        p_type = UnwrapOption(role_receiver);
+                    if IsSome(role_receiver_type) {
+                        p_type = UnwrapOption(role_receiver_type);
+                        role_receiver_param = true;
                     }
                 }
                 let c_p_name: String =
@@ -491,7 +433,9 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                     ).c_name;
                 let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                 let cp: String = Concat(cpt, Concat(" ", c_p_name));
-                if p_mode == 1 {
+                if role_receiver_param {
+                    cp = "void *_pgy_raw_self";
+                } else if p_mode == 1 {
                     cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
                 } else if p_mode == 3 {
                     cp = Concat(
@@ -500,7 +444,7 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                         ))
                     );
                 }
-                if pn == 0 {
+                if params == "" {
                     params = cp;
                 } else {
                     params = Concat(params, Concat(", ", cp));

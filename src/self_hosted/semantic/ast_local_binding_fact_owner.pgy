@@ -72,16 +72,31 @@ func SemanticAstLocalBindingFactsFromArtifact(
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let destructures: SemanticAstDestructureBindingFacts =
         SemanticAstDestructureBindingFactsFromArtifact(artifact);
-    let ok: Bool = function_scopes.ok && destructures.ok &&
+    let signature_rows_match: Bool =
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
+    let ok: Bool = function_scopes.ok && destructures.ok && signature_rows_match;
     let diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
     if !ok {
-        diagnostic_fact = SemanticDiagnosticMessageFact2(
-            "ast_artifact_invalid",
-            "node_count", ToString(artifact.count),
-            "owner", "SemanticAstLocalBindingFacts"
-        );
+        if !function_scopes.ok {
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "ast_artifact_invalid",
+                "node_count", ToString(artifact.count),
+                "owner", "SemanticAstFunctionScopeFacts"
+            );
+        } else if !destructures.ok {
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "ast_artifact_invalid",
+                "node_count", ToString(artifact.count),
+                "owner", "SemanticAstDestructureBindingFacts"
+            );
+        } else {
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "ast_artifact_invalid",
+                "node_count", ToString(artifact.count),
+                "owner", "SemanticAstFunctionSignatureFactsMatchArtifact"
+            );
+        }
     }
 
     let node_id: Int = 0;

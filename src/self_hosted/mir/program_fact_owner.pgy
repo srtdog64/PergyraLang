@@ -4,6 +4,7 @@
 // JSON and backend projections consume these rows; neither projection may
 // recover semantic facts from source or AST provenance text.
 
+import "declaration_fact_owner.pgy";
 import "parallel_capture_fact_owner.pgy";
 import "expression_graph_fact_owner.pgy";
 import "machine_layer_projection_owner.pgy";
@@ -22,6 +23,7 @@ struct SelfMirInstructionRows {
     results: Array<String>;
     arg0s: Array<String>;
     arg1s: Array<String>;
+    slot_anchors: Array<String>;
     expr0s: Array<String>;
     expr1s: Array<String>;
     source_types: Array<String>;
@@ -59,27 +61,6 @@ struct SelfMirBlockRows {
 struct SelfMirCfgRows {
     blocks: SelfMirBlockRows;
     instructions: SelfMirInstructionRows;
-}
-
-struct SelfMirDeclarationRows {
-    kinds: Array<String>;
-    nominal_kinds: Array<String>;
-    names: Array<String>;
-    target_types: Array<String>;
-    field_starts: Array<Int>;
-    field_counts: Array<Int>;
-    field_names: Array<String>;
-    field_types: Array<String>;
-    method_starts: Array<Int>;
-    method_counts: Array<Int>;
-    method_names: Array<String>;
-    method_returns: Array<String>;
-    variant_starts: Array<Int>;
-    variant_counts: Array<Int>;
-    variant_names: Array<String>;
-    variant_param_starts: Array<Int>;
-    variant_param_counts: Array<Int>;
-    variant_param_type_names: Array<String>;
 }
 
 struct SelfMirRoutineRows {
@@ -159,7 +140,7 @@ func SelfMirInstructionRowsEmpty() -> SelfMirInstructionRows {
     let strings: Array<String> = [];
     return SelfMirInstructionRows(
         ints, strings, strings, strings, strings, strings, strings, strings,
-        strings, strings, strings, strings, ints, ints, strings, strings,
+        strings, strings, strings, strings, strings, ints, ints, strings, strings,
         ints, ints, ints, ints, ints, strings,
         SelfMirExpressionGraphRowsEmpty(),
         SelfMirExpressionGraphRowsEmpty(), SelfMirMatchFactRowsEmpty(),
@@ -175,15 +156,6 @@ func SelfMirBlockRowsEmpty() -> SelfMirBlockRows {
 func SelfMirCfgRowsEmpty() -> SelfMirCfgRows {
     return SelfMirCfgRows(
         SelfMirBlockRowsEmpty(), SelfMirInstructionRowsEmpty()
-    );
-}
-
-func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
-    let ints: Array<Int> = [];
-    let strings: Array<String> = [];
-    return SelfMirDeclarationRows(
-        strings, strings, strings, strings, ints, ints, strings, strings,
-        ints, ints, strings, strings, ints, ints, strings, ints, ints, strings
     );
 }
 
@@ -300,6 +272,7 @@ func SelfMirCfgAddInstruction(
     let results: Array<String> = instructions.results;
     let arg0s: Array<String> = instructions.arg0s;
     let arg1s: Array<String> = instructions.arg1s;
+    let slot_anchors: Array<String> = instructions.slot_anchors;
     let expr0s: Array<String> = instructions.expr0s;
     let expr1s: Array<String> = instructions.expr1s;
     let source_types: Array<String> = instructions.source_types;
@@ -344,6 +317,7 @@ func SelfMirCfgAddInstruction(
     ArrayPush(results, result);
     ArrayPush(arg0s, arg0);
     ArrayPush(arg1s, arg1);
+    ArrayPush(slot_anchors, "");
     ArrayPush(expr0s, expr0);
     ArrayPush(expr1s, expr1);
     ArrayPush(source_types, source_type);
@@ -377,7 +351,8 @@ func SelfMirCfgAddInstruction(
             cfg.blocks.has_succ_false, cfg.blocks.succ_false
         ),
         SelfMirInstructionRows(
-            ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
+            ids, kinds, names, results, arg0s, arg1s, slot_anchors,
+            expr0s, expr1s,
             source_types, machine_contact_kinds, machine_layer_manifest_ids,
             machine_layer_physical_grant_ids, machine_layer_physical_bases,
             machine_layer_physical_sizes, machine_layer_physical_modes,
@@ -468,7 +443,8 @@ func SelfMirCfgAttachLastExpr0Graph(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, machine_contact_kinds,
             machine_layer_manifest_ids, machine_layer_physical_grant_ids,
             machine_layer_physical_bases, machine_layer_physical_sizes,
@@ -496,7 +472,8 @@ func SelfMirCfgAttachLastExpr1Graph(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, instructions.machine_contact_kinds,
             instructions.machine_layer_manifest_ids,
             instructions.machine_layer_physical_grant_ids,
@@ -534,7 +511,8 @@ func SelfMirCfgAttachLastMatchCase(
         SelfMirInstructionRows(
             instructions.ids, instructions.kinds, instructions.names,
             instructions.results, instructions.arg0s, instructions.arg1s,
-            instructions.expr0s, instructions.expr1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s,
             instructions.source_types, instructions.machine_contact_kinds,
             instructions.machine_layer_manifest_ids,
             instructions.machine_layer_physical_grant_ids,
@@ -548,6 +526,41 @@ func SelfMirCfgAttachLastMatchCase(
             instructions.use_starts, instructions.use_counts,
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, match_facts,
+            instructions.destructure_facts, instructions.runtime_call_abi
+        )
+    );
+}
+
+func SelfMirCfgAttachLastSlotAnchor(
+    cfg: SelfMirCfgRows,
+    slot_anchor: String
+) -> SelfMirCfgRows {
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let instruction_index: Int = ArrayLength(instructions.ids) - 1;
+    let slot_anchors: Array<String> = instructions.slot_anchors;
+    if instruction_index < 0 || slot_anchor == "" {
+        return cfg;
+    }
+    ArraySet(slot_anchors, instruction_index, slot_anchor);
+    return SelfMirCfgRows(
+        cfg.blocks,
+        SelfMirInstructionRows(
+            instructions.ids, instructions.kinds, instructions.names,
+            instructions.results, instructions.arg0s, instructions.arg1s,
+            slot_anchors, instructions.expr0s, instructions.expr1s,
+            instructions.source_types, instructions.machine_contact_kinds,
+            instructions.machine_layer_manifest_ids,
+            instructions.machine_layer_physical_grant_ids,
+            instructions.machine_layer_physical_bases,
+            instructions.machine_layer_physical_sizes,
+            instructions.machine_layer_physical_modes,
+            instructions.machine_layer_runtime_operations,
+            instructions.machine_layer_hardware_adequate,
+            instructions.machine_layer_authority_required,
+            instructions.machine_layer_live_lease_required,
+            instructions.use_starts, instructions.use_counts,
+            instructions.uses, instructions.expr0_graphs,
+            instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.runtime_call_abi
         )
     );

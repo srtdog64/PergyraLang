@@ -29,6 +29,48 @@ func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: St
     return out;
 }
 
+func EmitDeclRoleSlots(
+    json: String, decl_start: Int, decl_end: Int, owner_name: String
+) -> String {
+    let out: String = "";
+    let slot_bounds: Array<Int> = [0, 0];
+    let row: Int = 0;
+    while MirObjectArrayObjectBoundsAt(
+        json, decl_start, decl_end, "role_slots", row, slot_bounds
+    ) {
+        let slot_name: String = MirObjectStringFact(
+            json, slot_bounds[0], slot_bounds[1], "name"
+        );
+        let ability_bounds: Array<Int> = [0, 0];
+        if slot_name == "" || !MirObjectArrayObjectBoundsAt(
+            json, slot_bounds[0], slot_bounds[1], "abilities", 0,
+            ability_bounds
+        ) {
+            MirLowerFailClosed(Concat(
+                "party role slot is missing its ability fact: ", owner_name
+            ));
+        }
+        let ability_name: String = MirObjectStringFact(
+            json, ability_bounds[0], ability_bounds[1], "base"
+        );
+        if ability_name == "" || MirObjectArrayObjectBoundsAt(
+            json, slot_bounds[0], slot_bounds[1], "abilities", 1,
+            ability_bounds
+        ) {
+            MirLowerFailClosed(Concat(
+                "party role slot requires exactly one ability: ", slot_name
+            ));
+        }
+        out = Concat(out, Concat(
+            "    RoleSlot: ", Concat(
+                slot_name, Concat(" requires ", Concat(ability_name, "\n"))
+            )
+        ));
+        row = row + 1;
+    }
+    return out;
+}
+
 func EmitDeclGenericParams(
     json: String, decl_start: Int, decl_end: Int, owner_name: String
 ) -> String {
@@ -183,7 +225,30 @@ func EmitRoleMethods(ref routines: MirProgramRoutineIndex, json: String,
         // Reconstruct the parser-owned role shape.  A generic Methods block
         // is not an AST role owner and causes the method routine's expression
         // graph to disappear on the MIR -> AST round trip.
-        return Concat("    Impl ability: (null)\n", out);
+        let impl_bounds: Array<Int> = [0, 0];
+        let ability_bounds: Array<Int> = [0, 0];
+        if !MirObjectArrayObjectBoundsAt(
+            json, decl_start, decl_end, "impls", 0, impl_bounds
+        ) || !MirObjectFieldValueBounds(
+            json, impl_bounds[0], impl_bounds[1], "ability", ability_bounds
+        ) {
+            MirLowerFailClosed(Concat(
+                "role method is missing impl ability fact: ", role_name
+            ));
+        }
+        let ability_name: String = MirObjectStringFact(
+            json, ability_bounds[0], ability_bounds[1], "base"
+        );
+        if ability_name == "" || MirObjectArrayObjectBoundsAt(
+            json, decl_start, decl_end, "impls", 1, impl_bounds
+        ) {
+            MirLowerFailClosed(Concat(
+                "role has unsupported impl ability cardinality: ", role_name
+            ));
+        }
+        return Concat(
+            "    Impl ability: ", Concat(ability_name, Concat("\n", out))
+        );
     }
     return "";
 }
@@ -285,6 +350,9 @@ func NominalAstLabel(nominal_kind: String) -> String {
     if nominal_kind == "world" {
         return "World";
     }
+    if nominal_kind == "party" {
+        return "Party";
+    }
     return "Class";
 }
 
@@ -324,7 +392,8 @@ func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> Stri
             }
         } else if kind == "class" || kind == "subject" ||
             kind == "object" || kind == "tobject" ||
-            kind == "vessel" || kind == "zone" || kind == "world" {
+            kind == "vessel" || kind == "zone" || kind == "world" ||
+            kind == "party" {
             let nominal_kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "nominal_kind");
             ArrayPush(chunks, Concat("  ", Concat(NominalAstLabel(nominal_kind), Concat(": ", Concat(sname, "\n")))));
             ArrayPush(chunks, EmitDeclGenericParams(
@@ -334,6 +403,11 @@ func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> Stri
             if StringLength(cfields) > 0 {
                 ArrayPush(chunks, "    Fields:\n");
                 ArrayPush(chunks, cfields);
+            }
+            if nominal_kind == "party" {
+                ArrayPush(chunks, EmitDeclRoleSlots(
+                    json, decl_bounds[0], decl_bounds[1], sname
+                ));
             }
             ArrayPush(chunks, EmitClassMethods(routines, json, decl_bounds[0], decl_bounds[1], sname));
         } else if kind == "enum" {
