@@ -2161,6 +2161,7 @@ test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
 
 test-hir: $(HIR_TEST)
@@ -3074,6 +3075,9 @@ self-host-compatibility-corpus-parity-test-smoke: $(PGY)
 
 self-host-mir-json-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
+
+match-binding-type-fact-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
 
 self-host-fuzz-backend-generator-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh

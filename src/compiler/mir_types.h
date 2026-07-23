@@ -11,6 +11,7 @@
 #include "../semantic/loop_flow_fact.h"
 #include "../semantic/iteration_type_fact.h"
 #include "../semantic/destructure_type_fact.h"
+#include "../semantic/match_binding_type_fact.h"
 
 typedef enum
 {
@@ -149,6 +150,8 @@ typedef struct
     ASTNode        **match_case_patterns;
     size_t           match_case_pattern_count;
     ASTNode         *match_case_guard;
+    const char     **match_binding_type_names;
+    size_t           match_binding_type_count;
     const char     **destructure_binding_names;
     size_t           destructure_binding_count;
     const char      *destructure_element_type_name;
@@ -329,6 +332,7 @@ typedef struct
 
 typedef PgyIterationTypeFact MIRIterationTypeFact;
 typedef PgyDestructureTypeFact MIRDestructureTypeFact;
+typedef PgyMatchBindingTypeFact MIRMatchBindingTypeFact;
 
 typedef struct
 {
@@ -376,6 +380,9 @@ typedef struct
     MIRDestructureTypeFact *destructure_type_facts;
     size_t             destructure_type_fact_count;
     size_t             destructure_type_fact_capacity;
+    MIRMatchBindingTypeFact *match_binding_type_facts;
+    size_t             match_binding_type_fact_count;
+    size_t             match_binding_type_fact_capacity;
     MIRBasicBlock     *blocks;
     size_t             block_count;
     size_t             block_capacity;

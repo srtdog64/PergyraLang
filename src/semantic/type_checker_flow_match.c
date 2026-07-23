@@ -1,8 +1,100 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "diag_codes.h"
+#include "match_binding_type_fact.h"
 #include "type_checker_flow_match_internal.h"
 #include "../common/match_variant_policy.h"
+#include "../common/string_compat.h"
+
+static bool
+match_binding_type_fact_reserve(SemanticContext *ctx, size_t needed)
+{
+    size_t capacity;
+    PgyMatchBindingTypeFact *grown;
+
+    if (ctx == NULL)
+        return false;
+    if (needed <= ctx->match_binding_type_fact_capacity)
+        return true;
+    capacity = ctx->match_binding_type_fact_capacity == 0
+        ? 8
+        : ctx->match_binding_type_fact_capacity;
+    while (capacity < needed) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*grown))
+        return false;
+    grown = realloc(ctx->match_binding_type_facts,
+                    capacity * sizeof(*grown));
+    if (grown == NULL)
+        return false;
+    ctx->match_binding_type_facts = grown;
+    ctx->match_binding_type_fact_capacity = capacity;
+    return true;
+}
+
+bool
+semantic_match_binding_type_fact_record(SemanticContext *ctx,
+                                        const ASTNode *match_case_node,
+                                        size_t binding_index,
+                                        size_t binding_count,
+                                        const Type *binding_type)
+{
+    uint32_t function_id;
+    uint32_t match_case_id;
+    const char *type_name;
+    PgyMatchBindingTypeFact *fact;
+
+    if (ctx == NULL || match_case_node == NULL || binding_type == NULL
+        || binding_count == 0 || binding_index >= binding_count
+        || ctx->current_function_decl == NULL)
+        return false;
+    function_id = ast_node_stable_id(ctx->current_function_decl);
+    match_case_id = ast_node_stable_id(match_case_node);
+    type_name = type_name_or_unknown(binding_type);
+    if (function_id == 0 || match_case_id == 0 || type_name == NULL
+        || type_name[0] == '\0' || strcmp(type_name, "Unknown") == 0
+        || strcmp(type_name, "<unknown>") == 0)
+        return false;
+
+    for (size_t i = 0; i < ctx->match_binding_type_fact_count; i++) {
+        fact = &ctx->match_binding_type_facts[i];
+        if (fact->function_syntax_id != function_id
+            || fact->match_case_syntax_id != match_case_id
+            || fact->binding_index != binding_index)
+            continue;
+        return fact->binding_count == binding_count
+            && strcmp(fact->binding_type_name, type_name) == 0;
+    }
+    if (!match_binding_type_fact_reserve(ctx,
+            ctx->match_binding_type_fact_count + 1))
+        return false;
+    fact = &ctx->match_binding_type_facts[
+        ctx->match_binding_type_fact_count];
+    fact->function_syntax_id = function_id;
+    fact->match_case_syntax_id = match_case_id;
+    fact->binding_index = binding_index;
+    fact->binding_count = binding_count;
+    fact->binding_type_name = pergyra_strdup(type_name);
+    if (fact->binding_type_name == NULL)
+        return false;
+    ctx->match_binding_type_fact_count++;
+    return true;
+}
+
+void
+pgy_match_binding_type_facts_destroy(PgyMatchBindingTypeFact *facts,
+                                     size_t count)
+{
+    if (facts == NULL)
+        return;
+    for (size_t i = 0; i < count; i++)
+        free(facts[i].binding_type_name);
+    free(facts);
+}
 
 bool
 match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
@@ -54,8 +146,9 @@ find_enum_decl_for_type(SemanticContext *ctx, const Type *type)
 }
 
 static bool
-declare_match_binding(SemanticContext *ctx, ASTNode *binding_node,
-                      Type *binding_type)
+declare_match_binding(SemanticContext *ctx, ASTNode *match_case_node,
+                      ASTNode *binding_node, size_t binding_index,
+                      size_t binding_count, Type *binding_type)
 {
     const char *name;
     Symbol *binding;
@@ -83,6 +176,13 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node,
             "Duplicate match binding '%s' in the same case scope", name);
         return false;
     }
+    if (!semantic_match_binding_type_fact_record(
+            ctx, match_case_node, binding_index, binding_count,
+            binding_type)) {
+        semantic_error(ctx, binding_node,
+            "Match binding type fact capture failed");
+        return false;
+    }
 
     binding = symbol_create_variable(name, binding_type,
         binding_node->line, binding_node->column);
@@ -100,8 +200,9 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node,
 }
 
 static bool
-type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
-                                 SemanticContext *ctx, bool *handled)
+type_check_special_match_pattern(ASTNode *match_case_node, ASTNode *pat,
+                                  Type *subj_type,
+                                  SemanticContext *ctx, bool *handled)
 {
     const char *variant = NULL;
     ASTNode **args = NULL;
@@ -129,7 +230,8 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
                     "Some pattern requires exactly one binding");
                 return false;
             }
-            return declare_match_binding(ctx, args[0], inner);
+            return declare_match_binding(
+                ctx, match_case_node, args[0], 0, 1, inner);
         }
         if (variant_kind == PGY_MATCH_VARIANT_NONE_CTOR) {
             if (arg_count != 0) {
@@ -165,7 +267,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
                     "Ok pattern requires exactly one binding");
                 return false;
             }
-            return declare_match_binding(ctx, args[0],
+            return declare_match_binding(ctx, match_case_node, args[0], 0, 1,
                 type_get_constructed_arg(subj_type, 0));
         }
         if (variant_kind == PGY_MATCH_VARIANT_ERR) {
@@ -180,7 +282,8 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
             }
             {
                 Type *err_type = type_get_constructed_arg(subj_type, 1);
-                return declare_match_binding(ctx, args[0],
+                return declare_match_binding(
+                    ctx, match_case_node, args[0], 0, 1,
                     err_type != NULL ? err_type : TYPE_STRING);
             }
         }
@@ -243,7 +346,8 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
                     (p < type_function_param_count(variant_sym->type))
                     ? type_function_param_type(variant_sym->type, p)
                     : TYPE_UNKNOWN;
-                if (!declare_match_binding(ctx, args[p], binding_type))
+                if (!declare_match_binding(ctx, match_case_node, args[p], p,
+                        param_count, binding_type))
                     return false;
             }
             return true;
@@ -339,7 +443,8 @@ type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
         bool handled = false;
         if (pat == NULL)
             continue;
-        if (!type_check_special_match_pattern(pat, subj_type, ctx, &handled))
+        if (!type_check_special_match_pattern(
+                mc, pat, subj_type, ctx, &handled))
             continue;
         if (!handled) {
             Type *pat_type = type_check_expression(pat, ctx);

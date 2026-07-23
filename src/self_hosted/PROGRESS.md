@@ -1,5 +1,40 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra whole-language match-binding type carrier delta: the native
+semantic owner now records every payload binding type with stable
+`(function_syntax_id, match_case_syntax_id, binding_index)` identity for
+`Option`, `Result`, and user enum patterns. HIR and MIR copy that owned fact;
+MIR match instructions and JSON expose only the copied execution fact, and a
+missing row fails lowering instead of reopening the source AST or deriving a
+type from a variant name. The Pergyra `mir_lower` local-fact and render owners
+require exact binding/type cardinality plus concrete types and always emit a
+typed binding. The pre-delta witness reconstructed `Let: v =
+UnwrapOption(val)`; the closed path reconstructs `Let: v : Int =
+UnwrapOption(val)`. Deleting the row or replacing it with `Unknown` fails with
+a `match_binding_type` diagnostic.
+
+This is an executable integration rung, not manifest fixture 248. The numbered
+DRV-2 fixture frontier remains 245 because rows 246 and 247 are coverage-only
+ratchets. A freshly Pergyra-built `mir_lower` consumed native `option_match`
+MIR, its typed re-AST was compiled by the Pergyra codegen path, and the result
+matched the native oracle at runtime output `42`. Native `Option`, `Result`,
+and multi-arity enum MIR probes carry the expected distinct binding types.
+`match-binding-type-fact-test-smoke`, the complete native MIR unit slice
+(`152 passed, 0 failed`), C and LLVM compiler builds, component, substitution-
+velocity, AST-to-MIR loss, and SoT authority gates pass; the registry now
+reports `CLOSED=23 BRIDGE=20 ACTIVE=0`.
+
+The carrier is language-wide, but this does not falsely declare all match
+execution closed. The current Pergyra reconstruction owner still has bounded
+`Some`/`Ok`/`Err` unwrap rendering; generic user-enum payload extraction and
+multi-binding execution remain a later executable rung. An earlier unfiltered
+MIR parity attempt stopped before `option_match` while compiling concurrent
+Pergyra codegen edits. After those edits advanced, a fresh current-tree
+`option_match`-filtered run passed the complete native-MIR -> Pergyra
+`mir_lower` -> Pergyra codegen -> C oracle lane (`1 fixtures, 0 clean rejects`).
+The full unfiltered matrix was not rerun, so it remains an explicit integration
+omission rather than a claimed green gate.
+
 2026-07-23 Pergyra nested-coalesce-chain coverage ratchet: DRV-2 MIR manifest
 row 247 is `nested_coalesce_chain`. Two `HalvedIfPositive` calls carry
 `Option<Int>` through `?? fallback` into the local `first -> second` value

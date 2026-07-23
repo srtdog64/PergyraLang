@@ -95,7 +95,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
 
     fputs(",\"match_variant\":", out);
     if (inst == NULL || mir_instruction_match_pattern_count(inst) != 1) {
-        fputs("null,\"match_bindings\":[]", out);
+        fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
         return;
     }
 
@@ -110,7 +110,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
     }
 
     if (variant == NULL) {
-        fputs("null,\"match_bindings\":[]", out);
+        fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
         return;
     }
 
@@ -128,6 +128,14 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
             mir_json_emit_str(out, binding);
             emitted++;
         }
+    }
+    fputc(']', out);
+    fputs(",\"match_binding_types\":[", out);
+    for (size_t i = 0; i < inst->match_binding_type_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(
+            out, mir_instruction_match_binding_type_at(inst, i));
     }
     fputc(']', out);
 }

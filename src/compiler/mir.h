@@ -100,6 +100,9 @@ size_t      mir_instruction_match_pattern_count(const MIRInstruction *inst);
 ASTNode    *mir_instruction_match_pattern_at(const MIRInstruction *inst,
                                              size_t index);
 ASTNode    *mir_instruction_match_guard(const MIRInstruction *inst);
+size_t      mir_instruction_match_binding_count(const MIRInstruction *inst);
+const char *mir_instruction_match_binding_type_at(
+                const MIRInstruction *inst, size_t index);
 size_t      mir_instruction_destructure_binding_count(
                 const MIRInstruction *inst);
 const char *mir_instruction_destructure_binding_name_at(

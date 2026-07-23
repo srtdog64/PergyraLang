@@ -14,6 +14,7 @@
 #include "mir_region_escape_facts.h"
 #include "mir_generic_method_specialization.h"
 #include "mir_destructure_type_facts.h"
+#include "mir_branch_source_facts.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -53,6 +54,8 @@ mir_destroy(MIRProgram *mir)
                             free(routine->blocks[j].instructions[k].phi_incomings);
                             free((void *)routine->blocks[j].instructions[k]
                                      .destructure_binding_names);
+                            free((void *)routine->blocks[j].instructions[k]
+                                     .match_binding_type_names);
                             free(routine->blocks[j].instructions[k]
                                      .source_inline_text);
                             free(routine->blocks[j].instructions[k]
@@ -101,6 +104,7 @@ mir_destroy(MIRProgram *mir)
             }
             free(routine->iteration_type_facts);
             mir_free_destructure_type_facts(routine);
+            mir_free_match_binding_type_facts(routine);
             mir_routine_signature_metadata_clear(routine);
             mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);

@@ -35,14 +35,8 @@ func BuildMirMatchBindingLocalFacts(
             json, start, end, "match_binding_types"
         );
         if binding_count != type_count {
-            // Native oracle MIR predates this carried fact. Leave its binding
-            // out of the local index so only the explicitly named oracle
-            // canonicalizer can rebuild an inferred Let. Direct MIR graph
-            // admission still rejects the missing type before codegen.
-            if binding_count == 0 || type_count != 0 {
-                valid = false;
-                validation_stage = "match_binding_type_count";
-            }
+            valid = false;
+            validation_stage = "match_binding_type_count";
         } else {
             let binding: Int = 0;
             while binding < binding_count {

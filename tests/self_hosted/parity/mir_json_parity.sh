@@ -438,8 +438,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "option_match" ]]; then
         for required in \
             '"source_type":"AST_MATCH_CASE"' \
-            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"]' \
-            '"match_patterns":["None"],"match_variant":"None","match_bindings":[]'; do
+            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"],"match_binding_types":["Int"]' \
+            '"match_patterns":["None"],"match_variant":"None","match_bindings":[],"match_binding_types":[]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] option_match: missing MIR option match fact: $required" >&2
                 exit 1

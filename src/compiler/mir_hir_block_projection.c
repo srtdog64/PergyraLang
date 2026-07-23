@@ -64,9 +64,11 @@ mir_add_terminator_instruction(MIRRoutine *routine,
         && inst.branch_shape == MIR_BRANCH_EXPR)
         inst.expr0 = terminator_condition;
     else if (inst.kind == MIR_INST_BRANCH
-        && inst.branch_shape == MIR_BRANCH_MATCH_CASE)
-        mir_capture_match_case_facts(&inst, terminator_condition,
-                                     terminator_value);
+        && inst.branch_shape == MIR_BRANCH_MATCH_CASE) {
+        if (!mir_capture_match_case_facts(
+                routine, &inst, terminator_condition, terminator_value))
+            return false;
+    }
     else if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_SELECT_DISPATCH)
         inst.expr0 = mir_select_case_channel(terminator_condition);
@@ -84,7 +86,11 @@ mir_add_terminator_instruction(MIRRoutine *routine,
             inst.expr1 = ast_for_range_end(inst.ast);
         }
     }
-    return mir_commit_instruction(routine, block, &inst);
+    if (!mir_commit_instruction(routine, block, &inst)) {
+        free((void *)inst.match_binding_type_names);
+        return false;
+    }
+    return true;
 }
 
 bool

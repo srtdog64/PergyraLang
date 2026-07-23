@@ -324,6 +324,12 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error
                                   : "invalid destructure type facts");
         } else if (hir_projection_failure
+                   == HIR_SEMANTIC_PROJECTION_MATCH_BINDING_TYPE) {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR match binding type fact attachment failed",
+                hir_error != NULL ? hir_error
+                                  : "invalid match binding type facts");
+        } else if (hir_projection_failure
                    == HIR_SEMANTIC_PROJECTION_VALIDATE) {
             driver_emit_stage_fail(flags, "hir_validate",
                 "HIR validation failed",

@@ -163,6 +163,29 @@ mir_instruction_match_pattern_at(const MIRInstruction *inst, size_t index)
     return index == 0 ? inst->match_case_pattern : NULL;
 }
 
+size_t
+mir_instruction_match_binding_count(const MIRInstruction *inst)
+{
+    ASTNode *pattern;
+
+    if (inst == NULL || mir_instruction_match_pattern_count(inst) != 1)
+        return 0;
+    pattern = mir_instruction_match_pattern_at(inst, 0);
+    if (pattern == NULL || pattern->type != AST_CALL)
+        return 0;
+    return ast_call_arg_count(pattern);
+}
+
+const char *
+mir_instruction_match_binding_type_at(const MIRInstruction *inst,
+                                      size_t index)
+{
+    if (inst == NULL || index >= inst->match_binding_type_count
+        || inst->match_binding_type_names == NULL)
+        return NULL;
+    return inst->match_binding_type_names[index];
+}
+
 ASTNode *
 mir_instruction_match_guard(const MIRInstruction *inst)
 {

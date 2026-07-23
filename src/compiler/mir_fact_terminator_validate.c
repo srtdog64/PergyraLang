@@ -80,6 +80,31 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_BRANCH
+            && inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
+            size_t binding_count =
+                mir_instruction_match_binding_count(inst);
+            bool binding_types_valid =
+                inst->match_binding_type_count == binding_count;
+            for (size_t binding = 0;
+                 binding_types_valid && binding < binding_count;
+                 binding++) {
+                const char *type_name =
+                    mir_instruction_match_binding_type_at(inst, binding);
+                binding_types_valid = type_name != NULL
+                    && type_name[0] != '\0';
+            }
+            if (!binding_types_valid) {
+                if (error_message != NULL) {
+                    *error_message = mir_fact_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] match-case branch is missing semantic binding type facts",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+        }
+        if (inst->kind == MIR_INST_BRANCH
             && mir_instruction_branch_requires_source_emit(inst)
             && !inst->requires_source_branch_emit) {
             if (error_message != NULL) {

@@ -33,18 +33,15 @@ func MirMatchBindingLineForInstruction(
             variant, " match case is missing subject or binding MIR fact"
         ));
     }
-    if binding_type == "Unknown" {
+    if binding_type == "" || binding_type == "Unknown" {
         MirLowerFailClosed(Concat(
-            variant, " match case carries an unknown binding type MIR fact"
+            variant, " match case is missing a concrete binding type MIR fact"
         ));
     }
     let unwrap_name: String = "UnwrapOption";
     if variant == "Ok" { unwrap_name = "Unwrap"; }
     if variant == "Err" { unwrap_name = "UnwrapErr"; }
-    let type_annotation: String = "";
-    if binding_type != "" {
-        type_annotation = Concat(" : ", binding_type);
-    }
+    let type_annotation: String = Concat(" : ", binding_type);
     let initializer: String = Concat(
         unwrap_name, Concat("(", Concat(match_subject, ")\n"))
     );

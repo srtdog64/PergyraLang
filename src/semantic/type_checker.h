@@ -24,6 +24,7 @@
 #include "function_param_flow_fact.h"
 #include "iteration_type_fact.h"
 #include "destructure_type_fact.h"
+#include "match_binding_type_fact.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -155,6 +156,9 @@ struct SemanticContext
     PgyDestructureTypeFact *destructure_type_facts;
     size_t       destructure_type_fact_count;
     size_t       destructure_type_fact_capacity;
+    PgyMatchBindingTypeFact *match_binding_type_facts;
+    size_t       match_binding_type_fact_count;
+    size_t       match_binding_type_fact_capacity;
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;

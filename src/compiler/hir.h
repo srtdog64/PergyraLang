@@ -13,6 +13,7 @@
 #include "../semantic/function_param_flow_fact.h"
 #include "../semantic/iteration_type_fact.h"
 #include "../semantic/destructure_type_fact.h"
+#include "../semantic/match_binding_type_fact.h"
 #include "../semantic/region_escape_fact.h"
 
 typedef struct HIRProgram HIRProgram;
@@ -27,6 +28,7 @@ typedef enum
     HIR_SEMANTIC_PROJECTION_LOOP_FLOW,
     HIR_SEMANTIC_PROJECTION_ITERATION_TYPE,
     HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE,
+    HIR_SEMANTIC_PROJECTION_MATCH_BINDING_TYPE,
     HIR_SEMANTIC_PROJECTION_REGION_ESCAPE,
     HIR_SEMANTIC_PROJECTION_VALIDATE
 } HIRSemanticProjectionFailure;
@@ -53,6 +55,7 @@ typedef PgyLoopFlowStateFact HIRLoopFlowStateFact;
 typedef PgyLoopFlowSummaryFact HIRLoopFlowSummaryFact;
 typedef PgyIterationTypeFact HIRIterationTypeFact;
 typedef PgyDestructureTypeFact HIRDestructureTypeFact;
+typedef PgyMatchBindingTypeFact HIRMatchBindingTypeFact;
 
 typedef enum
 {
@@ -153,6 +156,9 @@ typedef struct
     HIRDestructureTypeFact       *destructure_type_facts;
     size_t                        destructure_type_fact_count;
     size_t                        destructure_type_fact_capacity;
+    HIRMatchBindingTypeFact      *match_binding_type_facts;
+    size_t                        match_binding_type_fact_count;
+    size_t                        match_binding_type_fact_capacity;
     struct {
         struct HIRBasicBlock *blocks;
         size_t                block_count;
@@ -367,6 +373,7 @@ struct HIRProgram
     bool              has_loop_flow_facts;
     bool              has_iteration_type_facts;
     bool              has_destructure_type_facts;
+    bool              has_match_binding_type_facts;
     /* Semantic-owned bounded region rows retained at the HIR boundary. */
     bool              has_region_escape_facts;
     PgyRegionEscapeFact *region_escape_facts;
@@ -406,6 +413,11 @@ bool hir_attach_iteration_type_facts(
 bool hir_attach_destructure_type_facts(
         HIRProgram *hir,
         const PgyDestructureTypeFact *facts,
+        size_t fact_count,
+        char **error_message);
+bool hir_attach_match_binding_type_facts(
+        HIRProgram *hir,
+        const PgyMatchBindingTypeFact *facts,
         size_t fact_count,
         char **error_message);
 bool hir_attach_region_escape_facts(
