@@ -1,5 +1,29 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra collection-option-coalesce-loop delta: DRV-2 MIR fixture
+245 is `coalesce_accumulate_loop`. The executable seam keeps the typed
+`Array<Int>` element identity through `ParityVal(arr[i]): Option<Int>`, the
+`??` coalesce node, and the `total`/`i` loop-carried state. The semantic owner
+`SemanticExpressionGraphConcreteScalarValueOwned` now admits a coalesce node
+only when `OptionCoalescePayloadTypeOpt` proves the wrapped and fallback scalar
+types compatible; MIR and the parity owner consume that fact without source
+reparse, fixture-name branching, native-MIR injection, backend reconstruction,
+or fallback inference.
+
+Focused C, LLVM, and freshly Pergyra-built 245-hard producer-first parity pass
+with `body_fixtures=20` and `mir_fixtures=1`. The hard driver is
+`.tmp/bin_coalesce_accumulate_loop_245_probe/pgy-self-driver.exe`, SHA-256
+`3A53054266035DEFEDCDDBA3AB32C9FAA4B3404B7FB703DAFB6B62E57D18B894`, with a
+245-row manifest. Hard oracle/self canonical MIR is byte-equal at SHA-256
+`779AC39186B42C828EB671016B4A3D9B02FBAED97550F2BE899FF37A63E2B84D`; hard
+oracle/self/source emitted C is byte-equal at SHA-256
+`2D044764A426ACF6AB5BFFE44D7E639668197CD44D8A74CD298817DD0ED0D549`;
+runtime output is `117`, `18`, `-1`, `0`. Removing `ParityVal`, changing the
+index node to a leaf, changing `coalesce` to `logical_or`, or deleting a loop-
+phi input fails closed. The focused component and shell-syntax gates pass.
+The full 245-row matrix remains omitted under the 30-minute budget; the last
+complete unfiltered matrix is 230/230 and fixture 246 is not selected.
+
 2026-07-23 Pergyra collection-enum-match-loop delta: DRV-2 MIR fixture 244 is
 `array_match_action_sim`. The executable seam is intentionally whole-language:
 `prices[i]: Int` flows through `DecideOf -> Action`, an exhaustive `match`, and

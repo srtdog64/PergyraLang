@@ -41,6 +41,28 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
             function_names, function_returns
         ));
     }
+    if kind == AstExpressionNodeCoalesce() {
+        let coalesce_left: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        let coalesce_right: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node_id
+        );
+        if !IsSome(coalesce_left) || !IsSome(coalesce_right) {
+            return false;
+        }
+        let wrapped_type: String = SemanticExpressionGraphScalarTypeName(
+            graph, UnwrapOption(coalesce_left), constructors, names, types,
+            function_names, function_returns
+        );
+        let fallback_type: String = SemanticExpressionGraphScalarTypeName(
+            graph, UnwrapOption(coalesce_right), constructors, names, types,
+            function_names, function_returns
+        );
+        return IsSome(OptionCoalescePayloadTypeOpt(
+            wrapped_type, fallback_type
+        ));
+    }
     if SemanticExpressionGraphScalarOperatorKind(kind) {
         let left: Option<Int> = SemanticExpressionGraphLeftChild(
             graph, node_id
