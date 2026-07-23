@@ -5,6 +5,7 @@ import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
@@ -91,6 +92,27 @@ func RewriteSemanticExpectedValue(
             Die("ClaimDeviceSlot DeviceSlot<T> runtime ABI row is missing");
         }
         return Concat(UnwrapOption(runtime_name), "()");
+    }
+    if StartsWith(expected_type, "List<") &&
+        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, node_id
+        );
+        let target: Option<String> = None;
+        if call.ok {
+            target = SemanticExpressionGraphCallTargetName(
+                graph, call.call_node
+            );
+        }
+        if !call.ok || !IsSome(target) ||
+            UnwrapOption(target) != "ListNew" ||
+            ArrayLength(call.argument_nodes) != 0 {
+            Die("List<T> initializer must be ListNew with no arguments");
+        }
+        let collection: CollectionListRuntimeFact =
+            CollectionListRuntimeFactFromTypeName(expected_type);
+        if !collection.ok { Die("List<T> runtime ABI fact is missing"); }
+        return Concat(collection.c_new_fn, "()");
     }
     if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {
         return RewriteSemanticArrayLiteralValue(

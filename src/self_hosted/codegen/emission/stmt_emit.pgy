@@ -185,7 +185,8 @@ func EmitLet(
         let option_expr: String = option_expr_fact.c_expr;
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
-    if LookupKindType(env, type_name, "s") == "struct" ||
+    if StartsWith(type_name, "List<") ||
+        LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, type_name, c_name

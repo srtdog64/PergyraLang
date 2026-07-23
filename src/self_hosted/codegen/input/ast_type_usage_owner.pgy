@@ -5,6 +5,7 @@
 
 import "../../semantic/ast_type_surface_fact_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
 
 struct CodegenTypeUsageFacts {
     let has_string: Bool;
@@ -12,6 +13,8 @@ struct CodegenTypeUsageFacts {
     let has_option: Bool;
     let has_bool: Bool;
     let has_array: Bool;
+    let has_list: Bool;
+    list_type_names: Array<String>;
     let has_ast_text_node_array: Bool;
     let has_float: Bool;
     let has_allocator: Bool;
@@ -20,6 +23,43 @@ struct CodegenTypeUsageFacts {
     let has_slot: Bool;
     let has_machine_layer: Bool;
     let has_remote_future: Bool;
+}
+
+func CodegenTypeUsageListTypeKnown(
+    type_names: Array<String>,
+    type_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(type_names) {
+        if type_names[i] == type_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenTypeUsageListTypeNames(
+    facts: SemanticAstTypeSurfaceFacts
+) -> Array<String> {
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(name) {
+            let shape: SemanticConstructedTypeNameFact =
+                SemanticConstructedTypeNameFactFrom(UnwrapOption(name));
+            if shape.ok && shape.nominal_base_name == "List" &&
+                ArrayLength(shape.actual_type_names) == 1 &&
+                !SemanticTypeNameContainsUnresolvedUnknown(
+                    shape.canonical_name
+                ) && !CodegenTypeUsageListTypeKnown(
+                    type_names, shape.canonical_name
+                ) {
+                ArrayPush(type_names, shape.canonical_name);
+            }
+        }
+        i = i + 1;
+    }
+    return type_names;
 }
 
 func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
@@ -33,12 +73,16 @@ func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
 }
 
 func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> CodegenTypeUsageFacts {
+    let list_type_names: Array<String> =
+        CodegenTypeUsageListTypeNames(facts);
     return CodegenTypeUsageFacts(
         SemanticAstTypeSurfaceContains(facts, "String"),
         SemanticAstTypeSurfaceContains(facts, "Result<"),
         SemanticAstTypeSurfaceContains(facts, "Option<"),
         SemanticAstTypeSurfaceContains(facts, "Bool"),
         SemanticAstTypeSurfaceContains(facts, "Array<"),
+        ArrayLength(list_type_names) > 0,
+        list_type_names,
         SemanticAstTypeSurfaceContains(facts, "Array<CodegenAstTextNode"),
         SemanticAstTypeSurfaceContains(facts, "Float"),
         SemanticAstTypeSurfaceContains(facts, "Allocator"),

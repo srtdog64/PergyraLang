@@ -1,0 +1,38 @@
+// Contextual builtin result types join call-spine facts with declared types.
+
+import "ast_expression_graph_call_view_owner.pgy";
+import "builtin_signature_owner.pgy";
+
+func SemanticContextualBuiltinReturnTypeFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declared_type: Option<String>
+) -> Option<String> {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(graph, root_id);
+    if !call.ok { return None; }
+    let target: Option<String> =
+        SemanticExpressionGraphCallTargetName(graph, call.call_node);
+    if !IsSome(target) { return None; }
+    return SemanticContextualBuiltinReturnTypeOpt(
+        UnwrapOption(target), ArrayLength(call.argument_nodes), declared_type
+    );
+}
+
+func SemanticContextualBuiltinInitializerTypeFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declared_type: Option<String>,
+    verdict_ok: Bool,
+    inferred_type: String
+) -> String {
+    if !verdict_ok || inferred_type != "List<Unknown>" {
+        return inferred_type;
+    }
+    let contextual: Option<String> =
+        SemanticContextualBuiltinReturnTypeFromGraph(
+            graph, root_id, declared_type
+        );
+    if IsSome(contextual) { return UnwrapOption(contextual); }
+    return inferred_type;
+}

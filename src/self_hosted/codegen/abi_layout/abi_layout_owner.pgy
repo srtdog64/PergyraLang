@@ -7,6 +7,7 @@ import "../type_facts/type_env.pgy";
 import "enum_abi_value_fact_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
+import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
@@ -15,6 +16,7 @@ import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/array_type_shape_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
 
 func AbiLayoutRequireCompilerRows() -> Void {
     if !CompilerAbiLayoutRowsReady() {
@@ -60,6 +62,9 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
         let box_type: String = BoxArrayRuntimeCValueTypeFor(type_name);
         if box_type != "" { return box_type; }
     }
+    let list_fact: CollectionListRuntimeFact =
+        CollectionListRuntimeFactFromTypeName(type_name);
+    if list_fact.ok { return list_fact.c_value_type; }
     let array_element: Option<String> =
         SemanticArrayElementType(type_name);
     if type_name == "Array<Float>" ||

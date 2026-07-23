@@ -12,6 +12,13 @@ struct SemanticCanonicalTypeNameFact {
     nominal_base_name: String
 }
 
+struct SemanticConstructedTypeNameFact {
+    ok: Bool,
+    canonical_name: String,
+    nominal_base_name: String,
+    actual_type_names: Array<String>
+}
+
 func SemanticTypeNameTopLevelColon(text: String) -> Option<Int> {
     let n: Int = StringLength(text);
     let open_angle: Int = SourceByteOf("<");
@@ -98,11 +105,84 @@ func SemanticCanonicalTypeNameFactFrom(
     return SemanticCanonicalTypeNameFact(canonical, nominal_base);
 }
 
+func SemanticConstructedTypeNameFactFrom(
+    type_name: String
+) -> SemanticConstructedTypeNameFact {
+    let actuals: Array<String> = [];
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let n: Int = StringLength(canonical);
+    let open: Int = StringIndexOf(canonical, "<");
+    if open <= 0 || n < open + 3 ||
+        SourceByteAt(canonical, n, n - 1) != SourceByteOf(">") {
+        return SemanticConstructedTypeNameFact(
+            false, canonical, "", actuals
+        );
+    }
+    let base: String = Trim(Substring(canonical, 0, open));
+    let inner: String = Substring(canonical, open + 1, n - open - 2);
+    let ranges: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(inner);
+    let count: Int = SemanticDelimitedRangeCount(ranges);
+    if base == "" || count == 0 {
+        return SemanticConstructedTypeNameFact(
+            false, canonical, base, actuals
+        );
+    }
+    let i: Int = 0;
+    while i < count {
+        let actual: String = SemanticCanonicalTypeName(
+            SemanticDelimitedRangeText(ranges, inner, i)
+        );
+        if actual == "" {
+            return SemanticConstructedTypeNameFact(
+                false, canonical, base, actuals
+            );
+        }
+        ArrayPush(actuals, actual);
+        i = i + 1;
+    }
+    return SemanticConstructedTypeNameFact(
+        true, canonical, base, actuals
+    );
+}
+
+func SemanticTypeNameContainsUnresolvedUnknown(type_name: String) -> Bool {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if canonical == "Unknown" || canonical == "" { return true; }
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(canonical);
+    if !shape.ok { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(shape.actual_type_names) {
+        if SemanticTypeNameContainsUnresolvedUnknown(
+            shape.actual_type_names[i]
+        ) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func SemanticAstTypeNameCanonicalContractReady() -> Bool {
     let box: SemanticCanonicalTypeNameFact =
         SemanticCanonicalTypeNameFactFrom("Box<T: Int>");
+    let nested: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(
+            "List<HashMap<String, Int>>"
+        );
     return box.canonical_name == "Box<Int>" &&
         box.nominal_base_name == "Box" &&
+        nested.ok && nested.nominal_base_name == "List" &&
+        ArrayLength(nested.actual_type_names) == 1 &&
+        nested.actual_type_names[0] == "HashMap<String, Int>" &&
+        !SemanticConstructedTypeNameFactFrom("List<>").ok &&
+        !SemanticConstructedTypeNameFactFrom("String").ok &&
+        !SemanticTypeNameContainsUnresolvedUnknown(
+            "List<HashMap<String, Int>>"
+        ) && SemanticTypeNameContainsUnresolvedUnknown(
+            "List<HashMap<String, Unknown>>"
+        ) &&
         SemanticCanonicalTypeName("Option<Int: Int>") == "Option<Int>" &&
         SemanticCanonicalTypeName("Array<Int: Int>") == "Array<Int>" &&
         SemanticCanonicalTypeName(

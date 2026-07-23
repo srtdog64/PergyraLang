@@ -3783,11 +3783,11 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 50
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array)"
+    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list)"
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime.h\"'
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 269;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 270;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 269'
+    'mir_fixture_rows[@]}" -ne 270'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4029,6 +4029,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_default_contracts/main.pgy"'
 require_file "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy"
 require_file "tests/self_hosted/parity/driver_rung2_generic_multi_bound_defaults_parity_owner.sh"
+require_file "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" 140
 require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" \
     "ability_generic_constraint_type_names"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
@@ -4430,15 +4432,23 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 269;"
+    "return 270;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 269'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 270'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'driver_rung2_generic_multi_bound_defaults_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_nested_generic_containers_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_nested_generic_containers"
+require_text "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" \
+    "Code: initializer_type_unresolved"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/nested_generic_containers/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -6883,6 +6893,18 @@ reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Subs
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "SubIndexOfWithLen("
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "let rest: String = Substring(env, start"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<String: String>"
+require_file "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy"
+require_max_lines "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" 180
+require_text "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" \
+    "struct CollectionListRuntimeFact"
+require_text "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" \
+    "func CollectionListRuntimeContractReady"
+require_text "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" \
+    '"List<HashMap<String, Int>>"'
+require_text "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy" \
+    'PGY_LIST_DEFINE(HashMap_String_Int, PgyHashMap_Int)'
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    "CollectionListRuntime"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCAbsFn"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCSqrtFn"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCPowFn"
@@ -6985,7 +7007,7 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCLogMaterializationBlock("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "usage.uses_machine_layer"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCPrintBlock()"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringCoreBlock()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringCoreBlock(uses_list)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCSplitBlock()"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringJoinBlock()"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static void pgy_log"

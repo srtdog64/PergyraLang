@@ -188,6 +188,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.
+- `src/self_hosted/semantic/ast_contextual_builtin_type_owner.pgy` -- joins a
+  graph-owned builtin call identity with its declared type context when the
+  builtin signature alone cannot produce a concrete result type.
 - `src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy` --
   canonical ordered element projection, recursive homogeneous literal type,
   and declared-element compatibility over parser-owned array-literal spines;
@@ -635,6 +638,7 @@ inventory must not become a second fact-family owner registry.
   consumers.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy` -- canonical `List<T>` runtime ABI fact, supported element ABI, specialization macro, and constructor-symbol projection.
 - `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
   fail-closed numeric conversion runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.

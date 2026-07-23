@@ -105,7 +105,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "AllocatorPersistent^Allocator^none",
         "AllocatorPool^Allocator^Unknown",
         "BoxArray^Box<Unknown>^Int|Allocator",
-        "StringConcat^String^String|String"
+        "StringConcat^String^String|String",
+        "ListNew^List<Unknown>^none"
     ];
     return rows;
 }
@@ -192,6 +193,25 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     return Some(result_type);
 }
 
+func SemanticContextualBuiltinReturnTypeOpt(
+    name: String,
+    argument_count: Int,
+    declared_type: Option<String>
+) -> Option<String> {
+    if name != "ListNew" || argument_count != 0 ||
+        !IsSome(declared_type) {
+        return None;
+    }
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(UnwrapOption(declared_type));
+    if !shape.ok || shape.nominal_base_name != "List" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return None;
+    }
+    return Some(shape.canonical_name);
+}
+
 func SemanticBuiltinSignatureContractReady() -> Bool {
     let names: Array<String> = [];
     let returns: Array<String> = [];
@@ -200,9 +220,13 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let mixed_pair: Array<String> = ["Int", "Float"];
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
+    let contextual_list: Option<String> =
+        SemanticContextualBuiltinReturnTypeOpt(
+            "ListNew", 0, Some("List<HashMap<String, Int>>")
+        );
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 102 && ArrayLength(returns) == 102 &&
-        ArrayLength(params) == 102 && names[0] == "StringLength" &&
+        ArrayLength(names) == 103 && ArrayLength(returns) == 103 &&
+        ArrayLength(params) == 103 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -225,7 +249,19 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         returns[99] == "Allocator" && names[100] == "BoxArray" &&
         returns[100] == "Box<Unknown>" && params[100] == "Int|Allocator" &&
         names[101] == "StringConcat" && returns[101] == "String" &&
-        params[101] == "String|String" &&
+        params[101] == "String|String" && names[102] == "ListNew" &&
+        returns[102] == "List<Unknown>" && params[102] == "" &&
+        IsSome(contextual_list) && UnwrapOption(contextual_list) ==
+            "List<HashMap<String, Int>>" &&
+        !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ListNew", 0, None
+        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ListNew", 1, Some("List<Int>")
+        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ListNew", 0, Some("HashMap<String, Int>")
+        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ListNew", 0, Some("List<Unknown>")
+        )) &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

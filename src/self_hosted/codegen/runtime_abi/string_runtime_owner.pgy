@@ -155,7 +155,9 @@ func StringRuntimeCPrintBlock() -> String {
     return block;
 }
 
-func StringRuntimeCStringCoreBlock() -> String {
+func StringRuntimeCStringCoreBlock(
+    runtime_header_owns_bool_to_string: Bool
+) -> String {
     let block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCConcatFn(), "(const char *a, const char *b)\n{\n")));
     block = Concat(block, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
@@ -188,10 +190,12 @@ func StringRuntimeCStringCoreBlock() -> String {
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCToStringFn(), "(long long v)\n{\n")));
     block = Concat(block, "    char *r = (char *)malloc(24);\n");
     block = Concat(block, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCBoolToStringFn(), "(_Bool v)\n{\n")));
-    block = Concat(block, "    const char *s = v ? \"true\" : \"false\";\n");
-    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-    block = Concat(block, "    if (r != NULL) { memcpy(r, s, n + 1); }\n    return r;\n}\n\n");
+    if !runtime_header_owns_bool_to_string {
+        block = Concat(block, Concat("static char *", Concat(StringRuntimeCBoolToStringFn(), "(_Bool v)\n{\n")));
+        block = Concat(block, "    const char *s = v ? \"true\" : \"false\";\n");
+        block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+        block = Concat(block, "    if (r != NULL) { memcpy(r, s, n + 1); }\n    return r;\n}\n\n");
+    }
     block = Concat(block, Concat("static int ", Concat(StringRuntimeCStringContainsFn(), "(const char *h, const char *n)\n{\n")));
     block = Concat(block, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCSubIndexOfWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n")));

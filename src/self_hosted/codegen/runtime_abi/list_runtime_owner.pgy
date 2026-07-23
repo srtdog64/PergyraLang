@@ -1,0 +1,111 @@
+// Self-host List<T> runtime ABI projection from canonical semantic type facts.
+
+import "../text/text_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CollectionListRuntimeFact {
+    ok: Bool;
+    type_name: String;
+    element_type: String;
+    element_c_type: String;
+    c_value_type: String;
+    c_new_fn: String;
+}
+
+func CollectionListRuntimeFactMissing() -> CollectionListRuntimeFact {
+    return CollectionListRuntimeFact(false, "", "", "", "", "");
+}
+
+func CollectionListRuntimeElementTypeOpt(
+    type_name: String
+) -> Option<String> {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "List" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return None;
+    }
+    return Some(shape.actual_type_names[0]);
+}
+
+func CollectionListRuntimeHashMapCValueType(type_name: String) -> String {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "HashMap" ||
+        ArrayLength(shape.actual_type_names) != 2 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return "";
+    }
+    if shape.actual_type_names[0] == "String" &&
+        shape.actual_type_names[1] == "Int" {
+        return "PgyHashMap_Int";
+    }
+    return "";
+}
+
+func CollectionListRuntimeElementCValueType(
+    element_type: String
+) -> String {
+    if element_type == "Int" { return "int32_t"; }
+    if element_type == "String" { return "const char *"; }
+    return CollectionListRuntimeHashMapCValueType(element_type);
+}
+
+func CollectionListRuntimeFactFromTypeName(
+    type_name: String
+) -> CollectionListRuntimeFact {
+    let element: Option<String> =
+        CollectionListRuntimeElementTypeOpt(type_name);
+    if !IsSome(element) { return CollectionListRuntimeFactMissing(); }
+    let element_type: String = UnwrapOption(element);
+    let element_c_type: String =
+        CollectionListRuntimeElementCValueType(element_type);
+    if element_c_type == "" { return CollectionListRuntimeFactMissing(); }
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    return CollectionListRuntimeFact(
+        true, canonical, element_type, element_c_type,
+        CompilerSymbolCListValueTypeName(element_type),
+        CompilerSymbolCListOperationName("new", element_type)
+    );
+}
+
+func CollectionListRuntimeSpecializationBlock(type_name: String) -> String {
+    let fact: CollectionListRuntimeFact =
+        CollectionListRuntimeFactFromTypeName(type_name);
+    if !fact.ok {
+        Die(Concat("unsupported List<T> runtime ABI fact: ", type_name));
+    }
+    if fact.element_type == "Int" || fact.element_type == "String" {
+        return "";
+    }
+    let suffix: String =
+        CompilerSymbolCMangledTypeName(fact.element_type);
+    return Concat(
+        Concat("/* PGY_COLLECTION_LIST_", Concat(suffix, " */\n")),
+        Concat("PGY_LIST_DEFINE(", Concat(
+            suffix, Concat(", ", Concat(fact.element_c_type, ")\n"))
+        ))
+    );
+}
+
+func CollectionListRuntimeContractReady() -> Bool {
+    let fact: CollectionListRuntimeFact =
+        CollectionListRuntimeFactFromTypeName(
+            "List<HashMap<String, Int>>"
+        );
+    return fact.ok && fact.type_name ==
+        "List<HashMap<String, Int>>" &&
+        fact.element_type == "HashMap<String, Int>" &&
+        fact.element_c_type == "PgyHashMap_Int" &&
+        fact.c_value_type == "PgyList_HashMap_String_Int" &&
+        fact.c_new_fn == "pgy_list_new_HashMap_String_Int" &&
+        CollectionListRuntimeSpecializationBlock(
+            "List<HashMap<String, Int>>"
+        ) == "/* PGY_COLLECTION_LIST_HashMap_String_Int */\nPGY_LIST_DEFINE(HashMap_String_Int, PgyHashMap_Int)\n" &&
+        !CollectionListRuntimeFactFromTypeName("List<Unknown>").ok &&
+        !CollectionListRuntimeFactFromTypeName(
+            "HashMap<String, Int>"
+        ).ok;
+}

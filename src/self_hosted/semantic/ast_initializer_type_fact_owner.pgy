@@ -1,9 +1,4 @@
-// Semantic initializer type facts derived from parser-owned artifact facts.
-//
-// This owner never re-scans source text. It joins function signatures, lexical
-// local-binding rows, and the initializer payload already captured by the
-// semantic local-binding owner.
-
+// Initializer facts join parser-owned signatures, locals, and payloads without source re-scan.
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
@@ -18,7 +13,7 @@ import "array_type_owner.pgy";
 import "tuple_type_shape_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_enum_payload_owner.pgy";
-
+import "ast_contextual_builtin_type_owner.pgy";
 struct SemanticAstInitializerTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -243,6 +238,10 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
             ) {
             inferred = UnwrapOption(declared);
         }
+        inferred = SemanticContextualBuiltinInitializerTypeFromGraph(
+            expression_surfaces.expression_graph, UnwrapOption(graph_root),
+            declared, expression_verdict.ok, inferred
+        );
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
@@ -258,7 +257,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 "binding", locals.names[i],
                 "actual", inferred
             );
-        } else if inferred == "Unknown" || inferred == "" {
+        } else if inferred == "Unknown" || inferred == "" || inferred == "List<Unknown>" {
             row_verified = 0;
             row_code = "initializer_type_unresolved";
             row_message = SemanticError2(
