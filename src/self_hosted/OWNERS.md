@@ -199,7 +199,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy` --
   exact and nested generic argument binding plus structured return
   substitution from one signature type-expression arena and graph argument
-  handles; source-text inference is forbidden.
+  handles, including owner-directed projection through `spawn`; source-text
+  inference is forbidden.
 - `src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy`
   -- capability, arity, operand, and argument-type verdicts for graph-owned
   scalar trees composed from leaves, operators, and concrete direct calls.

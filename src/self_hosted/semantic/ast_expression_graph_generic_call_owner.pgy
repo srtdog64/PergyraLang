@@ -283,3 +283,51 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         signature_index, bindings
     );
 }
+
+func SemanticExpressionGraphGenericSpawnFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> SemanticExpressionGraphGenericCallFact {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeSpawn() {
+        return SemanticExpressionGraphGenericCallNotApplicable();
+    }
+    let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, root_id
+    );
+    if !IsSome(operand) {
+        return SemanticExpressionGraphGenericCallError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_spawn_graph"
+            )
+        );
+    }
+    let call: SemanticExpressionGraphGenericCallFact =
+        SemanticExpressionGraphGenericCallFactFromGraph(
+            graph, UnwrapOption(operand), signatures, constructors,
+            names, types, function_names, function_returns
+        );
+    if !call.applies || !call.ok { return call; }
+    if call.return_type_name == "" || call.return_type_name == "Unknown" ||
+        call.return_type_name == "Void" {
+        return SemanticExpressionGraphGenericCallError(
+            "initializer_type_unresolved",
+            SemanticError2(
+                "initializer_type_unresolved", "binding", "spawn",
+                "initializer", "generic_return"
+            )
+        );
+    }
+    return SemanticExpressionGraphGenericCallFact(
+        true, true, "", "",
+        Concat("Future<", Concat(call.return_type_name, ">")),
+        call.signature_index, call.actual_type_names
+    );
+}

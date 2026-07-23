@@ -161,10 +161,17 @@ func SemanticAstExpressionVerdictFromGraph(
             graph, root_id, signatures, constructors, names, types,
             function_names, function_returns
         );
-    if generic_call.applies && !generic_call.ok {
+    let generic_spawn: SemanticExpressionGraphGenericCallFact =
+        SemanticExpressionGraphGenericSpawnFactFromGraph(
+            graph, root_id, signatures, constructors, names, types,
+            function_names, function_returns
+        );
+    let generic_value: SemanticExpressionGraphGenericCallFact = generic_call;
+    if generic_spawn.applies { generic_value = generic_spawn; }
+    if generic_value.applies && !generic_value.ok {
         return SemanticAstExpressionVerdict(
-            false, generic_call.diagnostic_code,
-            generic_call.diagnostic_message, text, "Unknown"
+            false, generic_value.diagnostic_code,
+            generic_value.diagnostic_message, text, "Unknown"
         );
     }
     let concrete_scalar_value_owned: Bool =
@@ -173,12 +180,12 @@ func SemanticAstExpressionVerdictFromGraph(
             function_returns, function_params
         );
     let call_error: String = "";
-    if concrete_scalar_value_owned && !generic_call.applies {
+    if concrete_scalar_value_owned && !generic_value.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, names, types,
             function_names, function_returns, function_params
         );
-    } else if !graph_owned_intrinsic && !generic_call.applies &&
+    } else if !graph_owned_intrinsic && !generic_value.applies &&
         !wrapper.applies {
         call_error = CheckCallFromGraphIdentifiers(
             text, names, types, modes,
@@ -254,8 +261,8 @@ func SemanticAstExpressionVerdictFromGraph(
         inferred = UnwrapOption(array_literal_type);
     } else if wrapper.applies {
         inferred = wrapper.type_name;
-    } else if generic_call.applies {
-        inferred = generic_call.return_type_name;
+    } else if generic_value.applies {
+        inferred = generic_value.return_type_name;
     } else if graph_owned_intrinsic {
         inferred = UnwrapOption(intrinsic);
     } else if index_value_owned {

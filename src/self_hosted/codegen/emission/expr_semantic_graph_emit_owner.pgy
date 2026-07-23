@@ -1,6 +1,7 @@
 // Recursive expression emission from semantic-owned node handles.
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/checked_arithmetic_runtime_owner.pgy";
@@ -118,8 +119,15 @@ func RewriteSemanticSpawn(
     }
     let source_name: String = UnwrapOption(target_name);
     let call_symbol: String = source_name;
-    let alias: String = LookupKindType(env, source_name, "call");
-    if alias != "" { call_symbol = alias; }
+    let specialization: String = LookupKindType(
+        env, CodegenGenericCallNodeKey(view.call_node), "call"
+    );
+    if specialization != "" {
+        call_symbol = specialization;
+    } else {
+        let alias: String = LookupKindType(env, source_name, "call");
+        if alias != "" { call_symbol = alias; }
+    }
     if LookupKindType(env, call_symbol, "f") != "Int" ||
         LookupKindType(env, call_symbol, "pt") != "Int" {
         Die("self-host spawn requires an Int -> Int signature fact");
