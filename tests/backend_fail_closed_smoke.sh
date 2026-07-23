@@ -96,6 +96,16 @@ grep -Fq 'strcmp(callee_name, "ArrayFilter")' \
     "$ROOT_DIR/src/compiler/mir_source_local_expr_call_facts.c"
 grep -Fq 'strcmp(callee_name, "ArrayMap")' \
     "$ROOT_DIR/src/compiler/mir_source_local_expr_call_facts.c"
+grep -Fq 'mir_source_local_call_expr_type_name(' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
+grep -Fq 'strcmp(name, "ArrayFilter")' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
+grep -Fq 'strcmp(name, "ArrayMap")' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
+grep -Fq 'ctx->active_mir_routine != NULL' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
+grep -Fq 'owner_type == NULL || owner_type[0] == '\''\0'\''' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "llvm_mir_local_array_access_type(" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_type_lookup.c"
 grep -Fq "MIR source-local array access type fact is missing" \

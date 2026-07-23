@@ -25,6 +25,7 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
+#include "../compiler/mir_source_local_expr_call_facts.h"
 #include "../parser/ast_api.h"
 
 const char *
@@ -111,6 +112,21 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         ASTNode *arg0 = ast_call_argument(expr, 0);
         const char *simple_type = NULL;
         TranspilerInferCallOp op = transpiler_infer_call_lookup(name);
+        if ((strcmp(name, "ArrayFilter") == 0
+             || strcmp(name, "ArrayMap") == 0)
+            && transpiler_active_has_mir(ctx)
+            && ctx->active_mir_routine != NULL) {
+            MIRSourceLocalTypeScratch scratch = {0};
+            const char *owner_type = mir_source_local_call_expr_type_name(
+                transpiler_active_mir_identity(ctx), ctx->active_mir_routine,
+                &scratch, expr);
+            /* The MIR source-local call owner is authoritative for this
+             * result shape. An absent callback/collection fact stays
+             * Unknown; the array-access consumer then fails closed. */
+            if (owner_type == NULL || owner_type[0] == '\0')
+                return "Unknown";
+            return transpiler_infer_arena_copy_type_name(ctx, owner_type);
+        }
         if (transpiler_infer_call_is_numeric_passthrough(op)) {
             if (argc >= 1) {
                 const char *arg_type =
