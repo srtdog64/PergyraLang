@@ -4498,7 +4498,7 @@ require_file "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "struct SemanticAstIterationTypeFacts"
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "func SemanticAstIterationSeedVisibleBindings"
-require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "SemanticAstExpressionVerdictFromPayload"
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "SemanticAstExpressionVerdictFromGraph"
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
