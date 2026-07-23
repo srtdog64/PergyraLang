@@ -44,9 +44,18 @@ func SelfMirExpressionUses(
     expression: String
 ) -> Array<String> {
     let uses: Array<String> = [];
-    let i: Int = 0;
-    while i < ArrayLength(build.local_names) {
-        if build.local_versions[i] > 0 && SelfMirTextContainsIdentifier(
+    let i: Int = ArrayLength(build.local_names) - 1;
+    while i >= 0 {
+        let shadowed: Bool = false;
+        let use_i: Int = 0;
+        while use_i < ArrayLength(uses) {
+            if SelfMirSsaBaseName(uses[use_i]) == build.local_names[i] {
+                shadowed = true;
+            }
+            use_i = use_i + 1;
+        }
+        if !shadowed && build.local_versions[i] > 0 &&
+            SelfMirTextContainsIdentifier(
             expression, build.local_names[i]
         ) {
             ArrayPush(
@@ -54,7 +63,7 @@ func SelfMirExpressionUses(
                 SelfMirSsaName(build.local_names[i], build.local_versions[i])
             );
         }
-        i = i + 1;
+        i = i - 1;
     }
     return uses;
 }

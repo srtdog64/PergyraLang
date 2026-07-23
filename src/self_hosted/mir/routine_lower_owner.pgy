@@ -20,7 +20,8 @@ func SelfMirLowerBlockFromArtifact(
     build: SelfMirRoutineBuild,
     block_node_id: Int,
     inout break_blocks: Array<Int>,
-    continue_target: Int
+    continue_target: Int,
+    restore_local_count: Int
 ) -> SelfMirRoutineBuild {
     let child_index: Int = 0;
     let child_opt: Option<Int> = TypedAstArenaChildAt(
@@ -31,6 +32,11 @@ func SelfMirLowerBlockFromArtifact(
         if build.terminated[build.current_block] == 1 {
             // MIR owns executable CFG only; a terminal instruction erases its
             // source block's unreachable suffix.
+            if restore_local_count >= 0 {
+                return SelfMirRoutineAtLocalCount(
+                    build, restore_local_count
+                );
+            }
             return build;
         }
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(
@@ -86,6 +92,9 @@ func SelfMirLowerBlockFromArtifact(
         child_opt = TypedAstArenaChildAt(
             input.artifact.arena, block_node_id, child_index
         );
+    }
+    if restore_local_count >= 0 {
+        return SelfMirRoutineAtLocalCount(build, restore_local_count);
     }
     return build;
 }

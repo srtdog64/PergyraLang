@@ -69,6 +69,20 @@ func StmtToTreeLine(stmt: String) -> String {
     return s;
 }
 
+func MirDeclaredLocalTypeFact(
+    json: String, inst_start: Int, inst_end: Int,
+    kind: String, source_type: String
+) -> String {
+    if kind != "def" || source_type != "AST_LET_DECL" { return ""; }
+    let type_name: String = MirObjectStringFact(
+        json, inst_start, inst_end, "abi_type_name"
+    );
+    if StringLength(type_name) == 0 {
+        MirLowerFailClosed("local declaration is missing its MIR ABI type fact");
+    }
+    return type_name;
+}
+
 func RenderDirectDeferCallFromGraph(
     ref arena: SemanticExpressionGraphArena,
     root: Int

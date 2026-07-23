@@ -280,3 +280,13 @@ For compound expressions, `list_call_type_owner.pgy` is the last codegen type
 consumer for the carried `ListGet` return element type. The `list_int_loop`
 DRV-2 row proves that this fact reaches arithmetic lowering; a mutated ListGet
 target is rejected before an operator-side type default can hide the loss.
+
+The lexical binding sub-rung now consumes the same artifact-bound identity
+through `SemanticAstLocalBindingOrdinalAt`, `SelfMirRoutineDeclareLocal`, and
+the routine block-exit inventory restore. Codegen receives the active typed
+binding stack rather than a function-wide name table, so an inner
+`items: List<String>` cannot overwrite the outer `items: List<Int>` ABI. The
+`list_shadow_scope_metadata` DRV-2 row proves `items.1`/`items.2` identity,
+restores the outer List ABI after the branch, and rejects a missing declaration
+ABI type fact. Source-name-only SSA lookup and backend type recovery remain
+forbidden.

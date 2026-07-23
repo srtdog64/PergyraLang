@@ -159,14 +159,14 @@ func SelfMirRoutineResourceTypeForInstruction(
        no expr0, so its arg0 is the explicit resource local handle. */
     let expression: String = cfg.instructions.expr0s[instruction_index];
     if expression != "" {
-        let i: Int = 0;
-        while i < ArrayLength(build.local_names) {
+        let i: Int = ArrayLength(build.local_names) - 1;
+        while i >= 0 {
             if SelfMirTextContainsIdentifier(
                 expression, build.local_names[i]
             ) {
                 return build.local_types[i];
             }
-            i = i + 1;
+            i = i - 1;
         }
     }
     let resource_arg: String = cfg.instructions.arg0s[instruction_index];
@@ -331,12 +331,43 @@ func SelfMirRoutineLocalIndex(
     build: SelfMirRoutineBuild,
     name: String
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < ArrayLength(build.local_names) {
+    let i: Int = ArrayLength(build.local_names) - 1;
+    while i >= 0 {
         if build.local_names[i] == name { return Some(i); }
-        i = i + 1;
+        i = i - 1;
     }
     return None;
+}
+
+func SelfMirRoutineDeclareLocal(
+    build: SelfMirRoutineBuild,
+    name: String,
+    type_name: String,
+    binding_version: Int
+) -> SelfMirRoutineBuild {
+    if name == "" || type_name == "" || binding_version <= 0 ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_types) ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_versions) {
+        return SelfMirRoutineBuildError(
+            build, "MIR semantic local declaration identity is invalid"
+        );
+    }
+    let version: Int = binding_version;
+    let active: Option<Int> = SelfMirRoutineLocalIndex(build, name);
+    if IsSome(active) &&
+        build.local_versions[UnwrapOption(active)] >= version {
+        version = build.local_versions[UnwrapOption(active)] + 1;
+    }
+    let names: Array<String> = build.local_names;
+    let types: Array<String> = build.local_types;
+    let versions: Array<Int> = build.local_versions;
+    ArrayPush(names, name);
+    ArrayPush(types, type_name);
+    ArrayPush(versions, version);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated, names, types, versions
+    );
 }
 
 func SelfMirRoutineAddLocal(
@@ -424,5 +455,32 @@ func SelfMirRoutineAtLocalVersions(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,
         build.next_instruction_id, build.terminated,
         build.local_names, build.local_types, restored
+    );
+}
+
+func SelfMirRoutineAtLocalCount(
+    build: SelfMirRoutineBuild,
+    local_count: Int
+) -> SelfMirRoutineBuild {
+    if local_count < 0 || local_count > ArrayLength(build.local_names) ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_types) ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_versions) {
+        return SelfMirRoutineBuildError(
+            build, "MIR lexical local inventory boundary is invalid"
+        );
+    }
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let versions: Array<Int> = [];
+    let i: Int = 0;
+    while i < local_count {
+        ArrayPush(names, build.local_names[i]);
+        ArrayPush(types, build.local_types[i]);
+        ArrayPush(versions, build.local_versions[i]);
+        i = i + 1;
+    }
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated, names, types, versions
     );
 }

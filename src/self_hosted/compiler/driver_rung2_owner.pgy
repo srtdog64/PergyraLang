@@ -299,12 +299,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/list_ops/main.pgy",
         "tests/cases/backend_compare/list_int_loop/main.pgy",
         "tests/cases/backend_compare/for_in_list_int/main.pgy",
-        "tests/cases/backend_compare/list_push_get_loop/main.pgy"
+        "tests/cases/backend_compare/list_push_get_loop/main.pgy",
+        "tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 274;
+    return 275;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

@@ -270,9 +270,10 @@ func SelfMirLowerMatchFromArtifact(
             build = SelfMirRoutineAtLocalVersions(
                 build, SelfMirLocalVersionsSnapshot(entry_versions)
             );
+            let body_local_count: Int = ArrayLength(build.local_names);
             build = SelfMirLowerBlockFromArtifact(
                 input, build, UnwrapOption(body_opt),
-                break_blocks, continue_target
+                break_blocks, continue_target, body_local_count
             );
             if !build.ok { return build; }
             let body_exit: Int = build.current_block;
@@ -318,9 +319,10 @@ func SelfMirLowerMatchFromArtifact(
                     build, "MIR match default body is missing"
                 );
             }
+            let default_local_count: Int = ArrayLength(build.local_names);
             build = SelfMirLowerBlockFromArtifact(
                 input, build, UnwrapOption(default_body_opt),
-                break_blocks, continue_target
+                break_blocks, continue_target, default_local_count
             );
             if !build.ok { return build; }
             let default_exit: Int = build.current_block;

@@ -218,7 +218,7 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
                 json, kp, inst_end, "slot_anchor"
             );
             let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
-            let local_type: String = MirRoutineFactIndexSourceLocalType(index, arg0);
+            let local_type: String = MirDeclaredLocalTypeFact(json, kp, inst_end, ikind, source_type);
             if ikind == "stmt" && source_type == "AST_BIND_STMT" {
                 if arg0 == "" || arg1 == "" || slot_anchor == "" ||
                     expr0 != "" || expr1 != "" {

@@ -99,30 +99,3 @@ func CodegenFunctionOwnerFieldEnvRows(
     }
     return StringJoin(rows, "");
 }
-
-func CodegenFunctionLocalEnvRows(
-    local_bindings: SemanticAstLocalBindingFacts,
-    function_node_id: Int,
-    global_env: String
-) -> String {
-    let rows: Array<String> = [];
-    let i: Int = 0;
-    while i < ArrayLength(local_bindings.node_ids) {
-        if local_bindings.function_node_ids[i] == function_node_id {
-            let type_opt: Option<String> =
-                SemanticAstLocalBindingDeclaredTypeAt(local_bindings, i);
-            if !IsSome(type_opt) {
-                Die("self-host codegen requires a semantic declared local type");
-            }
-            let source_name: String = local_bindings.names[i];
-            let type_name: String = UnwrapOption(type_opt);
-            let binding: CodegenFunctionValueBindingFact =
-                CodegenFunctionValueBindingFactFor(
-                    source_name, type_name, global_env
-                );
-            ArrayPush(rows, binding.env_rows);
-        }
-        i = i + 1;
-    }
-    return StringJoin(rows, "");
-}

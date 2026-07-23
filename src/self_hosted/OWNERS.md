@@ -137,9 +137,10 @@ inventory must not become a second fact-family owner registry.
   field-type rows after generic-default substitution, consumed by expression
   typing and declaration routing; source constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
-  local binding node, function, scope, name, declared-type, and initializer
-  payload facts, including array-literal body and `Let` statement-routing
-  identity.
+  local binding node, function, scope, name, declared-type, initializer
+  payload, and per-name ordinal facts, including array-literal body and `Let`
+  statement-routing identity. MIR lexical binding identity must consume this
+  owner; source-name-only SSA lookup is forbidden.
 - `src/self_hosted/semantic/ast_destructure_binding_fact_owner.pgy` -- typed
   destructuring-let binding identity, scope, order, and initializer rows.
 - `src/self_hosted/semantic/ast_function_scope_fact_owner.pgy` -- function
@@ -456,10 +457,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
-  block edges, instruction IDs, termination, and local SSA version updates.
+  block edges, instruction IDs, termination, and binding-identity keyed local
+  SSA inventory with lexical scope restoration.
 - `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
   lowering dispatcher over read-only compiler-scale input and mutable routine
-  build state.
+  build state, including block-exit local-inventory restoration.
 - `src/self_hosted/mir/routine_if_owner.pgy` -- conditional branch topology,
   branch-local build threading, and merge-block ownership.
 - `src/self_hosted/mir/routine_match_owner.pgy` -- scalar case/default CFG

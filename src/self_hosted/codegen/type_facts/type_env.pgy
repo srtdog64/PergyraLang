@@ -86,12 +86,18 @@ func LookupKindTypeRowPresent(
 func TypeEnvAppendLocalRows(
     env: CodegenTypeEnv, rows: String
 ) -> CodegenTypeEnv {
+    if rows == "" { return env; }
     let local_rows: String = env.local_rows;
     if StringLength(local_rows) == 0 {
         local_rows = "|";
     }
     return CodegenTypeEnv(
-        env.global_rows, Concat(local_rows, rows)
+        env.global_rows, Concat(
+            "|", Concat(
+                rows,
+                Substring(local_rows, 1, StringLength(local_rows) - 1)
+            )
+        )
     );
 }
 

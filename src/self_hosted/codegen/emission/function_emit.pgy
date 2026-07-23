@@ -170,9 +170,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
-    ArrayPush(function_env_rows, CodegenFunctionLocalEnvRows(
-        local_bindings, function_node_id, base_env.global_rows
-    ));
     ArraySet(
         env_state, 1, Concat("|", StringJoin(function_env_rows, ""))
     );

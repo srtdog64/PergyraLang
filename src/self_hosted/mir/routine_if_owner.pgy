@@ -129,12 +129,13 @@ func SelfMirLowerIfFromArtifact(
     );
     let entry_versions: Array<Int> =
         SelfMirLocalVersionsSnapshot(build.local_versions);
+    let entry_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirRoutineAddBlock(build);
     let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, then_block);
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        break_blocks, continue_target
+        break_blocks, continue_target, entry_local_count
     );
     let then_exit: Int = build.current_block;
     let then_versions: Array<Int> =
@@ -152,7 +153,7 @@ func SelfMirLowerIfFromArtifact(
         );
         build = SelfMirLowerBlockFromArtifact(
             input, build, UnwrapOption(else_body_opt),
-            break_blocks, continue_target
+            break_blocks, continue_target, entry_local_count
         );
         else_exit = build.current_block;
         else_versions = SelfMirLocalVersionsSnapshot(build.local_versions);

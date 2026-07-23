@@ -48,10 +48,20 @@ func SelfMirLowerLetFromArtifact(
     let expression: String = input.analysis.local_bindings.initializer_texts[
         local_row
     ];
+    let binding_ordinal: Option<Int> = SemanticAstLocalBindingOrdinalAt(
+        input.analysis.local_bindings, local_row
+    );
+    if !IsSome(binding_ordinal) {
+        return SelfMirRoutineBuildError(
+            build, "MIR let is missing semantic binding identity"
+        );
+    }
     let initializer_uses: Array<String> = SelfMirExpressionUses(
         build, expression
     );
-    build = SelfMirRoutineAddLocal(build, local_name, local_type, 1);
+    build = SelfMirRoutineDeclareLocal(
+        build, local_name, local_type, UnwrapOption(binding_ordinal)
+    );
     let added_local: Option<Int> = SelfMirRoutineLocalIndex(build, local_name);
     if !IsSome(added_local) {
         return SelfMirRoutineBuildError(

@@ -326,6 +326,10 @@ func SelfMirJsonAbiTypeName(
     if rows.runtime_call_abi.present[instruction_index] == 1 {
         return rows.runtime_call_abi.type_names[instruction_index];
     }
+    if rows.kinds[instruction_index] == "def" &&
+        rows.source_types[instruction_index] == "AST_LET_DECL" {
+        return rows.expr1s[instruction_index];
+    }
     let candidate: String = rows.expr1s[instruction_index];
     if candidate == "Int" || candidate == "Long" ||
         candidate == "Float" || candidate == "Double" ||

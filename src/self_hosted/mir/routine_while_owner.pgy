@@ -79,9 +79,10 @@ func SelfMirLowerWhileFromArtifact(
     let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, loop_body);
     let while_break_blocks: Array<Int> = [];
+    let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        while_break_blocks, header
+        while_break_blocks, header, body_local_count
     );
     let body_exit: Int = build.current_block;
     let observed_backedge: Bool = build.terminated[body_exit] == 0;

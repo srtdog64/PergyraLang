@@ -52,7 +52,7 @@ func SelfMirRoutineFromInput(
     let root_break_blocks: Array<Int> = [];
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        root_break_blocks, -1
+        root_break_blocks, -1, -1
     );
     return build;
 }

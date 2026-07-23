@@ -42,54 +42,25 @@ func EmitLet(
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
-    let c_name: String = CodegenFunctionValueBindingFactFor(
-        name, type_name, env_state[0]
-    ).c_name;
+    let binding: CodegenFunctionValueBindingFact =
+        CodegenFunctionValueBindingFactFor(name, type_name, env_state[0]);
+    let c_name: String = binding.c_name;
     let expr: String = CodegenSemanticLocalBindingInitializerOrDie(
         local_bindings, idx
     );
-    if type_name == "Int" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Int", c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
-    if type_name == "Long" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Long", c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
-    if type_name == "Bool" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Bool", c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
-    if type_name == "Float" || type_name == "Double" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
-    if type_name == "String" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "String", c_name
+    if type_name == "Int" || type_name == "Long" || type_name == "Bool" ||
+        type_name == "Float" || type_name == "Double" ||
+        type_name == "String" ||
+        type_name == "Allocator" || type_name == "TextBuilder" {
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, binding.value_kind, c_name
         );
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if IsBoxType(type_name) && IsSome(BoxArrayElementTypeOpt(type_name)) { return EmitBoxArrayLetDeclaration(name, type_name, c_name, env_state, env, graph); }
-    if type_name == "Allocator" || type_name == "TextBuilder" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env),
-            Concat(" ", Concat(c_name, Concat(" = ",
-                Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
-    }
     if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, type_name, c_name
         );
         let value: String = RewriteExpectedValueWithSemanticGraph(
             expr, type_name, env, graph
@@ -103,8 +74,8 @@ func EmitLet(
     }
     if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" ||
         SpawnRuntimeCFutureCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, type_name, c_name
         );
         let value: String = RewriteExpectedValueWithSemanticGraph(
             expr, type_name, env, graph
@@ -123,8 +94,8 @@ func EmitLet(
         let new_fn: String = array_fact.c_new_fn;
         let push_fn: String = array_fact.c_push_fn;
         let element_type: String = array_fact.element_type;
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, array_kind, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, array_kind, c_name
         );
         if !graph.ok {
             Die("array initializer expression graph is missing");
@@ -177,8 +148,8 @@ func EmitLet(
         if StringLength(option_kind) == 0 {
             Die(Concat("unsupported option let payload type: ", type_name));
         }
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, option_kind, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, option_kind, c_name
         );
         let option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(
             expr, type_name, env, graph
@@ -189,8 +160,8 @@ func EmitLet(
     if StartsWith(type_name, "List<") ||
         LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, type_name, c_name
         );
         let value: String = RewriteExpectedValueWithSemanticGraph(
             expr, type_name, env, graph
@@ -398,6 +369,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindForStmtTag()) {
             // Integer ranges are exclusive at the upper bound.
             let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx);
+            let loop_env: Array<String> = [env_state[0], env_state[1]];
             let iteration_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneValue()
@@ -420,7 +392,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     end_v, env, stop_graph
                 );
                 CodegenTypeEnvStateAppendTypedValueBinding(
-                    env_state, loop_var, "Int", "Int", c_loop_var
+                    loop_env, loop_var, "Int", "Int", c_loop_var
                 );
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
                 for_hdr = Concat(for_hdr, Concat(" ", c_loop_var));
@@ -467,7 +439,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                 let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
                 let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
                 CodegenTypeEnvStateAppendTypedValueBinding(
-                    env_state, loop_var, elem_kind, elem_kind, c_loop_var
+                    loop_env, loop_var, elem_kind, elem_kind, c_loop_var
                 );
                 let len_call: String = CodegenForEachCollectionCLengthCall(
                     runtime, tc
@@ -487,7 +459,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, loop_env, cur_fn_ret, routine_defers, active_defers));
             ArrayPush(result, Concat(pad, "}\n"));
             continue;
         }
@@ -505,7 +477,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
+            let while_env: Array<String> = [env_state[0], env_state[1]];
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, while_env, cur_fn_ret, routine_defers, active_defers));
             ArrayPush(result, Concat(pad, "}\n"));
             continue;
         }
@@ -524,7 +497,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
+            let then_env: Array<String> = [env_state[0], env_state[1]];
+            ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, then_env, cur_fn_ret, routine_defers, active_defers));
             if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
                 if CodegenSemanticStatementIs(statements, cur[0], TypedAstKindIfStmtTag()) {
@@ -532,11 +506,13 @@ func EmitStmtList(count: Int, arena: AstArena,
                     // (no `Block:`). Emit `} else ` and recurse on that If at its
                     // own indent; the nested if-chain closes itself.
                     ArrayPush(result, Concat(pad, "} else "));
-                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_state, cur_fn_ret, routine_defers, active_defers));
+                    let else_if_env: Array<String> = [env_state[0], env_state[1]];
+                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, else_if_env, cur_fn_ret, routine_defers, active_defers));
                 } else {
                     ArrayPush(result, Concat(pad, "} else {\n"));
                     CodegenAstArenaExpectBlock(arena, count, cur);
-                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, env_state, cur_fn_ret, routine_defers, active_defers));
+                    let else_env: Array<String> = [env_state[0], env_state[1]];
+                    ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 6, cur, inner_pad, else_env, cur_fn_ret, routine_defers, active_defers));
                     ArrayPush(result, Concat(pad, "}\n"));
                 }
             } else {

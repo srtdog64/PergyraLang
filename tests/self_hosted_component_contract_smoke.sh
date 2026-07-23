@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 274;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 275;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 274'
+    'mir_fixture_rows[@]}" -ne 275'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4039,6 +4039,8 @@ require_file "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh" 100
 require_file "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" 100
+require_file "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh" 100
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy" \
     "func SemanticExpressionGraphCallArgumentScalarTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
@@ -4468,11 +4470,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 274;"
+    "return 275;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 274'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 275'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4489,6 +4491,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_for_in_list"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_list_push_scalar_value"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_list_shadow_scope"
 require_text "tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh" \
     "Code: initializer_type_unresolved"
 require_text "tests/self_hosted/parity/driver_rung2_list_ops_parity_owner.sh" \
@@ -4499,6 +4503,22 @@ require_text "tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh"
     '"binding_type":"Int","iterable_type":"List<Int>"'
 require_text "tests/self_hosted/parity/driver_rung2_list_push_scalar_value_parity_owner.sh" \
     '"kind":"multiply","text":"i * i"'
+require_text "tests/self_hosted/parity/driver_rung2_list_shadow_scope_parity_owner.sh" \
+    'local declaration is missing its MIR ABI type fact'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy"'
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
+    "func SemanticAstLocalBindingOrdinalAt("
+require_text "src/self_hosted/mir/routine_let_owner.pgy" \
+    "SelfMirRoutineDeclareLocal("
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "func SelfMirRoutineAtLocalCount("
+require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
+    'rows.source_types[instruction_index] == "AST_LET_DECL"'
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "func MirDeclaredLocalTypeFact("
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let local_type: String = MirRoutineFactIndexSourceLocalType(index, arg0);"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/nested_generic_containers/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -5851,12 +5871,20 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "TypeEnvTypedValueBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedReadonlyRefBindingRows("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
+reject_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionLocalEnvRows("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenFunctionValueBindingFactFor("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendValueBinding("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendTypedValueBinding("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, name,"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, loop_var,"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "loop_env, loop_var,"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'let then_env: Array<String> = [env_state[0], env_state[1]];'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'let else_env: Array<String> = [env_state[0], env_state[1]];'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "Substring(local_rows, 1, StringLength(local_rows) - 1)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCollectionTargetCBindingOrDie(env,"
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenCollectionTargetCBindingOrDie("

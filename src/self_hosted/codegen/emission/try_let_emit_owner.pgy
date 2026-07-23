@@ -31,17 +31,17 @@ func EmitTryLet(
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(
         local_bindings, idx
     );
-    let c_name: String = CodegenFunctionValueBindingFactFor(
-        name, type_name, env_state[0]
-    ).c_name;
+    let binding: CodegenFunctionValueBindingFact =
+        CodegenFunctionValueBindingFactFor(name, type_name, env_state[0]);
+    let c_name: String = binding.c_name;
     let operand_node: Int = CodegenSemanticTryOperandNodeOrDie(graph);
     let rendered_inner: String = RewriteExprFromSemanticGraph(
         graph.graph, operand_node, env
     );
     let tmp: String = CompilerSymbolCTryTempName(idx);
     if cur_fn_ret == "Int" && type_name == "Int" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Int", c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, binding.value_kind, c_name
         );
         let result_out: String = Concat(
             AbiLayoutCLocalType("Result<Int>", env),
@@ -78,8 +78,8 @@ func EmitTryLet(
                 CodegenAstArenaProvenanceOrDie(arena, idx)
             ));
         }
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Int", c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, binding.value_kind, c_name
         );
         let result_out: String = Concat(
             AbiLayoutCLocalType("Result<Int>", env),
@@ -141,8 +141,8 @@ func EmitTryLet(
                 CodegenAstArenaProvenanceOrDie(arena, idx)
             ));
         }
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, name, type_name, binding.value_kind, c_name
         );
         let operand_option_type: String =
             OptionResultRuntimeOptionTypeNameForPayloadKind(

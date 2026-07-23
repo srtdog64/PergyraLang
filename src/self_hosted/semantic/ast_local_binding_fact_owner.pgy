@@ -349,6 +349,29 @@ func SemanticAstLocalBindingNameAt(
     return Some(facts.names[index]);
 }
 
+func SemanticAstLocalBindingOrdinalAt(
+    facts: SemanticAstLocalBindingFacts,
+    index: Int
+) -> Option<Int> {
+    let count: Int = SemanticAstLocalBindingCount(facts);
+    if !facts.ok || index < 0 || index >= count ||
+        ArrayLength(facts.function_node_ids) != count ||
+        ArrayLength(facts.names) != count {
+        return None;
+    }
+    let ordinal: Int = 0;
+    let i: Int = 0;
+    while i <= index {
+        if facts.function_node_ids[i] == facts.function_node_ids[index] &&
+            facts.names[i] == facts.names[index] {
+            ordinal = ordinal + 1;
+        }
+        i = i + 1;
+    }
+    if ordinal <= 0 { return None; }
+    return Some(ordinal);
+}
+
 func SemanticAstLocalBindingDeclaredTypeAt(
     facts: SemanticAstLocalBindingFacts,
     index: Int
