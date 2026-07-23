@@ -1,0 +1,59 @@
+// Typed enum payload projection from parser-owned expression graph identity.
+//
+// The generated `_N` member is only an ordered payload index.  The semantic
+// enum owner remains the sole authority for the corresponding payload type.
+
+import "ast_enum_fact_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+
+func SemanticExpressionGraphEnumPayloadTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    enum_facts: SemanticAstEnumFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let outer: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !outer.ok { return None; }
+    let payload_field: Option<String> = SemanticExpressionGraphNodeText(
+        graph, outer.member_node
+    );
+    if !IsSome(payload_field) ||
+        StringLength(UnwrapOption(payload_field)) < 2 ||
+        Substring(UnwrapOption(payload_field), 0, 1) != "_" {
+        return None;
+    }
+    let payload_index_text: String = Substring(
+        UnwrapOption(payload_field), 1,
+        StringLength(UnwrapOption(payload_field)) - 1
+    );
+    let payload_index: Int = ToInt(payload_index_text);
+    if payload_index < 0 || ToString(payload_index) != payload_index_text {
+        return None;
+    }
+
+    let variant_access: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, outer.receiver_node);
+    if !variant_access.ok { return None; }
+    let variant_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, variant_access.member_node
+    );
+    let enum_type: Option<String> =
+        SemanticExpressionGraphValueReceiverTypeName(
+            graph, variant_access.receiver_node,
+            constructors, names, types,
+            function_names, function_returns
+        );
+    if !IsSome(variant_name) || !IsSome(enum_type) {
+        return None;
+    }
+    return SemanticAstEnumVariantPayloadTypeAt(
+        enum_facts, UnwrapOption(enum_type),
+        UnwrapOption(variant_name), payload_index
+    );
+}

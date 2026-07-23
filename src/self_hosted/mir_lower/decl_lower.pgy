@@ -2,7 +2,7 @@
 //
 // This module owns the supported declaration fact surface for self-hosted
 // mir_lower: structs, nominal class-family declarations, owner-qualified
-// methods, and payload-free enums. Unsupported declaration facts fail closed
+// methods, and enum declarations with owner-provided payload type facts.
 // here. JSON row/bounds lookup belongs to json_fact_read.pgy.
 
 import "error_owner.pgy";
@@ -156,14 +156,54 @@ func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: Strin
         if StringLength(vname) == 0 {
             MirLowerFailClosed(Concat("malformed enum variant name fact: ", enum_name));
         }
-        let pc: String = MirObjectNumberFact(json, variant_bounds[0], variant_bounds[1], "param_count");
-        if pc != "0" {
-            MirLowerFailClosed(Concat("payload enum variants are not supported in self-host subset: ", Concat(enum_name, Concat(".", vname))));
+        let pc: String = MirObjectNumberFact(
+            json, variant_bounds[0], variant_bounds[1], "param_count"
+        );
+        let param_count: Int = ToInt(pc);
+        if param_count < 0 || ToString(param_count) != pc {
+            MirLowerFailClosed(Concat(
+                "enum payload count fact is invalid: ",
+                Concat(enum_name, Concat(".", vname))
+            ));
+        }
+        let param_types_bounds: Array<Int> = [0, 0];
+        if !MirObjectArrayBounds(
+            json, variant_bounds[0], variant_bounds[1],
+            "param_types", param_types_bounds
+        ) || MirObjectArrayStringFactCount(
+            json, variant_bounds[0], variant_bounds[1], "param_types"
+        ) != param_count {
+            MirLowerFailClosed(Concat(
+                "enum payload type fact count is invalid: ",
+                Concat(enum_name, Concat(".", vname))
+            ));
+        }
+        let payload_types: String = "";
+        let payload_index: Int = 0;
+        while payload_index < param_count {
+            let payload_type: String = MirObjectArrayStringFactAt(
+                json, variant_bounds[0], variant_bounds[1],
+                "param_types", payload_index
+            );
+            if payload_type == "" || payload_type == "Unknown" {
+                MirLowerFailClosed(Concat(
+                    "enum payload type fact is missing: ",
+                    Concat(enum_name, Concat(".", vname))
+                ));
+            }
+            if payload_index > 0 {
+                payload_types = Concat(payload_types, ", ");
+            }
+            payload_types = Concat(payload_types, payload_type);
+            payload_index = payload_index + 1;
         }
         if StringLength(out) > 0 {
             out = Concat(out, ", ");
         }
         out = Concat(out, vname);
+        if param_count > 0 {
+            out = Concat(out, Concat("(", Concat(payload_types, ")")));
+        }
         row = row + 1;
     }
     return Concat("  Enum: ", Concat(enum_name, Concat(" { ", Concat(out, " }\n"))));

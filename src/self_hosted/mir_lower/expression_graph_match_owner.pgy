@@ -2,6 +2,7 @@
 
 import "expression_graph_sequence_owner.pgy";
 import "expression_graph_option_match_owner.pgy";
+import "expression_graph_tagged_enum_match_owner.pgy";
 import "match_json_fact_owner.pgy";
 import "json_fact_read.pgy";
 
@@ -32,7 +33,11 @@ func MirExpressionGraphSequenceAppendMatchCondition(
         return MirExpressionGraphSequenceError(sequence);
     }
     let variant_opt: Option<String> = MirMatchVariant(instruction);
-    if IsSome(variant_opt) {
+    if IsSome(variant_opt) &&
+        (UnwrapOption(variant_opt) == "Some" ||
+            UnwrapOption(variant_opt) == "None" ||
+            UnwrapOption(variant_opt) == "Ok" ||
+            UnwrapOption(variant_opt) == "Err") {
         let variant: String = UnwrapOption(variant_opt);
         if (variant == "Some" &&
                 (UnwrapOption(binding_count) != 1 ||
@@ -42,9 +47,7 @@ func MirExpressionGraphSequenceAppendMatchCondition(
             ((variant == "Ok" || variant == "Err") &&
                 (UnwrapOption(binding_count) != 1 ||
                     !IsSome(MirMatchBindingAt(instruction, 0)) ||
-                    !IsSome(MirMatchBindingTypeAt(instruction, 0)))) ||
-            (variant != "Some" && variant != "None" &&
-                variant != "Ok" && variant != "Err") {
+                    !IsSome(MirMatchBindingTypeAt(instruction, 0)))) {
             return MirExpressionGraphSequenceError(sequence);
         }
         if variant == "Ok" || variant == "Err" {
@@ -79,85 +82,8 @@ func MirExpressionGraphSequenceAppendMatchCondition(
             match_value_text, false
         );
     }
-    let pattern: String = UnwrapOption(pattern_opt);
-    if UnwrapOption(binding_count) != 0 {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    let appended: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceAppend(sequence, subject_graph);
-    if !appended.ok || ArrayLength(appended.roots) == 0 {
-        return MirExpressionGraphSequenceError(appended);
-    }
-    let roots: Array<Int> = appended.roots;
-    let arena: SemanticExpressionGraphArena = appended.arena;
-    let kinds: Array<Int> = arena.node_kinds;
-    let texts: Array<String> = arena.node_texts;
-    let left: Array<Int> = arena.left_children;
-    let right: Array<Int> = arena.right_children;
-    let target_kinds: Array<Int> = arena.call_target_kinds;
-    let target_names: Array<String> = arena.call_target_names;
-    let places: Array<Int> = arena.place_kinds;
-    let subject_root: Int = roots[ArrayLength(roots) - 1];
-    let pattern_node: Int = ArrayLength(kinds);
-    let condition_pattern: String = pattern;
-    if ToString(ToInt(pattern)) == pattern {
-        ArrayPush(kinds, AstExpressionNodeIntegerLiteral());
-        ArrayPush(texts, pattern);
-        ArrayPush(left, 0);
-        ArrayPush(right, 0);
-        ArrayPush(target_kinds, SemanticCallTargetNone());
-        ArrayPush(target_names, "");
-        ArrayPush(places, SemanticExpressionPlaceUnknown());
-    } else {
-        let enum_owner: String = MirEnumOwnerForVariant(
-            instruction.json, pattern
-        );
-        if enum_owner == "" {
-            return MirExpressionGraphSequenceError(appended);
-        }
-        let enum_owner_node: Int = ArrayLength(kinds);
-        ArrayPush(kinds, AstExpressionNodeLeaf());
-        ArrayPush(texts, enum_owner);
-        ArrayPush(left, 0);
-        ArrayPush(right, 0);
-        ArrayPush(target_kinds, SemanticCallTargetNone());
-        ArrayPush(target_names, "");
-        ArrayPush(places, SemanticExpressionPlaceUnknown());
-        condition_pattern = Concat(enum_owner, Concat(".", pattern));
-        let enum_variant_node: Int = ArrayLength(kinds);
-        ArrayPush(kinds, AstExpressionNodeLeaf());
-        ArrayPush(texts, pattern);
-        ArrayPush(left, 0);
-        ArrayPush(right, 0);
-        ArrayPush(target_kinds, SemanticCallTargetNone());
-        ArrayPush(target_names, "");
-        ArrayPush(places, SemanticExpressionPlaceUnknown());
-        pattern_node = ArrayLength(kinds);
-        ArrayPush(kinds, AstExpressionNodeMemberAccess());
-        ArrayPush(texts, condition_pattern);
-        ArrayPush(left, enum_owner_node);
-        ArrayPush(right, enum_variant_node);
-        ArrayPush(target_kinds, SemanticCallTargetNone());
-        ArrayPush(target_names, "");
-        ArrayPush(places, SemanticExpressionPlaceUnknown());
-    }
-    let equality_root: Int = ArrayLength(kinds);
-    ArrayPush(kinds, AstExpressionNodeEquality());
-    ArrayPush(
-        texts, Concat(match_value_text, Concat(" == ", condition_pattern))
+    return MirExpressionGraphSequenceAppendTaggedEnumMatch(
+        sequence, instruction, subject_graph, match_value_text,
+        UnwrapOption(pattern_opt), variant_opt, UnwrapOption(binding_count)
     );
-    ArrayPush(left, subject_root);
-    ArrayPush(right, pattern_node);
-    ArrayPush(target_kinds, SemanticCallTargetNone());
-    ArrayPush(target_names, "");
-    ArrayPush(places, SemanticExpressionPlaceUnknown());
-    ArraySet(roots, ArrayLength(roots) - 1, equality_root);
-    let final_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArena(
-            kinds, texts, left, right, target_kinds, target_names, places
-        );
-    if !SemanticExpressionGraphArenaReady(final_arena) {
-        return MirExpressionGraphSequenceError(appended);
-    }
-    return MirExpressionGraphSequence(true, roots, final_arena);
 }

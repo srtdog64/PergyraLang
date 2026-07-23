@@ -1067,6 +1067,10 @@ require_owner_surface codegen \
     "emission/function_emit.pgy" \
     "emission/program_emit.pgy" \
     "emission/program_entry_owner.pgy"
+require_file "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" 600
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'import "tagged_enum_match_owner.pgy";'
 for codegen_non_runtime_dir in \
     "src/self_hosted/codegen/emission" \
     "src/self_hosted/codegen/input" \
@@ -1486,7 +1490,8 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "Compiler
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerSymbolCTypeName(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "return AbiLayoutCStructTypeName(type_name);"
-require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'LookupKindType(struct_env, type_name, "enum") == "payload_free"'
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'if enum_layout == "payload_free" {'
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'if enum_layout == "tagged" {'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'type_name == "Void"'
@@ -3814,9 +3819,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 247;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 248;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 247'
+    'mir_fixture_rows[@]}" -ne 248'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4163,11 +4168,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 247;"
+    "return 248;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 247'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 248'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4287,8 +4292,18 @@ require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
     'AstMatchCasePatternFactFromArtifact(artifact, case_node_id)'
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact('
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'bindings: Array<String>;'
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'while rows.arena.node_kinds[call] == AstExpressionNodeCallArgument()'
+reject_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'binding: String;'
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedVisibleMatchBindings('
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'func SemanticAstExpressionSeedMatchCaseBindings('
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'while binding_index < ArrayLength(pattern.bindings)'
 match_binding_fast_path_order="$(awk '
     /func SemanticAstExpressionSeedVisibleMatchBindings\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
@@ -4301,12 +4316,27 @@ match_binding_fast_path_order="$(awk '
     fail "match-binding empty-case fast path must precede global fact construction"
 require_text "src/self_hosted/mir/match_fact_owner.pgy" \
     'func SelfMirMatchFactRowsAttachCase('
+require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
+    'bindings: Array<String>;'
+require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
+    'binding_types: Array<String>;'
+require_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'func SelfMirMatchBindingTypes('
+reject_text "src/self_hosted/mir/match_fact_owner.pgy" \
+    'rows.binding_counts[i] > 1'
+reject_text "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" \
+    'tagged enum match binding requires exactly one payload'
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
     'func MirExpressionGraphSequenceAppendMatchCondition('
 require_file "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy"
 require_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
     'func MirExpressionGraphSequenceAppendUnaryCall('
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
+    'MirExpressionGraphSequenceAppendTaggedEnumMatch('
+require_file "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy"
+require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    'while binding_index < binding_count'
+require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
     'MirEnumOwnerForVariant('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'SemanticAstEnumFacts'
@@ -4315,11 +4345,16 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 120
+require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 280
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'missing Option match binding was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'missing enum variant declaration was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    '"match_bindings":["w","h"],"match_binding_types":["Int","Int"]'
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    'incomplete ordered enum binding types were accepted'
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'payload_texts[index]'
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
@@ -4463,7 +4498,7 @@ require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.s
 require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
     'missing enum local owner was accepted'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    'LookupKindType(env, type_name, "enum") == "payload_free"'
+    'LookupKindType(env, type_name, "enum") != ""'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArgument(" "EnumPayloadFreeArgumentProjectionFactOpt"
 require_file "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh"
@@ -4666,10 +4701,12 @@ require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumIs"
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantCount"
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantNameAtOrDie"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantParamCountAtOrDie"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantPayloadTypeAtOrDie"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumPayloadFree"
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "SemanticAstEnumVariantParamCountAt("
-require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "let resolved_param_count: Int = UnwrapOption(param_count)"
-require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "if resolved_param_count != 0"
-require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "payload enum variants are not supported"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "SemanticAstEnumVariantPayloadTypeAt("
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "payload enum variants are not supported"
 reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "facts.variant_names"
 reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "facts.variant_param_counts"
 reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
@@ -6313,13 +6350,11 @@ require_text "src/self_hosted/codegen/text/enum_literal_owner.pgy" "func EnumPay
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/enum_literal_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../text/enum_literal_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EnumPayloadFreeArgumentProjectionFactOpt(part, expected_type, env)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EnumLiteralProjectionFactOpt(pattern, subject_type, env)"
+require_text "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" "EnumLiteralProjectionFactOpt(pattern, subject_type, env)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "let enum_fact: EnumLiteralProjectionFact = UnwrapOption(enum_fact_opt);"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let enum_fact: EnumLiteralProjectionFact = UnwrapOption(enum_fact_opt);"
+require_text "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" "if IsSome(enum_fact_opt) { return UnwrapOption(enum_fact_opt).c_value; }"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "return enum_fact.c_value;"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "return enum_fact.c_value;"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "UnwrapOption(enum_fact_opt).c_value"
-reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "UnwrapOption(enum_fact_opt).c_value"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemCount"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemAt"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/expr_sequence_owner.pgy";'
@@ -7699,8 +7734,8 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenComparatorSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenFixtureDirPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenExpectedDirPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectSourcePath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenTaggedEnumEqualityRejectSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenTaggedEnumEqualityRejectExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectSourcePath"
@@ -8926,8 +8961,8 @@ require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negativ
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "class_helper_method_chain/main.pgy"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"
-require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_bindings", 0'
-require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_binding_types", 0'
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_bindings", binding_index'
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_binding_types", binding_index'
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbol_count"
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbols"
 require_text "src/compiler/mir_json_dump_flow.c" "loop_flow_summary_count"
@@ -9110,10 +9145,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 77 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 77"
-[[ "$codegen_expected_count" -eq 77 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 77"
+[[ "$codegen_fixture_count" -eq 78 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 78"
+[[ "$codegen_expected_count" -eq 78 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 78"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -9127,7 +9162,7 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 77;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 78;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
@@ -9142,6 +9177,12 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityF
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/codegen/fixture/long_scalar.pgy" "func AddLong(x: Long, y: Long) -> Long"
 require_text "src/self_hosted/codegen/expected/long_scalar_stdout.txt" "15"
+require_file "src/self_hosted/codegen/fixture/enum_multi_payload.pgy"
+require_file "src/self_hosted/codegen/expected/enum_multi_payload_stdout.txt"
+require_text "src/self_hosted/codegen/fixture/enum_multi_payload.pgy" \
+    "Rect(Int, Int)"
+require_text "src/self_hosted/codegen/fixture/enum_multi_payload.pgy" \
+    "case Triangle(a, b, c):"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
 require_text "tests/self_hosted/parity/codegen_parity.sh" "pgy_selfhost_read_test_harness_manifest"
@@ -9151,18 +9192,18 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'PARSER_SOURCE="$ROOT_
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"'
-require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'TAGGED_ENUM_EQUALITY_REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'TAGGED_ENUM_EQUALITY_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'EVENT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[10]}"'
-require_file "src/self_hosted/codegen/reject_fixture/enum_payload.pgy"
-require_file "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"
+require_file "src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy"
+require_file "src/self_hosted/codegen/reject_expected/tagged_enum_equality_stdout.txt"
 require_file "src/self_hosted/codegen/reject_fixture/event_decl.pgy"
 require_file "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt"
-require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int, String)"
-require_text "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt" "payload enum variants are not supported"
+require_text "src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy" "Number(Int, String)"
+require_text "src/self_hosted/codegen/reject_expected/tagged_enum_equality_stdout.txt" "tagged enum equality requires a variant tag operand"
 require_text "src/self_hosted/codegen/reject_fixture/event_decl.pgy" "event OnHit(damage: Int);"
 require_text "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt" "event declarations are not supported"
 require_file "tests/self_hosted/parity/codegen_reject_parity_leg.sh"
@@ -9275,8 +9316,8 @@ reject_text "tests/self_hosted/parity/codegen_parity.sh" 'PARSER_SOURCE="$ROOT_D
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/src/self_hosted/codegen/expected"'
-reject_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_DIR/src/self_hosted/codegen/reject_fixture/enum_payload.pgy"'
-reject_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'TAGGED_ENUM_EQUALITY_REJECT_SOURCE="$ROOT_DIR/src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'TAGGED_ENUM_EQUALITY_REJECT_EXPECTED="$ROOT_DIR/src/self_hosted/codegen/reject_expected/tagged_enum_equality_stdout.txt"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
 require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_parity_mix()"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'

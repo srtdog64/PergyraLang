@@ -46,20 +46,52 @@ func SelfMirMatchCaseSubjectReady(
 ) -> Bool {
     if fact.variant == "" &&
         ToString(ToInt(fact.pattern)) == fact.pattern {
-        return true;
+        return ArrayLength(fact.bindings) == 0;
     }
     let subject_type_opt: Option<String> = SelfMirMatchSubjectType(
         input, match_node_id
     );
     if !IsSome(subject_type_opt) { return false; }
     let subject_type: String = UnwrapOption(subject_type_opt);
-    if fact.variant == "Some" || fact.variant == "None" {
-        return StartsWith(subject_type, "Option<");
+    if fact.variant == "Some" {
+        return StartsWith(subject_type, "Option<") &&
+            ArrayLength(fact.bindings) == 1;
+    }
+    if fact.variant == "None" {
+        return StartsWith(subject_type, "Option<") &&
+            ArrayLength(fact.bindings) == 0;
     }
     if fact.variant == "Ok" || fact.variant == "Err" {
-        return StartsWith(subject_type, "Result<");
+        return StartsWith(subject_type, "Result<") &&
+            ArrayLength(fact.bindings) == 1;
     }
-    if fact.variant != "" || fact.binding != "" {
+    if fact.variant != "" {
+        let i: Int = 0;
+        while i < ArrayLength(input.analysis.enums.variant_names) {
+            if input.analysis.enums.variant_enum_names[i] == subject_type &&
+                input.analysis.enums.variant_names[i] == fact.variant {
+                let param_count: Int =
+                    input.analysis.enums.variant_param_counts[i];
+                if param_count != ArrayLength(fact.bindings) {
+                    return false;
+                }
+                let payload_index: Int = 0;
+                while payload_index < param_count {
+                    if !IsSome(SemanticAstEnumVariantPayloadTypeAt(
+                        input.analysis.enums, subject_type,
+                        fact.variant, payload_index
+                    )) {
+                        return false;
+                    }
+                    payload_index = payload_index + 1;
+                }
+                return true;
+            }
+            i = i + 1;
+        }
+        return false;
+    }
+    if ArrayLength(fact.bindings) != 0 {
         return false;
     }
     let i: Int = 0;
@@ -74,26 +106,63 @@ func SelfMirMatchCaseSubjectReady(
     return false;
 }
 
-func SelfMirMatchBindingType(
+func SelfMirMatchBindingTypes(
     ref input: SelfMirRoutineInput,
     match_node_id: Int,
-    fact: SelfMirMatchCaseFact
-) -> Option<String> {
-    if fact.binding == "" { return Some(""); }
+    fact: SelfMirMatchCaseFact,
+    inout binding_types: Array<String>
+) -> Bool {
+    if ArrayLength(fact.bindings) == 0 { return true; }
     let subject_type: Option<String> = SelfMirMatchSubjectType(
         input, match_node_id
     );
-    if !IsSome(subject_type) { return None; }
+    if !IsSome(subject_type) { return false; }
+    let wrapper_type: Option<String> = None;
     if fact.variant == "Some" {
-        return OptionPayloadTypeOpt(UnwrapOption(subject_type));
+        wrapper_type = OptionPayloadTypeOpt(UnwrapOption(subject_type));
+    } else if fact.variant == "Ok" {
+        wrapper_type = ResultPayloadTypeOpt(UnwrapOption(subject_type));
+    } else if fact.variant == "Err" {
+        wrapper_type = ResultErrorTypeOpt(UnwrapOption(subject_type));
     }
-    if fact.variant == "Ok" {
-        return ResultPayloadTypeOpt(UnwrapOption(subject_type));
+    if IsSome(wrapper_type) {
+        if ArrayLength(fact.bindings) != 1 ||
+            UnwrapOption(wrapper_type) == "" ||
+            UnwrapOption(wrapper_type) == "Unknown" {
+            return false;
+        }
+        ArrayPush(binding_types, UnwrapOption(wrapper_type));
+        return true;
     }
-    if fact.variant == "Err" {
-        return ResultErrorTypeOpt(UnwrapOption(subject_type));
+    let i: Int = 0;
+    while i < ArrayLength(input.analysis.enums.variant_names) {
+        if input.analysis.enums.variant_enum_names[i] ==
+                UnwrapOption(subject_type) &&
+            input.analysis.enums.variant_names[i] == fact.variant {
+            let param_count: Int =
+                input.analysis.enums.variant_param_counts[i];
+            if param_count != ArrayLength(fact.bindings) {
+                return false;
+            }
+            let payload_index: Int = 0;
+            while payload_index < param_count {
+                let payload_type: Option<String> =
+                    SemanticAstEnumVariantPayloadTypeAt(
+                        input.analysis.enums, UnwrapOption(subject_type),
+                        fact.variant, payload_index
+                    );
+                if !IsSome(payload_type) || UnwrapOption(payload_type) == "" ||
+                    UnwrapOption(payload_type) == "Unknown" {
+                    return false;
+                }
+                ArrayPush(binding_types, UnwrapOption(payload_type));
+                payload_index = payload_index + 1;
+            }
+            return true;
+        }
+        i = i + 1;
     }
-    return None;
+    return false;
 }
 
 func SelfMirLowerMatchCaseBranch(
@@ -110,21 +179,16 @@ func SelfMirLowerMatchCaseBranch(
             build, "MIR match subject type or variant fact is missing"
         );
     }
-    let carried_fact: SelfMirMatchCaseFact = fact;
-    let binding_type: Option<String> = SelfMirMatchBindingType(
-        input, match_node_id, fact
-    );
-    if !IsSome(binding_type) ||
-        (fact.binding != "" &&
-            (UnwrapOption(binding_type) == "" ||
-             UnwrapOption(binding_type) == "Unknown")) {
+    let binding_types: Array<String> = [];
+    if !SelfMirMatchBindingTypes(
+        input, match_node_id, fact, binding_types
+    ) || ArrayLength(binding_types) != ArrayLength(fact.bindings) {
         return SelfMirRoutineBuildError(
             build, "MIR match binding type fact is missing"
         );
     }
-    carried_fact = SelfMirMatchCaseFact(
-        fact.ok, fact.pattern, fact.variant, fact.binding,
-        UnwrapOption(binding_type)
+    let carried_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFact(
+        fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types
     );
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", match_value, "",

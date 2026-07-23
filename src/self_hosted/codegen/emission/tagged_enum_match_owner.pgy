@@ -1,0 +1,110 @@
+// Tagged-enum match condition and payload-binding emission owner.
+
+import "../text/text_owner.pgy";
+import "../text/enum_literal_owner.pgy";
+import "../../hir/ast_match_pattern_fact_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "expr_rewrite.pgy";
+
+func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeEnv) -> String {
+    let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumLiteralProjectionFactOpt(pattern, subject_type, env);
+    if IsSome(enum_fact_opt) { return UnwrapOption(enum_fact_opt).c_value; }
+    Die(Concat("unsupported match case pattern in self-host codegen subset: ", pattern));
+    return "0";
+}
+
+func EmitTaggedEnumMatchCondition(
+    match_value: String,
+    subject_type: String,
+    pattern: String,
+    env: CodegenTypeEnv
+) -> String {
+    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
+    if !fact.ok {
+        Die(Concat("tagged enum match pattern fact is invalid: ", pattern));
+    }
+    let variant: String = fact.variant;
+    if variant == "" { variant = fact.pattern; }
+    let tag: String = LookupKindType(
+        env, Concat(subject_type, Concat(".", variant)), "etag"
+    );
+    if tag == "" {
+        Die(Concat("tagged enum match tag fact is missing: ", variant));
+    }
+    let condition: String = "((";
+    condition = Concat(condition, RewriteExpr(match_value, env));
+    condition = Concat(condition, ").tag == ");
+    return Concat(condition, Concat(tag, ")"));
+}
+
+func BindTaggedEnumMatchPayload(
+    pattern: String,
+    match_value: String,
+    subject_type: String,
+    inout env_state: Array<String>,
+    env: CodegenTypeEnv
+) -> Void {
+    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
+    if !fact.ok || fact.variant == "" ||
+        ArrayLength(fact.bindings) == 0 { return; }
+    let variant_key: String = Concat(subject_type, Concat(".", fact.variant));
+    if LookupKindType(env, variant_key, "etype") != subject_type {
+        Die(Concat("tagged enum match variant owner fact is missing: ", fact.variant));
+    }
+    let binding_index: Int = 0;
+    while binding_index < ArrayLength(fact.bindings) {
+        let field_name: String = Concat("_", ToString(binding_index));
+        let payload_type: String = LookupFieldType(
+            env, variant_key, field_name
+        );
+        if payload_type == "" {
+            Die(Concat(
+                "tagged enum match payload type fact is missing: ",
+                Concat(fact.variant, Concat("#", ToString(binding_index)))
+            ));
+        }
+        let c_value: String = "(";
+        c_value = Concat(c_value, RewriteExpr(match_value, env));
+        c_value = Concat(c_value, ").");
+        c_value = Concat(
+            c_value, CompilerSymbolCFieldName(fact.variant)
+        );
+        c_value = Concat(c_value, Concat(".", field_name));
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, fact.bindings[binding_index],
+            payload_type, payload_type, c_value
+        );
+        binding_index = binding_index + 1;
+    }
+    if LookupFieldType(
+        env, variant_key, Concat("_", ToString(binding_index))
+    ) != "" {
+        Die("tagged enum match binding cardinality is incomplete");
+    }
+}
+
+func EmitMatchCaseLine(
+    tagged_match: Bool,
+    pattern: String,
+    subject_type: String,
+    match_tmp: String,
+    match_case_count: Int,
+    match_value: String,
+    env: CodegenTypeEnv
+) -> String {
+    let prefix: String = "if (";
+    if match_case_count != 0 { prefix = "} else if ("; }
+    if tagged_match {
+        let condition: String = EmitTaggedEnumMatchCondition(
+            match_value, subject_type, pattern, env
+        );
+        if match_case_count == 0 { return Concat("if ", Concat(condition, " {\n")); }
+        return Concat("} else if ", Concat(condition, " {\n"));
+    }
+    let line: String = Concat(prefix, Concat(match_tmp, " == "));
+    return Concat(line, Concat(
+        EmitMatchCaseValue(pattern, subject_type, env), ") {\n"
+    ));
+}

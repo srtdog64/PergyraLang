@@ -446,6 +446,40 @@ for fixture_entry in "${FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "enum_option_payload" ]]; then
+        for required in \
+            '"name":"Pass","param_count":1,"param_types":["Int"]' \
+            '"name":"Fail","param_count":1,"param_types":["String"]' \
+            '"match_patterns":["Pass(p)"],"match_variant":"Pass","match_bindings":["p"],"match_binding_types":["Int"]' \
+            '"match_patterns":["Fail(reason)"],"match_variant":"Fail","match_bindings":["reason"],"match_binding_types":["String"]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] enum_option_payload: missing enum payload owner fact: $required" >&2
+                exit 1
+            fi
+        done
+        if grep -Fq '"param_type":' "$mj"; then
+            echo "[self-host-parity:mir-json] enum_option_payload: retired singular param_type wire returned" >&2
+            exit 1
+        fi
+    fi
+    if [[ "$base" == "enum_multi_payload" ]]; then
+        for required in \
+            '"name":"Point","param_count":0,"param_types":[]' \
+            '"name":"Circle","param_count":1,"param_types":["Int"]' \
+            '"name":"Rect","param_count":2,"param_types":["Int","Int"]' \
+            '"name":"Triangle","param_count":3,"param_types":["Int","Int","Int"]' \
+            '"match_patterns":["Rect(w, h)"],"match_variant":"Rect","match_bindings":["w","h"],"match_binding_types":["Int","Int"]' \
+            '"match_patterns":["Triangle(a, b, c)"],"match_variant":"Triangle","match_bindings":["a","b","c"],"match_binding_types":["Int","Int","Int"]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] enum_multi_payload: missing ordered payload owner fact: $required" >&2
+                exit 1
+            fi
+        done
+        if grep -Fq '"param_type":' "$mj"; then
+            echo "[self-host-parity:mir-json] enum_multi_payload: retired singular param_type wire returned" >&2
+            exit 1
+        fi
+    fi
     if [[ "$base" == "role_operator_dispatch" ]]; then
         for required in \
             '"kind":"role","name":"IntMath","for_type":"Int"' \
@@ -476,6 +510,79 @@ for fixture_entry in "${FIXTURES[@]}"; do
         echo "  environment (e.g. the 'pgy --backend=c' tool rebuild could not invoke" >&2
         echo "  gcc). Rebuild the self-host tools in a shell where gcc works." >&2
         exit 1
+    fi
+    if [[ "$base" == "enum_option_payload" ]]; then
+        for required in \
+            'Enum: CheckResult { Pass(Int), Fail(String) }' \
+            'Let: p : Int = r.Pass._0' \
+            'Let: reason : String = r.Fail._0'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] enum_option_payload: Pergyra lowering lost enum payload fact: $required" >&2
+                exit 1
+            fi
+        done
+
+        missing_payload_types="$B/${base}.missing-payload-types.mirjson"
+        unknown_payload_type="$B/${base}.unknown-payload-type.mirjson"
+        sed 's/"name":"Pass","param_count":1,"param_types":\["Int"\]/"name":"Pass","param_count":1,"param_types":[]/' \
+            "$mj" >"$missing_payload_types"
+        sed 's/"name":"Pass","param_count":1,"param_types":\["Int"\]/"name":"Pass","param_count":1,"param_types":["Unknown"]/' \
+            "$mj" >"$unknown_payload_type"
+        for mutation in missing-payload-types unknown-payload-type; do
+            mutation_input="$B/${base}.${mutation}.mirjson"
+            mutation_out="$B/${base}.${mutation}.out"
+            mutation_err="$B/${base}.${mutation}.err"
+            if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
+                    "${mutation_input#$ROOT_DIR/}" \
+                    >"$mutation_out" 2>"$mutation_err"); then
+                echo "[self-host-parity:mir-json] enum_option_payload: $mutation mutation was accepted" >&2
+                exit 1
+            fi
+            grep -Fq 'enum payload type fact' \
+                "$mutation_out" "$mutation_err" || {
+                echo "[self-host-parity:mir-json] enum_option_payload: $mutation diagnostic drifted" >&2
+                cat "$mutation_out" "$mutation_err" >&2
+                exit 1
+            }
+        done
+    fi
+    if [[ "$base" == "enum_multi_payload" ]]; then
+        for required in \
+            'Enum: Shape { Point, Circle(Int), Rect(Int, Int), Triangle(Int, Int, Int) }' \
+            'Let: w : Int = s.Rect._0' \
+            'Let: h : Int = s.Rect._1' \
+            'Let: a : Int = s.Triangle._0' \
+            'Let: b : Int = s.Triangle._1' \
+            'Let: c : Int = s.Triangle._2'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] enum_multi_payload: Pergyra lowering lost ordered payload fact: $required" >&2
+                exit 1
+            fi
+        done
+
+        missing_rect_type="$B/${base}.missing-rect-type.mirjson"
+        unknown_rect_type="$B/${base}.unknown-rect-type.mirjson"
+        sed 's/"name":"Rect","param_count":2,"param_types":\["Int","Int"\]/"name":"Rect","param_count":2,"param_types":["Int"]/' \
+            "$mj" >"$missing_rect_type"
+        sed 's/"name":"Rect","param_count":2,"param_types":\["Int","Int"\]/"name":"Rect","param_count":2,"param_types":["Int","Unknown"]/' \
+            "$mj" >"$unknown_rect_type"
+        for mutation in missing-rect-type unknown-rect-type; do
+            mutation_input="$B/${base}.${mutation}.mirjson"
+            mutation_out="$B/${base}.${mutation}.out"
+            mutation_err="$B/${base}.${mutation}.err"
+            if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
+                    "${mutation_input#$ROOT_DIR/}" \
+                    >"$mutation_out" 2>"$mutation_err"); then
+                echo "[self-host-parity:mir-json] enum_multi_payload: $mutation mutation was accepted" >&2
+                exit 1
+            fi
+            grep -Fq 'enum payload type fact' \
+                "$mutation_out" "$mutation_err" || {
+                echo "[self-host-parity:mir-json] enum_multi_payload: $mutation diagnostic drifted" >&2
+                cat "$mutation_out" "$mutation_err" >&2
+                exit 1
+            }
+        done
     fi
     if [[ "$base" == "for_continue" ]]; then
         # A self-referential phi is valid only on the exact CFG back-edge

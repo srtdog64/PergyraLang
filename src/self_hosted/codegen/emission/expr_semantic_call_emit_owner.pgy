@@ -148,9 +148,25 @@ func RewriteSemanticMemberAccess(
     let member_text: Option<String> = SemanticExpressionGraphNodeText(
         graph, view.member_node
     );
-    if !IsSome(receiver_kind) || !IsSome(member_text) ||
-        !IsIdentifier(UnwrapOption(member_text)) {
-        Die("semantic member-access edge fact is missing");
+    if !IsSome(receiver_kind) {
+        Die(Concat("semantic member-access receiver kind fact is missing: node=", ToString(node_id)));
+    }
+    if !IsSome(member_text) {
+        Die(Concat("semantic member-access member text fact is missing: node=", ToString(node_id)));
+    }
+    if !IsIdentifier(UnwrapOption(member_text)) {
+        let receiver_debug: String = "<missing>";
+        if IsSome(receiver_text) {
+            receiver_debug = UnwrapOption(receiver_text);
+        }
+        Die(Concat(
+            "semantic member-access member name is invalid: node=",
+            Concat(ToString(node_id), Concat(
+                " receiver=", Concat(receiver_debug, Concat(
+                    " member=", UnwrapOption(member_text)
+                ))
+            ))
+        ));
     }
     let member_name: String = UnwrapOption(member_text);
     if UnwrapOption(receiver_kind) == AstExpressionNodeLeaf() &&
@@ -161,6 +177,17 @@ func RewriteSemanticMemberAccess(
             ), "e"
         );
         if enum_value != "" { return enum_value; }
+        let tagged_key: String = Concat(
+            UnwrapOption(receiver_text), Concat(".", member_name)
+        );
+        let tagged_value: String = LookupKindType(
+            env, tagged_key, "eval"
+        );
+        if tagged_value != "" { return tagged_value; }
+        let tagged_tag: String = LookupKindType(
+            env, tagged_key, "etag"
+        );
+        if tagged_tag != "" { return tagged_tag; }
     }
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, view.receiver_node, env
@@ -180,6 +207,16 @@ func RewriteSemanticMemberAccess(
         ));
     }
     let receiver_type_name: String = UnwrapOption(receiver_type);
+    let tagged_variant_owner: String = LookupKindType(
+        env, Concat(receiver_type_name, Concat(".", member_name)), "etype"
+    );
+    if tagged_variant_owner == receiver_type_name &&
+        LookupKindType(env, receiver_type_name, "enum") == "tagged" {
+        let receiver: String = RewriteExprFromSemanticGraph(
+            graph, view.receiver_node, env
+        );
+        return Concat("(", Concat(receiver, Concat(").", CompilerSymbolCFieldName(member_name))));
+    }
     if LookupFieldType(env, receiver_type_name, member_name) == "" {
         Die(Concat(
             "semantic member-access field fact is missing: receiver_type=",
@@ -408,6 +445,13 @@ func RewriteSemanticDirectCall(
     let call_symbol: String = source_name;
     let alias: String = LookupKindType(env, source_name, "call");
     if alias != "" { call_symbol = alias; }
+    let tagged_constructor: String = LookupKindType(
+        env, source_name, "call"
+    );
+    if tagged_constructor != "" &&
+        LookupKindType(env, call_symbol, "f") != "" {
+        call_symbol = tagged_constructor;
+    }
     let carried_specialization: String = LookupKindType(
         env, CodegenGenericCallNodeKey(view.call_node), "call"
     );

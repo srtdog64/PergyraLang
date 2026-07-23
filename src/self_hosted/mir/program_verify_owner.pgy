@@ -1,6 +1,7 @@
 // Structural verifier for the self-host MIR fact graph.
 import "program_fact_owner.pgy";
 import "instruction_validation_owner.pgy";
+import "enum_declaration_verify_owner.pgy";
 import "../semantic/assignment_binding_mode_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
@@ -146,8 +147,7 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirParallelCount(count, rows.variant_counts) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
-        ArrayLength(rows.variant_names) !=
-            ArrayLength(rows.variant_param_counts) {
+        !SelfMirEnumDeclarationPayloadRowsReady(rows) {
         return false;
     }
     let field_cursor: Int = 0;
@@ -174,14 +174,6 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         method_cursor != ArrayLength(rows.method_names) ||
         variant_cursor != ArrayLength(rows.variant_names) {
         return false;
-    }
-    let variant_i: Int = 0;
-    while variant_i < ArrayLength(rows.variant_names) {
-        if rows.variant_names[variant_i] == "" ||
-            rows.variant_param_counts[variant_i] < 0 {
-            return false;
-        }
-        variant_i = variant_i + 1;
     }
     return true;
 }
@@ -286,9 +278,12 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
             no_destructure_facts, no_runtime_call_abi
         );
+    let no_match_bindings: Array<String> = [];
+    let no_match_binding_types: Array<String> = [];
     let scalar_match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
-            SelfMirMatchFactRowsEmpty(), 0, "1", "", "", ""
+            SelfMirMatchFactRowsEmpty(), 0, "1", "",
+            no_match_bindings, no_match_binding_types
         );
     let valid_match: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["branch"], ["branch"], [""], [""], [""],

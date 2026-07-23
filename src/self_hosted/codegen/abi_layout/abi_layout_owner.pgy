@@ -75,10 +75,16 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return AbiLayoutCStructTypeName(type_name);
     }
-    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
+    let enum_layout: String = LookupKindType(
+        struct_env, type_name, "enum"
+    );
+    if enum_layout == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumCValueType();
     }
-    Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/Double/String/Array/Result/Option/struct/payload-free enum): ", type_name));
+    if enum_layout == "tagged" {
+        return CompilerSymbolCTypeName(type_name);
+    }
+    Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/Double/String/Array/Result/Option/struct/enum): ", type_name));
     return "";
 }
 
@@ -121,6 +127,11 @@ func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: CodegenTypeEnv)
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue();
     }
+    if LookupKindType(struct_env, type_name, "enum") == "tagged" {
+        return Concat("(", Concat(
+            CompilerSymbolCTypeName(type_name), "){0}"
+        ));
+    }
     Die(Concat("unsupported bare return default for C ABI type: ", type_name));
     return "";
 }
@@ -136,6 +147,9 @@ func AbiLayoutCFieldType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     }
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumCValueType();
+    }
+    if LookupKindType(struct_env, type_name, "enum") == "tagged" {
+        return CompilerSymbolCTypeName(type_name);
     }
     return AbiLayoutCValueType(type_name, struct_env);
 }

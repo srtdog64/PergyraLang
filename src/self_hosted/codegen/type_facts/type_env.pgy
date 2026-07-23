@@ -338,6 +338,10 @@ func ExprKind(expr: String, env: CodegenTypeEnv) -> String {
     if LookupKindType(env, e, "e") != "" {
         return "Int";
     }
+    let enum_type: String = LookupKindType(env, e, "etype");
+    if enum_type != "" {
+        return enum_type;
+    }
     if CodegenCharAt(e, 0) == "\"" {
         return "String";
     }

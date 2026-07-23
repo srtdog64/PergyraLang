@@ -6,12 +6,13 @@ struct SelfMirMatchCaseFact {
     ok: Bool;
     pattern: String;
     variant: String;
-    binding: String;
-    binding_type: String;
+    bindings: Array<String>;
+    binding_types: Array<String>;
 }
 
 func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
-    return SelfMirMatchCaseFact(false, "", "", "", "");
+    let strings: Array<String> = [];
+    return SelfMirMatchCaseFact(false, "", "", strings, strings);
 }
 
 func SelfMirMatchCaseFactFromArtifact(
@@ -23,7 +24,8 @@ func SelfMirMatchCaseFactFromArtifact(
     if !fact.ok {
         return SelfMirMatchCaseFactInvalid();
     }
+    let binding_types: Array<String> = [];
     return SelfMirMatchCaseFact(
-        true, fact.pattern, fact.variant, fact.binding, ""
+        true, fact.pattern, fact.variant, fact.bindings, binding_types
     );
 }

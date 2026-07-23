@@ -102,7 +102,7 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        analysis.signatures, analysis.constructors,
+        analysis.signatures, analysis.constructors, analysis.enums,
         function_names, function_returns, function_params
     ) {
         return false;
@@ -177,7 +177,7 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        analysis.signatures, analysis.constructors,
+        analysis.signatures, analysis.constructors, analysis.enums,
         function_names, function_returns, function_params
     ) {
         return false;

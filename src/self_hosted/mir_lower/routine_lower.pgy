@@ -132,9 +132,11 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
         if variant == "Err" {
             return Concat("IsErr(", Concat(match_subject, ")"));
         }
-        let enum_owner: String = MirEnumOwnerForVariant(json, pattern);
+        let variant_name: String = variant;
+        if variant_name == "" { variant_name = pattern; }
+        let enum_owner: String = MirEnumOwnerForVariant(json, variant_name);
         if StringLength(enum_owner) > 0 {
-            return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", pattern))));
+            return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
         }
         if ToString(ToInt(pattern)) != pattern {
             MirLowerFailClosed(

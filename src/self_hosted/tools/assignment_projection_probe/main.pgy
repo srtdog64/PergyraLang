@@ -48,8 +48,10 @@ func ProbeExpressionGraph(
             SemanticAstFunctionSignatureFactsFromArtifact(artifact);
         let constructors: SemanticAstNominalConstructorFacts =
             SemanticAstNominalConstructorFactsFromArtifact(artifact);
+        let enums: SemanticAstEnumFacts =
+            SemanticAstEnumFactsFromArtifact(artifact);
         facts = SemanticExpressionGraphCallTargetsFromSignatures(
-            source, signatures, constructors, false
+            source, signatures, constructors, enums, false
         );
         if !facts.ok {
             Die("assignment projection probe call-target capture failed");

@@ -131,20 +131,20 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
         input_expression_surfaces;
     if signatures.ok && constructors.ok && input_expression_surfaces.ok {
         let target_graph: SemanticExpressionGraphFacts =
             SemanticExpressionGraphCallTargetsFromSignatures(
                 input_expression_surfaces.expression_graph,
-                signatures, constructors,
+                signatures, constructors, enums,
                 require_carried_call_targets
             );
         expression_surfaces = SemanticAstExpressionSurfaceFactsWithGraph(
             artifact, input_expression_surfaces, target_graph
         );
     }
-    let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
     let type_surfaces: SemanticAstTypeSurfaceFacts =
         SemanticAstTypeSurfaceFactsFromArtifact(artifact);

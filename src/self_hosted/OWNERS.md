@@ -307,6 +307,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_receiver_type_owner.pgy` --
   read-only receiver type projection over expression handles and canonical
   nominal field facts; dotted source text and codegen type rows are forbidden.
+- `src/self_hosted/semantic/ast_expression_graph_enum_payload_owner.pgy` --
+  semantic enum payload member type projection from receiver graph identity
+  and enum variant payload facts; payload type guesses and source rescans are
+  forbidden.
 - `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
   parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
@@ -456,6 +460,9 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/enum_declaration_verify_owner.pgy` -- contiguous
+  enum-variant payload start/count rows and concrete ordered payload-type
+  verification.
 - `src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy`
   -- positive parameter-version-zero and negative local missing-use contract
   kept outside the production verifier.
@@ -486,7 +493,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   MIR JSON graph decoding and ordered graph-sequence construction.
 - `src/self_hosted/mir_lower/expression_graph_match_owner.pgy` -- derived
-  scalar/enum match-condition graphs from carried MIR and declaration facts.
+  match-kind dispatch from carried MIR facts.
+- `src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy` --
+  ordered scalar/tagged-enum condition and `_N` payload projection graphs from
+  carried match rows and enum declaration ownership.
 - `src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy` --
   `IsSome` / `UnwrapOption` unary graph construction for Option match rows.
 - `src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy` --
@@ -659,6 +669,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/assign_emit_owner.pgy` -- assignment target
   and value projection over semantic rows and expression graph handles.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
+- `src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy` -- tagged
+  enum match tag conditions and typed payload-binding projection.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 - `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression
   local-binding control flow from semantic graph edges and Option/Result ABI
@@ -937,9 +949,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/fixture_manifest_owner.pgy` -- committed codegen
   parity fixture frontier shared by codegen parity, MIR parity, and driver
   artifact rungs.
-- `src/self_hosted/codegen/reject_fixture/enum_payload.pgy` -- TestHarness-owned
-  negative codegen artifact paired with the committed payload-enum diagnostic;
-  it proves unsupported payload arity fails closed under C/LLVM tool parity.
+- `src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy` --
+  TestHarness-owned negative codegen artifact proving that whole tagged-enum
+  equality fails closed until a semantic equality operation owns that policy.
 - `src/self_hosted/codegen/reject_fixture/event_decl.pgy` -- TestHarness-owned
   negative codegen artifact proving unsupported event declarations reject
   through semantic node-kind identity under C/LLVM tool parity.

@@ -4,5 +4,6 @@ enum Token {
 }
 
 func Main() -> Void {
-    Log(0);
+    let t: Token = Number(1, "x");
+    if t == t { Log(0); }
 }

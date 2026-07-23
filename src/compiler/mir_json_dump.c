@@ -268,9 +268,19 @@ mir_json_emit_enum_variants(FILE *out, const MIRDeclHeader *header)
             fputc(',', out);
         fputs("{\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_enum_variant_name(variant));
-        fprintf(out,
-                ",\"param_count\":%zu}",
-                mir_decl_enum_variant_param_count(variant));
+        const size_t param_count =
+            mir_decl_enum_variant_param_count(variant);
+        fprintf(out, ",\"param_count\":%zu,\"param_types\":[",
+                param_count);
+        for (size_t p = 0; p < param_count; p++) {
+            if (p > 0)
+                fputc(',', out);
+            mir_json_emit_str_or_null(
+                out, mir_decl_enum_variant_param_type_name(variant, p)
+            );
+        }
+        fputc(']', out);
+        fputc('}', out);
     }
     fputc(']', out);
 }

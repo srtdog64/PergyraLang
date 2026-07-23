@@ -42,19 +42,65 @@ func CodegenSemanticEnumVariantNameAtOrDie(
     let name: Option<String> = SemanticAstEnumVariantNameAt(
         facts, enum_name, index
     );
-    let param_count: Option<Int> = SemanticAstEnumVariantParamCountAt(
-        facts, enum_name, index
-    );
-    if !IsSome(name) || !IsSome(param_count) {
+    if !IsSome(name) {
         Die(Concat("semantic enum variant index out of bounds: ", ToString(index)));
     }
-    let resolved_name: String = UnwrapOption(name);
-    let resolved_param_count: Int = UnwrapOption(param_count);
-    if resolved_param_count != 0 {
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticEnumVariantParamCountAtOrDie(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    index: Int
+) -> Int {
+    let count: Option<Int> = SemanticAstEnumVariantParamCountAt(
+        facts, enum_name, index
+    );
+    if !IsSome(count) {
         Die(Concat(
-            "payload enum variants are not supported in self-host codegen subset: ",
-            resolved_name
+            "semantic enum variant parameter count is missing: ",
+            Concat(enum_name, Concat("#", ToString(index)))
         ));
     }
-    return resolved_name;
+    return UnwrapOption(count);
+}
+
+func CodegenSemanticEnumVariantPayloadTypeAtOrDie(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    variant_name: String,
+    payload_index: Int
+) -> String {
+    let payload_type: Option<String> =
+        SemanticAstEnumVariantPayloadTypeAt(
+            facts, enum_name, variant_name, payload_index
+        );
+    if !IsSome(payload_type) {
+        Die(Concat(
+            "semantic enum variant payload type is missing: ",
+            Concat(enum_name, Concat(".", Concat(
+                variant_name, Concat("#", ToString(payload_index))
+            )))
+        ));
+    }
+    return UnwrapOption(payload_type);
+}
+
+func CodegenSemanticEnumPayloadFree(
+    facts: SemanticAstEnumFacts,
+    enum_name: String
+) -> Bool {
+    let variant_count: Int = CodegenSemanticEnumVariantCount(
+        facts, enum_name
+    );
+    let variant_index: Int = 0;
+    while variant_index < variant_count {
+        if CodegenSemanticEnumVariantParamCountAtOrDie(
+            facts, enum_name, variant_index
+        ) != 0 {
+            return false;
+        }
+        variant_index = variant_index + 1;
+    }
+    return true;
 }

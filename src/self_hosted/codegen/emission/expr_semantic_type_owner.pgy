@@ -25,6 +25,8 @@ func CodegenExpressionLeafTypeFromGraph(
         let value_type: String = TypeEnvSemanticValueType(env, value);
         if value_type != "" { return Some(value_type); }
         if LookupKindType(env, value, "e") != "" { return Some("Int"); }
+        let enum_type: String = LookupKindType(env, value, "etype");
+        if enum_type != "" { return Some(enum_type); }
         return None;
     }
     return None;
@@ -61,14 +63,34 @@ func CodegenExpressionMemberTypeFromGraph(
                 ".", UnwrapOption(member_text)
             )), "e"
         );
+        let tagged_enum_type: String = LookupKindType(
+            env, Concat(enum_owner, Concat(
+                ".", UnwrapOption(member_text)
+            )), "etype"
+        );
         if enum_value != "" &&
             LookupKindType(env, enum_owner, "enum") == "payload_free" {
             return Some(enum_owner);
         }
+        if tagged_enum_type == enum_owner &&
+            LookupKindType(env, enum_owner, "enum") == "tagged" {
+            return Some(enum_owner);
+        }
     }
-    return CodegenExpressionMemberFieldTypeFromGraph(
-        graph, node_id, env
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.receiver_node, env
     );
+    if IsSome(receiver_type) {
+        let enum_type: String = UnwrapOption(receiver_type);
+        let variant_key: String = Concat(
+            enum_type, Concat(".", UnwrapOption(member_text))
+        );
+        if LookupKindType(env, enum_type, "enum") == "tagged" &&
+            LookupKindType(env, variant_key, "etype") == enum_type {
+            return Some(variant_key);
+        }
+    }
+    return CodegenExpressionMemberFieldTypeFromGraph(graph, node_id, env);
 }
 
 func CodegenExpressionMemberFieldTypeFromGraph(

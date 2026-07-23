@@ -2,6 +2,7 @@
 
 import "../text/text_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 
 func CollectEnums(
@@ -14,30 +15,257 @@ func CollectEnums(
     while i < SemanticAstEnumCount(facts) {
         let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
         let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
+        let payload_free: Bool = CodegenSemanticEnumPayloadFree(
+            facts, ename
+        );
         let value: Int = 0;
-        let enum_rows: Array<String> = ["enum {\n"];
-        ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
+        let enum_rows: Array<String> = [];
+        if payload_free {
+            ArrayPush(enum_rows, "enum {\n");
+            ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
+        } else {
+            let c_enum_name: String = CompilerSymbolCTypeName(ename);
+            ArrayPush(env_rows, Concat(ename, "=enum:tagged|"));
+            ArrayPush(enum_rows, "typedef enum {\n");
+        }
         while value < variant_total {
             let part: String = CodegenSemanticEnumVariantNameAtOrDie(
                 facts, ename, value
             );
             let cname: String = CompilerSymbolCEnumVariantName(ename, part);
-            ArrayPush(enum_rows, Concat(
-                "    ", Concat(cname, Concat(
-                    " = ", Concat(ToString(value), ",\n")
-                ))
-            ));
-            ArrayPush(env_rows, Concat(
-                ename, Concat(".", Concat(
-                    part, Concat("=e:", Concat(ToString(value), "|"))
-                ))
-            ));
-            ArrayPush(env_rows, Concat(
-                part, Concat("=e:", Concat(cname, "|"))
-            ));
+            if payload_free {
+                ArrayPush(enum_rows, Concat(
+                    "    ", Concat(cname, Concat(
+                        " = ", Concat(ToString(value), ",\n")
+                    ))
+                ));
+                ArrayPush(env_rows, Concat(
+                    ename, Concat(".", Concat(
+                        part, Concat("=e:", Concat(ToString(value), "|"))
+                    ))
+                ));
+                ArrayPush(env_rows, Concat(
+                    part, Concat("=e:", Concat(cname, "|"))
+                ));
+            } else {
+                let tag_name: String = CompilerSymbolCEnumVariantName(
+                    Concat(ename, "_TAG"), part
+                );
+                let qualified: String = Concat(
+                    ename, Concat(".", part)
+                );
+                ArrayPush(enum_rows, Concat(
+                    "    ", Concat(tag_name, Concat(
+                        " = ", Concat(ToString(value), ",\n")
+                    ))
+                ));
+                ArrayPush(env_rows, Concat(
+                    qualified, Concat("=etag:", Concat(tag_name, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    part, Concat("=etag:", Concat(tag_name, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    qualified, Concat("=etype:", Concat(ename, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    part, Concat("=etype:", Concat(ename, "|"))
+                ));
+            }
             value = value + 1;
         }
-        ArrayPush(enum_rows, "};\n\n");
+        if payload_free {
+            ArrayPush(enum_rows, "};\n\n");
+        } else {
+            let c_enum_name: String = CompilerSymbolCTypeName(ename);
+            ArrayPush(enum_rows, Concat(
+                "} ", Concat(c_enum_name, "_Tag;\n\n")
+            ));
+            ArrayPush(enum_rows, "typedef struct {\n");
+            ArrayPush(enum_rows, Concat(
+                "    ", Concat(c_enum_name, "_Tag tag;\n")
+            ));
+            ArrayPush(enum_rows, "    union {\n");
+            value = 0;
+            while value < variant_total {
+                let part: String = CodegenSemanticEnumVariantNameAtOrDie(
+                    facts, ename, value
+                );
+                let param_count: Int =
+                    CodegenSemanticEnumVariantParamCountAtOrDie(
+                        facts, ename, value
+                    );
+                if param_count > 0 {
+                    ArrayPush(enum_rows, "        struct {");
+                    let param_index: Int = 0;
+                    while param_index < param_count {
+                        let param_type: String =
+                            CodegenSemanticEnumVariantPayloadTypeAtOrDie(
+                                facts, ename, part, param_index
+                            );
+                        let current_env: CodegenTypeEnv = CodegenTypeEnv(
+                            Concat(
+                                env_box[0], StringJoin(env_rows, "")
+                            ), ""
+                        );
+                        let c_payload_type: String = AbiLayoutCFieldType(
+                            param_type, current_env
+                        );
+                        let c_payload_field: String = Concat(
+                            " _", Concat(ToString(param_index), ";")
+                        );
+                        ArrayPush(enum_rows, Concat(
+                            " ", Concat(c_payload_type, c_payload_field)
+                        ));
+                        let payload_field_key: String = Concat(
+                            ename, Concat(".", Concat(
+                                part, Concat("._", ToString(param_index))
+                            ))
+                        );
+                        ArrayPush(env_rows, Concat(
+                            payload_field_key, Concat(
+                                "=field:", Concat(param_type, "|")
+                            )
+                        ));
+                        param_index = param_index + 1;
+                    }
+                    ArrayPush(enum_rows, Concat(
+                        " } ", Concat(
+                            CompilerSymbolCFieldName(part), ";\n"
+                        )
+                    ));
+                    let variant_field_key: String = Concat(
+                        ename, Concat(".", part)
+                    );
+                    let variant_field_type: String = Concat(
+                        ename, Concat(".", part)
+                    );
+                    ArrayPush(env_rows, Concat(
+                        variant_field_key, Concat(
+                            "=field:", Concat(variant_field_type, "|")
+                        )
+                    ));
+                }
+                value = value + 1;
+            }
+            ArrayPush(enum_rows, "    };\n");
+            ArrayPush(enum_rows, Concat(
+                "} ", Concat(c_enum_name, ";\n\n")
+            ));
+            value = 0;
+            while value < variant_total {
+                let part: String = CodegenSemanticEnumVariantNameAtOrDie(
+                    facts, ename, value
+                );
+                let param_count: Int =
+                    CodegenSemanticEnumVariantParamCountAtOrDie(
+                        facts, ename, value
+                    );
+                let cname: String = CompilerSymbolCEnumVariantName(
+                    ename, part
+                );
+                let tag_name: String = CompilerSymbolCEnumVariantName(
+                    Concat(ename, "_TAG"), part
+                );
+                let params: String = "";
+                let param_types: String = "";
+                let param_modes: String = "";
+                let param_index: Int = 0;
+                while param_index < param_count {
+                    let param_type: String =
+                        CodegenSemanticEnumVariantPayloadTypeAtOrDie(
+                            facts, ename, part, param_index
+                        );
+                    if param_index > 0 {
+                        params = Concat(params, ", ");
+                        param_types = Concat(param_types, ",");
+                        param_modes = Concat(param_modes, ",");
+                    }
+                    params = Concat(params, Concat(
+                        AbiLayoutCParamType(
+                            param_type, CodegenTypeEnv(
+                                Concat(env_box[0], StringJoin(env_rows, "")), ""
+                            )
+                        ), Concat(" _", ToString(param_index))
+                    ));
+                    param_types = Concat(param_types, param_type);
+                    param_modes = Concat(param_modes, "default");
+                    param_index = param_index + 1;
+                }
+                let constructor_signature: String = Concat(
+                    "static inline ", c_enum_name
+                );
+                constructor_signature = Concat(
+                    constructor_signature, Concat(" ", cname)
+                );
+                constructor_signature = Concat(
+                    constructor_signature, Concat(
+                        "(", Concat(params, ") {\n")
+                    )
+                );
+                ArrayPush(enum_rows, constructor_signature);
+                ArrayPush(enum_rows, Concat(
+                    "    ", Concat(c_enum_name, " _v = {0};\n")
+                ));
+                ArrayPush(enum_rows, Concat(
+                    "    _v.tag = ", Concat(tag_name, ";\n")
+                ));
+                param_index = 0;
+                while param_index < param_count {
+                    let assignment: String = Concat(
+                        "    _v.", CompilerSymbolCFieldName(part)
+                    );
+                    assignment = Concat(
+                        assignment, Concat("._", ToString(param_index))
+                    );
+                    assignment = Concat(
+                        assignment, Concat(
+                            " = _", Concat(ToString(param_index), ";\n")
+                        )
+                    );
+                    ArrayPush(enum_rows, assignment);
+                    param_index = param_index + 1;
+                }
+                ArrayPush(enum_rows, "    return _v;\n}\n");
+                let qualified: String = Concat(
+                    ename, Concat(".", part)
+                );
+                if param_count == 0 {
+                    ArrayPush(env_rows, Concat(
+                        qualified, Concat("=eval:", Concat(
+                            cname, "()|"
+                        ))
+                    ));
+                    ArrayPush(env_rows, Concat(
+                        part, Concat("=eval:", Concat(cname, "()|"))
+                    ));
+                } else {
+                    ArrayPush(env_rows, Concat(
+                        qualified, Concat("=ecall:", Concat(cname, "|"))
+                    ));
+                    ArrayPush(env_rows, Concat(
+                        part, Concat("=ecall:", Concat(cname, "|"))
+                    ));
+                }
+                ArrayPush(env_rows, Concat(
+                    cname, Concat("=pm:", Concat(param_modes, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    cname, Concat("=pt:", Concat(param_types, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    cname, Concat("=f:", Concat(ename, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    qualified, Concat("=call:", Concat(cname, "|"))
+                ));
+                ArrayPush(env_rows, Concat(
+                    part, Concat("=call:", Concat(cname, "|"))
+                ));
+                value = value + 1;
+            }
+            ArrayPush(enum_rows, "\n");
+        }
         ArrayPush(blocks, StringJoin(enum_rows, ""));
         i = i + 1;
     }

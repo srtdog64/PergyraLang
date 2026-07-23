@@ -16,36 +16,77 @@ func MirMatchBindingLineForInstruction(
     let variant: String = MirObjectStringFact(
         json, instruction_start, instruction_end, "match_variant"
     );
-    if variant != "Some" && variant != "Ok" && variant != "Err" {
+    if variant == "" {
         return "";
     }
     let match_subject: String = MirObjectStringFact(
         json, instruction_start, instruction_end, "expr0"
     );
-    let binding: String = MirObjectArrayStringFactAt(
-        json, instruction_start, instruction_end, "match_bindings", 0
-    );
-    let binding_type: String = MirObjectArrayStringFactAt(
-        json, instruction_start, instruction_end, "match_binding_types", 0
-    );
-    if match_subject == "" || binding == "" {
+    if match_subject == "" {
         MirLowerFailClosed(Concat(
-            variant, " match case is missing subject or binding MIR fact"
+            variant, " match case is missing subject MIR fact"
         ));
     }
-    if binding_type == "" || binding_type == "Unknown" {
+    let binding_count: Int = MirObjectArrayStringFactCount(
+        json, instruction_start, instruction_end, "match_bindings"
+    );
+    let binding_type_count: Int = MirObjectArrayStringFactCount(
+        json, instruction_start, instruction_end, "match_binding_types"
+    );
+    if binding_count != binding_type_count {
         MirLowerFailClosed(Concat(
-            variant, " match case is missing a concrete binding type MIR fact"
+            variant, " match case binding/type cardinality is inconsistent"
         ));
     }
-    let unwrap_name: String = "UnwrapOption";
-    if variant == "Ok" { unwrap_name = "Unwrap"; }
-    if variant == "Err" { unwrap_name = "UnwrapErr"; }
-    let type_annotation: String = Concat(" : ", binding_type);
-    let initializer: String = Concat(
-        unwrap_name, Concat("(", Concat(match_subject, ")\n"))
-    );
-    return Concat(indent, Concat("Let: ", Concat(
-        binding, Concat(type_annotation, Concat(" = ", initializer))
-    )));
+    if binding_count == 0 { return ""; }
+    if (variant == "Some" || variant == "Ok" || variant == "Err") &&
+        binding_count != 1 {
+        MirLowerFailClosed(Concat(
+            variant, " wrapper match case binding cardinality is invalid"
+        ));
+    }
+    let out: String = "";
+    let binding_index: Int = 0;
+    while binding_index < binding_count {
+        let binding: String = MirObjectArrayStringFactAt(
+            json, instruction_start, instruction_end,
+            "match_bindings", binding_index
+        );
+        let binding_type: String = MirObjectArrayStringFactAt(
+            json, instruction_start, instruction_end,
+            "match_binding_types", binding_index
+        );
+        if binding == "" || binding_type == "" ||
+            binding_type == "Unknown" {
+            MirLowerFailClosed(Concat(
+                variant,
+                " match case is missing a concrete binding type MIR fact"
+            ));
+        }
+        let initializer: String = "";
+        if variant == "Some" || variant == "Ok" || variant == "Err" {
+            let unwrap_name: String = "UnwrapOption";
+            if variant == "Ok" { unwrap_name = "Unwrap"; }
+            if variant == "Err" { unwrap_name = "UnwrapErr"; }
+            initializer = Concat(
+                unwrap_name, Concat("(", Concat(match_subject, ")\n"))
+            );
+        } else {
+            initializer = Concat(
+                match_subject,
+                Concat(".", Concat(
+                    variant, Concat("._", Concat(
+                        ToString(binding_index), "\n"
+                    ))
+                ))
+            );
+        }
+        out = Concat(out, Concat(indent, Concat("Let: ", Concat(
+            binding, Concat(" : ", Concat(
+                binding_type, Concat(" = ", initializer)
+            ))
+        ))));
+        binding_index = binding_index + 1;
+    }
+    return out;
 }

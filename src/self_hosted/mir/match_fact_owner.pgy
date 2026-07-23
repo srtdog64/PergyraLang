@@ -41,8 +41,8 @@ func SelfMirMatchFactRowsAttachCase(
     instruction_index: Int,
     pattern: String,
     variant: String,
-    binding: String,
-    binding_type: String
+    case_bindings: Array<String>,
+    case_binding_types: Array<String>
 ) -> SelfMirMatchFactRows {
     let instruction_indices: Array<Int> = rows.instruction_indices;
     let pattern_starts: Array<Int> = rows.pattern_starts;
@@ -59,12 +59,18 @@ func SelfMirMatchFactRowsAttachCase(
     ArrayPush(patterns, pattern);
     ArrayPush(variants, variant);
     ArrayPush(binding_starts, ArrayLength(bindings));
-    let binding_count: Int = 0;
-    if binding != "" {
-        if binding_type == "" || binding_type == "Unknown" { return rows; }
-        ArrayPush(bindings, binding);
-        ArrayPush(binding_types, binding_type);
-        binding_count = 1;
+    let binding_count: Int = ArrayLength(case_bindings);
+    if ArrayLength(case_binding_types) != binding_count { return rows; }
+    let binding_index: Int = 0;
+    while binding_index < binding_count {
+        if case_bindings[binding_index] == "" ||
+            case_binding_types[binding_index] == "" ||
+            case_binding_types[binding_index] == "Unknown" {
+            return rows;
+        }
+        ArrayPush(bindings, case_bindings[binding_index]);
+        ArrayPush(binding_types, case_binding_types[binding_index]);
+        binding_index = binding_index + 1;
     }
     ArrayPush(binding_counts, binding_count);
     return SelfMirMatchFactRows(
@@ -157,7 +163,7 @@ func SelfMirMatchFactRowsValidationError(
             return "match pattern rows are invalid";
         }
         if rows.binding_starts[i] != binding_cursor ||
-            rows.binding_counts[i] < 0 || rows.binding_counts[i] > 1 ||
+            rows.binding_counts[i] < 0 ||
             binding_cursor + rows.binding_counts[i] >
                 ArrayLength(rows.bindings) {
             return "match binding rows are invalid";
@@ -180,18 +186,28 @@ func SelfMirMatchFactRowsValidationError(
             if rows.binding_counts[i] != 1 ||
                 rows.bindings[binding_cursor] == "" ||
                 rows.binding_types[binding_cursor] == "" ||
-                rows.binding_types[binding_cursor] == "Unknown" ||
-                pattern != Concat(
-                    variant, Concat(
-                        "(", Concat(rows.bindings[binding_cursor], ")")
-                    )
-                ) {
+                rows.binding_types[binding_cursor] == "Unknown" {
                 return Concat(
                     "bounded ", Concat(variant, " match rows are invalid")
                 );
             }
         } else {
-            return "match variant is outside bounded MIR producer";
+            if rows.binding_counts[i] == 0 {
+                if pattern != variant {
+                    return "enum match pattern row is invalid";
+                }
+            } else {
+                let case_binding_index: Int = 0;
+                while case_binding_index < rows.binding_counts[i] {
+                    let flat: Int = binding_cursor + case_binding_index;
+                    if rows.bindings[flat] == "" ||
+                        rows.binding_types[flat] == "" ||
+                        rows.binding_types[flat] == "Unknown" {
+                    return "enum payload match rows are invalid";
+                    }
+                    case_binding_index = case_binding_index + 1;
+                }
+            }
         }
         pattern_cursor = pattern_cursor + rows.pattern_counts[i];
         binding_cursor = binding_cursor + rows.binding_counts[i];

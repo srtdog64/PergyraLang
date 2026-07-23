@@ -20,6 +20,14 @@ func RewriteSemanticLeaf(
     if IsIdentifier(text) {
         let enum_value: String = LookupKindType(env, text, "e");
         if enum_value != "" { return enum_value; }
+        let tagged_enum_value: String = LookupKindType(
+            env, text, "eval"
+        );
+        if tagged_enum_value != "" { return tagged_enum_value; }
+        let tagged_enum_tag: String = LookupKindType(
+            env, text, "etag"
+        );
+        if tagged_enum_tag != "" { return tagged_enum_tag; }
         let call_target: String = LookupKindType(env, text, "call");
         if call_target != "" {
             return CompilerSymbolCIdentifier(call_target);
@@ -40,6 +48,21 @@ func RewriteSemanticLeaf(
     }
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
+}
+
+func CodegenSemanticTaggedEnumVariantTagFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id
+    );
+    if !IsSome(text) { return None; }
+    let key: String = UnwrapOption(text);
+    let tag: String = LookupKindType(env, key, "etag");
+    if tag == "" { return None; }
+    return Some(tag);
 }
 
 func RewriteSemanticIndex(
@@ -257,6 +280,59 @@ func RewriteExprFromSemanticGraph(
                     ))
                 )
             ));
+        }
+        if UnwrapOption(left_type) == UnwrapOption(right_type) &&
+            LookupKindType(
+                env, UnwrapOption(left_type), "enum"
+            ) == "tagged" {
+            let left_tag: Option<String> =
+                CodegenSemanticTaggedEnumVariantTagFromGraph(
+                    graph, left_id, env
+                );
+            let right_tag: Option<String> =
+                CodegenSemanticTaggedEnumVariantTagFromGraph(
+                    graph, right_id, env
+                );
+            if IsSome(left_tag) && IsSome(right_tag) {
+                let enum_operator: String = " == ";
+                if kind == AstExpressionNodeInequality() {
+                    enum_operator = " != ";
+                }
+                return Concat("(", Concat(
+                    UnwrapOption(left_tag), Concat(
+                        enum_operator, Concat(
+                            UnwrapOption(right_tag), ")"
+                        )
+                    )
+                ));
+            }
+            if IsSome(left_tag) != IsSome(right_tag) {
+                let enum_operator: String = " == ";
+                if kind == AstExpressionNodeInequality() {
+                    enum_operator = " != ";
+                }
+                if IsSome(left_tag) {
+                    let tagged_right: String = Concat(
+                        "(", Concat(right, ").tag")
+                    );
+                    return Concat("(", Concat(
+                        UnwrapOption(left_tag), Concat(
+                            enum_operator, Concat(tagged_right, ")")
+                        )
+                    ));
+                }
+                let tagged_left: String = Concat(
+                    "(", Concat(left, ").tag")
+                );
+                return Concat("(", Concat(
+                    tagged_left, Concat(
+                        enum_operator, Concat(
+                            UnwrapOption(right_tag), ")"
+                        )
+                    )
+                ));
+            }
+            Die("tagged enum equality requires a variant tag operand");
         }
     }
     if kind == AstExpressionNodeIndex() {

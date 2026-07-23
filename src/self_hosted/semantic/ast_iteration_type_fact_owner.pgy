@@ -156,7 +156,7 @@ func SemanticAstIterationTypeFactsFromArtifact(
         return SemanticAstIterationTypeStructuralError(artifact);
     }
     if !SemanticAstExpressionFunctionTables(
-        signatures, constructors,
+        signatures, constructors, enum_facts,
         function_names, function_returns, function_params
     ) {
         return SemanticAstIterationTypeStructuralError(artifact);

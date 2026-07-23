@@ -9,11 +9,11 @@ import "ast_enum_fact_owner.pgy";
 import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
 
-func SemanticAstExpressionSeedOneMatchBinding(
+func SemanticAstExpressionSeedMatchCaseBindings(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
-    ref enums: SemanticAstEnumFacts,
+    enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
     function_names: Array<String>,
     function_returns: Array<String>,
@@ -33,11 +33,11 @@ func SemanticAstExpressionSeedOneMatchBinding(
         return false;
     }
     if pattern.variant == "None" {
-        return pattern.binding == "";
+        return ArrayLength(pattern.bindings) == 0;
     }
     if pattern.variant == "" &&
         ToString(ToInt(pattern.pattern)) == pattern.pattern {
-        return pattern.binding == "";
+        return ArrayLength(pattern.bindings) == 0;
     }
     let match_node: Option<Int> = TypedAstArenaParentId(
         artifact.arena, case_node_id
@@ -66,25 +66,50 @@ func SemanticAstExpressionSeedOneMatchBinding(
     let subject_type: String = UnwrapOption(subject_type_fact);
     if pattern.variant != "Some" && pattern.variant != "Ok" &&
         pattern.variant != "Err" {
-        if pattern.binding != "" {
-            return false;
-        }
         let variant_name: String = pattern.variant;
         if variant_name == "" {
             variant_name = pattern.pattern;
         }
-        let enum_row: Int = -1;
+        let enum_variant_index: Int = -1;
+        let variant_count: Option<Int> =
+            SemanticAstEnumVariantCountForName(enums, subject_type);
+        if !IsSome(variant_count) { return false; }
         let variant_index: Int = 0;
-        while variant_index < ArrayLength(enums.variant_names) {
-            if enums.variant_enum_names[variant_index] == subject_type &&
-                enums.variant_names[variant_index] == variant_name {
-                enum_row = variant_index;
+        while variant_index < UnwrapOption(variant_count) {
+            let candidate: Option<String> = SemanticAstEnumVariantNameAt(
+                enums, subject_type, variant_index
+            );
+            if IsSome(candidate) && UnwrapOption(candidate) == variant_name {
+                enum_variant_index = variant_index;
             }
             variant_index = variant_index + 1;
         }
-        return enum_row >= 0 && enums.variant_param_counts[enum_row] == 0;
+        if enum_variant_index < 0 { return false; }
+        let param_count: Option<Int> = SemanticAstEnumVariantParamCountAt(
+            enums, subject_type, enum_variant_index
+        );
+        if !IsSome(param_count) || UnwrapOption(param_count) !=
+            ArrayLength(pattern.bindings) {
+            return false;
+        }
+        let binding_index: Int = 0;
+        while binding_index < ArrayLength(pattern.bindings) {
+            let payload_type: Option<String> =
+                SemanticAstEnumVariantPayloadTypeAt(
+                    enums, subject_type, variant_name, binding_index
+                );
+            if !IsSome(payload_type) || UnwrapOption(payload_type) == "" ||
+                UnwrapOption(payload_type) == "Unknown" {
+                return false;
+            }
+            ArrayPush(names, pattern.bindings[binding_index]);
+            ArrayPush(types, UnwrapOption(payload_type));
+            ArrayPush(modes, "match_binding");
+            binding_index = binding_index + 1;
+        }
+        return true;
     }
-    if pattern.binding == "" {
+    if ArrayLength(pattern.bindings) != 1 {
         return false;
     }
     let payload_type: Option<String> = None;
@@ -99,7 +124,7 @@ func SemanticAstExpressionSeedOneMatchBinding(
         UnwrapOption(payload_type) == "Unknown" {
         return false;
     }
-    ArrayPush(names, pattern.binding);
+    ArrayPush(names, pattern.bindings[0]);
     ArrayPush(types, UnwrapOption(payload_type));
     ArrayPush(modes, "match_binding");
     return true;
@@ -142,22 +167,25 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enums.ok {
+        return false;
+    }
     if !SemanticAstExpressionFunctionTables(
-        signatures, constructors,
+        signatures, constructors, enums,
         function_names, function_returns, function_params
     ) {
         return false;
     }
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let enums: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !function_scopes.ok || !enums.ok {
+    if !function_scopes.ok {
         return false;
     }
     let i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {
-        if !SemanticAstExpressionSeedOneMatchBinding(
+        if !SemanticAstExpressionSeedMatchCaseBindings(
             artifact, expression_surfaces, constructors, enums,
             function_scopes, function_names, function_returns,
             function_node_id, case_nodes[i], names, types, modes

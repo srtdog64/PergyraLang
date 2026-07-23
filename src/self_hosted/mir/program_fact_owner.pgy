@@ -77,7 +77,9 @@ struct SelfMirDeclarationRows {
     variant_starts: Array<Int>;
     variant_counts: Array<Int>;
     variant_names: Array<String>;
+    variant_param_starts: Array<Int>;
     variant_param_counts: Array<Int>;
+    variant_param_type_names: Array<String>;
 }
 
 struct SelfMirRoutineRows {
@@ -181,7 +183,7 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let strings: Array<String> = [];
     return SelfMirDeclarationRows(
         strings, strings, strings, strings, ints, ints, strings, strings,
-        ints, ints, strings, strings, ints, ints, strings, ints
+        ints, ints, strings, strings, ints, ints, strings, ints, ints, strings
     );
 }
 
@@ -525,7 +527,7 @@ func SelfMirCfgAttachLastMatchCase(
     let match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
             instructions.match_facts, instruction_index,
-            fact.pattern, fact.variant, fact.binding, fact.binding_type
+            fact.pattern, fact.variant, fact.bindings, fact.binding_types
         );
     return SelfMirCfgRows(
         cfg.blocks,

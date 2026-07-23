@@ -226,7 +226,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
         );
     }
     if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, function_names, function_returns,
+        signatures, constructors, enum_facts, function_names, function_returns,
         function_params
     ) {
         return SemanticAstGenericSpecializationError(

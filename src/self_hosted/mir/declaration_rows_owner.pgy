@@ -23,7 +23,10 @@ func SelfMirDeclarationsFromAnalysis(
     let variant_starts: Array<Int> = rows.variant_starts;
     let variant_counts: Array<Int> = rows.variant_counts;
     let variant_names: Array<String> = rows.variant_names;
+    let variant_param_starts: Array<Int> = rows.variant_param_starts;
     let variant_param_counts: Array<Int> = rows.variant_param_counts;
+    let variant_param_type_names: Array<String> =
+        rows.variant_param_type_names;
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(analysis.constructors) {
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
@@ -132,11 +135,34 @@ func SelfMirDeclarationsFromAnalysis(
         let variant_i: Int = 0;
         while variant_i < ArrayLength(enum_facts.variant_names) {
             if enum_facts.variant_enum_names[variant_i] == enum_name {
-                ArrayPush(variant_names, enum_facts.variant_names[variant_i]);
+                let variant_name: String =
+                    enum_facts.variant_names[variant_i];
+                let param_count: Int =
+                    enum_facts.variant_param_counts[variant_i];
+                ArrayPush(variant_names, variant_name);
                 ArrayPush(
-                    variant_param_counts,
-                    enum_facts.variant_param_counts[variant_i]
+                    variant_param_starts,
+                    ArrayLength(variant_param_type_names)
                 );
+                ArrayPush(
+                    variant_param_counts, param_count
+                );
+                let param_index: Int = 0;
+                while param_index < param_count {
+                    let payload_type: Option<String> =
+                        SemanticAstEnumVariantPayloadTypeAt(
+                            enum_facts, enum_name, variant_name,
+                            param_index
+                        );
+                    if !IsSome(payload_type) {
+                        return SelfMirDeclarationRowsEmpty();
+                    }
+                    ArrayPush(
+                        variant_param_type_names,
+                        UnwrapOption(payload_type)
+                    );
+                    param_index = param_index + 1;
+                }
                 enum_variant_count = enum_variant_count + 1;
             }
             variant_i = variant_i + 1;
@@ -148,6 +174,7 @@ func SelfMirDeclarationsFromAnalysis(
         kinds, nominal_kinds, names, target_types, field_starts, field_counts,
         field_names, field_types, method_starts, method_counts,
         method_names, method_returns, variant_starts, variant_counts,
-        variant_names, variant_param_counts
+        variant_names, variant_param_starts, variant_param_counts,
+        variant_param_type_names
     );
 }

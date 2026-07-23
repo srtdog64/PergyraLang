@@ -487,6 +487,20 @@ func SelfMirJsonDeclaration(
                 ToString(rows.variant_param_counts[variant_row])
             )
         ];
+        let param_types: Array<String> = []; let param_index: Int = 0;
+        while param_index < rows.variant_param_counts[variant_row] {
+            ArrayPush(
+                param_types,
+                JsonStringLiteral(rows.variant_param_type_names[
+                    rows.variant_param_starts[variant_row] + param_index
+                ])
+            );
+            param_index = param_index + 1;
+        }
+        ArrayPush(
+            variant,
+            JsonEmitFieldRaw("param_types", JsonEmitArray(param_types))
+        );
         ArrayPush(variants, JsonEmitObject(variant));
         variant_i = variant_i + 1;
     }

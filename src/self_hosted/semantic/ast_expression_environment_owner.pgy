@@ -59,11 +59,7 @@ func SemanticAstExpressionSeedEnumValues(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
-    if !enums.ok ||
-        ArrayLength(enums.variant_enum_names) !=
-            ArrayLength(enums.variant_names) ||
-        ArrayLength(enums.variant_param_counts) !=
-            ArrayLength(enums.variant_names) {
+    if !SemanticAstEnumRowsReady(enums) {
         return false;
     }
     let i: Int = 0;
@@ -115,6 +111,7 @@ func SemanticAstExpressionScopeVisible(
 func SemanticAstExpressionFunctionTables(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
     inout names: Array<String>,
     inout returns: Array<String>,
     inout params: Array<String>
@@ -123,6 +120,9 @@ func SemanticAstExpressionFunctionTables(
         return false;
     }
     if !SemanticAstNominalConstructorRowsReady(constructors) {
+        return false;
+    }
+    if !SemanticAstEnumRowsReady(enums) {
         return false;
     }
     let constructor_index: Int = 0;
@@ -149,6 +149,60 @@ func SemanticAstExpressionFunctionTables(
         }
         ArrayPush(params, constructor_params);
         constructor_index = constructor_index + 1;
+    }
+    let variant_index: Int = 0;
+    while variant_index < ArrayLength(enums.variant_names) {
+        let param_count: Int = enums.variant_param_counts[variant_index];
+        let variant_name: String = enums.variant_names[variant_index];
+        let enum_name: String = enums.variant_enum_names[variant_index];
+        let variant_params: String = "";
+        let param_index: Int = 0;
+        while param_index < param_count {
+            let param_type: Option<String> =
+                SemanticAstEnumVariantPayloadTypeAt(
+                    enums, enum_name, variant_name, param_index
+                );
+            if !IsSome(param_type) {
+                return false;
+            }
+            if variant_params != "" {
+                variant_params = Concat(variant_params, "|");
+            }
+            variant_params = Concat(
+                variant_params, UnwrapOption(param_type)
+            );
+            param_index = param_index + 1;
+        }
+        let qualified_name: String = Concat(
+            enum_name, Concat(".", variant_name)
+        );
+        let existing: Int = SemanticAstExpressionFunctionRowIndex(
+            names, qualified_name
+        );
+        if existing >= 0 {
+            if returns[existing] != enum_name ||
+                params[existing] != variant_params {
+                return false;
+            }
+        } else {
+            ArrayPush(names, qualified_name);
+            ArrayPush(returns, enum_name);
+            ArrayPush(params, variant_params);
+        }
+        existing = SemanticAstExpressionFunctionRowIndex(
+            names, variant_name
+        );
+        if existing >= 0 {
+            if returns[existing] != enum_name ||
+                params[existing] != variant_params {
+                return false;
+            }
+        } else {
+            ArrayPush(names, variant_name);
+            ArrayPush(returns, enum_name);
+            ArrayPush(params, variant_params);
+        }
+        variant_index = variant_index + 1;
     }
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
@@ -417,7 +471,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let modes: Array<String> = [];
     let inferred: Array<String> = ["Int", "Int"];
     if !SemanticAstExpressionFunctionTables(
-        signatures, constructors,
+        signatures, constructors, enums,
         function_names, function_returns, function_params
     ) || !SemanticAstExpressionSeedEnumValues(
         enums, names, types, modes

@@ -111,9 +111,11 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     graph: SemanticExpressionGraphFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
     require_carried: Bool
 ) -> SemanticExpressionGraphFacts {
     if !graph.ok || !signatures.ok || !constructors.ok ||
+        !enums.ok ||
         !SemanticExpressionGraphArenaReady(graph.arena) {
         return SemanticExpressionGraphFacts(
             false, graph.roots, graph.has_roots, graph.arena
@@ -126,7 +128,7 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     let callable_returns: Array<String> = [];
     let callable_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, constructors,
+        signatures, constructors, enums,
         callable_names, callable_returns, callable_params
     ) {
         return SemanticExpressionGraphFacts(

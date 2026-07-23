@@ -27,12 +27,12 @@ func CompilerHarnessCodegenExpectedDirPath() -> String {
     return "src/self_hosted/codegen/expected";
 }
 
-func CompilerHarnessCodegenRejectSourcePath() -> String {
-    return "src/self_hosted/codegen/reject_fixture/enum_payload.pgy";
+func CompilerHarnessCodegenTaggedEnumEqualityRejectSourcePath() -> String {
+    return "src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy";
 }
 
-func CompilerHarnessCodegenRejectExpectedPath() -> String {
-    return "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt";
+func CompilerHarnessCodegenTaggedEnumEqualityRejectExpectedPath() -> String {
+    return "src/self_hosted/codegen/reject_expected/tagged_enum_equality_stdout.txt";
 }
 
 func CompilerHarnessCodegenRoleSourcePath() -> String {
@@ -77,8 +77,12 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 2 { return CompilerHarnessCodegenComparatorSourcePath(); }
     if index == 3 { return CompilerHarnessCodegenFixtureDirPath(); }
     if index == 4 { return CompilerHarnessCodegenExpectedDirPath(); }
-    if index == 5 { return CompilerHarnessCodegenRejectSourcePath(); }
-    if index == 6 { return CompilerHarnessCodegenRejectExpectedPath(); }
+    if index == 5 {
+        return CompilerHarnessCodegenTaggedEnumEqualityRejectSourcePath();
+    }
+    if index == 6 {
+        return CompilerHarnessCodegenTaggedEnumEqualityRejectExpectedPath();
+    }
     if index == 7 { return CompilerHarnessCodegenRoleSourcePath(); }
     if index == 8 { return CompilerHarnessCodegenRoleExpectedPath(); }
     if index == 9 { return CompilerHarnessCodegenEventRejectSourcePath(); }

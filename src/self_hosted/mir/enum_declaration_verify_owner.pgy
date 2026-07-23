@@ -1,0 +1,37 @@
+// Ordered enum-variant payload-row verification for self-host MIR.
+
+import "program_fact_owner.pgy";
+
+func SelfMirEnumDeclarationPayloadRowsReady(
+    ref rows: SelfMirDeclarationRows
+) -> Bool {
+    let variant_count: Int = ArrayLength(rows.variant_names);
+    if ArrayLength(rows.variant_param_starts) != variant_count ||
+        ArrayLength(rows.variant_param_counts) != variant_count {
+        return false;
+    }
+    let payload_cursor: Int = 0;
+    let variant_index: Int = 0;
+    while variant_index < variant_count {
+        if rows.variant_names[variant_index] == "" ||
+            rows.variant_param_counts[variant_index] < 0 ||
+            rows.variant_param_starts[variant_index] != payload_cursor {
+            return false;
+        }
+        payload_cursor = payload_cursor +
+            rows.variant_param_counts[variant_index];
+        variant_index = variant_index + 1;
+    }
+    if payload_cursor != ArrayLength(rows.variant_param_type_names) {
+        return false;
+    }
+    let payload_index: Int = 0;
+    while payload_index < payload_cursor {
+        if rows.variant_param_type_names[payload_index] == "" ||
+            rows.variant_param_type_names[payload_index] == "Unknown" {
+            return false;
+        }
+        payload_index = payload_index + 1;
+    }
+    return true;
+}

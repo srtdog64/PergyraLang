@@ -1,0 +1,24 @@
+enum Shape {
+    Point,
+    Circle(Int),
+    Rect(Int, Int),
+    Triangle(Int, Int, Int)
+}
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Point: return 0;
+        case Circle(r): return r * r * 3;
+        case Rect(w, h): return w * h;
+        case Triangle(a, b, c): return (a + b + c) * 10;
+    }
+}
+
+func Main() -> Void {
+    Log(Area(Point));
+    Log(Area(Circle(5)));
+    Log(Area(Rect(4, 7)));
+    Log(Area(Triangle(3, 4, 5)));
+    let total: Int = Area(Circle(2)) + Area(Rect(3, 3)) + Area(Triangle(1, 2, 3));
+    Log(total);
+}

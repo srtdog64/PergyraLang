@@ -1,0 +1,25 @@
+enum CheckResult {
+    Pass(Int),
+    Fail(String)
+}
+
+func CheckScore(score: Int) -> CheckResult {
+    if score < 0 { return Fail("negative"); }
+    if score > 100 { return Fail("too high"); }
+    return Pass(score);
+}
+
+func DescribeResult(r: CheckResult) -> Int {
+    match r {
+        case Pass(p): return p;
+        case Fail(reason): return -StringLength(reason);
+    }
+}
+
+func Main() -> Void {
+    Log(DescribeResult(CheckScore(80)));
+    Log(DescribeResult(CheckScore(-5)));
+    Log(DescribeResult(CheckScore(150)));
+    Log(DescribeResult(CheckScore(0)));
+    Log(DescribeResult(CheckScore(100)));
+}

@@ -100,8 +100,8 @@ PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
 COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"
 EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"
-REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"
-REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"
+TAGGED_ENUM_EQUALITY_REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"
+TAGGED_ENUM_EQUALITY_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"
 ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"
 ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"
 EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"
@@ -110,7 +110,8 @@ REF_TEMPORARY_REJECT_SOURCE="$ROOT_DIR/${harness_paths[13]}"
 REF_TEMPORARY_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[14]}"
 
 for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
-    "$REJECT_SOURCE" "$REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED" \
+    "$TAGGED_ENUM_EQUALITY_REJECT_SOURCE" \
+    "$TAGGED_ENUM_EQUALITY_REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED" \
     "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" \
     "$REF_TEMPORARY_REJECT_SOURCE" "$REF_TEMPORARY_REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
@@ -502,8 +503,9 @@ for backend in $BACKENDS; do
     fi
     run_tool_backend "$backend" "$tool_bin"
     run_codegen_reject_case \
-        "$backend" "$tool_bin" "enum_payload_reject" \
-        "$REJECT_SOURCE" "$REJECT_EXPECTED" "payload enum"
+        "$backend" "$tool_bin" "tagged_enum_equality_reject" \
+        "$TAGGED_ENUM_EQUALITY_REJECT_SOURCE" \
+        "$TAGGED_ENUM_EQUALITY_REJECT_EXPECTED" "tagged enum equality"
     run_codegen_reject_case \
         "$backend" "$tool_bin" "event_decl_reject" \
         "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" "event declaration"

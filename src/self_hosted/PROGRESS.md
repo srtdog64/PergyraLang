@@ -1,5 +1,32 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra generic enum-payload declaration/match SoT closure: the
+semantic enum owner now carries ordered `(variant, payload_index, type)` rows
+through the native MIR declaration metadata and JSON `param_types` array. The
+selfhost `mir_lower` declaration owner validates parameter count, ordered
+cardinality, and every concrete payload type; missing or `Unknown` facts fail
+closed. The codegen semantic enum view consumes that same payload owner to emit
+tagged C enums/constructors, and the tagged-match owner consumes the typed
+variant fields for tag conditions and ordered bindings. The former
+`payload enum variants are not supported` rejection and any singular
+`param_type` wire are removed; the equality path remains an explicit negative
+gate because tagged enum equality is not yet an owned semantic operation.
+
+Fresh evidence: `tests/self_hosted/parity/mir_json_parity.sh` with
+`PGY_SELFHOST_MIR_FIXTURES=enum_option_payload,enum_multi_payload` passed
+`2 fixtures, 0 clean rejects`; its missing/unknown payload-type mutations
+failed with the owner diagnostic. `tests/self_hosted_component_contract_smoke.sh`
+and `tests/match_binding_type_fact_smoke.sh` passed. The C backend codegen
+parity also passed all `78 fixtures`, including the payload-enum and tagged
+equality negative legs. A fresh current-tree
+DRV-2 driver emitted C for `enum_option_payload`; GCC compiled it and runtime
+output was `80`, `-8`, `-8`, `0`, `100`. The negative source
+`src/self_hosted/codegen/reject_fixture/tagged_enum_equality.pgy` failed closed with
+`tagged enum equality requires a variant tag operand`. Direct DRV-2 source
+compilation of `enum_multi_payload` still fails at the pre-existing
+expression-graph validity boundary, so that is the next executable falsifier,
+not a claimed source-driver green result.
+
 2026-07-23 Pergyra whole-language match-binding type carrier delta: the native
 semantic owner now records every payload binding type with stable
 `(function_syntax_id, match_case_syntax_id, binding_index)` identity for

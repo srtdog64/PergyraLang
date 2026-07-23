@@ -3,6 +3,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
 
 struct SemanticAstEnumFacts {
     ok: Bool;
@@ -11,7 +12,9 @@ struct SemanticAstEnumFacts {
     enum_names: Array<String>;
     variant_enum_names: Array<String>;
     variant_names: Array<String>;
+    variant_param_starts: Array<Int>;
     variant_param_counts: Array<Int>;
+    variant_param_type_names: Array<String>;
 }
 
 func SemanticAstEnumFactsFromArtifact(
@@ -21,7 +24,9 @@ func SemanticAstEnumFactsFromArtifact(
     let enum_names: Array<String> = [];
     let variant_enum_names: Array<String> = [];
     let variant_names: Array<String> = [];
+    let variant_param_starts: Array<Int> = [];
     let variant_param_counts: Array<Int> = [];
+    let variant_param_type_names: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -54,6 +59,9 @@ func SemanticAstEnumFactsFromArtifact(
                         );
                         let paren: Int = StringIndexOf(variant, "(");
                         let variant_name: String = variant;
+                        let param_start: Int = ArrayLength(
+                            variant_param_type_names
+                        );
                         let param_count: Int = 0;
                         if paren >= 0 {
                             variant_name = StringTrim(Substring(variant, 0, paren));
@@ -71,6 +79,26 @@ func SemanticAstEnumFactsFromArtifact(
                                 param_count = SemanticDelimitedNonEmptyRangeCount(
                                     params
                                 );
+                                let param_index: Int = 0;
+                                while param_index < param_count && ok {
+                                    let param_type_name: String = StringTrim(
+                                        SemanticDelimitedRangeText(
+                                            params, params_text, param_index
+                                        )
+                                    );
+                                    if param_type_name == "" ||
+                                        param_type_name == "Unknown" {
+                                        ok = false;
+                                    } else {
+                                        ArrayPush(
+                                            variant_param_type_names,
+                                            SemanticCanonicalTypeName(
+                                                param_type_name
+                                            )
+                                        );
+                                    }
+                                    param_index = param_index + 1;
+                                }
                             }
                         }
                         if StringLength(variant_name) == 0 {
@@ -78,6 +106,7 @@ func SemanticAstEnumFactsFromArtifact(
                         } else {
                             ArrayPush(variant_enum_names, enum_name);
                             ArrayPush(variant_names, variant_name);
+                            ArrayPush(variant_param_starts, param_start);
                             ArrayPush(variant_param_counts, param_count);
                         }
                         variant_index = variant_index + 1;
@@ -89,8 +118,44 @@ func SemanticAstEnumFactsFromArtifact(
     }
     return SemanticAstEnumFacts(
         ok, artifact.count, node_ids, enum_names, variant_enum_names, variant_names,
-        variant_param_counts
+        variant_param_starts, variant_param_counts,
+        variant_param_type_names
     );
+}
+
+func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
+    let variant_count: Int = ArrayLength(facts.variant_names);
+    if !facts.ok ||
+        ArrayLength(facts.variant_enum_names) != variant_count ||
+        ArrayLength(facts.variant_param_starts) != variant_count ||
+        ArrayLength(facts.variant_param_counts) != variant_count {
+        return false;
+    }
+    let expected_start: Int = 0;
+    let variant_index: Int = 0;
+    while variant_index < variant_count {
+        if facts.variant_enum_names[variant_index] == "" ||
+            facts.variant_names[variant_index] == "" ||
+            facts.variant_param_starts[variant_index] != expected_start ||
+            facts.variant_param_counts[variant_index] < 0 {
+            return false;
+        }
+        expected_start = expected_start +
+            facts.variant_param_counts[variant_index];
+        variant_index = variant_index + 1;
+    }
+    if expected_start != ArrayLength(facts.variant_param_type_names) {
+        return false;
+    }
+    let payload_index: Int = 0;
+    while payload_index < ArrayLength(facts.variant_param_type_names) {
+        if facts.variant_param_type_names[payload_index] == "" ||
+            facts.variant_param_type_names[payload_index] == "Unknown" {
+            return false;
+        }
+        payload_index = payload_index + 1;
+    }
+    return true;
 }
 
 func SemanticAstEnumNestedPayloadContractReady() -> Bool {
@@ -111,6 +176,21 @@ func SemanticAstEnumNestedPayloadContractReady() -> Bool {
         IsSome(circle) && UnwrapOption(circle) == 1 &&
         IsSome(rect) && UnwrapOption(rect) == 2 &&
         IsSome(none) && UnwrapOption(none) == 0 &&
+        IsSome(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Circle", 0
+        )) && UnwrapOption(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Circle", 0
+        )) == "Int" &&
+        IsSome(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Rect", 0
+        )) && UnwrapOption(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Rect", 0
+        )) == "Int" &&
+        IsSome(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Rect", 1
+        )) && UnwrapOption(SemanticAstEnumVariantPayloadTypeAt(
+            facts, "Shape", "Rect", 1
+        )) == "Int" &&
         SemanticAstPayloadFreeEnumValueAssignableToInt(
             facts, "Int", "Shape", "Shape.None"
         ) &&
@@ -123,9 +203,7 @@ func SemanticAstEnumExpressionRow(
     facts: SemanticAstEnumFacts,
     expression: String
 ) -> Option<Int> {
-    if !facts.ok ||
-        ArrayLength(facts.variant_enum_names) != ArrayLength(facts.variant_names) ||
-        ArrayLength(facts.variant_param_counts) != ArrayLength(facts.variant_names) {
+    if !SemanticAstEnumRowsReady(facts) {
         return None;
     }
     let dot: Int = StringIndexOf(expression, ".");
@@ -174,12 +252,12 @@ func SemanticAstPayloadFreeEnumValueAssignableToInt(
         facts.variant_enum_names[index] == actual;
 }
 
-func SemanticAstEnumCount(facts: SemanticAstEnumFacts) -> Int {
+func SemanticAstEnumCount(ref facts: SemanticAstEnumFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }
 
 func SemanticAstEnumIndexForNode(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     node_id: Int
 ) -> Option<Int> {
     if !facts.ok { return None; }
@@ -192,7 +270,7 @@ func SemanticAstEnumIndexForNode(
 }
 
 func SemanticAstEnumIndexForName(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     enum_name: String
 ) -> Option<Int> {
     if !facts.ok {
@@ -209,7 +287,7 @@ func SemanticAstEnumIndexForName(
 }
 
 func SemanticAstEnumNameAt(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     index: Int
 ) -> Option<String> {
     if !facts.ok || index < 0 || index >= SemanticAstEnumCount(facts) {
@@ -219,7 +297,7 @@ func SemanticAstEnumNameAt(
 }
 
 func SemanticAstEnumVariantCountForName(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     enum_name: String
 ) -> Option<Int> {
     if !IsSome(SemanticAstEnumIndexForName(facts, enum_name)) {
@@ -237,7 +315,7 @@ func SemanticAstEnumVariantCountForName(
 }
 
 func SemanticAstEnumVariantRowIndex(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     enum_name: String,
     index: Int
 ) -> Option<Int> {
@@ -260,7 +338,7 @@ func SemanticAstEnumVariantRowIndex(
 }
 
 func SemanticAstEnumVariantNameAt(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     enum_name: String,
     index: Int
 ) -> Option<String> {
@@ -274,7 +352,7 @@ func SemanticAstEnumVariantNameAt(
 }
 
 func SemanticAstEnumVariantParamCountAt(
-    facts: SemanticAstEnumFacts,
+    ref facts: SemanticAstEnumFacts,
     enum_name: String,
     index: Int
 ) -> Option<Int> {
@@ -285,6 +363,31 @@ func SemanticAstEnumVariantParamCountAt(
         return None;
     }
     return Some(facts.variant_param_counts[UnwrapOption(row)]);
+}
+
+func SemanticAstEnumVariantPayloadTypeAt(
+    ref facts: SemanticAstEnumFacts,
+    enum_name: String,
+    variant_name: String,
+    payload_index: Int
+) -> Option<String> {
+    if !SemanticAstEnumRowsReady(facts) || payload_index < 0 {
+        return None;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(facts.variant_names) {
+        if facts.variant_enum_names[row] == enum_name &&
+            facts.variant_names[row] == variant_name {
+            if payload_index >= facts.variant_param_counts[row] {
+                return None;
+            }
+            return Some(facts.variant_param_type_names[
+                facts.variant_param_starts[row] + payload_index
+            ]);
+        }
+        row = row + 1;
+    }
+    return None;
 }
 
 func SemanticAstEnumFactsMatchArtifact(
@@ -301,8 +404,12 @@ func SemanticAstEnumFactsMatchArtifact(
         ArrayLength(facts.variant_enum_names) !=
             ArrayLength(rebuilt.variant_enum_names) ||
         ArrayLength(facts.variant_names) != ArrayLength(rebuilt.variant_names) ||
+        ArrayLength(facts.variant_param_starts) !=
+            ArrayLength(rebuilt.variant_param_starts) ||
         ArrayLength(facts.variant_param_counts) !=
-            ArrayLength(rebuilt.variant_param_counts) {
+            ArrayLength(rebuilt.variant_param_counts) ||
+        ArrayLength(facts.variant_param_type_names) !=
+            ArrayLength(rebuilt.variant_param_type_names) {
         return false;
     }
     let i: Int = 0;
@@ -319,11 +426,21 @@ func SemanticAstEnumFactsMatchArtifact(
                 rebuilt.variant_enum_names[variant_index] ||
             facts.variant_names[variant_index] !=
                 rebuilt.variant_names[variant_index] ||
+            facts.variant_param_starts[variant_index] !=
+                rebuilt.variant_param_starts[variant_index] ||
             facts.variant_param_counts[variant_index] !=
                 rebuilt.variant_param_counts[variant_index] {
             return false;
         }
         variant_index = variant_index + 1;
+    }
+    let payload_index: Int = 0;
+    while payload_index < ArrayLength(facts.variant_param_type_names) {
+        if facts.variant_param_type_names[payload_index] !=
+            rebuilt.variant_param_type_names[payload_index] {
+            return false;
+        }
+        payload_index = payload_index + 1;
     }
     return true;
 }
