@@ -1,5 +1,32 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra List literal contextual typing executable closure.
+Objective: type `[ ... ]` from a declared `List<T>` initializer through the
+parser-owned sequence shape and emit the declared List runtime ABI. Priority
+was declared element compatibility, initializer fact promotion, MIR ABI
+carriage, List constructor/push emission, fail-closed negatives, then patch
+size. Array-to-List name guessing, backend element recovery, source reparse,
+and Queue-as-List runtime substitution are forbidden.
+
+`SemanticSequenceElementType` now owns Array/Slice/List/Queue shape projection;
+the array-literal graph owner validates element compatibility and the
+initializer owner promotes the verified graph to the declared List type. The
+composite emission owner consumes that carried type and emits element-specific
+List construction. Native/self MIR agree on `List<Int>`, `List<String>`, and
+empty `List<String>`; emitted C runs with `3`, `3`, `5`, `2`, `beta`, `0`.
+Removing the List ABI fact and injecting a String into `List<Int>` both fail
+closed. Focused producer-first parity passed with `body_fixtures=20
+mir_fixtures=1`; the component and hard contracts passed against the clean
+staged snapshot. Commit `431c2416` is pushed and the DRV-2 manifest contains
+276 rows. Full unfiltered DRV-2 and LLVM lanes were not run.
+
+The clean bootstrap seed remains blocked by the pre-existing generated-C
+`None` identifier error; an isolated compile define was used only for focused
+driver verification. The current dirty worktree retains the concurrent
+Option-emission slice. The next executable seam is Queue in
+`sequence_literal_list_queue`: the List path now reaches
+`undefined_function QueueSize`.
+
 2026-07-24 Pergyra lexical List shadow identity executable closure.
 Objective: preserve parser/semantic local-binding identity through MIR SSA
 construction and restore the active typed environment at lexical block exit.
@@ -24,11 +51,10 @@ error; an isolated compile define was used only to build the focused driver.
 Executable commit `564de5be` is pushed and the DRV-2 manifest contains 275
 rows. Full unfiltered 275-row DRV-2 and LLVM lanes were not run.
 
-The next observed executable seam is
-`tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`: the
-self-host semantic owner reports `let_type_mismatch` for `expected: List<Int>`
-versus `actual: Array<Int>`. The next owner must close contextual
-sequence-literal typing without making List consumers recover Array facts.
+The List portion of `tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`
+is now closed; the self-host driver reaches `undefined_function QueueSize`.
+The next owner must establish the Queue runtime ABI/call boundary without
+making List consumers recover Queue facts.
 
 2026-07-24 Pergyra ListPush scalar graph value executable closure.
 Objective: carry the arithmetic value in `ListPush(xs, i * i)` through one

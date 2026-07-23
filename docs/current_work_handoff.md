@@ -7,17 +7,24 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `564de5be` (`Close lexical List shadow
-  scope SoT`) is pushed to `origin/main`. The branch is clean relative to
-  origin for committed work, with three intentionally preserved unstaged
-  edits from a concurrent Option-emission slice:
+- Latest executable implementation: `431c2416` (`Close List literal
+  contextual SoT`) is pushed to `origin/main`. The worktree intentionally
+  preserves a concurrent Option-emission slice in the following dirty paths:
+  `docs/semantics/sot_owner_spine_registry.md`, `src/self_hosted/OWNERS.md`,
+  `src/self_hosted/codegen/emission/expr_rewrite.pgy`,
+  `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy`,
   `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy`,
-  `src/self_hosted/codegen/emission/option_value_emit_owner.pgy`, and
-  `tests/self_hosted_component_contract_smoke.sh`.
-- The committed DRV-2 manifest contains 275 MIR fixtures, with
-  `list_shadow_scope_metadata` as the latest executable row. Missing inner
-  declaration ABI type is its negative gate; `items.2` must restore to
-  `items.1` after the branch.
+  `src/self_hosted/codegen/emission/option_value_emit_owner.pgy`,
+  `src/self_hosted/codegen/emission/struct_value_emit.pgy`,
+  `src/self_hosted/codegen/README.md`, `src/self_hosted/codegen/intent.md`,
+  `tests/self_hosted_component_contract_smoke.sh`, and the new untracked
+  `src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy`.
+- The committed DRV-2 manifest contains 276 MIR fixtures, with
+  `list_literal_context` as the latest executable row. Its negative gates
+  remove the List ABI type fact and replace a List element with a String.
+- `431c2416` closes the List portion of
+  `sequence_literal_list_queue`; the same focused driver now reaches the
+  next open Queue seam at `undefined_function QueueSize`.
 - `564de5be` includes the previously carried `stmt_emit.pgy` and
   `try_let_emit_owner.pgy` scope changes; they are no longer separate dirty
   files.
@@ -96,17 +103,51 @@ Observed closure:
 - Commit `ec719baa` is pushed. The full unfiltered 274-row DRV-2 matrix and
   LLVM lane were not run.
 
-## Next observed executable seam: contextual sequence literal typing
+## Last closed executable family: contextual List sequence literals
+
+Objective card:
+
+- Objective: type `[ ... ]` from the declared `List<T>` initializer through
+  one parser-owned sequence shape and emit the declared List runtime ABI.
+- Priority: declared element compatibility, initializer fact promotion,
+  MIR ABI carriage, List constructor/push emission, negative ratchet, then
+  patch size.
+- Fact owner: `ast_expression_graph_array_literal_owner.pgy` owns graph
+  element compatibility and `SemanticSequenceElementType` owns the shared
+  Array/Slice/List/Queue shape projection; the initializer and composite
+  emission owners are the last consumers.
+- Forbidden fallback: Array-to-List name guessing, backend element-type
+  recovery, source reparse, or treating Queue as a List runtime ABI.
+- Verification gate:
+  `driver_rung2_list_literal_context_parity_owner.sh`; falsifiers remove a
+  List declaration ABI fact or inject a String into `List<Int>`.
+
+Observed closure:
+
+- Native/self MIR agree on `List<Int>`, `List<String>`, and empty
+  `List<String>` sequence literals. Self-host C emits element-specific List
+  constructor/push/size symbols and runs with `3`, `3`, `5`, `2`, `beta`, `0`.
+- Focused producer-first source/MIR parity passed with
+  `body_fixtures=20 mir_fixtures=1`. Component and hard-contract gates passed
+  against the clean staged snapshot; the current dirty worktree's component
+  gate is not claimed because the concurrent Option slice exceeds its existing
+  composite-emitter line cap.
+- The clean bootstrap seed remains blocked by the pre-existing generated-C
+  `None` identifier error; the focused driver used an isolated compile define
+  only for verification. Commit `431c2416` is pushed. Full unfiltered 276-row
+  DRV-2 and LLVM lanes were not run.
+
+## Next observed executable seam: Queue runtime ABI and calls
 
 - The current next fixture is
   `tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`.
-- The self-host driver fails closed at the semantic owner with
-  `let_type_mismatch`, `expected: List<Int>`, `actual: Array<Int>` for its
-  typed sequence literal initializer.
-- Next objective: route contextual sequence-literal element/container typing
-  through one initializer/array-literal owner; do not make the List consumer
-  guess Array-to-List compatibility. The first falsifier is a missing or
-  mismatched declared element type fact.
+- Its List portion is now executable; the self-host driver reaches
+  `undefined_function QueueSize` in the remaining Queue path.
+- Next objective: establish one self-host Queue runtime ABI owner and carry
+  Queue target/element/return facts through call validation and emission.
+  Do not make List owners or backend spelling recover Queue facts. The first
+  falsifier is a missing Queue runtime row or a mismatched declared Queue
+  element type.
 
 ## Last closed executable family: List foreach iteration and ABI
 
