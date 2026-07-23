@@ -1,19 +1,38 @@
 # Self-Host Progress
 
-2026-07-23 LLVM call-result type SoT closure: the native MIR
-`mir_source_local_call_expr_type_name` owner now carries the payload type for
-`UnwrapOption(Option<T>)`, and LLVM call type inference consumes that active
-MIR fact before backend-local inference. No LLVM call-name type special case,
-`Int` fallback, or graph-text recovery was added. The assignment projection
-probe passes on both C and LLVM, including missing expected type, target type,
-call target, C binding, and collection `cref`-only fail-closed negatives.
-The 8-fixture C/LLVM codegen shard also passes (`rung-0..21`).
+2026-07-23 LLVM runtime-call argument ABI closure. Objective: compile
+Pergyra-owned wrapper/assignment code when a dependent-return expression is a
+runtime call argument, without adding another C call-name policy. Priority is
+one ABI owner, removal of the AST re-scan fallback, fail-closed emitted-value
+validation, then patch size. The registered `LLVMFuncEntry::fn_type` parameter
+is the fact owner; `llvm_emit_function_call_args` is the last legitimate
+consumer. Forbidden fallbacks are `UnwrapOption` name branches, re-walking an
+AST call through `mir_source_local_call_expr_type_name`, source-text recovery,
+and unchecked `LLVMBuildCall2` arguments.
+
+`llvm_emit_function_call_args` now scopes the registered parameter's LLVM type
+as `expected_abi_type`, restores the prior context after inference, and rejects
+argument count or emitted LLVM value type drift from the same function ABI.
+Call inference can consume only that scoped boundary fact; it does not learn
+Option/Result helper names. The interim native MIR call re-scan, its
+`UnwrapOption` branch, and the Option type-text helper from `e3cc1375` were
+removed after an isolated HEAD-plus-ABI build proved them unnecessary.
+
+The wrapper policy LLVM probe and assignment projection pass on both C and
+LLVM, including missing expected type, target type, call target, C binding, and
+collection `cref`-only fail-closed negatives. The 8-fixture C/LLVM codegen
+shard also passes (`rung-0..21`) for
+`array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`.
+The negative ratchet rejects restoration of the AST/MIR call re-scan or a
+native `UnwrapOption` type guess and requires ABI context restoration plus
+emitted-value validation.
 
 The next executable falsifier is not selected from the passing focused gates;
-the full matrix remains an explicit budget omission. The MIR declaration
-inventory smoke gate still has a pre-existing unrelated baseline failure in
-`src/codegen/transpiler.c` (`emit_class_decl_from_mir_header(header, ctx)`),
-so it is not evidence against this closure.
+the full unfiltered matrix remains an explicit budget omission. The MIR
+declaration inventory smoke gate still has a pre-existing unrelated baseline
+failure in `src/codegen/transpiler.c`
+(`emit_class_decl_from_mir_header(header, ctx)`), so it is not evidence against
+this closure.
 
 2026-07-23 Pergyra function-binding consumer SoT follow-up: collection
 mutation targets (`ArraySet`, `ArrayPush`, `ArrayPop`) now read their C binding
@@ -33,8 +52,8 @@ because no prover is installed.
 
 The next executable falsifier recorded at this checkpoint was the LLVM
 assignment projection `UnwrapOption` return-type failure. It is closed by the
-LLVM call-result type SoT entry above through the active MIR fact owner; no
-backend call-name special case was added.
+runtime-call argument ABI entry above; the temporary native MIR call-name path
+is not part of the closed design.
 
 2026-07-23 Pergyra function-value binding SoT closure: the focused assignment
 projection gate first reproduced `assignment target C binding fact is missing`

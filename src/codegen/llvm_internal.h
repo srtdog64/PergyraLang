@@ -560,6 +560,10 @@ typedef struct LLVMGenCtx
      * llvm_emit_let_decl. Consulted first by Result<T,E> suffix resolution
      * before falling back to the enclosing function's return type. */
     const char         *expected_type_name;
+    /* The active call ABI owns the concrete type expected at its argument
+     * boundary.  This is scoped by the call-argument emitter and must not be
+     * retained as a source-level semantic type fact. */
+    LLVMTypeRef         expected_abi_type;
     ASTNode            *expected_callable_type;
 
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */

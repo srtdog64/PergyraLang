@@ -9,7 +9,6 @@
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_match_variant_policy.h"
-#include "../compiler/mir_source_local_expr_call_facts.h"
 #include "../parser/ast_api.h"
 
 #include <stdarg.h>
@@ -171,27 +170,6 @@ llvm_stmt_contextual_result_type(LLVMGenCtx *ctx)
         return candidate;
     }
     return NULL;
-}
-
-static LLVMTypeRef
-llvm_stmt_infer_mir_call_fact_type(LLVMGenCtx *ctx, ASTNode *expr)
-{
-    MIRSourceLocalTypeScratch scratch = { 0 };
-    const MIRProgram *mir;
-    const char *type_name;
-
-    if (ctx == NULL || expr == NULL || ctx->current_mir_routine == NULL)
-        return NULL;
-    mir = llvm_active_mir_identity(ctx);
-    if (mir == NULL)
-        return NULL;
-    type_name = mir_source_local_call_expr_type_name(
-        mir, ctx->current_mir_routine, &scratch, expr);
-    if (type_name == NULL || type_name[0] == '\0'
-        || strcmp(type_name, "Unknown") == 0) {
-        return NULL;
-    }
-    return pergyra_type_to_llvm(ctx, type_name);
 }
 
 static LLVMTypeRef
@@ -358,10 +336,6 @@ LLVMTypeRef
 llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
 {
     ASTNode *callee_node = ast_call_callee(expr);
-    LLVMTypeRef mir_call_type = llvm_stmt_infer_mir_call_fact_type(ctx, expr);
-
-    if (mir_call_type != NULL && !ctx->has_error)
-        return mir_call_type;
 
     if (callee_node != NULL && callee_node->type == AST_MEMBER_ACCESS
         && ast_member_name(callee_node) != NULL
@@ -517,6 +491,11 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return cls->struct_type;
         }
     }
+    /* A runtime call parameter is the final ABI owner for its argument type.
+     * Use that scoped fact instead of teaching this inference layer the names
+     * of dependent-return helpers such as Option/Result unwrap operations. */
+    if (ctx->expected_abi_type != NULL)
+        return ctx->expected_abi_type;
     /* Domain helper result types are owned by typed inference. */
     if (ctx->expected_type_name != NULL) {
         LLVMTypeRef expected = pergyra_type_to_llvm(ctx, ctx->expected_type_name);

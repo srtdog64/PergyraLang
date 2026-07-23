@@ -243,23 +243,6 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
         }
         return NULL;
     }
-    if (callee_name != NULL && strcmp(callee_name, "UnwrapOption") == 0
-        && ast_call_arg_count(expr) >= 1) {
-        const char *option_type = mir_source_local_expr_type_name(program,
-            routine, scratch, ast_call_argument(expr, 0));
-        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
-        char *buffer;
-
-        if (!mir_source_local_unwrap_option_type(option_type, inner,
-                sizeof(inner))) {
-            return NULL;
-        }
-        buffer = mir_source_local_type_scratch_next(scratch);
-        if (buffer == NULL)
-            return NULL;
-        memcpy(buffer, inner, strlen(inner) + 1);
-        return buffer;
-    }
     fixed_return = mir_source_local_builtin_fixed_return_type_name(callee_name);
     if (fixed_return != NULL)
         return fixed_return;

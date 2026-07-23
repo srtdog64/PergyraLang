@@ -16,6 +16,7 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
 {
     LLVMValueRef *args = NULL;
     LLVMValueRef result;
+    unsigned param_count;
 
     if (ctx == NULL || func == NULL)
         return NULL;
@@ -27,6 +28,17 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
             PGY_FIX_ALIGN_GENERIC_ARG_LIST,
             "LLVM call helper argument count exceeds backend ABI limits for '%s'",
             LLVMGetValueName(func->fn));
+        return NULL;
+    }
+
+    param_count = LLVMCountParams(func->fn);
+    if ((size_t)param_count != argc) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            "LLVM call helper argument count does not match runtime ABI for '%s': expected %u, got %zu",
+            LLVMGetValueName(func->fn), param_count, argc);
         return NULL;
     }
 
@@ -51,7 +63,12 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
             return NULL;
         }
         for (size_t i = 0; i < argc; i++) {
+            LLVMTypeRef expected_abi_type =
+                LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i));
+            LLVMTypeRef saved_expected_abi_type = ctx->expected_abi_type;
+            ctx->expected_abi_type = expected_abi_type;
             LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_nodes[i]);
+            ctx->expected_abi_type = saved_expected_abi_type;
             if (ctx->has_error)
                 return NULL;
             if (arg_type == ctx->type_void) {
@@ -70,6 +87,15 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "LLVM call helper could not lower argument %zu for '%s'",
+                    i, LLVMGetValueName(func->fn));
+                return NULL;
+            }
+            if (LLVMTypeOf(args[i]) != expected_abi_type) {
+                llvm_set_error_at_with_hints(ctx, arg_nodes[i],
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "LLVM call helper argument %zu does not match runtime ABI for '%s'",
                     i, LLVMGetValueName(func->fn));
                 return NULL;
             }
