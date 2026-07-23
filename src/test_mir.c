@@ -619,6 +619,51 @@ test_mir_carries_function_param_flow_summary(void)
     hir_destroy(hir);
 }
 
+static void
+test_mir_carries_region_escape_facts(void)
+{
+    static const char *source =
+        "func Main() -> Void { Print(\"a\" + \"b\"); }\n";
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    char *error = NULL;
+    bool carried = false;
+    bool validated = false;
+    bool rejected_unknown_function = false;
+
+    if (!lower_mir_from_source(source, &hir, &rir, &mir)) {
+        TEST("MIR carries HIR region escape facts");
+        EXPECT(false);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        return;
+    }
+    carried = hir->has_region_escape_facts
+        && mir->has_region_escape_facts
+        && hir->region_escape_fact_count == 1
+        && mir->region_escape_fact_count == hir->region_escape_fact_count
+        && mir->region_escape_facts != hir->region_escape_facts
+        && mir->region_escape_facts[0].allocation_site_id
+            == hir->region_escape_facts[0].allocation_site_id
+        && mir->region_escape_facts[0].function_syntax_id
+            == hir->region_escape_facts[0].function_syntax_id;
+    validated = mir_validate(mir, &error);
+    free(error);
+    error = NULL;
+    if (mir->region_escape_fact_count > 0) {
+        mir->region_escape_facts[0].function_syntax_id = UINT32_MAX;
+        rejected_unknown_function = !mir_validate(mir, &error);
+    }
+    TEST("MIR carries HIR region escape facts by owned stable identity");
+    EXPECT(carried && validated && rejected_unknown_function);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
 #include "tests/mir/test_mir_lowering_part_a_1.cases.h"
 #include "tests/mir/test_mir_lowering_part_a_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_1.cases.h"
@@ -639,6 +684,7 @@ static void
 test_mir_lowering(void)
 {
     test_mir_carries_function_param_flow_summary();
+    test_mir_carries_region_escape_facts();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();
     test_mir_lowering_part_c();

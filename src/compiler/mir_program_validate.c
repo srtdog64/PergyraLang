@@ -9,6 +9,7 @@
 #include "mir_machine_layer.h"
 #include "mir_public_surface.h"
 #include "mir_parallel_capture_facts.h"
+#include "mir_region_escape_facts.h"
 #include "mir_generic_method_specialization.h"
 #include "mir_validation.h"
 
@@ -479,6 +480,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
     if (!mir_validate_inventory_surface_usage(mir, error_message))
         return false;
     if (!mir_validate_parallel_capture_facts(mir, error_message))
+        return false;
+    if (!mir_validate_region_escape_facts(mir, error_message))
         return false;
     if (!mir_generic_method_specializations_validate(mir, error_message))
         return false;

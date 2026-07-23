@@ -916,6 +916,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_semantic_fact_projection.c \
                    $(COMPILER_DIR)/hir_region_escape_facts.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_region_escape_facts.c \
                    $(COMPILER_DIR)/mir_hir_block_projection.c \
                    $(COMPILER_DIR)/mir_hir_fact_transfer.c \
                    $(COMPILER_DIR)/mir_iteration_type_facts.c \
@@ -1513,6 +1514,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/machine_layer_manifest.o \
                    $(BUILD_DIR)/compiler/mir_machine_layer.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_region_escape_facts.o \
                    $(BUILD_DIR)/compiler/mir_hir_block_projection.o \
                    $(BUILD_DIR)/compiler/mir_hir_fact_transfer.o \
                    $(BUILD_DIR)/compiler/mir_iteration_type_facts.o \

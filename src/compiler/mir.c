@@ -13,6 +13,7 @@
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
 #include "mir_parallel_capture_facts.h"
+#include "mir_region_escape_facts.h"
 #include "mir_generic_method_specialization.h"
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
@@ -463,6 +464,11 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                     routine.blocks[b].has_invalidation_succ);
             }
         }
+    }
+
+    if (!mir_import_region_escape_facts(mir, hir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
     }
 
     mir_link_decl_method_routines(mir);

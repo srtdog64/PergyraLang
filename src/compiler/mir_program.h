@@ -28,6 +28,10 @@ struct MIRProgram
     size_t      decl_header_capacity;
     MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t      parallel_capture_boundary_count;
+    /* HIR-projected semantic region rows retained as MIR-owned facts. */
+    bool        has_region_escape_facts;
+    PgyRegionEscapeFact *region_escape_facts;
+    size_t      region_escape_fact_count;
     MIRGenericMethodSpecializationFact *generic_method_specializations;
     size_t      generic_method_specialization_count;
     size_t      generic_method_specialization_capacity;

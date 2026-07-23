@@ -367,6 +367,10 @@ func RegionPlanHirEscapeSourcePath() -> String {
     return "src/compiler/hir_region_escape_facts.c";
 }
 
+func RegionPlanMirEscapeSourcePath() -> String {
+    return "src/compiler/mir_region_escape_facts.c";
+}
+
 func RegionPlanCConsumerPath() -> String {
     return "src/codegen/transpiler_context.c";
 }
@@ -376,7 +380,7 @@ func RegionPlanLlvmConsumerPath() -> String {
 }
 
 func RegionPlanRequiredCount() -> Int {
-    return 13;
+    return 14;
 }
 
 func RegionPlanRequiredPathAt(index: Int) -> String {
@@ -386,6 +390,7 @@ func RegionPlanRequiredPathAt(index: Int) -> String {
     if index <= 10 { return RegionPlanEscapeSourcePath(); }
     if index == 11 { return RegionPlanDriverPath(); }
     if index == 12 { return RegionPlanHirEscapeSourcePath(); }
+    if index == 13 { return RegionPlanMirEscapeSourcePath(); }
     return "";
 }
 
@@ -407,8 +412,9 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
     if index == 8 { return "semantic_region_escape_collect"; }
     if index == 9 { return "ast_call_semantic_callee_builtin_kind"; }
     if index == 10 { return "region_escape_append_concat_spine"; }
-    if index == 11 { return "hir->region_escape_facts"; }
+    if index == 11 { return "mir->region_escape_facts"; }
     if index == 12 { return "hir_attach_region_escape_facts"; }
+    if index == 13 { return "mir_import_region_escape_facts"; }
     return "";
 }
 
@@ -416,7 +422,7 @@ func RegionPlanRequiredTermAt(index: Int) -> String {
 // they never re-run the escape analysis. Either one would re-open a private
 // lifetime decision inside codegen -- the exact drift this artifact removes.
 func RegionPlanForbiddenCount() -> Int {
-    return 7;
+    return 8;
 }
 
 func RegionPlanForbiddenPathAt(index: Int) -> String {
@@ -425,7 +431,7 @@ func RegionPlanForbiddenPathAt(index: Int) -> String {
     if index == 2 { return RegionPlanCConsumerPath(); }
     if index == 3 { return RegionPlanLlvmConsumerPath(); }
     if index == 4 || index == 5 { return RegionPlanDriverPath(); }
-    if index == 6 { return RegionPlanDriverPath(); }
+    if index == 6 || index == 7 { return RegionPlanDriverPath(); }
     return "";
 }
 
@@ -437,6 +443,7 @@ func RegionPlanForbiddenTermAt(index: Int) -> String {
     if index == 4 { return "pgy_region_escape_v1_collect"; }
     if index == 5 { return "pgy_region_escape_v1_free"; }
     if index == 6 { return "sem->region_escape_facts"; }
+    if index == 7 { return "hir->region_escape_facts"; }
     return "";
 }
 
@@ -457,13 +464,13 @@ func RegionPlanReady() -> Bool {
         RegionPlanOwnerScopeFailsClosed() &&
         RegionPlanIncompletenessIsSound() &&
         RegionPlanDispositionsAreBounded() &&
-        RegionPlanRequiredCount() == 13 &&
-        RegionPlanForbiddenCount() == 7 &&
+        RegionPlanRequiredCount() == 14 &&
+        RegionPlanForbiddenCount() == 8 &&
         RegionPlanRequiredPathAt(0) == RegionPlanHeaderPath() &&
-        RegionPlanRequiredPathAt(12) == RegionPlanHirEscapeSourcePath() &&
+        RegionPlanRequiredPathAt(13) == RegionPlanMirEscapeSourcePath() &&
         RegionPlanRequiredTermAt(0) != "" &&
-        RegionPlanRequiredTermAt(12) != "" &&
-        RegionPlanForbiddenPathAt(6) == RegionPlanDriverPath() &&
+        RegionPlanRequiredTermAt(13) != "" &&
+        RegionPlanForbiddenPathAt(7) == RegionPlanDriverPath() &&
         RegionPlanForbiddenTermAt(0) != "" &&
         RegionPlanMissingSelfTestTerm() != "";
 }

@@ -24,8 +24,9 @@ require|src/semantic/region_escape_fact.h|typedef struct PgyRegionEscapeFact
 require|src/semantic/region_escape_fact.c|semantic_region_escape_collect
 require|src/semantic/region_escape_fact.c|ast_call_semantic_callee_builtin_kind
 require|src/semantic/region_escape_fact.c|region_escape_append_concat_spine
-require|src/compiler/driver_app.c|hir->region_escape_facts
+require|src/compiler/driver_app.c|mir->region_escape_facts
 require|src/compiler/hir_region_escape_facts.c|hir_attach_region_escape_facts
+require|src/compiler/mir_region_escape_facts.c|mir_import_region_escape_facts
 forbid|src/codegen/transpiler_context.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/llvm_expr_scalar_core.c|pgy_verified_region_plan_from_escape
 forbid|src/codegen/transpiler_context.c|pgy_region_escape_v1_collect
@@ -33,3 +34,4 @@ forbid|src/codegen/llvm_expr_scalar_core.c|pgy_region_escape_v1_collect
 forbid|src/compiler/driver_app.c|pgy_region_escape_v1_collect
 forbid|src/compiler/driver_app.c|pgy_region_escape_v1_free
 forbid|src/compiler/driver_app.c|sem->region_escape_facts
+forbid|src/compiler/driver_app.c|hir->region_escape_facts
