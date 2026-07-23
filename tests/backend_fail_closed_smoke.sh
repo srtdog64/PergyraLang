@@ -80,6 +80,19 @@ grep -Fq "C backend typed registry exceeded MAX_SLOT_VARS" \
     "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 grep -Fq "mir_source_local_expr_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
+grep -Fq "case AST_ARRAY_ACCESS:" \
+    "$ROOT_DIR/src/compiler/mir_source_local_expr_types.c"
+grep -Fq "mir_source_local_unwrap_array_or_slice_type(collection_type" \
+    "$ROOT_DIR/src/compiler/mir_source_local_expr_types.c"
+grep -Fq "llvm_mir_local_owner_expr_type(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_expected_type.c"
+grep -Fq "MIR source-local array access type fact is missing" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_expected_type.c"
+if grep -Fq "llvm_stmt_resolve_array_elem_type(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_expected_type.c"; then
+    echo "[backend-fail-closed] MIR local array access typing reopened LLVM collection scan" >&2
+    exit 1
+fi
 grep -Fq "llvm_mir_local_expected_type_name(" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 if grep -F "Option<Int>" \

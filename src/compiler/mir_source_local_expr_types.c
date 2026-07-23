@@ -35,6 +35,22 @@ mir_source_local_expr_type_name(const MIRProgram *program,
     case AST_IDENTIFIER:
         return mir_source_local_identifier_type_name(program, routine,
             ast_identifier_name(expr));
+    case AST_ARRAY_ACCESS: {
+        const char *collection_type = mir_source_local_expr_type_name(
+            program, routine, scratch, ast_array_access_array(expr));
+        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        char *buffer;
+
+        if (!mir_source_local_unwrap_array_or_slice_type(collection_type,
+                inner, sizeof(inner))) {
+            return NULL;
+        }
+        buffer = mir_source_local_type_scratch_next(scratch);
+        if (buffer == NULL)
+            return NULL;
+        memcpy(buffer, inner, strlen(inner) + 1);
+        return buffer;
+    }
     case AST_CHANNEL_RECV: {
         const char *channel_type = mir_source_local_expr_type_name(program,
             routine, scratch, ast_channel_recv_channel(expr));
