@@ -99,17 +99,8 @@ func EmitLet(
             AbiLayoutCLocalType(type_name, env), Concat(" ", declaration)
         );
     }
-    if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
-        );
-        let value: String = RewriteExpectedValueWithSemanticGraph(
-            expr, type_name, env, graph
-        );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
-            Concat(c_name, Concat(" = ", Concat(value, ";")))));
-    }
-    if SpawnRuntimeCFutureCValueType(type_name) != "" {
+    if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" ||
+        SpawnRuntimeCFutureCValueType(type_name) != "" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, type_name, c_name
         );

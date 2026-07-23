@@ -1,4 +1,4 @@
-// Runtime ABI owner for the bounded direct Int -> Int spawn rung.
+// Runtime ABI owner for bounded direct Int -> Int spawn and named Future<Int>.
 
 import "../text/text_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";

@@ -3897,6 +3897,10 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
     "SpawnRuntimeCFutureCValueType"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "SpawnRuntimeCFutureCValueType"
+require_text "tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh" \
+    "named Future was accepted as a scalar"
+require_text "tests/self_hosted/parity/driver_rung2_spawn_await_parity_owner.sh" \
+    "named Future used a scalar or sequential fallback"
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     "pgy_lane_scheduler.h"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
