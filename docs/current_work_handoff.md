@@ -7,24 +7,48 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `c5903680` (`Close generic multi-bound
-  default SoT`) is pushed. Handoff refresh `ae041e06` is also pushed and was
-  the observed `HEAD=origin/main` before this correction.
-- The committed DRV-2 manifest now contains 269 MIR fixtures, with
-  `generic_multi_bound_defaults` enrolled as the latest row and its owner
-  checks wired into the body/producer parity gates.
-- The generic parser/HIR/semantic/MIR edits are committed. Resume by verifying
-  `git status --short --branch`, the registry row
-  `selfhost.ability_generic_bounds`, and the focused gate named below.
-- At this correction, another active task owns uncommitted prospective row-270
-  enrollment edits in `driver_rung2_owner.pgy`,
-  `driver_rung2_body_parity.sh`, and the component contract. Preserve them,
-  but do not count row 270 as substitution until contextual `ListNew` executes
-  and has a negative gate.
+- Latest executable implementation: `474e6e76` (`Close nested generic List ABI
+  SoT`) is pushed; `HEAD=origin/main` before this handoff refresh.
+- The committed DRV-2 manifest contains 270 MIR fixtures, with
+  `nested_generic_containers` enrolled as the latest row and its owner checks
+  wired into the body/producer parity gates.
+- The nested List path is executable: contextual `ListNew` resolves the
+  declared `List<HashMap<String, Int>>`, self-host and native MIR agree, and
+  emitted C compiles and runs.
+- Resume by verifying `git status --short --branch`, the registry rows
+  `selfhost.expression_surface`, `selfhost.initializer_type_verdict`, and
+  `selfhost.type_runtime_usage_surface`, plus the focused gate below.
 - Earlier generic checkpoints: `0169b856` (Int specialization), `3d74c9dd`
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: nested generic List ABI
+
+Objective card:
+
+- Objective: carry contextual `ListNew` and nested `List<HashMap<String, Int>>`
+  ABI facts from parser-owned call/type surfaces through self-host C emission.
+- Priority: one contextual type owner, canonical list runtime ABI,
+  fail-closed missing/unsupported facts, negative ratchet, then patch size.
+- Fact owners: `SemanticBuiltinSignatureRows`,
+  `ast_contextual_builtin_type_owner.pgy`, and
+  `list_runtime_owner.pgy`; last consumers are initializer facts, ABI layout,
+  runtime header selection, and program emission.
+- Forbidden fallback: bare Unknown constructor success, implicit element
+  guessing, nested type flattening, source reparse, and backend-only ABI guess.
+- Verification gate:
+  `driver_rung2_nested_generic_containers_parity_owner.sh`; falsifiers are
+  missing contextual type and unsupported nested element ABI.
+
+Observed closure:
+
+- Native and self-host MIR agree on `List<HashMap<String, Int>>`.
+- Self-host emits the canonical list specialization and constructor symbol;
+  emitted C compiles and the fixture runs with output `nested`.
+- Component, hard-contract, shell syntax, `git diff --check`, authority
+  adequacy, and authority edge gates passed. Coq/Rocq was an explicit skip
+  because no prover is installed.
 
 ## Last closed executable family: ability generic multi-bound defaults
 
@@ -248,17 +272,17 @@ Not run:
 
 ## Next executable work
 
-The next observed executable seam is
-`tests/cases/backend_compare/nested_generic_containers/main.pgy`:
+The next observed executable seam is the collection-call artifact boundary in
+`tests/cases/backend_compare/list_ops/main.pgy`:
 
-- native C compiles it, while the current Pergyra driver rejects `ListNew()`
-  as `undefined_function` with fact `func: ListNew`;
-- `SemanticBuiltinSignatureRows` must own constructor identity/arity, while
-  the initializer-type owner derives the exact contextual result
-  `List<HashMap<String, Int>>` from the declared binding type;
-- first falsifier: missing context must remain rejected. A bare
-  `ListNew^Unknown^none`, flattened nested type, implicit `Int` element, or
-  codegen-only type guess is not closure;
+- native C emits and runs the list mutation path, while the current
+  self-hosted driver rejects the parser-owned artifact at owner
+  `collection_call_target` before codegen;
+- the next owner must repair/carry the call-target fact for `ListPush`,
+  `ListGet`, `ListSet`, `ListRemove`, and `ListSize` without source-text
+  reparse or backend callee guessing;
+- first falsifier: a missing or malformed collection call-target row must fail
+  closed with the existing `ast_artifact_invalid`/owner diagnostic;
 - do not add fixture-name, local-variable-name, or compatibility fallback
   paths.
 
@@ -268,11 +292,9 @@ Adjacent evidence:
   do not count duplicate fixture enrollment as executable substitution.
 - `generic_multi_bound_defaults` and the `StorageParty` dynamic ability-bind
   owner seams are closed.
-- `nested_generic_containers` is the active executable rung, not a request to
-  add every collection builtin at once.
-- Its current uncommitted fixture/count enrollment is supporting evidence only;
-  it is not executable progress by itself.
-- The next code commit must advance contextual `ListNew` substitution and its
+- `nested_generic_containers` is closed by `474e6e76`, including its
+  contextual-type and unsupported-element negatives.
+- The next code commit must advance the `collection_call_target` owner and its
   negative gate, not add a docs-only or fixture-only substitute.
 
 ## Workstation and recovery facts

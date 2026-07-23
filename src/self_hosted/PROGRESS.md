@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra nested generic List ABI executable closure.
+Objective: carry contextual `ListNew` typing and the canonical
+`List<HashMap<String, Int>>` runtime ABI from parser-owned call/type facts
+through self-host semantic validation, C layout, and emitted runtime symbols
+under one owner. Priority was one contextual type owner, canonical list ABI,
+fail-closed missing/unsupported facts, negative ratchets, then patch size.
+
+`SemanticBuiltinSignatureRows` owns `ListNew^List<Unknown>^none`,
+`ast_contextual_builtin_type_owner.pgy` joins the call spine with the declared
+binding type, and `list_runtime_owner.pgy` owns the supported element ABI and
+specialization macro. Native/self MIR agree on the nested type; self-host C
+emits `PGY_LIST_DEFINE(HashMap_String_Int, PgyHashMap_Int)`, compiles, and runs
+the fixture. Missing contextual type fails with
+`initializer_type_unresolved`; unsupported `HashMap<String, Float>` fails
+closed with the List runtime ABI diagnostic. Commit `474e6e76` is pushed.
+
+The focused producer-first gate passed with
+`backends=1 body_fixtures=20 mir_fixtures=1`. Component contract, hard
+contract, shell syntax, `git diff --check`, authority adequacy, and authority
+edge gates passed. The edge gate reports 45 authorities, 39 derived carriers,
+`CLOSED=25 BRIDGE=20 ACTIVE=0`; Coq was explicitly skipped because no
+`rocq`/`coqc` is installed. The next observed seam is the
+`collection_call_target` artifact boundary on `list_ops`; the current driver
+fails closed there before codegen.
+
 2026-07-24 Pergyra ability generic multi-bound/default executable closure.
 Objective: carry declaration-site ability generic `where` bounds and defaults
 from parser/HIR facts through `SemanticAstRoleFacts`, native/self MIR, and
@@ -29,15 +54,9 @@ needed path normalization. The full unfiltered 269-row matrix and LLVM lane
 were not run. Implementation commit `c5903680` and handoff refresh `ae041e06`
 are pushed.
 
-The next observed executable seam is `nested_generic_containers`: native C
-compiles it, while self-host rejects `ListNew()` as `undefined_function` with
-`func: ListNew`. `SemanticBuiltinSignatureRows` must own constructor
-identity/arity, and the initializer-type owner must derive the exact contextual
-`List<HashMap<String, Int>>` result. Do not add a bare Unknown-return builtin,
-flatten the nested generic type, assume `Int`, or let codegen guess it. Another
-active task currently owns uncommitted prospective row-270 enrollment edits;
-those edits are not substitution progress until the fixture executes and a
-missing-context negative gate prevents fallback.
+The nested generic List ABI seam described in the current handoff is now
+closed by `474e6e76`; the next executable work is the `collection_call_target`
+artifact boundary on list mutation calls.
 
 2026-07-24 Pergyra dynamic ability-bind dispatch executable closure. Objective:
 carry party role-slot, role implementation, ability method, and bind identity
