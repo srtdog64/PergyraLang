@@ -9,16 +9,16 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `c435b4c179b8599d6bbd645a0a6d1505a31059e7` on `main`.
+- Captured code HEAD: `26a736934afc43ea60197e695ed2ddc183e8cb7b` on `main`.
 - `main` and `origin/main` are equal at the captured HEAD.
 - The live worktree is dirty and the index is clean. The latest observed state
-  has 11 unstaged tracked entries and 49 untracked paths before this handoff
-  refresh. The fixture-235-239, progress, codegen, parity, and component
+  has 11 unstaged tracked entries and 51 untracked paths before this handoff
+  refresh. The fixture-235-241, progress, codegen, parity, and component
   changes are concurrent work and remain unstaged; the retired Result-named
   parity owner is the tracked deletion. Preserve all of these paths
-  separately. The untracked paths are existing allocator, defer, TextBuilder,
-  bootstrap, wrapper-policy, and parity probes. Build artifacts remain
-  ignored; run `git status --short --branch` before resuming because this
+  separately. The untracked paths are the existing allocator, defer,
+  TextBuilder, bootstrap, wrapper-policy, and parity probes. Build artifacts
+  remain ignored; run `git status --short --branch` before resuming because this
   count can change.
 - This session created and pushed `c435b4c1` for the HIR region-fact carriage
   SoT closure. The HIR projection now owns stable copies of semantic region
@@ -359,6 +359,11 @@ current owner fact and update this file after verification.
   validates stable allocation/function identity, and the driver consumes only
   `hir->region_escape_facts`; missing or incomplete HIR carriage fails closed.
   This HIR SoT closure is committed and pushed as `c435b4c1`.
+- The MIR retention follow-up moved the rows through
+  `src/compiler/mir_region_escape_facts.c`. MIR owns a second stable copy,
+  validates allocation-site/function identity, and the driver consumes only
+  the MIR carrier before AIR-gated plan materialization. This closure is
+  committed and pushed as `26a73693`.
 - Observed green gates for this slice are region unit, verified-plan unit,
   arena, C/LLVM backend wiring, self-host region-plan, component contract,
   alternate-path LLVM-disabled/enabled compiler builds, SoT authority, and
@@ -369,12 +374,16 @@ current owner fact and update this file after verification.
   not changed by this slice. The HIR-specific `test-hir` gate passed with
   25/25 tests, the region unit/backend gates passed, the self-host region-plan
   contract passed with 13 projection pins and 7 producer rejections, and the
-  LLVM-enabled/disabled compiler builds passed.
-- This closes the semantic producer-to-HIR retention and driver direct-read
-  fallback seams. The `resource.region_allocation_plan` registry row remains
-  `BRIDGE` until MIR retention and the remaining producer migration are
-  complete. Before widening the certified class, preserve the explicit HEAP
-  default and choose the next missing owner fact with a falsifying fixture.
+  LLVM-enabled/disabled compiler builds passed. The MIR-specific test gate
+  passed with 152/152 tests, the self-host region-plan contract passed with
+  14 projection pins and 8 producer rejections, and both compiler build lanes
+  passed.
+- This closes the semantic producer-to-HIR-to-MIR retention and driver
+  direct-read fallback seams. The `resource.region_allocation_plan` registry
+  row remains `BRIDGE` until broader semantic retention summaries and complete
+  region allocation ownership are migrated. Before widening the certified
+  class, preserve the explicit HEAP default and choose the next missing owner
+  fact with a falsifying fixture.
 
 ### 4. Runtime instance ownership rung
 
