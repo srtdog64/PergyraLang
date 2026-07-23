@@ -273,7 +273,7 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
             let candidate: Int = 0;
             while candidate < block_count {
                 if candidate != block && true_distance[candidate] >= 0 &&
-                    false_distance[candidate] >= 0 {
+                    false_distance[candidate] >= 0 && MirRoutineGraphIsSameIterationMerge(block_succ_true, block_succ_false, block, true_id, false_id, candidate) {
                     let distance: Int = true_distance[candidate] + false_distance[candidate];
                     if distance < best_distance {
                         best_distance = distance;

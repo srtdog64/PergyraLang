@@ -1,5 +1,278 @@
 # Self-Host Progress
 
+2026-07-23 Pergyra collection-enum-match-loop delta: DRV-2 MIR fixture 244 is
+`array_match_action_sim`. The executable seam is intentionally whole-language:
+`prices[i]: Int` flows through `DecideOf -> Action`, an exhaustive `match`, and
+the `cash`/`shares`/`i` loop-carried state. The 243-hard baseline exposed the
+real missing fact: its Pergyra MIR-to-structured-AST path could reach a candidate
+merge only after re-entering the same branch through the loop backedge, so it
+reconstructed the increment and `Continue` twice and then failed canonical MIR
+consumption. `MirRoutineGraphIsSameIterationMerge` now owns the current-
+iteration CFG condition: both arms must reach the candidate without re-entering
+the branch. `routine_fact_index_owner.pgy` consumes that fact, while the CFG
+query remains in `mir_cfg_graph_owner.pgy`; no C fragment, source reparse,
+fixture-name branch, native-MIR injection, backend reconstruction, or fallback
+was added.
+
+Focused C, LLVM, and freshly Pergyra-built 244-hard producer-first parity pass
+with `body_fixtures=20` and `mir_fixtures=1`; the corrected structural probe has
+exactly one increment and one `Continue`. The new driver is
+`.tmp/bin_array_match_action_sim_244_hard/pgy-self-driver.exe`, SHA-256
+`F742594D3F60704CA5FA24153E7CB9364C3679974FD3308543B8E3CFFDE6DE9A`,
+with 244 manifest rows. Native/self canonical MIR is byte-equal at SHA-256
+`751E8420182B99A7BEF93D45FF5B0D811F2D588D15A8FDAE6068CDD5CEF86EBD`;
+hard oracle/self/source emitted C is byte-equal at SHA-256
+`DC42840CD11F49A56512158289E66B35A84372713160224F5C4BACF5F2810773`;
+runtime output is `1060`, `1000`, `1000`. Removing a required call target,
+changing the index graph kind, removing `Hold`, deleting a loop-phi input, or
+changing the collection to `Array<String>` fails closed. The eight-fixture
+array/enum/match impact shard passes.
+
+The focused component, loop-flow, structural, shell, diff, SoT, protocol, and
+substitution-velocity gates pass. A broader unfiltered `mir_json_parity.sh` run
+stopped at the pre-existing `option_match` carrier gap: native MIR carries
+`match_bindings` but not `match_binding_types`, and the Pergyra renderer
+correctly refuses to infer the missing type. This is recorded as an open broader
+gate, not fixture-244 success. Full 244 remains omitted under the 30-minute
+budget; the last complete matrix is 230/230 and fixture 245 is not selected.
+
+2026-07-23 Pergyra indexed-array-to-method composition delta: DRV-2 MIR
+fixture 243 is `class_param_method_arr`. `rates[i]` keeps its `Int` identity
+from the `Array<Int>` parameter through the index node into the
+`Bag2.Worth(rate: Int)` member call, and the result joins the `total` loop phi.
+The existing class/array composition owner was generalized for both fixture
+242 and 243; no C-shaped second owner was added. No source reparse,
+method-name/C-type guess, backend array-element reconstruction, native-MIR
+injection, fallback, or runtime fragment was added.
+
+Focused C/LLVM/current-242-hard/new-243-hard producer-first parity passed in
+separate lanes. The new driver is
+`.tmp/bin_class_param_method_arr_243_hard/pgy-self-driver.exe`, SHA-256
+`4A60C32EDA22778441FB3A309C88F0CF3378006AA6807407EAB82B6DF85F8697`,
+with 243 manifest rows. All four lanes produced canonical MIR SHA-256
+`854D22B250D3FA04F067050079FA7D10581316EDA0258C5769C2F4FF53D7848F`.
+Hard oracle/self/source emitted-C SHA-256 is
+`848F3290CF90348203718BF88B7B2E05FA88B64D9685837CBDFE9D15E61EB882`;
+runtime output is `1800`, `100`, `0`, `0`. Removing `Bag2`, `Bag2_Worth`, or
+`TotalWorth`, changing the index node to a leaf, or changing the array element
+type to `String` fails closed; the last case reports
+`call_arg_type_mismatch`. The eight-fixture class/array hard shard and all
+component, shell, diff, SoT, protocol, and substitution-velocity gates pass.
+
+A diagnostic combined LLVM/previous-hard run stopped on the existing
+`valid_compound_local` body fixture because the two driver runtimes frame an
+otherwise identical C artifact with two terminal LF bytes versus one. The
+separate official-style lanes are green and fixture 243 canonical semantics
+are identical; this stdout-framing observation is not recorded as semantic
+parity. Full 243 remains omitted under the 30-minute budget; the last complete
+matrix is 230/230 and fixture 244 was not selected at that checkpoint.
+
+2026-07-23 Pergyra class/array composition delta: DRV-2 MIR fixture 242 is
+`class_with_array_param`. `FillArr` creates, mutates, loops over, and returns
+one typed `Array<Int>` value; `SumWith` consumes that same array together with
+the nominal `Slot2` value through indexed reads and loop-carried totals. One
+class/array composition owner checks the function signatures, array and scalar
+phi chains, nominal member graphs, indexed-assignment graph, and exact target
+cardinality. No C pointer or array-shape guess, source reparse, fixture compiler
+branch, native-MIR injection, backend fallback, or runtime fragment was added.
+
+Focused C/LLVM/current-241-hard/new-242-hard parity passed. The new driver is
+`.tmp/bin_class_with_array_param_242_hard/pgy-self-driver.exe`, SHA-256
+`73499B3EAE8688A7DB9E2E8FD72467E6F3628E5CF61BB9FC446CC9B24C4BADDC`,
+with 242 manifest rows. Hard canonical MIR SHA-256 is
+`1DBD9F2297163F4C725FCE3C90ADD59DF71E9BDA3741F06669C455CF7AE9CB65`;
+emitted-C SHA-256 is
+`08A649224DB7521A377B401DF2450A14F065AAD5DABFB38CB95A392E2C6F27A6`;
+runtime output is `93`, `146`, `138`, `225`. Removing a required target or the
+indexed-assignment graph fails expression-graph admission; replacing the array
+parameter type with `Unknown` fails with `assignment_type_unresolved`. The
+seven-fixture class/array hard shard and all component, shell, diff, SoT,
+protocol, and substitution-velocity gates pass. Full 242 remains omitted under
+the 30-minute budget; the last complete matrix is 230/230 and fixture 243 is
+not selected.
+
+2026-07-23 Pergyra nominal/builtin identity delta: DRV-2 MIR fixture 241 is
+`class_user_box`. A user-declared `class Box` remains a nominal class even
+though its name collides with the generic builtin `Box<T>`. The typed graph
+carries `New -> Box_WithWeight -> Box_Heavy` through fluent temporaries and
+then projects `weight` and `label`. A named nominal-collision owner checks the
+class declaration, methods, return identity, target cardinality, and negative
+mutations. No spelling-based builtin precedence, generic-shape guess,
+method-chain source reparse, fixture compiler branch, C type guess,
+native-MIR injection, or backend fallback was added.
+
+Focused C/LLVM/current-240-hard/new-241-hard parity passed. The new driver is
+`.tmp/bin_class_user_box_241_hard/pgy-self-driver.exe`, SHA-256
+`61DDEF412F281EFBF3DE8D72220C2D590256D08EDD634615E38B68E2AF5CD3FF`,
+with 241 manifest rows. Hard canonical MIR SHA-256 is
+`B0FD14CCFE846A752E345D4AA2DE8F6976B13AA80BAFA3B48682AFD509205AB1`;
+emitted-C SHA-256 is
+`AFFB7BE44EB3404D306C6AC986A5723E187BAB6799727E4FF96BFBE540B5EBFB`;
+runtime output is `false`, `true`, `0`, `5`. Removing `Box`, `New`,
+`Box_WithWeight`, or `Box_Heavy` fails expression-graph admission; removing
+the `WithWeight` routine identity fails with `class method is missing routine
+fact: Box.WithWeight`. The six-fixture nominal/class hard shard and all
+component, shell, diff, SoT, protocol, and substitution-velocity gates pass.
+Full 241 remains omitted under the 30-minute budget; the last complete matrix
+is 230/230 and fixture 242 is not selected.
+
+2026-07-23 Pergyra class-predicate-to-enum composition delta: DRV-2 MIR fixture
+240 is `class_method_enum_classify`. `Counter.IsZero`, `IsBig`, and `IsPos`
+produce typed `Bool` decisions for `Classify -> Verdict`; `Process` consumes
+that enum through an exhaustive match and then reads the same `Counter.value`.
+The prior enum-to-class test owner was migrated to one class/enum composition
+owner covering both directions. The old owner path is deleted and statically
+rejected. No method/variant name compiler branch, condition or match source
+reparse, C enum/struct guess, native-MIR injection, backend fallback, or
+runtime fragment was added.
+
+Focused C/LLVM/current-239-hard/new-240-hard parity passed. The new driver is
+`.tmp/bin_class_method_enum_classify_240_hard/pgy-self-driver.exe`, SHA-256
+`D8FD169659A41883253ABCBBF636624E82E80DD8814FE6B84B57308C3EAA61EF`,
+with 240 manifest rows. Hard canonical MIR SHA-256 is
+`9D36D5AD76893D408F236D4A855E8DBB67C5C457E6E4108E9F6FA948ACE07D52`;
+emitted-C SHA-256 is
+`CD0E1060F1F0EABF650B8EEB1451B05060E5A5128E3275AB776512B87298DE1E`;
+runtime output is `0`, `5`, `1500`, `3`, `99`, `1010`. Removing any predicate
+member target or `Classify` fails expression-graph admission; removing `Zero`
+fails the match-variant owner. The seven-fixture class/enum hard shard passes.
+The fixture component contract passed after the owner migration. A later
+whole-tree rerun briefly exposed the concurrent MIR-region slice's missing
+`hir->region_escape_facts` term in `driver_app.c`; the current tree has since
+closed that in-progress connection and the component gate is green again.
+Shell, diff, SoT, protocol, and substitution-velocity gates pass. Full 240
+remains omitted under the 30-minute budget; the last complete matrix is
+230/230 and fixture 241 was not yet selected at that checkpoint.
+
+2026-07-23 Pergyra enum-to-class composition delta: DRV-2 MIR fixture 239 is
+`enum_to_class_match`. An exhaustive `Class` match returns the nominal `Stat`
+value through three constructor arms; `Power` then carries that exact type
+through the `StatOf` call into `s.val * s.scale`. One cohesive parity owner
+checks the variant, constructor, direct-call, local-type, and member-consumer
+spine. No arm source reparse, fixture/name compiler branch, C struct guess,
+native-MIR injection, backend fallback, or runtime fragment was added.
+
+Focused C/LLVM/current-238-hard/new-239-hard parity passed. The new driver is
+`.tmp/bin_enum_to_class_match_239_hard/pgy-self-driver.exe`, SHA-256
+`7DFAC543959457B623423BF72451EC3D7273E99B4E648B6D5DD92D33CAAA3109`,
+with 239 manifest rows. Hard canonical MIR SHA-256 is
+`C56176FBC7A957839E6564C97762D9E5E38EBB4A2D35E8ABE4CBACF8271A1C12`;
+emitted-C SHA-256 is
+`E528C2F62DD94ACE037EA1EA78A850AEC3DAD78A8EF55B2B3F36FA6E2667F4A0`;
+runtime output is `100`, `100`, `90`. Removing the `Stat` or `StatOf` direct
+target fails expression-graph admission, and removing `Tank` from the enum
+declaration fails the match-variant owner. The eight-fixture enum/class/
+wrapper/recursive hard shard and all static/SoT gates pass. Full 239 remains
+omitted under the 30-minute budget; the last complete matrix is 230/230 and
+fixture 240 is not selected.
+
+2026-07-23 Pergyra recursive class-state delta: DRV-2 MIR fixture 238 is
+`class_recursive_factory`. `Train` recursively composes the class-valued
+`LevelUp(Charge(...))` result and the final `State.Power()` member call. The
+typed MIR graph owns the direct targets `Train`, `LevelUp`, and `Charge`, plus
+the member target `State_Power`; no source-call reparse, name reconstruction,
+fixture compiler branch, native-MIR injection, C fallback, backend-local
+policy, or runtime fragment was added. Removing any one target fails graph
+admission.
+
+Focused C/LLVM/current-237-hard/new-238-hard parity passed. The driver is
+`.tmp/bin_class_recursive_factory_238_hard/pgy-self-driver.exe`, SHA-256
+`2124BAFB7A32A02315DE68653588DDA9E29740B83965F446DA550081E1FCEFF1`,
+with 238 manifest rows. Hard canonical MIR SHA-256 is
+`B913B640CAC865090F25904D98A8BC6E775C5EDB221151AF595A51425851B8DC`;
+emitted-C SHA-256 is
+`8659DBEC896573DE8D1D465ADD332935CEBF7039BB9A9EA6AB105426F7C3A712`;
+runtime output is `10`, `20`, `40`, `60`. The six-fixture recursion/class
+hard shard and all static/SoT gates pass. Full 238 remains omitted under the
+30-minute budget; the last complete matrix is 230/230 and fixture 239 is not
+selected.
+
+2026-07-23 Pergyra Bool short-circuit composition delta: DRV-2 MIR fixture 237
+is `class_method_short_circuit`. `Counter_IsAtLeast` and `Counter_IsBetween`
+return typed `Bool` values consumed by explicit `logical_or`, `logical_and`,
+and `logical_not` graph nodes. No truthy C conversion, source-condition reparse,
+method-name reconstruction, fixture compiler branch, or backend fallback was
+added. Removing either member target fails graph admission; mutating
+`logical_or` to arithmetic `add` fails at the semantic artifact boundary with
+`statement_type_unresolved`.
+
+Focused C/LLVM/current-236-hard/new-237-hard parity passed. The driver is
+`.tmp/bin_class_method_short_circuit_237_hard/pgy-self-driver.exe`, SHA-256
+`D63ACF6742DC35657474E4F598E3462DBBE5EEC108F7CEEA5F78BE37BD121C02`,
+with 237 manifest rows. Hard canonical MIR SHA-256 is
+`12237342D552943CD977FE6BBA3BA1CB365092C9C89B17559A04CE2AB151710E`;
+emitted-C SHA-256 is
+`28BB101C11D4D78EAE7650AD2C82DA84E017FE4B743CD6FD30B26ED1E27AA429`;
+runtime output is `1`, `2`, `0`, `1`. The seven-fixture Bool/class shard and
+all static/SoT gates pass. Full 237 remains omitted under the 30-minute budget;
+the last complete matrix is 230/230 and fixture 238 is not selected.
+
+2026-07-23 Pergyra nested-class composition delta: DRV-2 MIR fixture 236 is
+`class_within_class_chain`. It preserves nested `Inner` identity through an
+`Outer` value return and the temporary chain
+`MakeOuter(...).WithNewTag(...).InnerId()`. The typed graph owns both
+`Outer_WithNewTag` and `Outer_InnerId`; the call-target parity owner consumes
+an explicit target list instead of a one-target special case. No dotted-text
+reparse, temporary C-type guess, fixture/name compiler branch, native-MIR
+injection, C fallback, backend-local policy, or runtime fragment was added.
+
+Focused C/LLVM/current-235-hard/new-236-hard parity passed. The new driver is
+`.tmp/bin_class_within_class_chain_236_hard/pgy-self-driver.exe`, SHA-256
+`48BCCE98B059CAE485420EFCF769262B9F4039073DE507AD5B28AAA07543D4BC`,
+with 236 manifest rows. Hard canonical MIR SHA-256 is
+`C9E25AF4ED67BD39AA2637F32454EAFE11EAD993381D9BA540FB08B807D0E02B`;
+emitted-C SHA-256 is
+`219F6C813B42C6148406D95539A41BDF31DA307CE349838E19E90A48AE7D9D1E`;
+runtime output is `42`, `1`, `42`, `99`, `100`, `10`. Removing either member
+target fails graph admission. The seven-fixture nested-class shard and all
+static/SoT gates pass. Full 236 remains omitted under the 30-minute budget;
+the last complete unfiltered matrix is 230/230 and fixture 237 is not selected.
+
+2026-07-23 Region callee identity SoT closure: the region escape producer now
+consumes the semantic-owned `BuiltinKind` fact on each call through the AST
+accessor contract. It no longer certifies a direct `Print` concat by recovering
+callee spelling from source-shaped AST text; a missing semantic fact stays
+HEAP. The semantic call checker records the fact, and the C/LLVM region backend
+parity gate passes for certified and non-certified cases.
+
+The focused region unit gate passes, including the missing-fact negative. The
+self-hosted region-plan owner gate passes with 11 required projections and 6
+producer-rejection terms; region-plan and arena smoke gates also pass. Compiler
+builds pass with `LLVM_ENABLED=0` and `LLVM_ENABLED=1`, with only the existing
+warning set. This closes the callee-identity fallback seam only; the full
+`resource.region_allocation_plan` registry row remains `BRIDGE` until semantic
+HIR/MIR retention and the remaining producer migration are complete.
+
+2026-07-23 Pergyra Option/class loop replacement delta: DRV-2 MIR fixture 235
+is `class_bump_option_match`. It proves wrapper ownership is not Result-only:
+`Counter.Bump -> Option<Counter> -> Some(next) -> c -> while backedge`.
+The self-hosted producer carries `Some(next): Counter`, the member target
+`Counter_Bump`, and the exact state chain `c.1 -> c.3 -> c.7/c.3 -> c.10 ->
+c.3`. The prior Result-named loop-phi test owner was migrated to one
+`wrapper_match_loop_phi` owner shared by Result and Option; the old path is
+deleted and statically rejected. Compiler semantics gained no fixture/name
+branch, source re-scan, wrapper representation guess, native-MIR injection,
+C fallback, backend-local policy, or runtime fragment.
+
+Focused C-built, LLVM-built, current-234-hard, and freshly Pergyra-built
+235-hard parity each passed with 20 body fixtures and one MIR fixture. The new
+driver is `.tmp/bin_class_bump_option_match_235_hard/pgy-self-driver.exe`,
+SHA-256
+`AE573D90C1266DE447E9CC63EA71466E9F62ACFA3D348894DCB865B8C5798904`,
+and its manifest has 235 rows ending in `class_bump_option_match`. On the new
+focused hard lane, native/self canonical MIR SHA-256 is
+`4EA70E1B407EADDE4B21F0F928CC82A2B6DDBBC39B9D3A3A9EEC0004500A7B7B`;
+oracle-MIR/self-MIR/source emitted C SHA-256 is
+`BFA6F1EA4FA410122B51808BE04CCF4F953CAF191F058F201B8144C932098506`;
+and runtime output is `5`, `10`, `10`, `0`. Removing the Option payload type or
+`Counter_Bump` fails graph admission; removing `c.7` fails the `Steps` phi
+verifier. A twelve-fixture Result/Option/enum/match-phi/frontier hard shard and
+component, shell syntax, diff, SoT authority, gate-owner, protocol-registry,
+and substitution-velocity gates pass. The full 235-row matrix was not run
+under the 30-minute integration budget; the last complete unfiltered
+current-hard matrix remains 230/230. Released/default-driver replacement
+remains open, and fixture 236 was not yet selected at that checkpoint.
+
 2026-07-23 Pergyra class-method Result loop replacement delta: DRV-2 MIR
 fixture 234 is `class_method_result_loop`. It closes the method-owned variant
 of the same high-level state transition:
@@ -13,8 +286,9 @@ semantics, no source re-scan or pattern inference was introduced, and no
 native-MIR, C fallback, backend-local representation, or runtime fragment was
 added.
 
-Focused C-built, LLVM-built, and freshly Pergyra-built 234-hard
-producer-first parity each passed with 20 body fixtures and one MIR fixture.
+Focused C-built, LLVM-built, current-233-hard, and freshly Pergyra-built
+234-hard producer-first parity each passed with 20 body fixtures and one MIR
+fixture.
 The fresh hard driver is
 `.tmp/bin_class_method_result_loop_234_hard/pgy-self-driver.exe`, SHA-256
 `AFE689EDCB93AEAE7FE9CC9FDFCAD16E4F03C6AE244053EAA59A01DA27FDCE2E`.
@@ -24,12 +298,15 @@ SHA-256 is
 hard source-MIR-C/self-MIR-C SHA-256 is
 `1C0F1419F35B8F0F7AE43E47C8772A71516C11254C19C79C54F2439072495D0F`.
 Removing `match_binding_types` or the `Calc_DivBy` call target fails graph
-admission. Removing the `acc.4` loop-carried input fails closed with
+admission. Removing the `acc.8` match-success merge input fails closed with
 `MIR phi facts are missing or inconsistent: RunSeries`. Component, shell
-syntax, hard contract, and diff gates pass. The full 234-row matrix was not
-run because the observed runtime exceeds the 30-minute integration budget;
-the last complete unfiltered current-hard matrix remains 230/230.
-Released/default-driver replacement remains open.
+syntax, hard contract, diff, SoT authority, gate-owner, protocol-registry, and
+substitution-velocity gates pass. An eleven-fixture
+Result/Option/enum/match-phi/frontier hard shard also passes. The full 234-row
+matrix was not run because the observed runtime exceeds the 30-minute
+integration budget; the last complete unfiltered current-hard matrix remains
+230/230. Released/default-driver replacement remains open, and fixture 235 was
+not yet selected at that checkpoint.
 
 2026-07-23 Pergyra loop-state replacement delta: DRV-2 MIR fixture 233 is
 `class_result_chain_loop`. It closes one high-level state transition:

@@ -9,10 +9,12 @@ pgy_selfhost_verify_driver_rung2_match() {
     local match_pattern missing_match_pattern missing_phi_input unknown_phi_input
     local missing_match_binding missing_match_binding_type missing_enum_variant
     local result_ok_pattern result_err_pattern result_ok_type
+    local option_some_pattern option_none_pattern option_payload_type
 
     if [[ "$base" != "match_case_int" &&
         "$base" != "match_case_assign" &&
         "$base" != "option_match" &&
+        "$base" != "class_bump_option_match" &&
         "$base" != "enum_match" &&
         "$base" != "class_holds_enum_field" &&
         "$base" != "dish_result_collect" &&
@@ -98,15 +100,38 @@ pgy_selfhost_verify_driver_rung2_match() {
         }
         return 0
     fi
-    if [[ "$base" == "option_match" ]]; then
-        for match_pattern in \
-            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"],"match_binding_types":["Int"]' \
-            '"match_patterns":["None"],"match_variant":"None","match_bindings":[],"match_binding_types":[]'; do
+    if [[ "$base" == "option_match" ||
+        "$base" == "class_bump_option_match" ]]; then
+        option_some_pattern='"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"],"match_binding_types":["Int"]'
+        option_none_pattern='"match_patterns":["None"],"match_variant":"None","match_bindings":[],"match_binding_types":[]'
+        option_payload_type="Int"
+        if [[ "$base" == "class_bump_option_match" ]]; then
+            option_some_pattern='"match_patterns":["Some(next)"],"match_variant":"Some","match_bindings":["next"],"match_binding_types":["Counter"]'
+            option_payload_type="Counter"
+        fi
+        for match_pattern in "$option_some_pattern" "$option_none_pattern"; do
             grep -Fq "$match_pattern" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Option match fact was lost: $match_pattern" >&2
                 exit 1
             }
         done
+        missing_match_binding_type="$BUILD_DIR/${base}_${backend}.missing-option-binding-type.mir.json"
+        pgy_replace_first_literal "$self_mir_json" "$missing_match_binding_type" \
+            "\"match_binding_types\":[\"$option_payload_type\"]" \
+            '"match_binding_types":[]'
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$missing_match_binding_type")" \
+            >"$missing_match_binding_type.out" 2>"$missing_match_binding_type.err"); then
+            echo "[self-host-parity:driver-rung2] $backend missing Option binding type was accepted" >&2
+            exit 1
+        fi
+        grep -Eq "(MIR instruction expression graph is missing or invalid|MIR expression graph facts are missing or inconsistent)" \
+            "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
+            echo "[self-host-parity:driver-rung2] $backend missing Option binding type diagnostic drifted" >&2
+            cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
+            exit 1
+        }
+        [[ "$base" == "option_match" ]] || return 0
         missing_match_binding="$BUILD_DIR/${base}_${backend}.missing-match-binding.mir.json"
         sed 's/"match_bindings":\["v"\],"match_binding_types":\["Int"\]/"match_bindings":[],"match_binding_types":[]/' \
             "$self_mir_json" >"$missing_match_binding"

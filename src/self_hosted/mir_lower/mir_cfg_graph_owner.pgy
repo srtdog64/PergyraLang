@@ -109,3 +109,16 @@ func MirRoutineEdgeTargetsDominator(
         block_succ_true, block_succ_false, 0, source, target
     );
 }
+
+// A structural merge belongs to the current branch execution only when both
+// arms can reach it without re-entering the branch through a loop backedge.
+func MirRoutineGraphIsSameIterationMerge(
+    block_succ_true: Array<String>, block_succ_false: Array<String>,
+    branch: Int, true_start: Int, false_start: Int, candidate: Int
+) -> Bool {
+    return MirRoutineGraphCanReachAvoiding(
+        block_succ_true, block_succ_false, true_start, candidate, branch
+    ) && MirRoutineGraphCanReachAvoiding(
+        block_succ_true, block_succ_false, false_start, candidate, branch
+    );
+}

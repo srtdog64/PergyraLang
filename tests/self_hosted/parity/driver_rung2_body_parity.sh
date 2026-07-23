@@ -26,6 +26,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parit
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh"
@@ -35,6 +36,10 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_o
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_nominal_builtin_collision_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_class_array_composition_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_enum_match_loop_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"
@@ -46,7 +51,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_grap
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
-source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_result_loop_phi_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
@@ -166,8 +171,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 234 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 234" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 244 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 244" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"

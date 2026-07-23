@@ -613,7 +613,8 @@ reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
-require_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact"
+require_text "tests/self_hosted/parity/lexer_parity.sh" "pgy_selfhost_normalize_text_artifact"
+reject_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact() {"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "read_lexer_fixture_manifest"
 require_text "tests/self_hosted/parity/lexer_parity.sh" '"$PERGYRA_TOOL_BUILD_DIR/main.exe" --fixture-manifest'
@@ -3813,9 +3814,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_call.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 234;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 244;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 234'
+    'mir_fixture_rows[@]}" -ne 244'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3852,10 +3853,39 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_result_chain_loop/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/class_method_result_loop/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_bump_option_match/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_within_class_chain/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_short_circuit/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_recursive_factory/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/enum_to_class_match/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_method_enum_classify/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_user_box/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_with_array_param/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/class_param_method_arr/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"tests/cases/backend_compare/array_match_action_sim/main.pgy"'
+require_file "tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'driver_rung2_result_loop_phi_parity_owner.sh'
+    'driver_rung2_recursive_call_target_parity_owner.sh'
+reject_file "tests/self_hosted/parity/driver_rung2_result_loop_phi_parity_owner.sh"
+require_file "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_wrapper_match_loop_phi_parity_owner.sh'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
-    'pgy_selfhost_verify_driver_rung2_result_loop_phi'
+    'pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi'
 require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
     "func ResultErrorTypeOpt"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
@@ -4127,11 +4157,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 234;"
+    "return 244;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 234'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 244'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/branch_defer_scope/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4438,6 +4468,45 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_enum_return"
 require_text "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh" \
     '"kind":"leaf","text":"Missing","call_target_kind":"none"'
+reject_file "tests/self_hosted/parity/driver_rung2_enum_class_value_parity_owner.sh"
+require_file "tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh" 140
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_class_enum_composition_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_class_enum_composition"
+require_text "tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh" \
+    'class/enum composition as one Pergyra semantic seam'
+require_text "tests/self_hosted/parity/driver_rung2_class_enum_composition_parity_owner.sh" \
+    'match enum variant declaration fact is missing'
+require_file "tests/self_hosted/parity/driver_rung2_nominal_builtin_collision_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_nominal_builtin_collision_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_nominal_builtin_collision_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_nominal_builtin_collision"
+require_text "tests/self_hosted/parity/driver_rung2_nominal_builtin_collision_parity_owner.sh" \
+    'user nominal identity when its name collides with a generic builtin'
+require_file "tests/self_hosted/parity/driver_rung2_class_array_composition_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_class_array_composition_parity_owner.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_class_array_composition_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_class_array_composition"
+require_text "tests/self_hosted/parity/driver_rung2_class_array_composition_parity_owner.sh" \
+    'class plus growable-array composition as one Pergyra semantic seam'
+require_file "tests/self_hosted/parity/driver_rung2_collection_enum_match_loop_parity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_collection_enum_match_loop_parity_owner.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_collection_enum_match_loop_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_collection_enum_match_loop"
+require_text "tests/self_hosted/parity/driver_rung2_collection_enum_match_loop_parity_owner.sh" \
+    'collection element -> enum decision -> match-loop state as one Pergyra seam'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "func RewriteSemanticExpectedValue(" "EnumPayloadFreeArgumentProjectionFactOpt"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
@@ -6790,6 +6859,10 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexB
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutineEdgeTargetsDominator("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "MirRoutineGraphCanReachAvoiding("
+require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "func MirRoutineGraphIsSameIterationMerge("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "MirRoutineGraphIsSameIterationMerge("
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "target <= block_row"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(index, bs, false)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let key: String = Concat("\"id\":'

@@ -32,13 +32,9 @@ pgy_selfhost_prepare_driver_rung2_mir_oracles() {
     done
 }
 pgy_selfhost_run_driver_rung2_mir_producer_parity() {
-    local backend="$1"
-    local driver_bin="$2"
-    local fixture_rel base mir_json mir_json_arg self_mir_json
-    local self_mir_json_arg oracle_canonical oracle_canonical_arg self_canonical
-    local oracle_canonical_mode
-    local actual err self_actual source_actual mir_baseline bare_call_missing_graph
-    local machine_fixture
+    local backend="$1" driver_bin="$2"
+    local fixture_rel base mir_json mir_json_arg self_mir_json self_mir_json_arg oracle_canonical
+    local oracle_canonical_arg self_canonical oracle_canonical_mode actual err self_actual source_actual mir_baseline bare_call_missing_graph machine_fixture
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         base="$(pgy_selfhost_driver_rung2_fixture_base "$fixture_rel")"
         machine_fixture=0
@@ -95,6 +91,10 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_foreach_call_type "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_enum_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_enum_return "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_class_enum_composition "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_nominal_builtin_collision "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_class_array_composition "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_collection_enum_match_loop "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
@@ -125,7 +125,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         fi
         pgy_selfhost_verify_driver_rung2_match \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
-        pgy_selfhost_verify_driver_rung2_result_loop_phi "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_loop_phi \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_continue \
