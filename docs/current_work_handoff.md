@@ -9,15 +9,16 @@ current owner fact and update this file after verification.
 
 ## Repository checkpoint
 
-- Captured code HEAD: `1ecadb4a` (`Close LLVM array index type SoT`) on `main`;
-  `origin/main` points to the same revision. The working tree was clean at this
-  checkpoint.
+- Captured code HEAD: `3552092a` (`Close LLVM array access element type SoT`)
+  on `main`; `origin/main` points to the same revision. The code checkpoint
+  has exactly two unrelated concurrent dirty paths listed below.
 - The preceding local runtime-ABI closure and its handoff refresh,
   `bccc5d50` and `9faeab66`, were concurrent work preserved in the tree; both
   are now pushed with this branch. This refresh changes only this handoff
-  document. The unrelated concurrent edit in
-  `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy` remains
-  unstaged and must be preserved.
+  document. The unrelated concurrent edits in
+  `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy` and
+  `src/self_hosted/semantic/call_check_owner.pgy` remain unstaged and must be
+  preserved.
 - `1ecadb4a` closes the bounded active-MIR LLVM local-expression seam for
   `AST_ARRAY_ACCESS`: `mir_source_local_expr_type_name` owns the element type,
   `llvm_mir_local_infer_expr_type` consumes that fact, and a missing or
@@ -29,9 +30,13 @@ current owner fact and update this file after verification.
   and its shell-syntax check passed; and the LLVM `array_index_assign` fixture
   ran with output `13` and `zb` and exit code 0. The build emitted only existing
   warnings; the full matrix remains an explicit budget omission.
-- At handoff refresh time, the only remaining dirty path is the concurrent
-  `ast_expression_graph_field_type_owner.pgy` edit above; no source or test
-  path from the `1ecadb4a` closure is dirty.
+- At handoff refresh time, the only remaining dirty paths are the two
+  concurrent edits above; no source or test path from the `1ecadb4a` or
+  `3552092a` closures is dirty.
+- `3552092a` extends that owner-directed type through the actual LLVM array
+  value emitter. `llvm_emit_array_access_expr` uses the shared MIR local
+  array-access projection for active MIR identifier and aggregate loads, while
+  the old resolver remains only as the non-MIR compatibility branch.
 - Commit `c2932d47` was created and pushed for the collection/let/try-let
   binding-consumer SoT follow-up. Collection mutation targets now require the
   owner-provided `cbind`, while `let`, `try-let`, range-loop, and foreach names
@@ -74,6 +79,14 @@ current owner fact and update this file after verification.
   `array_index_assign` LLVM witness passes. This does not close the whole
   `selfhost.expression_surface` registry row; aggregate/unknown wrapper and
   other expression surfaces remain `BRIDGE`.
+- The latest executable LLVM value-emission closure is `3552092a`: the same
+  MIR source-local element type owner now reaches inline/raw array loads and
+  aggregate GEP loads. The fail-closed smoke ratchet requires the owner lookup,
+  missing-fact diagnostic, and active owner selection in both emission shapes.
+  `array_index_assign`, `array_scalar_aggregate_core`, and
+  `array_double_aggregate_core` pass with the separate LLVM binary. The
+  registry row remains `BRIDGE`; collection-result/element typing and other
+  aggregate wrapper surfaces are not claimed closed.
 - Executable witnesses: the assignment projection probe emits its five pinned
   Option/scalar/indexed rows and rejects missing expected type, indexed target
   type, direct call target, and C binding. `owner_field_assignment` proves
@@ -117,8 +130,9 @@ current owner fact and update this file after verification.
 - The prior active falsifier, LLVM `UnwrapOption` inference inside a registered
   runtime-call argument, is closed by `bccc5d50` through the runtime ABI owner.
   `e3cc1375` is retained in history as an interim C-owned AST re-inference path,
-  not as the final design. The next bounded falsifier is a missing MIR
-  source-local collection type fact for `AST_ARRAY_ACCESS`; it must produce
+  not as the final design. The next bounded falsifier is an active-MIR
+  `AST_ARRAY_ACCESS` whose receiver is a collection-valued call/member result
+  without a carried source-local collection type fact; it must produce
   `MIR source-local array access type fact is missing`. No new fixture has been
   admitted for that negative yet, and the full matrix remains an explicit
   budget omission.
@@ -898,16 +912,18 @@ current owner fact and update this file after verification.
 2. Read the newest entries in `src/self_hosted/PROGRESS.md`, then the relevant
    section of `docs/193` or `docs/197`.
 3. Do not reopen the closed LLVM assignment or active-MIR array-index probes.
-   The next bounded negative is the missing MIR source-local collection type
-   fact for `AST_ARRAY_ACCESS`; before widening the slice, make that failure
-   executable and record its objective card with the missing fact, owner, last
-   legitimate consumer, forbidden fallback, and focused negative fixture.
-   Prefer a real Pergyra implementation replacing a C-owned compiler path over
-   another SoT-only cleanup.
+   The next bounded negative is an `AST_ARRAY_ACCESS` over a collection-valued
+   call/member result without a carried source-local collection type fact;
+   before widening the slice, make that failure executable and record its
+   objective card with the missing fact, owner, last legitimate consumer,
+   forbidden fallback, and focused negative fixture. Prefer a real Pergyra
+   implementation replacing a C-owned compiler path over another SoT-only
+   cleanup.
 4. Run the narrow owner gate first. For the current tree, the array-index
-   closure gates are `tests/backend_fail_closed_smoke.sh` and the LLVM
-   `array_index_assign` fixture with the separate verification binary. Other
-   useful focused gates include `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
+   closure gates are `tests/backend_fail_closed_smoke.sh`, the separate LLVM
+   build, and the `array_index_assign`, `array_scalar_aggregate_core`, and
+   `array_double_aggregate_core` fixtures. Other useful focused gates include
+   `match-binding-type-fact-test-smoke`, `mir-lowering-api-test-smoke`,
    `parallel-capture-projection-test-smoke`, `region-arena-test-smoke`,
    `region-plan-unit-test-smoke`, `region-escape-unit-test-smoke`,
    `runtime-context-test-smoke`, and the selected DRV-2 producer-first parity
