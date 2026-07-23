@@ -1,13 +1,41 @@
 # Self-Host Progress
 
-2026-07-23 Pergyra Option-Bool coalesce-condition delta: DRV-2 MIR fixture 246
-is `coalesce_in_if_condition`. The typed `MaybeFlag(arr[i]): Option<Bool>` fact
-flows through `?? false` into an `if` inside the `count`/`i` array loop. This
-fixture extends the existing coalesce payload owner to the Boolean branch
-consumer; it adds no source reparse, fixture-name branch, native-MIR injection,
-backend reconstruction, or fallback inference. The dedicated parity owner
-checks the direct target, indexed element, coalesce graph, and loop phis, then
-rejects missing target, index identity, operator kind, and phi input mutations.
+2026-07-23 Pergyra nested-coalesce-chain coverage ratchet: DRV-2 MIR manifest
+row 247 is `nested_coalesce_chain`. Two `HalvedIfPositive` calls carry
+`Option<Int>` through `?? fallback` into the local `first -> second` value
+chain. The existing coalesce semantic owner remains the sole payload-
+compatibility owner; the new parity owner checks both graph nodes and direct
+target cardinality, then rejects a missing nested target or mutated coalesce
+kind. The pre-existing 245-hard driver accepts the unmodified row, so this is
+not an executable replacement delta and the counted frontier remains 245. Its
+first coalesce-kind mutation fails at the owned initializer boundary with
+`initializer_type_unresolved`; the parity owner pins that actual diagnostic.
+No source reparse, fixture-name branch, native-MIR injection, backend
+reconstruction, or fallback inference was added. Focused C, LLVM, and the
+freshly Pergyra-built 245-hard producer-first parity pass with
+`body_fixtures=20` and `mir_fixtures=1`; hard native/self canonical MIR is
+byte-equal at SHA-256
+`3C518BBC3E89A82FFA538F99F6E205F8F60A8A4E16DF18E6BA20283A0ACDF7CF`, hard
+oracle/self/source emitted C is byte-equal at SHA-256
+`B5E682F33D9CED51C492C5C4ED6BDC5AC12A47CE21519457DFB7543BE8F50F6E`, and
+runtime output is `10`, `5`, `2`, `49`, `0`. Component and shell-syntax gates
+pass. This coverage ratchet does not advance the executable substitution
+frontier; fixture 248 is not selected.
+
+2026-07-23 Pergyra Option-Bool coalesce-condition coverage ratchet: DRV-2 MIR
+manifest row 246 is `coalesce_in_if_condition`. The typed
+`MaybeFlag(arr[i]): Option<Bool>` fact flows through `?? false` into an `if`
+inside the `count`/`i` array loop. The dedicated parity owner checks the direct
+target, indexed element, coalesce graph, and loop phis, then rejects missing
+target, index identity, operator kind, and phi input mutations.
+
+This row does not advance the executable substitution frontier. The existing
+245-hard driver already accepted it, and the 246 slice changes the manifest and
+parity ownership without changing a Pergyra semantic implementation owner.
+Accordingly, the counted executable frontier remains fixture 245. Treat row 246
+as useful whole-language breadth and a negative regression ratchet, not as a
+replacement delta; no source reparse, fixture-name branch, native-MIR injection,
+backend reconstruction, or fallback inference was added.
 
 Focused C, LLVM, and the freshly Pergyra-built 245-hard driver pass producer-
 first parity with `body_fixtures=20` and `mir_fixtures=1`. Hard native/self
@@ -16,8 +44,9 @@ canonical MIR is byte-equal at SHA-256
 oracle/self/source emitted C is byte-equal at SHA-256
 `CDFFD8220B8FD9943D0DB116E55D1B687BB046BDB8E79EFB486A5DE6A0BF767B`; runtime
 output is `3`, `0`, `1`. The focused component and shell-syntax gates pass.
-Full 246 remains omitted under the 30-minute budget; the last complete
-unfiltered matrix is 230/230 and fixture 247 is not selected.
+The full 246-row manifest matrix remains omitted under the 30-minute budget;
+the last complete unfiltered matrix is 230/230, and the next executable
+replacement fixture is not selected.
 
 2026-07-23 Pergyra collection-option-coalesce-loop delta: DRV-2 MIR fixture
 245 is `coalesce_accumulate_loop`. The executable seam keeps the typed
@@ -47,7 +76,8 @@ The eight-fixture current-hard Option/coalesce/array impact shard, loop-flow,
 diff, SoT authority, single-gate-owner, seven-row protocol registry, and
 substitution-velocity gates also pass. The full 245-row matrix remains omitted
 under the 30-minute budget; the last complete unfiltered matrix is 230/230 and
-fixture 246 is not selected.
+the next executable replacement rung is not selected. Manifest row 246 below is
+coverage only.
 
 2026-07-23 Pergyra collection-enum-match-loop delta: DRV-2 MIR fixture 244 is
 `array_match_action_sim`. The executable seam is intentionally whole-language:
