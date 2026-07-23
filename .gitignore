@@ -105,8 +105,10 @@ tests/cases/backend_compare/**/main.c
 # Temporary compiler artifacts
 *.o.tmp
 *.tmp
-/.tmp_*.ast
-/.tmp_*.json
+# Root-local compiler probes and scratch builders use the `.tmp_` prefix
+# across source, log, MIR, object, and executable forms. Their semantic
+# fixtures live under tests/ and src/self_hosted/; these products are disposable.
+/.tmp_*
 # Captured CI/job transcripts (`make ... > .tmp-<job>.log`). These run to tens
 # of megabytes and were showing up as untracked noise in every git status.
 /.tmp-*.log

@@ -574,7 +574,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/array_elem_class_method/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
-    'expected_member="P_V"'
+    'expected_members=(P_V)'
 require_function_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SelfMirRoutineFromInput" \
     "build, UnwrapOption(param_name), UnwrapOption(param_type), 0"
@@ -592,7 +592,7 @@ require_function_text \
     "SemanticAstAnalysisResolveCallTargetsFromBody" \
     "SemanticAstIterationSeedVisibleBindings("
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    "EmitLet" 'LookupKindType(env, type_name, "enum") == "payload_free"'
+    "EmitLet" 'LookupKindType(env, type_name, "enum") != ""'
 require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
     "missing enum local owner was accepted"
 require_text "src/self_hosted/parser/cursor_owner.pgy" \
@@ -600,7 +600,7 @@ require_text "src/self_hosted/parser/cursor_owner.pgy" \
 forbid_text "src/self_hosted/parser/cursor_owner.pgy" \
     'return Concat("1e+", exp_text);'
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
-    'expected_member="Account_Deposit"'
+    'expected_members=(Account_Deposit)'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "RenderStmtFromFacts" 'source_type == "AST_CALL"'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \

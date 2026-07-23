@@ -7,11 +7,22 @@ and foreach bindings use `CodegenFunctionValueBindingFactFor`. Statement and
 try-let emitters no longer sanitize binding names locally; a missing collection
 binding fails closed with its owned diagnostic.
 
-The focused assignment projection gate, C codegen parity for
-`array_push,array_pop,array_sum,for_sum,for_each,option_try`, component contract,
-hard-substitution contract, and shell syntax all pass. The follow-up is a
-separate executable owner delta from the preceding assignment-target closure;
-the next seam remains unselected until a new falsifier is observed.
+The focused assignment projection C leg, C codegen parity for
+`array_sum,array_push,array_pop,array_param,for_sum,for_each,option_try,result_try`,
+filtered producer-first DRV-2 for `class_with_array_param`, component contract,
+hard-substitution contract, substitution-velocity contract, authority gates,
+and shell syntax all pass. The DRV-2 witness reports `backends=1
+body_fixtures=20 mir_fixtures=1` and proves a reference collection parameter
+keeps the owner-projected dereferenced `cbind`. Coq/Rocq was explicitly skipped
+because no prover is installed.
+
+The next executable falsifier is now observed: after the native compiler was
+rebuilt with LLVM enabled, the assignment projection LLVM leg fails while
+compiling the Pergyra probe with `call 'UnwrapOption' requires registered
+function or expected type metadata`. Do not patch a call-name special case into
+the C LLVM inference path. First identify the missing semantic/MIR fact owner,
+its last LLVM consumer, and a graph-only negative fixture; then replace that
+C-owned inference seam with the Pergyra-carried fact.
 
 2026-07-23 Pergyra function-value binding SoT closure: the focused assignment
 projection gate first reproduced `assignment target C binding fact is missing`

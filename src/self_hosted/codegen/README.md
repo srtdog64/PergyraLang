@@ -47,13 +47,14 @@ whose **run-stdout** matches the C/LLVM oracle.
 Nominal and enum value declarations are not emitted by a fixed category pass.
 `emission/type_declaration_emit_owner.pgy` derives a dependency schedule from
 semantic nominal-field and enum-payload type rows, then delegates selected
-declarations to the existing emitters. Named `Option<T>` wrappers are generated
-as dependent declaration nodes immediately after their inner nominal/tagged
-enum. Explicit `Result<T,E>` materializations are graph nodes depending on both
-payload and error types. Neither wrapper family is appended by a later
-whole-program scan. Missing wrapper facts and direct by-value cycles fail
-closed. The bootstrap C seed mirrors the dependency policy from MIR declaration
-headers; neither path branches on a fixture, variant name, or payload arity.
+declarations to the existing emitters. One canonical recursive wrapper
+inventory turns concrete `Option<T>` and explicit `Result<T,E>` types into
+dependent graph nodes, including nested wrapper dependencies. It does not
+generate Option declarations merely because a nominal/enum exists, and neither
+wrapper family is appended by a later whole-program scan. Missing wrapper facts
+and direct by-value cycles fail closed. The bootstrap C seed mirrors the
+dependency and canonical C-suffix policy from MIR declaration headers; neither
+path branches on a fixture, variant name, wrapper nesting, or payload arity.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
 `ToFloat`. Array combinators: `ArraySort`, `ArrayReverse`, `ArrayMap`,
@@ -284,6 +285,10 @@ that joins source name, semantic type, runtime kind, C name, and environment
 rows. Definitions, prototypes, parameters, locals, and assignment probes
 consume that same fact. Assignment emission only reads `cbind`; it does not
 treat target text as a C name or invoke the symbol projection again.
+Let, try-let, loop-variable, and collection-mutation statement paths consume
+the same owner-directed C binding. Collection mutation accepts only `cbind`:
+readonly-reference rows already encode their dereference there, so raw `cref`
+is not a compatible fallback.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
 return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that
@@ -310,9 +315,13 @@ target-library symbol spelling for the supported `Abs` / `Min` / `Max` /
 `runtime_abi/host_io_runtime_owner.pgy` owns C host file/stdin/argv runtime helper
 symbol spelling for the supported file, byte-count stdin, directory-walk, and
 `Args()` subset.
+`abi_layout/enum_abi_value_fact_owner.pgy` owns one semantic-enum-to-C-value fact
+for payload-free and tagged layouts, including the bare-return default.
+General ABI layout and `Option<T>` materialization consume that fact; they do
+not reclassify enum layouts independently.
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
-helper symbol spelling for the supported `Option<Int>` / `Option<String>` /
-`Result<Int>` subset.
+helper symbol spelling and concrete Option value facts for the supported
+scalar, nominal, enum, Result, and nested Option payloads.
 `runtime_abi/result_runtime_owner.pgy` owns the C type and helper symbols for
 each explicit `Result<T,E>` usage, while
 `emission/result_runtime_emit_owner.pgy` materializes that tagged definition.

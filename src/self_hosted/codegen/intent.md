@@ -95,9 +95,10 @@ participant, not a zone.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
 - `TypeDeclarationEmitter` owns dependency-ordered nominal/enum/generated
-  wrapper declaration projection from semantic field, payload, and Result-usage
-  rows. It places named `Option<T>` declarations after their inner type and
-  explicit `Result<T,E>` declarations after both payload and error types.
+  wrapper declaration projection from semantic field, payload, and canonical
+  recursive wrapper-usage rows. It places concrete `Option<T>` declarations
+  after their inner wrapper/value type and explicit `Result<T,E>` declarations
+  after both payload and error types.
   `ProgramEmitter` may not restore separate enum-first, nominal-first, or
   post-hoc wrapper passes; a missing fact or direct by-value cycle fails closed.
 
@@ -203,6 +204,9 @@ projection from source identity and semantic type to runtime kind, C name, and
 typed environment rows. Function definitions/prototypes/locals and assignment
 probes consume one `CodegenFunctionValueBindingFact`; `EmitAssign` is only a
 `cbind` consumer and may not recover from target text or locally sanitize it.
+Let, try-let, loop-variable, and collection-mutation consumers follow the same
+boundary. A collection target must have `cbind`; `cref` is raw reference
+storage and cannot substitute for the owner-projected value expression.
 `../semantic/ast_statement_fact_owner.pgy` also owns `ArrayPush` target/value
 and `ArraySet` target/index/value rows. The semantic statement codegen view
 projects them fail-closed; no collection mutation AST-text owner exists. One
@@ -211,6 +215,11 @@ and `ArraySet` values across scalar, String, and struct element types.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
+`abi_layout/enum_abi_value_fact_owner.pgy` is the only self-host C projection from
+an enum layout fact to its C value type and default return value. ABI layout
+and Option runtime materialization consume the same projection; a missing or
+unknown enum layout is not guessed, and consumers must not reproduce
+`payload_free` / `tagged` switches.
 Expected-value emission is not part of that text bridge: qualified enum values
 consume parser-owned receiver/member handles and the exact enum row. A DRV-2
 negative keeps root provenance unchanged while corrupting only the member child,
