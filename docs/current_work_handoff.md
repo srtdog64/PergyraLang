@@ -346,14 +346,25 @@ link `311.07 MB`, with `Error 88`. Relative to the preceding
 about `3.3 MB`, but the existing `3072 MB` ceiling remains red and must not be
 raised.
 
-An exclusive pressure rerun for `14c1683b` was started with isolated
-`pressure_build_14c`, `pressure_bin_14c`, `pressure_codegen_14c`, and
-`pressure_driver_14c` paths. Before the pressure-owned driver body began, an
-unrelated user-owned `driver_rung2_body_parity.sh` process appeared in the
-shared machine (`iteration_program_graph_3f2b9bba_c`, `pgy.exe`/`gcc`/`cc1`).
-The pressure run was interrupted at the seed-bootstrap stage; it produced no
-valid pressure observation and its processes are gone. The user-owned compile
-remains active and must finish before a new exclusive pressure measurement.
+An initial pressure rerun for `14c1683b` was interrupted at seed bootstrap
+after an unrelated user-owned `driver_rung2_body_parity.sh` process appeared
+in the shared machine (`iteration_program_graph_3f2b9bba_c`,
+`pgy.exe`/`gcc`/`cc1`). It produced no valid pressure observation.
+
+The completed exclusive rerun then used isolated `pressure_build_14c`,
+`pressure_bin_14c`, `pressure_codegen_14c`, and `pressure_driver_14c` paths
+from source checkpoint `14c1683b` (branch handoff HEAD `4403ee25`). The
+pressure owner recorded `exit_code=-1` after `615830 ms`,
+`peak_working_set_mb=2551.9`, `peak_private_mb=3090.9`,
+`top_private_process=driver_oracle.exe`, `top_private_mb=3079.8`, and
+`peak_processes=3` against the unchanged `3072 MB` ceiling. It reported
+`limit_exceeded=true`; phase private peaks were orchestrate `3090.875 MB`,
+compile `1245.180 MB`, and link `488.848 MB`. The outer make target returned
+`RC=1` / `Error 88`. No unrelated `pgy`/`genN`/`driver_oracle`/`gcc`/`cc1`
+process was present in the completed pressure tree, and all pressure-owned
+processes were gone after completion. This is a red compiler-process
+retention observation, not system-wide free-memory exhaustion; the `3072 MB`
+cap remains closed.
 
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
@@ -395,11 +406,14 @@ Green on the graph handle commit slice:
   ratchet, callable-table owner smoke, component contract, and
   `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
 - `14c1683b` build-pressure contract, program-graph unification, and MIR graph
-  projection ratchets passed before the pressure rerun; no pressure result was
-  claimed because the run was interrupted by the unrelated active compile.
-- The exclusive current-source full-driver pressure gate at `aaf24849` is red:
-  `peak_private_mb=3080.9`, `top_private_mb=3070.1`, and `Error 88` at the
-  unchanged `3072 MB` limit.
+  projection ratchets passed before the pressure rerun. Its first attempt was
+  interrupted by an unrelated active compile and is not evidence.
+- The completed exclusive current-source full-driver pressure gate at
+  `14c1683b` is red: `exit_code=-1`, outer make `RC=1` / `Error 88`,
+  `elapsed_ms=615830`, `peak_private_mb=3090.9`,
+  `peak_working_set_mb=2551.9`, and `top_private_mb=3079.8` at the unchanged
+  `3072 MB` limit. Phase private peaks were orchestrate `3090.875 MB`, compile
+  `1245.180 MB`, and link `488.848 MB`.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -508,32 +522,31 @@ earlier moving-tree attempts.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-The merge candidate combines the pushed foreach program-graph checkpoint
-`3f2b9bba` with the pushed semantic-lifetime branch checkpoint `4403ee25`.
-The semantic environment, callable-table, initializer-text, and
-assignment-target-text lifetime slices are now in the same source graph as the
-one-owner foreach topology change. The following pre-existing parity changes
-remain dirty and were intentionally excluded;
-preserve them and re-check ownership before the next unit:
+The main source graph contains the foreach program-graph checkpoint
+`3f2b9bba`, semantic-lifetime checkpoint `4403ee25`, completed pressure
+observation `e987d15c`, and MIR enum-owner closure `0eec8b45`. The semantic
+environment, callable table, initializer/assignment projections, foreach
+topology, and MIR enum consumer therefore share the same Git ancestry. The
+following concurrent changes remain dirty in `main` and are intentionally
+excluded; preserve them and re-check ownership before the next unit:
 
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-All focused verification processes for this slice ended normally.
+The delegated `semantic_lifetime` worktree is running an exclusive pressure
+measurement for `0eec8b45`. Do not remove that worktree or branch until the
+run finishes, its result is integrated, and ancestry/process checks pass.
 
 ## Next executable work
 
-1. Keep the callable-table lifetime and foreach graph paths ratcheted. Do not
-   restore a semantic/MIR topology builder, a released callable-table read, or
-   treat file layout as graph authority.
-2. Rerun the exclusive pressure target on the combined source checkpoint to
-   measure the bounded assignment/initializer de-duplication and explicit
-   owned-String release. The latest attributable source baseline remains red
-   at `3080.9 MB`; the later graph-only baseline is red at `3091.3 MB`.
-   First verify that every `pgy`/`genN`/`driver_oracle`/`gcc`/`cc1` process has
-   ended. If the rerun remains red, identify the next retained compiler-wide
-   materialization owner and last legitimate consumer before another change.
+1. Keep the callable-table, program-graph, and MIR enum-owner ratchets closed.
+   Do not restore a semantic/MIR topology builder, released callable-table
+   read, AST enum rescan, or treat file layout as graph authority.
+2. Finish the active expression-environment owned-lifetime slice, including
+   the C/LLVM initializer/member-call regression and its negative gate. Then
+   integrate the exclusive `0eec8b45` pressure result without raising the
+   `3072 MB` cap.
 3. The exclusive official full bootstrap was run with PowerShell discoverable;
    it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the

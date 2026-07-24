@@ -508,8 +508,7 @@ func SelfMirProgramFactsFromArtifact(
         }
         iteration_i = iteration_i + 1;
     }
-    let enum_facts: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
+    let enum_facts: SemanticAstEnumFacts = analysis.enums;
     if !enum_facts.ok {
         return SelfMirProgramFactsError(
             facts, "mir_artifact_invalid",
