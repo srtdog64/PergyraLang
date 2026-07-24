@@ -7,6 +7,9 @@
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../../semantic/ast_type_surface_fact_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "generic_specialization_codegen_view_owner.pgy";
+import "semantic_signature_codegen_view_owner.pgy";
 
 struct CodegenValueWrapperUsageFacts {
     type_names: Array<String>;
@@ -60,21 +63,112 @@ func CodegenValueWrapperUsageCollectType(
 }
 
 func CodegenValueWrapperUsageFactsFromSemantic(
-    facts: SemanticAstTypeSurfaceFacts
+    facts: SemanticAstTypeSurfaceFacts,
+    arena: AstArena,
+    signatures: SemanticAstFunctionSignatureFacts,
+    specializations: CodegenGenericSpecializationFacts
 ) -> CodegenValueWrapperUsageFacts {
     let type_names: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let type_name: Option<String> =
             SemanticAstTypeSurfaceNameAt(facts, i);
-        if IsSome(type_name) {
+        if IsSome(type_name) &&
+            !CodegenValueWrapperUsageSurfaceHasFormal(
+                facts, i, arena, signatures
+            ) {
             CodegenValueWrapperUsageCollectType(
                 UnwrapOption(type_name), type_names
             );
         }
         i = i + 1;
     }
+    let specialization_index: Int = 0;
+    while specialization_index <
+        CodegenGenericSpecializationCount(specializations) {
+        let signature_index: Int =
+            specializations.signature_indexes[specialization_index];
+        let actuals: Array<String> = CodegenGenericSpecializationActuals(
+            specializations, specialization_index
+        );
+        CodegenValueWrapperUsageCollectType(
+            CodegenGenericResolvedReturnTypeOrDie(
+                signatures, signature_index, actuals
+            ), type_names
+        );
+        let parameter_index: Int = 0;
+        while parameter_index < CodegenSemanticFunctionParamCountOrDie(
+            signatures, signature_index
+        ) {
+            CodegenValueWrapperUsageCollectType(
+                CodegenGenericResolvedParamTypeOrDie(
+                    signatures, signature_index, parameter_index, actuals
+                ), type_names
+            );
+            parameter_index = parameter_index + 1;
+        }
+        specialization_index = specialization_index + 1;
+    }
     return CodegenValueWrapperUsageFacts(type_names);
+}
+
+func CodegenValueWrapperUsageSurfaceHasFormal(
+    facts: SemanticAstTypeSurfaceFacts,
+    surface_index: Int,
+    arena: AstArena,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let node_id: Int = facts.node_ids[surface_index];
+    let parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(signatures) {
+        let generic_count: Int =
+            CodegenSemanticFunctionGenericCountOrDie(
+                signatures, signature_index
+            );
+        if generic_count == 0 {
+            signature_index = signature_index + 1;
+            continue;
+        }
+        let generic_start: Int = signatures.generic_starts[signature_index];
+        let function_node: Int = CodegenSemanticFunctionNodeOrDie(
+            signatures, signature_index
+        );
+        if (function_node == node_id ||
+            (IsSome(parent) && UnwrapOption(parent) == function_node)) &&
+            SemanticAstSignatureReturnTypeHasFormalAt(
+                signatures.type_expressions, signature_index,
+                generic_start, generic_count, signatures.generic_names
+            ) {
+            return true;
+        }
+        let parameter_index: Int = 0;
+        while parameter_index < CodegenSemanticFunctionParamCountOrDie(
+            signatures, signature_index
+        ) {
+            let parameter_node: Int = CodegenSemanticFunctionParamNodeOrDie(
+                signatures, signature_index, parameter_index
+            );
+            let flat_parameter: Option<Int> =
+                SemanticAstFunctionParamFlatIndex(
+                    signatures, signature_index, parameter_index
+                );
+            if !IsSome(flat_parameter) {
+                Die("semantic signature facts missing flat parameter index");
+            }
+            if parameter_node == node_id &&
+                SemanticAstSignatureParameterTypeHasFormalAt(
+                    signatures.type_expressions,
+                    UnwrapOption(flat_parameter), generic_start,
+                    generic_count, signatures.generic_names
+                ) {
+                return true;
+            }
+            parameter_index = parameter_index + 1;
+        }
+        signature_index = signature_index + 1;
+    }
+    return false;
 }
 
 func CodegenValueWrapperUsageContractReady() -> Bool {

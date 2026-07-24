@@ -20,8 +20,12 @@ pgy_selfhost_verify_driver_rung2_integer_literal_kind() {
         echo "[self-host-parity:driver-rung2] $backend misclassified integer literal was accepted" >&2
         exit 1
     fi
-    grep -Fq "unsupported semantic leaf expression: 0" \
-        "$misclassified_integer.err" "$misclassified_integer.out" || {
+    grep -Fq "Code: statement_type_unresolved" \
+        "$misclassified_integer.err" "$misclassified_integer.out" &&
+        grep -Fq -- "- statement: for_range" \
+            "$misclassified_integer.err" "$misclassified_integer.out" &&
+        grep -Fq -- "- actual: Unknown..Int" \
+            "$misclassified_integer.err" "$misclassified_integer.out" || {
         echo "[self-host-parity:driver-rung2] $backend integer-kind diagnostic drifted" >&2
         cat "$misclassified_integer.out" "$misclassified_integer.err" >&2
         exit 1

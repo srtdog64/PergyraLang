@@ -265,7 +265,8 @@ func GenerateCUnitFromSemanticFacts(
     )];
     let value_wrappers: CodegenValueWrapperUsageFacts =
         CodegenValueWrapperUsageFactsFromSemantic(
-            semantic_analysis.type_surfaces
+            semantic_analysis.type_surfaces, arena, signatures,
+            specializations
         );
     let type_declaration_fact: CodegenTypeDeclarationBlockFact =
         CollectTypeDeclarations(

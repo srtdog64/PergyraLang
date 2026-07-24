@@ -414,6 +414,7 @@ for mir_producer_owner in \
     parallel_capture_fact_owner.pgy \
     expression_fact_owner.pgy \
     routine_input_owner.pgy \
+    routine_local_inventory_owner.pgy \
     routine_iteration_owner.pgy \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
@@ -3561,6 +3562,14 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" 'build.next_instructi
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVersionsSnapshot('
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionUses('
+require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUses('
+require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'func SelfMirRoutineLocalInventoryFromInput('
+require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SemanticAstLocalBindingRangeForFunction('
+require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SelfMirForEachSyntheticOrdinal('
+require_text "src/self_hosted/mir/routine_for_owner.pgy" 'build, SelfMirSyntheticLocalExpressionGraph(start),'
+reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'branch_graph = SemanticAstExpressionGraphForNode('
+reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" 'ArrayLength(build.local_names)'
+reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" 'build.local_names[local_i]'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineAtLocalVersions('
 reject_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineMergeBranchVersions('
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'func SelfMirMergeIfBranches('
@@ -3586,6 +3595,10 @@ require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = &bl
 require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = saved_terminator_ssa_map;'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'input.analysis.assignments.target_texts[assignment_index]'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirExpressionGraphUses(build, target_graph)'
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirExpressionGraphUses(build, value_graph)'
+reject_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirExpressionUses(build, target_text)'
+reject_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirExpressionUses(build, expression)'
 require_file "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
@@ -5750,11 +5763,20 @@ require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "facts: Sema
 require_file "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" 360
 require_file "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy"
-require_max_lines "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" 120
+require_max_lines "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" 190
 require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
     "func CodegenValueWrapperUsageCollectType("
 require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
     "SemanticCanonicalTypeName(type_name)"
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "func CodegenValueWrapperUsageSurfaceHasFormal("
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "SemanticAstSignatureReturnTypeHasFormalAt("
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "CodegenGenericResolvedReturnTypeOrDie("
+require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
+    "TypedAstArenaParentId(arena, node_id)"
+reject_file "src/self_hosted/codegen/input/value_wrapper_materialization_owner.pgy"
 require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
     'type_names[0] == "Result<Payload, Failure>"'
 require_text "src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy" \
@@ -6121,6 +6143,12 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
     "CodegenGenericCallNodeKey(view.call_node)"
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "CompilerSymbolCGenericSpecializationName("
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
+    "func CompilerSymbolCGenericActualName(type_name: String) -> String"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
+    "CompilerSymbolCMangledTypeNamePolicy(type_name, true)"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
+    "CompilerSymbolCGenericActualName(actual_type_names[i])"
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementTypeFactsFromAnalysisOrDie("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"

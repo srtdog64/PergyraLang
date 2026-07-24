@@ -175,7 +175,10 @@ func CompilerSymbolCLocalCallName(c_symbol: String) -> String {
 func CompilerSymbolCTypeName(type_name: String) -> String {
     return CompilerSymbolCIdentifier(type_name);
 }
-func CompilerSymbolCMangledTypeName(type_name: String) -> String {
+func CompilerSymbolCMangledTypeNamePolicy(
+    type_name: String,
+    preserve_terminal_separator: Bool
+) -> String {
     let out: String = "";
     let wrote: Bool = false;
     let i: Int = 0;
@@ -192,12 +195,22 @@ func CompilerSymbolCMangledTypeName(type_name: String) -> String {
         }
         i = i + 1;
     }
-    while StringLength(out) > 0 &&
-        CompilerSymbolCharAt(out, StringLength(out) - 1) == "_" {
-        out = Substring(out, 0, StringLength(out) - 1);
+    if !preserve_terminal_separator {
+        while StringLength(out) > 0 &&
+            CompilerSymbolCharAt(out, StringLength(out) - 1) == "_" {
+            out = Substring(out, 0, StringLength(out) - 1);
+        }
     }
     if !wrote { return "Type"; }
     return out;
+}
+
+func CompilerSymbolCMangledTypeName(type_name: String) -> String {
+    return CompilerSymbolCMangledTypeNamePolicy(type_name, false);
+}
+
+func CompilerSymbolCGenericActualName(type_name: String) -> String {
+    return CompilerSymbolCMangledTypeNamePolicy(type_name, true);
 }
 
 func CompilerSymbolCListRuntimeSuffix(element_type: String) -> String {
@@ -273,7 +286,7 @@ func CompilerSymbolCGenericSpecializationName(
     let i: Int = 0;
     while i < ArrayLength(actual_type_names) {
         out = Concat(out, Concat(
-            "_", CompilerSymbolCMangledTypeName(actual_type_names[i])
+            "_", CompilerSymbolCGenericActualName(actual_type_names[i])
         ));
         i = i + 1;
     }

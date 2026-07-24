@@ -17,7 +17,7 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
             echo "[self-host-parity:driver-rung2] $backend foreach synthetic local $ordinal drifted" >&2
             exit 1
         }
-        grep -Fq "\"kind\":\"def\",\"name\":\"ssa-def\",\"result\":\"__pgy_forin_$ordinal.1\",\"arg0\":\"__pgy_forin_$ordinal\",\"arg1\":null,\"abi_type_name\":\"Array<Int>\"" \
+        grep -Fq "\"kind\":\"def\",\"name\":\"ssa-def\",\"result\":\"__pgy_forin_$ordinal.1\",\"arg0\":\"__pgy_forin_$ordinal\",\"arg1\":null,\"slot_anchor\":null,\"abi_type_name\":\"Array<Int>\"" \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend foreach synthetic def $ordinal drifted" >&2
             exit 1

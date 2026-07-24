@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra generic wrapper materialization executable closure.
+Objective: materialize only concrete Option/Result value types while preserving
+the exact generic specialization symbol carried by semantic and MIR facts.
+Priority was specialization identity, structured formal-type exclusion,
+concrete return/parameter restoration, missing-fact failure, and negative
+ratchets. Treating `Option<T>` as a C value declaration, trimming the terminal
+separator from a constructed generic actual, reparsing source call text, and
+guessing a concrete wrapper in codegen are forbidden.
+
+`value_wrapper_usage_owner.pgy` now excludes a generic signature's formal
+return/parameter surfaces through typed AST parent identity plus the structured
+signature type-expression facts. It then adds the resolved concrete return and
+parameter types from `CodegenGenericSpecializationFacts`; the declaration
+scheduler remains the last consumer. `symbol_table_owner.pgy` keeps the
+existing runtime type suffix policy but preserves the terminal constructed-type
+separator for specialization actuals, so the self symbol is exactly
+`Wrapper_Echo_Option_Int_`.
+
+A fresh Pergyra-built DRV-2 passed its bounded build smoke. Hard producer-first
+parity then passed for `generic_member_inferred_flow`,
+`generic_vessel_member_inferred_flow`, `generic_member_constructed_return_flow`,
+`generic_member_array_return_flow`, and
+`generic_member_record_array_return_flow` with `backends=1 body_fixtures=20
+mir_fixtures=5`. The full 280-row matrix and LLVM lane remain to be resumed
+after this focused closure.
+
 2026-07-24 Pergyra canonical declaration-order SoT executable closure.
 Objective: make MIR JSON canonicalization independent of producer declaration
 family order while preserving one Pergyra-owned projection order. Priority was
