@@ -1,0 +1,223 @@
+// Set-literal topology and declared-type checks over parser-owned graph rows.
+//
+// Set literals have their own graph spine. They are not array literals with a
+// different runtime symbol: the declared Set<T> owner supplies the element
+// type and the Set runtime owner supplies construction/add symbols.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "expr_type_owner.pgy";
+
+struct SemanticSetLiteralView {
+    ok: Bool;
+    element_nodes: Array<Int>;
+}
+
+func SemanticSetLiteralViewFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticSetLiteralView {
+    let reversed: Array<Int> = [];
+    let node: Int = root_id;
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeSetElement() {
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node
+        );
+        let element: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node
+        );
+        if !IsSome(previous) || !IsSome(element) {
+            return SemanticSetLiteralView(false, reversed);
+        }
+        ArrayPush(reversed, UnwrapOption(element));
+        node = UnwrapOption(previous);
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeSetLiteral() {
+        return SemanticSetLiteralView(false, reversed);
+    }
+    let elements: Array<Int> = [];
+    let i: Int = ArrayLength(reversed) - 1;
+    while i >= 0 {
+        ArrayPush(elements, reversed[i]);
+        i = i - 1;
+    }
+    return SemanticSetLiteralView(true, elements);
+}
+
+func SemanticSetLiteralElementTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let nested: SemanticSetLiteralView =
+        SemanticSetLiteralViewFromGraph(graph, node_id);
+    if nested.ok {
+        return SemanticExpressionGraphSetLiteralTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        );
+    }
+    let actual: String = SemanticExpressionGraphScalarTypeName(
+        graph, node_id, constructors, names, types,
+        function_names, function_returns
+    );
+    if actual == "Unknown" || actual == "" {
+        return SemanticExpressionGraphIntrinsicTypeName(
+            graph, node_id, function_names, function_returns
+        );
+    }
+    return Some(actual);
+}
+
+func SemanticExpressionGraphSetLiteralTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let view: SemanticSetLiteralView =
+        SemanticSetLiteralViewFromGraph(graph, root_id);
+    if !view.ok || ArrayLength(view.element_nodes) == 0 { return None; }
+    let element_type: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let actual: Option<String> = SemanticSetLiteralElementTypeName(
+            graph, view.element_nodes[i], constructors, names, types,
+            function_names, function_returns
+        );
+        if !IsSome(actual) { return None; }
+        if element_type == "" {
+            element_type = UnwrapOption(actual);
+        } else if element_type != UnwrapOption(actual) {
+            return None;
+        }
+        i = i + 1;
+    }
+    return Some(Concat("Set<", Concat(element_type, ">")));
+}
+
+func SemanticSetLiteralElementMatchesDeclaredType(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    element_type: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Bool {
+    if StartsWith(element_type, "Set<") {
+        let nested_view: SemanticSetLiteralView =
+            SemanticSetLiteralViewFromGraph(graph, node_id);
+        if nested_view.ok {
+            return SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+                graph, node_id, element_type, constructors, names, types,
+                function_names, function_returns
+            );
+        }
+    }
+    let actual: Option<String> = SemanticSetLiteralElementTypeName(
+        graph, node_id, constructors, names, types,
+        function_names, function_returns
+    );
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id
+    );
+    return IsSome(actual) && IsSome(text) && ExpressionAssignableTo(
+        element_type, UnwrapOption(actual), UnwrapOption(text)
+    );
+}
+
+func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declared_type: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Bool {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(declared_type);
+    if !shape.ok || shape.nominal_base_name != "Set" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return false;
+    }
+    let view: SemanticSetLiteralView =
+        SemanticSetLiteralViewFromGraph(graph, root_id);
+    if !view.ok { return false; }
+    let element_type: String = shape.actual_type_names[0];
+    let i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        if !SemanticSetLiteralElementMatchesDeclaredType(
+            graph, view.element_nodes[i], element_type, constructors,
+            names, types, function_names, function_returns
+        ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
+    let source: String = "{1, 2, 2}";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] != AstExpressionNodeSetElement() {
+        return false;
+    }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [fact.root], fact.arena
+            ), [0], 1
+        );
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let empty: Array<String> = [];
+    let inferred: Option<String> = SemanticExpressionGraphSetLiteralTypeName(
+        graph, fact.root, constructors, empty, empty, empty, empty
+    );
+    let empty_cursor: Array<Int> = [0];
+    let empty_fact: ParserExpressionFact = ParseExprFact(
+        "{}", 0, empty_cursor
+    );
+    let empty_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [empty_fact.root],
+                empty_fact.arena
+            ), [0], 1
+        );
+    return IsSome(inferred) && UnwrapOption(inferred) == "Set<Int>" &&
+        SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+            graph, fact.root, "Set<Int>", constructors,
+            empty, empty, empty, empty
+        ) && !SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+            graph, fact.root, "Set<String>", constructors,
+            empty, empty, empty, empty
+        ) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+            empty_graph, empty_fact.root, "Set<String>", constructors,
+            empty, empty, empty, empty
+        );
+}

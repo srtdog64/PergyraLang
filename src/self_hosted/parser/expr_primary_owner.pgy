@@ -2,6 +2,7 @@
 
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
+import "expression_set_literal_graph_owner.pgy";
 import "expr_string_owner.pgy";
 
 // Forward-declared mutual recursion: ParsePrimary may recurse into
@@ -23,6 +24,8 @@ func ParsePrimaryFact(
     let preserves_grouped_graph: Bool = false;
     let array_literal: ParserExpressionFact = ParserExpressionInvalid();
     let preserves_array_literal_graph: Bool = false;
+    let set_literal: ParserExpressionFact = ParserExpressionInvalid();
+    let preserves_set_literal_graph: Bool = false;
     let interpolation: ParserExpressionFact = ParserExpressionInvalid();
     let preserves_interpolation_graph: Bool = false;
     let preserves_float_literal_fact: Bool = false;
@@ -419,6 +422,43 @@ func ParsePrimaryFact(
         }
         base = array_literal.text;
         preserves_array_literal_graph = true;
+    } else if c == "{" {
+        // A bare brace expression is a Set literal. Nominal struct literals
+        // remain owned by the postfix parser (`Type { field: value }`).
+        i = i + 1;
+        let elems: String = "";
+        set_literal = ParserExpressionSetLiteral("{}");
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) != "}" {
+            while true {
+                ArraySet(cursor_out, 0, i);
+                let element: ParserExpressionFact = ParseExprFact(
+                    content, i, cursor_out
+                );
+                if !element.ok { Exit(1); }
+                i = cursor_out[0];
+                if StringLength(elems) == 0 {
+                    elems = element.text;
+                } else {
+                    elems = Concat(elems, Concat(", ", element.text));
+                }
+                set_literal = ParserExpressionSetElement(
+                    Concat("{", Concat(elems, "}")),
+                    set_literal, element
+                );
+                if !set_literal.ok { Exit(1); }
+                i = SkipWhitespaceAndComments(content, i);
+                if ParserCharAt(content, i) == "," {
+                    i = i + 1;
+                    continue;
+                }
+                break;
+            }
+        }
+        i = Expect(content, i, "}");
+        if i < 0 { Exit(1); }
+        base = set_literal.text;
+        preserves_set_literal_graph = true;
     } else {
         Exit(1);
     }
@@ -438,6 +478,7 @@ func ParsePrimaryFact(
     }
     if preserves_grouped_graph { base_fact = grouped; }
     if preserves_array_literal_graph { base_fact = array_literal; }
+    if preserves_set_literal_graph { base_fact = set_literal; }
     if preserves_interpolation_graph { base_fact = interpolation; }
     return ApplyPostfixFact(content, base_fact, i, cursor_out);
 }

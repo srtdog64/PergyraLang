@@ -9,6 +9,7 @@
 import "cursor_owner.pgy";
 import "type_name_owner.pgy";
 import "expression_graph_owner.pgy";
+import "expression_set_literal_graph_owner.pgy";
 import "expr_string_owner.pgy";
 import "expr_postfix_owner.pgy";
 import "expr_primary_owner.pgy";

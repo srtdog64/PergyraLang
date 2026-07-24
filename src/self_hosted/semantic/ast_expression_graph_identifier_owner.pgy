@@ -61,7 +61,8 @@ func SemanticExpressionGraphIdentifierEvidence(
         }
         if kind == AstExpressionNodeStructFieldName() ||
             kind == AstExpressionNodeStructLiteral() ||
-            kind == AstExpressionNodeArrayLiteral() {
+            kind == AstExpressionNodeArrayLiteral() ||
+            kind == AstExpressionNodeSetLiteral() {
             continue;
         }
         if kind == AstExpressionNodeMemberAccess() {

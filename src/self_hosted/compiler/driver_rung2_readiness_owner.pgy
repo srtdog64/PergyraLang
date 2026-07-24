@@ -3,6 +3,8 @@
 // This contract names every fact producer required before the executable
 // source/MIR convergence driver may consume an artifact.
 
+import "../parser/expression_set_literal_contract_owner.pgy";
+
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
     if !ParserNumberSpellingContractReady() { return "parser_number_spelling"; }
@@ -39,6 +41,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !ParserExpressionPostfixGraphContractReady() { return "parser_postfix_graph"; }
     if !ParserExpressionTryGraphContractReady() { return "parser_try_graph"; }
     if !ParserExpressionArrayLiteralGraphContractReady() { return "parser_array_literal_graph"; }
+    if !ParserExpressionSetLiteralGraphContractReady() { return "parser_set_literal_graph"; }
     if !ParserExpressionStructLiteralGraphContractReady() { return "parser_struct_literal_graph"; }
     if !SemanticExpressionGraphParserBridgeContractReady() { return "graph_parser_bridge"; }
     if !SemanticExpressionGraphCompactBridgeTryContractReady() { return "graph_compact_try_bridge"; }
@@ -50,6 +53,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !ParserExpressionCallStatementKindContractReady() { return "parser_call_statement_kind"; }
     if !SemanticExpressionCallTargetFactContractReady() { return "call_target_fact"; }
     if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
+    if !SemanticExpressionGraphSetLiteralContractReady() { return "graph_set_literal"; }
     if !SelfMirAssignmentTargetGraphContractReady() {
         return "mir_assignment_target_graph";
     }

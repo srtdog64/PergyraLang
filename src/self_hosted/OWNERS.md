@@ -68,6 +68,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.
+- `src/self_hosted/parser/expression_set_literal_graph_owner.pgy` -- distinct
+  Set-literal graph construction and ordered element edges.
+- `src/self_hosted/parser/expression_set_literal_contract_owner.pgy` --
+  executable non-empty/empty Set-literal parser-spine readiness contract.
 - `src/self_hosted/parser/expression_generic_actual_owner.pgy` -- ordered
   explicit generic actual nodes and generic-callee spine construction.
 - `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix call/index/try
@@ -198,6 +202,10 @@ inventory must not become a second fact-family owner registry.
   and declared-element compatibility over parser-owned array-literal spines;
   semantic iteration/initializer typing and codegen share this view without
   bracket trimming or argument splitting.
+- `src/self_hosted/semantic/ast_expression_graph_set_literal_owner.pgy` --
+  canonical Set-literal spine projection, homogeneous element typing, and
+  declared `Set<T>` compatibility; empty literals remain contextual facts and
+  do not guess an element ABI.
 - `src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy` --
   canonical receiver/member handle projection over parser-owned member-access
   nodes; semantic and codegen consumers share this view.
@@ -683,8 +691,8 @@ inventory must not become a second fact-family owner registry.
   literal projection owners below.
 - `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
   canonical expected-type value emission from semantic graph handles and
-  child edges, including arrays, named structs, Result, resource, and List
-  values; Option dispatch consumes the dedicated projection owner below.
+  child edges, including arrays, Set, named structs, Result, resource, and
+  List values; Option dispatch consumes the dedicated projection owner below.
 - `src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy` --
   expected-type `Option<T>` constructor identity, payload edge, and MIR-owned
   runtime ABI projection; it never reparses source text or chooses a default

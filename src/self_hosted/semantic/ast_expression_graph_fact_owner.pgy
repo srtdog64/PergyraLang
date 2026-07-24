@@ -239,6 +239,10 @@ func SemanticExpressionGraphArenaReady(
             ) {
             return false;
         }
+        if kind == AstExpressionNodeSetElement() &&
+            !AstExpressionNodeIsSetLiteralSpine(arena.node_kinds[left]) {
+            return false;
+        }
         if kind == AstExpressionNodeStructLiteral() &&
             arena.node_kinds[left] != AstExpressionNodeLeaf() {
             return false;

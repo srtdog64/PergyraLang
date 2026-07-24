@@ -194,7 +194,8 @@ func RewriteExprFromSemanticGraph(
         return RewriteSemanticMemberAccess(graph, node_id, env);
     }
     if AstExpressionNodeIsArrayLiteralSpine(kind) ||
-        AstExpressionNodeIsStructLiteralSpine(kind) {
+        AstExpressionNodeIsStructLiteralSpine(kind) ||
+        AstExpressionNodeIsSetLiteralSpine(kind) {
         Die("composite literal requires an expected-type owner");
     }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(

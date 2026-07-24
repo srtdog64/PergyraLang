@@ -9,6 +9,7 @@ import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_set_literal_owner.pgy";
 import "array_type_owner.pgy";
 import "tuple_type_shape_owner.pgy";
 import "ast_enum_fact_owner.pgy";
@@ -233,9 +234,10 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 UnwrapOption(graph_root), UnwrapOption(declared),
                 constructors, names, types,
                 function_names, function_returns
-            ) {
+        ) {
             inferred = UnwrapOption(declared);
         }
+        if expression_verdict.ok && IsSome(declared) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(expression_surfaces.expression_graph, UnwrapOption(graph_root), UnwrapOption(declared), constructors, names, types, function_names, function_returns) { inferred = UnwrapOption(declared); }
         inferred = SemanticContextualBuiltinInitializerTypeFromGraph(
             expression_surfaces.expression_graph, UnwrapOption(graph_root),
             declared, expression_verdict.ok, inferred
@@ -296,7 +298,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         diagnostic_messages, binding_kinds, binding_indices
     );
 }
-
 func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,

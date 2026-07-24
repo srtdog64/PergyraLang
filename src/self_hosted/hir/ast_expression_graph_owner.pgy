@@ -61,10 +61,12 @@ func AstExpressionNodeCast() -> Int { return 35; }
 func AstExpressionNodeAwait() -> Int { return 36; }
 func AstExpressionNodeCoalesce() -> Int { return 37; }
 func AstExpressionNodeSpawn() -> Int { return 38; }
+func AstExpressionNodeSetLiteral() -> Int { return 39; }
+func AstExpressionNodeSetElement() -> Int { return 40; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeSpawn();
+        kind <= AstExpressionNodeSetElement();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
@@ -130,6 +132,11 @@ func AstExpressionNodeIsArrayLiteralSpine(kind: Int) -> Bool {
         kind == AstExpressionNodeArrayElement();
 }
 
+func AstExpressionNodeIsSetLiteralSpine(kind: Int) -> Bool {
+    return kind == AstExpressionNodeSetLiteral() ||
+        kind == AstExpressionNodeSetElement();
+}
+
 func AstExpressionNodeIsStructLiteralSpine(kind: Int) -> Bool {
     return kind == AstExpressionNodeStructLiteral() ||
         kind == AstExpressionNodeStructField();
@@ -147,7 +154,8 @@ func AstExpressionNodeArityOpt(kind: Int) -> Option<Int> {
         kind == AstExpressionNodeStructFieldName() ||
         kind == AstExpressionNodeGenericTypeActual() ||
         kind == AstExpressionNodeTypeName() ||
-        kind == AstExpressionNodeArrayLiteral() {
+        kind == AstExpressionNodeArrayLiteral() ||
+        kind == AstExpressionNodeSetLiteral() {
         return Some(0);
     }
     if AstExpressionNodeIsUnaryOperator(kind) ||
@@ -256,6 +264,10 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
             !AstExpressionNodeIsArrayLiteralSpine(
                 arena.node_kinds[left]
             ) {
+            return false;
+        }
+        if kind == AstExpressionNodeSetElement() &&
+            !AstExpressionNodeIsSetLiteralSpine(arena.node_kinds[left]) {
             return false;
         }
         if kind == AstExpressionNodeStructLiteral() &&

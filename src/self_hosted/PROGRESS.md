@@ -1,5 +1,24 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra Set-literal SoT executable closure.
+Objective: carry `{...}` and `{}` through a distinct parser Set-literal spine,
+declared `Set<T>` semantic compatibility, and the existing Set runtime ABI
+owner into C emission. Priority was parser identity, contextual empty-literal
+typing, homogeneous element evidence, runtime symbol ownership, fail-closed
+negatives, then patch size. Treating Set literals as arrays/structs, guessing
+element ABI, reparsing source in codegen, and accepting an untyped empty Set
+are forbidden.
+
+`AstExpressionNodeSetLiteral`/`SetElement` are now carried by the parser graph;
+`ast_expression_graph_set_literal_owner.pgy` owns ordered element projection,
+homogeneous inference, and declared-type matching. Composite emission consumes
+`CollectionSetRuntimeFact` for `Set<Int>`/`Set<String>` construction and add
+symbols. `set_literal_basic` hard C emits both Set families and runs as
+`3, true, false, 0, 2, true`; duplicate insertion remains delegated to the
+runtime Set semantics. Missing Set ABI, mismatched element, and untyped empty
+literal negatives fail closed. The focused Set-literal gate passed; full 280-row
+DRV-2 and LLVM matrices were not run.
+
 2026-07-24 Pergyra Set runtime/call SoT executable closure.
 Objective: carry `SetNew/Add/Has/Remove/Size` from graph-owned target,
 receiver, and element facts through one Set runtime ABI owner into C emission.

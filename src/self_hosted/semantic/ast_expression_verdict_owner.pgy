@@ -12,6 +12,7 @@ import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_scalar_verdict_owner.pgy";
 import "ast_expression_graph_struct_type_verdict_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_set_literal_owner.pgy";
 import "ast_expression_graph_wrapper_value_owner.pgy";
 import "ast_expression_graph_collection_mutation_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
@@ -120,6 +121,11 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     let array_literal_type: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    let set_literal_type: Option<String> =
+        SemanticExpressionGraphSetLiteralTypeName(
             graph, root_id, constructors, names, types,
             function_names, function_returns
         );
@@ -316,6 +322,8 @@ func SemanticAstExpressionVerdictFromGraph(
     let inferred: String = "Unknown";
     if IsSome(array_literal_type) {
         inferred = UnwrapOption(array_literal_type);
+    } else if IsSome(set_literal_type) {
+        inferred = UnwrapOption(set_literal_type);
     } else if wrapper.applies {
         inferred = wrapper.type_name;
     } else if generic_value.applies {

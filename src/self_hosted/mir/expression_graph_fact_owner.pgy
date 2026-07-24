@@ -380,6 +380,12 @@ func SelfMirExpressionGraphRowsReady(
                 ) {
                 return false;
             }
+            if kind == AstExpressionNodeSetElement() &&
+                !AstExpressionNodeIsSetLiteralSpine(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) {
+                return false;
+            }
             if kind == AstExpressionNodeStructLiteral() &&
                 rows.node_kinds[rows.left_children[node_i]] !=
                     AstExpressionNodeLeaf() {

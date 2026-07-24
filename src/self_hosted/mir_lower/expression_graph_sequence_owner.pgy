@@ -108,6 +108,12 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "await" { return Some(AstExpressionNodeAwait()); }
     if kind == "coalesce" { return Some(AstExpressionNodeCoalesce()); }
     if kind == "spawn" { return Some(AstExpressionNodeSpawn()); }
+    if kind == "set_literal" {
+        return Some(AstExpressionNodeSetLiteral());
+    }
+    if kind == "set_element" {
+        return Some(AstExpressionNodeSetElement());
+    }
     return None;
 }
 

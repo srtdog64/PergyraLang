@@ -1,0 +1,30 @@
+// Parser-owned Set-literal expression graph construction.
+
+import "expression_graph_owner.pgy";
+
+func ParserExpressionSetLiteral(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeSetLiteral()];
+    let texts: Array<String> = [text];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
+    );
+}
+
+func ParserExpressionSetElement(
+    text: String,
+    literal: ParserExpressionFact,
+    element: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !literal.ok || !element.ok || !AstExpressionNodeIsSetLiteralSpine(
+        literal.arena.node_kinds[literal.root]
+    ) {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeSetElement(), text, literal, element
+    );
+}
