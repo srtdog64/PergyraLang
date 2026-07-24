@@ -292,7 +292,7 @@ seed bootstrap, initializer pressure-owner smoke, component contract, and
 documentation quality gates passed. The member-call lane remains red with the
 same Windows heap-corruption exit (`0xC0000374`) on both `938a5886` and the
 preceding `645d9f2c` source checkpoint, so it is not attributed to this SoT
-de-duplication; a new full-driver pressure measurement is still required.
+de-duplication.
 
 The later exclusive single pressure run at handoff HEAD `416e6aad` reproduced
 the red result under the same `3072 MB` ceiling: `exit_code=-1`, elapsed
@@ -312,6 +312,16 @@ last-consumer cleanup contract currently inserts the lower-level typed array
 drop operations. The next memory rung therefore needs owner-proved reclamation
 or region allocation for non-escaping temporaries, not a larger cap or an
 ambient allocator fallback.
+
+The exclusive current-source pressure run at handoff HEAD `aaf24849` then
+returned `exit_code=-1` after `549275 ms`: peak working set `2519.1 MB`, peak
+private memory `3080.9 MB`, and `driver_oracle.exe` at `3070.1 MB` private
+across three processes. The pressure owner reported `limit_exceeded=true`;
+phase private peaks were orchestrate `3080.90 MB`, compile `1253.21 MB`, and
+link `311.07 MB`, with `Error 88`. Relative to the preceding
+`3084.2 MB`/`3073.4 MB` observation, the de-duplication reduced both peaks by
+about `3.3 MB`, but the existing `3072 MB` ceiling remains red and must not be
+raised.
 
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
@@ -349,6 +359,9 @@ Green on the graph handle commit slice:
 - `938a5886` initializer probe default and direct-call executable lanes passed;
   the member-call lane is an attributable red baseline blocker, not a green
   parity result.
+- The exclusive current-source full-driver pressure gate at `aaf24849` is red:
+  `peak_private_mb=3080.9`, `top_private_mb=3070.1`, and `Error 88` at the
+  unchanged `3072 MB` limit.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -409,7 +422,7 @@ Green on the graph handle commit slice:
   the full-driver pressure stage.
 - The exclusive current-head full-driver pressure gate was rerun once after
   all duplicate pressure trees were terminated: it reproduced `Error 88` at
-  `peak_private_mb=3084.2` and `top_private_mb=3073.4`; this is the current
+  `peak_private_mb=3080.9` and `top_private_mb=3070.1`; this is the current
   falsifying fixture, not a green gate.
 
 Initializer projection passed its C/LLVM parity on the graph slice before the
@@ -491,10 +504,10 @@ ended.
 
 ## Next executable work
 
-1. `938a5886` is the latest executable source closure. Rebuild an exclusive
-   full-driver pressure target below the existing 3072 MB ceiling; if it still
-   crosses the cap, record the next retained owner and last consumer before
-   adding another materialization or cleanup change.
+1. `938a5886` is the latest executable source closure. Its exclusive pressure
+   rerun is still red at `3080.9 MB`; identify the next retained compiler-wide
+   materialization owner and last legitimate consumer before adding another
+   cleanup or representation change.
 2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
