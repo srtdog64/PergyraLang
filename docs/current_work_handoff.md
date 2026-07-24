@@ -8,15 +8,15 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `938a5886` (`Remove duplicate initializer
-  expression rows`) on the isolated branch
-  `codex/semantic-environment-owned-lifetime`. It closes the executable
-  parser-owned initializer-text duplication seam: initializer semantic facts
-  retain node identity, inferred types, verification, diagnostics, and binding
-  rows, while `locals.initializer_texts` remains the sole source text owner.
-  The preceding `645d9f2c` slice closes the reachable artifact-owned callable
-  table lifetime path through self-hosted codegen; ordinary `Array<String>`
-  remains on the beta no-free policy.
+- Active implementation checkpoint: `14c1683b` (`Remove assignment target text
+  duplicate`) on the isolated branch
+  `codex/semantic-environment-owned-lifetime`. It removes the derived
+  `SemanticAstAssignmentTypeFacts.target_texts` row and routes the codegen
+  readiness check through the parser/assignment-owned
+  `SemanticAstAssignmentFacts.target_texts` row. The preceding `938a5886`
+  slice closes the initializer-text duplication seam, while `645d9f2c` closes
+  the reachable artifact-owned callable table lifetime path through self-hosted
+  codegen; ordinary `Array<String>` remains on the beta no-free policy.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -294,6 +294,14 @@ same Windows heap-corruption exit (`0xC0000374`) on both `938a5886` and the
 preceding `645d9f2c` source checkpoint, so it is not attributed to this SoT
 de-duplication.
 
+`14c1683b` removes `SemanticAstAssignmentTypeFacts.target_texts`. Assignment
+diagnostics and codegen now read target text from the parser/assignment fact
+owner, and the type fact retains only type/verification/diagnostic rows. The
+assignment projection parity, callable-table owner, component contract, and
+UCRT self-host bootstrap seed gates passed. This is a bounded derived-fact
+de-duplication; the latest exclusive pressure result is still the red
+`aaf24849` observation below and must be rerun on this source checkpoint.
+
 The later exclusive single pressure run at handoff HEAD `416e6aad` reproduced
 the red result under the same `3072 MB` ceiling: `exit_code=-1`, elapsed
 `548250 ms`, peak working set `2537.1 MB`, peak private memory `3084.2 MB`,
@@ -359,6 +367,9 @@ Green on the graph handle commit slice:
 - `938a5886` initializer probe default and direct-call executable lanes passed;
   the member-call lane is an attributable red baseline blocker, not a green
   parity result.
+- `14c1683b` assignment projection parity, assignment target-text negative
+  ratchet, callable-table owner smoke, component contract, and
+  `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
 - The exclusive current-source full-driver pressure gate at `aaf24849` is red:
   `peak_private_mb=3080.9`, `top_private_mb=3070.1`, and `Error 88` at the
   unchanged `3072 MB` limit.
@@ -470,8 +481,8 @@ attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At isolated HEAD `645d9f2c`, the semantic environment and callable-table
-lifetime slices are clean
+At isolated HEAD `14c1683b`, the semantic environment, callable-table,
+initializer-text, and assignment-target-text lifetime slices are clean
 and pushed on `codex/semantic-environment-owned-lifetime`. `main` remains at
 `2b95746d` and `origin/main` is aligned; the callable-table,
 call-target, assignment, statement, generic-specialization, match-binding,
@@ -504,10 +515,12 @@ ended.
 
 ## Next executable work
 
-1. `938a5886` is the latest executable source closure. Its exclusive pressure
-   rerun is still red at `3080.9 MB`; identify the next retained compiler-wide
-   materialization owner and last legitimate consumer before adding another
-   cleanup or representation change.
+1. `14c1683b` is the latest executable source closure. Rerun the exclusive
+   pressure target on this checkpoint to measure the bounded assignment
+   de-duplication; the latest attributable baseline remains red at `3080.9 MB`.
+   If it remains red, identify the next retained compiler-wide materialization
+   owner and last legitimate consumer before adding another cleanup or
+   representation change.
 2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
@@ -517,11 +530,11 @@ ended.
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
 4. Close the measured whole-program semantic lifetime boundary. The
-   initializer expression-text duplication is now removed; the next preferred
-   executable unit is a routine-scoped analysis/verify materialization with
-   owner-proved output ordering and comparison against the native 120MB golden
-   artifact. Do not infer a pressure improvement until the exclusive target is
-   rerun.
+   initializer and assignment text duplications are now removed; the next
+   preferred executable unit is a routine-scoped analysis/verify materialization
+   with owner-proved output ordering and comparison against the native 120MB
+   golden artifact. Do not infer a pressure improvement until the exclusive
+   target is rerun.
 5. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
