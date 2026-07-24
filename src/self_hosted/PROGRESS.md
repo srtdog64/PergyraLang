@@ -3834,6 +3834,26 @@ beyond the lexer:
   preflight; repeated comparison is an explicit performance falsifier, not a
   stable identity substitute. MIR topology copying is closed for this
   projection.
+  The destructure executable consumer now validates its semantic Value graph,
+  derives SSA uses before registering the destructured bindings, and attaches
+  that same view to MIR. Its owner gate rejects text-use recovery and
+  post-binding use derivation. C- and LLVM-built self drivers each passed all
+  20 body fixtures plus the focused `array_destructure` MIR/emit/host/runtime
+  lane; the LLVM run crossed an unrelated match-owner commit while the
+  destructure slice fingerprint remained stable, so it is focused evidence
+  rather than a fixed whole-tree matrix.
+  Iteration lowering now derives collection-hoist and foreach branch uses from
+  semantic or synthetic graph views; range loops retain an explicit no-use
+  path. Missing collection or foreach graph facts fail closed. The iteration
+  owner gate rejects the retired identifier-text scan, and the component
+  contract now ratchets graph-owned branch uses instead of requiring that old
+  fallback.
+  Graph-complete simple statements (`Log`, bare call, and `Exit`) now validate
+  one Atom view, derive uses from it, and attach that same graph. Collection
+  mutation statements remain a named bounded bridge until receiver/target,
+  value, and auxiliary lane facts are all carried. The focused simple-
+  statement gate and the refreshed component contract reject the retired
+  fallback in the graph-owned path.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

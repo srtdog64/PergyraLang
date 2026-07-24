@@ -460,7 +460,12 @@ require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "struct SelfMirIt
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationLoweringFactForNode"
 require_text "src/self_hosted/mir/routine_for_owner.pgy" "iteration.binding_type_name"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationBranchUses"
-require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "return SelfMirExpressionUses(build, fact.start_expression);"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    "branch_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    "return SelfMirExpressionGraphUses(build, branch_graph);"
+reject_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    "SelfMirExpressionUses("
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" "func SelfMirLowerSimpleStatement"
 reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'SelfMirRoutineAddLocal(build, binding, "Int"'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "struct SelfMirRoutineBuild"
@@ -3418,7 +3423,15 @@ require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
 require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SemanticAstFunctionParamNameAt("
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
-    'let return_source_type: String = "AST_RETURN_VOID";'
+    "if kind == TypedAstKindBareReturnStmtTag()"
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    '"AST_RETURN_VOID", SelfMirNoUses()'
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    "let return_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    "SelfMirExpressionGraphUses(build, return_graph)"
+reject_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    "SelfMirExpressionUses("
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "duplicate MIR source local:"
 require_file "src/self_hosted/semantic/callable_resolution_owner.pgy"
@@ -6452,7 +6465,13 @@ require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'SelfMirSimpleStatementExpressionGraphLane(kind);'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
-    $'kind == TypedAstKindBareCallStmtTag() ||\n        kind == TypedAstKindExitStmtTag() {'
+    'func SelfMirSimpleStatementGraphOwnedKind('
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
+    'func SelfMirLowerGraphOwnedSimpleStatement('
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
+    'SelfMirExpressionGraphUses(build, graph)'
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    'if SelfMirSimpleStatementGraphOwnedKind(kind)'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     $'rows.arg0s[i] == "ArraySet" ||\n             rows.arg0s[i] == "Exit") &&'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \

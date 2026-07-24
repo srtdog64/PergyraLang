@@ -8,8 +8,8 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `27102ed3` (`Close MIR match subject use
-  SoT`). It carries the graph storage migration forward: the stable
+- Active implementation checkpoint: `d05e653c` (`Close MIR graph-owned simple
+  statements`). It carries the graph storage migration forward: the
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
   semantic graph plus instruction root/range handles.
@@ -35,6 +35,19 @@ owner, and the named executable gate.
   the match Atom graph before instruction creation, derives use edges from it,
   and attaches the same view; match subject text is no longer an SSA-use
   authority.
+- `dccbfd41` closes the destructure initializer consumer. It validates the
+  semantic Value graph, derives initializer use edges before registering new
+  bindings, and attaches the same graph view. Missing graph facts fail closed,
+  and initializer text is no longer an SSA-use authority.
+- `2db972f9` closes both iteration text-use paths. Collection hoist uses the
+  semantic Value graph, while foreach branch uses the semantic or synthetic
+  graph view; range loops retain explicit no-use semantics. Missing source or
+  foreach branch graphs fail closed before the affected instruction.
+- `d05e653c` closes the graph-complete simple statement kinds (`Log`, bare
+  call, and `Exit`) through a separate graph-owned lowering path. The path
+  validates and reuses one Atom view for SSA uses and MIR attachment. The
+  collection mutation kinds remain an explicit bridge until target facts are
+  carried by their owner lanes.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -104,6 +117,16 @@ owner, and the named executable gate.
   preparation contract smoke.
 - `tests/self_hosted/parity/driver_rung2_match_graph_use_owner.sh` ratchets
   the match owner and is wired into the preparation contract smoke.
+- `tests/self_hosted/parity/driver_rung2_destructure_graph_use_owner.sh`
+  ratchets the destructure owner, including the ordering requirement that
+  graph uses are resolved before destructured bindings mutate local state.
+- `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh` ratchets
+  both iteration graph-use paths and is wired into the preparation contract
+  smoke.
+- `tests/self_hosted/parity/driver_rung2_simple_statement_graph_use_owner.sh`
+  ratchets the graph-owned simple statement path and proves the collection
+  text bridge is not used by that path. It is wired into the preparation
+  contract smoke.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -169,6 +192,9 @@ Green on the graph handle commit slice:
 - `tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_return_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_graph_use_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_destructure_graph_use_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_simple_statement_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
@@ -196,15 +222,27 @@ The return graph-use gate and direct DRV-2 owner import compile passed on
 `d9cb7f9b`; the full component smoke remains unclaimed.
 The match graph-use gate and direct DRV-2 owner import compile passed on
 `27102ed3`; the full component smoke remains unclaimed.
+The destructure gate passed, and both C- and LLVM-built self drivers passed all
+20 body fixtures plus focused `array_destructure` canonical-MIR, emitted-C,
+host-compile, negative, and runtime parity. The LLVM run crossed the unrelated
+match-owner commit, but the destructure source/gate fingerprints remained
+unchanged; this is focused destructure evidence, not a fixed whole-tree matrix.
+The iteration graph-use gate and direct DRV-2 owner import compile passed on
+`2db972f9`. The stale component assertion that required the retired iteration
+text-use call was replaced with graph-use requirements; rerun results are
+recorded below.
+The simple-statement graph-use gate and direct DRV-2 owner import compile
+passed on `d05e653c`. After replacing stale iteration and return assertions
+and ratcheting the graph-owned simple-statement path, the full
+`tests/self_hosted_component_contract_smoke.sh` passed on the current combined
+source.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-These concurrent changes remain dirty. Do not discard or fold them into
-another unit implicitly:
+After the graph-consumer documentation and component-gate commit, only these
+concurrent parity changes should remain dirty. Do not discard or fold them
+into another unit implicitly:
 
-- `Makefile` (destructure gate wiring from another task);
-- `src/self_hosted/mir/routine_destructure_owner.pgy`;
-- `tests/self_hosted/parity/driver_rung2_destructure_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
@@ -217,16 +255,16 @@ Verify this list after the handoff snapshot because another task may advance
 1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
    exact dirty list. The attempted full self-host bootstrap was interrupted
    after concurrent bootstrap activity produced no attributable result; it is
-   not green evidence for `27102ed3`.
+   not green evidence for `d05e653c`.
 2. Re-run the official initializer C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
-3. Migrate the remaining routine `SelfMirExpressionUses` consumers (statement,
-   destructure, and iteration) to
-   owner-provided graph lanes. Preserve explicit target/auxiliary facts for
-   collection mutations; do not delete the text bridge until every last
-   legitimate consumer has a typed graph fact and a missing-fact negative gate.
+3. Close the remaining collection-mutation statement bridge. First carry
+   target identity/use facts for ArrayPop, ArrayPush, and ArraySet through
+   their owner lanes; then replace the bounded text use with those graph
+   facts. Preserve ArraySet value/index/target lane separation and add a
+   missing-target negative gate before deleting the final text path.
 4. Close the measured whole-program semantic lifetime boundary. The preferred
    unit is routine-scoped analysis/verify with owner-proved output ordering and
    comparison against the native 120 MB golden artifact. Do not tune JSON or
@@ -245,7 +283,7 @@ Verify this list after the handoff snapshot because another task may advance
    `docs/180_compiler_logical_spine_handles_gates.md`, and the
    `selfhost.expression_graph` registry rows.
 2. Verify `git status --short --branch`, HEAD/origin, the named owner registry,
-   and the six concurrent dirty files.
+   and the three concurrent dirty parity files.
 3. Run the graph ratchet and build-pressure contract before a broad build.
 4. Confirm no other `pgy`, `genN`, `driver_oracle`, `gcc`, or `cc1` process is
    active before the pressure gate. Concurrent broad builds invalidate its

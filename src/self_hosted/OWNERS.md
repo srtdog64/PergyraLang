@@ -515,18 +515,27 @@ inventory must not become a second fact-family owner registry.
   back-edge, and exit-block lowering.
 - `src/self_hosted/mir/loop_reachability_fact_owner.pgy` -- loop-body exit and
   back-edge reachability facts consumed before header phi emission.
-- `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row to
-  loop-initializer, body, back-edge, and exit-block lowering.
+- `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row and
+  semantic source/branch graph views to loop-initializer, body, back-edge, and
+  exit-block lowering.
+- `src/self_hosted/mir/routine_iteration_owner.pgy` -- graph-owned collection
+  hoist and foreach branch use projection; range loops retain explicit no-use
+  semantics.
 - `src/self_hosted/mir/routine_assignment_owner.pgy` -- semantic assignment
   row to SSA definition, projected-target graph, and receiver-use lowering.
 - `src/self_hosted/mir/routine_control_transfer_owner.pgy` -- return, break,
   and continue instruction/edge lowering.
 - `src/self_hosted/mir/routine_tracked_statement_owner.pgy` -- statement-kind
-  dispatch after the statement fact owner has identified the tracked row.
+  dispatch after the statement fact owner has identified the tracked row;
+  graph-complete simple statements are routed with one validated Atom view.
+- `src/self_hosted/mir/routine_statement_owner.pgy` -- graph-owned
+  Log/bare-call/Exit lowering plus the explicitly bounded collection-mutation
+  bridge pending complete target/value/auxiliary owner lanes.
 - `src/self_hosted/mir/routine_let_owner.pgy` -- semantic initializer row to
   MIR local declaration and SSA definition lowering.
 - `src/self_hosted/mir/routine_destructure_owner.pgy` -- aligned semantic
-  binding/type rows to one typed MIR destructure instruction.
+  binding/type rows plus the semantic Value graph to one typed MIR destructure
+  instruction; initializer uses are resolved before new bindings enter scope.
 - `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
   signature parameter seeding, and routine-lowering entry.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
