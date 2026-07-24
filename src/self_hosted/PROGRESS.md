@@ -1,5 +1,33 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra Set runtime/call SoT executable closure.
+Objective: carry `SetNew/Add/Has/Remove/Size` from graph-owned target,
+receiver, and element facts through one Set runtime ABI owner into C emission.
+Priority was direct target identity, element/return typing, contextual
+constructor promotion, runtime symbol ownership, fail-closed negatives, then
+patch size. Receiver/element guessing, source Set spelling as ABI, Queue/List
+substitution, and missing Set runtime fact success are forbidden.
+
+`ast_expression_graph_set_call_owner.pgy` owns the call verdict;
+`set_runtime_owner.pgy` owns the supported `Set<Int>`/`Set<String>` C value and
+operation symbols. Native/self MIR agree on `Set<Int>` and all five direct Set
+targets. Self-host C emits `PgySet_int` and `pgy_set_*_int`, runs with `true`,
+`false`, `1`, and rejects both a missing declaration ABI fact and a String
+passed to `Set<Int>`.
+
+Fresh Pergyra-built DRV-2 hard parity passed with `body_fixtures=20
+mir_fixtures=1`; component, hard-contract, authority-edge, and
+authority-adequacy gates passed. Authority adequacy used the declared
+`PGY_ALLOW_MISSING_COQ=1` skip because no Coq/Rocq prover is installed. Commit
+`f743db5b` is local, and the manifest contains 278 rows. Full unfiltered DRV-2
+and LLVM matrices were not run.
+
+The next observed executable seam is shared indexed-argument typing:
+`loop_collect_distinct_set` and `set_member_pipeline` fail closed at
+`owner: collection_value_type` for `words[i]`/`xs[i]`. Core String and direct
+Set fixtures already emit verified C. `set_literal_basic` remains a separate
+literal surface and must not be conflated with the index projection.
+
 2026-07-24 Pergyra Queue runtime/call SoT executable closure.
 Objective: carry contextual `Queue<T>` literals and Queue operation calls from
 graph-owned target/element facts through MIR ABI rows into one Queue runtime ABI

@@ -7,14 +7,13 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest pushed HEAD is `0d5e186b` (`Centralize collection binding kind
-  lookup`), with `5bc2e996` (`Close Queue runtime call SoT`) immediately
-  before it; both are on `origin/main`. The worktree is clean except for the
-  user-owned untracked `docs/198_market_safety_positioning.md`.
-- The committed DRV-2 manifest contains 277 MIR fixtures, with
-  `sequence_literal_list_queue` as the latest executable row. Its Queue
-  negatives remove the Queue ABI type fact and replace a Queue element with a
-  String.
+- Current HEAD is local commit `f743db5b` (`Close Set runtime call SoT`);
+  `origin/main` remains at `04be5305`. The worktree also carries a concurrent
+  native C file-split change and the user-owned untracked
+  `docs/198_market_safety_positioning.md`; neither belongs to the Set commit.
+- The committed DRV-2 manifest contains 278 MIR fixtures, with `set_ops` as
+  the latest executable row. Its negatives remove the Set ABI type fact and
+  pass a String to `Set<Int>`.
 - `5bc2e996` closes the Queue portion of
   `sequence_literal_list_queue`: Queue runtime ABI, contextual Queue literals,
   QueuePush/Pop/Size/Empty target facts, and emitted C symbols are owner-bound.
@@ -22,13 +21,18 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
   `Option<T>` initialization, assignment, return, and typed call arguments now
   share one expected-value dispatcher plus a dedicated Option projection owner;
   clean gen1/gen2 seed generation and a Pergyra-built DRV-2 build passed.
-- The next observed executable failure is
-  `tests/cases/backend_compare/set_ops/main.pgy`: the Pergyra-built driver fails
-  closed with `undefined_function`, `func: SetNew`.
+- `f743db5b` closes `SetNew/Add/Has/Remove/Size` through one semantic,
+  type, runtime ABI, and C-emission spine. The freshly rebuilt Pergyra DRV-2
+  passes focused hard parity for `set_ops`.
+- The next observed executable failure is `loop_collect_distinct_set`: the
+  Pergyra-built driver fails closed at `owner: collection_value_type` for the
+  indexed argument `words[i]`. `set_member_pipeline` reproduces the same
+  missing shared index-value projection; `set_literal_basic` remains a
+  separate literal surface.
 - Resume by verifying `git status --short --branch`, the registry rows
-  `selfhost.queue_call_runtime_surface`, `selfhost.call_target_identity`, and
-  `selfhost.local_binding_statement_routing`, plus
-  `tests/self_hosted/parity/driver_rung2_queue_ops_parity_owner.sh`.
+  `selfhost.set_call_runtime_surface`, `selfhost.call_target_identity`, and
+  `selfhost.type_runtime_usage_surface`, plus
+  `tests/self_hosted/parity/driver_rung2_set_ops_parity_owner.sh`.
 - `564de5be` includes the previously carried `stmt_emit.pgy` and
   `try_let_emit_owner.pgy` scope changes; they are no longer separate dirty
   files.
@@ -187,19 +191,45 @@ Observed closure:
   failure is closed without a compiler define or `Option<Int>` fallback.
 - Commit `e725ea26` is pushed through the current `origin/main` history.
 
-## Next observed executable seam: Set runtime ABI and calls
+## Last closed executable family: Set runtime ABI and calls
 
-- `tests/cases/backend_compare/set_ops/main.pgy` fails closed at the semantic
-  boundary with `undefined_function`, `func: SetNew`.
-- `set_string_ops`, `set_membership_ops`, `set_intersection_manual`,
-  `loop_collect_distinct_set`, and `set_member_pipeline` reproduce that missing
-  Set builtin boundary. `set_literal_basic` also fails and its literal surface
-  must be classified within this active rung.
-- Objective: establish one Set call/type/runtime ABI spine, then route declared
-  Set literals through that owner if the observed fixture requires it.
-  Forbidden fallback is copied Queue/List policy or backend spelling as Set
-  identity. The first falsifier is a missing Set runtime row or a mismatched
-  `Set<T>` element.
+Objective card:
+
+- Objective: carry `SetNew/Add/Has/Remove/Size` from graph-owned target and
+  element facts through one Set runtime ABI owner into C emission.
+- Priority: direct target identity, receiver/element/return typing, contextual
+  constructor promotion, runtime symbol ownership, negative ratchet, then
+  patch size.
+- Fact owners: `ast_expression_graph_set_call_owner.pgy` owns Set call
+  verdicts; `set_runtime_owner.pgy` owns the supported value types and C
+  symbols; Set call/type and expected-value emitters are the last consumers.
+- Forbidden fallback: receiver/element guesses, source Set spelling as ABI,
+  Queue/List substitution, and accepting a missing Set runtime fact.
+- Verification gate: `driver_rung2_set_ops_parity_owner.sh`; falsifiers remove
+  the declaration ABI fact and pass a String to `Set<Int>`.
+
+Observed closure:
+
+- Native/self MIR agree on `Set<Int>` and direct Set targets. Self-host C emits
+  `PgySet_int` and the `pgy_set_*_int` constructor/operation family; native and
+  self execution print `true`, `false`, `1`.
+- A fresh Pergyra-built `bin/pgy-self-driver.exe` passed hard producer-first
+  parity with `body_fixtures=20 mir_fixtures=1`. Component, hard-contract,
+  authority-edge, and authority-adequacy gates passed; adequacy used the
+  declared `PGY_ALLOW_MISSING_COQ=1` skip because no prover is installed.
+- Commit `f743db5b` is local and not pushed. Full unfiltered 278-row and LLVM
+  matrices were not run.
+
+## Next observed executable seam: indexed Set argument value typing
+
+- `loop_collect_distinct_set` and `set_member_pipeline` fail closed with
+  `owner: collection_value_type` when `words[i]` or `xs[i]` is a Set argument.
+- `set_string_ops`, `set_membership_ops`, and `set_intersection_manual` already
+  emit verified C and are evidence that the core Set boundary is closed.
+- Objective: project an index node's `Array<T>` receiver and `Int` index into
+  one shared scalar argument type fact. Forbidden fallback is Set-local source
+  parsing or element guessing. The first falsifier changes the index type or
+  removes the receiver's environment type.
 
 ## Last closed executable family: List foreach iteration and ABI
 
