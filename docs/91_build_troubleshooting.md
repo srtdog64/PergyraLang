@@ -127,6 +127,49 @@ amplification. On Windows, the official
 `driver_seed`, and `driver_genN` workers. Do not invoke the script directly
 with `PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1` when investigating this defect.
 
+Two bounded builds isolate this defect from ordinary native linking while also
+showing real compiler-scale optimization debt. Compiling the approximately
+3 MiB driver source to a guarded oracle through the released compiler's C
+backend completed in 74,025 ms at 2,138.8 MB working set / 2,145.6 MB private.
+The LLVM backend build completed in 147,566 ms at 2,228.2 MB working set /
+2,239.5 MB private. These are compile-to-executable measurements, not the
+full-input oracle execution. They show that large-source compilation already
+needs optimization, but they do not explain away a later 28 GiB oracle process.
+
+The C-built guarded oracle rejects a direct full-driver MIR request before
+materialization, rejects use of its full-fixpoint token on a bounded fixture,
+and still emits the bounded `let_log` MIR artifact. The linked LLVM-built
+artifact currently falls into the CLI usage diagnostic for every argumentful
+invocation. Its build therefore proves LLVM lowering/linking of this source,
+not runnable argv parity; the LLVM process-entry/`Args()` seam remains a
+separate explicit blocker.
+
+Source inspection identifies the strongest current amplification mechanism,
+but not yet its exact share of the 28 GiB peak:
+
+- `mir/json_projection_owner.pgy` materializes instruction strings into block
+  strings, block strings into routine strings, and all routine strings into a
+  program-level `Array<String>` before returning the final JSON string;
+- `lib/json_emit.pgy` builds every field/object/array with nested `Concat` and
+  `StringJoin`; the Pergyra-built C runtime allocates new buffers for both;
+- ordinary temporary `String` buffers are not reclaimed at each emitted
+  routine, and `AllocatorScratch()` is currently a system-backed lane label,
+  not a bulk-reset arena.
+
+That shape can retain and repeatedly copy full lower-level projections while
+the next level is assembled. It is the leading source-backed explanation for
+the observed growth. The exact split between MIR fact construction and JSON
+projection remains `Unknown` until a stage marker or allocation census observes
+it; do not record the inference as a completed root-cause percentage.
+
+The durable repair is a bounded or streaming JSON emission owner consuming the
+same Pergyra MIR facts, with an executable byte/schema parity gate and a
+per-routine lifetime boundary. Raising the memory ceiling, rearranging the same
+nested `Array<String>` values, or adding C-shaped backend fragments is not a
+repair. C and LLVM must remain peer consumers of one Pergyra-owned semantic/MIR/
+ABI fact spine. The binary token is an accidental-direct-run interlock, not an
+authorization secret; the official pressure wrapper remains the resource owner.
+
 The follow-up check found that exact bypass active beside a 95-fixture DRV-2
 shard. Together with a short-lived third recursive make probe, the three runs
 owned 21 project processes and 2,114 MB private memory at an early snapshot;

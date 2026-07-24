@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROBE="$ROOT_DIR/scripts/measure_build_pressure.ps1"
 DRIVER_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
+DRIVER_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
 require() {
     grep -Fq "$1" "$PROBE" || {
@@ -54,6 +56,12 @@ grep -Fq 'self-host-driver-bootstrap-full-pressure-body-test-smoke' "$ROOT_DIR/M
     || { echo "[build-pressure-contract] full driver fixpoint lacks a bounded body target" >&2; exit 1; }
 grep -Fq 'full pressure body requires measure_build_pressure.ps1' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] full driver body can bypass its pressure owner" >&2; exit 1; }
+grep -Fq 'full driver MIR production requires the pressure-owned bootstrap gate' "$DRIVER_MAIN" \
+    || { echo "[build-pressure-contract] full driver binary lacks its direct-call rejection" >&2; exit 1; }
+grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
+    || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
+grep -Fq '"--pressure-owned-full-fixpoint"' "$DRIVER_BOOTSTRAP" \
+    || { echo "[build-pressure-contract] full driver runner lacks the pressure-owned token" >&2; exit 1; }
 grep -Fq '*/Git/usr/bin/bash.exe)' "$DRIVER_PARITY" \
     || { echo "[build-pressure-contract] full DRV-2 matrix lacks the Git Bash orphan guard" >&2; exit 1; }
 grep -Fq 'full matrix requires MSYS2 bash' "$DRIVER_PARITY" \
