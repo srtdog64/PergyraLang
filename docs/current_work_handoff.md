@@ -8,7 +8,14 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `9f207fdc` (`Share artifact callable table
+- Active implementation checkpoint: `6ef7641d` (`Close semantic environment
+  String lifetime`) on the isolated branch
+  `codex/semantic-environment-owned-lifetime`. It closes the executable
+  semantic scratch-array lifetime seam: `SemanticAstExpressionEnvironment`
+  now inserts through the owned `String` push pair and clears through the
+  matching owned drop pair. Ordinary `Array<String>` remains on the beta
+  no-free policy.
+- Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
   specialization`), `a1d508a0` (`Share callable table across assignment and
@@ -248,6 +255,16 @@ crossing the 3GiB ceiling by `19.3MB`. The detached worktree and its owned
 processes were removed after the measurement without touching main-worktree
 changes.
 
+`6ef7641d` closes the next measured lifetime seam without changing the
+ordinary collection policy. The semantic environment owner now uses
+`ArrayPushOwnedString` for the temporary `names`, `types`, and `modes` rows and
+`ArrayDropOwnedStrings` at its last consumer. The pair is registered in the
+type checker, C transpiler, LLVM emitter/runtime, and both runtime surfaces;
+the focused owner gate and a direct C push/drop execution harness passed. This
+is a bounded reclamation unit, not evidence that the full-driver 3 GiB
+pressure defect is closed. The next falsifier is an exclusive rebuilt
+full-driver pressure run with the same 3072 MB ceiling.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -273,6 +290,12 @@ PowerShell pressure owner is unavailable, and
 ## Last observed gates
 
 Green on the graph handle commit slice:
+
+- `6ef7641d` semantic environment owned-lifetime gate:
+  `tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh`;
+- `6ef7641d` GCC C syntax-only checks on the changed C backend, LLVM emitter,
+  LLVM runtime, and collection type-checker files;
+- `6ef7641d` direct C execution harness for the owned String push/drop pair;
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -377,7 +400,9 @@ attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At `bec2fca3`, `main` and `origin/main` are aligned. The callable-table,
+At isolated HEAD `6ef7641d`, the semantic environment lifetime slice is clean
+and pushed on `codex/semantic-environment-owned-lifetime`. `main` remains at
+`2b95746d` and `origin/main` is aligned; the callable-table,
 call-target, assignment, statement, generic-specialization, match-binding,
 and artifact-capture slices are committed and pushed. The following concurrent
 changes remain dirty and are intentionally excluded;
@@ -408,24 +433,28 @@ ended.
 
 ## Next executable work
 
-1. The production callable-table seam is closed through artifact capture and
+1. `6ef7641d` is the latest executable lifetime closure. Rebuild an exclusive
+   full-driver pressure target below the existing 3072 MB ceiling; if it still
+   crosses the cap, record the next retained owner and last consumer before
+   adding another cleanup pair.
+2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
    compiler window.
-2. The exclusive official full bootstrap was run with PowerShell discoverable;
+3. The exclusive official full bootstrap was run with PowerShell discoverable;
    it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
-3. Close the measured whole-program semantic lifetime boundary. The preferred
+4. Close the measured whole-program semantic lifetime boundary. The preferred
    executable unit is routine-scoped analysis/verify with owner-proved output
    ordering and comparison against the native 120MB golden artifact. The next
    source delta must remove a real compiler-wide materialization path before
    rerunning the full pressure target.
-4. Introduce the real revision owner and distinct stable identities
+5. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-5. After the full-driver artifact completes below 3 GiB, run the unfiltered
+6. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
