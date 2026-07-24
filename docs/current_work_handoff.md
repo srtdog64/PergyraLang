@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `0367247b` (`Close MIR if condition use
+- Active implementation checkpoint: `ce6ee3cc` (`Close MIR while condition use
   SoT`). It carries the graph storage migration forward: the stable
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
@@ -24,6 +24,9 @@ owner, and the named executable gate.
   one semantic graph view is validated, used for SSA use derivation, and
   attached to MIR; a missing condition graph fails closed before instruction
   creation. The if owner no longer scans condition text.
+- `ce6ee3cc` applies the same replacement to the MIR while-condition consumer.
+  Its graph view is now the use-edge owner and missing graph facts fail closed;
+  the while owner no longer recovers identifiers from condition text.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -84,6 +87,9 @@ owner, and the named executable gate.
 - `tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh` applies the
   same negative ratchet to the if owner and is wired into the preparation
   contract smoke.
+- `tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh` applies the
+  same negative ratchet to the while owner and is wired into the preparation
+  contract smoke.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -108,6 +114,22 @@ with an approximately 120 MB golden artifact. The self-hosted failure remains
 whole-program semantic fact retention before MIR/JSON, now measured as roughly
 26x the native reference.
 
+The pressure observation predates the final MIR handle transition, so it is
+not a measurement of the current one-owner snapshot. Source inspection also
+shows why extracting the initializer-row body into a helper is insufficient:
+the semantic environment clear path only pops array lengths, runtime
+`Substring`/`StringConcat` allocate heap buffers, and no Pergyra-owned
+last-consumer cleanup contract currently inserts the lower-level typed array
+drop operations. The next memory rung therefore needs owner-proved reclamation
+or region allocation for non-escaping temporaries, not a larger cap or an
+ambient allocator fallback.
+
+Until a real revision identity lands, foreign MIR graph rejection uses
+`SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
+current correctness bridge and an explicit performance falsifier; it must be
+replaced by an owner-issued revision-scoped identity plus stale/foreign-handle
+negative fixtures, not by a weak content shortcut.
+
 Later current-source pressure attempts are not compiler evidence: one narrowed
 MSYS2 `PATH` hid PowerShell and entered the unbounded fallback, and later runs
 were contaminated by concurrent compiler builds. Owned runaway processes were
@@ -130,6 +152,7 @@ Green on the graph handle commit slice:
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
@@ -152,15 +175,14 @@ not installed, so the proof model was a declared skip, not a green prover run.
 The component contract smoke was started after the if change but produced no
 result while an unrelated concurrent initializer build was active. It was
 stopped before a result and is not recorded as green evidence for `0367247b`.
+It has not been rerun on `ce6ee3cc`.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-These concurrent changes remain dirty. Do not discard or fold them into
-another unit implicitly:
+After the graph/memory documentation commit, only these concurrent parity
+changes should remain dirty. Do not discard or fold them into another unit
+implicitly:
 
-- `docs/semantics/sot_owner_spine_registry.md`;
-- `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`;
-- `src/self_hosted/PROGRESS.md`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
@@ -173,13 +195,13 @@ Verify this list after the handoff snapshot because another task may advance
 1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
    exact dirty list. The attempted full self-host bootstrap was interrupted
    after concurrent bootstrap activity produced no attributable result; it is
-   not green evidence for `0367247b`.
+   not green evidence for `ce6ee3cc`.
 2. Re-run the official initializer C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
 3. Migrate the remaining routine `SelfMirExpressionUses` consumers (statement,
-   tracked statement, while, destructure, iteration, and match) to
+   tracked statement, destructure, iteration, and match) to
    owner-provided graph lanes. Preserve explicit target/auxiliary facts for
    collection mutations; do not delete the text bridge until every last
    legitimate consumer has a typed graph fact and a missing-fact negative gate.
@@ -201,7 +223,7 @@ Verify this list after the handoff snapshot because another task may advance
    `docs/180_compiler_logical_spine_handles_gates.md`, and the
    `selfhost.expression_graph` registry rows.
 2. Verify `git status --short --branch`, HEAD/origin, the named owner registry,
-   and the six concurrent dirty files.
+   and the three concurrent dirty parity files.
 3. Run the graph ratchet and build-pressure contract before a broad build.
 4. Confirm no other `pgy`, `genN`, `driver_oracle`, `gcc`, or `cc1` process is
    active before the pressure gate. Concurrent broad builds invalidate its

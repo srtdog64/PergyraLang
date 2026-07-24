@@ -3817,9 +3817,9 @@ beyond the lexer:
   existing node ordinals, while `SemanticExpressionGraphArena` borrows that
   topology and owns only normalized spelling, call-target, and place overlays.
   The semantic bridge no longer copies node-kind or child arrays. The blocking
-  graph gate tightened from three structural stores to exactly two (program
-  topology plus the still-open MIR projection), and rejects either retired
-  HIR/semantic store returning. Initializer projection passed its C/LLVM probe;
+  graph gate tightened from three structural stores to exactly one program
+  topology and rejects any retired HIR, semantic, or MIR structural store
+  returning. Initializer projection passed its C/LLVM probe;
   the current C-built driver passed all 20 body fixtures and six selected
   graph-heavy MIR fixtures. The first official full-driver pressure observation
   after the repoint still stopped at the 3 GiB boundary: 2,531.5 MB peak working
@@ -3829,8 +3829,11 @@ beyond the lexer:
   topology and call-target facts through semantic accessors; missing or
   foreign handles fail closed. The combined graph target runs the one-owner
   storage ratchet and this projection-negative gate. Routine-scoped semantic
-  lifetime and revision-scoped stable IDs remain open. MIR topology copying is
-  closed for this projection.
+  lifetime and revision-scoped stable IDs remain open. Until revision identity
+  lands, foreign-graph rejection uses a correctness-first whole-graph equality
+  preflight; repeated comparison is an explicit performance falsifier, not a
+  stable identity substitute. MIR topology copying is closed for this
+  projection.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core
