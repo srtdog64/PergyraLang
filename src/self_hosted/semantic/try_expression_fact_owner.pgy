@@ -1,5 +1,7 @@
 // Canonical semantic shape owner for try-propagation expressions.
 
+import "expression_normalization_owner.pgy";
+
 func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
     let n: Int = StringLength(text);
     if n > 1 && CharAt(text, 0) == "?" {
@@ -22,14 +24,14 @@ func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
 }
 
 func SemanticTryOperand(text: String) -> Option<String> {
-    let expression: String = StringTrim(text);
+    let expression: String = SemanticTrimSourceReuse(text);
     let bounds: Array<Int> = [0, 0];
     if !TryOperandBounds(expression, bounds) || bounds[1] <= 0 {
         return None;
     }
-    let operand: String = StringTrim(Substring(
-        expression, bounds[0], bounds[1]
-    ));
+    let operand: String = SemanticTrimSourceRangeReuse(
+        expression, bounds[0], bounds[0] + bounds[1]
+    );
     if StringLength(operand) == 0 {
         return None;
     }
