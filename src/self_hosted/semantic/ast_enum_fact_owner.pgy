@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticAstEnumFacts {
     ok: Bool;
@@ -64,7 +65,9 @@ func SemanticAstEnumFactsFromArtifact(
                         );
                         let param_count: Int = 0;
                         if paren >= 0 {
-                            variant_name = StringTrim(Substring(variant, 0, paren));
+                            variant_name = SemanticTrimSourceRangeReuse(
+                                variant, 0, paren
+                            );
                             let close: Int = StringIndexOf(variant, ")");
                             if close <= paren {
                                 ok = false;
@@ -81,11 +84,10 @@ func SemanticAstEnumFactsFromArtifact(
                                 );
                                 let param_index: Int = 0;
                                 while param_index < param_count && ok {
-                                    let param_type_name: String = StringTrim(
+                                    let param_type_name: String =
                                         SemanticDelimitedRangeText(
                                             params, params_text, param_index
-                                        )
-                                    );
+                                        );
                                     if param_type_name == "" ||
                                         param_type_name == "Unknown" {
                                         ok = false;
