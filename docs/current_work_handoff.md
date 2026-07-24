@@ -9,7 +9,7 @@ owner, and the named executable gate.
 ## Resume checkpoint
 
 - The implementation checkpoint immediately before this handoff refresh is
-  `a2de312d` (`Correct guarded oracle runtime evidence`), pushed to
+  `944a511a` (`Locate full driver semantic pressure boundary`), pushed to
   `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
   because a committed handoff cannot name its own Git object ID.
 - `0fdaf851` closes the shared collection-call protocol for List/Queue/Set:
@@ -49,7 +49,7 @@ owner, and the named executable gate.
 - The previous indexed Set argument closure remains `23c2f0cb`; its handoff
   refresh is `cb25eb92`.
 
-## Exact remaining dirty state after the collection protocol closure
+## Exact remaining dirty state after the pressure attribution
 
 The following concurrent or user-owned work remains outside the pressure
 commits:
@@ -65,11 +65,6 @@ commits:
   `set_runtime_owner.pgy`, plus untracked
   `runtime_header_ownership_owner.pgy`;
 - modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
-- pressure-diagnostic work currently modifies self-host compiler and semantic
-  owners `driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
-  `ast_body_type_bundle_owner.pgy`, and
-  `ast_initializer_type_fact_owner.pgy`; these are the active memory slice,
-  not concurrent work to discard;
 - modified parity runners `driver_bootstrap.sh`, `driver_rung2_body_parity.sh`,
   and the indexed-assignment, machine-MIR, match, and owner-field owners;
 - modified `tests/self_hosted_component_contract_smoke.sh`, plus untracked
@@ -80,6 +75,12 @@ commits:
 The collection protocol owner, its migrated consumers, registry row, proof
 mapping, and negative gate are clean at `0fdaf851`; they are not part of the
 remaining dirty state above.
+
+The pressure-diagnostic compiler and semantic owners
+`driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
+`ast_body_type_bundle_owner.pgy`, and
+`ast_initializer_type_fact_owner.pgy` are clean at `944a511a`; do not list
+them as concurrent dirty work on resume.
 
 The native C files are a concurrent file-split change. Do not discard, stage,
 or fold them into a self-host rung without reviewing their owner and gate.
