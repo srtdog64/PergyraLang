@@ -183,17 +183,31 @@ mir_attach_def_type_name_fact(MIRRoutine *routine,
                               MIRInstruction *inst,
                               ASTNode *type_node)
 {
-    char *rendered;
+    const char *type_name;
+    char *rendered = NULL;
 
-    if (routine == NULL || inst == NULL || type_node == NULL
-        || type_node->type != AST_TYPE) {
+    if (routine == NULL || inst == NULL)
         return;
+
+    if (type_node != NULL) {
+        if (type_node->type != AST_TYPE)
+            return;
+        rendered = mir_capture_type_name(type_node, NULL);
+        type_name = rendered;
+    } else {
+        const char *local_name = inst->arg0 != NULL
+            ? inst->arg0
+            : inst->slot_anchor;
+
+        /* An inferred let has no annotation node.  Carry the already-owned
+         * routine local-type fact onto its DEF here so MIR consumers never
+         * need a source-local compatibility read. */
+        type_name = mir_routine_source_local_type_name(routine, local_name);
     }
 
-    rendered = mir_capture_type_name(type_node, NULL);
-    if (rendered == NULL)
+    if (type_name == NULL)
         return;
-    inst->abi_type_name = pgy_arena_strdup(&routine->scratch, rendered);
+    inst->abi_type_name = pgy_arena_strdup(&routine->scratch, type_name);
     if (inst->abi_type_name != NULL) {
         inst->type_layout = mir_abi_lookup(inst->abi_type_name);
         inst->abi_layout_id = mir_abi_layout_id(inst->type_layout);
