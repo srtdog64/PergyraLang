@@ -7,13 +7,15 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Current HEAD is local commit `f743db5b` (`Close Set runtime call SoT`);
-  `origin/main` remains at `04be5305`. The worktree also carries a concurrent
-  native C file-split change and the user-owned untracked
-  `docs/198_market_safety_positioning.md`; neither belongs to the Set commit.
-- The committed DRV-2 manifest contains 278 MIR fixtures, with `set_ops` as
-  the latest executable row. Its negatives remove the Set ABI type fact and
-  pass a String to `Set<Int>`.
+- Current HEAD and `origin/main` are `23c2f0cb` (`Carry indexed values into Set
+  calls`). The worktree still carries a concurrent native C file-split change,
+  the user-owned untracked `docs/198_market_safety_positioning.md`, and a
+  concurrent full-matrix note; none belongs to the pushed indexed-value
+  closure.
+- The committed DRV-2 manifest contains 279 MIR fixtures, with
+  `loop_collect_distinct_set` as the latest executable row. Its indexed-value
+  negative changes the index to a String and requires the carried
+  `collection_value_type` failure.
 - `5bc2e996` closes the Queue portion of
   `sequence_literal_list_queue`: Queue runtime ABI, contextual Queue literals,
   QueuePush/Pop/Size/Empty target facts, and emitted C symbols are owner-bound.
@@ -24,15 +26,23 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 - `f743db5b` closes `SetNew/Add/Has/Remove/Size` through one semantic,
   type, runtime ABI, and C-emission spine. The freshly rebuilt Pergyra DRV-2
   passes focused hard parity for `set_ops`.
-- The next observed executable failure is `loop_collect_distinct_set`: the
-  Pergyra-built driver fails closed at `owner: collection_value_type` for the
-  indexed argument `words[i]`. `set_member_pipeline` reproduces the same
-  missing shared index-value projection; `set_literal_basic` remains a
-  separate literal surface.
+- `23c2f0cb` closes the shared `Array<T>[Int]` value projection into Set calls;
+  the freshly rebuilt Pergyra DRV-2 emits `pgy_as_get`/`pgy_ai_get` and passes
+  focused hard parity for `loop_collect_distinct_set` with
+  `body_fixtures=20 mir_fixtures=1`. The supplemental hard
+  `set_member_pipeline` run prints `15`, `40`, `3`.
+- The next active surface is `set_literal_basic`: Set literal syntax remains
+  outside the observed parser/graph owner and is intentionally separate from
+  indexed-value projection.
 - Resume by verifying `git status --short --branch`, the registry rows
   `selfhost.set_call_runtime_surface`, `selfhost.call_target_identity`, and
   `selfhost.type_runtime_usage_surface`, plus
-  `tests/self_hosted/parity/driver_rung2_set_ops_parity_owner.sh`.
+  `tests/self_hosted/parity/driver_rung2_set_index_value_parity_owner.sh`.
+- Last green focused gates are the indexed Set hard producer-first parity,
+  `tests/sot_authority_edge_smoke.sh`, and
+  `tests/self_host_hard_contract_smoke.sh`. The component contract smoke is
+  not claimed because the concurrent `src/compiler/mir_json_dump.c` change
+  still lacks `mir_json_emit_decl_generic_params(out, header);`.
 - `564de5be` includes the previously carried `stmt_emit.pgy` and
   `try_let_emit_owner.pgy` scope changes; they are no longer separate dirty
   files.
@@ -48,6 +58,32 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
   (two-argument descriptor), and `e6f321f2` (payload mismatch ratchet).
 - VS Code setup remains closed in `720928c5`; its handoff refresh is
   `bf79f07d`.
+
+## Last closed executable family: indexed Set argument values
+
+Objective card:
+
+- Objective: project an `Array<T>` receiver and `Int` index into the shared
+  scalar argument type fact consumed by Set calls.
+- Priority: receiver/index identity, carried element type, Set call validation,
+  emitted runtime ABI, missing/wrong-index negative, then patch size.
+- Fact owner: `ast_expression_graph_scalar_shape_owner.pgy` owns the shared
+  graph index projection; `set_call` owners remain the last Set consumers.
+- Forbidden fallback: Set-local source reparse, Set element guessing, backend
+  index-type recovery, or source spelling as ABI.
+- Verification gate:
+  `driver_rung2_set_index_value_parity_owner.sh`; falsifier changes
+  `words[i]`/`xs[i]` to a String index.
+
+Observed closure:
+
+- Native/self MIR carry `Array<String>`/`Array<Int>` indexed values into Set
+  calls. Self-host C emits `pgy_as_get`/`pgy_ai_get`; hard execution prints
+  `4`, `true`, `true`, `true`, `false` for the String case.
+- Focused hard producer-first parity passed with `body_fixtures=20
+  mir_fixtures=1`; full 279-row DRV-2 and LLVM lanes were not run.
+- Commit `23c2f0cb` is pushed. `set_literal_basic` remains a separate open
+  parser/graph surface.
 
 ## Last closed executable family: lexical List shadow identity
 

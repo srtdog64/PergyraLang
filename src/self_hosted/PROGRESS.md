@@ -22,11 +22,28 @@ authority-adequacy gates passed. Authority adequacy used the declared
 `f743db5b` is local, and the manifest contains 278 rows. Full unfiltered DRV-2
 and LLVM matrices were not run.
 
-The next observed executable seam is shared indexed-argument typing:
-`loop_collect_distinct_set` and `set_member_pipeline` fail closed at
-`owner: collection_value_type` for `words[i]`/`xs[i]`. Core String and direct
-Set fixtures already emit verified C. `set_literal_basic` remains a separate
-literal surface and must not be conflated with the index projection.
+2026-07-24 Pergyra indexed Set argument-value SoT executable closure.
+Objective: project an `Array<T>` receiver and `Int` index into the shared scalar
+argument type fact consumed by Set calls. Set-local source reparse, element
+guessing, backend index recovery, and source spelling as ABI are forbidden.
+
+`ast_expression_graph_scalar_shape_owner.pgy` now owns the shared index
+projection. Native/self MIR carry `Array<String>`/`Array<Int>` indexed values
+into Set calls; self-host C emits `pgy_as_get`/`pgy_ai_get`. Hard execution of
+`loop_collect_distinct_set` prints `4`, `true`, `true`, `true`, `false`, and
+the wrong-index negative fails closed at `owner: collection_value_type`.
+The supplemental `set_member_pipeline` hard run prints `15`, `40`, `3`.
+
+Fresh Pergyra-built DRV-2 producer-first parity passed with
+`body_fixtures=20 mir_fixtures=1`; authority-edge and hard-contract gates also
+passed. The component smoke remains unclaimed because a concurrent native C
+file-split change lacks `mir_json_emit_decl_generic_params(out, header);`.
+Commit `23c2f0cb` is pushed. Full unfiltered 279-row DRV-2 and LLVM matrices
+were not run.
+
+The next active surface is `set_literal_basic`: Set literal syntax remains a
+separate parser/graph surface and must not be conflated with indexed-value
+projection.
 
 2026-07-24 Pergyra Queue runtime/call SoT executable closure.
 Objective: carry contextual `Queue<T>` literals and Queue operation calls from
