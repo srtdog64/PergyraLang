@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra canonical declaration-order SoT executable closure.
+Objective: make MIR JSON canonicalization independent of producer declaration
+family order while preserving one Pergyra-owned projection order. Priority was
+semantic identity, one declaration-order owner, fallback removal, an
+order-adversary gate, then patch size. Reusing input family order as canonical
+authority, reparsing source, backend guessing, and `new ? old` compatibility
+reads are forbidden.
+
+The first unfiltered 280-row DRV-2 run reached `role_operator_dispatch` and
+exposed a real dual-authority seam: native raw MIR listed ability before role,
+while self-host raw MIR listed role before ability. Both canonical outputs
+grouped declarations alike, but reconstructed temporary AST node order changed
+the role method `source_syntax_id` from `12` to `6`.
+`decl_lower.pgy` now owns the explicit canonical family order
+`nominal -> role -> ability -> enum`, preserves input order only within a
+family, and fails closed on unsupported declaration kinds. The focused
+order-adversary gate asserts the opposite raw orders, the shared canonical
+order, and the nonzero `IntMath.Add` source identity.
+
+In a clean detached verification tree, both canonical MIR artifacts were
+byte-equal with `IntMath.Add source_syntax_id=6`, and fresh Pergyra-built DRV-2
+hard parity passed with `body_fixtures=20 mir_fixtures=1`. The main-tree
+component smoke reached an unrelated concurrent native file-split assertion,
+so that broader gate is not claimed. The remaining unfiltered matrix rows and
+the LLVM matrix were not run yet.
+
 2026-07-24 Pergyra Set-literal SoT executable closure.
 Objective: carry `{...}` and `{}` through a distinct parser Set-literal spine,
 declared `Set<T>` semantic compatibility, and the existing Set runtime ABI

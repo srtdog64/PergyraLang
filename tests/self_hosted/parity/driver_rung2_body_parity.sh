@@ -22,6 +22,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_set_graph_negative
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"

@@ -437,69 +437,159 @@ func NominalAstLabel(nominal_kind: String) -> String {
     return "Class";
 }
 
+func MirCanonicalDeclarationPhase(kind: String) -> Int {
+    if kind == "struct" || kind == "class" || kind == "subject" ||
+        kind == "object" || kind == "tobject" || kind == "vessel" ||
+        kind == "zone" || kind == "world" || kind == "party" {
+        return 0;
+    }
+    if kind == "role" { return 1; }
+    if kind == "ability" { return 2; }
+    if kind == "enum" { return 3; }
+    return -1;
+}
+
+func EmitCanonicalNominalDecl(
+    ref routines: MirProgramRoutineIndex,
+    json: String,
+    decl_start: Int,
+    decl_end: Int,
+    kind: String,
+    name: String
+) -> String {
+    let chunks: Array<String> = [];
+    if kind == "struct" {
+        ArrayPush(chunks, Concat("  Struct: ", Concat(name, "\n")));
+        let fields: String = EmitDeclFields(
+            json, decl_start, decl_end, name
+        );
+        if StringLength(fields) > 0 {
+            ArrayPush(chunks, "    Fields:\n");
+            ArrayPush(chunks, fields);
+        }
+        return StringJoin(chunks, "");
+    }
+    let nominal_kind: String = MirObjectStringFact(
+        json, decl_start, decl_end, "nominal_kind"
+    );
+    ArrayPush(chunks, Concat(
+        "  ", Concat(
+            NominalAstLabel(nominal_kind), Concat(": ", Concat(name, "\n"))
+        )
+    ));
+    ArrayPush(chunks, EmitDeclGenericParams(
+        json, decl_start, decl_end, name
+    ));
+    ArrayPush(chunks, EmitDeclGenericConstraints(
+        json, decl_start, decl_end, name
+    ));
+    let fields: String = EmitDeclFields(json, decl_start, decl_end, name);
+    if StringLength(fields) > 0 {
+        ArrayPush(chunks, "    Fields:\n");
+        ArrayPush(chunks, fields);
+    }
+    if nominal_kind == "party" {
+        ArrayPush(chunks, EmitDeclRoleSlots(
+            json, decl_start, decl_end, name
+        ));
+    }
+    ArrayPush(chunks, EmitClassMethods(
+        routines, json, decl_start, decl_end, name
+    ));
+    return StringJoin(chunks, "");
+}
+
+func EmitCanonicalDeclRow(
+    ref routines: MirProgramRoutineIndex,
+    json: String,
+    decl_start: Int,
+    decl_end: Int,
+    kind: String,
+    name: String
+) -> String {
+    if MirCanonicalDeclarationPhase(kind) == 0 {
+        return EmitCanonicalNominalDecl(
+            routines, json, decl_start, decl_end, kind, name
+        );
+    }
+    if kind == "role" {
+        let for_type: String = MirObjectStringFact(
+            json, decl_start, decl_end, "for_type"
+        );
+        if StringLength(for_type) == 0 {
+            MirLowerFailClosed(Concat(
+                "role declaration is missing for_type fact: ", name
+            ));
+        }
+        return EmitRoleDecl(
+            routines, json, decl_start, decl_end, name, for_type
+        );
+    }
+    if kind == "ability" {
+        return EmitAbilityDecl(json, decl_start, decl_end, name);
+    }
+    if kind == "enum" {
+        return EmitEnumDecl(json, decl_start, decl_end, name);
+    }
+    MirLowerFailClosed(Concat(
+        "unsupported MIR declaration in self-host subset: ",
+        Concat(kind, Concat(" ", name))
+    ));
+    return "";
+}
+
 func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> String {
     let chunks: Array<String> = [];
     let decl_bounds: Array<Int> = [0, 0];
-    let row: Int = 0;
-    while MirDeclObjectBoundsAt(json, row, decl_bounds) {
-        let kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "kind");
-        if kind == "unsupported" {
-            let ast_type: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "ast_type");
-            let nominal_kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "nominal_kind");
-            let uname: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "name");
-            let display_kind: String = ast_type;
-            if ast_type == "AST_CLASS_DECL" && StringLength(nominal_kind) > 0 {
-                display_kind = nominal_kind;
-            }
-            MirLowerFailClosed(Concat("unsupported MIR declaration in self-host subset: ", Concat(display_kind, Concat(" ", uname))));
-        }
-        let sname: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "name");
-        if StringLength(sname) == 0 {
-            MirLowerFailClosed(Concat(kind, " declaration is missing name fact"));
-        }
-        if kind == "role" {
-            let for_type: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "for_type");
-            if StringLength(for_type) == 0 {
-                MirLowerFailClosed(Concat("role declaration is missing for_type fact: ", sname));
-            }
-            ArrayPush(chunks, EmitRoleDecl(routines, json, decl_bounds[0], decl_bounds[1], sname, for_type));
-        }
-        if kind == "struct" {
-            ArrayPush(chunks, Concat("  Struct: ", Concat(sname, "\n")));
-            let fields: String = EmitDeclFields(json, decl_bounds[0], decl_bounds[1], sname);
-            if StringLength(fields) > 0 {
-                ArrayPush(chunks, "    Fields:\n");
-                ArrayPush(chunks, fields);
-            }
-        } else if kind == "class" || kind == "subject" ||
-            kind == "object" || kind == "tobject" ||
-            kind == "vessel" || kind == "zone" || kind == "world" ||
-            kind == "party" {
-            let nominal_kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "nominal_kind");
-            ArrayPush(chunks, Concat("  ", Concat(NominalAstLabel(nominal_kind), Concat(": ", Concat(sname, "\n")))));
-            ArrayPush(chunks, EmitDeclGenericParams(
-                json, decl_bounds[0], decl_bounds[1], sname
-            ));
-            ArrayPush(chunks, EmitDeclGenericConstraints(
-                json, decl_bounds[0], decl_bounds[1], sname
-            ));
-            let cfields: String = EmitDeclFields(json, decl_bounds[0], decl_bounds[1], sname);
-            if StringLength(cfields) > 0 {
-                ArrayPush(chunks, "    Fields:\n");
-                ArrayPush(chunks, cfields);
-            }
-            if nominal_kind == "party" {
-                ArrayPush(chunks, EmitDeclRoleSlots(
-                    json, decl_bounds[0], decl_bounds[1], sname
+    let phase: Int = 0;
+    while phase < 4 {
+        let row: Int = 0;
+        while MirDeclObjectBoundsAt(json, row, decl_bounds) {
+            let kind: String = MirObjectStringFact(
+                json, decl_bounds[0], decl_bounds[1], "kind"
+            );
+            if kind == "unsupported" {
+                let ast_type: String = MirObjectStringFact(
+                    json, decl_bounds[0], decl_bounds[1], "ast_type"
+                );
+                let nominal_kind: String = MirObjectStringFact(
+                    json, decl_bounds[0], decl_bounds[1], "nominal_kind"
+                );
+                let name: String = MirObjectStringFact(
+                    json, decl_bounds[0], decl_bounds[1], "name"
+                );
+                let display_kind: String = ast_type;
+                if ast_type == "AST_CLASS_DECL" && nominal_kind != "" {
+                    display_kind = nominal_kind;
+                }
+                MirLowerFailClosed(Concat(
+                    "unsupported MIR declaration in self-host subset: ",
+                    Concat(display_kind, Concat(" ", name))
                 ));
             }
-            ArrayPush(chunks, EmitClassMethods(routines, json, decl_bounds[0], decl_bounds[1], sname));
-        } else if kind == "enum" {
-            ArrayPush(chunks, EmitEnumDecl(json, decl_bounds[0], decl_bounds[1], sname));
-        } else if kind == "ability" {
-            ArrayPush(chunks, EmitAbilityDecl(json, decl_bounds[0], decl_bounds[1], sname));
+            let canonical_phase: Int = MirCanonicalDeclarationPhase(kind);
+            if canonical_phase < 0 {
+                MirLowerFailClosed(Concat(
+                    "unsupported MIR declaration in self-host subset: ", kind
+                ));
+            }
+            if canonical_phase == phase {
+                let name: String = MirObjectStringFact(
+                    json, decl_bounds[0], decl_bounds[1], "name"
+                );
+                if StringLength(name) == 0 {
+                    MirLowerFailClosed(Concat(
+                        kind, " declaration is missing name fact"
+                    ));
+                }
+                ArrayPush(chunks, EmitCanonicalDeclRow(
+                    routines, json, decl_bounds[0], decl_bounds[1],
+                    kind, name
+                ));
+            }
+            row = row + 1;
         }
-        row = row + 1;
+        phase = phase + 1;
     }
     return StringJoin(chunks, "");
 }

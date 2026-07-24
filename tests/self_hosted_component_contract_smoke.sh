@@ -484,6 +484,9 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirPro
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> String'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 4'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'if canonical_phase == phase'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR producer emitted invalid fact rows"
@@ -4908,6 +4911,16 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 320
+require_file "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_canonical_declaration_order_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_canonical_declaration_order"
+require_text "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" \
+    "native role-order adversary drifted"
+require_text "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" \
+    "self role-order adversary drifted"
 require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" 180
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

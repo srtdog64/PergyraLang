@@ -229,7 +229,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$oracle_canonical" "oracle-canonical"
         pgy_selfhost_verify_driver_rung2_try_graph \
             "$backend" "$base" "$self_canonical" "self-canonical"
-        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        pgy_selfhost_verify_driver_rung2_canonical_declaration_order "$backend" "$base" "$mir_json" "$self_mir_json" "$oracle_canonical" "$self_canonical"; pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
             "$oracle_canonical" "$self_canonical" "mir_json"
         if ! pgy_selfhost_driver_rung2_consume_mir "$machine_fixture" \
