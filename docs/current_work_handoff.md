@@ -9,9 +9,14 @@ owner, and the named executable gate.
 ## Resume checkpoint
 
 - The implementation checkpoint immediately before this handoff refresh is
-  `81657340` (`Reject unbounded full driver MIR entry`), pushed to
+  `0fdaf851` (`Close collection call protocol SoT`), pushed to
   `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
   because a committed handoff cannot name its own Git object ID.
+- `0fdaf851` closes the shared collection-call protocol for List/Queue/Set:
+  family, operation, arity, argument positions, and return shape now have one
+  Pergyra semantic owner consumed by the semantic and C-emission lanes. This
+  is a bounded String-backed protocol closure; the production-bar TypeId and
+  RuntimeCallAbiId replacement remains open.
 - `9b002796` adds measured, fail-closed 3 GiB Windows pressure boundaries for
   native and bounded Pergyra-built compiler builds, attributes reparented MSYS
   compiler workers, and rejects unfiltered Git Bash execution of the 280-row
@@ -43,34 +48,35 @@ owner, and the named executable gate.
 - The previous indexed Set argument closure remains `23c2f0cb`; its handoff
   refresh is `cb25eb92`.
 
-## Exact remaining dirty state after the pressure/handoff commits
+## Exact remaining dirty state after the collection protocol closure
 
 The following concurrent or user-owned work remains outside the pressure
 commits:
 
-- modified `Makefile`, `docs/semantics/proofs/SoTAuthority.v`, and
-  `docs/semantics/sot_owner_spine_registry.md`;
+- modified `Makefile`;
 - modified native MIR files `mir_fact_surface_validate.c`,
   `mir_fact_validate_internal.h`, and `mir_json_dump.c`, plus untracked
   `mir_fact_surface_validate_resource.c`, `mir_json_dump_decl.c`, and
   `mir_json_dump_decl.h` under `src/compiler/`;
 - modified `src/self_hosted/OWNERS.md`;
-- modified self-host codegen emission owners for semantic call/composite
-  literal, List/Queue/Set call/type, and `program_emit.pgy`;
+- modified self-host codegen `program_emit.pgy`;
 - modified self-host runtime ABI owners `runtime_header_owner.pgy` and
   `set_runtime_owner.pgy`, plus untracked
   `runtime_header_ownership_owner.pgy`;
 - modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
-- modified semantic queue-call, resolved-call-type, set-call, and expression
-  verdict owners, plus untracked
-  `ast_expression_graph_collection_call_protocol_owner.pgy`;
+- modified self-host compiler and semantic owners outside the collection
+  protocol closure: `driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
+  `ast_body_type_bundle_owner.pgy`, and `ast_initializer_type_fact_owner.pgy`;
 - modified parity runners `driver_bootstrap.sh`, `driver_rung2_body_parity.sh`,
   and the indexed-assignment, machine-MIR, match, and owner-field owners;
 - modified `tests/self_hosted_component_contract_smoke.sh`, plus untracked
-  `collection_call_protocol_owner_smoke.sh` and
   `driver_rung2_pipeline_step_owner.sh` under `tests/self_hosted/parity/`;
 - untracked `docs/198_market_safety_positioning.md` and
   `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
+
+The collection protocol owner, its migrated consumers, registry row, proof
+mapping, and negative gate are clean at `0fdaf851`; they are not part of the
+remaining dirty state above.
 
 The native C files are a concurrent file-split change. Do not discard, stage,
 or fold them into a self-host rung without reviewing their owner and gate.
@@ -127,6 +133,13 @@ Observed facts:
   the exact 21-process Pergyra set was at 2,020.6 MB working set / 2,114 MB
   private when stopped. GNU make executes lines containing `$(MAKE)` even with
   `-n`; verify this pressure recipe through its static gate, not a dry-run.
+- During this session, the confirmed runaway project process was terminated and
+  available memory recovered to the normal tens-of-GB range. An isolated
+  seed/DRV-2 build stayed below the incident scale: the largest observed
+  `gen2`/driver worker was about 1.0 GB working set while available memory
+  remained above 20 GB. A separate reparented full-matrix `driver_oracle`
+  process previously contaminated the pressure wrapper; that was not evidence
+  that the self-host compiler itself owns tens of GB.
 
 Source-backed inference, not yet a measured stage attribution:
 
@@ -153,7 +166,47 @@ Architecture boundary:
   ABI fact spine and let C and LLVM consume it as peers. Do not reproduce the C
   compiler's file fragmentation or create a mirrored C-shaped Pergyra tree.
 
-## Latest closed executable rung: generic wrapper materialization surface
+## Latest closed executable rung: shared collection-call protocol surface
+
+Objective card:
+
+- Objective: close the duplicated List/Queue/Set call metadata seam behind one
+  Pergyra-owned collection-call protocol consumed by semantic resolution and C
+  emission.
+- Priority: one operation protocol owner, consumer migration, missing-fact
+  failure, old helper deletion, negative ratchet, then patch size.
+- Fact owner:
+  `src/self_hosted/semantic/ast_expression_graph_collection_call_protocol_owner.pgy`.
+- Last legitimate consumers: the semantic List/Queue/Set call owners,
+  collection verdict dispatcher, contextual literal emission, and the three
+  collection call type/emit owners.
+- Forbidden fallback: per-family name/arity/argument-position/return-shape
+  helper redeclarations or final-emitter source-name routing.
+- Verification gates:
+  `tests/self_hosted/parity/collection_call_protocol_owner_smoke.sh`,
+  `tests/self_host_hard_contract_smoke.sh`,
+  `tests/sot_authority_edge_smoke.sh`, and
+  `tests/sot_authority_adequacy_smoke.sh`.
+
+Observed closure:
+
+- `SemanticExpressionGraphCollectionCallProtocolFromName` owns the bounded
+  List/Queue/Set operation rows, including constructor, receiver/index/value
+  positions, arity, and return shape.
+- The semantic and C-emission consumers read that protocol; the final direct
+  dispatcher no longer branches on per-family source-name groups.
+- The focused hard lane passed `backends=1`, `body_fixtures=20`, and the three
+  selected MIR rows `list_ops`, `sequence_literal_list_queue`, and `set_ops`.
+- Static protocol and hard-contract gates passed. Registry edge reported
+  `49 authorities, 40 derived fact carriers, CLOSED=29 BRIDGE=20 ACTIVE=0`.
+  Adequacy live binding and negative mutations passed; Coq/Rocq was a declared
+  skip because no prover is installed.
+- The full 280-row matrix and full-driver fixpoint were not run in this
+  session. The protocol still uses String metadata, so the production-bar
+  TypeId/RuntimeCallAbiId architecture is the next falsifier, not inferred as
+  complete.
+
+## Previous closed executable rung: generic wrapper materialization surface
 
 Objective card:
 
@@ -306,6 +359,12 @@ Observed closure:
 
 Green:
 
+- Collection-call protocol static gate: shared owner, migrated consumers, and
+  negative redeclaration ratchet passed.
+- Isolated Pergyra-built DRV-2 collection gate: `exit 0`,
+  `backends=1 body_fixtures=20 mir_fixtures=3` for `list_ops`,
+  `sequence_literal_list_queue`, and `set_ops`.
+- `tests/self_host_hard_contract_smoke.sh`: hard substitution contract wired.
 - `tests/build_pressure_contract_smoke.sh`: native, bounded self-host, full
   driver-fixpoint, detached-worker, and Git Bash matrix boundaries wired.
 - PowerShell parser validation for `scripts/measure_build_pressure.ps1`.
@@ -369,8 +428,8 @@ Green:
   negatives remained rejected.
 - Both wrapper focused C compiles reported `0 error(s), 0 warning(s)`; the hard
   contract smoke exited 0 after the closure ratchets.
-- `tests/sot_authority_edge_smoke.sh`: 48 authorities, 40 derived fact
-  carriers, `CLOSED=28 BRIDGE=20 ACTIVE=0`.
+- `tests/sot_authority_edge_smoke.sh`: 49 authorities, 40 derived fact
+  carriers, `CLOSED=29 BRIDGE=20 ACTIVE=0`.
 - `PGY_ALLOW_MISSING_COQ=1 tests/sot_authority_adequacy_smoke.sh`: live
   binding and negative mutations passed. Coq/Rocq itself was a declared skip
   because no prover is installed.
@@ -444,8 +503,9 @@ semantic fixture. At the next scheduled/merge boundary:
 
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    and the relevant row in `docs/semantics/sot_owner_spine_registry.md`.
-2. Verify `git status --short --branch`, HEAD/origin, the named owner, and the
-   focused Set literal gate.
+2. Verify `git status --short --branch`, HEAD/origin, the named collection-call
+   protocol owner, and
+   `tests/self_hosted/parity/collection_call_protocol_owner_smoke.sh`.
 3. Treat the current source/registry/gates as authoritative when this snapshot
    disagrees.
 4. Run the full hard matrix only at the scheduled boundary, then follow its
