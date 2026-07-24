@@ -13,7 +13,7 @@ func ProbeInitializerFactsWithoutRows(
     let empty_strings: Array<String> = [];
     return SemanticAstInitializerTypeFacts(
         true, "", "", facts.artifact_node_count,
-        empty_ints, empty_strings, empty_strings, empty_ints,
+        empty_ints, empty_strings, empty_ints,
         empty_strings, empty_strings, empty_ints, empty_ints
     );
 }
@@ -25,8 +25,8 @@ func ProbeInitializerFactsWithoutType(
     ArraySet(inferred_types, 0, "");
     return SemanticAstInitializerTypeFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.node_ids, facts.expression_texts,
-        inferred_types, facts.verified, facts.diagnostic_codes,
+        facts.artifact_node_count, facts.node_ids, inferred_types,
+        facts.verified, facts.diagnostic_codes,
         facts.diagnostic_messages, facts.binding_kinds,
         facts.binding_indices
     );
