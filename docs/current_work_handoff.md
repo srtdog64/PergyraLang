@@ -7,24 +7,28 @@ source, `git status --short --branch`, the SoT registry, and the focused gate.
 
 ## Resume checkpoint
 
-- Latest executable implementation: `431c2416` (`Close List literal
-  contextual SoT`) is pushed to `origin/main`. The worktree intentionally
-  preserves a concurrent Option-emission slice in the following dirty paths:
-  `docs/semantics/sot_owner_spine_registry.md`, `src/self_hosted/OWNERS.md`,
-  `src/self_hosted/codegen/emission/expr_rewrite.pgy`,
-  `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy`,
-  `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy`,
-  `src/self_hosted/codegen/emission/option_value_emit_owner.pgy`,
-  `src/self_hosted/codegen/emission/struct_value_emit.pgy`,
-  `src/self_hosted/codegen/README.md`, `src/self_hosted/codegen/intent.md`,
-  `tests/self_hosted_component_contract_smoke.sh`, and the new untracked
-  `src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy`.
-- The committed DRV-2 manifest contains 276 MIR fixtures, with
-  `list_literal_context` as the latest executable row. Its negative gates
-  remove the List ABI type fact and replace a List element with a String.
-- `431c2416` closes the List portion of
-  `sequence_literal_list_queue`; the same focused driver now reaches the
-  next open Queue seam at `undefined_function QueueSize`.
+- Latest pushed HEAD is `0d5e186b` (`Centralize collection binding kind
+  lookup`), with `5bc2e996` (`Close Queue runtime call SoT`) immediately
+  before it; both are on `origin/main`. The worktree is clean except for the
+  user-owned untracked `docs/198_market_safety_positioning.md`.
+- The committed DRV-2 manifest contains 277 MIR fixtures, with
+  `sequence_literal_list_queue` as the latest executable row. Its Queue
+  negatives remove the Queue ABI type fact and replace a Queue element with a
+  String.
+- `5bc2e996` closes the Queue portion of
+  `sequence_literal_list_queue`: Queue runtime ABI, contextual Queue literals,
+  QueuePush/Pop/Size/Empty target facts, and emitted C symbols are owner-bound.
+- `e725ea26` closes the generated-C bare `None` bootstrap blocker. Contextual
+  `Option<T>` initialization, assignment, return, and typed call arguments now
+  share one expected-value dispatcher plus a dedicated Option projection owner;
+  clean gen1/gen2 seed generation and a Pergyra-built DRV-2 build passed.
+- The next observed executable failure is
+  `tests/cases/backend_compare/set_ops/main.pgy`: the Pergyra-built driver fails
+  closed with `undefined_function`, `func: SetNew`.
+- Resume by verifying `git status --short --branch`, the registry rows
+  `selfhost.queue_call_runtime_surface`, `selfhost.call_target_identity`, and
+  `selfhost.local_binding_statement_routing`, plus
+  `tests/self_hosted/parity/driver_rung2_queue_ops_parity_owner.sh`.
 - `564de5be` includes the previously carried `stmt_emit.pgy` and
   `try_let_emit_owner.pgy` scope changes; they are no longer separate dirty
   files.
@@ -137,17 +141,65 @@ Observed closure:
   only for verification. Commit `431c2416` is pushed. Full unfiltered 276-row
   DRV-2 and LLVM lanes were not run.
 
-## Next observed executable seam: Queue runtime ABI and calls
+## Last closed executable family: Queue runtime ABI and calls
 
-- The current next fixture is
-  `tests/cases/backend_compare/sequence_literal_list_queue/main.pgy`.
-- Its List portion is now executable; the self-host driver reaches
-  `undefined_function QueueSize` in the remaining Queue path.
-- Next objective: establish one self-host Queue runtime ABI owner and carry
-  Queue target/element/return facts through call validation and emission.
-  Do not make List owners or backend spelling recover Queue facts. The first
-  falsifier is a missing Queue runtime row or a mismatched declared Queue
-  element type.
+Objective card:
+
+- Objective: carry contextual `Queue<T>` literals and Queue operation calls
+  from graph-owned target/element facts through MIR ABI rows into one Queue
+  runtime ABI owner and C emission.
+- Priority: Queue target identity, element/return typing, contextual literal
+  promotion, runtime symbol ownership, missing-fact failure, negative ratchet,
+  then patch size.
+- Fact owners: `ast_expression_graph_queue_call_owner.pgy` owns Queue call
+  verdicts; `queue_runtime_owner.pgy` owns C value and operation symbols; the
+  Queue call/type and composite emitters are the last consumers.
+- Forbidden fallback: Queue receiver/element guessing, source spelling as a
+  runtime ABI, Queue facts recovered by List owners, and accepting a missing
+  Queue ABI row.
+- Verification gate:
+  `driver_rung2_queue_ops_parity_owner.sh`; falsifiers remove the carried
+  Queue ABI type fact or inject a String into `Queue<Int>`.
+
+Observed closure:
+
+- Native/current DRV-2 MIR agrees on `Queue<Int>`, `Queue<String>`, Queue
+  literal facts, and direct QueuePop/QueueSize targets. Emitted C compiles and
+  runs with `3, 3, 5, 2, beta, 2, 7, 8, 0`.
+- Queue-specific MIR/C/negative gate passed; hard producer-first parity passed
+  with `body_fixtures=20 mir_fixtures=1`; staged component, hard-contract, and
+  authority-edge gates passed. Authority adequacy passed with the repository's
+  declared `PGY_ALLOW_MISSING_COQ=1` skip because no Coq/Rocq prover is
+  installed.
+- The Queue-focused gate used the freshly installed Pergyra-built
+  `bin/pgy-self-driver.exe`; no compile define was required. Full unfiltered
+  277-row and LLVM matrices were not run.
+- Commits `5bc2e996` and `0d5e186b` are pushed. The next active executable
+  rung is the Set call/runtime boundary below.
+
+## Bootstrap closure: contextual Option expected values
+
+- `RewriteSemanticExpectedValue` is the single contextual dispatcher.
+  `expr_semantic_option_value_owner.pgy` owns `None`/`Some` target identity,
+  payload edges, and runtime ABI projection; statement adapters only delegate.
+- Clean gen1/gen2 seed generation, Pergyra-built DRV-2 compilation, component
+  contracts, and focused hard parity passed. The prior generated-C bare `None`
+  failure is closed without a compiler define or `Option<Int>` fallback.
+- Commit `e725ea26` is pushed through the current `origin/main` history.
+
+## Next observed executable seam: Set runtime ABI and calls
+
+- `tests/cases/backend_compare/set_ops/main.pgy` fails closed at the semantic
+  boundary with `undefined_function`, `func: SetNew`.
+- `set_string_ops`, `set_membership_ops`, `set_intersection_manual`,
+  `loop_collect_distinct_set`, and `set_member_pipeline` reproduce that missing
+  Set builtin boundary. `set_literal_basic` also fails and its literal surface
+  must be classified within this active rung.
+- Objective: establish one Set call/type/runtime ABI spine, then route declared
+  Set literals through that owner if the observed fixture requires it.
+  Forbidden fallback is copied Queue/List policy or backend spelling as Set
+  identity. The first falsifier is a missing Set runtime row or a mismatched
+  `Set<T>` element.
 
 ## Last closed executable family: List foreach iteration and ABI
 

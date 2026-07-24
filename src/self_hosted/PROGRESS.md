@@ -1,5 +1,45 @@
 # Self-Host Progress
 
+2026-07-24 Pergyra Queue runtime/call SoT executable closure.
+Objective: carry contextual `Queue<T>` literals and Queue operation calls from
+graph-owned target/element facts through MIR ABI rows into one Queue runtime ABI
+owner and C emission. Priority was target identity, element/return typing,
+contextual literal promotion, runtime symbol ownership, fail-closed negatives,
+then patch size. Queue receiver/element guessing, source spelling as runtime
+ABI, Queue facts recovered by List owners, and missing Queue ABI success are
+forbidden.
+
+`ast_expression_graph_queue_call_owner.pgy` now owns Queue call verdicts;
+`queue_runtime_owner.pgy` owns Queue C value and operation symbols; Queue
+call/type and composite emitters consume those facts. Native/current DRV-2 MIR
+agrees on `Queue<Int>`, `Queue<String>`, Queue literal facts, and direct
+QueuePop/QueueSize targets. Emitted C compiles and runs with
+`3, 3, 5, 2, beta, 2, 7, 8, 0`. Removing the Queue ABI fact and injecting a
+String into `Queue<Int>` both fail closed.
+
+The Queue-specific gate and hard producer-first parity passed with
+`body_fixtures=20 mir_fixtures=1`; staged component, hard-contract, and
+authority-edge gates passed. Authority adequacy passed with the declared
+`PGY_ALLOW_MISSING_COQ=1` skip because no Coq/Rocq prover is installed.
+Commits `5bc2e996` and `0d5e186b` are pushed; the DRV-2 manifest contains 277
+rows. Full unfiltered DRV-2 and LLVM lanes were not run.
+
+The clean generated-C `None` bootstrap blocker is closed by `e725ea26`.
+Contextual `Option<T>` initialization, assignment, return, and typed call
+arguments share `RewriteSemanticExpectedValue` plus the dedicated
+`expr_semantic_option_value_owner.pgy`. Clean gen1/gen2 seed generation and a
+Pergyra-built DRV-2 compiler completed without a compile define or
+`Option<Int>` fallback. `0d5e186b` is the first SoT-only follow-up after the
+Queue executable delta and centralizes collection binding kind lookup.
+
+The next observed executable failure is
+`tests/cases/backend_compare/set_ops/main.pgy`: the Pergyra-built driver fails
+closed with `undefined_function`, `func: SetNew`. Five additional Set call
+fixtures reproduce the missing builtin boundary; passing Queue probes are not
+promoted into inferred work. The next active rung must establish one Set
+semantic/type/runtime ABI spine, with a missing runtime row or mismatched Set
+element as the first falsifier.
+
 2026-07-24 Pergyra List literal contextual typing executable closure.
 Objective: type `[ ... ]` from a declared `List<T>` initializer through the
 parser-owned sequence shape and emit the declared List runtime ABI. Priority
@@ -20,12 +60,9 @@ mir_fixtures=1`; the component and hard contracts passed against the clean
 staged snapshot. Commit `431c2416` is pushed and the DRV-2 manifest contains
 276 rows. Full unfiltered DRV-2 and LLVM lanes were not run.
 
-The clean bootstrap seed remains blocked by the pre-existing generated-C
-`None` identifier error; an isolated compile define was used only for focused
-driver verification. The current dirty worktree retains the concurrent
-Option-emission slice. The next executable seam is Queue in
-`sequence_literal_list_queue`: the List path now reaches
-`undefined_function QueueSize`.
+The clean bootstrap blocker noted at this List checkpoint was later closed by
+`e725ea26`; Queue now closes the remaining path in
+`sequence_literal_list_queue`.
 
 2026-07-24 Pergyra lexical List shadow identity executable closure.
 Objective: preserve parser/semantic local-binding identity through MIR SSA
