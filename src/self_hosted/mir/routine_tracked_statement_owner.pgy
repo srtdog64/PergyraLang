@@ -2,6 +2,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
 import "routine_statement_owner.pgy";
 import "routine_if_owner.pgy";
 import "routine_while_owner.pgy";
@@ -57,26 +58,35 @@ func SelfMirLowerTrackedStatementFromArtifact(
         }
         return build;
     }
-    if kind == TypedAstKindBareReturnStmtTag() ||
-        kind == TypedAstKindValueReturnStmtTag() {
-        let return_source_type: String = "AST_RETURN_VOID";
-        if kind == TypedAstKindValueReturnStmtTag() {
-            return_source_type = SelfMirExpressionSourceTypeName(
-                SelfMirExpressionKindFromText(payload)
-            );
-        }
+    if kind == TypedAstKindBareReturnStmtTag() {
         build = SelfMirRoutineAddInstruction(
             build, "return", "return", "", "", "", payload, "",
-            return_source_type, SelfMirExpressionUses(build, payload)
+            "AST_RETURN_VOID", SelfMirNoUses()
         );
-        if kind == TypedAstKindValueReturnStmtTag() {
-            build = SelfMirRoutineAttachLastExpressionGraph(
-                build, SemanticAstExpressionGraphForNode(
-                    input.analysis.expression_surfaces,
-                    node_id, AstExpressionLaneAtom()
-                ), input.machine_declaration
+        return SelfMirRoutineTerminate(build);
+    }
+    if kind == TypedAstKindValueReturnStmtTag() {
+        let return_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAtom()
+            );
+        if !return_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR value return expression graph is missing"
             );
         }
+        let return_source_type: String = SelfMirExpressionSourceTypeName(
+            SelfMirExpressionKindFromText(payload)
+        );
+        build = SelfMirRoutineAddInstruction(
+            build, "return", "return", "", "", "", payload, "",
+            return_source_type,
+            SelfMirExpressionGraphUses(build, return_graph)
+        );
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, return_graph, input.machine_declaration
+        );
         return SelfMirRoutineTerminate(build);
     }
     if kind == TypedAstKindIfStmtTag() {

@@ -2759,6 +2759,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh
+	"$(BASH)" tests/self_hosted/parity/driver_rung2_return_graph_use_owner.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
