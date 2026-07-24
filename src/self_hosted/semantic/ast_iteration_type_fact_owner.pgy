@@ -197,7 +197,7 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
         ) || !SemanticAstExpressionSeedVisibleMatchBindings(
             artifact, expression_surfaces, signatures, constructors,
             statements.function_node_ids[i], statements.node_ids[i],
-            names, types, modes
+            names, types, modes, function_tables
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstIterationTypeStructuralError(artifact);
         }

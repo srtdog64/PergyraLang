@@ -80,7 +80,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                             artifact, analysis.expression_surfaces,
                             analysis.signatures, analysis.constructors,
                             UnwrapOption(function_node_id), use_node_id,
-                            names, types, modes
+                            names, types, modes, function_tables
                         ) || ArrayLength(names) != ArrayLength(modes) {
                         valid = false;
                     } else {

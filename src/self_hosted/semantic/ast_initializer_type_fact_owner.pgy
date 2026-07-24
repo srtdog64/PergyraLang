@@ -197,7 +197,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         ) || !SemanticAstExpressionSeedVisibleMatchBindings(
             artifact, expression_surfaces, signatures, constructors,
             locals.function_node_ids[i],
-            locals.node_ids[i], names, types, modes
+            locals.node_ids[i], names, types, modes, function_tables
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }

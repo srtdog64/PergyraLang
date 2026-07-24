@@ -174,7 +174,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
         else if !SemanticAstExpressionSeedVisibleMatchBindings(
             artifact, expression_surfaces, signatures, constructors,
             statements.function_node_ids[i], statements.node_ids[i],
-            names, types, modes
+            names, types, modes, function_tables
         ) { environment_fact = "match_binding_environment"; }
         else if ArrayLength(names) != ArrayLength(modes) {
             environment_fact = "environment_row_count";

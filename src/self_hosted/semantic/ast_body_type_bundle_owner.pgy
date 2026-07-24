@@ -67,7 +67,7 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:start");
     let expression_places_resolved: Bool =
         SemanticAstAnalysisResolveExpressionPlacesFromBody(
-            artifact, analysis, initializer_types, iteration_types
+            artifact, analysis, initializer_types, iteration_types, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:done");
     SemanticAstBodyTypeStage(observe_pressure, "assignment:start");

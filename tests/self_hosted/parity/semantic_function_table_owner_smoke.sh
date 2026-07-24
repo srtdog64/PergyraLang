@@ -2,7 +2,7 @@
 # Owns the body-analysis callable-table lifetime boundary.
 # Forbidden fallback: rebuilding the same function/constructor/enum table in
 # each initializer, iteration, refinement, call-target, assignment, statement,
-# or generic-specialization consumer.
+# generic-specialization, expression-place, or match-binding consumer.
 
 set -euo pipefail
 
@@ -18,13 +18,15 @@ CALL_TARGET_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_call_target_resol
 ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 GENERIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
+PLACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
+MATCH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy"
 
 fail() {
     echo "[self-host-parity:semantic-function-table-owner] $*" >&2
     exit 1
 }
 
-for file in "$ENV_OWNER" "$FACT_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER"; do
+for file in "$ENV_OWNER" "$FACT_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     [[ -f "$file" ]] || fail "owner is missing: ${file#$ROOT_DIR/}"
 done
 
@@ -35,7 +37,7 @@ grep -Fq 'func SemanticAstExpressionFunctionTableFactsFromArtifact' "$ENV_OWNER"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsReady' "$FACT_OWNER" ||
     fail "callable-table readiness gate is missing"
 
-for consumer in "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER"; do
+for consumer in "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     if grep -Fq 'SemanticAstExpressionFunctionTables(' "$consumer"; then
         fail "consumer rebuilds callable tables: ${consumer#$ROOT_DIR/}"
     fi
@@ -76,5 +78,11 @@ grep -Fq 'function_tables' "$STATEMENT_OWNER" ||
     fail "statement owner does not consume the shared fact"
 grep -Fq 'function_tables' "$GENERIC_OWNER" ||
     fail "generic owner does not consume the shared fact"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsReady(function_tables)' "$PLACE_OWNER" ||
+    fail "expression-place owner does not fail closed on callable-table fact"
+grep -Fq 'function_tables' "$MATCH_OWNER" ||
+    fail "match-binding owner does not consume the shared fact"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsReady(function_tables)' "$MATCH_OWNER" ||
+    fail "match-binding owner does not fail closed on callable-table fact"
 
 echo "[self-host-parity:semantic-function-table-owner] body analysis shares one callable-table fact"

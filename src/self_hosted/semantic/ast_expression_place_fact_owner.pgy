@@ -9,6 +9,7 @@ import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
 
 func SemanticExpressionPlaceKindForNode(
     ref graph: SemanticExpressionGraphFacts,
@@ -77,11 +78,13 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
-    iteration_types: SemanticAstIterationTypeFacts
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
     if !SemanticAstExpressionSurfaceBorrowReady(
         artifact, analysis.expression_surfaces
     ) || !initializer_types.ok || !iteration_types.ok ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
         ArrayLength(initializer_types.inferred_type_names) !=
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;
@@ -162,7 +165,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         artifact, analysis.expression_surfaces,
                         analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), use_node_id,
-                        names, types, modes
+                        names, types, modes, function_tables
                     ) || ArrayLength(names) != ArrayLength(types) ||
                     ArrayLength(names) != ArrayLength(modes) {
                     valid = false;

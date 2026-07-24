@@ -4,6 +4,7 @@ import "../hir/ast_match_pattern_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "env_owner.pgy";
@@ -15,8 +16,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     ref constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
-    function_names: Array<String>,
-    function_returns: Array<String>,
+    function_tables: SemanticAstExpressionFunctionTableFacts,
     function_node_id: Int,
     case_node_id: Int,
     inout names: Array<String>,
@@ -58,7 +58,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         SemanticExpressionGraphValueReceiverTypeName(
             expression_surfaces.expression_graph,
             UnwrapOption(subject_root), constructors, names, types,
-            function_names, function_returns
+            function_tables.names, function_tables.returns
         );
     if !IsSome(subject_type_fact) {
         return false;
@@ -139,10 +139,14 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     use_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
-    inout modes: Array<String>
+    inout modes: Array<String>,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
     if !AstTreeArtifactReady(artifact) || use_node_id < 0 ||
         use_node_id >= artifact.count {
+        return false;
+    }
+    if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return false;
     }
     let case_nodes: Array<Int> = [];
@@ -164,18 +168,9 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     ) {
         return false;
     }
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
     let enums: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     if !enums.ok {
-        return false;
-    }
-    if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, enums,
-        function_names, function_returns, function_params
-    ) {
         return false;
     }
     let function_scopes: SemanticAstFunctionScopeFacts =
@@ -187,7 +182,7 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     while i >= 0 {
         if !SemanticAstExpressionSeedMatchCaseBindings(
             artifact, expression_surfaces, constructors, enums,
-            function_scopes, function_names, function_returns,
+            function_scopes, function_tables,
             function_node_id, case_nodes[i], names, types, modes
         ) {
             return false;
