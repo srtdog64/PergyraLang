@@ -1,6 +1,7 @@
 // Canonical positional tuple type facts for destructure bindings.
 
 import "delimited_range_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticTupleElementTypeFact {
     ok: Bool;
@@ -12,7 +13,7 @@ func SemanticTupleElementTypeFactFrom(
     type_name: String,
     element_index: Int
 ) -> SemanticTupleElementTypeFact {
-    let text: String = StringTrim(type_name);
+    let text: String = SemanticTrimSourceReuse(type_name);
     let n: Int = StringLength(text);
     if element_index < 0 || n < 3 || SourceCharAt(text, 0) != "(" ||
         SourceCharAt(text, n - 1) != ")" {
