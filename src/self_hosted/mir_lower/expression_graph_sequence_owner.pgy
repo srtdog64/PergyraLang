@@ -150,12 +150,14 @@ func MirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        let arity: Int = AstExpressionNodeArity(arena.node_kinds[node]);
+        let arity: Int = AstExpressionNodeArity(
+            arena.topology.node_kinds[node]
+        );
         if arity >= 1 {
-            ArrayPush(pending, arena.left_children[node]);
+            ArrayPush(pending, arena.topology.left_children[node]);
         }
         if arity == 2 {
-            ArrayPush(pending, arena.right_children[node]);
+            ArrayPush(pending, arena.topology.right_children[node]);
         }
     }
     return visited == count;
@@ -181,10 +183,10 @@ func MirExpressionGraphSequenceAppend(
     if count == 0 || local_root < 0 || local_root >= count {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let kinds: Array<Int> = sequence.arena.node_kinds;
+    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
     let texts: Array<String> = sequence.arena.node_texts;
-    let left_children: Array<Int> = sequence.arena.left_children;
-    let right_children: Array<Int> = sequence.arena.right_children;
+    let left_children: Array<Int> = sequence.arena.topology.left_children;
+    let right_children: Array<Int> = sequence.arena.topology.right_children;
     let call_target_kinds: Array<Int> =
         sequence.arena.call_target_kinds;
     let call_target_names: Array<String> = sequence.arena.call_target_names;

@@ -92,10 +92,10 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
     );
     if !IsSome(left_opt) { return false; }
     if missing_child {
-        graph.arena.left_children[value_node] = -1;
+        graph.arena.topology.left_children[value_node] = -1;
     } else {
         let left_id: Int = UnwrapOption(left_opt);
-        graph.arena.node_kinds[left_id] = AstExpressionNodeLeaf();
+        graph.arena.topology.node_kinds[left_id] = AstExpressionNodeLeaf();
         graph.arena.node_texts[left_id] = "\"bad\"";
     }
     let function_names: Array<String> = [];
@@ -171,7 +171,7 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
     );
     if !call.ok || ArrayLength(call.argument_nodes) != 1 { return false; }
     let argument_id: Int = call.argument_nodes[0];
-    graph.arena.node_kinds[argument_id] = AstExpressionNodeLeaf();
+    graph.arena.topology.node_kinds[argument_id] = AstExpressionNodeLeaf();
     graph.arena.node_texts[argument_id] = "\"bad\"";
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];

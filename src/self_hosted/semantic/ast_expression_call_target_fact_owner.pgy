@@ -162,7 +162,7 @@ func SemanticExpressionGraphCarriedCallTargetsReady(
     }
     let node_id: Int = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[node_id] == AstExpressionNodeCall() {
+        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
             let target_kind: Int = graph.arena.call_target_kinds[node_id];
             if (target_kind != SemanticCallTargetDirect() &&
                 target_kind != SemanticCallTargetNamespace() &&

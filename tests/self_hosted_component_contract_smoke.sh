@@ -3130,7 +3130,7 @@ require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     "func SemanticAstCollectionStatementGraphContractReady"
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
-    'surfaces.expression_graph.arena.node_kinds[root] ='
+    'surfaces.expression_graph.arena.topology.node_kinds[root] ='
 require_file "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh" 100
@@ -5519,9 +5519,9 @@ require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
 require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
     "replacement_kind = AstExpressionNodeStringLiteral();"
 require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
-    "graph.arena.node_kinds[left_id] = AstExpressionNodeLeaf();"
+    "graph.arena.topology.node_kinds[left_id] = AstExpressionNodeLeaf();"
 require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
-    "graph.arena.node_kinds[argument_id] = AstExpressionNodeLeaf();"
+    "graph.arena.topology.node_kinds[argument_id] = AstExpressionNodeLeaf();"
 require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh" \
     "misclassified Long literal was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh" \

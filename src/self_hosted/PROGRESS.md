@@ -3812,6 +3812,21 @@ beyond the lexer:
   emission is the only live expression consumer; shape rows remain only to
   verify that the graph root matches normalized semantic provenance. Static
   gates reject the retired file, import, and accessor names.
+- **Program expression topology owner** -- the stable `AstExpressionArena`
+  declaration now lives in `hir/program_graph_owner.pgy`. Parser/HIR keeps the
+  existing node ordinals, while `SemanticExpressionGraphArena` borrows that
+  topology and owns only normalized spelling, call-target, and place overlays.
+  The semantic bridge no longer copies node-kind or child arrays. The blocking
+  graph gate tightened from three structural stores to exactly two (program
+  topology plus the still-open MIR projection), and rejects either retired
+  HIR/semantic store returning. Initializer projection passed its C/LLVM probe;
+  the current C-built driver passed all 20 body fixtures and six selected
+  graph-heavy MIR fixtures. The first official full-driver pressure observation
+  after the repoint still stopped at the 3 GiB boundary: 2,531.5 MB peak working
+  set / 3,076.7 MB peak private, with initializer row 5,214 complete and row
+  5,215 started. This falsifies the removed semantic topology copy as the sole
+  memory cause. Routine-scoped semantic lifetime, MIR topology copying, and
+  revision-scoped stable IDs remain open.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

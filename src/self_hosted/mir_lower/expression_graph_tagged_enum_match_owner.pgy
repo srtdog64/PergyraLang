@@ -23,10 +23,10 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
     }
     let roots: Array<Int> = appended.roots;
     let arena: SemanticExpressionGraphArena = appended.arena;
-    let kinds: Array<Int> = arena.node_kinds;
+    let kinds: Array<Int> = arena.topology.node_kinds;
     let texts: Array<String> = arena.node_texts;
-    let left: Array<Int> = arena.left_children;
-    let right: Array<Int> = arena.right_children;
+    let left: Array<Int> = arena.topology.left_children;
+    let right: Array<Int> = arena.topology.right_children;
     let target_kinds: Array<Int> = arena.call_target_kinds;
     let target_names: Array<String> = arena.call_target_names;
     let places: Array<Int> = arena.place_kinds;
@@ -82,7 +82,7 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
     ArrayPush(places, SemanticExpressionPlaceUnknown());
     ArraySet(roots, ArrayLength(roots) - 1, equality_root);
     let final_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArena(
+        SemanticExpressionGraphArenaFromRows(
             kinds, texts, left, right, target_kinds, target_names, places
         );
     if !SemanticExpressionGraphArenaReady(final_arena) {
@@ -104,10 +104,10 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
         if !result.ok { return result; }
         let payload_roots: Array<Int> = result.roots;
         let payload_arena: SemanticExpressionGraphArena = result.arena;
-        let payload_kinds: Array<Int> = payload_arena.node_kinds;
+        let payload_kinds: Array<Int> = payload_arena.topology.node_kinds;
         let payload_texts: Array<String> = payload_arena.node_texts;
-        let payload_left: Array<Int> = payload_arena.left_children;
-        let payload_right: Array<Int> = payload_arena.right_children;
+        let payload_left: Array<Int> = payload_arena.topology.left_children;
+        let payload_right: Array<Int> = payload_arena.topology.right_children;
         let payload_target_kinds: Array<Int> =
             payload_arena.call_target_kinds;
         let payload_target_names: Array<String> =
@@ -154,7 +154,7 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
             payload_roots, ArrayLength(payload_roots) - 1, payload_root
         );
         let completed_arena: SemanticExpressionGraphArena =
-            SemanticExpressionGraphArena(
+            SemanticExpressionGraphArenaFromRows(
                 payload_kinds, payload_texts, payload_left, payload_right,
                 payload_target_kinds, payload_target_names, payload_places
             );

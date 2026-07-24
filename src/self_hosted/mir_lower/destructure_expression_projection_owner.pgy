@@ -21,10 +21,10 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     if !sequence.ok || source == "" || index < 0 {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let kinds: Array<Int> = sequence.arena.node_kinds;
+    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
     let texts: Array<String> = sequence.arena.node_texts;
-    let lefts: Array<Int> = sequence.arena.left_children;
-    let rights: Array<Int> = sequence.arena.right_children;
+    let lefts: Array<Int> = sequence.arena.topology.left_children;
+    let rights: Array<Int> = sequence.arena.topology.right_children;
     let target_kinds: Array<Int> = sequence.arena.call_target_kinds;
     let target_names: Array<String> = sequence.arena.call_target_names;
     let offset: Int = ArrayLength(kinds);

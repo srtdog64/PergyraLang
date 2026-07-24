@@ -3,6 +3,7 @@ sot_authority_edge	PASS	12	registry clean
 sot_authority_adequacy	PASS	18	bounded facts clean
 hard_self_host_contract	PASS	9	hard contract clean
 substitution_velocity	PASS	7	velocity policy clean
+program_graph_unification	PASS	11	semantic topology repointed
 assignment_type_projection	PASS	101	assignment projection equal
 initializer_type_projection	PASS	113	initializer projection equal
 generic_return_projection	PASS	109	explicit generic projection equal

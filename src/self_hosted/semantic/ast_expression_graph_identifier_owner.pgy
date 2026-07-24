@@ -66,7 +66,7 @@ func SemanticExpressionGraphIdentifierEvidence(
             continue;
         }
         if kind == AstExpressionNodeMemberAccess() {
-            let receiver: Int = graph.arena.left_children[node_id];
+            let receiver: Int = graph.arena.topology.left_children[node_id];
             let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
                 graph, receiver
             );
@@ -96,7 +96,7 @@ func SemanticExpressionGraphIdentifierEvidence(
             continue;
         }
         if kind == AstExpressionNodeStructFieldBinding() {
-            ArrayPush(pending, graph.arena.right_children[node_id]);
+            ArrayPush(pending, graph.arena.topology.right_children[node_id]);
             continue;
         }
         let arity_opt: Option<Int> = AstExpressionNodeArityOpt(kind);
@@ -105,10 +105,10 @@ func SemanticExpressionGraphIdentifierEvidence(
         }
         let arity: Int = UnwrapOption(arity_opt);
         if arity >= 1 {
-            ArrayPush(pending, graph.arena.left_children[node_id]);
+            ArrayPush(pending, graph.arena.topology.left_children[node_id]);
         }
         if arity == 2 {
-            ArrayPush(pending, graph.arena.right_children[node_id]);
+            ArrayPush(pending, graph.arena.topology.right_children[node_id]);
         }
     }
     return SemanticExpressionGraphIdentifierReady();

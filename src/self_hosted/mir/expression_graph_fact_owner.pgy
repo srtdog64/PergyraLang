@@ -139,7 +139,7 @@ func SelfMirExpressionGraphAttachLast(
     let call_target_names: Array<String> = rows.call_target_names;
     source_node = source_start;
     while source_node <= view.root_id {
-        let kind: Int = view.graph.arena.node_kinds[source_node];
+        let kind: Int = view.graph.arena.topology.node_kinds[source_node];
         ArrayPush(kinds, kind);
         ArrayPush(texts, view.graph.arena.node_texts[source_node]);
         let call_target_kind: Option<Int> =
@@ -163,13 +163,13 @@ func SelfMirExpressionGraphAttachLast(
         let right: Int = 0;
         let arity: Int = AstExpressionNodeArity(kind);
         if arity >= 1 {
-            left = start + view.graph.arena.left_children[source_node] -
+            left = start + view.graph.arena.topology.left_children[source_node] -
                 source_start;
         }
         if arity == 1 {
             right = 0;
         } else if arity == 2 {
-            right = start + view.graph.arena.right_children[source_node] -
+            right = start + view.graph.arena.topology.right_children[source_node] -
                 source_start;
         }
         ArrayPush(left_children, left);

@@ -108,6 +108,7 @@ path | primary_term | owner_id | relation
 
 <!-- BEGIN sot-derived-fact-registry -->
 ```text
+src/self_hosted/hir/program_graph_owner.pgy | ProgramExpressionGraphStorageSchema | selfhost.expression_graph | bridge
 src/self_hosted/parser/expression_fact_owner.pgy | ParserExpressionFact | selfhost.expression_graph | local_view
 src/self_hosted/parser/expression_scalar_fact_owner.pgy | ParserExpressionScalarFactContractReady | selfhost.expression_graph | local_view
 src/self_hosted/hir/ast_match_pattern_fact_owner.pgy | AstMatchCasePatternFact | hir.typed_control_flow | projection

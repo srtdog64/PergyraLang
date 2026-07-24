@@ -1,0 +1,36 @@
+// Revision-local immutable expression topology shared by parser/HIR and
+// semantic consumers.  The AstExpressionArena name is intentionally stable:
+// moving storage ownership must not renumber or alias existing node handles.
+// Semantic call-target/place facts are overlays and do not belong here.
+
+struct AstExpressionArena {
+    node_kinds: Array<Int>;
+    node_texts: Array<String>;
+    left_children: Array<Int>;
+    right_children: Array<Int>;
+}
+
+func ProgramExpressionGraphStorageSchema() -> String {
+    return "pgy.selfhost.program-expression-topology.v1";
+}
+
+func AstExpressionArenaEmpty() -> AstExpressionArena {
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    return AstExpressionArena(kinds, texts, left_children, right_children);
+}
+
+func AstExpressionArenaNodeCount(ref arena: AstExpressionArena) -> Int {
+    return ArrayLength(arena.node_kinds);
+}
+
+func ProgramExpressionGraphStorageRowsAligned(
+    ref arena: AstExpressionArena
+) -> Bool {
+    let count: Int = AstExpressionArenaNodeCount(arena);
+    return ArrayLength(arena.node_texts) == count &&
+        ArrayLength(arena.left_children) == count &&
+        ArrayLength(arena.right_children) == count;
+}

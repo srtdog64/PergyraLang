@@ -28,6 +28,7 @@ func CompilerGateDashboardManifestCurrent() -> CompilerGateDashboardManifest {
             "sot_authority_adequacy",
             "hard_self_host_contract",
             "substitution_velocity",
+            "program_graph_unification",
             "assignment_type_projection",
             "initializer_type_projection",
             "generic_return_projection",
@@ -42,6 +43,7 @@ func CompilerGateDashboardManifestCurrent() -> CompilerGateDashboardManifest {
             "sot-authority-adequacy-test-smoke",
             "self-host-hard-contract-test-smoke",
             "self-host-substitution-velocity-test-smoke",
+            "self-host-program-graph-unification-test-smoke",
             "self-host-codegen-assignment-projection-parity-test-smoke",
             "self-host-initializer-projection-parity-test-smoke",
             "self-host-generic-return-parity-test-smoke",
@@ -52,23 +54,25 @@ func CompilerGateDashboardManifestCurrent() -> CompilerGateDashboardManifest {
             "self-host-preparation-parity-test-smoke"
         ],
         [
-            "static", "static", "static", "static",
+            "static", "static", "static", "static", "static",
             "focused", "focused", "focused", "focused", "focused",
             "focused",
             "integration", "integration"
         ],
-        [60, 60, 60, 60, 300, 300, 300, 300, 300, 300, 1800, 1800],
+        [60, 60, 60, 60, 60, 300, 300, 300, 300, 300, 300, 1800, 1800],
         [
             "LANDED", "LANDED", "LANDED", "LANDED",
+            "PARTIAL",
             "LANDED", "LANDED", "LANDED", "LANDED", "LANDED", "LANDED",
             "PARTIAL", "PARTIAL"
         ],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [
             "sot.registry.authority_edges",
             "selfhost.typed_expression_adequacy",
             "selfhost.hard_substitution_contract",
             "selfhost.substitution_velocity",
+            "selfhost.expression_graph",
             "selfhost.assignment_type_verdict",
             "selfhost.initializer_type_verdict",
             "selfhost.expression_surface.explicit_generic_signature",

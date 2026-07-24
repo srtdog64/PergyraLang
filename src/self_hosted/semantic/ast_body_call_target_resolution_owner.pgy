@@ -94,7 +94,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                 if valid {
                     let node_id: Int = last_root + 1;
                     while node_id <= root_id && valid {
-                        if analysis.expression_surfaces.expression_graph.arena.node_kinds[node_id] == AstExpressionNodeCall() {
+                        if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
                             let target: SemanticExpressionCallTargetFact =
                                 SemanticExpressionGraphResolvedCallTarget(
                                     analysis.expression_surfaces.expression_graph,

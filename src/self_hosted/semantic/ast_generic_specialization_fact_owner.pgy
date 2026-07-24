@@ -372,14 +372,14 @@ func SemanticAstGenericSpecializationFactsFromBody(
                         ArrayPush(
                             pending,
                             expression_surfaces.expression_graph.arena
-                                .left_children[current]
+                                .topology.left_children[current]
                         );
                     }
                     if arity >= 2 {
                         ArrayPush(
                             pending,
                             expression_surfaces.expression_graph.arena
-                                .right_children[current]
+                                .topology.right_children[current]
                         );
                     }
                 }

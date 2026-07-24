@@ -290,9 +290,9 @@ func CodegenSemanticCheckedIntegerCastTargetPresent(
     }
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeCast() {
-            let target: Int = graph.arena.right_children[i];
-            if graph.arena.node_kinds[target] == AstExpressionNodeTypeName() &&
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCast() {
+            let target: Int = graph.arena.topology.right_children[i];
+            if graph.arena.topology.node_kinds[target] == AstExpressionNodeTypeName() &&
                 graph.arena.node_texts[target] == target_type {
                 return true;
             }
@@ -308,7 +308,7 @@ func CodegenSemanticExpressionGraphSpawnPresent(
     let graph: SemanticExpressionGraphFacts = facts.expression_graph;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeSpawn() {
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeSpawn() {
             return true;
         }
         i = i + 1;

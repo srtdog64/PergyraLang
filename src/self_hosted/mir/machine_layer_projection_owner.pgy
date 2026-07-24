@@ -71,8 +71,8 @@ func SelfMirMachineLayerProjectionForGraph(
 ) -> SelfMirMachineLayerProjection {
     if !graph.ok || root_id < 0 ||
         root_id >= SemanticExpressionGraphArenaNodeCount(graph.arena) ||
-        (graph.arena.node_kinds[root_id] != AstExpressionNodeCall() &&
-         graph.arena.node_kinds[root_id] != AstExpressionNodeCallArgument()) {
+        (graph.arena.topology.node_kinds[root_id] != AstExpressionNodeCall() &&
+         graph.arena.topology.node_kinds[root_id] != AstExpressionNodeCallArgument()) {
         return SelfMirMachineLayerProjectionEmpty();
     }
     // A call with arguments is represented by the parser-owned call-argument
@@ -80,7 +80,7 @@ func SelfMirMachineLayerProjectionForGraph(
     // target fact; project that owner instead of treating the wrapper as a
     // non-machine expression.
     let call_root: Int = root_id;
-    while graph.arena.node_kinds[call_root] ==
+    while graph.arena.topology.node_kinds[call_root] ==
         AstExpressionNodeCallArgument() {
         let call_root_opt: Option<Int> =
             SemanticExpressionGraphLeftChild(graph, call_root);
@@ -92,7 +92,7 @@ func SelfMirMachineLayerProjectionForGraph(
         }
         call_root = UnwrapOption(call_root_opt);
     }
-    if graph.arena.node_kinds[call_root] != AstExpressionNodeCall() {
+    if graph.arena.topology.node_kinds[call_root] != AstExpressionNodeCall() {
         return SelfMirMachineLayerProjectionEmpty();
     }
     let source_name_opt: Option<String> =

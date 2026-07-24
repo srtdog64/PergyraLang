@@ -631,6 +631,9 @@ inventory must not become a second fact-family owner registry.
   import parser implementation owners.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- owner of array-literal roots and ordered element edges consumed by hard codegen through the semantic expression graph view.
+- `src/self_hosted/hir/program_graph_owner.pgy` -- storage owner for the stable
+  `AstExpressionArena` topology shared by parser/HIR and semantic overlays;
+  call-target, place, type, MIR, and backend facts are not owned here.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` --
   fail-closed codegen view over semantic function signature facts, including

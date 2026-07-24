@@ -46,7 +46,7 @@ func CollectionPolicyProbeGraphFacts(
         SemanticExpressionGraphFactsFromAstRows(rows, [0], 1);
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeCall() {
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() {
             graph.arena.call_target_kinds[i] = SemanticCallTargetDirect();
             graph.arena.call_target_names[i] = "ArrayPush";
         }
@@ -83,7 +83,7 @@ func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
     let call_node: Int = -1;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeCall() {
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() {
             call_node = i;
             break;
         }

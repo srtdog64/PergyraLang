@@ -87,7 +87,7 @@ func SemanticAstCollectionStatementGraphContractReady() -> Bool {
     );
     if !IsSome(index_root) { return false; }
     let root: Int = UnwrapOption(index_root);
-    surfaces.expression_graph.arena.node_kinds[root] =
+    surfaces.expression_graph.arena.topology.node_kinds[root] =
         AstExpressionNodeLeaf();
     let drifted: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(

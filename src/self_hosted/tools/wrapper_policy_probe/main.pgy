@@ -68,7 +68,7 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
     let call_node: Int = -1;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeCall() &&
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() &&
             graph.arena.call_target_names[i] == "UnwrapOption" {
             call_node = i;
             break;

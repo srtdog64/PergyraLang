@@ -195,6 +195,108 @@ Projection Planner cites that certificate, and the Projection Plan Gate checks
 the candidate plan. C, LLVM, SelfHosted, and future targets do not read AIR,
 AST, or source to rebuild it.
 
+## 2.1 Self-Hosted Program Graph Unification Contract
+
+Status: `PARTIAL`; semantic topology repointed. This is a hard-substitution
+condition, not an independent graph-cleanup project.
+
+Objective card:
+
+- Objective: carry one immutable expression topology from HIR through semantic
+  analysis and MIR consumption instead of copying node kind, text, and child
+  arrays into each stage.
+- Priority: stable identity and byte-equal behavior, owner-directed facts,
+  bounded lifetime and memory, old-store deletion, then physical file layout.
+- Fact owner: the HIR program-graph structural owner issues expression identity;
+  semantic, MIR, AIR, and backend paths consume typed overlays or projections.
+- Last legitimate consumers: semantic expression verdict owners, MIR
+  instruction-root projection, AIR evidence publication, and the verified
+  C/LLVM/self-hosted projection lanes.
+- Forbidden fallback: dual structural reads, `new ? old`, reparsing expression
+  text, copying a whole-program graph per routine or instruction, aliasing
+  distinct semantic identities to one integer, or raising the build-memory cap.
+- Verification: the structural-owner ratchet below, bounded MIR/C byte parity,
+  missing/foreign-handle rejection, and a complete full-driver MIR artifact
+  under the existing 3 GiB process-tree private-memory boundary.
+
+Target structural owner: `src/self_hosted/hir/program_graph_owner.pgy`.
+The existing `AstExpressionArena` type identity moved intact to that owner, so
+parser/HIR and semantic consumers share the same node ordinals. A future
+`CompilationRevisionId` must scope this topology when the source/module owner
+lands; this migration must not invent a substitute revision identity.
+Normalized expression nodes that are not one-to-one with syntax nodes will
+receive an owner-issued `ExpressionNodeId`. `SyntaxNodeId`, `EntityId`,
+`TypeId`, `SymbolId`, `InstructionId`, and `ValueId` remain distinct because
+their equality and lifetime contracts differ.
+
+The target is one immutable expression topology with typed overlays, not one
+flat mutable mega-graph:
+
+| Projection | Owns | Must not own |
+|---|---|---|
+| HIR program graph | expression node kind, interned atom/text handle, ordered child handles, syntax provenance | type verdicts, SSA values, backend layout |
+| Semantic overlay | normalized spelling plus `ExpressionNodeId -> TypeId/SymbolId/place/call/verdict` facts | copied node kind or child arrays; normalized spelling remains an explicit open overlay until text handles land |
+| MIR view | instruction/root/origin handles plus MIR-only CFG/SSA nodes | a second copy of source expression topology |
+| Type DAG / DIR / RIR | their typed relations keyed by stable handles | syntax-tree storage or backend recovery policy |
+| AIR | evidence provider/subject/disposition references | semantic rediscovery or backend materialization decisions |
+| Projection plan | verified target-facing MIR/ABI/runtime rows | AST, expression text, or AIR graph traversal |
+
+AIR remains a verifier. CFG, the type DAG, DIR, RIR, and AIR keep their own
+typed edge sets and lifetimes; "one graph" means one revision and structural
+identity spine, not one node-kind enum or one always-live allocation. Routine
+scratch and temporary analysis regions must still be released at their last
+consumer so graph unification does not turn into whole-program retention.
+
+Current structural storage:
+
+| State | Owner | Current duplicate payload |
+|---|---|---|
+| `LANDED` | `src/self_hosted/hir/program_graph_owner.pgy` | stable `AstExpressionArena` kind/text/children topology shared by parser/HIR and semantic |
+| `RETIRED` | `src/self_hosted/hir/ast_expression_graph_owner.pgy` | no structural fields; validates graph rows and node invariants over the target topology |
+| `REPOINTED` | `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` | borrows target topology; owns normalized text, call-target, and place overlays only |
+| `BRIDGE` | `src/self_hosted/mir/expression_graph_fact_owner.pgy` | the same topology plus per-instruction ranges |
+
+This is a storage-and-identity migration under the existing
+`selfhost.expression_graph` semantic authority, not a second top-level fact
+family. The owner move is recorded in
+`docs/semantics/boundary_migration_manifest.md`, while the existing registry
+authority remains `selfhost.expression_graph`; the target is classified as its
+structural carrier rather than a competing semantic authority.
+
+Migration order:
+
+1. **Done:** lock the three legacy stores as the starting baseline.
+2. **Done:** move the stable `AstExpressionArena` declaration to the target
+   owner without renumbering handles.
+3. **Partial:** semantic now consumes that topology and its duplicate kind/child
+   arrays are deleted. Normalize text and call/place facts remain overlays;
+   missing rows fail closed, and revision-scoped `ExpressionNodeId` is open.
+4. Repoint MIR to instruction/root/origin handles. Delete graph-row copying and
+   forbid expression-text recovery in the MIR consumer.
+5. Repoint AIR and emission consumers to typed handles/projections, then retire
+   the HIR compatibility owner if no legitimate consumer remains.
+6. Run the pressure-owned full-driver fixed point and the unfiltered 280-row
+   C/LLVM/self-hosted matrix. The first artifact/parity failure selects the next
+   owner seam.
+
+`tests/self_host_program_graph_unification_smoke.sh` is the initial negative
+ratchet. Before the target exists it recognizes exactly the three historical
+stores. With the target present it requires exactly two structural stores: the
+program topology and the still-open MIR projection. A returned HIR/semantic
+topology copy, any unregistered store, or a third owner fails the gate. The MIR
+migration must tighten this same gate to one owner.
+
+The first official pressure observation after the semantic topology repoint
+remains red. A semantic-repointed snapshot completed codegen bootstrap and the
+bounded seed/oracle parity, then the full driver stopped during initializer row
+5,215. The pressure owner recorded 2,531.5 MB peak working set, 3,076.7 MB peak
+private memory, and `driver_oracle.exe` at 3,065.9 MB private before enforcing
+the 3 GiB limit. Removing the semantic kind/child copy is therefore a real
+storage substitution but not the dominant full-driver lifetime closure. The
+next falsifier remains routine-scoped semantic fact lifetime; MIR topology
+retirement follows only after that executable boundary can be measured without
+whole-program retention.
+
 ## 3. Layer Contract
 
 | Layer | Owns | Stable output | Last legitimate consumer | Current |
@@ -395,6 +497,7 @@ migration vocabulary.
 | Compatibility Gate | old artifact -> new compiler/runtime | `PARTIAL` seed corpus | real historical source/MIR/AIR/ABI/diagnostic/trace/capability artifacts and migration targets |
 | Bootstrap Gate | compiler source -> self compiler | `PARTIAL` | whole semantic/MIR/driver replacement plus gen1/gen2/gen3 artifact equality |
 | Build Resource Budget Gate | compiler/test graph -> host resources | `PARTIAL` | per-stage RSS/disk/process caps, isolated impact plan, bounded parallelism, leak-vs-work amplification diagnostics |
+| Program Graph Unification Gate | HIR expression identity -> semantic/MIR typed views | `PARTIAL`; semantic topology repointed and the exact two-owner state is blocking | remove the MIR topology copy, bind the owner to revision-scoped handles, reject missing/foreign handles, and complete the full driver below 3 GiB |
 
 ## 8. Highest-Value Missing Choke Points
 

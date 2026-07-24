@@ -218,3 +218,37 @@ Two measurements that convert the blocker from "unknown" to "bounded":
   hypothesis (join is O(n)). Closing it is a semantic-analyzer memory-model
   reduction (per-routine scoping / streaming verify) whose correctness is now
   validatable against the native golden once it completes.
+
+## Program topology repointing verdict (2026-07-24 late evening)
+
+The first storage substitution toward one program graph is now executable:
+`AstExpressionArena` moved to `hir/program_graph_owner.pgy`, and the semantic
+expression arena borrows that topology instead of copying node-kind and child
+arrays. C/LLVM initializer projection parity, the component contract, the
+two-owner graph ratchet, boundary migration, gate-dashboard, and documentation
+gates pass.
+
+This substitution does **not** close the memory defect. The clean official
+pressure observation for the semantic-repointed snapshot recorded:
+
+- `elapsed_ms=608905`;
+- peak working set `2531.5 MB`;
+- peak private memory `3076.7 MB`;
+- top process `driver_oracle.exe` at `3065.9 MB` private;
+- pressure summary child exit `-1`, with the pressure owner returning `88` for
+  the exceeded 3 GiB limit;
+- initializer row `5214` complete and row `5215` started, with no MIR or JSON
+  artifact.
+
+Therefore the removed semantic topology copy was real duplication, but it was
+not the dominant retained set. The active falsifier remains whole-program
+semantic fact lifetime: scope analysis per routine (or another owner-proved
+streaming unit), compare against the native 120 MB golden MIR artifact, and
+release routine facts after their last semantic/MIR consumer.
+
+Two operational results are deliberately not used as compiler evidence. A
+narrow MSYS2 `PATH` hid `powershell`, causing the Make fallback to run the full
+oracle without the pressure owner; that owned process was stopped. Later
+attempts were contaminated by concurrent compiler builds, so their peaks were
+discarded. The Make contract now fails closed on Windows when PowerShell is not
+discoverable, and `tests/build_pressure_contract_smoke.sh` ratchets that rule.

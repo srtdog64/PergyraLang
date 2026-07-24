@@ -52,6 +52,10 @@ if [[ "$(grep -c -- '-StopOnLimit' "$ROOT_DIR/Makefile")" -lt 4 ]]; then
 fi
 grep -Fq -- '-Label self-host-driver-fixpoint' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] full driver fixpoint is outside the pressure probe" >&2; exit 1; }
+grep -Fq 'elif [ "$${OS:-}" = "Windows_NT" ]; then' "$ROOT_DIR/Makefile" \
+    || { echo "[build-pressure-contract] Windows full fixpoint can bypass the pressure owner" >&2; exit 1; }
+grep -Fq 'Windows full fixpoint requires the PowerShell pressure owner' "$ROOT_DIR/Makefile" \
+    || { echo "[build-pressure-contract] Windows pressure-owner diagnostic drifted" >&2; exit 1; }
 grep -Fq 'self-host-driver-bootstrap-full-pressure-body-test-smoke' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] full driver fixpoint lacks a bounded body target" >&2; exit 1; }
 grep -Fq 'full pressure body requires measure_build_pressure.ps1' "$ROOT_DIR/Makefile" \

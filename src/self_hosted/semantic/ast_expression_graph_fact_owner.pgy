@@ -8,10 +8,9 @@ import "expression_normalization_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 
 struct SemanticExpressionGraphArena {
-    node_kinds: Array<Int>;
+    // Parser/HIR owns the immutable topology. Semantic owns only overlays.
+    topology: AstExpressionArena;
     node_texts: Array<String>;
-    left_children: Array<Int>;
-    right_children: Array<Int>;
     // These rows jointly carry the canonical callable identity.
     call_target_kinds: Array<Int>;
     call_target_names: Array<String>;
@@ -47,8 +46,10 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let call_target_names: Array<String> = [];
     let place_kinds: Array<Int> = [];
     return SemanticExpressionGraphArena(
-        node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names, place_kinds
+        AstExpressionArena(
+            node_kinds, node_texts, left_children, right_children
+        ),
+        node_texts, call_target_kinds, call_target_names, place_kinds
     );
 }
 
@@ -72,9 +73,40 @@ func SemanticExpressionGraphArenaUnclassified(
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
     }
+    return SemanticExpressionGraphArenaFromTopology(
+        AstExpressionArena(
+            node_kinds, node_texts, left_children, right_children
+        ),
+        node_texts, call_target_kinds, call_target_names, place_kinds
+    );
+}
+
+func SemanticExpressionGraphArenaFromTopology(
+    topology: AstExpressionArena,
+    node_texts: Array<String>,
+    call_target_kinds: Array<Int>,
+    call_target_names: Array<String>,
+    place_kinds: Array<Int>
+) -> SemanticExpressionGraphArena {
     return SemanticExpressionGraphArena(
-        node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names, place_kinds
+        topology, node_texts, call_target_kinds, call_target_names, place_kinds
+    );
+}
+
+func SemanticExpressionGraphArenaFromRows(
+    node_kinds: Array<Int>,
+    node_texts: Array<String>,
+    left_children: Array<Int>,
+    right_children: Array<Int>,
+    call_target_kinds: Array<Int>,
+    call_target_names: Array<String>,
+    place_kinds: Array<Int>
+) -> SemanticExpressionGraphArena {
+    return SemanticExpressionGraphArenaFromTopology(
+        AstExpressionArena(
+            node_kinds, node_texts, left_children, right_children
+        ),
+        node_texts, call_target_kinds, call_target_names, place_kinds
     );
 }
 
@@ -98,10 +130,7 @@ func SemanticExpressionGraphFactsFromAstRows(
 ) -> SemanticExpressionGraphFacts {
     let roots: Array<Int> = [];
     let has_roots: Array<Bool> = [];
-    let kinds: Array<Int> = [];
     let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
     let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
     let ok: Bool = expected_root_count >= 0 &&
@@ -115,10 +144,7 @@ func SemanticExpressionGraphFactsFromAstRows(
     }
     i = 0;
     while i < AstExpressionArenaNodeCount(rows.arena) {
-        ArrayPush(kinds, rows.arena.node_kinds[i]);
         ArrayPush(texts, SemanticStripOuterParens(rows.arena.node_texts[i]));
-        ArrayPush(left_children, rows.arena.left_children[i]);
-        ArrayPush(right_children, rows.arena.right_children[i]);
         ArrayPush(call_target_kinds, SemanticCallTargetNone());
         ArrayPush(call_target_names, "");
         i = i + 1;
@@ -134,10 +160,15 @@ func SemanticExpressionGraphFactsFromAstRows(
         }
         i = i + 1;
     }
+    let place_kinds: Array<Int> = [];
+    i = 0;
+    while i < AstExpressionArenaNodeCount(rows.arena) {
+        ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
+        i = i + 1;
+    }
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaUnclassified(
-        kinds, texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        SemanticExpressionGraphArenaFromTopology(
+        rows.arena, texts, call_target_kinds, call_target_names, place_kinds
     );
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         ok, roots, has_roots, arena
@@ -151,16 +182,18 @@ func SemanticExpressionGraphFactsFromAstRows(
 func SemanticExpressionGraphArenaNodeCount(
     ref arena: SemanticExpressionGraphArena
 ) -> Int {
-    return ArrayLength(arena.node_kinds);
+    return ArrayLength(arena.topology.node_kinds);
 }
 
 func SemanticExpressionGraphArenaReady(
     ref arena: SemanticExpressionGraphArena
 ) -> Bool {
     let count: Int = SemanticExpressionGraphArenaNodeCount(arena);
-    if ArrayLength(arena.node_texts) != count ||
-        ArrayLength(arena.left_children) != count ||
-        ArrayLength(arena.right_children) != count ||
+    if !AstExpressionArenaReady(arena.topology) ||
+        ArrayLength(arena.node_texts) != count ||
+        ArrayLength(arena.topology.node_texts) != count ||
+        ArrayLength(arena.topology.left_children) != count ||
+        ArrayLength(arena.topology.right_children) != count ||
         ArrayLength(arena.call_target_kinds) != count ||
         ArrayLength(arena.call_target_names) != count ||
         ArrayLength(arena.place_kinds) != count {
@@ -168,9 +201,9 @@ func SemanticExpressionGraphArenaReady(
     }
     let i: Int = 0;
     while i < count {
-        let kind: Int = arena.node_kinds[i];
-        let left: Int = arena.left_children[i];
-        let right: Int = arena.right_children[i];
+        let kind: Int = arena.topology.node_kinds[i];
+        let left: Int = arena.topology.left_children[i];
+        let right: Int = arena.topology.right_children[i];
         if arena.node_texts[i] == "" ||
             !AstExpressionNodeKindKnown(kind) {
             return false;
@@ -216,49 +249,56 @@ func SemanticExpressionGraphArenaReady(
             return false;
         }
         if kind == AstExpressionNodeCall() &&
-            !AstExpressionNodeIsCallableCallee(arena.node_kinds[left]) {
+            !AstExpressionNodeIsCallableCallee(
+                arena.topology.node_kinds[left]
+            ) {
             return false;
         }
         if kind == AstExpressionNodeCallArgument() &&
-            !AstExpressionNodeIsCallSpine(arena.node_kinds[left]) {
+            !AstExpressionNodeIsCallSpine(arena.topology.node_kinds[left]) {
             return false;
         }
         if kind == AstExpressionNodeMemberAccess() &&
-            arena.node_kinds[right] != AstExpressionNodeLeaf() {
+            arena.topology.node_kinds[right] != AstExpressionNodeLeaf() {
             return false;
         }
         if kind == AstExpressionNodeGenericCallee() &&
-            (!AstExpressionNodeIsCallableCallee(arena.node_kinds[left]) ||
-                arena.node_kinds[right] !=
+            (!AstExpressionNodeIsCallableCallee(
+                arena.topology.node_kinds[left]
+            ) || arena.topology.node_kinds[right] !=
                     AstExpressionNodeGenericTypeActual()) {
             return false;
         }
         if kind == AstExpressionNodeArrayElement() &&
             !AstExpressionNodeIsArrayLiteralSpine(
-                arena.node_kinds[left]
+                arena.topology.node_kinds[left]
             ) {
             return false;
         }
         if kind == AstExpressionNodeSetElement() &&
-            !AstExpressionNodeIsSetLiteralSpine(arena.node_kinds[left]) {
+            !AstExpressionNodeIsSetLiteralSpine(
+                arena.topology.node_kinds[left]
+            ) {
             return false;
         }
         if kind == AstExpressionNodeStructLiteral() &&
-            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            arena.topology.node_kinds[left] != AstExpressionNodeLeaf() {
             return false;
         }
-        if kind == AstExpressionNodeStructFieldBinding() && arena.node_kinds[left] != AstExpressionNodeStructFieldName() {
+        if kind == AstExpressionNodeStructFieldBinding() &&
+            arena.topology.node_kinds[left] !=
+                AstExpressionNodeStructFieldName() {
             return false;
         }
         if kind == AstExpressionNodeStructField() &&
             (!AstExpressionNodeIsStructLiteralSpine(
-                arena.node_kinds[left]
-            ) || arena.node_kinds[right] !=
+                arena.topology.node_kinds[left]
+            ) || arena.topology.node_kinds[right] !=
                 AstExpressionNodeStructFieldBinding()) {
             return false;
         }
         if kind == AstExpressionNodeCast() &&
-            arena.node_kinds[right] != AstExpressionNodeTypeName() {
+            arena.topology.node_kinds[right] != AstExpressionNodeTypeName() {
             return false;
         }
         i = i + 1;
@@ -313,9 +353,9 @@ func SemanticExpressionGraphFactsReadinessSummary(
                     ),
                     Concat(";texts=", ToString(ArrayLength(facts.arena.node_texts)))
                 ),
-                Concat(";left=", ToString(ArrayLength(facts.arena.left_children)))
+                Concat(";left=", ToString(ArrayLength(facts.arena.topology.left_children)))
             ),
-            Concat(";right=", ToString(ArrayLength(facts.arena.right_children)))
+            Concat(";right=", ToString(ArrayLength(facts.arena.topology.right_children)))
         ),
         Concat(
             Concat(";target_kinds=", ToString(ArrayLength(facts.arena.call_target_kinds))),
@@ -360,7 +400,7 @@ func SemanticExpressionGraphNodeKind(
         node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
         return None;
     }
-    return Some(facts.arena.node_kinds[node_id]);
+    return Some(facts.arena.topology.node_kinds[node_id]);
 }
 
 func SemanticExpressionGraphPlaceKind(
@@ -397,7 +437,7 @@ func SemanticExpressionGraphLeftChild(
     if !IsSome(kind) || AstExpressionNodeArity(UnwrapOption(kind)) < 1 {
         return None;
     }
-    return Some(facts.arena.left_children[node_id]);
+    return Some(facts.arena.topology.left_children[node_id]);
 }
 
 func SemanticExpressionGraphRightChild(
@@ -408,7 +448,7 @@ func SemanticExpressionGraphRightChild(
     if !IsSome(kind) || AstExpressionNodeArity(UnwrapOption(kind)) < 2 {
         return None;
     }
-    return Some(facts.arena.right_children[node_id]);
+    return Some(facts.arena.topology.right_children[node_id]);
 }
 
 func SemanticExpressionGraphFactsEqual(
@@ -429,10 +469,15 @@ func SemanticExpressionGraphFactsEqual(
     }
     i = 0;
     while i < SemanticExpressionGraphArenaNodeCount(left.arena) {
-        if left.arena.node_kinds[i] != right.arena.node_kinds[i] ||
+        if left.arena.topology.node_kinds[i] !=
+                right.arena.topology.node_kinds[i] ||
+            left.arena.topology.node_texts[i] !=
+                right.arena.topology.node_texts[i] ||
             left.arena.node_texts[i] != right.arena.node_texts[i] ||
-            left.arena.left_children[i] != right.arena.left_children[i] ||
-            left.arena.right_children[i] != right.arena.right_children[i] ||
+            left.arena.topology.left_children[i] !=
+                right.arena.topology.left_children[i] ||
+            left.arena.topology.right_children[i] !=
+                right.arena.topology.right_children[i] ||
             left.arena.call_target_kinds[i] !=
                 right.arena.call_target_kinds[i] ||
             left.arena.call_target_names[i] !=

@@ -2,13 +2,7 @@
 
 import "ast_node_kind_owner.pgy";
 import "ast_text_scan_owner.pgy";
-
-struct AstExpressionArena {
-    node_kinds: Array<Int>;
-    node_texts: Array<String>;
-    left_children: Array<Int>;
-    right_children: Array<Int>;
-}
+import "program_graph_owner.pgy";
 
 struct AstExpressionGraphRows {
     ok: Bool;
@@ -175,14 +169,6 @@ func AstExpressionNodeArity(kind: Int) -> Int {
     return UnwrapOption(arity);
 }
 
-func AstExpressionArenaEmpty() -> AstExpressionArena {
-    let kinds: Array<Int> = [];
-    let texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    return AstExpressionArena(kinds, texts, left_children, right_children);
-}
-
 func AstExpressionGraphRowsEmpty() -> AstExpressionGraphRows {
     let owner_kinds: Array<Int> = [];
     let lanes: Array<Int> = [];
@@ -196,15 +182,9 @@ func AstExpressionOwnerKindKnown(kind: Int) -> Bool {
     return TypedAstKindKnown(kind);
 }
 
-func AstExpressionArenaNodeCount(ref arena: AstExpressionArena) -> Int {
-    return ArrayLength(arena.node_kinds);
-}
-
 func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
     let count: Int = AstExpressionArenaNodeCount(arena);
-    if ArrayLength(arena.node_texts) != count ||
-        ArrayLength(arena.left_children) != count ||
-        ArrayLength(arena.right_children) != count {
+    if !ProgramExpressionGraphStorageRowsAligned(arena) {
         return false;
     }
     let i: Int = 0;

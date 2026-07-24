@@ -2754,6 +2754,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_substrate_contract_smoke.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
+	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
@@ -2945,6 +2946,9 @@ self-host-collection-policy-parity-test-smoke: $(PGY)
 self-host-aggregate-field-policy-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
 
+self-host-program-graph-unification-test-smoke:
+	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
+
 self-host-gate-dashboard-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh
 
@@ -2955,6 +2959,7 @@ self-host-gate-dashboard: $(PGY)
 .PHONY: self-host-wrapper-policy-parity-test-smoke
 .PHONY: self-host-collection-policy-parity-test-smoke
 .PHONY: self-host-aggregate-field-policy-parity-test-smoke
+.PHONY: self-host-program-graph-unification-test-smoke
 .PHONY: self-host-gate-dashboard-parity-test-smoke self-host-gate-dashboard
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
@@ -2983,6 +2988,9 @@ self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-tes
 		-Label self-host-driver-fixpoint -Command "$(MAKE)" \
 		-Arguments self-host-driver-bootstrap-full-pressure-body-test-smoke \
 		-LimitMB $(PGY_BUILD_PRESSURE_LIMIT_MB) -StopOnLimit; \
+	elif [ "$${OS:-}" = "Windows_NT" ]; then \
+		echo "[self-host-driver-bootstrap] Windows full fixpoint requires the PowerShell pressure owner" >&2; \
+		exit 1; \
 	else \
 		PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1 PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh; \

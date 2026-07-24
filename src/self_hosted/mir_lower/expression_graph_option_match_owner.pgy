@@ -14,10 +14,10 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     }
     let roots: Array<Int> = sequence.roots;
     let arena: SemanticExpressionGraphArena = sequence.arena;
-    let kinds: Array<Int> = arena.node_kinds;
+    let kinds: Array<Int> = arena.topology.node_kinds;
     let texts: Array<String> = arena.node_texts;
-    let left: Array<Int> = arena.left_children;
-    let right: Array<Int> = arena.right_children;
+    let left: Array<Int> = arena.topology.left_children;
+    let right: Array<Int> = arena.topology.right_children;
     let target_kinds: Array<Int> = arena.call_target_kinds;
     let target_names: Array<String> = arena.call_target_names;
     let places: Array<Int> = arena.place_kinds;
@@ -38,7 +38,7 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     ArrayPush(target_names, callee_name);
     ArrayPush(places, SemanticExpressionPlaceUnknown());
     let prefix_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArena(
+        SemanticExpressionGraphArenaFromRows(
             kinds, texts, left, right, target_kinds, target_names, places
         );
     if !SemanticExpressionGraphArenaReady(prefix_arena) {
@@ -54,10 +54,10 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     }
     let result_roots: Array<Int> = with_subject.roots;
     let result_arena: SemanticExpressionGraphArena = with_subject.arena;
-    let result_kinds: Array<Int> = result_arena.node_kinds;
+    let result_kinds: Array<Int> = result_arena.topology.node_kinds;
     let result_texts: Array<String> = result_arena.node_texts;
-    let result_left: Array<Int> = result_arena.left_children;
-    let result_right: Array<Int> = result_arena.right_children;
+    let result_left: Array<Int> = result_arena.topology.left_children;
+    let result_right: Array<Int> = result_arena.topology.right_children;
     let result_target_kinds: Array<Int> = result_arena.call_target_kinds;
     let result_target_names: Array<String> = result_arena.call_target_names;
     let result_places: Array<Int> = result_arena.place_kinds;
@@ -86,7 +86,7 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     }
     ArraySet(result_roots, ArrayLength(result_roots) - 1, final_root);
     let final_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArena(
+        SemanticExpressionGraphArenaFromRows(
             result_kinds, result_texts, result_left, result_right,
             result_target_kinds, result_target_names, result_places
         );

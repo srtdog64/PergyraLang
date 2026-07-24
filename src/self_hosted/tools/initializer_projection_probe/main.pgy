@@ -52,7 +52,7 @@ func ProbeExpressionSurfacesWithScalarOperand(
     replacement_kind: Int
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
-    let kinds: Array<Int> = graph.arena.node_kinds;
+    let kinds: Array<Int> = graph.arena.topology.node_kinds;
     let texts: Array<String> = graph.arena.node_texts;
     let changed: Bool = false;
     let i: Int = 0;
@@ -67,9 +67,10 @@ func ProbeExpressionSurfacesWithScalarOperand(
         i = i + 1;
     }
     if !changed { return surfaces; }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, graph.arena.left_children,
-        graph.arena.right_children, graph.arena.call_target_kinds,
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromRows(
+        kinds, texts, graph.arena.topology.left_children,
+        graph.arena.topology.right_children, graph.arena.call_target_kinds,
         graph.arena.call_target_names, graph.arena.place_kinds
     );
     let damaged: SemanticExpressionGraphFacts =
@@ -98,7 +99,7 @@ func ProbeExpressionSurfacesWithCallCallee(
         step = -1;
     }
     while i >= 0 && i < limit {
-        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeLeaf() &&
             texts[i] == "ToIntValue" {
             ArraySet(texts, i, replacement);
             changed = true;
@@ -107,9 +108,9 @@ func ProbeExpressionSurfacesWithCallCallee(
         i = i + step;
     }
     if !changed { return surfaces; }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        graph.arena.node_kinds, texts, graph.arena.left_children,
-        graph.arena.right_children, graph.arena.call_target_kinds,
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+        graph.arena.topology, texts, graph.arena.call_target_kinds,
         graph.arena.call_target_names, graph.arena.place_kinds
     );
     let damaged: SemanticExpressionGraphFacts =
@@ -133,7 +134,7 @@ func ProbeAnalysisWithCallTarget(
     let changed: Bool = false;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeCall() &&
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCall() &&
             targets[i] == expected {
             ArraySet(targets, i, replacement);
             changed = true;
@@ -142,9 +143,9 @@ func ProbeAnalysisWithCallTarget(
         i = i + 1;
     }
     if !changed { return analysis; }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        graph.arena.node_kinds, graph.arena.node_texts,
-        graph.arena.left_children, graph.arena.right_children,
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+        graph.arena.topology, graph.arena.node_texts,
         graph.arena.call_target_kinds, targets, graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
@@ -173,7 +174,7 @@ func ProbeExpressionSurfacesWithMemberName(
     let changed: Bool = false;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+        if graph.arena.topology.node_kinds[i] == AstExpressionNodeLeaf() &&
             texts[i] == "Get" {
             ArraySet(texts, i, replacement);
             changed = true;
@@ -182,9 +183,9 @@ func ProbeExpressionSurfacesWithMemberName(
         i = i + 1;
     }
     if !changed { return surfaces; }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        graph.arena.node_kinds, texts, graph.arena.left_children,
-        graph.arena.right_children, graph.arena.call_target_kinds,
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+        graph.arena.topology, texts, graph.arena.call_target_kinds,
         graph.arena.call_target_names, graph.arena.place_kinds
     );
     let damaged: SemanticExpressionGraphFacts =
@@ -217,9 +218,9 @@ func ProbeAnalysisWithoutCallTarget(
         i = i + 1;
     }
     if !changed { return analysis; }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        graph.arena.node_kinds, graph.arena.node_texts,
-        graph.arena.left_children, graph.arena.right_children,
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+        graph.arena.topology, graph.arena.node_texts,
         target_kinds, target_names, graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
