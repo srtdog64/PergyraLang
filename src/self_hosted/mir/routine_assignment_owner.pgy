@@ -52,7 +52,17 @@ func SelfMirLowerAssignmentFromArtifact(
     if build.local_types[local_index] !=
         input.assignments.target_type_names[binding_row] {
         return SelfMirRoutineBuildError(
-            build, "MIR assignment target binding type drifted"
+            build, Concat(
+                "MIR assignment target binding type drifted: target=",
+                Concat(target, Concat(
+                    " local_type=", Concat(
+                        build.local_types[local_index], Concat(
+                            " semantic_type=",
+                            input.assignments.target_type_names[binding_row]
+                        )
+                    )
+                ))
+            )
         );
     }
     let expression: String =
@@ -78,14 +88,15 @@ func SelfMirLowerAssignmentFromArtifact(
             SelfMirUsesAppendUnique(uses, SelfMirSsaName(target, 0));
         }
         let target_uses: Array<String> =
-            SelfMirExpressionUses(build, target_text);
+            SelfMirExpressionGraphUses(build, target_graph);
         let target_use_i: Int = 0;
         while target_use_i < ArrayLength(target_uses) {
             SelfMirUsesAppendUnique(uses, target_uses[target_use_i]);
             target_use_i = target_use_i + 1;
         }
     }
-    let value_uses: Array<String> = SelfMirExpressionUses(build, expression);
+    let value_uses: Array<String> =
+        SelfMirExpressionGraphUses(build, value_graph);
     let value_use_i: Int = 0;
     while value_use_i < ArrayLength(value_uses) {
         SelfMirUsesAppendUnique(uses, value_uses[value_use_i]);

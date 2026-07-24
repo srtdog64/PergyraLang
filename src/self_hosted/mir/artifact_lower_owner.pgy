@@ -3,6 +3,7 @@
 import "program_fact_owner.pgy";
 import "declaration_rows_owner.pgy";
 import "routine_entry_owner.pgy";
+import "routine_local_inventory_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 
@@ -190,6 +191,7 @@ func SelfMirAppendCfg(
 func SelfMirAppendRoutine(
     facts: SelfMirProgramFacts,
     analysis: SemanticAstArtifactAnalysis,
+    ref input: SelfMirRoutineInput,
     signature_index: Int,
     build: SelfMirRoutineBuild,
     iteration_types: SemanticAstIterationTypeFacts,
@@ -303,12 +305,20 @@ func SelfMirAppendRoutine(
     }
     ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
     ArrayPush(block_counts, ArrayLength(build.cfg.blocks.ids));
+    let inventory: SelfMirRoutineLocalInventory =
+        SelfMirRoutineLocalInventoryFromInput(input, function_node_id);
+    if !inventory.ok {
+        return SelfMirProgramFactsError(
+            facts, "mir_source_local_inventory_invalid",
+            inventory.diagnostic_message
+        );
+    }
     ArrayPush(local_starts, ArrayLength(local_names));
-    ArrayPush(local_counts, ArrayLength(build.local_names));
+    ArrayPush(local_counts, ArrayLength(inventory.names));
     let local_i: Int = 0;
-    while local_i < ArrayLength(build.local_names) {
-        ArrayPush(local_names, build.local_names[local_i]);
-        ArrayPush(local_types, build.local_types[local_i]);
+    while local_i < ArrayLength(inventory.names) {
+        ArrayPush(local_names, inventory.names[local_i]);
+        ArrayPush(local_types, inventory.types[local_i]);
         local_i = local_i + 1;
     }
     ArrayPush(iteration_starts, ArrayLength(iteration_node_ids));
@@ -553,7 +563,8 @@ func SelfMirProgramFactsFromArtifact(
             );
         }
         facts = SelfMirAppendRoutine(
-            facts, analysis, i, build, iteration_types, initializer_types
+            facts, analysis, input, i, build,
+            iteration_types, initializer_types
         );
         i = i + 1;
     }

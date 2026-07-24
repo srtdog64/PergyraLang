@@ -277,6 +277,25 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirResourceRuntimeRowFactReady(json, kp, inst_end)"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "CompilerRuntimeCallAbiFactForNativeResource("
+require_file "src/self_hosted/mir/routine_local_inventory_owner.pgy"
+require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" \
+    "func SelfMirRoutineLocalInventoryFromInput("
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "SelfMirRoutineLocalInventoryFromInput(input, function_node_id)"
+forbid_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "ArrayLength(build.local_names)"
+forbid_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "build.local_names[local_i]"
+require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" \
+    "func SelfMirExpressionGraphUses("
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "SelfMirExpressionGraphUses(build, target_graph)"
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "SelfMirExpressionGraphUses(build, value_graph)"
+forbid_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "SelfMirExpressionUses(build, target_text)"
+forbid_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "SelfMirExpressionUses(build, expression)"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "SelfMirSsaBaseName(cfg.instructions.results[instruction_index])"
 forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \

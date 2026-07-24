@@ -39,6 +39,44 @@ func SelfMirUsesAppendUnique(
     ArrayPush(uses, use_name);
 }
 
+func SelfMirExpressionGraphUses(
+    build: SelfMirRoutineBuild,
+    view: SemanticExpressionGraphView
+) -> Array<String> {
+    let uses: Array<String> = [];
+    if !view.ok { return uses; }
+    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+        view.graph, view.root_id
+    );
+    if !IsSome(start_opt) { return uses; }
+    let node: Int = UnwrapOption(start_opt);
+    while node <= view.root_id {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            view.graph, node
+        );
+        let name_opt: Option<String> = SemanticExpressionGraphNodeText(
+            view.graph, node
+        );
+        if IsSome(kind) && IsSome(name_opt) &&
+            UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
+                build, UnwrapOption(name_opt)
+            );
+            if IsSome(local_opt) {
+                let local_index: Int = UnwrapOption(local_opt);
+                if build.local_versions[local_index] > 0 {
+                    SelfMirUsesAppendUnique(uses, SelfMirSsaName(
+                        build.local_names[local_index],
+                        build.local_versions[local_index]
+                    ));
+                }
+            }
+        }
+        node = node + 1;
+    }
+    return uses;
+}
+
 func SelfMirExpressionUses(
     build: SelfMirRoutineBuild,
     expression: String

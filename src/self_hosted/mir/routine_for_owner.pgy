@@ -40,17 +40,19 @@ func SelfMirLowerForFromArtifact(
         build, "loop-init", "loop-init", "", binding, "",
         start, stop, "AST_FOR_LOOP", SelfMirNoUses()
     );
-    let loop_init_graph: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneValue()
-        );
     if iteration.collection_hoisted {
-        loop_init_graph = SelfMirSyntheticLocalExpressionGraph(start);
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SelfMirSyntheticLocalExpressionGraph(start),
+            input.machine_declaration
+        );
+    } else {
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneValue()
+            ), input.machine_declaration
+        );
     }
-    build = SelfMirRoutineAttachLastExpressionGraph(
-        build, loop_init_graph, input.machine_declaration
-    );
     build = SelfMirRoutineAddBlock(build);
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
@@ -61,20 +63,26 @@ func SelfMirLowerForFromArtifact(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
     );
-    let branch_graph: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneAuxiliary()
+    if iteration.collection_hoisted {
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SelfMirSyntheticLocalExpressionGraph(start),
+            input.machine_declaration
         );
-    if iteration.is_foreach {
-        branch_graph = SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneValue()
+    } else if iteration.is_foreach {
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneValue()
+            ), input.machine_declaration
+        );
+    } else {
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAuxiliary()
+            ), input.machine_declaration
         );
     }
-    build = SelfMirRoutineAttachLastExpressionGraph(
-        build, branch_graph, input.machine_declaration
-    );
     build = SelfMirRoutineAddBlock(build);
     let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, body);

@@ -475,6 +475,12 @@ inventory must not become a second fact-family owner registry.
   JSON projection of the MIR-owned stable identity and specialization rows.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
+- `src/self_hosted/mir/routine_local_inventory_owner.pgy` -- complete
+  routine-local source inventory projected from semantic binding, initializer,
+  and iteration facts; active CFG stack state is not a replacement authority.
+- `src/self_hosted/mir/routine_expression_use_owner.pgy` -- expression-graph
+  leaf binding to SSA-use projection for migrated routine consumers; source
+  text identifier scans remain a legacy bridge outside that migration.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
   block edges, instruction IDs, termination, and binding-identity keyed local
   SSA inventory with lexical scope restoration.
