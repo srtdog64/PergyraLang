@@ -136,45 +136,45 @@ func SelfMirRoutineResourceTypeForInstruction(
     operation: String
 ) -> String {
     if operation == "Claim" {
-        return cfg.instructions.expr1s[instruction_index];
-    }
-    if cfg.instructions.use_counts[instruction_index] > 0 {
-        let use_name: String = cfg.instructions.uses[
-            cfg.instructions.use_starts[instruction_index]
-        ];
-        let local_index: Option<Int> = SelfMirRoutineLocalIndex(
-            build, SelfMirSsaBaseName(use_name)
+        let result_local: Option<Int> = SelfMirRoutineLocalIndex(
+            build,
+            SelfMirSsaBaseName(cfg.instructions.results[instruction_index])
         );
-        if IsSome(local_index) {
-            return build.local_types[UnwrapOption(local_index)];
+        if IsSome(result_local) {
+            return build.local_types[UnwrapOption(result_local)];
         }
+        return "";
     }
-
-    /* Resource rows for a borrowed/owned parameter intentionally carry no
-       ordinary SSA use edge (parameter version 0 is not a def).  Their
-       runtime ABI type is nevertheless already owned by the routine local
-       type facts.  For a value-producing resource call, use the carried
-       expression surface only to match that known local; this is not an AST
-       rescan or a type inference fallback.  A standalone resource-op row has
-       no expr0, so its arg0 is the explicit resource local handle. */
-    let expression: String = cfg.instructions.expr0s[instruction_index];
-    if expression != "" {
-        let i: Int = ArrayLength(build.local_names) - 1;
-        while i >= 0 {
-            if SelfMirTextContainsIdentifier(
-                expression, build.local_names[i]
-            ) {
-                return build.local_types[i];
-            }
-            i = i - 1;
+    let graphs: SelfMirExpressionGraphRows = cfg.instructions.expr0_graphs;
+    if graphs.has_roots[instruction_index] != 1 {
+        return "";
+    }
+    let start: Int = graphs.node_starts[instruction_index];
+    let end: Int = start + graphs.node_counts[instruction_index];
+    let receiver_wrapper: Int = graphs.roots[instruction_index];
+    if receiver_wrapper < start || receiver_wrapper >= end {
+        return "";
+    }
+    if operation == "Write" {
+        receiver_wrapper = graphs.left_children[receiver_wrapper];
+    }
+    if receiver_wrapper < start || receiver_wrapper >= end ||
+        graphs.node_kinds[receiver_wrapper] !=
+            AstExpressionNodeCallArgument() {
+        return "";
+    }
+    let receiver_node: Int = graphs.right_children[receiver_wrapper];
+    if receiver_node < start || receiver_node >= end {
+        return "";
+    }
+    let receiver_name: String = graphs.node_texts[receiver_node];
+    if receiver_name == "" { return ""; }
+    let i: Int = ArrayLength(build.local_names) - 1;
+    while i >= 0 {
+        if build.local_names[i] == receiver_name {
+            return build.local_types[i];
         }
-    }
-    let resource_arg: String = cfg.instructions.arg0s[instruction_index];
-    let resource_local: Option<Int> = SelfMirRoutineLocalIndex(
-        build, SelfMirSsaBaseName(resource_arg)
-    );
-    if IsSome(resource_local) {
-        return build.local_types[UnwrapOption(resource_local)];
+        i = i - 1;
     }
     return "";
 }
@@ -218,7 +218,10 @@ func SelfMirRoutineAttachLastExpressionGraph(
         if !abi_fact.ok {
             return SelfMirRoutineBuildError(
                 build,
-                "MIR resource runtime-call ABI row is not declared"
+                Concat(
+                    "MIR resource runtime-call ABI row is not declared: ",
+                    Concat(resource_type, Concat("/", operation))
+                )
             );
         }
         cfg = SelfMirCfgAttachLastRuntimeCallAbi(

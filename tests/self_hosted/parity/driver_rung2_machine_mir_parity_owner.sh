@@ -36,6 +36,7 @@ pgy_selfhost_driver_rung2_is_machine_fixture() {
 }
 
 pgy_selfhost_driver_rung2_machine_manifest_init() {
+    pgy_selfhost_verify_driver_rung2_machine_claim_type_owner || exit 1
     DRIVER_RUNG2_MACHINE_MANIFEST="$ROOT_DIR/tests/self_hosted/fixtures/machine_layer_declaration.json"
     [[ -f "$DRIVER_RUNG2_MACHINE_MANIFEST" ]] || {
         echo "[self-host-parity:driver-rung2] missing target-owned machine declaration fixture" >&2
@@ -44,6 +45,47 @@ pgy_selfhost_driver_rung2_machine_manifest_init() {
     DRIVER_RUNG2_MACHINE_MANIFEST_REL="$(
         pgy_selfhost_path_relative_to_root "$DRIVER_RUNG2_MACHINE_MANIFEST"
     )"
+}
+
+pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
+    local owner="$ROOT_DIR/src/self_hosted/mir/routine_build_owner.pgy"
+    local layout_owner="$ROOT_DIR/src/self_hosted/mir/abi_layout_json_projection_owner.pgy"
+    grep -Fq \
+        'SelfMirSsaBaseName(cfg.instructions.results[instruction_index])' \
+        "$owner" || {
+        echo "[self-host-parity:driver-rung2] Claim ABI type lost result-local owner" >&2
+        return 1
+    }
+    if grep -Fq 'return cfg.instructions.expr1s[instruction_index];' "$owner"; then
+        echo "[self-host-parity:driver-rung2] Claim ABI type reopened expr1 text fallback" >&2
+        return 1
+    fi
+    for owner_fact in \
+        'cfg.instructions.expr0_graphs' \
+        'AstExpressionNodeCallArgument()' \
+        'graphs.left_children[receiver_wrapper]' \
+        'graphs.right_children[receiver_wrapper]'; do
+        grep -Fq "$owner_fact" "$owner" || {
+            echo "[self-host-parity:driver-rung2] resource receiver graph owner missing: $owner_fact" >&2
+            return 1
+        }
+    done
+    for forbidden in \
+        'cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]' \
+        'SelfMirTextContainsIdentifier('; do
+        if grep -Fq "$forbidden" "$owner"; then
+            echo "[self-host-parity:driver-rung2] resource receiver fallback reopened: $forbidden" >&2
+            return 1
+        fi
+    done
+    for layout_fact in \
+        'rows.source_types[instruction_index] == "AST_LET_DECL"' \
+        'rows.source_types[instruction_index] == "AST_CALL"'; do
+        grep -Fq "$layout_fact" "$layout_owner" || {
+            echo "[self-host-parity:driver-rung2] ABI layout projection owner missing: $layout_fact" >&2
+            return 1
+        }
+    done
 }
 
 pgy_selfhost_driver_rung2_produce_self_mir() {
@@ -89,6 +131,20 @@ pgy_selfhost_verify_driver_rung2_machine_facts() {
         echo "[self-host-parity:driver-rung2] $backend machine contact was lost: $base/$machine_fact" >&2
         return 1
     }
+    if [[ "$base" == "device_slot_machine_layer" ]]; then
+        for machine_fact in \
+            '"abi_type_name":"Int","abi_layout_id":0,"abi_layout_required":false,"abi_layout":null,"expr0":"DeviceRead(dev)"' \
+            '"abi_type_name":null,"abi_layout_id":0,"abi_layout_required":false,"abi_layout":null,"expr0":"DeviceWrite(dev, current)"' \
+            '"type":"DeviceSlot<Int>","operation":"Claim"' \
+            '"type":"DeviceSlot<Int>","operation":"Read"' \
+            '"type":"DeviceSlot<Int>","operation":"Write"' \
+            '"type":"DeviceSlot<Int>","operation":"Release"'; do
+            grep -Fq "$machine_fact" "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend resource ABI projection drifted: $base/$machine_fact" >&2
+                return 1
+            }
+        done
+    fi
 }
 
 pgy_selfhost_driver_rung2_canonicalize() {

@@ -323,12 +323,15 @@ func SelfMirJsonAbiLayoutId(layout: String) -> String {
 func SelfMirJsonAbiTypeName(
     rows: SelfMirInstructionRows, instruction_index: Int
 ) -> String {
-    if rows.runtime_call_abi.present[instruction_index] == 1 {
-        return rows.runtime_call_abi.type_names[instruction_index];
-    }
     if rows.kinds[instruction_index] == "def" &&
         rows.source_types[instruction_index] == "AST_LET_DECL" {
         return rows.expr1s[instruction_index];
+    }
+    if rows.runtime_call_abi.present[instruction_index] == 1 {
+        if rows.source_types[instruction_index] == "AST_CALL" {
+            return "";
+        }
+        return rows.runtime_call_abi.type_names[instruction_index];
     }
     let candidate: String = rows.expr1s[instruction_index];
     if candidate == "Int" || candidate == "Long" ||

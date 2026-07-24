@@ -439,6 +439,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/runtime_call_abi_fact_owner.pgy` -- instruction-aligned
   MIR resource runtime-call ABI facts, including auxiliary operations; missing
   producer-declared rows fail before JSON projection or backend consumption.
+- `src/self_hosted/mir/routine_build_owner.pgy` -- routine-local resource
+  operation type projection; Claim resolves its ABI type from the result SSA
+  binding's carried local type, never from a duplicated expression-text row.
 - `src/self_hosted/mir/expression_runtime_abi_owner.pgy` -- projects plain
   `Slot<T>` runtime-call requirements from carried expression-graph call facts
   and typed local bindings without reparsing source text.

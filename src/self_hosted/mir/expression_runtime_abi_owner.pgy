@@ -15,6 +15,11 @@ struct SelfMirExpressionRuntimeAbiProjection {
 
 func SelfMirSlotRuntimeOperation(source_name: String) -> String {
     if source_name == "ClaimSlot" { return "Claim"; }
+    if source_name == "ClaimDeviceSlot" { return "Claim"; }
+    if source_name == "DeviceRead" { return "Read"; }
+    if source_name == "DeviceWrite" { return "Write"; }
+    if source_name == "ReleaseDeviceSlot" { return "Release"; }
+    if source_name == "SubmitDeviceRead" { return "SubmitRead"; }
     if source_name == "Read" || source_name == "Write" ||
         source_name == "Release" {
         return source_name;
@@ -95,10 +100,17 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
                     type_names, operations
                 );
             }
-            let operation: String = SelfMirSlotRuntimeOperation(
-                UnwrapOption(target_opt)
-            );
+            let target_name: String = UnwrapOption(target_opt);
+            let operation: String = SelfMirSlotRuntimeOperation(target_name);
             if operation != "" {
+                let expected_kind: Int = 0;
+                if target_name == "ClaimDeviceSlot" ||
+                    target_name == "DeviceRead" ||
+                    target_name == "DeviceWrite" ||
+                    target_name == "ReleaseDeviceSlot" ||
+                    target_name == "SubmitDeviceRead" {
+                    expected_kind = 2;
+                }
                 let type_name: String = expected_type;
                 if operation != "Claim" {
                     let receiver_opt: Option<Int> =
@@ -130,10 +142,11 @@ func SelfMirExpressionRuntimeAbiProjectionFromGraph(
                 }
                 let kind_fact: Option<Int> =
                     CompilerRuntimeCallAbiConstructedKind(type_name);
-                if !IsSome(kind_fact) || UnwrapOption(kind_fact) != 0 {
+                if !IsSome(kind_fact) ||
+                    UnwrapOption(kind_fact) != expected_kind {
                     return SelfMirExpressionRuntimeAbiProjection(
                         false,
-                        "MIR Slot runtime-call concrete type fact is missing",
+                        "MIR runtime-call concrete resource type fact is missing",
                         type_names, operations
                     );
                 }

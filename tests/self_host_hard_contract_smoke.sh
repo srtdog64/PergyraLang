@@ -277,6 +277,24 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirResourceRuntimeRowFactReady(json, kp, inst_end)"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "CompilerRuntimeCallAbiFactForNativeResource("
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "SelfMirSsaBaseName(cfg.instructions.results[instruction_index])"
+forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "return cfg.instructions.expr1s[instruction_index];"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "cfg.instructions.expr0_graphs"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "AstExpressionNodeCallArgument()"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "graphs.left_children[receiver_wrapper]"
+forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]"
+forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "SelfMirTextContainsIdentifier("
+require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
+    "rows.source_types[instruction_index] == \"AST_LET_DECL\""
+require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
+    "rows.source_types[instruction_index] == \"AST_CALL\""
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     "SelfMirRuntimeCallAbiRowValidationError("
 forbid_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
