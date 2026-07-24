@@ -45,6 +45,7 @@ PROBE_SOURCE="$ROOT_DIR/${paths[11]}"
 EXPECTED="$ROOT_DIR/${paths[12]}"
 ASSIGN_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/assign_emit_owner.pgy"
 ASSIGN_FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
+ASSIGN_TYPE_FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 for input in "$PROBE_SOURCE" "$EXPECTED"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
@@ -52,6 +53,13 @@ grep -Fq 'import "expression_normalization_owner.pgy";' "$ASSIGN_FACT_OWNER" ||
     { echo "[$LABEL] assignment fact owner bypasses normalization SoT" >&2; exit 1; }
 if grep -Fq 'Trim(' "$ASSIGN_FACT_OWNER"; then
     echo "[$LABEL] assignment fact owner retains allocation-returning trim" >&2
+    exit 1
+fi
+if grep -Fq 'target_texts: Array<String>;' "$ASSIGN_TYPE_FACT_OWNER" ||
+    grep -Fq 'ArrayPush(target_texts' "$ASSIGN_TYPE_FACT_OWNER" ||
+    grep -Fq 'ArrayLength(facts.target_texts)' "$ROOT_DIR/src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" ||
+    grep -Fq 'facts.target_texts[i]' "$ROOT_DIR/src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy"; then
+    echo "[$LABEL] assignment type fact owner duplicated assignment target text" >&2
     exit 1
 fi
 

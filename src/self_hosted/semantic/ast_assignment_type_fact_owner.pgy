@@ -24,7 +24,6 @@ struct SemanticAstAssignmentTypeFacts {
     diagnostic_message: String;
     artifact_node_count: Int;
     node_ids: Array<Int>;
-    target_texts: Array<String>;
     target_binding_modes: Array<String>;
     target_type_names: Array<String>;
     index_type_names: Array<String>;
@@ -48,7 +47,7 @@ func SemanticAstAssignmentTypeStructuralError(
             "owner", "SemanticAstAssignmentTypeFacts"
         ),
         artifact.count,
-        empty_ints, empty_strings, empty_strings, empty_strings, empty_strings,
+        empty_ints, empty_strings, empty_strings, empty_strings,
         empty_strings, empty_strings, empty_ints, empty_strings, empty_strings
     );
 }
@@ -140,7 +139,6 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
     let node_ids: Array<Int> = [];
-    let target_texts: Array<String> = [];
     let target_binding_modes: Array<String> = [];
     let target_type_names: Array<String> = [];
     let index_type_names: Array<String> = [];
@@ -353,7 +351,6 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             }
         }
         ArrayPush(node_ids, assignments.node_ids[i]);
-        ArrayPush(target_texts, assignments.target_texts[i]);
         ArrayPush(target_binding_modes, target_binding_mode);
         ArrayPush(target_type_names, target_type);
         ArrayPush(index_type_names, index_type);
@@ -365,7 +362,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         i = i + 1;
     }
     return SemanticAstAssignmentTypeFacts(
-        true, "", "", artifact.count, node_ids, target_texts,
+        true, "", "", artifact.count, node_ids,
         target_binding_modes, target_type_names, index_type_names,
         expected_type_names, inferred_type_names, verified,
         diagnostic_codes, diagnostic_messages
@@ -443,7 +440,6 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     if !facts.ok || !rebuilt.ok ||
         facts.artifact_node_count != artifact.count ||
         ArrayLength(rebuilt.node_ids) != n ||
-        ArrayLength(facts.target_texts) != n ||
         ArrayLength(facts.target_binding_modes) != n ||
         ArrayLength(facts.target_type_names) != n ||
         ArrayLength(facts.index_type_names) != n ||
@@ -457,7 +453,6 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     let i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
-            rebuilt.target_texts[i] != facts.target_texts[i] ||
             rebuilt.target_binding_modes[i] != facts.target_binding_modes[i] ||
             rebuilt.target_type_names[i] != facts.target_type_names[i] ||
             rebuilt.index_type_names[i] != facts.index_type_names[i] ||

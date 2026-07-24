@@ -13,7 +13,6 @@ func CodegenSemanticAssignmentTypeFactsReady(
     if !facts.ok || facts.artifact_node_count != artifact.count ||
         !SemanticAstAssignmentTypesAllVerified(facts) ||
         ArrayLength(facts.node_ids) != count ||
-        ArrayLength(facts.target_texts) != count ||
         ArrayLength(facts.target_type_names) != count ||
         ArrayLength(facts.index_type_names) != count ||
         ArrayLength(facts.expected_type_names) != count {
@@ -22,7 +21,6 @@ func CodegenSemanticAssignmentTypeFactsReady(
     let i: Int = 0;
     while i < count {
         if facts.node_ids[i] != assignments.node_ids[i] ||
-            facts.target_texts[i] != assignments.target_texts[i] ||
             facts.target_type_names[i] == "" ||
             facts.expected_type_names[i] == "" {
             return false;
