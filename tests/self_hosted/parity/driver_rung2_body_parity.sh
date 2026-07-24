@@ -76,6 +76,18 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 pgy_prepend_windows_runtime_paths
 
+MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
+if [[ -z "$MIR_FIXTURE_FILTER" ]] && command -v cygpath >/dev/null 2>&1; then
+    driver_shell_native="$(cygpath -am /usr/bin/bash 2>/dev/null || true)"
+    case "$driver_shell_native" in
+        */Git/usr/bin/bash.exe)
+            echo "[self-host-parity:driver-rung2] full matrix requires MSYS2 bash; Git Bash can orphan the long-running worker" >&2
+            echo "[self-host-parity:driver-rung2] use PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER for a focused Git Bash gate" >&2
+            exit 1
+            ;;
+    esac
+fi
+
 if [[ "$(pgy_selfhost_driver_rung2_fixture_base \
     tests/cases/backend_compare/class_as_strategy/main.pgy)" != \
     "class_as_strategy" ]]; then
@@ -197,7 +209,6 @@ if [[ "${#mir_fixture_rows[@]}" -ne 280 ]]; then
     echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 280" >&2
     exit 1
 fi
-MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
     filtered_mir_fixture_rows=()
     mir_fixture_filters=()

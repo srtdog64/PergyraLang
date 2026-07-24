@@ -96,10 +96,13 @@ $phaseStats = @{
 }
 
 function Get-ProcessTreeRows {
-    param([int]$RootPid)
+    param(
+        [int]$RootPid,
+        [datetime]$StartedAt
+    )
 
     $all = Get-CimInstance Win32_Process |
-        Select-Object ProcessId, ParentProcessId, Name, CommandLine
+        Select-Object ProcessId, ParentProcessId, Name, CommandLine, CreationDate
     $byParent = @{}
     $byId = @{}
     foreach ($p in $all) {
@@ -112,12 +115,15 @@ function Get-ProcessTreeRows {
     }
 
     $result = New-Object System.Collections.Generic.List[object]
+    $resultIds = New-Object System.Collections.Generic.HashSet[int]
     $queue = New-Object System.Collections.Generic.Queue[int]
     $queue.Enqueue($RootPid)
     while ($queue.Count -gt 0) {
         $currentPid = $queue.Dequeue()
         if ($byId.ContainsKey($currentPid)) {
-            $result.Add($byId[$currentPid])
+            if ($resultIds.Add($currentPid)) {
+                $result.Add($byId[$currentPid])
+            }
         }
         if ($byParent.ContainsKey($currentPid)) {
             foreach ($child in $byParent[$currentPid]) {
@@ -125,11 +131,33 @@ function Get-ProcessTreeRows {
             }
         }
     }
+
+    # MSYS2/Git Bash fork emulation can reparent native compiler workers in the
+    # Win32 process table. A strict descendant-only walk then misses the exact
+    # cc1/LTO/link processes whose pressure this probe exists to measure and
+    # cannot stop them at the ceiling. Attribute compiler workers created after
+    # this isolated probe started; concurrent broad builds are forbidden while
+    # a pressure probe owns the machine.
+    $detachedToolPattern = `
+        '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl|cc1|cc1plus|lto1|lto-wrapper|collect2|ld|lld|lld-link|pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+)(\.exe)?$'
+    foreach ($p in $all) {
+        if ([string]$p.Name -notmatch $detachedToolPattern) {
+            continue
+        }
+        $createdAt = [datetime]$p.CreationDate
+        if ($createdAt -lt $StartedAt.AddSeconds(-1)) {
+            continue
+        }
+        $toolPid = [int]$p.ProcessId
+        if ($resultIds.Add($toolPid)) {
+            $result.Add($p)
+        }
+    }
     return $result
 }
 
 while (-not $process.HasExited) {
-    $rows = Get-ProcessTreeRows -RootPid $process.Id
+    $rows = Get-ProcessTreeRows -RootPid $process.Id -StartedAt $started
     $ids = @($rows | ForEach-Object { [int]$_.ProcessId })
     $procs = @()
     $compileProcCount = 0
@@ -143,7 +171,15 @@ while (-not $process.HasExited) {
         $processName = [string]$row.Name
         $isCompiler = $processName -match `
             '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl)(\.exe)?$'
-        if ($isCompiler -and $commandLine -match '(^|\s)-c(\s|$)') {
+        $isCompileWorker = $processName -match `
+            '^(cc1|cc1plus)(\.exe)?$'
+        $isLinkWorker = $processName -match `
+            '^(lto1|lto-wrapper|collect2|ld|lld|lld-link)(\.exe)?$'
+        if ($isLinkWorker) {
+            $linkProcCount++
+        }
+        elseif ($isCompileWorker -or
+            ($isCompiler -and $commandLine -match '(^|\s)-c(\s|$)')) {
             $compileProcCount++
         }
         elseif ($isCompiler -and $commandLine -match '(^|\s)-o(\s|$)') {
@@ -253,6 +289,7 @@ $summary = [ordered]@{
     limit_mb = $LimitMB
     stop_on_limit = [bool]$StopOnLimit
     limit_exceeded = $limitExceeded
+    detached_compiler_worker_tracking = $true
     phases = [ordered]@{
         orchestrate = $phaseStats.orchestrate
         compile = $phaseStats.compile

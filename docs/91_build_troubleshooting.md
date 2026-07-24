@@ -31,6 +31,7 @@ mingw32-make build-resource-report
 PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report  # slower exact sizes
 mingw32-make build-pressure-dev-compiler # samples pgy-only build RSS/private bytes
 mingw32-make build-pressure-compiler     # samples default LLVM-enabled compiler build
+mingw32-make build-pressure-self-host-compiler # samples the Pergyra-built DRV-2 build
 mingw32-make clean-scratch              # removes .tmp only
 mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
 ```
@@ -41,14 +42,18 @@ and free space without recursively counting files. Use
 on Windows/Git Bash, scanning tens of thousands of scratch files can itself
 make the desktop feel stalled.
 
-`build-pressure-dev-compiler` and `build-pressure-compiler` are the memory bug
-lines. They run the low-pressure C-only compiler build and the default
-LLVM-enabled compiler build through `scripts/measure_build_pressure.ps1`, then
-sample the process tree. The default limit is 3 GiB
-(`PGY_BUILD_PRESSURE_LIMIT_MB`); if a compiler-only build crosses that line,
-treat it as a build/compiler memory defect until the sample log proves
-otherwise. This is separate from disk/file-count pressure: a full artifact scan
-can stall the desktop with small RSS when the repo drive is nearly full.
+`build-pressure-dev-compiler`, `build-pressure-compiler`, and
+`build-pressure-self-host-compiler` are the memory bug lines. They run the
+low-pressure C-only compiler build, the default LLVM-enabled compiler build,
+and the Pergyra-built bounded DRV-2 build through
+`scripts/measure_build_pressure.ps1`, then sample the process tree. The default
+limit is 3 GiB (`PGY_BUILD_PRESSURE_LIMIT_MB`), and all three targets stop the
+measured tree when it crosses that line. If one compiler build crosses the
+line, treat it as a build/compiler memory defect until the sample log proves
+otherwise. Do not use a broad parity matrix's system-wide memory total as the
+compiler-build measurement. This is separate from disk/file-count pressure: a
+full artifact scan can stall the desktop with small RSS when the repo drive is
+nearly full.
 
 The same rule applies to self-host stage tools. A `--check` mode must validate
 the stage contract without materializing a full generated artifact unless that
@@ -83,6 +88,32 @@ symbols off:
   15.5 GiB free, many local `build-*` / `bin-*` variants, and more than 28k
   files under the active `.tmp` / `build` / `bin` sample. In that state, broad
   local CI may stall from file churn even when compiler RSS stays under 400 MB.
+
+2026-07-24 Windows/UCRT64 incident evidence separated the build units again:
+
+- a clean `release` rebuild completed in 1,576,373 ms; a second isolated LTO
+  relink with detached MSYS compiler-worker tracking peaked at 490.3 MB working
+  set and 444.1 MB private memory, with `cc1.exe` the largest process;
+- a fresh Pergyra-built bounded DRV-2 build completed in 351,507 ms, producing
+  a 2,927,734-byte AST, 2,959,613-byte C unit, and 2,397,166-byte driver. It
+  peaked at 1,343.8 MB working set and 1,412.2 MB private memory; `gen2.exe`
+  owned 1,134.1 MB of private memory;
+- the DRV-2 result is below the 3 GiB hard ceiling, but a 1.1 GiB codegen seed
+  for a roughly 3 MiB artifact is explicit optimization debt. Do not describe
+  it as normal just because the compiler is being self-hosted;
+- the observed desktop pressure also had an unfiltered Git Bash DRV-2 wrapper
+  whose worker survived as a reparented native process, a replacement full
+  matrix started on top of it, and the D: volume at 97% use. The shallow
+  resource report correctly warned that broad CI could stall;
+- `measure_build_pressure.ps1` now attributes detached `cc1`, LTO, linker, and
+  Pergyra seed workers by probe start time. All compiler pressure targets stop
+  the measured workers at 3 GiB instead of reporting only after completion.
+
+These measurements do not claim that the released compiler is self-hosted.
+DRV-2 remains a bounded Pergyra-built source/MIR-to-C replacement. C and LLVM
+are the native compiler's peer production backends; compiling a self-host tool
+through both backends is parity evidence, not evidence that the Pergyra-built
+driver owns a self-hosted LLVM emitter.
 
 So a stalled desktop is not automatically evidence of a compiler heap leak. If
 single `compiler` builds stay below a few hundred MB but broad smokes stall the
@@ -122,6 +153,14 @@ mingw32-make self-host-codegen-parity-test-smoke
 The complete 69-fixture matrix remains the integration proof. It should not be
 silently substituted for a compiler build, and it should not be repeated by
 multiple aggregate targets in one CI job.
+
+The 280-row DRV-2 body matrix has the same isolation rule. Run its unfiltered
+full matrix from MSYS2 bash on Windows. A Git Bash wrapper can exit while its
+long-running worker remains reparented as a native Windows process; starting a
+replacement then overlaps two full artifact-producing runs. The DRV-2 runner
+therefore rejects an unfiltered Git Bash invocation. Git Bash remains available
+for a focused development gate when
+`PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER` names the exact fixtures.
 
 Windows evidence on 2026-07-12: the serial full matrix took about 31 minutes;
 the same 69-fixture C/LLVM matrix with the default two workers completed in
