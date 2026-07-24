@@ -136,13 +136,19 @@ The LLVM backend build completed in 147,566 ms at 2,228.2 MB working set /
 full-input oracle execution. They show that large-source compilation already
 needs optimization, but they do not explain away a later 28 GiB oracle process.
 
-The C-built guarded oracle rejects a direct full-driver MIR request before
-materialization, rejects use of its full-fixpoint token on a bounded fixture,
-and still emits the bounded `let_log` MIR artifact. The linked LLVM-built
-artifact currently falls into the CLI usage diagnostic for every argumentful
-invocation. Its build therefore proves LLVM lowering/linking of this source,
-not runnable argv parity; the LLVM process-entry/`Args()` seam remains a
-separate explicit blocker.
+The C- and LLVM-built guarded oracles both reject a direct full-driver MIR
+request before materialization, reject use of the full-fixpoint token on a
+bounded fixture, and emit the same 2,341-byte `let_log` MIR artifact. This is
+runnable guard parity as well as lowering/linking evidence. The CLI order is
+`mode, source, output[, token]`; reversing mode and source reaches the usage
+diagnostic and is not evidence of an argv backend defect.
+
+An actual pressure-owned C-oracle execution over the full driver source then
+ran for 170,534 ms. The wrapper stopped the process tree at 3,079.2 MB private
+memory / 2,549.3 MB working set; `driver_oracle_guard.exe` itself owned
+3,030.0 MB private. It produced no MIR artifact and left no oracle process.
+This is the expected current falsifier and proves the 3 GiB boundary is active;
+it does not close the underlying materialization defect.
 
 Source inspection identifies the strongest current amplification mechanism,
 but not yet its exact share of the 28 GiB peak:

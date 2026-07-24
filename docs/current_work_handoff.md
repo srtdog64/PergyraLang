@@ -9,14 +9,15 @@ owner, and the named executable gate.
 ## Resume checkpoint
 
 - The implementation checkpoint immediately before this handoff refresh is
-  `05b2da48` (`Bound full driver fixpoint memory`), pushed to
+  `81657340` (`Reject unbounded full driver MIR entry`), pushed to
   `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
   because a committed handoff cannot name its own Git object ID.
 - `9b002796` adds measured, fail-closed 3 GiB Windows pressure boundaries for
   native and bounded Pergyra-built compiler builds, attributes reparented MSYS
   compiler workers, and rejects unfiltered Git Bash execution of the 280-row
   DRV-2 matrix. `05b2da48` extends that owner around the full driver fixpoint.
-  Both are operational hardening, not self-host substitution.
+  `81657340` adds the binary-level accidental-direct-run interlock. All three
+  are operational hardening, not self-host substitution.
 - `a42616b7` is the latest executable closure: concrete by-value wrapper
   declarations are projected from semantic type/signature/specialization facts;
   generic formal templates are excluded; specialized concrete return/parameter
@@ -105,16 +106,22 @@ Observed facts:
   including reparented `driver_oracle`, `driver_seed`, and `driver_genN`
   processes. The direct script-plus-environment invocation is not an approved
   diagnostic path for this blocker.
-- The guarded C-built oracle now rejects a full-driver request without the
-  pressure-owned runner token, rejects token use on a bounded fixture, and
-  still emits bounded fixture MIR. The token prevents accidental direct use;
-  it is not a security boundary and does not replace the pressure wrapper.
+- The guarded C- and LLVM-built oracles both reject a full-driver request
+  without the pressure-owned runner token, reject token use on a bounded
+  fixture, and emit the same 2,341-byte `let_log` MIR artifact. The token
+  prevents accidental direct use; it is not a security boundary and does not
+  replace the pressure wrapper.
 - The stale pre-guard `.tmp/self_hosted/driver/bootstrap/driver_oracle.exe`
   was moved to `driver_oracle.unbounded-disabled-20260724.exe`; the official
   bootstrap must rebuild the canonical path before use.
-- The LLVM-built oracle links, but every argumentful invocation currently
-  reaches the CLI usage diagnostic. LLVM argv/`Args()` parity is therefore an
-  explicit blocker; LLVM build success is not runnable-driver parity.
+- The CLI contract is `mode, source, output[, token]`. A temporary probe used
+  `source, mode, output`, so its usage diagnostic was invalid evidence and has
+  been discarded; there is no observed LLVM argv blocker from this session.
+- The pressure-owned C oracle was then run on the full driver source. It was
+  stopped after 170,534 ms at 3,079.2 MB process-tree private / 2,549.3 MB
+  working set; the oracle itself owned 3,030.0 MB private. It produced no MIR
+  artifact and left no oracle process. The cap works; materialization remains
+  blocked.
 - A follow-up process audit caught that direct bypass running concurrently with
   a 95-fixture DRV-2 shard. A recursive make dry-run briefly added a third run;
   the exact 21-process Pergyra set was at 2,020.6 MB working set / 2,114 MB
@@ -314,6 +321,10 @@ Green:
   3 GiB ceiling at 2,145.6 MB and 2,239.5 MB private respectively.
 - C-built guarded oracle negatives: direct full input and bounded-fixture token
   misuse both exited 1 without an artifact; bounded `let_log` emitted MIR.
+- The same guarded-oracle cases passed through LLVM, and both backends emitted
+  byte-sized parity evidence at 2,341 bytes for bounded `let_log`.
+- Pressure-owned full C oracle execution stopped at the 3 GiB boundary after
+  170,534 ms with no artifact and no remaining oracle process.
 - Pergyra-built DRV-2 rebuild after the receiver-owner change, exit 0.
 - Machine fixture producer/consumer: `produce=0`, `consume=0` with the
   repository-relative declaration manifest.
@@ -374,14 +385,11 @@ Blocked by unrelated dirty work:
 
 Not run:
 
-- Full-input driver fixpoint after the new 3 GiB boundary. The earlier
-  17 GiB/28 GiB run already falsified the unbounded path; the next run must use
-  the official pressure-wrapped target.
+- Successful full-input driver fixpoint completion under the 3 GiB boundary.
+  The bounded run reached the ceiling and was stopped without an artifact.
 - Full unfiltered 280-row hard DRV-2 matrix.
 - LLVM parity for the generic wrapper and generic-return focused rungs.
 - LLVM parity for the new Set literal rung.
-- Runnable LLVM parity for the guarded oracle; the LLVM artifact linked but its
-  argumentful runs reached the CLI usage diagnostic.
 - Actual Coq/Rocq proof execution.
 - Full driver bootstrap/fixpoint for the separate dirty
   `driver_bootstrap.sh` change.
@@ -405,19 +413,17 @@ semantic fixture. At the next scheduled/merge boundary:
    streaming Pergyra owner. The last consumer is the verified MIR artifact
    write; nested whole-program `Array<String>` assembly and a raised cap are
    forbidden fallbacks.
-4. Repair or explicitly isolate the LLVM process-entry/`Args()` seam before
-   claiming backend parity for the guarded driver.
-5. Re-run the full driver fixpoint only through
+4. Re-run the full driver fixpoint only through
    `self-host-driver-bootstrap-full-test-smoke`. The falsifier is either a
    3 GiB stop or output/schema/parity drift; success requires a complete
    artifact under the existing ceiling.
-6. Once that blocker is closed, run the unfiltered 280-row hard DRV-2 matrix
+5. Once that blocker is closed, run the unfiltered 280-row hard DRV-2 matrix
    from MSYS2 and its LLVM lane. The first red row, not fixture ordering or an
    AI guess, chooses the next semantic rung.
-7. For that row, record objective, owner, last consumer, forbidden fallback,
+6. For that row, record objective, owner, last consumer, forbidden fallback,
    and falsifier before editing. Keep C/LLVM peer emitters behind one
    Pergyra-owned fact spine rather than mirroring C fragments.
-8. Land another executable Pergyra replacement before spending multiple
+7. Land another executable Pergyra replacement before spending multiple
    commits on documentation or SoT-only cleanup.
 
 ## Workstation and recovery facts
