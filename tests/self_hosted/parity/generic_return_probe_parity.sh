@@ -68,6 +68,12 @@ if grep -Fq 'Trim(' "$TYPE_CANONICAL_OWNER"; then
     echo "[$LABEL] canonical type owner retains allocation-returning trim" >&2
     exit 1
 fi
+grep -Fq 'import "expression_normalization_owner.pgy";' "$TYPE_EXPRESSION_OWNER" ||
+    { echo "[$LABEL] signature type-expression owner bypasses normalization SoT" >&2; exit 1; }
+if grep -Fq 'StringTrim(' "$TYPE_EXPRESSION_OWNER"; then
+    echo "[$LABEL] signature type-expression owner retains allocation-returning trim" >&2
+    exit 1
+fi
 
 grep -Fq 'TypedAstKindGenericParamsTag()' "$KIND_OWNER" "$INVENTORY_OWNER" ||
     { echo "[$LABEL] generic parameter row is not typed HIR" >&2; exit 1; }

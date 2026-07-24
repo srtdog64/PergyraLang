@@ -1,6 +1,7 @@
 // Structured parameter and return type expressions captured with signatures.
 
 import "delimited_range_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticAstSignatureTypeExpressionFacts {
     ok: Bool;
@@ -19,7 +20,7 @@ func SemanticAstSignatureTypeExpressionAppend(
     inout child_counts: Array<Int>,
     inout children: Array<Int>
 ) -> Option<Int> {
-    let text: String = StringTrim(type_name);
+    let text: String = SemanticTrimSourceReuse(type_name);
     let n: Int = StringLength(text);
     if n == 0 {
         return None;
@@ -38,7 +39,7 @@ func SemanticAstSignatureTypeExpressionAppend(
     if open == 0 || n < open + 3 || CharAt(text, n - 1) != ">" {
         return None;
     }
-    let base: String = StringTrim(Substring(text, 0, open));
+    let base: String = SemanticTrimSourceRangeReuse(text, 0, open);
     if StringLength(base) == 0 || StringIndexOf(base, ">") >= 0 {
         return None;
     }
