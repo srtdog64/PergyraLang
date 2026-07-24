@@ -8,10 +8,10 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `fa2d8383` (`Route call targets through
-  shared callable table`), following `3ccbfd2d` (`Share semantic callable
-  table across body passes`) and `4ee38b73` (`Bound MIR graph slot policy
-  ownership`). It carries the graph storage
+- Active implementation checkpoint: `a1d508a0` (`Share callable table across
+  assignment and statement passes`), following `fa2d8383` (`Route call targets
+  through shared callable table`) and `3ccbfd2d` (`Share semantic callable
+  table across body passes`). It carries the graph storage
   migration forward: the
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
@@ -27,6 +27,10 @@ owner, and the named executable gate.
   the body-owned table and fails closed on an invalid fact; its former
   per-pass `SemanticAstExpressionFunctionTables` rebuild is removed. The
   callable-table smoke now ratchets this consumer as well.
+- `a1d508a0` extends the fact through assignment and statement type owners in
+  the production body bundle. Contract rebuilds also pass an explicit table
+  fact; both owners now fail closed on malformed rows and no longer rebuild
+  the callable universe internally.
 - The blocking graph gate now reports `phase=unified` with exactly one
   structural store: the program topology. The HIR, semantic, and MIR copied
   topology stores are retired.
@@ -191,6 +195,10 @@ resolution, so the call-target fixpoint now borrows the already-produced fact.
 This closes another consumer seam but does not change the whole-program
 pressure conclusion.
 
+`a1d508a0` removes the same per-pass table construction from assignment and
+statement typing. Isolated C/LLVM initializer projection parity remains green;
+the measured whole-program retention and reclamation problem remains open.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -230,6 +238,9 @@ Green on the graph handle commit slice:
 - `tests/self_hosted/parity/semantic_initializer_pressure_owner_smoke.sh`;
 - `tests/self_hosted/parity/initializer_projection_probe_parity.sh` with
   `RC=0` (C/LLVM semantic initializer and call-target projection parity);
+- isolated `0d38b2f3` verification worktree with the `a1d508a0` patch:
+  Pergyra owner import `0 error(s), 0 warning(s)`, GCC C syntax, component
+  contract, callable-table smoke, and initializer C/LLVM projection all passed;
 
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_program_graph_unification_smoke.sh` with
@@ -297,26 +308,46 @@ and ratcheting the graph-owned simple-statement path, the full
 `tests/self_hosted_component_contract_smoke.sh` passed on the current combined
 source.
 
+The current moving worktree is not an exclusive verification surface. Its
+component smoke currently stops at a concurrent
+`artifact_lower_owner.pgy` contract assertion, and its direct owner compile
+stops at a concurrent borrowed-ref escape in
+`SelfMirIterationSyntheticGraphView`; neither result is attributed to
+`a1d508a0`. The isolated verification worktree listed above is the attributable
+evidence for this callable-table slice.
+
 ## Exact remaining dirty state after the handoff snapshot
 
-At `fa2d8383`, `main` and `origin/main` are aligned. The callable-table and
-call-target slices are committed and pushed. Three concurrent parity edits remain dirty and are
-intentionally excluded from that commit; preserve them and re-check ownership
-before the next unit:
+At `a1d508a0`, `main` and `origin/main` are aligned. The callable-table,
+call-target, assignment, and statement slices are committed and pushed. The
+following concurrent changes remain dirty and are intentionally excluded;
+preserve them and re-check ownership before the next unit:
 
+- `src/self_hosted/OWNERS.md`;
+- `src/self_hosted/mir/artifact_lower_owner.pgy`;
+- `src/self_hosted/mir/routine_for_owner.pgy`;
+- `src/self_hosted/mir/routine_input_owner.pgy`;
+- `src/self_hosted/mir/routine_iteration_owner.pgy`;
+- `src/self_hosted/mir/routine_local_inventory_owner.pgy`;
+- `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`;
+- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
+- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
+- `tests/self_hosted_component_contract_smoke.sh`;
+- untracked `src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy`.
 
-No compiler, `pgy`, `driver_oracle`, GCC, Clang, or Make process was active at
-the final process check for this unit.
+The final process check observed concurrent compiler activity; do not stop it
+without re-identifying ownership. The isolated verification processes have
+ended.
 
 ## Next executable work
 
 1. Continue closing the remaining production body consumers of callable-table
-   facts, starting with assignment/statement and generic-specialization owners;
-   each direct `SemanticAstExpressionFunctionTables` read needs an owner fact
-   migration or an explicit non-production exception.
+   facts, starting with generic-specialization and match-binding environment
+   owners; each direct `SemanticAstExpressionFunctionTables` read needs an owner
+   fact migration or an explicit non-production exception.
 2. Obtain an exclusive compiler-build window, re-run the official initializer
    C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
