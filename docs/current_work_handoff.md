@@ -8,14 +8,18 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `ec062184` (`Close MIR expression graph
-  topology SoT`). It completes the graph storage migration: the stable
+- Active implementation checkpoint: `20ba92fd` (`Close MIR let initializer use
+  SoT`). It carries the graph storage migration forward: the stable
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
   semantic graph plus instruction root/range handles.
 - The blocking graph gate now reports `phase=unified` with exactly one
   structural store: the program topology. The HIR, semantic, and MIR copied
   topology stores are retired.
+- `20ba92fd` repoints the MIR let initializer's use-edge consumer from
+  expression-text scanning to the semantic graph view. The let owner now
+  fails closed when that graph fact is missing and attaches the same view to
+  MIR. The remaining routine owners are still bridge consumers.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -66,7 +70,13 @@ owner, and the named executable gate.
 - `SelfMirExpressionGraphRows` now stores only semantic graph handles and
   bounded source ranges. MIR JSON, assignment verification, and the
   initializer probe use semantic accessors; graph mismatch and invalid handles
-  fail closed. The graph gate reports one structural owner.
+  fail closed. The let initializer owner derives use edges from the same
+  `SemanticExpressionGraphView` and rejects missing graph facts instead of
+  falling back to source text. The graph gate reports one structural owner.
+- `tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh` ratchets the
+  let owner: it requires graph-owned initializer uses and rejects
+  `SelfMirExpressionUses`/identifier-text recovery in that owner. The gate is
+  wired into the preparation contract smoke.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -111,6 +121,7 @@ Green on the graph handle commit slice:
 - `tests/self_hosted/parity/gate_dashboard_parity.sh` at 13/13;
 - `tests/documentation_quality_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
+- `tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
@@ -150,20 +161,25 @@ Verify this list after the handoff snapshot because another task may advance
 1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
    exact dirty list. The attempted full self-host bootstrap was interrupted
    after concurrent bootstrap activity produced no attributable result; it is
-   not green evidence for `ec062184`.
+   not green evidence for `20ba92fd`.
 2. Re-run the official initializer C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
-3. Close the measured whole-program semantic lifetime boundary. The preferred
+3. Migrate the remaining routine `SelfMirExpressionUses` consumers (statement,
+   tracked statement, if, while, destructure, iteration, and match) to
+   owner-provided graph lanes. Preserve explicit target/auxiliary facts for
+   collection mutations; do not delete the text bridge until every last
+   legitimate consumer has a typed graph fact and a missing-fact negative gate.
+4. Close the measured whole-program semantic lifetime boundary. The preferred
    unit is routine-scoped analysis/verify with owner-proved output ordering and
    comparison against the native 120 MB golden artifact. Do not tune JSON or
    raise the cap before execution reaches those stages.
-4. Introduce the real revision owner and distinct stable identities
+5. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-5. After the full-driver artifact completes below 3 GiB, run the unfiltered
+6. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
