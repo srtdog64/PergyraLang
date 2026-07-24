@@ -51,3 +51,11 @@ func RuntimeCHeaderOwnsScalarLog(
 ) -> Bool {
     return uses_box_array || uses_list || uses_queue || uses_set;
 }
+
+func RuntimeCHeaderOwnsBoolToString(
+    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool
+) -> Bool {
+    return RuntimeCHeaderOwnsScalarLog(
+        uses_box_array, uses_list, uses_queue, uses_set
+    );
+}

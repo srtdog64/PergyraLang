@@ -514,7 +514,11 @@ func GenerateCUnitFromSemanticFacts(
         TextBuilderAppend(output, HostIORuntimeCArgsBlock());
     }
     if uses_str {
-        TextBuilderAppend(output, StringRuntimeCStringCoreBlock(uses_list));
+        TextBuilderAppend(output, StringRuntimeCStringCoreBlock(
+            RuntimeCHeaderOwnsBoolToString(
+                usage.uses_box_array, uses_list, uses_queue, uses_set
+            )
+        ));
     }
     if uses_math {
         TextBuilderAppend(output, MathRuntimeCIntUtilityBlock());

@@ -1,6 +1,7 @@
 // Scalar graph shape facts shared by type and verdict projections.
 
 import "ast_expression_graph_fact_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "env_owner.pgy";
 
 func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
@@ -143,6 +144,29 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
         );
         if SemanticExpressionGraphNumericTypeName(source) {
             return UnwrapOption(target);
+        }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeIndex() {
+        let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        let index: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node_id
+        );
+        if !IsSome(receiver) || !IsSome(index) { return "Unknown"; }
+        let receiver_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, UnwrapOption(receiver), names, types
+            );
+        let index_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, UnwrapOption(index), names, types
+            );
+        let element_type: Option<String> =
+            SemanticArrayElementType(receiver_type);
+        if index_type == "Int" && IsSome(element_type) {
+            return UnwrapOption(element_type);
         }
         return "Unknown";
     }
