@@ -1,0 +1,18 @@
+// Shared callable-table fact for one semantic artifact analysis.
+//
+// The table is immutable after production. Consumer owners borrow its rows;
+// they must not rebuild the same callable universe for each body pass.
+
+struct SemanticAstExpressionFunctionTableFacts {
+    ok: Bool;
+    names: Array<String>;
+    returns: Array<String>;
+    params: Array<String>;
+}
+
+func SemanticAstExpressionFunctionTableFactsReady(
+    facts: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    return facts.ok && ArrayLength(facts.names) == ArrayLength(facts.returns) &&
+        ArrayLength(facts.names) == ArrayLength(facts.params);
+}

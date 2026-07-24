@@ -6,8 +6,9 @@
 
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
+import "ast_initializer_type_function_table_bridge_owner.pgy";
 
-func SemanticAstInitializerTypeFactsRefinedByIterations(
+func SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -15,7 +16,8 @@ func SemanticAstInitializerTypeFactsRefinedByIterations(
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     statements: SemanticAstStatementFacts,
     base_facts: SemanticAstInitializerTypeFacts,
-    iterations: SemanticAstIterationTypeFacts
+    iterations: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstInitializerTypeFacts {
     let count: Int = SemanticAstIterationTypeCount(iterations);
     if !iterations.ok ||
@@ -40,11 +42,33 @@ func SemanticAstInitializerTypeFactsRefinedByIterations(
         ArrayPush(binding_names, statements.payload_texts[row]);
         i = i + 1;
     }
-    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsUsingFunctionTables(
         artifact, signatures, constructors, locals, expression_surfaces,
         iterations.node_ids, function_node_ids, binding_names,
         iterations.binding_type_names, iterations.verified,
-        base_facts, true
+        base_facts, true, function_tables
+    );
+}
+
+func SemanticAstInitializerTypeFactsRefinedByIterations(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    statements: SemanticAstStatementFacts,
+    base_facts: SemanticAstInitializerTypeFacts,
+    iterations: SemanticAstIterationTypeFacts
+) -> SemanticAstInitializerTypeFacts {
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, enum_facts
+        );
+    return SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        statements, base_facts, iterations, function_tables
     );
 }
 

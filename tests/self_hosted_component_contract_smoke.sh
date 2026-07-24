@@ -3069,7 +3069,7 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
 reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "AstTreeArtifactFromText(source"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
-    "SemanticAstInitializerTypeFactsRefinedByIterations("
+    "SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \

@@ -11,6 +11,7 @@ import "ast_enum_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
 
 func SemanticAstExpressionMemberRootNames(
     constructors: SemanticAstNominalConstructorFacts,
@@ -254,6 +255,22 @@ func SemanticAstExpressionFunctionTables(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstExpressionFunctionTableFactsFromArtifact(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts
+) -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    let ok: Bool = SemanticAstExpressionFunctionTables(
+        signatures, constructors, enums, names, returns, params
+    );
+    return SemanticAstExpressionFunctionTableFacts(
+        ok, names, returns, params
+    );
 }
 
 func SemanticAstExpressionSeedParameterModes(

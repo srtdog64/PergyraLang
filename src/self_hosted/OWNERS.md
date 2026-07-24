@@ -157,12 +157,18 @@ inventory must not become a second fact-family owner registry.
   local-binding, and parser expression-graph facts without source re-scanning
   or projection-text recovery; declared List<T> sequence literals are
   contextualized here from the graph-owned element compatibility fact.
+- `src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy`
+  -- routes the shared callable-table fact into initializer base/refinement
+  consumers without rebuilding it per pass.
 - `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy` --
   loop-body initializer refinement that consumes verified iteration binding
   facts after the header pass.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
+- `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy` --
+  shared immutable callable-table fact for body-analysis consumers; per-pass
+  table rebuilding is forbidden.
 - `src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy`
   -- implicit method-field bindings derived from the function owner and
   nominal constructor field rows; source-text rewriting is forbidden.

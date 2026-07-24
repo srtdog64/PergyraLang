@@ -123,14 +123,16 @@ func SemanticAstIterationSeedVisibleRows(
     return true;
 }
 
-func SemanticAstIterationTypeFactsFromArtifact(
+func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstIterationTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -145,21 +147,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
              artifact, signatures, statements
          ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
              artifact, expression_surfaces
-         ) {
-        return SemanticAstIterationTypeStructuralError(artifact);
-    }
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
-    let enum_facts: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !enum_facts.ok {
-        return SemanticAstIterationTypeStructuralError(artifact);
-    }
-    if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, enum_facts,
-        function_names, function_returns, function_params
-    ) {
+         ) || !SemanticAstEnumRowsReady(enum_facts) ||
+         !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
     let member_root_names: Array<String> = [];
@@ -233,7 +222,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
                 expression_surfaces.expression_graph,
                 UnwrapOption(first_root), constructors, signatures,
                 names, types, modes,
-                function_names, function_returns, function_params,
+                function_tables.names, function_tables.returns,
+                function_tables.params,
                 member_root_names
             );
         if !first.ok {
@@ -256,7 +246,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
                     expression_surfaces.expression_graph,
                     UnwrapOption(last_root), constructors, signatures,
                     names, types, modes,
-                    function_names, function_returns, function_params,
+                    function_tables.names, function_tables.returns,
+                    function_tables.params,
                     member_root_names
                 );
             binding_type = "Int";
@@ -328,6 +319,27 @@ func SemanticAstIterationTypeFactsFromArtifact(
         true, "", "", artifact.count, node_ids, binding_types,
         iterable_types, collection_hoists, verified, diagnostic_codes,
         diagnostic_messages
+    );
+}
+
+func SemanticAstIterationTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstIterationTypeFacts {
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, enum_facts
+        );
+    return SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
+        artifact, signatures, constructors, locals, initializer_types,
+        statements, expression_surfaces, enum_facts, function_tables
     );
 }
 

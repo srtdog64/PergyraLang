@@ -1,0 +1,47 @@
+// Shared callable-table entry points for the initializer owner.
+// The implementation owner keeps the row verifier; this bridge only routes
+// an already-produced table fact into the production body path.
+
+import "ast_initializer_type_fact_owner.pgy";
+
+func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsUsingFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    base_facts: SemanticAstInitializerTypeFacts,
+    reuse_unaffected: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        iteration_node_ids, iteration_function_node_ids,
+        iteration_binding_names, iteration_binding_types, iteration_verified,
+        base_facts, reuse_unaffected, false, function_tables
+    );
+}
+
+func SemanticAstInitializerTypeFactsFromArtifactObservedWithFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    observe_pressure: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
+        SemanticAstInitializerTypeStructuralError(artifact), false,
+        observe_pressure, function_tables
+    );
+}
