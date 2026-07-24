@@ -8,15 +8,15 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `645d9f2c` (`Close owned semantic String
-  lifetime across self-host codegen`) on the isolated branch
+- Active implementation checkpoint: `938a5886` (`Remove duplicate initializer
+  expression rows`) on the isolated branch
   `codex/semantic-environment-owned-lifetime`. It closes the executable
-  artifact-owned callable-table lifetime seam after the body bundle's final
-  consumer, including native and self-host codegen lowering for the owned
-  `String` push/drop ABI and explicit inout array calls. The preceding
-  `6ef7641d` slice closes the semantic scratch-array environment with the
-  owned `String` push/drop pair. Ordinary `Array<String>` remains on the beta
-  no-free policy. The latest handoff-only HEAD is `416e6aad`.
+  parser-owned initializer-text duplication seam: initializer semantic facts
+  retain node identity, inferred types, verification, diagnostics, and binding
+  rows, while `locals.initializer_texts` remains the sole source text owner.
+  The preceding `645d9f2c` slice closes the reachable artifact-owned callable
+  table lifetime path through self-hosted codegen; ordinary `Array<String>`
+  remains on the beta no-free policy.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -283,6 +283,17 @@ codegen call owner emits the corresponding runtime symbols with explicit
 before crossing the inout boundary. This is still a bounded lifetime closure,
 not a full-driver pressure result.
 
+`938a5886` removes `SemanticAstInitializerTypeFacts.expression_texts`. That
+row duplicated parser-owned `SemanticAstLocalBindingFacts.initializer_texts`
+and had no live consumer beyond self-validation/probe constructors; readiness
+now validates node identity against the parser owner without retaining a second
+program-wide expression-text array. The initializer probe default/direct lanes,
+seed bootstrap, initializer pressure-owner smoke, component contract, and
+documentation quality gates passed. The member-call lane remains red with the
+same Windows heap-corruption exit (`0xC0000374`) on both `938a5886` and the
+preceding `645d9f2c` source checkpoint, so it is not attributed to this SoT
+de-duplication; a new full-driver pressure measurement is still required.
+
 The later exclusive single pressure run at handoff HEAD `416e6aad` reproduced
 the red result under the same `3072 MB` ceiling: `exit_code=-1`, elapsed
 `548250 ms`, peak working set `2537.1 MB`, peak private memory `3084.2 MB`,
@@ -332,6 +343,12 @@ Green on the graph handle commit slice:
 - `645d9f2c` self-host component contract and documentation quality gates;
 - `645d9f2c` `make -j2 self-host-codegen-bootstrap-seed-test-smoke`, with
   gen0/gen1 compile and gen2 seed artifacts ready;
+- `938a5886` initializer expression-text de-duplication owner smoke,
+  component contract, documentation quality, and
+  `make -j2 self-host-codegen-bootstrap-seed-test-smoke`;
+- `938a5886` initializer probe default and direct-call executable lanes passed;
+  the member-call lane is an attributable red baseline blocker, not a green
+  parity result.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -474,10 +491,10 @@ ended.
 
 ## Next executable work
 
-1. `645d9f2c` is the latest executable lifetime closure. Rebuild an exclusive
+1. `938a5886` is the latest executable source closure. Rebuild an exclusive
    full-driver pressure target below the existing 3072 MB ceiling; if it still
    crosses the cap, record the next retained owner and last consumer before
-   adding another cleanup pair.
+   adding another materialization or cleanup change.
 2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
@@ -486,11 +503,12 @@ ended.
    it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
-4. Close the measured whole-program semantic lifetime boundary. The preferred
-   executable unit is routine-scoped analysis/verify with owner-proved output
-   ordering and comparison against the native 120MB golden artifact. The next
-   source delta must remove a real compiler-wide materialization path before
-   rerunning the full pressure target.
+4. Close the measured whole-program semantic lifetime boundary. The
+   initializer expression-text duplication is now removed; the next preferred
+   executable unit is a routine-scoped analysis/verify materialization with
+   owner-proved output ordering and comparison against the native 120MB golden
+   artifact. Do not infer a pressure improvement until the exclusive target is
+   rerun.
 5. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
