@@ -8,13 +8,13 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `6ef7641d` (`Close semantic environment
-  String lifetime`) on the isolated branch
+- Active implementation checkpoint: `e5b8b4a3` (`Release callable table after
+  body analysis`) on the isolated branch
   `codex/semantic-environment-owned-lifetime`. It closes the executable
-  semantic scratch-array lifetime seam: `SemanticAstExpressionEnvironment`
-  now inserts through the owned `String` push pair and clears through the
-  matching owned drop pair. Ordinary `Array<String>` remains on the beta
-  no-free policy.
+  artifact-owned callable-table lifetime seam after the body bundle's final
+  consumer. The preceding `6ef7641d` slice closes the semantic scratch-array
+  environment with the owned `String` push/drop pair. Ordinary `Array<String>`
+  remains on the beta no-free policy.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -265,6 +265,14 @@ is a bounded reclamation unit, not evidence that the full-driver 3 GiB
 pressure defect is closed. The next falsifier is an exclusive rebuilt
 full-driver pressure run with the same 3072 MB ceiling.
 
+`e5b8b4a3` extends that bounded reclamation to the artifact-owned callable
+table. Its producer uses an explicit owned seed mode and owned row insertion;
+the body type bundle releases `names`, `returns`, and `params` only after
+`verdict:done`, then marks the fact invalid so stale consumers fail closed.
+The callable-table gate proves there is no ordinary producer push and that the
+release follows the final body consumer. This remains a focused lifetime
+closure, not a full-driver pressure result.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -296,6 +304,8 @@ Green on the graph handle commit slice:
 - `6ef7641d` GCC C syntax-only checks on the changed C backend, LLVM emitter,
   LLVM runtime, and collection type-checker files;
 - `6ef7641d` direct C execution harness for the owned String push/drop pair;
+- `e5b8b4a3` callable-table owner gate:
+  `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -400,7 +410,8 @@ attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At isolated HEAD `6ef7641d`, the semantic environment lifetime slice is clean
+At isolated HEAD `e5b8b4a3`, the semantic environment and callable-table
+lifetime slices are clean
 and pushed on `codex/semantic-environment-owned-lifetime`. `main` remains at
 `2b95746d` and `origin/main` is aligned; the callable-table,
 call-target, assignment, statement, generic-specialization, match-binding,
@@ -433,7 +444,7 @@ ended.
 
 ## Next executable work
 
-1. `6ef7641d` is the latest executable lifetime closure. Rebuild an exclusive
+1. `e5b8b4a3` is the latest executable lifetime closure. Rebuild an exclusive
    full-driver pressure target below the existing 3072 MB ceiling; if it still
    crosses the cap, record the next retained owner and last consumer before
    adding another cleanup pair.
