@@ -8,8 +8,8 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `d05e653c` (`Close MIR graph-owned simple
-  statements`). It carries the graph storage migration forward: the
+- Active implementation checkpoint: `fd2e0597` (`Close collection mutation
+  graph ownership`). It carries the graph storage migration forward: the
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
   semantic graph plus instruction root/range handles.
@@ -46,8 +46,12 @@ owner, and the named executable gate.
 - `d05e653c` closes the graph-complete simple statement kinds (`Log`, bare
   call, and `Exit`) through a separate graph-owned lowering path. The path
   validates and reuses one Atom view for SSA uses and MIR attachment. The
-  collection mutation kinds remain an explicit bridge until target facts are
-  carried by their owner lanes.
+- `fd2e0597` closes the remaining collection mutation statement bridge. The
+  parser records receiver/value/index lane facts, MIR derives receiver uses
+  from the semantic graph, Push/Set preserve their value/index graph slots,
+  Pop remains receiver-use-only without a third MIR graph slot, and missing
+  receiver facts fail closed. The old text-use owner is deleted and the
+  collection graph-use gate is wired into the preparation contract.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -127,6 +131,9 @@ owner, and the named executable gate.
   ratchets the graph-owned simple statement path and proves the collection
   text bridge is not used by that path. It is wired into the preparation
   contract smoke.
+- `tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh`
+  ratchets receiver/value/index graph lanes, the missing-receiver guard, and
+  the no-third-MIR-slot policy for collection mutations.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -197,6 +204,10 @@ Green on the graph handle commit slice:
 - `tests/self_hosted/parity/driver_rung2_simple_statement_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
+- current component contract smoke with `RC=0` after registering the new
+  lane-policy and MIR-lower bridge owners;
+- current C DRV-2 `valid_array_builtins` MIR generation and MIR re-consumption,
+  plus collection mutation parity, with `RC=0`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
   MIR fixtures;
 - codegen gen1/gen2 fixed point and bounded driver seed/oracle parity before
@@ -260,20 +271,15 @@ Verify this list after the handoff snapshot because another task may advance
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
-3. Close the remaining collection-mutation statement bridge. First carry
-   target identity/use facts for ArrayPop, ArrayPush, and ArraySet through
-   their owner lanes; then replace the bounded text use with those graph
-   facts. Preserve ArraySet value/index/target lane separation and add a
-   missing-target negative gate before deleting the final text path.
-4. Close the measured whole-program semantic lifetime boundary. The preferred
+3. Close the measured whole-program semantic lifetime boundary. The preferred
    unit is routine-scoped analysis/verify with owner-proved output ordering and
    comparison against the native 120 MB golden artifact. Do not tune JSON or
    raise the cap before execution reaches those stages.
-5. Introduce the real revision owner and distinct stable identities
+4. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-6. After the full-driver artifact completes below 3 GiB, run the unfiltered
+5. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
