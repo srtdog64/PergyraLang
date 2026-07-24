@@ -93,7 +93,7 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
         SemanticAstGenericSpecializationFactsFromBody(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces
+            analysis.expression_surfaces, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "generic:done");
     SemanticAstBodyTypeStage(observe_pressure, "verdict:start");
