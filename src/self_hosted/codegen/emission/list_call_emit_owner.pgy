@@ -3,6 +3,7 @@
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
@@ -14,23 +15,20 @@ func RewriteSemanticListCall(
     env: CodegenTypeEnv
 ) -> String {
     let argc: Int = ArrayLength(view.argument_nodes);
-    let expected_argc: Int = 0;
-    if source_name == "ListPush" || source_name == "ListGet" {
-        expected_argc = 2;
-    } else if source_name == "ListSet" {
-        expected_argc = 3;
-    } else if source_name == "ListRemove" {
-        expected_argc = 2;
-    } else if source_name == "ListSize" {
-        expected_argc = 1;
-    } else {
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(source_name);
+    if !protocol.applies || protocol.family != "List" {
         Die(Concat(source_name, " is not a supported List<T> call"));
     }
+    if protocol.return_kind == "constructor" {
+        Die("ListNew requires a contextual List<T> ABI fact");
+    }
+    let expected_argc: Int = protocol.expected_arity;
     if argc != expected_argc {
         Die(Concat(source_name, " has an invalid argument count"));
     }
     let receiver_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
-        graph, view.argument_nodes[0], env
+        graph, view.argument_nodes[protocol.receiver_argument_index], env
     );
     if !IsSome(receiver_type_opt) {
         Die(Concat(source_name, " receiver type fact is missing"));
@@ -42,39 +40,45 @@ func RewriteSemanticListCall(
         Die(Concat(source_name, " List<T> runtime ABI fact is missing"));
     }
     let receiver: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[0], receiver_type, "inout", env
+        graph, view.argument_nodes[protocol.receiver_argument_index],
+        receiver_type, "inout", env
     );
-    if source_name == "ListPush" {
+    if protocol.operation == "ListPush" {
         let value: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[1], fact.element_type, "default", env
+            graph, view.argument_nodes[protocol.value_argument_index],
+            fact.element_type, "default", env
         );
         return Concat(fact.c_push_fn, Concat("(", Concat(
             receiver, Concat(", ", Concat(value, ")"))
         )));
     }
-    if source_name == "ListGet" {
+    if protocol.operation == "ListGet" {
         let index: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[1], "Int", "default", env
+            graph, view.argument_nodes[protocol.index_argument_index],
+            "Int", "default", env
         );
         return Concat(fact.c_get_fn, Concat("(", Concat(
             receiver, Concat(", ", Concat(index, ")"))
         )));
     }
-    if source_name == "ListSet" {
+    if protocol.operation == "ListSet" {
         let index: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[1], "Int", "default", env
+            graph, view.argument_nodes[protocol.index_argument_index],
+            "Int", "default", env
         );
         let value: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[2], fact.element_type, "default", env
+            graph, view.argument_nodes[protocol.value_argument_index],
+            fact.element_type, "default", env
         );
         return Concat(fact.c_set_fn, Concat("(", Concat(
             receiver, Concat(", ", Concat(index, Concat(", ",
                 Concat(value, ")"))))
         )));
     }
-    if source_name == "ListRemove" {
+    if protocol.operation == "ListRemove" {
         let index: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[1], "Int", "default", env
+            graph, view.argument_nodes[protocol.index_argument_index],
+            "Int", "default", env
         );
         return Concat(fact.c_remove_fn, Concat("(", Concat(
             receiver, Concat(", ", Concat(index, ")"))

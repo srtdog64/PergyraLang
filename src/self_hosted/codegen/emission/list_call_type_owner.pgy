@@ -2,15 +2,10 @@
 
 import "../type_facts/type_env.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
-
-func CodegenListCallName(name: String) -> Bool {
-    return name == "ListPush" || name == "ListGet" ||
-        name == "ListSet" || name == "ListRemove" ||
-        name == "ListSize";
-}
 
 func CodegenListCallApplies(
     graph: SemanticExpressionGraphFacts,
@@ -23,7 +18,13 @@ func CodegenListCallApplies(
     let callee: Option<String> = SemanticExpressionGraphNodeText(
         graph, call.callee_node
     );
-    return IsSome(callee) && CodegenListCallName(UnwrapOption(callee));
+    if !IsSome(callee) { return false; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee)
+        );
+    return protocol.applies && protocol.family == "List" &&
+        protocol.return_kind != "constructor";
 }
 
 func CodegenListCallReceiverType(
@@ -56,7 +57,13 @@ func CodegenListCallReturnTypeFromGraph(
     let callee: Option<String> = SemanticExpressionGraphNodeText(
         graph, call.callee_node
     );
-    if !IsSome(callee) || !CodegenListCallName(UnwrapOption(callee)) {
+    if !IsSome(callee) { return None; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee)
+        );
+    if !protocol.applies || protocol.family != "List" ||
+        protocol.return_kind == "constructor" {
         return None;
     }
     let name: String = UnwrapOption(callee);
@@ -66,19 +73,16 @@ func CodegenListCallReturnTypeFromGraph(
     if !IsSome(target_name) || UnwrapOption(target_name) != name {
         return None;
     }
-    if name == "ListSize" {
-        if ArrayLength(call.argument_nodes) != 1 { return None; }
-        return Some("Int");
+    if ArrayLength(call.argument_nodes) != protocol.expected_arity {
+        return None;
     }
-    let expected_arity: Int = 2;
-    if name == "ListSet" { expected_arity = 3; }
-    if ArrayLength(call.argument_nodes) != expected_arity { return None; }
+    if protocol.return_kind == "Int" { return Some("Int"); }
     let receiver_type: String = CodegenListCallReceiverType(
-        graph, call.argument_nodes[0], env
+        graph, call.argument_nodes[protocol.receiver_argument_index], env
     );
     let fact: CollectionListRuntimeFact =
         CollectionListRuntimeFactFromTypeName(receiver_type);
     if !fact.ok { return None; }
-    if name == "ListGet" { return Some(fact.element_type); }
+    if protocol.return_kind == "element" { return Some(fact.element_type); }
     return Some("Void");
 }

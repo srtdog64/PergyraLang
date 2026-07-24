@@ -2,6 +2,7 @@
 
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
@@ -32,18 +33,6 @@ func SemanticExpressionGraphQueueCallError(
     );
 }
 
-func SemanticExpressionGraphQueueCallName(name: String) -> Bool {
-    return name == "QueueNew" || name == "QueuePush" ||
-        name == "QueuePop" || name == "QueueSize" ||
-        name == "QueueEmpty";
-}
-
-func SemanticExpressionGraphQueueCallExpectedArity(name: String) -> Int {
-    if name == "QueueNew" { return 0; }
-    if name == "QueuePush" { return 2; }
-    return 1;
-}
-
 func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -62,8 +51,14 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
         graph, call.callee_node
     );
     if !IsSome(callee_kind) || !IsSome(callee_text) ||
-        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
-        !SemanticExpressionGraphQueueCallName(UnwrapOption(callee_text)) {
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() {
+        return SemanticExpressionGraphQueueCallNotApplicable();
+    }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee_text)
+        );
+    if !protocol.applies || protocol.family != "Queue" {
         return SemanticExpressionGraphQueueCallNotApplicable();
     }
     let callee: String = UnwrapOption(callee_text);
@@ -76,8 +71,7 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
             )
         );
     }
-    let expected_arity: Int =
-        SemanticExpressionGraphQueueCallExpectedArity(callee);
+    let expected_arity: Int = protocol.expected_arity;
     if ArrayLength(call.argument_nodes) != expected_arity {
         return SemanticExpressionGraphQueueCallError(
             "call_arity_mismatch",
@@ -88,14 +82,15 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
             )
         );
     }
-    if callee == "QueueNew" {
+    if protocol.return_kind == "constructor" {
         return SemanticExpressionGraphQueueCallFact(
             true, true, "", "", "Queue<Unknown>", "Queue<Unknown>",
             "Unknown"
         );
     }
     let queue_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-        graph, call.argument_nodes[0], names, types
+        graph, call.argument_nodes[protocol.receiver_argument_index],
+        names, types
     );
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(queue_type);
@@ -119,13 +114,14 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
         );
     }
     let element_type: String = shape.actual_type_names[0];
-    if callee == "QueuePush" {
+    if protocol.value_argument_index >= 0 {
         let value_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
-                graph, call.argument_nodes[1], names, types
+                graph, call.argument_nodes[protocol.value_argument_index],
+                names, types
             );
         let value_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, call.argument_nodes[1]
+            graph, call.argument_nodes[protocol.value_argument_index]
         );
         if value_type == "Unknown" || !IsSome(value_text) {
             return SemanticExpressionGraphQueueCallError(
@@ -148,9 +144,9 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
         }
     }
     let return_type: String = "Void";
-    if callee == "QueuePop" { return_type = element_type; }
-    if callee == "QueueSize" { return_type = "Int"; }
-    if callee == "QueueEmpty" { return_type = "Bool"; }
+    if protocol.return_kind == "element" { return_type = element_type; }
+    if protocol.return_kind == "Int" { return_type = "Int"; }
+    if protocol.return_kind == "Bool" { return_type = "Bool"; }
     return SemanticExpressionGraphQueueCallFact(
         true, true, "", "", return_type,
         shape.canonical_name, element_type

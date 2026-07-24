@@ -1,0 +1,101 @@
+// Canonical operation metadata for collection calls.
+//
+// Family owners validate graph facts and runtime ABI rows; this owner only
+// owns the shared call-name protocol so those consumers cannot drift on
+// arity, argument positions, or result shape.
+
+struct SemanticExpressionGraphCollectionCallProtocolFact {
+    applies: Bool;
+    family: String;
+    operation: String;
+    expected_arity: Int;
+    receiver_argument_index: Int;
+    index_argument_index: Int;
+    value_argument_index: Int;
+    return_kind: String;
+}
+
+func SemanticExpressionGraphCollectionCallProtocolNotApplicable(
+) -> SemanticExpressionGraphCollectionCallProtocolFact {
+    return SemanticExpressionGraphCollectionCallProtocolFact(
+        false, "", "", -1, -1, -1, -1, ""
+    );
+}
+
+func SemanticExpressionGraphCollectionCallProtocolFromName(
+    name: String
+) -> SemanticExpressionGraphCollectionCallProtocolFact {
+    if name == "ListPush" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 2, 0, -1, 1, "Void"
+        );
+    }
+    if name == "ListGet" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 2, 0, 1, -1, "element"
+        );
+    }
+    if name == "ListSet" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 3, 0, 1, 2, "Void"
+        );
+    }
+    if name == "ListRemove" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 2, 0, 1, -1, "Void"
+        );
+    }
+    if name == "ListSize" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 1, 0, -1, -1, "Int"
+        );
+    }
+    if name == "ListNew" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "List", name, 0, -1, -1, -1, "constructor"
+        );
+    }
+    if name == "QueueNew" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Queue", name, 0, -1, -1, -1, "constructor"
+        );
+    }
+    if name == "QueuePush" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Queue", name, 2, 0, -1, 1, "Void"
+        );
+    }
+    if name == "QueuePop" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Queue", name, 1, 0, -1, -1, "element"
+        );
+    }
+    if name == "QueueSize" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Queue", name, 1, 0, -1, -1, "Int"
+        );
+    }
+    if name == "QueueEmpty" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Queue", name, 1, 0, -1, -1, "Bool"
+        );
+    }
+    if name == "SetNew" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Set", name, 0, -1, -1, -1, "constructor"
+        );
+    }
+    if name == "SetAdd" || name == "SetHas" || name == "SetRemove" {
+        let return_kind: String = "Void";
+        if name == "SetHas" { return_kind = "Bool"; }
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Set", name, 2, 0, -1, 1, return_kind
+        );
+    }
+    if name == "SetSize" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "Set", name, 1, 0, -1, -1, "Int"
+        );
+    }
+    return SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+}

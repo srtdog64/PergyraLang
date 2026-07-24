@@ -2,6 +2,7 @@
 
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
@@ -32,18 +33,6 @@ func SemanticExpressionGraphSetCallError(
     );
 }
 
-func SemanticExpressionGraphSetCallName(name: String) -> Bool {
-    return name == "SetNew" || name == "SetAdd" ||
-        name == "SetHas" || name == "SetRemove" ||
-        name == "SetSize";
-}
-
-func SemanticExpressionGraphSetCallExpectedArity(name: String) -> Int {
-    if name == "SetNew" { return 0; }
-    if name == "SetSize" { return 1; }
-    return 2;
-}
-
 func SemanticExpressionGraphSetCallFactFromResolvedTarget(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -62,8 +51,14 @@ func SemanticExpressionGraphSetCallFactFromResolvedTarget(
         graph, call.callee_node
     );
     if !IsSome(callee_kind) || !IsSome(callee_text) ||
-        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
-        !SemanticExpressionGraphSetCallName(UnwrapOption(callee_text)) {
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() {
+        return SemanticExpressionGraphSetCallNotApplicable();
+    }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee_text)
+        );
+    if !protocol.applies || protocol.family != "Set" {
         return SemanticExpressionGraphSetCallNotApplicable();
     }
     let callee: String = UnwrapOption(callee_text);
@@ -76,8 +71,7 @@ func SemanticExpressionGraphSetCallFactFromResolvedTarget(
             )
         );
     }
-    let expected_arity: Int =
-        SemanticExpressionGraphSetCallExpectedArity(callee);
+    let expected_arity: Int = protocol.expected_arity;
     if ArrayLength(call.argument_nodes) != expected_arity {
         return SemanticExpressionGraphSetCallError(
             "call_arity_mismatch",
@@ -88,14 +82,15 @@ func SemanticExpressionGraphSetCallFactFromResolvedTarget(
             )
         );
     }
-    if callee == "SetNew" {
+    if protocol.return_kind == "constructor" {
         return SemanticExpressionGraphSetCallFact(
             true, true, "", "", "Set<Unknown>", "Set<Unknown>",
             "Unknown"
         );
     }
     let set_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-        graph, call.argument_nodes[0], names, types
+        graph, call.argument_nodes[protocol.receiver_argument_index],
+        names, types
     );
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(set_type);
@@ -119,13 +114,14 @@ func SemanticExpressionGraphSetCallFactFromResolvedTarget(
         );
     }
     let element_type: String = shape.actual_type_names[0];
-    if callee != "SetSize" {
+    if protocol.value_argument_index >= 0 {
         let value_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
-                graph, call.argument_nodes[1], names, types
+                graph, call.argument_nodes[protocol.value_argument_index],
+                names, types
             );
         let value_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, call.argument_nodes[1]
+            graph, call.argument_nodes[protocol.value_argument_index]
         );
         if value_type == "Unknown" || !IsSome(value_text) {
             return SemanticExpressionGraphSetCallError(
@@ -148,8 +144,8 @@ func SemanticExpressionGraphSetCallFactFromResolvedTarget(
         }
     }
     let return_type: String = "Void";
-    if callee == "SetHas" { return_type = "Bool"; }
-    if callee == "SetSize" { return_type = "Int"; }
+    if protocol.return_kind == "Bool" { return_type = "Bool"; }
+    if protocol.return_kind == "Int" { return_type = "Int"; }
     return SemanticExpressionGraphSetCallFact(
         true, true, "", "", return_type,
         shape.canonical_name, element_type

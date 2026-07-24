@@ -12,6 +12,7 @@ import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../semantic/ast_expression_graph_array_literal_owner.pgy";
 import "../../semantic/ast_expression_graph_set_literal_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -126,8 +127,15 @@ func RewriteSemanticExpectedValue(
                 graph, call.call_node
             );
         }
-        if !call.ok || !IsSome(target) ||
-            UnwrapOption(target) != "ListNew" ||
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+            SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+        if IsSome(target) {
+            protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
+                UnwrapOption(target)
+            );
+        }
+        if !call.ok || !IsSome(target) || !protocol.applies ||
+            protocol.family != "List" || protocol.return_kind != "constructor" ||
             ArrayLength(call.argument_nodes) != 0 {
             Die("List<T> initializer must be ListNew with no arguments");
         }
@@ -147,8 +155,15 @@ func RewriteSemanticExpectedValue(
                 graph, call.call_node
             );
         }
-        if !call.ok || !IsSome(target) ||
-            UnwrapOption(target) != "QueueNew" ||
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+            SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+        if IsSome(target) {
+            protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
+                UnwrapOption(target)
+            );
+        }
+        if !call.ok || !IsSome(target) || !protocol.applies ||
+            protocol.family != "Queue" || protocol.return_kind != "constructor" ||
             ArrayLength(call.argument_nodes) != 0 {
             Die("Queue<T> initializer must be QueueNew with no arguments");
         }
@@ -168,8 +183,15 @@ func RewriteSemanticExpectedValue(
                 graph, call.call_node
             );
         }
-        if !call.ok || !IsSome(target) ||
-            UnwrapOption(target) != "SetNew" ||
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+            SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+        if IsSome(target) {
+            protocol = SemanticExpressionGraphCollectionCallProtocolFromName(
+                UnwrapOption(target)
+            );
+        }
+        if !call.ok || !IsSome(target) || !protocol.applies ||
+            protocol.family != "Set" || protocol.return_kind != "constructor" ||
             ArrayLength(call.argument_nodes) != 0 {
             Die("Set<T> initializer must be SetNew with no arguments");
         }

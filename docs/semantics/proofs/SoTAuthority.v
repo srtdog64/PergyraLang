@@ -1049,6 +1049,7 @@ Inductive SpineFact : Type :=
   | SFIterationTypeVerdict
   | SFAssignmentTypeVerdict
   | SFCallTargetIdentity
+  | SFCollectionCallProtocol
   | SFQueueCallRuntimeSurface
   | SFSetCallRuntimeSurface
   | SFSetLiteralRuntimeSurface
@@ -1097,6 +1098,7 @@ Inductive SpineOwner : Type :=
   | SOSemanticIterationType
   | SOSemanticAssignmentType
   | SOSemanticCallTarget
+  | SOCollectionCallProtocol
   | SOQueueCallRuntime
   | SOSetCallRuntime
   | SOSetLiteralRuntime
@@ -1145,6 +1147,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFIterationTypeVerdict => SOSemanticIterationType
   | SFAssignmentTypeVerdict => SOSemanticAssignmentType
   | SFCallTargetIdentity => SOSemanticCallTarget
+  | SFCollectionCallProtocol => SOCollectionCallProtocol
   | SFQueueCallRuntimeSurface => SOQueueCallRuntime
   | SFSetCallRuntimeSurface => SOSetCallRuntime
   | SFSetLiteralRuntimeSurface => SOSetLiteralRuntime

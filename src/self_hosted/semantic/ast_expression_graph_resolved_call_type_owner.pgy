@@ -2,6 +2,7 @@
 
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_expression_graph_scalar_shape_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
@@ -37,20 +38,6 @@ func SemanticExpressionGraphListCallError(
     );
 }
 
-func SemanticExpressionGraphListCallName(name: String) -> Bool {
-    return name == "ListPush" || name == "ListGet" ||
-        name == "ListSet" || name == "ListRemove" ||
-        name == "ListSize";
-}
-
-func SemanticExpressionGraphListCallExpectedArity(name: String) -> Int {
-    if name == "ListSize" { return 1; }
-    if name == "ListPush" || name == "ListGet" ||
-        name == "ListRemove" { return 2; }
-    if name == "ListSet" { return 3; }
-    return -1;
-}
-
 func SemanticExpressionGraphListCallFactFromResolvedTarget(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -69,8 +56,14 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
         graph, call.callee_node
     );
     if !IsSome(callee_kind) || !IsSome(callee_text) ||
-        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
-        !SemanticExpressionGraphListCallName(UnwrapOption(callee_text)) {
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() {
+        return SemanticExpressionGraphListCallNotApplicable();
+    }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee_text)
+        );
+    if !protocol.applies || protocol.family != "List" {
         return SemanticExpressionGraphListCallNotApplicable();
     }
     let callee: String = UnwrapOption(callee_text);
@@ -83,8 +76,7 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
             )
         );
     }
-    let expected_arity: Int =
-        SemanticExpressionGraphListCallExpectedArity(callee);
+    let expected_arity: Int = protocol.expected_arity;
     if ArrayLength(call.argument_nodes) != expected_arity {
         return SemanticExpressionGraphListCallError(
             "call_arity_mismatch",
@@ -95,8 +87,15 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
             )
         );
     }
+    if protocol.return_kind == "constructor" {
+        return SemanticExpressionGraphListCallFact(
+            true, true, "", "", "List<Unknown>", "List<Unknown>",
+            "Unknown"
+        );
+    }
     let list_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-        graph, call.argument_nodes[0], names, types
+        graph, call.argument_nodes[protocol.receiver_argument_index],
+        names, types
     );
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(list_type);
@@ -120,31 +119,24 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
         );
     }
     let element_type: String = shape.actual_type_names[0];
-    if callee != "ListSize" {
-        let index_node: Int = call.argument_nodes[1];
-        if callee == "ListPush" {
-            index_node = -1;
-        }
-        if index_node >= 0 {
-            let index_type: String =
-                SemanticExpressionGraphCallArgumentScalarTypeName(
-                    graph, index_node, names, types
-                );
-            if index_type != "Int" {
-                return SemanticExpressionGraphListCallError(
-                    "builtin_arg_type_mismatch",
-                    SemanticError3(
-                        "builtin_arg_type_mismatch", "func", callee,
-                        "expected", "Int", "actual", index_type
-                    )
-                );
-            }
+    let index_node: Int = protocol.index_argument_index;
+    if index_node >= 0 {
+        let index_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, call.argument_nodes[index_node], names, types
+            );
+        if index_type != "Int" {
+            return SemanticExpressionGraphListCallError(
+                "builtin_arg_type_mismatch",
+                SemanticError3(
+                    "builtin_arg_type_mismatch", "func", callee,
+                    "expected", "Int", "actual", index_type
+                )
+            );
         }
     }
-    let value_node: Int = -1;
-    if callee == "ListPush" { value_node = call.argument_nodes[1]; }
-    if callee == "ListSet" { value_node = call.argument_nodes[2]; }
-    if value_node >= 0 {
+    if protocol.value_argument_index >= 0 {
+        let value_node: Int = call.argument_nodes[protocol.value_argument_index];
         let value_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
             graph, value_node, names, types
         );
@@ -172,8 +164,8 @@ func SemanticExpressionGraphListCallFactFromResolvedTarget(
         }
     }
     let return_type: String = "Void";
-    if callee == "ListGet" { return_type = element_type; }
-    if callee == "ListSize" { return_type = "Int"; }
+    if protocol.return_kind == "element" { return_type = element_type; }
+    if protocol.return_kind == "Int" { return_type = "Int"; }
     return SemanticExpressionGraphListCallFact(
         true, true, "", "", return_type,
         shape.canonical_name, element_type
@@ -231,7 +223,9 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
         if !list_call.ok { return None; }
         return Some(list_call.return_type_name);
     }
-    if SemanticExpressionGraphQueueCallName(target.name) {
+    let queue_protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(target.name);
+    if queue_protocol.applies && queue_protocol.family == "Queue" {
         let queue_call: SemanticExpressionGraphQueueCallFact =
             SemanticExpressionGraphQueueCallFactFromResolvedTarget(
                 graph, root_id, target, names, types
@@ -241,7 +235,9 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             return Some(queue_call.return_type_name);
         }
     }
-    if SemanticExpressionGraphSetCallName(target.name) {
+    let set_protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(target.name);
+    if set_protocol.applies && set_protocol.family == "Set" {
         let set_call: SemanticExpressionGraphSetCallFact =
             SemanticExpressionGraphSetCallFactFromResolvedTarget(
                 graph, root_id, target, names, types

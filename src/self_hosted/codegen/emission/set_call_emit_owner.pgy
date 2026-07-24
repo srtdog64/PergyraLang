@@ -3,6 +3,7 @@
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../runtime_abi/set_runtime_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "expr_semantic_type_owner.pgy";
@@ -13,16 +14,20 @@ func RewriteSemanticSetCall(
     source_name: String,
     env: CodegenTypeEnv
 ) -> String {
-    if source_name == "SetNew" {
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(source_name);
+    if !protocol.applies || protocol.family != "Set" {
+        Die(Concat(source_name, " is not a supported Set<T> call"));
+    }
+    if protocol.return_kind == "constructor" {
         Die("SetNew requires a contextual Set<T> ABI fact");
     }
-    let expected_argc: Int = 2;
-    if source_name == "SetSize" { expected_argc = 1; }
+    let expected_argc: Int = protocol.expected_arity;
     if ArrayLength(view.argument_nodes) != expected_argc {
         Die(Concat(source_name, " has an invalid argument count"));
     }
     let receiver_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
-        graph, view.argument_nodes[0], env
+        graph, view.argument_nodes[protocol.receiver_argument_index], env
     );
     if !IsSome(receiver_type_opt) {
         Die(Concat(source_name, " receiver type fact is missing"));
@@ -34,17 +39,19 @@ func RewriteSemanticSetCall(
         Die(Concat(source_name, " Set<T> runtime ABI fact is missing"));
     }
     let receiver: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[0], receiver_type, "inout", env
+        graph, view.argument_nodes[protocol.receiver_argument_index],
+        receiver_type, "inout", env
     );
-    if source_name == "SetSize" {
+    if protocol.operation == "SetSize" {
         return Concat(fact.c_size_fn, Concat("(", Concat(receiver, ")")));
     }
     let value: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[1], fact.element_type, "default", env
+        graph, view.argument_nodes[protocol.value_argument_index],
+        fact.element_type, "default", env
     );
     let call_symbol: String = fact.c_add_fn;
-    if source_name == "SetHas" { call_symbol = fact.c_has_fn; }
-    if source_name == "SetRemove" { call_symbol = fact.c_remove_fn; }
+    if protocol.operation == "SetHas" { call_symbol = fact.c_has_fn; }
+    if protocol.operation == "SetRemove" { call_symbol = fact.c_remove_fn; }
     return Concat(call_symbol, Concat("(", Concat(
         receiver, Concat(", ", Concat(value, ")"))
     )));

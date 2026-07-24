@@ -2,13 +2,9 @@
 
 import "../type_facts/type_env.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../runtime_abi/set_runtime_owner.pgy";
-
-func CodegenSetCallName(name: String) -> Bool {
-    return name == "SetAdd" || name == "SetHas" ||
-        name == "SetRemove" || name == "SetSize";
-}
 
 func CodegenSetCallApplies(
     graph: SemanticExpressionGraphFacts,
@@ -21,7 +17,13 @@ func CodegenSetCallApplies(
     let callee: Option<String> = SemanticExpressionGraphNodeText(
         graph, call.callee_node
     );
-    return IsSome(callee) && CodegenSetCallName(UnwrapOption(callee));
+    if !IsSome(callee) { return false; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee)
+        );
+    return protocol.applies && protocol.family == "Set" &&
+        protocol.return_kind != "constructor";
 }
 
 func CodegenSetCallReceiverType(
@@ -54,7 +56,13 @@ func CodegenSetCallReturnTypeFromGraph(
     let callee: Option<String> = SemanticExpressionGraphNodeText(
         graph, call.callee_node
     );
-    if !IsSome(callee) || !CodegenSetCallName(UnwrapOption(callee)) {
+    if !IsSome(callee) { return None; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(
+            UnwrapOption(callee)
+        );
+    if !protocol.applies || protocol.family != "Set" ||
+        protocol.return_kind == "constructor" {
         return None;
     }
     let name: String = UnwrapOption(callee);
@@ -64,16 +72,16 @@ func CodegenSetCallReturnTypeFromGraph(
     if !IsSome(target_name) || UnwrapOption(target_name) != name {
         return None;
     }
-    let expected_arity: Int = 2;
-    if name == "SetSize" { expected_arity = 1; }
-    if ArrayLength(call.argument_nodes) != expected_arity { return None; }
+    if ArrayLength(call.argument_nodes) != protocol.expected_arity {
+        return None;
+    }
     let receiver_type: String = CodegenSetCallReceiverType(
-        graph, call.argument_nodes[0], env
+        graph, call.argument_nodes[protocol.receiver_argument_index], env
     );
     let fact: CollectionSetRuntimeFact =
         CollectionSetRuntimeFactFromTypeName(receiver_type);
     if !fact.ok { return None; }
-    if name == "SetHas" { return Some("Bool"); }
-    if name == "SetSize" { return Some("Int"); }
+    if protocol.return_kind == "Bool" { return Some("Bool"); }
+    if protocol.return_kind == "Int" { return Some("Int"); }
     return Some("Void");
 }

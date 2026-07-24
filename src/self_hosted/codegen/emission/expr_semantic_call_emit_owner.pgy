@@ -5,6 +5,7 @@ import "../text/text_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
@@ -398,19 +399,15 @@ func RewriteSemanticDirectCall(
         Die("semantic direct-call target fact is missing");
     }
     let source_name: String = UnwrapOption(target_name);
-    if source_name == "ListPush" || source_name == "ListGet" ||
-        source_name == "ListSet" || source_name == "ListRemove" ||
-        source_name == "ListSize" {
+    let collection_protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(source_name);
+    if collection_protocol.applies && collection_protocol.family == "List" {
         return RewriteSemanticListCall(graph, view, source_name, env);
     }
-    if source_name == "QueueNew" || source_name == "QueuePush" ||
-        source_name == "QueuePop" || source_name == "QueueSize" ||
-        source_name == "QueueEmpty" {
+    if collection_protocol.applies && collection_protocol.family == "Queue" {
         return RewriteSemanticQueueCall(graph, view, source_name, env);
     }
-    if source_name == "SetNew" || source_name == "SetAdd" ||
-        source_name == "SetRemove" || source_name == "SetHas" ||
-        source_name == "SetSize" {
+    if collection_protocol.applies && collection_protocol.family == "Set" {
         return RewriteSemanticSetCall(graph, view, source_name, env);
     }
     if source_name == "ClaimSlot" || source_name == "Read" ||
