@@ -8,8 +8,9 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `6433659b` (`Share callable table with
-  match binding`), following `561d8ae1` (`Share callable table with generic
+- Active implementation checkpoint: `9f207fdc` (`Share artifact callable table
+  across capture and body`), following `6433659b` (`Share callable table with
+  match binding`), `561d8ae1` (`Share callable table with generic
   specialization`), `a1d508a0` (`Share callable table across assignment and
   statement passes`), `fa2d8383` (`Route call targets through shared callable
   table`) and `3ccbfd2d` (`Share semantic callable
@@ -43,6 +44,13 @@ owner, and the named executable gate.
   body-owned fact; match binding fails closed on a missing or malformed fact,
   and its former local table rebuild is removed. The callable-table smoke
   ratchets both the match-binding owner and its expression-place route.
+- `9f207fdc` moves callable-table production to artifact analysis and carries
+  the immutable fact through initial call-target capture into the body bundle.
+  The capture owner and body owner no longer rebuild the callable universe;
+  missing or malformed facts fail closed at the capture/consumer boundary.
+  Remaining direct `SemanticAstExpressionFunctionTables` reads are limited to
+  the fact producer/contract and fixture policy probes, outside the production
+  body route.
 - The blocking graph gate now reports `phase=unified` with exactly one
   structural store: the program topology. The HIR, semantic, and MIR copied
   topology stores are retired.
@@ -221,6 +229,11 @@ environment seeding. Isolated match-binding semantic-to-MIR smoke remains
 green; this is another bounded allocation/lifetime improvement, not evidence
 that the whole-program semantic retention defect is closed.
 
+`9f207fdc` removes the artifact-capture/body duplicate table construction by
+carrying the artifact-owned fact through `SemanticAstArtifactAnalysis`. The
+isolated initializer, assignment, and generic projection parities remain
+green; the whole-program semantic retention defect remains open.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -270,6 +283,10 @@ Green on the graph handle commit slice:
   Pergyra owner import `0 error(s), 0 warning(s)`, GCC C syntax, callable-table
   smoke, match-binding semantic-to-MIR smoke, and component contract all
   passed;
+- isolated `ff30dfc1` verification worktree with the `9f207fdc` patch:
+  Pergyra owner import `0 error(s), 0 warning(s)`, GCC C syntax, callable-table
+  smoke, component contract, initializer C/LLVM projection, generic-return,
+  and assignment projection all passed;
 
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_program_graph_unification_smoke.sh` with
@@ -342,15 +359,15 @@ component smoke currently stops at a concurrent
 `artifact_lower_owner.pgy` contract assertion, and its direct owner compile
 stops at a concurrent borrowed-ref escape in
 `SelfMirIterationSyntheticGraphView`; neither result is attributed to
-`6433659b`. The isolated verification worktrees listed above are the
+`9f207fdc`. The isolated verification worktrees listed above are the
 attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At `6433659b`, `main` and `origin/main` are aligned. The callable-table,
-call-target, assignment, statement, generic-specialization, and match-binding
-slices are committed and pushed. The following concurrent changes remain dirty
-and are intentionally excluded;
+At `9f207fdc`, `main` and `origin/main` are aligned. The callable-table,
+call-target, assignment, statement, generic-specialization, match-binding,
+and artifact-capture slices are committed and pushed. The following concurrent
+changes remain dirty and are intentionally excluded;
 preserve them and re-check ownership before the next unit:
 
 - `docs/91_build_troubleshooting.md`;
@@ -378,11 +395,11 @@ ended.
 
 ## Next executable work
 
-1. Classify and, if production-scoped, close the remaining direct
-   `SemanticAstExpressionFunctionTables` read in
-   `ast_expression_call_target_capture_owner.pgy`; if it is the pre-body
-   capture owner, record that authority and ratchet the boundary instead of
-   forcing a body fact backward in time.
+1. The production callable-table seam is closed through artifact capture and
+   body analysis. Keep the remaining producer/fixture reads explicitly
+   bounded, then obtain an exclusive compiler-build window for the official
+   initializer C/LLVM parity and
+   `self-host-driver-bootstrap-full-test-smoke`.
 2. Obtain an exclusive compiler-build window, re-run the official initializer
    C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
