@@ -140,3 +140,14 @@ routine with `let base: A` then a shadowed `let base: B` plus a later
   Repro: emit oracle C (`--emit-c`), link `gcc -x c -std=c11 -I src
   -I src/runtime -pthread`, run `--emit-mir-json-verified <driver source>
   <out> --pressure-owned-full-fixpoint`, watch RSS after `verify:start`.
+- **Refined measurement (same evening, two guarded runs on the then-current
+  tree with the in-flight normalization slice):** the death point is
+  NON-DETERMINISTIC — one run died at semantic-initializer row 7734 after
+  4.7 min at peak 3.4GB (no guard involved), another reached
+  `call-targets:start` past row 8109 at 12 min. Variable failure row +
+  multi-GB footprint + zero diagnostics points at an unchecked allocation
+  failure or heap corruption at scale in the emitted C, not monotonic string
+  growth alone. The granular `semantic-*-stage row:N` prints bracket the
+  failure to the per-row semantic pressure loop; bisecting with those
+  anchors (or linking the oracle against ASan on the Linux runner, where
+  libasan exists) is the fastest localization.
