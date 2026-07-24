@@ -181,3 +181,15 @@ routine with `let base: A` then a shadowed `let base: B` plus a later
   Prereq for the redesign: build the oracle under ASan on the Linux CI leg
   (libasan absent on this MinGW box) to confirm the retention set before
   scoping the free points.
+- **Heap-attribution tooling is empirically absent on this workstation
+  (tested 2026-07-24, not asserted):** `gdb` not installed; Windows/MinGW has
+  no `libclang_rt.asan*` (clang 22 present but the ASan runtime archive is
+  missing, link fails); the only WSL distro is `rancher-desktop` (a
+  container-runtime appliance) with no `gcc`/`cc`/`clang`/`make`/`valgrind`/
+  `heaptrack` and no `libasan`. So the retention set cannot be captured here
+  by any of gdb-backtrace, ASan, or a heap profiler. Since a blind streaming
+  edit is both forbidden (no output-parity test exercises the composed
+  multi-file path AND completes) and already shown ineffective (the hoist),
+  the full-fixpoint closure is gated on running the retention capture on a
+  real Linux CI runner with libasan/valgrind — infrastructure, not a source
+  edit reachable from this host.
