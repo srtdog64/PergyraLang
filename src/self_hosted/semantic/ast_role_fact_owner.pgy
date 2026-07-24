@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_generic_parameter_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticAstRoleFacts {
     ok: Bool;
@@ -55,7 +56,9 @@ func SemanticAstAbilityGenericConstraintRowsFromNode(
             if !IsSome(row_opt) { return false; }
             let row: String = UnwrapOption(row_opt);
             if StartsWith(row, "where ") {
-                row = StringTrim(Substring(row, 6, StringLength(row) - 6));
+                row = SemanticTrimSourceRangeReuse(
+                    row, 6, StringLength(row)
+                );
             }
             let parts: SemanticDelimitedRangeFacts =
                 SemanticNestedCommaRangeFactsFromSource(row);
@@ -69,10 +72,12 @@ func SemanticAstAbilityGenericConstraintRowsFromNode(
                 if colon <= 0 {
                     return false;
                 }
-                let name: String = StringTrim(Substring(part, 0, colon));
-                let bounds: String = StringTrim(Substring(
-                    part, colon + 1, StringLength(part) - colon - 1
-                ));
+                let name: String = SemanticTrimSourceRangeReuse(
+                    part, 0, colon
+                );
+                let bounds: String = SemanticTrimSourceRangeReuse(
+                    part, colon + 1, StringLength(part)
+                );
                 let name_i: Int = 0;
                 let found: Bool = false;
                 while name_i < generic_count {
