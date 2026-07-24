@@ -47,6 +47,7 @@ RETIRED_STATIC_CALL_TYPE="$ROOT_DIR/src/self_hosted/semantic/ast_expression_grap
 EXPRESSION_SURFACE="$ROOT_DIR/src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
 EXPRESSION_GRAPH_BUILD="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_build_owner.pgy"
 EXPRESSION_ENV="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
+EXPR_TYPE_OWNER="$ROOT_DIR/src/self_hosted/semantic/expr_type_owner.pgy"
 SEMANTIC_CALL_EMIT="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 INITIALIZER_CONSUMERS=(
     "$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
@@ -66,9 +67,16 @@ for input in "$SOURCE" "$EXPECTED" "$DIRECT_CALL_EXPECTED" \
     "$RECEIVER_TYPE_OWNER" \
     "$SCALAR_TYPE_OWNER" "$EXPRESSION_SURFACE" "$EXPRESSION_GRAPH_BUILD" \
     "$EXPRESSION_ENV" \
+    "$EXPR_TYPE_OWNER" \
     "$SEMANTIC_CALL_EMIT"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
+grep -Fq 'import "expression_normalization_owner.pgy";' "$EXPR_TYPE_OWNER" ||
+    { echo "[$LABEL] expression type owner bypasses normalization SoT" >&2; exit 1; }
+if grep -Fq 'Trim(' "$EXPR_TYPE_OWNER"; then
+    echo "[$LABEL] expression type owner retains allocation-returning trim" >&2
+    exit 1
+fi
 [[ ! -e "$RETIRED_DIRECT_CALL_TYPE" ]] ||
     { echo "[$LABEL] retired direct-call type owner returned" >&2; exit 1; }
 [[ ! -e "$RETIRED_STATIC_CALL_TYPE" ]] ||

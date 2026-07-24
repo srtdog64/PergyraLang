@@ -126,7 +126,7 @@ func CallReturnType(text: String, func_names: Array<String>, func_rets: Array<St
     if paren <= 0 {
         return "Unknown";
     }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     if !SemanticCallableSourceNameValid(callee) {
         return "Unknown";
     }
@@ -150,7 +150,7 @@ func MachineLayerBuiltinReturnType(
     }
     let paren: Int = StringIndexOf(text, "(");
     if paren <= 0 { return ""; }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     let args_src: String = Substring(text, paren + 1, n - paren - 2);
     if callee == "ClaimDeviceSlot" {
         return "DeviceSlot<Unknown>";
@@ -188,7 +188,7 @@ func SlotBuiltinReturnType(
     if n == 0 || CharAt(text, n - 1) != ")" { return ""; }
     let paren: Int = StringIndexOf(text, "(");
     if paren <= 0 { return ""; }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     if callee == "ClaimSlot" { return "Slot<Unknown>"; }
     if callee == "Write" || callee == "Release" { return "Void"; }
     if callee != "Read" { return ""; }
@@ -209,7 +209,7 @@ func ParamTypeOf(part: String) -> String {
     if colon < 0 {
         return "Unknown";
     }
-    return Trim(Substring(part, colon + 1, StringLength(part) - colon - 1));
+    return SemanticTrimSourceRangeReuse(part, colon + 1, StringLength(part));
 }
 func ParamTypes(param_src: String) -> String {
     let facts: SemanticDelimitedRangeFacts =
@@ -262,7 +262,7 @@ func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<St
     if paren <= 0 {
         return "";
     }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     if callee != "Abs" && callee != "Min" && callee != "Max" && callee != "Clamp" {
         return "";
     }
@@ -286,7 +286,7 @@ func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<
     if paren <= 0 {
         return "";
     }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     if callee != "ArraySort" && callee != "ArrayReverse" &&
         callee != "ArrayMap" && callee != "ArrayFilter" {
         return "";
@@ -299,7 +299,7 @@ func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<
     return ExprType(array_expr, names, types, func_names, func_rets);
 }
 func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let i: Int = 0;
     let depth: Int = 0;
@@ -355,8 +355,10 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     if split_idx < 0 {
         return "";
     }
-    let left: String = Trim(Substring(text, 0, split_idx));
-    let right: String = Trim(Substring(text, split_idx + 1, n - split_idx - 1));
+    let left: String = SemanticTrimSourceRangeReuse(text, 0, split_idx);
+    let right: String = SemanticTrimSourceRangeReuse(
+        text, split_idx + 1, n
+    );
     if StringLength(left) == 0 || StringLength(right) == 0 {
         return "Int";
     }
@@ -384,7 +386,7 @@ func OptionCallReturnType(text: String, names: Array<String>, types: Array<Strin
     if paren <= 0 {
         return "";
     }
-    let callee: String = Trim(Substring(text, 0, paren));
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
     let args_src: String = Substring(text, paren + 1, n - paren - 2);
     if callee == "None" {
         return "Option<Unknown>";
@@ -432,7 +434,8 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsBoxType(expected) && actual == "Box<Unknown>" {
         return true;
     }
-    if expected == "Long" && actual == "Int" && IsIntLiteral(Trim(expr)) {
+    if expected == "Long" && actual == "Int" &&
+        IsIntLiteral(SemanticTrimSourceReuse(expr)) {
         return true;
     }
     // Keep scalar widening with the canonical type-system direction:
@@ -448,8 +451,9 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
         return "Void";
     }
     if StartsWith(text, "await ") {
-        let awaited_text: String =
-            Trim(Substring(text, 6, StringLength(text) - 6));
+        let awaited_text: String = SemanticTrimSourceRangeReuse(
+            text, 6, StringLength(text)
+        );
         let awaited_type: String =
             ExprType(awaited_text, names, types, func_names, func_rets);
         let remote_payload: Option<String> =
@@ -468,7 +472,9 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     }
     let try_bounds: Array<Int> = [0, 0];
     if TryOperandBounds(text, try_bounds) {
-        let try_operand: String = Trim(Substring(text, try_bounds[0], try_bounds[1]));
+        let try_operand: String = SemanticTrimSourceRangeReuse(
+            text, try_bounds[0], try_bounds[0] + try_bounds[1]
+        );
         let try_operand_type: String = ExprType(try_operand, names, types, func_names, func_rets);
         let try_payload: Option<String> =
             TryPayloadTypeOpt(try_operand_type);
@@ -479,7 +485,9 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
         return "Bool";
     }
     if CharAt(text, 0) == "-" && StringLength(text) > 1 {
-        let negated: String = Trim(Substring(text, 1, StringLength(text) - 1));
+        let negated: String = SemanticTrimSourceRangeReuse(
+            text, 1, StringLength(text)
+        );
         let negated_type: String = ExprType(negated, names, types, func_names, func_rets);
         if negated_type == "Int" || negated_type == "Long" || negated_type == "Float" {
             return negated_type;
