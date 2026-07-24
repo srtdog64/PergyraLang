@@ -6,6 +6,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
 import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
@@ -190,15 +191,22 @@ func SelfMirLowerMatchCaseBranch(
     let carried_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFact(
         fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types
     );
-    build = SelfMirRoutineAddInstruction(
-        build, "branch", "branch", "", "", "", match_value, "",
-        "AST_MATCH_CASE", SelfMirExpressionUses(build, match_value)
-    );
-    build = SelfMirRoutineAttachLastExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
+    let match_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
             match_node_id, AstExpressionLaneAtom()
-        ), input.machine_declaration
+        );
+    if !match_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR match subject expression graph is missing"
+        );
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", "branch", "", "", "", match_value, "",
+        "AST_MATCH_CASE", SelfMirExpressionGraphUses(build, match_graph)
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, match_graph, input.machine_declaration
     );
     if !build.ok { return build; }
     return SelfMirRoutineAttachLastMatchCase(build, carried_fact);
