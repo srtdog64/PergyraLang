@@ -151,3 +151,13 @@ routine with `let base: A` then a shadowed `let base: B` plus a later
   failure to the per-row semantic pressure loop; bisecting with those
   anchors (or linking the oracle against ASan on the Linux runner, where
   libasan exists) is the fastest localization.
+- **Negative result that narrows the search:** hoisting the per-lane
+  environment reseeding in the call-target resolver (three lanes share one
+  surface env; the reseed was 3x redundant) is byte-identical on the
+  85-fixture parity matrix but did NOT bend the memory curve
+  (10.3GB@9.3min -> 10.6GB@8.7min, both dying inside `call-targets`). The
+  dominant allocation is therefore in the per-call-node resolution path
+  (`SemanticExpressionGraphResolvedCallTarget` and below), not the seed
+  rows. Windows/MinGW ships no libasan, so heap attribution on this box is
+  blind; the ASan-linked oracle on the Linux runner is the remaining
+  localization step before an arena/streaming closure per docs/197.
