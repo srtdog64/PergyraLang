@@ -331,6 +331,15 @@ link `311.07 MB`, with `Error 88`. Relative to the preceding
 about `3.3 MB`, but the existing `3072 MB` ceiling remains red and must not be
 raised.
 
+An exclusive pressure rerun for `14c1683b` was started with isolated
+`pressure_build_14c`, `pressure_bin_14c`, `pressure_codegen_14c`, and
+`pressure_driver_14c` paths. Before the pressure-owned driver body began, an
+unrelated user-owned `driver_rung2_body_parity.sh` process appeared in the
+shared machine (`iteration_program_graph_3f2b9bba_c`, `pgy.exe`/`gcc`/`cc1`).
+The pressure run was interrupted at the seed-bootstrap stage; it produced no
+valid pressure observation and its processes are gone. The user-owned compile
+remains active and must finish before a new exclusive pressure measurement.
+
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
 current correctness bridge and an explicit performance falsifier; it must be
@@ -370,6 +379,9 @@ Green on the graph handle commit slice:
 - `14c1683b` assignment projection parity, assignment target-text negative
   ratchet, callable-table owner smoke, component contract, and
   `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
+- `14c1683b` build-pressure contract, program-graph unification, and MIR graph
+  projection ratchets passed before the pressure rerun; no pressure result was
+  claimed because the run was interrupted by the unrelated active compile.
 - The exclusive current-source full-driver pressure gate at `aaf24849` is red:
   `peak_private_mb=3080.9`, `top_private_mb=3070.1`, and `Error 88` at the
   unchanged `3072 MB` limit.
@@ -518,9 +530,11 @@ ended.
 1. `14c1683b` is the latest executable source closure. Rerun the exclusive
    pressure target on this checkpoint to measure the bounded assignment
    de-duplication; the latest attributable baseline remains red at `3080.9 MB`.
-   If it remains red, identify the next retained compiler-wide materialization
-   owner and last legitimate consumer before adding another cleanup or
-   representation change.
+   First verify that the user-owned `iteration_program_graph_3f2b9bba_c`
+   compile and every other `pgy`/`genN`/`driver_oracle`/`gcc`/`cc1` process has
+   ended. If the rerun remains red, identify the next retained compiler-wide
+   materialization owner and last legitimate consumer before adding another
+   cleanup or representation change.
 2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
