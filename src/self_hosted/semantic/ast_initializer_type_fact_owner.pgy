@@ -336,6 +336,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         );
         i = i + 1;
     }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     return SemanticAstInitializerTypeFacts(
         true, "", "", artifact.count, node_ids,
         inferred_type_names, verified, diagnostic_codes,

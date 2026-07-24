@@ -116,9 +116,11 @@ func SemanticAstIterationSeedVisibleRows(
             if binding_type == "" || binding_type == "Unknown" {
                 return false;
             }
-            ArrayPush(names, statements.payload_texts[statement_index]);
-            ArrayPush(types, binding_type);
-            ArrayPush(modes, "loop_binding");
+            ArrayPushOwnedString(
+                names, statements.payload_texts[statement_index]
+            );
+            ArrayPushOwnedString(types, binding_type);
+            ArrayPushOwnedString(modes, "loop_binding");
         }
         i = i + 1;
     }
@@ -311,14 +313,15 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
             }
         }
         ArrayPush(node_ids, statements.node_ids[i]);
-        ArrayPush(binding_types, binding_type);
-        ArrayPush(iterable_types, iterable_type);
+        ArrayPush(binding_types, Concat("", binding_type));
+        ArrayPush(iterable_types, Concat("", iterable_type));
         ArrayPush(collection_hoists, collection_hoist);
         ArrayPush(synthetic_names, "");
         ArrayPush(synthetic_graph_root_ids, -1);
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
     return SemanticAstIterationTypeFacts(

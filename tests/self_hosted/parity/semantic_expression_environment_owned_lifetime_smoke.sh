@@ -6,6 +6,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
+OWNER_FIELDS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy"
+MATCH_BINDINGS="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy"
+ITERATION_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
+ASSIGNMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
+CALL_TARGETS="$ROOT_DIR/src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
+PLACE_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
+GENERIC_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
+INITIALIZER_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
+STATEMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 TYPECHECK="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_array.c"
 TRANS_POLICY="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
@@ -18,7 +27,9 @@ CODEGEN_RUNTIME_CALLS="$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_r
 CODEGEN_COLLECTION_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
 CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 
-for path in "$OWNER" "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
+for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
+    "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$PLACE_FACTS" "$GENERIC_FACTS" \
+    "$INITIALIZER_FACTS" "$STATEMENT_FACTS" "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
     "$CODEGEN_CALL_EMITTER"; do
@@ -27,6 +38,24 @@ for path in "$OWNER" "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
         exit 1
     }
 done
+
+function_body() {
+    local path="$1"
+    local function_name="$2"
+    sed -n "/func ${function_name}(/,/^}/p" "$path"
+}
+
+reject_ordinary_environment_push() {
+    local path="$1"
+    local function_name="$2"
+    local body
+    body="$(function_body "$path" "$function_name")"
+    if tr '\n' ' ' <<<"$body" | grep -Eq \
+        'ArrayPush[[:space:]]*\([[:space:]]*(names|types|modes)[[:space:]]*,'; then
+        echo "[self-host-parity:semantic-environment-lifetime] $function_name retained a non-owned environment push" >&2
+        exit 1
+    fi
+}
 
 clear_body="$(sed -n '/func SemanticAstExpressionEnvironmentClear(/,/^}/p' "$OWNER")"
 grep -Fq 'ArrayDropOwnedStrings(names);' <<<"$clear_body" || {
@@ -52,6 +81,56 @@ for term in \
     'ArrayPushOwnedString(modes,'; do
     grep -Fq "$term" "$OWNER" || {
         echo "[self-host-parity:semantic-environment-lifetime] missing $term" >&2
+        exit 1
+    }
+done
+
+for producer in \
+    'SemanticAstExpressionSeedEnumValues' \
+    'SemanticAstExpressionSeedConstructors' \
+    'SemanticAstExpressionSeedParameters' \
+    'SemanticAstExpressionSeedParameterModes' \
+    'SemanticAstExpressionSeedVisibleLocals' \
+    'SemanticAstExpressionSeedVisibleLocalModes' \
+    'SemanticAstExpressionSeedVisibleIterationRows'; do
+    reject_ordinary_environment_push "$OWNER" "$producer"
+done
+reject_ordinary_environment_push "$OWNER_FIELDS" 'SemanticAstExpressionSeedOwnerFields'
+reject_ordinary_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
+reject_ordinary_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
+
+for consumer_contract in \
+    "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
+    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "$PLACE_FACTS|SemanticAstAnalysisResolveExpressionPlacesFromBody" \
+    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromBody" \
+    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables" \
+    "$ITERATION_FACTS|SemanticAstIterationTypeFactsFromArtifactWithFunctionTables" \
+    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromArtifact"; do
+    path="${consumer_contract%%|*}"
+    function_name="${consumer_contract#*|}"
+    function_body "$path" "$function_name" |
+        grep -Fq 'SemanticAstExpressionEnvironmentClear(names, types, modes);' || {
+        echo "[self-host-parity:semantic-environment-lifetime] missing last-consumer cleanup in $function_name" >&2
+        exit 1
+    }
+done
+
+for copy_contract in \
+    "$ASSIGNMENT_FACTS|Concat(\"\", target_binding_mode)" \
+    "$ASSIGNMENT_FACTS|Concat(\"\", target_type)" \
+    "$ASSIGNMENT_FACTS|Concat(\"\", index_type)" \
+    "$ASSIGNMENT_FACTS|Concat(\"\", expected)" \
+    "$ASSIGNMENT_FACTS|Concat(\"\", inferred)" \
+    "$ITERATION_FACTS|Concat(\"\", binding_type)" \
+    "$ITERATION_FACTS|Concat(\"\", iterable_type)" \
+    "$STATEMENT_FACTS|Concat(\"\", expected)" \
+    "$STATEMENT_FACTS|Concat(\"\", inferred)" \
+    "$GENERIC_FACTS|Concat(\"\", actuals[i])"; do
+    path="${copy_contract%%|*}"
+    term="${copy_contract#*|}"
+    grep -Fq "$term" "$path" || {
+        echo "[self-host-parity:semantic-environment-lifetime] result copy contract missing: $term" >&2
         exit 1
     }
 done

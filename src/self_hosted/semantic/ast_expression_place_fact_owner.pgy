@@ -185,6 +185,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         node_id = node_id + 1;
                     }
                 }
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
             }
             last_root = root_id;
         }

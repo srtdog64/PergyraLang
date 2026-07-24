@@ -488,18 +488,18 @@ func SemanticAstStatementTypeFactsFromArtifact(
         }
         ArrayPush(node_ids, statements.node_ids[i]);
         ArrayPush(kind_tags, kind);
-        ArrayPush(expected_types, expected);
-        ArrayPush(inferred_types, inferred);
+        ArrayPush(expected_types, Concat("", expected));
+        ArrayPush(inferred_types, Concat("", inferred));
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
     return SemanticAstStatementTypeFacts(
         true, "", "", artifact.count, node_ids, kind_tags,
         expected_types, inferred_types, verified,
-        diagnostic_codes, diagnostic_messages
-    );
+        diagnostic_codes, diagnostic_messages);
 }
 
 func SemanticAstStatementTypesAllVerified(

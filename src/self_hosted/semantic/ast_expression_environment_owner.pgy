@@ -417,6 +417,7 @@ func SemanticAstExpressionSeedVisibleLocalModes(
     return true;
 }
 
+// Scratch rows own their strings. Copy any fact that outlives this boundary.
 func SemanticAstExpressionEnvironmentClear(
     inout names: Array<String>,
     inout types: Array<String>,

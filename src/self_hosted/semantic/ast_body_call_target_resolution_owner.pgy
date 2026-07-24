@@ -147,6 +147,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
     ) {
         valid = false;
     }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     return valid && SemanticExpressionGraphFactsReady(
         analysis.expression_surfaces.expression_graph,
         ArrayLength(analysis.expression_surfaces.expression_graph.roots)

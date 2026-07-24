@@ -351,14 +351,15 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             }
         }
         ArrayPush(node_ids, assignments.node_ids[i]);
-        ArrayPush(target_binding_modes, target_binding_mode);
-        ArrayPush(target_type_names, target_type);
-        ArrayPush(index_type_names, index_type);
-        ArrayPush(expected_type_names, expected);
-        ArrayPush(inferred_type_names, inferred);
+        ArrayPush(target_binding_modes, Concat("", target_binding_mode));
+        ArrayPush(target_type_names, Concat("", target_type));
+        ArrayPush(index_type_names, Concat("", index_type));
+        ArrayPush(expected_type_names, Concat("", expected));
+        ArrayPush(inferred_type_names, Concat("", inferred));
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
     return SemanticAstAssignmentTypeFacts(

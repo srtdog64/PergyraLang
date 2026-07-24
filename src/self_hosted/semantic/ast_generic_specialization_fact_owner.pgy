@@ -93,7 +93,7 @@ func SemanticAstGenericSpecializationAppend(
     let i: Int = 0;
     while i < ArrayLength(actuals) {
         if actuals[i] == "" { return false; }
-        ArrayPush(actual_type_names, actuals[i]);
+        ArrayPush(actual_type_names, Concat("", actuals[i]));
         i = i + 1;
     }
     return true;
@@ -382,6 +382,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
             }
             lane = lane + 1;
         }
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         surface_index = surface_index + 1;
     }
 
