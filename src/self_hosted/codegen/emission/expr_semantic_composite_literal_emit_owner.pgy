@@ -218,6 +218,34 @@ func RewriteSemanticExpectedValue(
     return RewriteExprFromSemanticGraph(graph, node_id, env);
 }
 
+// One sequence-literal emission core: List/Queue/Array/Set differ only in
+// their runtime fact rows, so per-kind loops may not be copied again.
+func RewriteSemanticSequenceLiteralValue(
+    graph: SemanticExpressionGraphFacts,
+    element_nodes: Array<Int>,
+    expected_type: String,
+    element_type: String,
+    c_new_fn: String,
+    c_push_fn: String,
+    temp: String,
+    env: CodegenTypeEnv
+) -> String {
+    let c_type: String = AbiLayoutCValueType(expected_type, env);
+    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+        Concat(temp, Concat(" = ", Concat(c_new_fn, "(); "))))));
+    let i: Int = 0;
+    while i < ArrayLength(element_nodes) {
+        let value: String = RewriteSemanticExpectedValue(
+            graph, element_nodes[i], element_type, env
+        );
+        out = Concat(out, Concat(c_push_fn,
+            Concat("(&", Concat(temp, Concat(", ",
+                Concat(value, "); "))))));
+        i = i + 1;
+    }
+    return Concat(out, Concat(temp, "; })"));
+}
+
 func RewriteSemanticSetLiteralValue(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -234,22 +262,10 @@ func RewriteSemanticSetLiteralValue(
     if !collection.ok {
         Die("semantic Set-literal runtime fact is invalid");
     }
-    let c_type: String = AbiLayoutCValueType(expected_type, env);
-    let temp: String = "_pgy_set_value";
-    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
-        Concat(temp, Concat(" = ", Concat(
-            collection.c_new_fn, "(); "))))));
-    let i: Int = 0;
-    while i < ArrayLength(view.element_nodes) {
-        let value: String = RewriteSemanticExpectedValue(
-            graph, view.element_nodes[i], collection.element_type, env
-        );
-        out = Concat(out, Concat(collection.c_add_fn,
-            Concat("(&", Concat(temp, Concat(", ",
-                Concat(value, "); "))))));
-        i = i + 1;
-    }
-    return Concat(out, Concat(temp, "; })"));
+    return RewriteSemanticSequenceLiteralValue(
+        graph, view.element_nodes, expected_type, collection.element_type,
+        collection.c_new_fn, collection.c_add_fn, "_pgy_set_value", env
+    );
 }
 
 func RewriteSemanticArrayLiteralValue(
@@ -269,22 +285,11 @@ func RewriteSemanticArrayLiteralValue(
         if !list_collection.ok {
             Die("semantic List-literal runtime fact is invalid");
         }
-        let c_type: String = AbiLayoutCValueType(expected_type, env);
-        let temp: String = "_pgy_list_value";
-        let out: String = Concat("({ ", Concat(c_type, Concat(" ",
-            Concat(temp, Concat(" = ", Concat(
-                list_collection.c_new_fn, "(); "))))));
-        let i: Int = 0;
-        while i < ArrayLength(view.element_nodes) {
-            let value: String = RewriteSemanticExpectedValue(
-                graph, view.element_nodes[i], list_collection.element_type, env
-            );
-            out = Concat(out, Concat(list_collection.c_push_fn,
-                Concat("(&", Concat(temp, Concat(", ",
-                    Concat(value, "); "))))));
-            i = i + 1;
-        }
-        return Concat(out, Concat(temp, "; })"));
+        return RewriteSemanticSequenceLiteralValue(
+            graph, view.element_nodes, expected_type,
+            list_collection.element_type, list_collection.c_new_fn,
+            list_collection.c_push_fn, "_pgy_list_value", env
+        );
     }
     if StartsWith(expected_type, "Queue<") {
         let queue_collection: CollectionQueueRuntimeFact =
@@ -292,45 +297,21 @@ func RewriteSemanticArrayLiteralValue(
         if !queue_collection.ok {
             Die("semantic Queue-literal runtime fact is invalid");
         }
-        let c_type: String = AbiLayoutCValueType(expected_type, env);
-        let temp: String = "_pgy_queue_value";
-        let out: String = Concat("({ ", Concat(c_type, Concat(" ",
-            Concat(temp, Concat(" = ", Concat(
-                queue_collection.c_new_fn, "(); "))))));
-        let i: Int = 0;
-        while i < ArrayLength(view.element_nodes) {
-            let value: String = RewriteSemanticExpectedValue(
-                graph, view.element_nodes[i], queue_collection.element_type, env
-            );
-            out = Concat(out, Concat(queue_collection.c_push_fn,
-                Concat("(&", Concat(temp, Concat(", ",
-                    Concat(value, "); "))))));
-            i = i + 1;
-        }
-        return Concat(out, Concat(temp, "; })"));
+        return RewriteSemanticSequenceLiteralValue(
+            graph, view.element_nodes, expected_type,
+            queue_collection.element_type, queue_collection.c_new_fn,
+            queue_collection.c_push_fn, "_pgy_queue_value", env
+        );
     }
     if !StartsWith(expected_type, "Array<") {
         Die("semantic array-literal graph/type fact is invalid");
     }
     let collection: CollectionRuntimeFact =
         CollectionRuntimeFactFromTypeName(expected_type, env);
-    let element_type: String = collection.element_type;
-    let c_type: String = AbiLayoutCValueType(expected_type, env);
-    let temp: String = "_pgy_array_value";
-    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
-        Concat(temp, Concat(" = ", Concat(
-            collection.c_new_fn, "(); "))))));
-    let i: Int = 0;
-    while i < ArrayLength(view.element_nodes) {
-        let value: String = RewriteSemanticExpectedValue(
-            graph, view.element_nodes[i], element_type, env
-        );
-        out = Concat(out, Concat(collection.c_push_fn,
-            Concat("(&", Concat(temp, Concat(", ",
-                Concat(value, "); "))))));
-        i = i + 1;
-    }
-    return Concat(out, Concat(temp, "; })"));
+    return RewriteSemanticSequenceLiteralValue(
+        graph, view.element_nodes, expected_type, collection.element_type,
+        collection.c_new_fn, collection.c_push_fn, "_pgy_array_value", env
+    );
 }
 
 func RewriteSemanticStructLiteralValue(

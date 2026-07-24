@@ -1,0 +1,43 @@
+// Body-type bundle contract witness.
+//
+// Split from ast_body_type_bundle_owner.pgy by responsibility: the bundle
+// owner produces and validates readiness; this owner holds the self-checking
+// contract fixtures consumed by driver readiness.
+
+import "ast_body_type_bundle_owner.pgy";
+
+func SemanticAstBodyTypeBundleContractError() -> String {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return SemanticAstBodyTypeBundleReadinessError(artifact, analysis, bundle);
+}
+
+func SemanticAstBodyTypeBundleContractReady() -> Bool {
+    return SemanticAstBodyTypeBundleContractError() == "" &&
+        SemanticExpressionPlaceKindContractReady() &&
+        SemanticAstBodyTypeBundleMissingPlaceContractReady();
+}
+
+func SemanticAstBodyTypeBundleMissingPlaceContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) ||
+        SemanticExpressionGraphArenaNodeCount(
+            analysis.expression_surfaces.expression_graph.arena) == 0 {
+        return false;
+    }
+    analysis.expression_surfaces.expression_graph.arena.place_kinds[0] =
+        SemanticExpressionPlaceUnknown();
+    return SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle) == "expression_place_rows";
+}

@@ -194,6 +194,20 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.
+- `src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy` --
+  DRV-2 MIR fixture manifest rows and their count contract; the CLI consumes
+  this owner for --mir-fixture-manifest while the driver owner keeps the
+  compile/verify pipeline.
+- `src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy` --
+  self-checking contract fixtures for the body-type bundle owner, consumed by
+  driver readiness; the bundle owner keeps production and readiness checks.
+- `src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy` --
+  self-checking contract fixture chain for the initializer-type fact owner,
+  consumed by driver readiness; the fact owner keeps production/projection.
+- `src/self_hosted/semantic/ast_expression_graph_collection_call_protocol_owner.pgy` --
+  canonical collection call-name protocol shared by the family owners that
+  validate graph facts and runtime ABI rows, so consumers cannot drift on
+  operation spellings.
 - `src/self_hosted/semantic/ast_contextual_builtin_type_owner.pgy` -- joins a
   graph-owned builtin call identity with its declared type context when the
   builtin signature alone cannot produce a concrete result type.

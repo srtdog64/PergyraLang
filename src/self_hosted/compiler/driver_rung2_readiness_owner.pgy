@@ -4,6 +4,8 @@
 // source/MIR convergence driver may consume an artifact.
 
 import "../parser/expression_set_literal_contract_owner.pgy";
+import "../semantic/ast_initializer_type_contract_owner.pgy";
+import "../semantic/ast_body_type_bundle_contract_owner.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }

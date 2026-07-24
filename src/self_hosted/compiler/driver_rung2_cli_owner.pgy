@@ -1,6 +1,7 @@
 // DRV-2 command-line mode routing owner.
 
 import "driver_rung2_owner.pgy";
+import "driver_rung2_mir_manifest_owner.pgy";
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
     if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {

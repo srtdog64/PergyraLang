@@ -1,0 +1,152 @@
+// Initializer-type fact contract witness.
+//
+// Split from ast_initializer_type_fact_owner.pgy by responsibility: the fact
+// owner produces and projects initializer verdicts; this owner holds the
+// self-checking contract fixture chain consumed by driver readiness.
+
+import "ast_initializer_type_fact_owner.pgy";
+
+func SemanticAstInitializerTypeFactsContractReady() -> Bool {
+    if !SemanticExpressionGraphArrayLiteralContractReady() { return false; }
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n"
+    );
+    let valid_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let valid_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(valid);
+    let valid_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(valid, valid_signatures);
+    let valid_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
+    let valid_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            valid, valid_signatures, valid_constructors, valid_locals,
+            valid_expression_surfaces
+        );
+    if !SemanticAstInitializerTypeFactsMatchArtifact(
+        valid, valid_signatures, valid_constructors, valid_locals,
+        valid_expression_surfaces, valid_facts
+    ) || !SemanticAstInitializerTypesAllVerified(valid_facts) ||
+        SemanticAstInitializerTypeCount(valid_facts) != 2 ||
+        valid_facts.inferred_type_names[0] != "Int" ||
+        valid_facts.inferred_type_names[1] != "Int" {
+        return false;
+    }
+
+    let indexed: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: stack : Array<Int: Int> = []\n        Let: node : Int = stack[(ArrayLength(stack) - 1)]\n"
+    );
+    let indexed_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(indexed);
+    let indexed_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(indexed);
+    let indexed_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            indexed, indexed_signatures
+        );
+    let indexed_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(indexed);
+    let indexed_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            indexed, indexed_signatures, indexed_constructors,
+            indexed_locals, indexed_surfaces
+        );
+    if !SemanticAstInitializerTypesAllVerified(indexed_facts) ||
+        SemanticAstInitializerTypeCount(indexed_facts) != 2 ||
+        indexed_facts.inferred_type_names[0] != "Array<Int>" ||
+        indexed_facts.inferred_type_names[1] != "Int" {
+        return false;
+    }
+
+    let member: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: box : Box = Box(1)\n        Let: value : Int = box.value\n"
+    );
+    let member_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(member);
+    let member_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(member);
+    let member_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(member, member_signatures);
+    let member_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(member);
+    let member_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            member, member_signatures, member_constructors, member_locals,
+            member_surfaces
+        );
+    if !SemanticAstInitializerTypesAllVerified(member_facts) ||
+        SemanticAstInitializerTypeCount(member_facts) != 2 {
+        return false;
+    }
+    let member_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        member_surfaces, member_locals.node_ids[1], AstExpressionLaneValue()
+    );
+    if !IsSome(member_root) { return false; }
+    let member_name_node: Option<Int> = SemanticExpressionGraphRightChild(
+        member_surfaces.expression_graph, UnwrapOption(member_root)
+    );
+    if !IsSome(member_name_node) { return false; }
+    member_surfaces.expression_graph.arena.node_texts[
+        UnwrapOption(member_name_node)
+    ] = "missing";
+    let drifted_member_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            member, member_signatures, member_constructors, member_locals,
+            member_surfaces
+        );
+    if !drifted_member_facts.ok ||
+        SemanticAstInitializerTypesAllVerified(drifted_member_facts) ||
+        SemanticAstInitializerFirstDiagnosticCode(drifted_member_facts) !=
+            "initializer_type_unresolved" {
+        return false;
+    }
+
+    let mismatch: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: bad : Int = \"x\"\n"
+    );
+    let mismatch_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(mismatch);
+    let mismatch_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(mismatch);
+    let mismatch_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            mismatch, mismatch_signatures
+        );
+    let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
+    let mismatch_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            mismatch, mismatch_signatures, mismatch_constructors,
+            mismatch_locals, mismatch_expression_surfaces
+        );
+    if !SemanticAstInitializerTypeFactsReadyProjection(
+        mismatch, mismatch_locals, mismatch_facts
+    ) || SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
+        SemanticAstInitializerFirstDiagnosticCode(mismatch_facts) !=
+            "let_type_mismatch" {
+        return false;
+    }
+
+    let unknown: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: bad : Int = Mystery()\n"
+    );
+    let unknown_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(unknown);
+    let unknown_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(unknown);
+    let unknown_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(unknown, unknown_signatures);
+    let unknown_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(unknown);
+    let unknown_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            unknown, unknown_signatures, unknown_constructors, unknown_locals,
+            unknown_expression_surfaces
+        );
+    return SemanticAstInitializerTypeFactsReadyProjection(
+            unknown, unknown_locals, unknown_facts
+        ) && !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
+        SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
+            "undefined_function";
+}
