@@ -49,7 +49,16 @@ func SemanticAstInitializerTypeStructuralError(
     );
 }
 
-func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+func SemanticAstInitializerTypePressureStage(
+    enabled: Bool,
+    stage: String
+) -> Void {
+    if enabled {
+        Log(Concat("[semantic-initializer-stage] ", stage));
+    }
+}
+
+func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -61,8 +70,10 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     iteration_binding_types: Array<String>,
     iteration_verified: Array<Int>,
     base_facts: SemanticAstInitializerTypeFacts,
-    reuse_unaffected: Bool
+    reuse_unaffected: Bool,
+    observe_pressure: Bool
 ) -> SemanticAstInitializerTypeFacts {
+    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:start");
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
@@ -75,12 +86,14 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
+    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:done");
 
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
+    SemanticAstInitializerTypePressureStage(observe_pressure, "enum:done");
     if !enum_facts.ok {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
@@ -90,6 +103,12 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
+    SemanticAstInitializerTypePressureStage(
+        observe_pressure,
+        Concat("function-tables:done:locals=", ToString(
+            SemanticAstLocalBindingCount(locals)
+        ))
+    );
 
     let node_ids: Array<Int> = [];
     let expression_texts: Array<String> = [];
@@ -105,6 +124,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
+    SemanticAstInitializerTypePressureStage(
+        observe_pressure, "member-roots:done"
+    );
     if reuse_unaffected && (!base_facts.ok ||
         SemanticAstInitializerTypeCount(base_facts) !=
             SemanticAstLocalBindingCount(locals)) {
@@ -115,6 +137,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     let modes: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
+        SemanticAstInitializerTypePressureStage(
+            observe_pressure, Concat("row:start:", ToString(i))
+        );
         SemanticAstExpressionEnvironmentClear(names, types, modes);
         if reuse_unaffected {
             if !SemanticAstExpressionSeedVisibleIterationRows(
@@ -166,6 +191,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
+        SemanticAstInitializerTypePressureStage(
+            observe_pressure, Concat("row:environment:", ToString(i))
+        );
         let expression: String = locals.initializer_texts[i];
         let graph_root: Option<Int> =
             SemanticAstExpressionGraphRootForNode(
@@ -175,6 +203,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         if !IsSome(graph_root) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
+        SemanticAstInitializerTypePressureStage(
+            observe_pressure, Concat("row:graph-root:", ToString(i))
+        );
         let expression_verdict: SemanticAstExpressionVerdict =
             SemanticAstExpressionVerdictFromGraph(
                 expression, expression_surfaces.expression_graph,
@@ -184,6 +215,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 function_names, function_returns, function_params,
                 member_root_names
             );
+        SemanticAstInitializerTypePressureStage(
+            observe_pressure, Concat("row:verdict:", ToString(i))
+        );
         let inferred: String = expression_verdict.inferred_type_name;
         let destructure_element_missing: Bool = false;
         if locals.binding_kinds[i] ==
@@ -290,6 +324,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         ArrayPush(diagnostic_messages, row_message);
         ArrayPush(binding_kinds, locals.binding_kinds[i]);
         ArrayPush(binding_indices, locals.binding_indices[i]);
+        SemanticAstInitializerTypePressureStage(
+            observe_pressure, Concat("row:done:", ToString(i))
+        );
         i = i + 1;
     }
     return SemanticAstInitializerTypeFacts(
@@ -298,6 +335,47 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         diagnostic_messages, binding_kinds, binding_indices
     );
 }
+
+func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    base_facts: SemanticAstInitializerTypeFacts,
+    reuse_unaffected: Bool
+) -> SemanticAstInitializerTypeFacts {
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        iteration_node_ids, iteration_function_node_ids,
+        iteration_binding_names, iteration_binding_types, iteration_verified,
+        base_facts, reuse_unaffected, false
+    );
+}
+
+func SemanticAstInitializerTypeFactsFromArtifactObserved(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    observe_pressure: Bool
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
+        SemanticAstInitializerTypeStructuralError(artifact), false,
+        observe_pressure
+    );
+}
+
 func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -305,12 +383,9 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     locals: SemanticAstLocalBindingFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstInitializerTypeFacts {
-    let empty_ints: Array<Int> = [];
-    let empty_strings: Array<String> = [];
-    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+    return SemanticAstInitializerTypeFactsFromArtifactObserved(
         artifact, signatures, constructors, locals, expression_surfaces,
-        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
-        SemanticAstInitializerTypeStructuralError(artifact), false
+        false
     );
 }
 

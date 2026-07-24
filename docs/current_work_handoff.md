@@ -9,7 +9,7 @@ owner, and the named executable gate.
 ## Resume checkpoint
 
 - The implementation checkpoint immediately before this handoff refresh is
-  `0fdaf851` (`Close collection call protocol SoT`), pushed to
+  `a2de312d` (`Correct guarded oracle runtime evidence`), pushed to
   `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
   because a committed handoff cannot name its own Git object ID.
 - `0fdaf851` closes the shared collection-call protocol for List/Queue/Set:
@@ -21,8 +21,9 @@ owner, and the named executable gate.
   native and bounded Pergyra-built compiler builds, attributes reparented MSYS
   compiler workers, and rejects unfiltered Git Bash execution of the 280-row
   DRV-2 matrix. `05b2da48` extends that owner around the full driver fixpoint.
-  `81657340` adds the binary-level accidental-direct-run interlock. All three
-  are operational hardening, not self-host substitution.
+  `81657340` adds the binary-level accidental-direct-run interlock, and
+  `a2de312d` corrects the executable CLI evidence. These are operational
+  hardening, not self-host substitution.
 - `a42616b7` is the latest executable closure: concrete by-value wrapper
   declarations are projected from semantic type/signature/specialization facts;
   generic formal templates are excluded; specialized concrete return/parameter
@@ -64,9 +65,11 @@ commits:
   `set_runtime_owner.pgy`, plus untracked
   `runtime_header_ownership_owner.pgy`;
 - modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
-- modified self-host compiler and semantic owners outside the collection
-  protocol closure: `driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
-  `ast_body_type_bundle_owner.pgy`, and `ast_initializer_type_fact_owner.pgy`;
+- pressure-diagnostic work currently modifies self-host compiler and semantic
+  owners `driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
+  `ast_body_type_bundle_owner.pgy`, and
+  `ast_initializer_type_fact_owner.pgy`; these are the active memory slice,
+  not concurrent work to discard;
 - modified parity runners `driver_bootstrap.sh`, `driver_rung2_body_parity.sh`,
   and the indexed-assignment, machine-MIR, match, and owner-field owners;
 - modified `tests/self_hosted_component_contract_smoke.sh`, plus untracked
@@ -128,6 +131,17 @@ Observed facts:
   working set; the oracle itself owned 3,030.0 MB private. It produced no MIR
   artifact and left no oracle process. The cap works; materialization remains
   blocked.
+- Pressure-only markers then proved that AST construction, typed semantic
+  analysis, and driver readiness complete before the cap. The run enters body
+  types and `SemanticAstInitializerTypeFactsFromArtifact`, but never completes
+  the base-initializer projection and never enters iteration, MIR-fact, or JSON
+  construction.
+- A finer isolated C-oracle run completed initializer rows 0 through 5,003 and
+  crossed the cap at row 5,004 before that row's environment marker. It was
+  stopped after 165,336 ms at 3,074.4 MB private / 2,527.8 MB working set,
+  with no artifact. The corresponding instrumented C build completed in
+  76,854 ms at 2,253.3 MB private / 2,235.5 MB working set; the LLVM build
+  completed in 132,825 ms at 2,253.6 MB private / 2,235.7 MB working set.
 - A follow-up process audit caught that direct bypass running concurrently with
   a 95-fixture DRV-2 shard. A recursive make dry-run briefly added a third run;
   the exact 21-process Pergyra set was at 2,020.6 MB working set / 2,114 MB
@@ -141,19 +155,46 @@ Observed facts:
   process previously contaminated the pressure wrapper; that was not evidence
   that the self-host compiler itself owns tens of GB.
 
-Source-backed inference, not yet a measured stage attribution:
+Current measured attribution and remaining unknown:
 
-- `SelfMirJsonProgram` retains nested instruction/block/routine
-  `Array<String>` projections until final program JSON assembly;
-- `JsonEmitObject` / `JsonEmitArray` compose those projections with allocating
-  `Concat` / `StringJoin` operations;
-- the Pergyra-built C string runtime allocates new buffers for those operations,
-  ordinary temporary strings are not reclaimed per emitted routine, and
-  `AllocatorScratch()` is not a bulk-reset arena.
+- The earlier JSON-leading explanation is falsified for the current 3 GiB
+  crossing: MIR facts and JSON projection have not started.
+- The crossing is linear initializer-row accumulation, not one exceptional
+  row; row 5,003 completed and row 5,004 had not finished environment setup.
+- Emitted C has no row-scope cleanup in the initializer owner. Its graph and
+  verdict helpers create temporary arrays/strings; allocation-returning
+  `CharAtN`, `Substring`, `StringTrim`, and `StringConcat` results are not
+  reclaimed there, while `ArrayPop` only changes length.
+- The exact split among repeated call-spine materialization, character scans,
+  and other verdict helpers is still `Unknown`. JSON retains separate later
+  optimization debt, but it is not the active first blocker.
 
-This is the strongest current explanation for the full-input amplification,
-but the percentage of the 28 GiB peak owned by JSON projection remains
-`Unknown` until a stage marker or allocation census measures it.
+Active memory objective card:
+
+- Objective: make full-driver base-initializer projection complete under the
+  3 GiB hard boundary without weakening semantic diagnostics.
+- Priority: initializer fact identity, owner-directed graph/environment reuse,
+  per-row lifetime closure, negative pressure ratchet, then speed and patch
+  size.
+- Fact owner: `SemanticAstInitializerTypeFacts` and the expression-graph facts
+  it consumes; the body-type bundle is the last legitimate consumer.
+- Forbidden fallback: raising the cap, tuning JSON before it executes,
+  splitting the compiler into per-chunk subprocesses, or mirroring C backend
+  fragments in Pergyra.
+- Verification: guarded full-driver C and LLVM executions remain below 3 GiB,
+  and the bounded `let_log` MIR artifacts remain byte-equal.
+
+Latest observed gates for this slice:
+
+- `build_pressure_contract_smoke.sh`, `documentation_quality_smoke.sh`, and
+  `bash -n tests/self_hosted/parity/driver_bootstrap.sh` passed.
+- C and LLVM guarded-oracle builds completed with zero diagnostics; their
+  bounded `let_log` outputs were both 2,341 bytes and SHA-256-equal. Both
+  binaries rejected an unowned full-driver request with exit 1 and no artifact.
+- `self_hosted_component_contract_smoke.sh` is externally blocked by the
+  concurrent `src/self_hosted/OWNERS.md` state: it is missing the existing
+  `ast_expression_graph_collection_call_protocol_owner.pgy` term. Do not fix
+  or stage that concurrent file as part of the pressure slice.
 
 Architecture boundary:
 

@@ -120,7 +120,7 @@ There is also a distinct, confirmed full-input defect. An earlier isolated
 `driver_mir_oracle --emit-mir-json-verified` run over the driver source reached
 approximately 17 GiB RSS / 28 GiB private memory and produced no artifact
 before it was stopped. That is not a normal compiler build and it is not
-excused by self-hosting: it is unresolved full-driver MIR materialization
+excused by self-hosting: it is unresolved full-driver semantic-to-MIR pipeline
 amplification. On Windows, the official
 `self-host-driver-bootstrap-full-test-smoke` entry now runs inside the same
 3 GiB hard pressure boundary and attributes reparented `driver_oracle`,
@@ -148,33 +148,47 @@ ran for 170,534 ms. The wrapper stopped the process tree at 3,079.2 MB private
 memory / 2,549.3 MB working set; `driver_oracle_guard.exe` itself owned
 3,030.0 MB private. It produced no MIR artifact and left no oracle process.
 This is the expected current falsifier and proves the 3 GiB boundary is active;
-it does not close the underlying materialization defect.
+it does not close the underlying semantic projection defect.
 
-Source inspection identifies the strongest current amplification mechanism,
-but not yet its exact share of the 28 GiB peak:
+Pressure-only stage markers now locate the current 3 GiB crossing before MIR
+or JSON construction:
 
-- `mir/json_projection_owner.pgy` materializes instruction strings into block
-  strings, block strings into routine strings, and all routine strings into a
-  program-level `Array<String>` before returning the final JSON string;
-- `lib/json_emit.pgy` builds every field/object/array with nested `Concat` and
-  `StringJoin`; the Pergyra-built C runtime allocates new buffers for both;
-- ordinary temporary `String` buffers are not reclaimed at each emitted
-  routine, and `AllocatorScratch()` is currently a system-backed lane label,
-  not a bulk-reset arena.
+- AST construction and the initial typed semantic analysis both complete;
+- driver readiness completes and body-type projection starts;
+- the first base-initializer projection starts, while its completion marker,
+  iteration projection, MIR-fact construction, and JSON projection are never
+  reached;
+- a finer isolated C-oracle run completed initializer rows 0 through 5,003,
+  then crossed the cap at row 5,004 before that row's environment marker. It
+  was stopped after 165,336 ms at 3,074.4 MB private / 2,527.8 MB working set
+  and produced no artifact.
 
-That shape can retain and repeatedly copy full lower-level projections while
-the next level is assembled. It is the leading source-backed explanation for
-the observed growth. The exact split between MIR fact construction and JSON
-projection remains `Unknown` until a stage marker or allocation census observes
-it; do not record the inference as a completed root-cause percentage.
+This falsifies the earlier JSON-leading hypothesis for the current 3 GiB
+boundary. JSON emission still has nested `Array<String>` / `Concat` lifetime
+debt, but it cannot cause a run that has not entered MIR or JSON. Do not tune
+JSON first or describe the historical 28 GiB peak as a measured JSON share.
 
-The durable repair is a bounded or streaming JSON emission owner consuming the
-same Pergyra MIR facts, with an executable byte/schema parity gate and a
-per-routine lifetime boundary. Raising the memory ceiling, rearranging the same
-nested `Array<String>` values, or adding C-shaped backend fragments is not a
-repair. C and LLVM must remain peer consumers of one Pergyra-owned semantic/MIR/
-ABI fact spine. The binary token is an accidental-direct-run interlock, not an
-authorization secret; the official pressure wrapper remains the resource owner.
+The row evidence also rules out one exceptional initializer as the immediate
+shape: thousands of rows finish and memory accumulates until the next row
+starts. Generated C inspection shows why this path can retain pressure:
+`SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved` has no
+row-scope cleanup; graph/verdict helpers materialize temporary arrays and
+strings; `CharAtN`, `Substring`, `StringTrim`, and `StringConcat` allocate; and
+`ArrayPop` only decrements length. The exact allocation share of call-spine
+views, text scans, and other verdict helpers remains `Unknown` until the next
+owner-level allocation or cache falsifier.
+
+The active repair boundary is therefore the Pergyra semantic initializer/
+expression-graph owner: reuse artifact-wide facts and graph views, replace
+allocation-returning character scans on the hot path, and establish an
+explicit scratch lifetime or cleanup contract for per-row temporaries. The
+verification gate is the same full-driver request completing below 3 GiB while
+bounded C/LLVM MIR output remains byte-equal. Raising the cap, spawning
+per-chunk compiler processes, or mirroring C-shaped backend fragments is not a
+repair. C and LLVM remain peer consumers of one Pergyra-owned semantic/MIR/ABI
+fact spine. The binary token is an accidental-direct-run interlock, not an
+authorization secret; the official pressure wrapper remains the resource
+owner.
 
 The follow-up check found that exact bypass active beside a 95-fixture DRV-2
 shard. Together with a short-lived third recursive make probe, the three runs

@@ -44,12 +44,17 @@ func Main() -> Void with caps env, io_read, io_write {
         if !is_full_driver_source && ArrayLength(args) != 3 {
             Die("full-fixpoint pressure token is only valid for the driver source");
         }
-        WriteFile(
-            args[2],
-            CompileSourceToMirJsonVerified(
+        let mir_json: String = "";
+        if is_full_driver_source {
+            mir_json = CompileSourceToMirJsonPressureObserved(
                 args[1], machine_declaration
-            )
-        );
+            );
+        } else {
+            mir_json = CompileSourceToMirJsonVerified(
+                args[1], machine_declaration
+            );
+        }
+        WriteFile(args[2], mir_json);
         return;
     }
     if ArrayLength(args) == 3 && args[0] == "--mir-json" {

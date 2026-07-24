@@ -60,6 +60,14 @@ grep -Fq 'full driver MIR production requires the pressure-owned bootstrap gate'
     || { echo "[build-pressure-contract] full driver binary lacks its direct-call rejection" >&2; exit 1; }
 grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
+grep -Fq 'CompileSourceToMirJsonPressureObserved(' "$DRIVER_MAIN" \
+    || { echo "[build-pressure-contract] full driver binary lacks stage observation" >&2; exit 1; }
+grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    || { echo "[build-pressure-contract] full driver pressure stages are not observable" >&2; exit 1; }
+grep -Fq '[semantic-body-type-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    || { echo "[build-pressure-contract] body type pressure stages are not observable" >&2; exit 1; }
+grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    || { echo "[build-pressure-contract] initializer pressure stages are not observable" >&2; exit 1; }
 grep -Fq '"--pressure-owned-full-fixpoint"' "$DRIVER_BOOTSTRAP" \
     || { echo "[build-pressure-contract] full driver runner lacks the pressure-owned token" >&2; exit 1; }
 grep -Fq '*/Git/usr/bin/bash.exe)' "$DRIVER_PARITY" \
