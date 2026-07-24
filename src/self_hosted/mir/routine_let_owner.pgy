@@ -45,6 +45,16 @@ func SelfMirLowerLetFromArtifact(
             build, "MIR let initializer type fact is unresolved"
         );
     }
+    let initializer_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        );
+    if !initializer_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR let initializer expression graph is missing"
+        );
+    }
     let expression: String = input.analysis.local_bindings.initializer_texts[
         local_row
     ];
@@ -56,8 +66,8 @@ func SelfMirLowerLetFromArtifact(
             build, "MIR let is missing semantic binding identity"
         );
     }
-    let initializer_uses: Array<String> = SelfMirExpressionUses(
-        build, expression
+    let initializer_uses: Array<String> = SelfMirExpressionGraphUses(
+        build, initializer_graph
     );
     build = SelfMirRoutineDeclareLocal(
         build, local_name, local_type, UnwrapOption(binding_ordinal)
@@ -77,9 +87,6 @@ func SelfMirLowerLetFromArtifact(
         "AST_LET_DECL", initializer_uses
     );
     return SelfMirRoutineAttachLastExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneValue()
-        ), input.machine_declaration
+        build, initializer_graph, input.machine_declaration
     );
 }

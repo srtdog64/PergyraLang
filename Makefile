@@ -2756,6 +2756,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
