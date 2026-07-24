@@ -234,6 +234,20 @@ carrying the artifact-owned fact through `SemanticAstArtifactAnalysis`. The
 isolated initializer, assignment, and generic projection parities remain
 green; the whole-program semantic retention defect remains open.
 
+The exclusive official full bootstrap was then run from a detached
+`bec2fca3` worktree with PowerShell discoverable, isolated `BUILD_DIR`/`BIN_DIR`,
+and `PGY_BUILD_PRESSURE_LIMIT_MB=3072`. It returned `RC=2` after `548501ms`:
+`peak_working_set_mb=2541.8`, `peak_private_mb=3091.3`, and
+`top_private_process=driver_oracle.exe` at `3080.4MB`. The pressure owner
+reported `limit_exceeded=true`; phase private peaks were orchestrate
+`3091.35MB`, compile `1233.45MB`, and link `420.37MB`. This is not system-wide
+memory exhaustion: Windows still reported approximately `24.88GB` physical
+memory free at the peak. The displayed `0.51GB`-class value is a process/private
+observation, while the compiler defect is the whole-program semantic lifetime
+crossing the 3GiB ceiling by `19.3MB`. The detached worktree and its owned
+processes were removed after the measurement without touching main-worktree
+changes.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -250,11 +264,10 @@ current correctness bridge and an explicit performance falsifier; it must be
 replaced by an owner-issued revision-scoped identity plus stale/foreign-handle
 negative fixtures, not by a weak content shortcut.
 
-Later current-source pressure attempts are not compiler evidence: one narrowed
-MSYS2 `PATH` hid PowerShell and entered the unbounded fallback, and later runs
-were contaminated by concurrent compiler builds. Owned runaway processes were
-stopped; external processes were not touched. The Make contract now fails
-closed on Windows if the PowerShell pressure owner is unavailable, and
+The earlier narrowed-PATH and concurrent-build pressure attempts remain
+non-evidence. The official exclusive run above is attributable and red at the
+existing ceiling. The Make contract still fails closed on Windows if the
+PowerShell pressure owner is unavailable, and
 `tests/build_pressure_contract_smoke.sh` ratchets that rule.
 
 ## Last observed gates
@@ -364,7 +377,7 @@ attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At `9f207fdc`, `main` and `origin/main` are aligned. The callable-table,
+At `bec2fca3`, `main` and `origin/main` are aligned. The callable-table,
 call-target, assignment, statement, generic-specialization, match-binding,
 and artifact-capture slices are committed and pushed. The following concurrent
 changes remain dirty and are intentionally excluded;
@@ -397,18 +410,17 @@ ended.
 
 1. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
-   bounded, then obtain an exclusive compiler-build window for the official
-   initializer C/LLVM parity and
-   `self-host-driver-bootstrap-full-test-smoke`.
-2. Obtain an exclusive compiler-build window, re-run the official initializer
-   C/LLVM parity, then
-   `self-host-driver-bootstrap-full-test-smoke` from an environment where
-   PowerShell is discoverable. A Windows missing-PowerShell path must now fail
-   before the full oracle starts.
+   bounded, then obtain the official initializer C/LLVM parity on an exclusive
+   compiler window.
+2. The exclusive official full bootstrap was run with PowerShell discoverable;
+   it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
+   raise the cap or use a system-free-memory reading as the fix. Preserve the
+   pressure contract and use the recorded peak as the falsifying fixture.
 3. Close the measured whole-program semantic lifetime boundary. The preferred
-   unit is routine-scoped analysis/verify with owner-proved output ordering and
-   comparison against the native 120 MB golden artifact. Do not tune JSON or
-   raise the cap before execution reaches those stages.
+   executable unit is routine-scoped analysis/verify with owner-proved output
+   ordering and comparison against the native 120MB golden artifact. The next
+   source delta must remove a real compiler-wide materialization path before
+   rerunning the full pressure target.
 4. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
