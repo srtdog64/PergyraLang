@@ -47,6 +47,7 @@ The following work was present but was not included in the two commits above:
 - untracked `src/compiler/mir_json_dump_decl.c`;
 - untracked `src/compiler/mir_json_dump_decl.h`;
 - modified `tests/self_hosted/parity/driver_bootstrap.sh`;
+- modified `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - modified `tests/self_hosted_component_contract_smoke.sh`;
 - untracked `docs/198_market_safety_positioning.md`;
 - untracked `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
