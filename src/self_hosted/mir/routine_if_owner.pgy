@@ -5,6 +5,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 
 func SelfMirMergeIfBranches(
@@ -104,19 +105,26 @@ func SelfMirLowerIfFromArtifact(
     inout break_blocks: Array<Int>,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
+    let condition_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        );
+    if !condition_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR if condition expression graph is missing"
+        );
+    }
     let branch_block: Int = build.current_block;
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", condition, "",
         SelfMirExpressionSourceTypeName(
             SelfMirExpressionKindFromText(condition)
         ),
-        SelfMirExpressionUses(build, condition)
+        SelfMirExpressionGraphUses(build, condition_graph)
     );
     build = SelfMirRoutineAttachLastExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneAtom()
-        ), input.machine_declaration
+        build, condition_graph, input.machine_declaration
     );
     let body_opt: Option<Int> = SelfMirControlBodyBlock(
         input.artifact.arena, node_id
