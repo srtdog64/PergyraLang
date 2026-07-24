@@ -149,17 +149,14 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
             let parameter_node: Int = CodegenSemanticFunctionParamNodeOrDie(
                 signatures, signature_index, parameter_index
             );
-            let flat_parameter: Option<Int> =
-                SemanticAstFunctionParamFlatIndex(
+            let flat_parameter: Int =
+                CodegenSemanticFunctionParamFlatIndexOrDie(
                     signatures, signature_index, parameter_index
                 );
-            if !IsSome(flat_parameter) {
-                Die("semantic signature facts missing flat parameter index");
-            }
             if parameter_node == node_id &&
                 SemanticAstSignatureParameterTypeHasFormalAt(
                     signatures.type_expressions,
-                    UnwrapOption(flat_parameter), generic_start,
+                    flat_parameter, generic_start,
                     generic_count, signatures.generic_names
                 ) {
                 return true;

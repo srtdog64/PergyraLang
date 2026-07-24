@@ -172,6 +172,20 @@ func CodegenSemanticFunctionParamNodeOrDie(
     return UnwrapOption(node);
 }
 
+func CodegenSemanticFunctionParamFlatIndexOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int
+) -> Int {
+    let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(
+        facts, signature_index, parameter_index
+    );
+    if !IsSome(flat) {
+        Die("semantic signature facts missing flat parameter index");
+    }
+    return UnwrapOption(flat);
+}
+
 func CodegenSemanticFunctionParamNameOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
