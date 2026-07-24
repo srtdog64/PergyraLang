@@ -161,3 +161,23 @@ routine with `let base: A` then a shadowed `let base: B` plus a later
   rows. Windows/MinGW ships no libasan, so heap attribution on this box is
   blind; the ASan-linked oracle on the Linux runner is the remaining
   localization step before an arena/streaming closure per docs/197.
+- **Static-analysis verdict (localized without a profiler):**
+  `SemanticExpressionGraphResolvedCallTarget` is itself bounded — a linear
+  `SemanticCallableIndex` scan over the function table per call node,
+  returning a small fact with no per-call retained allocation. The 10GB is
+  therefore NOT a leak in the hot function; it is the whole-program-resident
+  footprint of `analysis` (the composed driver's typed-AST arena +
+  signatures + constructors + every body-type fact table) all held live
+  through verify. `call-targets` is merely the first stage that walks that
+  entire graph to completion, so it is where the already-committed footprint
+  becomes fatal. This matches the `docs/197` / PROGRESS(07-20) string/
+  allocation-amplification work-order exactly. The last mile is a
+  streaming/arena-scoped verify redesign (process a routine, free its facts,
+  never hold the whole composed program at once) — a multi-file
+  architectural change, NOT a point fix. It must not be attempted blind on a
+  host without heap attribution: the hoist experiment above already proved a
+  byte-identical blind change does not move the curve, and a self-hosting
+  verify pass cannot be restructured without output-parity validation.
+  Prereq for the redesign: build the oracle under ASan on the Linux CI leg
+  (libasan absent on this MinGW box) to confirm the retention set before
+  scoping the free points.
