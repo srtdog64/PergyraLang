@@ -52,7 +52,7 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
     let call_targets_resolved: Bool =
         SemanticAstAnalysisResolveCallTargetsFromBody(
             artifact, analysis, base_initializer_types.inferred_type_names,
-            iteration_types
+            iteration_types, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:done");
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:start");

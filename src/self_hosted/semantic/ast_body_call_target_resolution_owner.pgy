@@ -3,12 +3,14 @@
 import "ast_artifact_verdict_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
 
 func SemanticAstAnalysisResolveCallTargetsFromBody(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     inferred_types: Array<String>,
-    iteration_types: SemanticAstIterationTypeFacts
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
     if !SemanticAstExpressionSurfaceBorrowReady(
         artifact, analysis.expression_surfaces
@@ -20,13 +22,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;
     }
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
-    if !SemanticAstExpressionFunctionTables(
-        analysis.signatures, analysis.constructors, analysis.enums,
-        function_names, function_returns, function_params
-    ) {
+    if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return false;
     }
     let last_root: Int = -1;
@@ -99,8 +95,8 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                                 SemanticExpressionGraphResolvedCallTarget(
                                     analysis.expression_surfaces.expression_graph,
                                     node_id, analysis.constructors,
-                                    names, types, function_names,
-                                    function_returns
+                                    names, types, function_tables.names,
+                                    function_tables.returns
                                 );
                             if !target.ok {
                                 valid = false;
