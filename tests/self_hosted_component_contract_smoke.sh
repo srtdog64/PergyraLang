@@ -946,7 +946,7 @@ require_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessPathContains(path, "_probe/")'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/parser/expression_graph_owner.pgy"'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SeedSemanticBuiltinSignatures(func_names, func_rets, func_params)"
-require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticBuiltinSignatures(names, returns, params)"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticOwnedBuiltinSignatures(names, returns, params)"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'if SemanticMatchKeyword(content, i, "let")'
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'if !SemanticMatchKeyword(content, i, "let")'
@@ -3006,7 +3006,7 @@ reject_function_text \
     "while i < SemanticAstLocalBindingCount(locals)"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionMemberRootNames("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedEnumValues("
-require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPushOwnedString(modes, "enum_value");'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionEnvironmentClear("
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \

@@ -14,10 +14,14 @@ LLVM_EMIT="$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 LLVM_RUNTIME="$ROOT_DIR/src/codegen/llvm_runtime.c"
 INLINE_RUNTIME="$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h"
 EXPORT_RUNTIME="$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h"
+CODEGEN_RUNTIME_CALLS="$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"
+CODEGEN_COLLECTION_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
+CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 
 for path in "$OWNER" "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
-    "$EXPORT_RUNTIME"; do
+    "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
+    "$CODEGEN_CALL_EMITTER"; do
     [[ -f "$path" ]] || {
         echo "[self-host-parity:semantic-environment-lifetime] missing $path" >&2
         exit 1
@@ -67,7 +71,26 @@ grep -Fq 'array_push_owned' "$LLVM_RUNTIME"
 grep -Fq 'array_drop_owned' "$LLVM_RUNTIME"
 grep -Fq 'pgy_array_push_owned_String' "$INLINE_RUNTIME"
 grep -Fq 'pgy_array_drop_owned_String' "$INLINE_RUNTIME"
+grep -Fq 'pgy_runtime_strdup(value != NULL ? value : "")' "$INLINE_RUNTIME" || {
+    echo "[self-host-parity:semantic-environment-lifetime] inline owned push does not duplicate its input" >&2
+    exit 1
+}
 grep -Fq 'pgy_array_push_owned_String' "$EXPORT_RUNTIME"
 grep -Fq 'pgy_array_drop_owned_String' "$EXPORT_RUNTIME"
+grep -Fq 'source_name == "ArrayPushOwnedString"' "$CODEGEN_RUNTIME_CALLS"
+grep -Fq 'CollectionRuntimeCOwnedStringPushFn()' "$CODEGEN_RUNTIME_CALLS"
+grep -Fq 'source_name == "ArrayDropOwnedStrings"' "$CODEGEN_RUNTIME_CALLS"
+grep -Fq 'CollectionRuntimeCOwnedStringDropFn()' "$CODEGEN_RUNTIME_CALLS"
+grep -Fq 'func CollectionRuntimeCOwnedStringPushFn()' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'func CollectionRuntimeCOwnedStringDropFn()' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'pgy_as_owned_copy' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'pgy_as_drop_owned' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'free((void *)a->data[i])' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'next_data == NULL' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'PGY_RUNTIME_PANIC_CLASS_OOM' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'func RewriteSemanticOwnedStringArrayCall(' "$CODEGEN_CALL_EMITTER"
+grep -Fq '"Array<String>", "inout"' "$CODEGEN_CALL_EMITTER"
+grep -Fq 'CollectionRuntimeCOwnedStringPushFn()' "$CODEGEN_CALL_EMITTER"
+grep -Fq 'CollectionRuntimeCOwnedStringDropFn()' "$CODEGEN_CALL_EMITTER"
 
 echo "[self-host-parity:semantic-environment-lifetime] owned String scratch cleanup is owner-directed"

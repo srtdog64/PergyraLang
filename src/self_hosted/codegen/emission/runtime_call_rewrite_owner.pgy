@@ -78,6 +78,12 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "ArrayReverse" { return Some(CollectionRuntimeCIntReverseFn()); }
     if source_name == "ArrayMap" { return Some(CollectionRuntimeCIntMapFn()); }
     if source_name == "ArrayFilter" { return Some(CollectionRuntimeCIntFilterFn()); }
+    if source_name == "ArrayPushOwnedString" {
+        return Some(CollectionRuntimeCOwnedStringPushFn());
+    }
+    if source_name == "ArrayDropOwnedStrings" {
+        return Some(CollectionRuntimeCOwnedStringDropFn());
+    }
     if source_name == "IsSome" { return Some(OptionResultRuntimeCOptionIsSomeFn()); }
     if source_name == "UnwrapOption" { return Some(OptionResultRuntimeCOptionUnwrapFn()); }
     if source_name == "Ok" { return Some(OptionResultRuntimeCResultOkFn()); }

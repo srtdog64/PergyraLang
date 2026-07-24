@@ -22,8 +22,14 @@ func SemanticAstExpressionFunctionTableFactsReady(
 func SemanticAstExpressionFunctionTableFactsRelease(
     inout facts: SemanticAstExpressionFunctionTableFacts
 ) -> Void {
-    ArrayDropOwnedStrings(facts.names);
-    ArrayDropOwnedStrings(facts.returns);
-    ArrayDropOwnedStrings(facts.params);
+    let names: Array<String> = facts.names;
+    let returns: Array<String> = facts.returns;
+    let params: Array<String> = facts.params;
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(returns);
+    ArrayDropOwnedStrings(params);
+    facts.names = names;
+    facts.returns = returns;
+    facts.params = params;
     facts.ok = false;
 }

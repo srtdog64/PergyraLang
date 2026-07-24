@@ -116,6 +116,12 @@ func CompileArtifactAnalysisToMirJsonVerifiedObserved(
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "json:done");
+    let terminal_analysis: SemanticAstArtifactAnalysis = verified.analysis;
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        terminal_analysis.function_tables;
+    SemanticAstExpressionFunctionTableFactsRelease(function_tables);
+    terminal_analysis.function_tables = function_tables;
+    verified.analysis = terminal_analysis;
     return json;
 }
 

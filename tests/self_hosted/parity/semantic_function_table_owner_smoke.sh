@@ -12,6 +12,7 @@ FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_function_table_fac
 ANALYSIS_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 CAPTURE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
 BODY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 INIT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
 BRIDGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy"
 ITER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
@@ -29,7 +30,7 @@ fail() {
     exit 1
 }
 
-for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER" "$BUILTIN_OWNER"; do
+for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$DRIVER_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER" "$BUILTIN_OWNER"; do
     [[ -f "$file" ]] || fail "owner is missing: ${file#$ROOT_DIR/}"
 done
 
@@ -43,6 +44,15 @@ grep -Fq 'func SemanticAstExpressionFunctionTableFactsRelease' "$FACT_OWNER" ||
     fail "callable-table release owner is missing"
 grep -Fq 'facts.ok = false;' "$FACT_OWNER" ||
     fail "callable-table release does not fail closed"
+if grep -Fq 'ArrayDropOwnedStrings(facts.' "$FACT_OWNER"; then
+    fail "callable-table release passes a struct field across the inout boundary"
+fi
+grep -Fq 'facts.names = names;' "$FACT_OWNER" ||
+    fail "callable-table release does not publish the dropped names field"
+grep -Fq 'facts.returns = returns;' "$FACT_OWNER" ||
+    fail "callable-table release does not publish the dropped returns field"
+grep -Fq 'facts.params = params;' "$FACT_OWNER" ||
+    fail "callable-table release does not publish the dropped params field"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsFromArtifact(' "$ANALYSIS_OWNER" ||
     fail "artifact analysis does not own callable-table production"
 
@@ -83,14 +93,21 @@ grep -Fq 'analysis.statements, function_tables' "$BODY_OWNER" ||
     fail "statement resolver does not receive shared callable-table fact"
 grep -Fq 'analysis.expression_surfaces, function_tables' "$BODY_OWNER" ||
     fail "generic resolver does not receive shared callable-table fact"
-grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(analysis.function_tables);' "$BODY_OWNER" ||
-    fail "body owner does not release callable-table fact"
-release_line="$(grep -n 'SemanticAstExpressionFunctionTableFactsRelease(analysis.function_tables);' "$BODY_OWNER" | tail -n 1 | cut -d: -f1)"
-last_use_line="$(grep -n 'function_tables' "$BODY_OWNER" | grep -v 'Release' | tail -n 1 | cut -d: -f1)"
-verdict_line="$(grep -n 'verdict:done' "$BODY_OWNER" | tail -n 1 | cut -d: -f1)"
-if [[ -z "$release_line" || -z "$last_use_line" || -z "$verdict_line" ||
-      "$release_line" -le "$last_use_line" || "$release_line" -le "$verdict_line" ]]; then
-    fail "callable-table release is not after the body last consumer"
+if grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease' "$BODY_OWNER"; then
+    fail "body owner releases callable-table data before graph/MIR consumers finish"
+fi
+grep -Fq 'let terminal_analysis: SemanticAstArtifactAnalysis = verified.analysis;' "$DRIVER_OWNER" ||
+    fail "driver does not bind the terminal semantic analysis"
+grep -Fq 'let function_tables: SemanticAstExpressionFunctionTableFacts =' "$DRIVER_OWNER" ||
+    fail "driver does not bind the terminal callable-table fact"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' "$DRIVER_OWNER" ||
+    fail "driver does not release the callable-table fact"
+grep -Fq 'terminal_analysis.function_tables = function_tables;' "$DRIVER_OWNER" ||
+    fail "driver does not publish the released callable-table fact"
+release_line="$(grep -n 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' "$DRIVER_OWNER" | tail -n 1 | cut -d: -f1)"
+json_done_line="$(grep -n 'json:done' "$DRIVER_OWNER" | tail -n 1 | cut -d: -f1)"
+if [[ -z "$release_line" || -z "$json_done_line" || "$release_line" -le "$json_done_line" ]]; then
+    fail "callable-table release is not after the final MIR JSON consumer"
 fi
 grep -Fq 'SemanticAstExpressionFunctionTableFactsReady(function_tables)' "$CALL_TARGET_OWNER" ||
     fail "call-target resolver does not fail closed on callable-table fact"

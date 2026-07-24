@@ -329,7 +329,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         }
         ArrayPush(node_ids, locals.node_ids[i]);
         ArrayPush(expression_texts, expression);
-        ArrayPush(inferred_type_names, inferred);
+        ArrayPush(inferred_type_names, Concat("", inferred));
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);

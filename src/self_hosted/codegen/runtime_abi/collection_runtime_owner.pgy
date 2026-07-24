@@ -349,6 +349,14 @@ func CollectionRuntimeCIntFilterFn() -> String {
     return "pgy_ai_filter";
 }
 
+func CollectionRuntimeCOwnedStringPushFn() -> String {
+    return "pgy_as_push_owned";
+}
+
+func CollectionRuntimeCOwnedStringDropFn() -> String {
+    return "pgy_as_drop_owned";
+}
+
 func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Bool,
                                   uses_array_map: Bool, uses_array_filter: Bool) -> String {
     let int_array_type: String = CompilerAbiLayoutArrayIntCValueType();
@@ -395,6 +403,25 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(2), Concat("(", Concat(string_array_type, " *a, const char *v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
     block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, "static char *pgy_as_owned_copy(const char *v) {\n");
+    block = Concat(block, "    const char *source = v != NULL ? v : \"\";\n");
+    block = Concat(block, "    size_t length = strlen(source);\n");
+    block = Concat(block, "    if (length == (size_t)-1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
+    block = Concat(block, "    char *copy = (char *)malloc(length + 1);\n");
+    block = Concat(block, "    if (copy == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
+    block = Concat(block, "    memcpy(copy, source, length + 1);\n    return copy;\n}\n");
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCOwnedStringPushFn(), Concat("(", Concat(string_array_type, " *a, const char *v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) {\n");
+    block = Concat(block, "        long long next_cap = a->cap ? a->cap * 2 : 4;\n");
+    block = Concat(block, "        if (next_cap <= a->cap || (size_t)next_cap > (size_t)-1 / sizeof(const char *)) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
+    block = Concat(block, "        const char **next_data = (const char **)realloc(a->data, (size_t)next_cap * sizeof(const char *));\n");
+    block = Concat(block, "        if (next_data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
+    block = Concat(block, "        a->data = next_data; a->cap = next_cap;\n    }\n");
+    block = Concat(block, "    a->data[a->len++] = pgy_as_owned_copy(v);\n}\n");
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCOwnedStringDropFn(), Concat("(", Concat(string_array_type, " *a) {\n")))));
+    block = Concat(block, "    if (a == NULL) { return; }\n");
+    block = Concat(block, "    for (long long i = 0; i < a->len; i++) { free((void *)a->data[i]); }\n");
+    block = Concat(block, "    free(a->data); a->data = NULL; a->len = 0; a->cap = 0;\n}\n");
     block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCGetFn(2), Concat("(", Concat(string_array_type, " a, long long i) { return a.data[i]; }\n")))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(2), Concat("(", Concat(string_array_type, " *a, long long i, const char *v) { a->data[i] = v; }\n")))));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(2), Concat("(", Concat(string_array_type, " a) { return a.len; }\n")))));

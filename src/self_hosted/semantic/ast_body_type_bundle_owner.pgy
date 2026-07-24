@@ -118,7 +118,6 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
         );
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
-    SemanticAstExpressionFunctionTableFactsRelease(analysis.function_tables);
     return SemanticAstBodyTypeBundle(
         verdict,
         initializer_types, iteration_types, assignment_types, statement_types,

@@ -51,7 +51,11 @@ PGY_ARRAY_DEFINE(String, char*)
 static inline void
 pgy_array_push_owned_String(PgyArray_String *arr, char *value)
 {
-    pgy_array_push_String(arr, value);
+    char *owned = pgy_runtime_strdup(value != NULL ? value : "");
+    if (owned == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    pgy_array_push_String(arr, owned);
 }
 
 static inline void
