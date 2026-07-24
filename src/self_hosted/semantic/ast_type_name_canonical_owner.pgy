@@ -6,6 +6,7 @@
 
 import "text_scan_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticCanonicalTypeNameFact {
     canonical_name: String,
@@ -48,29 +49,28 @@ func SemanticTypeNameTopLevelColon(text: String) -> Option<Int> {
 }
 
 func SemanticCanonicalTypeArgument(text: String) -> String {
-    let argument: String = Trim(text);
+    let argument: String = SemanticTrimSourceReuse(text);
     let colon_opt: Option<Int> = SemanticTypeNameTopLevelColon(argument);
     if IsSome(colon_opt) {
         let colon: Int = UnwrapOption(colon_opt);
         return SemanticCanonicalTypeName(
-            Trim(Substring(
-                argument, colon + 1,
-                StringLength(argument) - colon - 1
-            ))
+            SemanticTrimSourceRangeReuse(
+                argument, colon + 1, StringLength(argument)
+            )
         );
     }
     return SemanticCanonicalTypeName(argument);
 }
 
 func SemanticCanonicalTypeName(type_name: String) -> String {
-    let text: String = Trim(type_name);
+    let text: String = SemanticTrimSourceReuse(type_name);
     let n: Int = StringLength(text);
     let open: Int = StringIndexOf(text, "<");
     if open <= 0 || n < open + 2 ||
         SourceByteAt(text, n, n - 1) != SourceByteOf(">") {
         return text;
     }
-    let base: String = Trim(Substring(text, 0, open));
+    let base: String = SemanticTrimSourceRangeReuse(text, 0, open);
     let inner: String = Substring(
         text, open + 1, n - open - 2
     );
@@ -100,7 +100,7 @@ func SemanticCanonicalTypeNameFactFrom(
     let open: Int = StringIndexOf(canonical, "<");
     let nominal_base: String = canonical;
     if open >= 0 {
-        nominal_base = Trim(Substring(canonical, 0, open));
+        nominal_base = SemanticTrimSourceRangeReuse(canonical, 0, open);
     }
     return SemanticCanonicalTypeNameFact(canonical, nominal_base);
 }
@@ -118,7 +118,7 @@ func SemanticConstructedTypeNameFactFrom(
             false, canonical, "", actuals
         );
     }
-    let base: String = Trim(Substring(canonical, 0, open));
+    let base: String = SemanticTrimSourceRangeReuse(canonical, 0, open);
     let inner: String = Substring(canonical, open + 1, n - open - 2);
     let ranges: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(inner);
