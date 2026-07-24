@@ -8,6 +8,7 @@ import "text_scan_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
+import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "callable_resolution_owner.pgy";
@@ -17,7 +18,7 @@ func CheckUndefinedIdentifiers(
     names: Array<String>,
     callable_names: Array<String>
 ) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let quote: Int = SourceByteOf("\"");
     let escape: Int = SourceByteOf("\\");
@@ -81,12 +82,14 @@ func CheckUndefinedIdentifiers(
 }
 
 func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticTrimSourceReuse(expr);
     let bounds: Array<Int> = [0, 0];
     if !TryOperandBounds(text, bounds) {
         return "";
     }
-    let operand: String = Trim(Substring(text, bounds[0], bounds[1]));
+    let operand: String = SemanticTrimSourceReuse(
+        Substring(text, bounds[0], bounds[1])
+    );
     let operand_type: String = ExprType(operand, names, types, func_names, func_rets);
     if operand_type == "Unknown" {
         return "";
@@ -101,7 +104,7 @@ func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, f
 }
 
 func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let facts: SemanticTopLevelOperatorFacts =
         SemanticTopLevelOperatorFactsFromExpression(text);
@@ -128,14 +131,16 @@ func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<Strin
 }
 
 func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     // A leading unary `!` (not `!=`) requires a Bool operand; the C oracle
     // rejects `!` on a non-Bool value. Checked only when the operand expression
     // resolves to a known non-Bool type; Unknown operands are skipped.
     if n >= 2 && SourceByteAt(text, n, 0) == SourceByteOf("!") &&
         SourceByteAt(text, n, 1) != SourceByteOf("=") {
-        let not_operand: String = Trim(Substring(text, 1, n - 1));
+        let not_operand: String = SemanticTrimSourceReuse(
+            Substring(text, 1, n - 1)
+        );
         if StringLength(not_operand) > 0 {
             let not_type: String = ExprType(not_operand, names, types, func_names, func_rets);
             if not_type != "Unknown" && not_type != "Bool" {
@@ -169,7 +174,8 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
     }
     let left: String = Substring(text, 0, split_idx);
     let right: String = Substring(text, split_idx + split_len, n - split_idx - split_len);
-    if StringLength(Trim(left)) == 0 || StringLength(Trim(right)) == 0 {
+    if StringLength(SemanticTrimSourceReuse(left)) == 0 ||
+        StringLength(SemanticTrimSourceReuse(right)) == 0 {
         return "";
     }
     let lt: String = ExprType(left, names, types, func_names, func_rets);

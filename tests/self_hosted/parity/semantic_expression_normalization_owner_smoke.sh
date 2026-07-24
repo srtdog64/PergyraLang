@@ -16,6 +16,10 @@ grep -Fq 'func SemanticStripOuterParens' "$OWNER" || {
     echo "[self-host-parity:semantic-normalization] normalization owner is missing" >&2
     exit 1
 }
+grep -Fq 'func SemanticTrimSourceReuse' "$OWNER" || {
+    echo "[self-host-parity:semantic-normalization] trim reuse owner is missing" >&2
+    exit 1
+}
 grep -Fq 'SourceByteAt(' "$OWNER" || {
     echo "[self-host-parity:semantic-normalization] byte-view owner is missing" >&2
     exit 1
@@ -24,7 +28,7 @@ grep -Fq 'SourceByteIsWhitespace(' "$OWNER" || {
     echo "[self-host-parity:semantic-normalization] whitespace byte owner is missing" >&2
     exit 1
 }
-grep -Fq 'if start != 0 || end != source_length' "$OWNER" || {
+grep -Fq 'if start == 0 && end == source_length' "$OWNER" || {
     echo "[self-host-parity:semantic-normalization] source-string reuse guard is missing" >&2
     exit 1
 }

@@ -7,7 +7,7 @@
 import "text_scan_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 
-func SemanticStripOuterParens(expr: String) -> String {
+func SemanticTrimSourceReuse(expr: String) -> String {
     let source_length: Int = StringLength(expr);
     let start: Int = 0;
     let end: Int = source_length;
@@ -21,10 +21,14 @@ func SemanticStripOuterParens(expr: String) -> String {
     ) {
         end = end - 1;
     }
-    let text: String = expr;
-    if start != 0 || end != source_length {
-        text = Substring(expr, start, end - start);
+    if start == 0 && end == source_length {
+        return expr;
     }
+    return Substring(expr, start, end - start);
+}
+
+func SemanticStripOuterParens(expr: String) -> String {
+    let text: String = SemanticTrimSourceReuse(expr);
     let keep_scanning: Bool = true;
     while keep_scanning && StringLength(text) >= 2 &&
         SourceByteAt(text, StringLength(text), 0) == SourceByteOf("(") {
