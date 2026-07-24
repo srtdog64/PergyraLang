@@ -24,9 +24,11 @@ require '$summaryPath'
 require '$env:MAKEFLAGS = $null'
 require '$env:MAKELEVEL = $null'
 require 'New-Object System.Diagnostics.ProcessStartInfo'
+require 'EnvironmentVariables["PGY_BUILD_PRESSURE_ACTIVE"] = "1"'
 require 'StartedAt $started'
 require 'cc1|cc1plus|lto1|lto-wrapper|collect2|ld'
 require 'pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+'
+require 'driver_(oracle|seed|gen[0-9]+|c|llvm)'
 require 'detached_compiler_worker_tracking = $true'
 require '$exitCode = [int]$process.ExitCode'
 require 'New-Object System.Text.UTF8Encoding($false)'
@@ -42,10 +44,16 @@ grep -Fq 'build-pressure-compiler:' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] missing full compiler probe" >&2; exit 1; }
 grep -Fq 'build-pressure-self-host-compiler:' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] missing self-host compiler probe" >&2; exit 1; }
-if [[ "$(grep -c -- '-StopOnLimit' "$ROOT_DIR/Makefile")" -lt 3 ]]; then
+if [[ "$(grep -c -- '-StopOnLimit' "$ROOT_DIR/Makefile")" -lt 4 ]]; then
     echo "[build-pressure-contract] compiler probes do not enforce the hard memory ceiling" >&2
     exit 1
 fi
+grep -Fq -- '-Label self-host-driver-fixpoint' "$ROOT_DIR/Makefile" \
+    || { echo "[build-pressure-contract] full driver fixpoint is outside the pressure probe" >&2; exit 1; }
+grep -Fq 'self-host-driver-bootstrap-full-pressure-body-test-smoke' "$ROOT_DIR/Makefile" \
+    || { echo "[build-pressure-contract] full driver fixpoint lacks a bounded body target" >&2; exit 1; }
+grep -Fq 'full pressure body requires measure_build_pressure.ps1' "$ROOT_DIR/Makefile" \
+    || { echo "[build-pressure-contract] full driver body can bypass its pressure owner" >&2; exit 1; }
 grep -Fq '*/Git/usr/bin/bash.exe)' "$DRIVER_PARITY" \
     || { echo "[build-pressure-contract] full DRV-2 matrix lacks the Git Bash orphan guard" >&2; exit 1; }
 grep -Fq 'full matrix requires MSYS2 bash' "$DRIVER_PARITY" \

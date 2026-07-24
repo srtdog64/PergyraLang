@@ -8,8 +8,14 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Current local HEAD and `origin/main` are `96a96868` (`Harden generic wrapper
-  fact failure ownership`).
+- The implementation checkpoint immediately before this handoff refresh is
+  `9b002796` (`Harden self-host build pressure boundaries`), pushed to
+  `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
+  because a committed handoff cannot name its own Git object ID.
+- `9b002796` adds measured, fail-closed 3 GiB Windows pressure boundaries for
+  native and bounded Pergyra-built compiler builds, attributes reparented MSYS
+  compiler workers, and rejects unfiltered Git Bash execution of the 280-row
+  DRV-2 matrix. It is operational hardening, not self-host substitution.
 - `a42616b7` is the latest executable closure: concrete by-value wrapper
   declarations are projected from semantic type/signature/specialization facts;
   generic formal templates are excluded; specialized concrete return/parameter
@@ -35,20 +41,34 @@ owner, and the named executable gate.
 - The previous indexed Set argument closure remains `23c2f0cb`; its handoff
   refresh is `cb25eb92`.
 
-## Exact remaining dirty state at handoff
+## Exact remaining dirty state after the pressure/handoff commits
 
-The following work was present but was not included in the two commits above:
+The following concurrent or user-owned work remains outside the pressure
+commits:
 
 - modified `Makefile`;
 - modified `src/compiler/mir_fact_surface_validate.c`;
 - modified `src/compiler/mir_fact_validate_internal.h`;
 - modified `src/compiler/mir_json_dump.c`;
+- modified `src/self_hosted/OWNERS.md`;
+- modified `src/self_hosted/codegen/emission/program_emit.pgy`;
+- modified `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy`;
+- modified `src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy`;
+- modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
 - untracked `src/compiler/mir_fact_surface_validate_resource.c`;
 - untracked `src/compiler/mir_json_dump_decl.c`;
 - untracked `src/compiler/mir_json_dump_decl.h`;
+- untracked
+  `src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy`;
 - modified `tests/self_hosted/parity/driver_bootstrap.sh`;
+- modified `tests/self_hosted/parity/driver_rung2_body_parity.sh`;
+- modified
+  `tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh`;
 - modified `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
+- modified
+  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
 - modified `tests/self_hosted_component_contract_smoke.sh`;
+- untracked `tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh`;
 - untracked `docs/198_market_safety_positioning.md`;
 - untracked `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
 
@@ -58,6 +78,45 @@ The raw full-matrix blocker note predates `6574f89f`; its observed failure is
 resolved, but the untracked file remains user-owned. The driver-bootstrap
 runtime-header classifier change is plausible follow-up work but has not been
 included in an executable closure commit here.
+
+## 2026-07-24 memory incident and architecture checkpoint
+
+Observed facts:
+
+- A forced native release rebuild completed in 1,576,373 ms. Its separately
+  sampled final LTO relink peaked at 490.3 MB working set / 444.1 MB private.
+- A fresh `make self-host-compiler` equivalent built the bounded Pergyra DRV-2
+  in 351,507 ms and peaked at 1,343.8 MB working set / 1,412.2 MB private.
+  `gen2.exe` owned 1,134.1 MB private while producing an approximately 3 MiB
+  AST and 3 MiB C artifact. This is optimization debt, but not a 20 GiB build.
+- The desktop incident included a Git Bash wrapper whose native DRV-2 worker
+  survived reparented, a second full matrix started over it, other high-memory
+  desktop/WSL processes, and D: at 97% use. No single currently sampled normal
+  compiler build owned 20 GiB.
+- A distinct earlier full-input `driver_mir_oracle` run is a confirmed real
+  defect: it reached approximately 17 GiB RSS / 28 GiB private, produced no
+  MIR artifact, and was stopped. This is unresolved full-driver MIR
+  materialization amplification, not acceptable self-host overhead.
+- The official Windows full-fixpoint target is now pressure-wrapped at 3 GiB,
+  including reparented `driver_oracle`, `driver_seed`, and `driver_genN`
+  processes. The direct script-plus-environment invocation is not an approved
+  diagnostic path for this blocker.
+- A follow-up process audit caught that direct bypass running concurrently with
+  a 95-fixture DRV-2 shard. A recursive make dry-run briefly added a third run;
+  the exact 21-process Pergyra set was at 2,020.6 MB working set / 2,114 MB
+  private when stopped. GNU make executes lines containing `$(MAKE)` even with
+  `-n`; verify this pressure recipe through its static gate, not a dry-run.
+
+Architecture boundary:
+
+- C and LLVM are peer production backends of the current native compiler.
+- The Pergyra-built DRV-2 is still a bounded source/MIR-to-C replacement.
+  Building that tool through C and LLVM proves parity; it does not make LLVM a
+  Pergyra-owned self-host emitter and does not make the released compiler fully
+  self-hosted.
+- The next compiler-world closure must keep one backend-neutral semantic/MIR/
+  ABI fact spine and let C and LLVM consume it as peers. Do not reproduce the C
+  compiler's file fragmentation or create a mirrored C-shaped Pergyra tree.
 
 ## Latest closed executable rung: generic wrapper materialization surface
 
@@ -212,6 +271,17 @@ Observed closure:
 
 Green:
 
+- `tests/build_pressure_contract_smoke.sh`: native, bounded self-host, full
+  driver-fixpoint, detached-worker, and Git Bash matrix boundaries wired.
+- PowerShell parser validation for `scripts/measure_build_pressure.ps1`.
+- `bash -n tests/self_hosted/parity/driver_rung2_body_parity.sh`.
+- `tests/documentation_quality_smoke.sh`.
+- Full-pressure body bypass negative: direct body invocation exits 1 with
+  `full pressure body requires measure_build_pressure.ps1`.
+- Pressure sentinel propagation probe: the measured child observed
+  `PGY_BUILD_PRESSURE_ACTIVE=1` and exited 0.
+- Actual isolated native LTO relink and bounded Pergyra-built DRV-2 build under
+  the measured process-tree sampler, with the peaks recorded above.
 - Pergyra-built DRV-2 rebuild after the receiver-owner change, exit 0.
 - Machine fixture producer/consumer: `produce=0`, `consume=0` with the
   repository-relative declaration manifest.
@@ -272,6 +342,9 @@ Blocked by unrelated dirty work:
 
 Not run:
 
+- Full-input driver fixpoint after the new 3 GiB boundary. The earlier
+  17 GiB/28 GiB run already falsified the unbounded path; the next run must use
+  the official pressure-wrapped target.
 - Full unfiltered 280-row hard DRV-2 matrix.
 - LLVM parity for the generic wrapper and generic-return focused rungs.
 - LLVM parity for the new Set literal rung.
@@ -292,14 +365,17 @@ selects it. At the next scheduled/merge boundary:
    untracked documents.
 2. Resolve or isolate the native JSON split component assertion under its own
    owner; do not absorb it into a Pergyra language rung by convenience.
-3. Re-run the full driver fixpoint with a measured memory budget, then the
-   unfiltered 280-row hard DRV-2 matrix and LLVM lane once the Windows
-   temporary-file permission blocker is removed. The bounded scan is green, so
-   the first red row from the full gate, not fixture ordering or an AI guess,
-   chooses the next rung.
-4. For that row, record objective, owner, last consumer, forbidden fallback,
-   and falsifier before editing.
-5. Land another executable Pergyra replacement before spending multiple
+3. Re-run the full driver fixpoint only through
+   `self-host-driver-bootstrap-full-test-smoke`. A 3 GiB stop is the expected
+   falsifier until full-driver MIR materialization is bounded; inspect the
+   pressure summary before changing allocation ownership.
+4. Once that blocker is closed, run the unfiltered 280-row hard DRV-2 matrix
+   from MSYS2 and its LLVM lane. The first red row, not fixture ordering or an
+   AI guess, chooses the next semantic rung.
+5. For that row, record objective, owner, last consumer, forbidden fallback,
+   and falsifier before editing. Keep C/LLVM peer emitters behind one
+   Pergyra-owned fact spine rather than mirroring C fragments.
+6. Land another executable Pergyra replacement before spending multiple
    commits on documentation or SoT-only cleanup.
 
 ## Workstation and recovery facts

@@ -32,6 +32,7 @@ PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report  # slower exact siz
 mingw32-make build-pressure-dev-compiler # samples pgy-only build RSS/private bytes
 mingw32-make build-pressure-compiler     # samples default LLVM-enabled compiler build
 mingw32-make build-pressure-self-host-compiler # samples the Pergyra-built DRV-2 build
+mingw32-make self-host-driver-bootstrap-full-test-smoke # full fixpoint; pressure-wrapped on Windows
 mingw32-make clean-scratch              # removes .tmp only
 mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
 ```
@@ -114,6 +115,26 @@ DRV-2 remains a bounded Pergyra-built source/MIR-to-C replacement. C and LLVM
 are the native compiler's peer production backends; compiling a self-host tool
 through both backends is parity evidence, not evidence that the Pergyra-built
 driver owns a self-hosted LLVM emitter.
+
+There is also a distinct, confirmed full-input defect. An earlier isolated
+`driver_mir_oracle --emit-mir-json-verified` run over the driver source reached
+approximately 17 GiB RSS / 28 GiB private memory and produced no artifact
+before it was stopped. That is not a normal compiler build and it is not
+excused by self-hosting: it is unresolved full-driver MIR materialization
+amplification. On Windows, the official
+`self-host-driver-bootstrap-full-test-smoke` entry now runs inside the same
+3 GiB hard pressure boundary and attributes reparented `driver_oracle`,
+`driver_seed`, and `driver_genN` workers. Do not invoke the script directly
+with `PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1` when investigating this defect.
+
+The follow-up check found that exact bypass active beside a 95-fixture DRV-2
+shard. Together with a short-lived third recursive make probe, the three runs
+owned 21 project processes and 2,114 MB private memory at an early snapshot;
+they were stopped before the full-input oracle could grow further. This also
+exposed a GNU make diagnostic trap: `make -n` still executes a recipe line that
+contains `$(MAKE)`, because make treats it as a recursive invocation. Do not
+dry-run the full-fixpoint pressure target; use
+`tests/build_pressure_contract_smoke.sh` to verify its wiring.
 
 So a stalled desktop is not automatically evidence of a compiler heap leak. If
 single `compiler` builds stay below a few hundred MB but broad smokes stall the

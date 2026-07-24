@@ -74,6 +74,7 @@ $processInfo.UseShellExecute = $false
 $processInfo.CreateNoWindow = $true
 $processInfo.RedirectStandardOutput = $true
 $processInfo.RedirectStandardError = $true
+$processInfo.EnvironmentVariables["PGY_BUILD_PRESSURE_ACTIVE"] = "1"
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $processInfo
 if (-not $process.Start()) {
@@ -139,7 +140,7 @@ function Get-ProcessTreeRows {
     # this isolated probe started; concurrent broad builds are forbidden while
     # a pressure probe owns the machine.
     $detachedToolPattern = `
-        '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl|cc1|cc1plus|lto1|lto-wrapper|collect2|ld|lld|lld-link|pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+)(\.exe)?$'
+        '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl|cc1|cc1plus|lto1|lto-wrapper|collect2|ld|lld|lld-link|pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+|driver_(oracle|seed|gen[0-9]+|c|llvm))(\.exe)?$'
     foreach ($p in $all) {
         if ([string]$p.Name -notmatch $detachedToolPattern) {
             continue
