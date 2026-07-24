@@ -2757,6 +2757,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_function_table_owner_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh

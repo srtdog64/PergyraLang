@@ -43,30 +43,60 @@ type_check_stdlib_array_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (kind == STDLIB_COLLECTION_ARRAY_PUSH) {
+    if (kind == STDLIB_COLLECTION_ARRAY_PUSH ||
+        kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) {
         Type *arr;
         Type *val;
+        const char *op_name = kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+            ? "ArrayPushOwnedString" : "ArrayPush";
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
         if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, "ArrayPush", "array", ctx))
+                arg0, arr, op_name, "array", ctx))
             return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
-            arg1, val, "array", "ArrayPush", ctx);
+            arg1, val, "array", op_name, ctx);
         if (!type_is_constructed_named(arr, "Array")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
-                "ArrayPush requires Array<T>, got '%s'",
+                "%s requires Array<T>, got '%s'", op_name,
                 type_name_or_unknown(arr));
         } else {
             Type *inner = type_get_constructed_arg(arr, 0);
-            if (inner != NULL)
+            if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING &&
+                (inner == NULL || !type_equals(inner, TYPE_STRING))) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
+                    "ArrayPushOwnedString requires Array<String>, got '%s'",
+                    type_name_or_unknown(arr));
+            } else if (inner != NULL)
                 require_assignable(val, inner, arg1, ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (kind == STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS) {
+        Type *arr;
+        Type *inner;
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        arr = stdlib_array_normalize_type(type_check_expression(arg0, ctx));
+        if (reject_non_inout_param_collection_mutator_receiver(
+                arg0, arr, "ArrayDropOwnedStrings", "array", ctx))
+            return TYPE_UNKNOWN;
+        inner = type_is_constructed_named(arr, "Array")
+            ? type_get_constructed_arg(arr, 0) : NULL;
+        if (inner == NULL || !type_equals(inner, TYPE_STRING)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
+                "ArrayDropOwnedStrings requires Array<String>, got '%s'",
+                type_name_or_unknown(arr));
         }
         return TYPE_VOID;
     }

@@ -31,11 +31,13 @@ stdlib_collection_normalize_type(Type *type)
 static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *name)
 {
     static const StdlibCollectionBuiltinSpec specs[] = {
+        { "ArrayDropOwnedStrings", STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS },
         { "ArrayFilter", STDLIB_COLLECTION_ARRAY_FILTER },
         { "ArrayLength", STDLIB_COLLECTION_ARRAY_LENGTH },
         { "ArrayMap", STDLIB_COLLECTION_ARRAY_MAP },
         { "ArrayPop", STDLIB_COLLECTION_ARRAY_POP },
         { "ArrayPush", STDLIB_COLLECTION_ARRAY_PUSH },
+        { "ArrayPushOwnedString", STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING },
         { "ArrayReverse", STDLIB_COLLECTION_ARRAY_REVERSE },
         { "ArraySet", STDLIB_COLLECTION_ARRAY_SET },
         { "ArraySort", STDLIB_COLLECTION_ARRAY_SORT },
@@ -78,6 +80,8 @@ static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKin
         || kind == STDLIB_COLLECTION_QUEUE_PUSH
         || kind == STDLIB_COLLECTION_QUEUE_POP
         || kind == STDLIB_COLLECTION_ARRAY_PUSH
+        || kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+        || kind == STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS
         || kind == STDLIB_COLLECTION_ARRAY_SET
         || kind == STDLIB_COLLECTION_ARRAY_POP
         || kind == STDLIB_COLLECTION_ARRAY_SORT

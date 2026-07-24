@@ -121,7 +121,9 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "SetAdd^Void^Unknown|Unknown",
         "SetRemove^Void^Unknown|Unknown",
         "SetHas^Bool^Unknown|Unknown",
-        "SetSize^Int^Unknown"
+        "SetSize^Int^Unknown",
+        "ArrayPushOwnedString^Void^Array<String>|String",
+        "ArrayDropOwnedStrings^Void^Array<String>"
     ];
     return rows;
 }
@@ -243,8 +245,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
             "ListNew", 0, Some("List<HashMap<String, Int>>")
         );
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 118 && ArrayLength(returns) == 118 &&
-        ArrayLength(params) == 118 && names[0] == "StringLength" &&
+        ArrayLength(names) == 120 && ArrayLength(returns) == 120 &&
+        ArrayLength(params) == 120 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -293,6 +295,10 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         returns[116] == "Bool" && params[116] == "Unknown|Unknown" &&
         names[117] == "SetSize" && returns[117] == "Int" &&
         params[117] == "Unknown" &&
+        names[118] == "ArrayPushOwnedString" && returns[118] == "Void" &&
+        params[118] == "Array<String>|String" &&
+        names[119] == "ArrayDropOwnedStrings" && returns[119] == "Void" &&
+        params[119] == "Array<String>" &&
         IsSome(contextual_list) && UnwrapOption(contextual_list) ==
             "List<HashMap<String, Int>>" &&
         IsSome(SemanticContextualBuiltinReturnTypeOpt(

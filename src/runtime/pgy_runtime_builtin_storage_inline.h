@@ -45,6 +45,26 @@ PGY_ARRAY_DEFINE(Double, double)
 PGY_ARRAY_DEFINE(Bool,   bool)
 PGY_ARRAY_DEFINE(String, char*)
 
+/* Explicit owner pair for compiler semantic scratch arrays. The ordinary
+ * Array<String> beta surface remains no-free; these helpers are valid only
+ * for arrays whose elements were inserted through the matching push helper. */
+static inline void
+pgy_array_push_owned_String(PgyArray_String *arr, char *value)
+{
+    pgy_array_push_String(arr, value);
+}
+
+static inline void
+pgy_array_drop_owned_String(PgyArray_String *arr)
+{
+    if (arr == NULL)
+        return;
+    for (size_t i = 0; i < arr->length; i++) {
+        free(arr->data[i]);
+        arr->data[i] = NULL;
+    }
+    pgy_array_drop_String(arr);
+}
 
 PGY_RC_DEFINE(Int,    int32_t)
 PGY_RC_DEFINE(Long,   int64_t)

@@ -67,9 +67,9 @@ func SemanticAstExpressionSeedEnumValues(
     while i < ArrayLength(enums.variant_names) {
         if enums.variant_param_counts[i] == 0 &&
             !EnvContainsName(names, enums.variant_names[i]) {
-            ArrayPush(names, enums.variant_names[i]);
-            ArrayPush(types, enums.variant_enum_names[i]);
-            ArrayPush(modes, "enum_value");
+            ArrayPushOwnedString(names, enums.variant_names[i]);
+            ArrayPushOwnedString(types, enums.variant_enum_names[i]);
+            ArrayPushOwnedString(modes, "enum_value");
         }
         i = i + 1;
     }
@@ -309,7 +309,7 @@ func SemanticAstExpressionSeedParameterModes(
         } else if mode == 3 {
             mode_name = "ref_param";
         }
-        ArrayPush(modes, mode_name);
+        ArrayPushOwnedString(modes, mode_name);
         i = i + 1;
     }
     return true;
@@ -346,8 +346,8 @@ func SemanticAstExpressionSeedParameters(
         if !IsSome(name) || !IsSome(type_name) {
             return false;
         }
-        ArrayPush(names, UnwrapOption(name));
-        ArrayPush(types, UnwrapOption(type_name));
+        ArrayPushOwnedString(names, UnwrapOption(name));
+        ArrayPushOwnedString(types, UnwrapOption(type_name));
         i = i + 1;
     }
     return true;
@@ -384,8 +384,8 @@ func SemanticAstExpressionSeedVisibleLocals(
             if type_name == "" || type_name == "Unknown" {
                 return false;
             }
-            ArrayPush(names, locals.names[i]);
-            ArrayPush(types, type_name);
+            ArrayPushOwnedString(names, locals.names[i]);
+            ArrayPushOwnedString(types, type_name);
         }
         i = i + 1;
     }
@@ -410,7 +410,7 @@ func SemanticAstExpressionSeedVisibleLocalModes(
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[i], use_node_id
             ) {
-            ArrayPush(modes, "local");
+            ArrayPushOwnedString(modes, "local");
         }
         i = i + 1;
     }
@@ -422,9 +422,9 @@ func SemanticAstExpressionEnvironmentClear(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Void {
-    while ArrayLength(names) > 0 { ArrayPop(names); }
-    while ArrayLength(types) > 0 { ArrayPop(types); }
-    while ArrayLength(modes) > 0 { ArrayPop(modes); }
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(types);
+    ArrayDropOwnedStrings(modes);
 }
 
 func SemanticAstExpressionSeedVisibleIterationRows(
@@ -459,9 +459,9 @@ func SemanticAstExpressionSeedVisibleIterationRows(
             if binding_type == "" || binding_type == "Unknown" {
                 return false;
             }
-            ArrayPush(names, iteration_binding_names[i]);
-            ArrayPush(types, binding_type);
-            ArrayPush(modes, "loop_binding");
+            ArrayPushOwnedString(names, iteration_binding_names[i]);
+            ArrayPushOwnedString(types, binding_type);
+            ArrayPushOwnedString(modes, "loop_binding");
         }
         i = i + 1;
     }
@@ -514,7 +514,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
         ArrayLength(modes) == 3 && modes[0] == "default_param" &&
         modes[1] == "local" && modes[2] == "local" &&
-        ArrayLength(function_names) == 119 &&
+        ArrayLength(function_names) == 121 &&
         function_names[101] == "StringConcat" &&
         function_returns[101] == "String" &&
         function_params[101] == "String|String" &&
@@ -566,8 +566,14 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         function_names[117] == "SetSize" &&
         function_returns[117] == "Int" &&
         function_params[117] == "Unknown" &&
-        function_names[118] == "F" && function_returns[118] == "Void" &&
-        function_params[118] == "Int" &&
+        function_names[118] == "ArrayPushOwnedString" &&
+        function_returns[118] == "Void" &&
+        function_params[118] == "Array<String>|String" &&
+        function_names[119] == "ArrayDropOwnedStrings" &&
+        function_returns[119] == "Void" &&
+        function_params[119] == "Array<String>" &&
+        function_names[120] == "F" && function_returns[120] == "Void" &&
+        function_params[120] == "Int" &&
         SemanticAstExpressionEnumValueContractReady() &&
         SemanticAstExpressionOwnerFieldEnvironmentContractReady();
 }
