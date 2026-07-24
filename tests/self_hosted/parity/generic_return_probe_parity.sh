@@ -36,6 +36,7 @@ KIND_OWNER="$ROOT_DIR/src/self_hosted/hir/ast_node_kind_owner.pgy"
 INVENTORY_OWNER="$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy"
 SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 GENERIC_ROW_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy"
+NORMALIZATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/expression_normalization_owner.pgy"
 TYPE_EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy"
 GENERIC_CALL_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy"
 EXPRESSION_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
@@ -46,9 +47,19 @@ for input in "$SOURCE" "$EXPECTED" "$MISMATCH_EXPECTED" \
     "$EXPLICIT_MISMATCH_EXPECTED" "$EXPLICIT_OK" "$EXPLICIT_MISMATCH" \
     "$POSTFIX_OWNER" "$CALL_VIEW_OWNER" \
     "$INVENTORY_OWNER" "$SIGNATURE_OWNER" "$GENERIC_ROW_OWNER" \
-    "$TYPE_EXPRESSION_OWNER" "$GENERIC_CALL_OWNER" "$EXPRESSION_VERDICT"; do
+    "$NORMALIZATION_OWNER" "$TYPE_EXPRESSION_OWNER" "$GENERIC_CALL_OWNER" \
+    "$EXPRESSION_VERDICT"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
+
+grep -Fq 'import "expression_normalization_owner.pgy";' "$GENERIC_ROW_OWNER" ||
+    { echo "[$LABEL] generic parameter owner bypasses normalization SoT" >&2; exit 1; }
+grep -Fq 'func SemanticTrimSourceRangeReuse(' "$NORMALIZATION_OWNER" ||
+    { echo "[$LABEL] range trim owner is missing" >&2; exit 1; }
+if grep -Fq 'StringTrim(Substring(' "$GENERIC_ROW_OWNER"; then
+    echo "[$LABEL] generic default rows retain an unconditional trim copy" >&2
+    exit 1
+fi
 
 grep -Fq 'TypedAstKindGenericParamsTag()' "$KIND_OWNER" "$INVENTORY_OWNER" ||
     { echo "[$LABEL] generic parameter row is not typed HIR" >&2; exit 1; }

@@ -6,6 +6,7 @@ import "../hir/ast_text_scan_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 func SemanticAstGenericParameterDefaultRowsFromText(
     row: String,
@@ -31,10 +32,10 @@ func SemanticAstGenericParameterDefaultRowsFromText(
         let name: String = part;
         let default_type: String = "";
         if equal >= 0 {
-            name = StringTrim(Substring(part, 0, equal));
-            default_type = StringTrim(Substring(
-                part, equal + 1, StringLength(part) - equal - 1
-            ));
+            name = SemanticTrimSourceRangeReuse(part, 0, equal);
+            default_type = SemanticTrimSourceRangeReuse(
+                part, equal + 1, StringLength(part)
+            );
         }
         if !IsIdentifier(name) || (equal >= 0 && default_type == "") {
             return false;
