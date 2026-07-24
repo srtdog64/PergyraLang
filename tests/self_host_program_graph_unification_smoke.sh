@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Ratchets the self-hosted compiler toward one structural expression graph.
 # Before the target lands, three storage owners are the explicit baseline.
-# Once it exists, the HIR and semantic topology declarations must be gone;
-# only the program topology and the still-open MIR projection may store rows.
+# Once it exists, the HIR, semantic, and MIR topology declarations must be
+# gone; only the program graph may store node rows.
 
 set -euo pipefail
 
@@ -20,7 +20,6 @@ LEGACY_TOPOLOGY_OWNERS=(
 )
 POST_REPOINT_OWNERS=(
     "$TARGET_OWNER"
-    "src/self_hosted/mir/expression_graph_fact_owner.pgy"
 )
 
 fail() {
@@ -90,9 +89,13 @@ done
 
 require_text "Makefile" "self-host-program-graph-unification-test-smoke:"
 require_text "Makefile" '"$(BASH)" tests/self_host_program_graph_unification_smoke.sh'
+require_text "Makefile" '"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh'
 make_wiring_count="$(grep -Fc -- '"$(BASH)" tests/self_host_program_graph_unification_smoke.sh' "$ROOT_DIR/Makefile")"
 [[ "$make_wiring_count" -eq 2 ]] ||
     fail "expected target and preparation wiring in Makefile, got $make_wiring_count"
+projection_wiring_count="$(grep -Fc -- '"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh' "$ROOT_DIR/Makefile")"
+[[ "$projection_wiring_count" -eq 2 ]] ||
+    fail "expected MIR projection target and preparation wiring in Makefile, got $projection_wiring_count"
 require_text "src/self_hosted/compiler/gate_dashboard_owner.pgy" \
     '"program_graph_unification"'
 require_text "src/self_hosted/compiler/gate_dashboard_owner.pgy" \
@@ -157,7 +160,7 @@ else
     is_structural_expression_store "$TARGET_OWNER" ||
         fail "target owner exists without the structural graph contract: $TARGET_OWNER"
     if [[ "${#structural_owners[@]}" -ne "${#POST_REPOINT_OWNERS[@]}" ]]; then
-        fail "semantic topology repointing requires exactly ${#POST_REPOINT_OWNERS[@]} structural owners, got ${#structural_owners[@]}"
+        fail "program graph unification requires exactly ${#POST_REPOINT_OWNERS[@]} structural owners, got ${#structural_owners[@]}"
     fi
     for owner in "${POST_REPOINT_OWNERS[@]}"; do
         is_structural_expression_store "$owner" ||
@@ -168,7 +171,7 @@ else
             fail "semantic_topology_copy remains in retired owner: $owner"
         fi
     done
-    phase="semantic-repointed"
+    phase="unified"
 fi
 
 echo "[self-host-program-graph-unification] phase=$phase structural_owners=${#structural_owners[@]} target=$TARGET_OWNER"

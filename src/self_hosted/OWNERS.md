@@ -464,7 +464,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
-  normalized expression graph rows and postorder subtree carriage.
+  expression graph root/range handles over the program-owned semantic graph.
+  The bridge reads structural and call-target facts only through semantic
+  accessors and fails closed on missing or foreign graph handles.
 - `src/self_hosted/mir/match_fact_owner.pgy` -- sparse instruction-keyed match
   pattern, variant, and binding facts; the scalar rung requires one pattern.
 - `src/self_hosted/mir/destructure_fact_owner.pgy` -- sparse instruction-keyed

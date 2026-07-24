@@ -28,37 +28,62 @@ func SelfMirJsonExpressionGraph(
     let i: Int = 0;
     while i < count {
         let node: Int = start + i;
-        let kind: Int = rows.node_kinds[node];
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            rows.graph, node
+        );
+        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+            rows.graph, node
+        );
+        let call_target_kind_opt: Option<Int> =
+            SemanticExpressionGraphCallTargetKind(rows.graph, node);
+        let call_target_name_opt: Option<String> =
+            SemanticExpressionGraphCallTargetName(rows.graph, node);
+        if !IsSome(kind_opt) || !IsSome(text_opt) ||
+            !IsSome(call_target_kind_opt) || !IsSome(call_target_name_opt) {
+            return "null";
+        }
+        let kind: Int = UnwrapOption(kind_opt);
         let fields: Array<String> = [
             JsonEmitFieldString(
                 "kind", SelfMirExpressionGraphKindName(kind)
             ),
-            JsonEmitFieldString("text", rows.node_texts[node]),
+            JsonEmitFieldString("text", UnwrapOption(text_opt)),
             JsonEmitFieldString(
                 "call_target_kind",
                 SelfMirExpressionCallTargetKindName(
-                    rows.call_target_kinds[node]
+                    UnwrapOption(call_target_kind_opt)
                 )
             ),
-            JsonEmitFieldString(
-                "call_target_name", rows.call_target_names[node]
-            )
+            JsonEmitFieldString("call_target_name", UnwrapOption(
+                call_target_name_opt
+            ))
         ];
         let arity: Int = AstExpressionNodeArity(kind);
         if arity == 0 {
             ArrayPush(fields, JsonEmitFieldRaw("left", "null"));
             ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
         } else if arity == 1 {
+            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+                rows.graph, node
+            );
+            if !IsSome(left_opt) { return "null"; }
             ArrayPush(fields, JsonEmitFieldNumber(
-                "left", ToString(rows.left_children[node] - start)
+                "left", ToString(UnwrapOption(left_opt) - start)
             ));
             ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
         } else {
+            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+                rows.graph, node
+            );
+            let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+                rows.graph, node
+            );
+            if !IsSome(left_opt) || !IsSome(right_opt) { return "null"; }
             ArrayPush(fields, JsonEmitFieldNumber(
-                "left", ToString(rows.left_children[node] - start)
+                "left", ToString(UnwrapOption(left_opt) - start)
             ));
             ArrayPush(fields, JsonEmitFieldNumber(
-                "right", ToString(rows.right_children[node] - start)
+                "right", ToString(UnwrapOption(right_opt) - start)
             ));
         }
         ArrayPush(nodes, JsonEmitObject(fields));

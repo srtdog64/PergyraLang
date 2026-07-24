@@ -3825,8 +3825,12 @@ beyond the lexer:
   after the repoint still stopped at the 3 GiB boundary: 2,531.5 MB peak working
   set / 3,076.7 MB peak private, with initializer row 5,214 complete and row
   5,215 started. This falsifies the removed semantic topology copy as the sole
-  memory cause. Routine-scoped semantic lifetime, MIR topology copying, and
-  revision-scoped stable IDs remain open.
+  memory cause. The MIR bridge now carries only root/range handles and obtains
+  topology and call-target facts through semantic accessors; missing or
+  foreign handles fail closed. The combined graph target runs the one-owner
+  storage ratchet and this projection-negative gate. Routine-scoped semantic
+  lifetime and revision-scoped stable IDs remain open. MIR topology copying is
+  closed for this projection.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

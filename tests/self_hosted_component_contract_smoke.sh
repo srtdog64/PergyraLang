@@ -3273,7 +3273,19 @@ require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "func SelfMirExpressionGraphSubtreeStart("
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
-    "while source_node <= view.root_id"
+    "graph: SemanticExpressionGraphFacts;"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "SemanticExpressionGraphFactsEqual(graph, view.graph)"
+for retired_mir_graph_field in \
+    "node_kinds: Array<Int>;" \
+    "node_texts: Array<String>;" \
+    "left_children: Array<Int>;" \
+    "right_children: Array<Int>;" \
+    "call_target_kinds: Array<Int>;" \
+    "call_target_names: Array<String>;"; do
+    reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+        "$retired_mir_graph_field"
+done
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "func SelfMirExpressionGraphRangeReachable("
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \

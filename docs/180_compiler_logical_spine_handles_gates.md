@@ -254,7 +254,7 @@ Current structural storage:
 | `LANDED` | `src/self_hosted/hir/program_graph_owner.pgy` | stable `AstExpressionArena` kind/text/children topology shared by parser/HIR and semantic |
 | `RETIRED` | `src/self_hosted/hir/ast_expression_graph_owner.pgy` | no structural fields; validates graph rows and node invariants over the target topology |
 | `REPOINTED` | `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` | borrows target topology; owns normalized text, call-target, and place overlays only |
-| `BRIDGE` | `src/self_hosted/mir/expression_graph_fact_owner.pgy` | the same topology plus per-instruction ranges |
+| `HANDLE` | `src/self_hosted/mir/expression_graph_fact_owner.pgy` | instruction-local root and bounded-range handles over the program-owned semantic graph; no copied topology |
 
 This is a storage-and-identity migration under the existing
 `selfhost.expression_graph` semantic authority, not a second top-level fact
@@ -271,20 +271,25 @@ Migration order:
 3. **Partial:** semantic now consumes that topology and its duplicate kind/child
    arrays are deleted. Normalize text and call/place facts remain overlays;
    missing rows fail closed, and revision-scoped `ExpressionNodeId` is open.
-4. Repoint MIR to instruction/root/origin handles. Delete graph-row copying and
-   forbid expression-text recovery in the MIR consumer.
+4. **LANDED:** MIR carries only instruction/root/origin handles over the
+   program-owned semantic graph. JSON, validation, and assignment checks use
+   typed semantic accessors; graph mismatch and missing/foreign handles fail
+   closed. The copied MIR node rows are deleted.
 5. Repoint AIR and emission consumers to typed handles/projections, then retire
    the HIR compatibility owner if no legitimate consumer remains.
 6. Run the pressure-owned full-driver fixed point and the unfiltered 280-row
    C/LLVM/self-hosted matrix. The first artifact/parity failure selects the next
    owner seam.
 
-`tests/self_host_program_graph_unification_smoke.sh` is the initial negative
-ratchet. Before the target exists it recognizes exactly the three historical
-stores. With the target present it requires exactly two structural stores: the
-program topology and the still-open MIR projection. A returned HIR/semantic
-topology copy, any unregistered store, or a third owner fails the gate. The MIR
-migration must tighten this same gate to one owner.
+`tests/self_host_program_graph_unification_smoke.sh` is the negative ratchet.
+Before the target exists it recognizes exactly the three historical stores.
+With the target present it requires exactly one structural store: the program
+topology. A returned HIR/semantic/MIR topology copy, any unregistered store,
+or a second owner fails the gate.
+`tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh` is
+part of the same Make/dashboard target. It rejects raw topology reads, missing
+typed semantic handle reads, copied MIR topology, and expression-text
+recovery.
 
 The first official pressure observation after the semantic topology repoint
 remains red. A semantic-repointed snapshot completed codegen bootstrap and the
@@ -292,10 +297,12 @@ bounded seed/oracle parity, then the full driver stopped during initializer row
 5,215. The pressure owner recorded 2,531.5 MB peak working set, 3,076.7 MB peak
 private memory, and `driver_oracle.exe` at 3,065.9 MB private before enforcing
 the 3 GiB limit. Removing the semantic kind/child copy is therefore a real
-storage substitution but not the dominant full-driver lifetime closure. The
-next falsifier remains routine-scoped semantic fact lifetime; MIR topology
-retirement follows only after that executable boundary can be measured without
-whole-program retention.
+storage substitution but not the dominant full-driver lifetime closure. That
+measurement predates the final MIR handle transition, so it is not evidence of
+the one-owner snapshot's peak. The next exclusive pressure observation must
+measure this snapshot; the primary falsifier remains routine-scoped semantic
+fact lifetime and owner-proved reclamation of non-escaping compiler
+temporaries.
 
 ## 3. Layer Contract
 
@@ -497,7 +504,7 @@ migration vocabulary.
 | Compatibility Gate | old artifact -> new compiler/runtime | `PARTIAL` seed corpus | real historical source/MIR/AIR/ABI/diagnostic/trace/capability artifacts and migration targets |
 | Bootstrap Gate | compiler source -> self compiler | `PARTIAL` | whole semantic/MIR/driver replacement plus gen1/gen2/gen3 artifact equality |
 | Build Resource Budget Gate | compiler/test graph -> host resources | `PARTIAL` | per-stage RSS/disk/process caps, isolated impact plan, bounded parallelism, leak-vs-work amplification diagnostics |
-| Program Graph Unification Gate | HIR expression identity -> semantic/MIR typed views | `PARTIAL`; semantic topology repointed and the exact two-owner state is blocking | remove the MIR topology copy, bind the owner to revision-scoped handles, reject missing/foreign handles, and complete the full driver below 3 GiB |
+| Program Graph Unification Gate | HIR expression identity -> semantic/MIR typed views | `PARTIAL`; one structural store and handle-only MIR carriage are blocking, but revision identity and the full-driver memory bound remain open | bind the owner to revision-scoped identities, reject stale/foreign handles without repeated whole-graph comparison, and complete the full driver below 3 GiB |
 
 ## 8. Highest-Value Missing Choke Points
 

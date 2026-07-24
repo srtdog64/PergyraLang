@@ -38,17 +38,29 @@ func SelfMirAssignmentTargetGraphBaseText(
 ) -> Option<String> {
     let cursor: Int = root;
     let traversed: Int = 0;
-    while cursor >= 0 && cursor < ArrayLength(rows.node_kinds) &&
-        traversed < ArrayLength(rows.node_kinds) {
-        let kind: Int = rows.node_kinds[cursor];
+    while cursor >= 0 &&
+        cursor < SelfMirExpressionGraphNodeCount(rows) &&
+        traversed < SelfMirExpressionGraphNodeCount(rows) {
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            rows.graph, cursor
+        );
+        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+            rows.graph, cursor
+        );
+        if !IsSome(kind_opt) || !IsSome(text_opt) { return None; }
+        let kind: Int = UnwrapOption(kind_opt);
         if kind == AstExpressionNodeLeaf() {
-            return Some(rows.node_texts[cursor]);
+            return Some(UnwrapOption(text_opt));
         }
         if kind != AstExpressionNodeIndex() &&
             kind != AstExpressionNodeMemberAccess() {
             return None;
         }
-        cursor = rows.left_children[cursor];
+        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+            rows.graph, cursor
+        );
+        if !IsSome(left_opt) { return None; }
+        cursor = UnwrapOption(left_opt);
         traversed = traversed + 1;
     }
     return None;
@@ -74,31 +86,41 @@ func SelfMirAssignmentTargetGraphValidationError(
         return "target graph root is missing";
     }
     let root: Int = rows.expr1_graphs.roots[instruction_index];
+    let root_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        rows.expr1_graphs.graph, root
+    );
+    let root_text_opt: Option<String> = SemanticExpressionGraphNodeText(
+        rows.expr1_graphs.graph, root
+    );
+    if !IsSome(root_kind_opt) || !IsSome(root_text_opt) {
+        return "target graph root handle is invalid";
+    }
+    let root_kind: Int = UnwrapOption(root_kind_opt);
+    let root_text: String = UnwrapOption(root_text_opt);
     if target == base_name {
-        if rows.expr1_graphs.node_kinds[root] != AstExpressionNodeLeaf() {
+        if root_kind != AstExpressionNodeLeaf() {
             return Concat(
                 "simple target root kind differs: target=", target
             );
         }
-        if rows.expr1_graphs.node_texts[root] != target {
+        if root_text != target {
             return Concat(
                 "simple target root text differs: target=", Concat(
                     target, Concat(
-                        " graph=", rows.expr1_graphs.node_texts[root]
+                        " graph=", root_text
                     )
                 )
             );
         }
         return "";
     }
-    let root_kind: Int = rows.expr1_graphs.node_kinds[root];
     if (root_kind != AstExpressionNodeIndex() &&
         root_kind != AstExpressionNodeMemberAccess()) ||
-        rows.expr1_graphs.node_texts[root] != target {
+        root_text != target {
         return Concat(
             "projected target root differs: target=", Concat(
                 target, Concat(
-                    " graph=", rows.expr1_graphs.node_texts[root]
+                    " graph=", root_text
                 )
             )
         );
@@ -142,12 +164,12 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
 func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     let no_uses: Array<String> = [];
     let value_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["values[j]"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
     let target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [2], [0], [3],
             [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
              AstExpressionNodeIndex()],
@@ -156,12 +178,12 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             SemanticCallTargetNone()], ["", "", ""]
         );
     let simple_value_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["1"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
     let simple_target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["x"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
@@ -171,7 +193,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     let no_runtime_call_abi: SelfMirRuntimeCallAbiRows =
         SelfMirRuntimeCallAbiRowsForInstructionCount(1);
     let member_target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [2], [0], [3],
             [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
              AstExpressionNodeMemberAccess()],

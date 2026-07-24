@@ -4,7 +4,7 @@ import "program_verify_owner.pgy";
 
 func SelfMirAssignmentParameterZeroUseRows(mode: String) -> SelfMirInstructionRows {
     let no_uses: Array<String> = [];
-    let target_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
+    let target_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsFromLegacy(
         [1], [2], [0], [3],
         [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
          AstExpressionNodeIndex()],
@@ -12,7 +12,7 @@ func SelfMirAssignmentParameterZeroUseRows(mode: String) -> SelfMirInstructionRo
         [SemanticCallTargetNone(), SemanticCallTargetNone(),
          SemanticCallTargetNone()], ["", "", ""]
     );
-    let value_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
+    let value_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsFromLegacy(
         [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["other"],
         [0], [0], [SemanticCallTargetNone()], [""]
     );

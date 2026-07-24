@@ -2755,6 +2755,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
@@ -2948,6 +2949,7 @@ self-host-aggregate-field-policy-parity-test-smoke: $(PGY)
 
 self-host-program-graph-unification-test-smoke:
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
 
 self-host-gate-dashboard-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh

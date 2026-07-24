@@ -1,4 +1,8 @@
-// MIR instruction-owned normalized expression graph rows.
+// MIR instruction-owned expression graph handles.
+//
+// The immutable node topology and semantic overlays remain owned by the
+// program semantic graph. MIR carries only instruction-local root handles and
+// the bounded source range needed by projections; it must not copy node rows.
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 struct SelfMirExpressionGraphRows {
@@ -6,22 +10,16 @@ struct SelfMirExpressionGraphRows {
     roots: Array<Int>;
     node_starts: Array<Int>;
     node_counts: Array<Int>;
-    node_kinds: Array<Int>;
-    node_texts: Array<String>;
-    left_children: Array<Int>;
-    right_children: Array<Int>;
-    call_target_kinds: Array<Int>;
-    call_target_names: Array<String>;
+    graph: SemanticExpressionGraphFacts;
 }
 func SelfMirExpressionGraphRowsEmpty() -> SelfMirExpressionGraphRows {
     let ints: Array<Int> = [];
-    let strings: Array<String> = [];
     return SelfMirExpressionGraphRows(
-        ints, ints, ints, ints, ints, strings, ints, ints, ints, strings);
+        ints, ints, ints, ints, SemanticExpressionGraphFactsEmpty());
 }
 
 func SelfMirExpressionGraphNodeCount(ref rows: SelfMirExpressionGraphRows) -> Int {
-    return ArrayLength(rows.node_kinds);
+    return ArrayLength(rows.graph.arena.topology.node_kinds);
 }
 
 func SelfMirExpressionGraphAppendInstruction(
@@ -36,10 +34,7 @@ func SelfMirExpressionGraphAppendInstruction(
     ArrayPush(starts, SelfMirExpressionGraphNodeCount(rows));
     ArrayPush(counts, 0);
     return SelfMirExpressionGraphRows(
-        has_roots, roots, starts, counts,
-        rows.node_kinds, rows.node_texts,
-        rows.left_children, rows.right_children,
-        rows.call_target_kinds, rows.call_target_names
+        has_roots, roots, starts, counts, rows.graph
     );
 }
 
@@ -90,110 +85,16 @@ func SelfMirExpressionGraphAttachLast(
     if rows.has_roots[instruction_index] != 0 {
         return rows;
     }
-    let start: Int = SelfMirExpressionGraphNodeCount(rows);
     let source_start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(source_start_opt) { return rows; }
     let source_start: Int = UnwrapOption(source_start_opt);
-    let source_node: Int = source_start;
-    while source_node <= view.root_id {
-        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-            view.graph, source_node
-        );
-        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-            view.graph, source_node
-        );
-        if !IsSome(kind_opt) || !IsSome(text_opt) {
-            return rows;
-        }
-        let kind: Int = UnwrapOption(kind_opt);
-        let arity: Int = AstExpressionNodeArity(kind);
-        if arity >= 1 {
-            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-                view.graph, source_node
-            );
-            if !IsSome(left_opt) ||
-                UnwrapOption(left_opt) < source_start ||
-                UnwrapOption(left_opt) >= source_node {
-                return rows;
-            }
-        }
-        if arity == 2 {
-            let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
-                view.graph, source_node
-            );
-            if !IsSome(right_opt) ||
-                UnwrapOption(right_opt) < source_start ||
-                UnwrapOption(right_opt) >= source_node {
-                return rows;
-            }
-        }
-        source_node = source_node + 1;
-    }
-    let kinds: Array<Int> = rows.node_kinds;
-    let texts: Array<String> = rows.node_texts;
-    let left_children: Array<Int> = rows.left_children;
-    let right_children: Array<Int> = rows.right_children;
-    let call_target_kinds: Array<Int> = rows.call_target_kinds;
-    let call_target_names: Array<String> = rows.call_target_names;
-    source_node = source_start;
-    while source_node <= view.root_id {
-        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-            view.graph, source_node
-        );
-        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-            view.graph, source_node
-        );
-        if !IsSome(kind_opt) || !IsSome(text_opt) {
-            return rows;
-        }
-        let kind: Int = UnwrapOption(kind_opt);
-        ArrayPush(kinds, kind);
-        ArrayPush(texts, UnwrapOption(text_opt));
-        let call_target_kind: Option<Int> =
-            SemanticExpressionGraphCallTargetKind(
-                view.graph, source_node
-            );
-        let call_target_name: Option<String> =
-            SemanticExpressionGraphCallTargetName(
-                view.graph, source_node
-            );
-        if !IsSome(call_target_kind) || !IsSome(call_target_name) {
-            return rows;
-        }
-        ArrayPush(
-            call_target_kinds, UnwrapOption(call_target_kind)
-        );
-        ArrayPush(
-            call_target_names, UnwrapOption(call_target_name)
-        );
-        let left: Int = 0;
-        let right: Int = 0;
-        let arity: Int = AstExpressionNodeArity(kind);
-        if arity >= 1 {
-            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-                view.graph, source_node
-            );
-            if !IsSome(left_opt) {
-                return rows;
-            }
-            left = start + UnwrapOption(left_opt) - source_start;
-        }
-        if arity == 1 {
-            right = 0;
-        } else if arity == 2 {
-            let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
-                view.graph, source_node
-            );
-            if !IsSome(right_opt) {
-                return rows;
-            }
-            right = start + UnwrapOption(right_opt) - source_start;
-        }
-        ArrayPush(left_children, left);
-        ArrayPush(right_children, right);
-        source_node = source_node + 1;
+    let graph: SemanticExpressionGraphFacts = rows.graph;
+    if SelfMirExpressionGraphNodeCount(rows) == 0 {
+        graph = view.graph;
+    } else if !SemanticExpressionGraphFactsEqual(graph, view.graph) {
+        return rows;
     }
     let has_roots: Array<Int> = rows.has_roots;
     let roots: Array<Int> = rows.roots;
@@ -201,13 +102,11 @@ func SelfMirExpressionGraphAttachLast(
     let counts: Array<Int> = rows.node_counts;
     let copied_count: Int = view.root_id - source_start + 1;
     ArraySet(has_roots, instruction_index, 1);
-    ArraySet(roots, instruction_index, start + copied_count - 1);
-    ArraySet(starts, instruction_index, start);
+    ArraySet(roots, instruction_index, view.root_id);
+    ArraySet(starts, instruction_index, source_start);
     ArraySet(counts, instruction_index, copied_count);
     return SelfMirExpressionGraphRows(
-        has_roots, roots, starts, counts,
-        kinds, texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        has_roots, roots, starts, counts, graph
     );
 }
 
@@ -219,51 +118,23 @@ func SelfMirExpressionGraphRowsAppendRows(
     let roots: Array<Int> = target.roots;
     let starts: Array<Int> = target.node_starts;
     let counts: Array<Int> = target.node_counts;
-    let kinds: Array<Int> = target.node_kinds;
-    let texts: Array<String> = target.node_texts;
-    let left_children: Array<Int> = target.left_children;
-    let right_children: Array<Int> = target.right_children;
-    let call_target_kinds: Array<Int> = target.call_target_kinds;
-    let call_target_names: Array<String> = target.call_target_names;
-    let node_offset: Int = ArrayLength(kinds);
+    let graph: SemanticExpressionGraphFacts = target.graph;
+    if SelfMirExpressionGraphNodeCount(target) == 0 {
+        graph = source.graph;
+    } else if SelfMirExpressionGraphNodeCount(source) > 0 &&
+        !SemanticExpressionGraphFactsEqual(target.graph, source.graph) {
+        return target;
+    }
     let instruction_i: Int = 0;
     while instruction_i < ArrayLength(source.has_roots) {
         ArrayPush(has_roots, source.has_roots[instruction_i]);
-        let root: Int = 0;
-        if source.has_roots[instruction_i] == 1 {
-            root = source.roots[instruction_i] + node_offset;
-        }
-        ArrayPush(roots, root);
-        ArrayPush(starts, source.node_starts[instruction_i] + node_offset);
+        ArrayPush(roots, source.roots[instruction_i]);
+        ArrayPush(starts, source.node_starts[instruction_i]);
         ArrayPush(counts, source.node_counts[instruction_i]);
         instruction_i = instruction_i + 1;
     }
-    let node_i: Int = 0;
-    while node_i < ArrayLength(source.node_kinds) {
-        let kind: Int = source.node_kinds[node_i];
-        ArrayPush(kinds, kind);
-        ArrayPush(texts, source.node_texts[node_i]);
-        ArrayPush(call_target_kinds, source.call_target_kinds[node_i]);
-        ArrayPush(call_target_names, source.call_target_names[node_i]);
-        let left: Int = 0;
-        let right: Int = 0;
-        let arity: Int = AstExpressionNodeArity(kind);
-        if arity >= 1 {
-            left = source.left_children[node_i] + node_offset;
-        }
-        if arity == 1 {
-            right = 0;
-        } else if arity == 2 {
-            right = source.right_children[node_i] + node_offset;
-        }
-        ArrayPush(left_children, left);
-        ArrayPush(right_children, right);
-        node_i = node_i + 1;
-    }
     return SelfMirExpressionGraphRows(
-        has_roots, roots, starts, counts,
-        kinds, texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        has_roots, roots, starts, counts, graph
     );
 }
 
@@ -290,12 +161,30 @@ func SelfMirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        let arity: Int = AstExpressionNodeArity(rows.node_kinds[node]);
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            rows.graph, node
+        );
+        if !IsSome(kind_opt) { return false; }
+        let arity: Int = AstExpressionNodeArity(UnwrapOption(kind_opt));
         if arity >= 1 {
-            ArrayPush(pending, rows.left_children[node]);
+            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+                rows.graph, node
+            );
+            if !IsSome(left_opt) || UnwrapOption(left_opt) < start ||
+                UnwrapOption(left_opt) >= node {
+                return false;
+            }
+            ArrayPush(pending, UnwrapOption(left_opt));
         }
         if arity == 2 {
-            ArrayPush(pending, rows.right_children[node]);
+            let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+                rows.graph, node
+            );
+            if !IsSome(right_opt) || UnwrapOption(right_opt) < start ||
+                UnwrapOption(right_opt) >= node {
+                return false;
+            }
+            ArrayPush(pending, UnwrapOption(right_opt));
         }
     }
     return visited == count;
@@ -310,20 +199,17 @@ func SelfMirExpressionGraphRowsReady(
         ArrayLength(rows.roots) != instruction_count ||
         ArrayLength(rows.node_starts) != instruction_count ||
         ArrayLength(rows.node_counts) != instruction_count ||
-        ArrayLength(rows.node_texts) != node_count ||
-        ArrayLength(rows.left_children) != node_count ||
-        ArrayLength(rows.right_children) != node_count ||
-        ArrayLength(rows.call_target_kinds) != node_count ||
-        ArrayLength(rows.call_target_names) != node_count {
+        !SemanticExpressionGraphFactsReady(
+            rows.graph, ArrayLength(rows.graph.roots)
+        ) {
         return false;
     }
-    let expected_start: Int = 0;
     let instruction_i: Int = 0;
     while instruction_i < instruction_count {
         let has_root: Int = rows.has_roots[instruction_i];
         let start: Int = rows.node_starts[instruction_i];
         let count: Int = rows.node_counts[instruction_i];
-        if (has_root != 0 && has_root != 1) || start != expected_start ||
+        if (has_root != 0 && has_root != 1) || start < 0 ||
             count < 0 || start + count > node_count ||
             (has_root == 0 && count != 0) ||
             (has_root == 1 && (count == 0 ||
@@ -334,98 +220,9 @@ func SelfMirExpressionGraphRowsReady(
                 ))) {
             return false;
         }
-        let node_i: Int = start;
-        while node_i < start + count {
-            let kind: Int = rows.node_kinds[node_i];
-            if rows.node_texts[node_i] == "" ||
-                !AstExpressionNodeKindKnown(kind) {
-                return false;
-            }
-            let target_kind: Int = rows.call_target_kinds[node_i];
-            let target_name: String = rows.call_target_names[node_i];
-            if target_kind == SemanticCallTargetNone() {
-                if target_name != "" || kind == AstExpressionNodeCall() {
-                    return false;
-                }
-            } else if target_kind == SemanticCallTargetDirect() ||
-                target_kind == SemanticCallTargetNamespace() ||
-                target_kind == SemanticCallTargetMember() {
-                if kind != AstExpressionNodeCall() || target_name == "" {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-            let arity: Int = AstExpressionNodeArity(kind);
-            if arity == 0 {
-                if rows.left_children[node_i] != 0 ||
-                    rows.right_children[node_i] != 0 { return false; }
-            } else if rows.left_children[node_i] < start ||
-                rows.left_children[node_i] >= node_i {
-                return false;
-            } else if arity == 1 {
-                if rows.right_children[node_i] != 0 { return false; }
-            } else if rows.right_children[node_i] < start ||
-                rows.right_children[node_i] >= node_i {
-                return false;
-            }
-            if kind == AstExpressionNodeCall() &&
-                !AstExpressionNodeIsCallableCallee(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) {
-                return false;
-            }
-            if kind == AstExpressionNodeCallArgument() &&
-                !AstExpressionNodeIsCallSpine(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) {
-                return false;
-            }
-            if kind == AstExpressionNodeMemberAccess() &&
-                rows.node_kinds[rows.right_children[node_i]] !=
-                    AstExpressionNodeLeaf() {
-                return false;
-            }
-            if kind == AstExpressionNodeGenericCallee() &&
-                (!AstExpressionNodeIsCallableCallee(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) || rows.node_kinds[rows.right_children[node_i]] !=
-                    AstExpressionNodeGenericTypeActual()) {
-                return false;
-            }
-            if kind == AstExpressionNodeArrayElement() &&
-                !AstExpressionNodeIsArrayLiteralSpine(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) {
-                return false;
-            }
-            if kind == AstExpressionNodeSetElement() &&
-                !AstExpressionNodeIsSetLiteralSpine(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) {
-                return false;
-            }
-            if kind == AstExpressionNodeStructLiteral() &&
-                rows.node_kinds[rows.left_children[node_i]] !=
-                    AstExpressionNodeLeaf() {
-                return false;
-            }
-            if kind == AstExpressionNodeStructFieldBinding() && rows.node_kinds[rows.left_children[node_i]] != AstExpressionNodeStructFieldName() {
-                return false;
-            }
-            if kind == AstExpressionNodeStructField() &&
-                (!AstExpressionNodeIsStructLiteralSpine(
-                    rows.node_kinds[rows.left_children[node_i]]
-                ) || rows.node_kinds[rows.right_children[node_i]] !=
-                    AstExpressionNodeStructFieldBinding()) {
-                return false;
-            }
-            node_i = node_i + 1;
-        }
-        expected_start = start + count;
         instruction_i = instruction_i + 1;
     }
-    return expected_start == node_count;
+    return true;
 }
 
 func SelfMirExpressionCallTargetKindName(kind: Int) -> String {
@@ -436,8 +233,47 @@ func SelfMirExpressionCallTargetKindName(kind: Int) -> String {
     return "";
 }
 
+// Contract fixtures may still describe a graph as legacy rows. Convert that
+// fixture into the semantic owner immediately; no production MIR value keeps
+// the legacy topology arrays.
+func SelfMirExpressionGraphRowsFromLegacy(
+    has_roots: Array<Int>,
+    roots: Array<Int>,
+    starts: Array<Int>,
+    counts: Array<Int>,
+    kinds: Array<Int>,
+    texts: Array<String>,
+    left_children: Array<Int>,
+    right_children: Array<Int>,
+    call_target_kinds: Array<Int>,
+    call_target_names: Array<String>
+) -> SelfMirExpressionGraphRows {
+    let bool_roots: Array<Bool> = [];
+    let i: Int = 0;
+    while i < ArrayLength(has_roots) {
+        ArrayPush(bool_roots, has_roots[i] == 1);
+        i = i + 1;
+    }
+    let place_kinds: Array<Int> = [];
+    i = 0;
+    while i < ArrayLength(kinds) {
+        ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
+        i = i + 1;
+    }
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, roots, bool_roots,
+        SemanticExpressionGraphArenaFromRows(
+            kinds, texts, left_children, right_children,
+            call_target_kinds, call_target_names, place_kinds
+        )
+    );
+    return SelfMirExpressionGraphRows(
+        has_roots, roots, starts, counts, graph
+    );
+}
+
 func SelfMirExpressionGraphRowsContractReady() -> Bool {
-    let valid: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
+    let valid: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsFromLegacy(
         [1], [2], [0], [3],
         [
             AstExpressionNodeLeaf(),
@@ -448,7 +284,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
         [0, 0, 0], ["", "", ""]
     );
     let disconnected: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [3], [0], [4],
             [
                 AstExpressionNodeLeaf(),
@@ -461,28 +297,28 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0, 0], ["", "", "", ""]
         );
     let valid_unary: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [1], [0], [2],
             [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
             ["flag", "(!flag)"], [0, 0], [0, 0],
             [0, 0], ["", ""]
         );
     let malformed_unary: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [1], [0], [2],
             [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
             ["flag", "(!flag)"], [0, 0], [0, 1],
             [0, 0], ["", ""]
         );
     let valid_try: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [1], [0], [2],
             [AstExpressionNodeLeaf(), AstExpressionNodeTry()],
             ["value", "?value"], [0, 0], [0, 0],
             [0, 0], ["", ""]
         );
     let valid_call: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [3], [0], [4],
             [
                 AstExpressionNodeLeaf(), AstExpressionNodeCall(),
@@ -494,7 +330,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ["", "Pick", "", ""]
         );
     let malformed_call: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [3], [0], [4],
             [
                 AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
@@ -505,7 +341,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0, 0], ["", "", "", ""]
         );
     let valid_member: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [2], [0], [3],
             [
                 AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
@@ -516,7 +352,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0], ["", "", ""]
         );
     let malformed_member: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [3], [0], [4],
             [
                 AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
@@ -527,14 +363,14 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0, 0], ["", "", "", ""]
         );
     let malformed_target: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [1], [0], [2],
             [AstExpressionNodeLeaf(), AstExpressionNodeCall()],
             ["Pick", "Pick()"], [0, 0], [0, 0],
             [SemanticCallTargetNamespace(), 0], ["Pick", ""]
         );
     let valid_array: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [2], [0], [3],
             [
                 AstExpressionNodeArrayLiteral(), AstExpressionNodeLeaf(),
@@ -544,7 +380,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0], ["", "", ""]
         );
     let malformed_array: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [2], [0], [3],
             [
                 AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
@@ -554,7 +390,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0], ["", "", ""]
         );
     let valid_struct: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [5], [0], [6],
             [
                 AstExpressionNodeLeaf(),
@@ -568,7 +404,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [0, 0, 0, 0, 0, 0], ["", "", "", "", "", ""]
         );
     let malformed_struct: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRows(
+        SelfMirExpressionGraphRowsFromLegacy(
             [1], [5], [0], [6],
             [
                 AstExpressionNodeLeaf(),

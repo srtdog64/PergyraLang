@@ -246,11 +246,18 @@ func ProbeMirCarriesCallTarget(
     expected_name: String
 ) -> Bool {
     let i: Int = 0;
-    while i < ArrayLength(facts.cfg.instructions.expr0_graphs.call_target_kinds) {
-        if facts.cfg.instructions.expr0_graphs.call_target_kinds[i] ==
-                expected_kind &&
-            facts.cfg.instructions.expr0_graphs.call_target_names[i] ==
-                expected_name {
+    while i < SelfMirExpressionGraphNodeCount(
+        facts.cfg.instructions.expr0_graphs
+    ) {
+        let kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
+            facts.cfg.instructions.expr0_graphs.graph, i
+        );
+        let name_opt: Option<String> = SemanticExpressionGraphCallTargetName(
+            facts.cfg.instructions.expr0_graphs.graph, i
+        );
+        if IsSome(kind_opt) && IsSome(name_opt) &&
+            UnwrapOption(kind_opt) == expected_kind &&
+            UnwrapOption(name_opt) == expected_name {
             return true;
         }
         i = i + 1;
