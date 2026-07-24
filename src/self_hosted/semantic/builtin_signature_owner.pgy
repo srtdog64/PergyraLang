@@ -128,10 +128,11 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
     return rows;
 }
 
-func SeedSemanticBuiltinSignatures(
+func SeedSemanticBuiltinSignaturesInto(
     inout names: Array<String>,
     inout returns: Array<String>,
-    inout params: Array<String>
+    inout params: Array<String>,
+    owned: Bool
 ) -> Bool {
     let rows: Array<String> = SemanticBuiltinSignatureRows();
     let i: Int = 0;
@@ -144,12 +145,38 @@ func SeedSemanticBuiltinSignatures(
         if param_types == "none" {
             param_types = "";
         }
-        ArrayPush(names, parts[0]);
-        ArrayPush(returns, parts[1]);
-        ArrayPush(params, param_types);
+        if owned {
+            ArrayPushOwnedString(names, parts[0]);
+            ArrayPushOwnedString(returns, parts[1]);
+            ArrayPushOwnedString(params, param_types);
+        } else {
+            ArrayPush(names, parts[0]);
+            ArrayPush(returns, parts[1]);
+            ArrayPush(params, param_types);
+        }
         i = i + 1;
     }
     return true;
+}
+
+func SeedSemanticBuiltinSignatures(
+    inout names: Array<String>,
+    inout returns: Array<String>,
+    inout params: Array<String>
+) -> Bool {
+    return SeedSemanticBuiltinSignaturesInto(
+        names, returns, params, false
+    );
+}
+
+func SeedSemanticOwnedBuiltinSignatures(
+    inout names: Array<String>,
+    inout returns: Array<String>,
+    inout params: Array<String>
+) -> Bool {
+    return SeedSemanticBuiltinSignaturesInto(
+        names, returns, params, true
+    );
 }
 
 func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {

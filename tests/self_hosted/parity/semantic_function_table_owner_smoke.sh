@@ -22,13 +22,14 @@ STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owne
 GENERIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 PLACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 MATCH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy"
+BUILTIN_OWNER="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 
 fail() {
     echo "[self-host-parity:semantic-function-table-owner] $*" >&2
     exit 1
 }
 
-for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
+for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER" "$BUILTIN_OWNER"; do
     [[ -f "$file" ]] || fail "owner is missing: ${file#$ROOT_DIR/}"
 done
 
@@ -38,8 +39,21 @@ grep -Fq 'func SemanticAstExpressionFunctionTableFactsFromArtifact' "$ENV_OWNER"
     fail "callable-table producer is missing"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsReady' "$FACT_OWNER" ||
     fail "callable-table readiness gate is missing"
+grep -Fq 'func SemanticAstExpressionFunctionTableFactsRelease' "$FACT_OWNER" ||
+    fail "callable-table release owner is missing"
+grep -Fq 'facts.ok = false;' "$FACT_OWNER" ||
+    fail "callable-table release does not fail closed"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsFromArtifact(' "$ANALYSIS_OWNER" ||
     fail "artifact analysis does not own callable-table production"
+
+table_body="$(awk '/^func SemanticAstExpressionFunctionTables\(/ { found=1 } found { print } /^func SemanticAstExpressionFunctionTableFactsFromArtifact\(/ { exit }' "$ENV_OWNER")"
+if grep -Eq 'ArrayPush\((names|returns|params)' <<<"$table_body"; then
+    fail "callable-table producer retains ordinary String-array insertion"
+fi
+grep -Fq 'func SeedSemanticOwnedBuiltinSignatures' "$BUILTIN_OWNER" ||
+    fail "owned builtin table seed is missing"
+grep -Fq 'SeedSemanticOwnedBuiltinSignatures(names, returns, params)' "$ENV_OWNER" ||
+    fail "callable-table producer does not request owned builtin rows"
 
 for consumer in "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     if grep -Fq 'SemanticAstExpressionFunctionTables(' "$consumer"; then
@@ -69,6 +83,15 @@ grep -Fq 'analysis.statements, function_tables' "$BODY_OWNER" ||
     fail "statement resolver does not receive shared callable-table fact"
 grep -Fq 'analysis.expression_surfaces, function_tables' "$BODY_OWNER" ||
     fail "generic resolver does not receive shared callable-table fact"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(analysis.function_tables);' "$BODY_OWNER" ||
+    fail "body owner does not release callable-table fact"
+release_line="$(grep -n 'SemanticAstExpressionFunctionTableFactsRelease(analysis.function_tables);' "$BODY_OWNER" | tail -n 1 | cut -d: -f1)"
+last_use_line="$(grep -n 'function_tables' "$BODY_OWNER" | grep -v 'Release' | tail -n 1 | cut -d: -f1)"
+verdict_line="$(grep -n 'verdict:done' "$BODY_OWNER" | tail -n 1 | cut -d: -f1)"
+if [[ -z "$release_line" || -z "$last_use_line" || -z "$verdict_line" ||
+      "$release_line" -le "$last_use_line" || "$release_line" -le "$verdict_line" ]]; then
+    fail "callable-table release is not after the body last consumer"
+fi
 grep -Fq 'SemanticAstExpressionFunctionTableFactsReady(function_tables)' "$CALL_TARGET_OWNER" ||
     fail "call-target resolver does not fail closed on callable-table fact"
 

@@ -117,7 +117,7 @@ func SemanticAstExpressionFunctionTables(
     inout returns: Array<String>,
     inout params: Array<String>
 ) -> Bool {
-    if !SeedSemanticBuiltinSignatures(names, returns, params) {
+    if !SeedSemanticOwnedBuiltinSignatures(names, returns, params) {
         return false;
     }
     if !SemanticAstNominalConstructorRowsReady(constructors) {
@@ -128,8 +128,8 @@ func SemanticAstExpressionFunctionTables(
     }
     let constructor_index: Int = 0;
     while constructor_index < SemanticAstNominalConstructorCount(constructors) {
-        ArrayPush(names, constructors.names[constructor_index]);
-        ArrayPush(returns, constructors.return_type_names[constructor_index]);
+        ArrayPushOwnedString(names, constructors.names[constructor_index]);
+        ArrayPushOwnedString(returns, constructors.return_type_names[constructor_index]);
         let constructor_params: String = "";
         let param_index: Int = 0;
         while param_index < constructors.param_counts[constructor_index] {
@@ -148,7 +148,7 @@ func SemanticAstExpressionFunctionTables(
             );
             param_index = param_index + 1;
         }
-        ArrayPush(params, constructor_params);
+        ArrayPushOwnedString(params, constructor_params);
         constructor_index = constructor_index + 1;
     }
     let variant_index: Int = 0;
@@ -186,9 +186,9 @@ func SemanticAstExpressionFunctionTables(
                 return false;
             }
         } else {
-            ArrayPush(names, qualified_name);
-            ArrayPush(returns, enum_name);
-            ArrayPush(params, variant_params);
+            ArrayPushOwnedString(names, qualified_name);
+            ArrayPushOwnedString(returns, enum_name);
+            ArrayPushOwnedString(params, variant_params);
         }
         existing = SemanticAstExpressionFunctionRowIndex(
             names, variant_name
@@ -199,9 +199,9 @@ func SemanticAstExpressionFunctionTables(
                 return false;
             }
         } else {
-            ArrayPush(names, variant_name);
-            ArrayPush(returns, enum_name);
-            ArrayPush(params, variant_params);
+            ArrayPushOwnedString(names, variant_name);
+            ArrayPushOwnedString(returns, enum_name);
+            ArrayPushOwnedString(params, variant_params);
         }
         variant_index = variant_index + 1;
     }
@@ -248,9 +248,9 @@ func SemanticAstExpressionFunctionTables(
                 return false;
             }
         } else {
-            ArrayPush(names, declared_name);
-            ArrayPush(returns, UnwrapOption(return_type));
-            ArrayPush(params, param_row);
+            ArrayPushOwnedString(names, declared_name);
+            ArrayPushOwnedString(returns, UnwrapOption(return_type));
+            ArrayPushOwnedString(params, param_row);
         }
         i = i + 1;
     }
