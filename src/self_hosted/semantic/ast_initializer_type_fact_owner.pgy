@@ -58,6 +58,22 @@ func SemanticAstInitializerTypePressureStage(
     }
 }
 
+// Keep row-index formatting behind the observation branch. Call arguments are
+// evaluated before the stage helper runs, so constructing the marker at each
+// call site would allocate even when pressure observation is disabled.
+func SemanticAstInitializerTypePressureRow(
+    enabled: Bool,
+    stage: String,
+    row: Int
+) -> Void {
+    if enabled {
+        Log(Concat(
+            "[semantic-initializer-stage] ",
+            Concat(stage, Concat(":", ToString(row)))
+        ));
+    }
+}
+
 func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -137,8 +153,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
     let modes: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
-        SemanticAstInitializerTypePressureStage(
-            observe_pressure, Concat("row:start:", ToString(i))
+        SemanticAstInitializerTypePressureRow(
+            observe_pressure, "row:start", i
         );
         SemanticAstExpressionEnvironmentClear(names, types, modes);
         if reuse_unaffected {
@@ -191,8 +207,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
-        SemanticAstInitializerTypePressureStage(
-            observe_pressure, Concat("row:environment:", ToString(i))
+        SemanticAstInitializerTypePressureRow(
+            observe_pressure, "row:environment", i
         );
         let expression: String = locals.initializer_texts[i];
         let graph_root: Option<Int> =
@@ -203,8 +219,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
         if !IsSome(graph_root) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
-        SemanticAstInitializerTypePressureStage(
-            observe_pressure, Concat("row:graph-root:", ToString(i))
+        SemanticAstInitializerTypePressureRow(
+            observe_pressure, "row:graph-root", i
         );
         let expression_verdict: SemanticAstExpressionVerdict =
             SemanticAstExpressionVerdictFromGraph(
@@ -215,8 +231,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
                 function_names, function_returns, function_params,
                 member_root_names
             );
-        SemanticAstInitializerTypePressureStage(
-            observe_pressure, Concat("row:verdict:", ToString(i))
+        SemanticAstInitializerTypePressureRow(
+            observe_pressure, "row:verdict", i
         );
         let inferred: String = expression_verdict.inferred_type_name;
         let destructure_element_missing: Bool = false;
@@ -324,8 +340,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
         ArrayPush(diagnostic_messages, row_message);
         ArrayPush(binding_kinds, locals.binding_kinds[i]);
         ArrayPush(binding_indices, locals.binding_indices[i]);
-        SemanticAstInitializerTypePressureStage(
-            observe_pressure, Concat("row:done:", ToString(i))
+        SemanticAstInitializerTypePressureRow(
+            observe_pressure, "row:done", i
         );
         i = i + 1;
     }
