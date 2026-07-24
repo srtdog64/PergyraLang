@@ -8,12 +8,14 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Current local HEAD and `origin/main` are `164d207e` (`Close machine runtime
-  ABI receiver SoT`).
-- `164d207e` is the latest executable closure: machine resource Claim ABI type
-  comes from the result SSA local, while Read/Write/Release/Submit resolve the
-  receiver from the attached expression graph. The ABI JSON projection keeps a
-  declared `AST_LET_DECL` type separate from the resource runtime row.
+- Current local HEAD and `origin/main` are `aba64ab1` (`Close semantic routine
+  local inventory SoT`).
+- `aba64ab1` is the latest executable closure: routine local inventory is
+  projected from semantic binding, initializer, and iteration facts; indexed
+  assignment use edges consume attached expression graphs instead of text
+  scans; and the for/foreach graph lane preserves the same owner boundary.
+- The preceding `164d207e` closure still owns machine resource Claim ABI type
+  from the result SSA local and Read/Write/Release/Submit receiver projection.
 - The Pergyra-built DRV-2 manifest contains 280 MIR fixtures. The latest added
   executable row is `set_literal_basic`.
 - `6574f89f` closes the full-matrix `random_inferred_let` blocker. Native MIR
@@ -35,21 +37,19 @@ The following work was present but was not included in the two commits above:
 - modified `src/compiler/mir_fact_surface_validate.c`;
 - modified `src/compiler/mir_fact_validate_internal.h`;
 - modified `src/compiler/mir_json_dump.c`;
-- modified `src/self_hosted/mir/artifact_lower_owner.pgy`;
-- modified `src/self_hosted/mir/routine_for_owner.pgy`;
-- modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
-- modified `src/self_hosted/mir/routine_expression_use_owner.pgy`;
+- modified `src/self_hosted/codegen/emission/program_emit.pgy`;
+- modified `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy`;
+- modified `src/self_hosted/compiler/symbol_table_owner.pgy`;
 - untracked `src/compiler/mir_fact_surface_validate_resource.c`;
 - untracked `src/compiler/mir_json_dump_decl.c`;
 - untracked `src/compiler/mir_json_dump_decl.h`;
 - modified `tests/self_hosted/parity/driver_bootstrap.sh`;
 - modified `tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh`;
-- modified `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - modified `tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh`;
 - modified `tests/self_hosted_component_contract_smoke.sh`;
 - untracked `docs/198_market_safety_positioning.md`;
 - untracked `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
-- untracked `src/self_hosted/mir/routine_local_inventory_owner.pgy`.
+- untracked `src/self_hosted/codegen/input/value_wrapper_materialization_owner.pgy`.
 
 The native C files are a concurrent file-split change. Do not discard, stage,
 or fold them into a self-host rung without reviewing their owner and gate.
@@ -58,7 +58,42 @@ resolved, but the untracked file remains user-owned. The driver-bootstrap
 runtime-header classifier change is plausible follow-up work but has not been
 included in an executable closure commit here.
 
-## Latest closed executable rung: machine runtime ABI receiver surface
+## Latest closed executable rung: semantic routine local inventory surface
+
+Objective card:
+
+- Objective: make routine source-local inventory and migrated assignment use
+  edges derive from semantic/graph facts, not the active CFG build stack or
+  expression text.
+- Priority: one semantic owner, nested-scope/foreach coverage, graph-carried
+  use identity, missing-fact failure, old-path deletion, then patch size.
+- Fact owner: `src/self_hosted/mir/routine_local_inventory_owner.pgy`.
+- Last legitimate consumers: `SelfMirAppendRoutine` for routine fact rows and
+  `SelfMirLowerAssignmentFromArtifact` for indexed assignment uses; the for
+  owner selects the correct value/auxiliary graph lane.
+- Forbidden fallback: routine facts reconstructed from
+  `build.local_names`, assignment `SelfMirExpressionUses` text scanning, and
+  graph-lane substitution for collection-hoisted/foreach statements.
+- Verification gate:
+  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`
+  through `driver_rung2_body_parity.sh`, plus
+  `tests/self_host_hard_contract_smoke.sh`.
+
+Observed closure:
+
+- `SelfMirRoutineLocalInventoryFromInput` merges semantic local-binding and
+  iteration rows in syntax order, validates aligned initializer types, and
+  creates foreach synthetic locals from iteration facts.
+- `SelfMirAppendRoutine` now consumes that inventory instead of copying the
+  active `SelfMirRoutineBuild` local stack into program facts.
+- Assignment target/value uses are projected from expression graph leaves;
+  missing target graph remains a negative failure.
+- Hard prebuilt parity passed with
+  `backends=1 body_fixtures=20 mir_fixtures=2` for
+  `indexed_assignment` and `for_each_call`.
+- The closure was committed and pushed as `aba64ab1`.
+
+## Previous closed executable rung: machine runtime ABI receiver surface
 
 Objective card:
 
@@ -147,6 +182,15 @@ Green:
 - Bounded selfhost manifest scan: all `280/280` rows produced successfully;
   no first red row observed.
 - `tests/self_host_hard_contract_smoke.sh` after the new static ratchets.
+- `tests/self_host_hard_contract_smoke.sh` after the routine local inventory
+  ratchets.
+- Pergyra-built DRV-2 rebuild with the local-inventory owners, exit 0.
+- Hard prebuilt indexed-assignment/foreach parity:
+  `backends=1 body_fixtures=20 mir_fixtures=2`.
+- Full-fixpoint seed/oracle compile and bounded seed MIR consumer parity passed;
+  full `driver_mir_oracle` did not reach an artifact before the isolated oracle
+  process was stopped at approximately 17 GiB RSS / 28 GiB private memory with
+  3.8 GiB host memory remaining.
 - Machine owner static verification and dynamic ABI fact checks, including
   declaration `Int` versus runtime `DeviceSlot<Int>` rows.
 - Native compiler rebuild: `make -s compiler`, exit 0. Existing warnings were
@@ -172,10 +216,9 @@ Green:
 Blocked by unrelated dirty work:
 
 - `tests/self_hosted_component_contract_smoke.sh` passes the Set owner and
-  parser line-cap checks, then stops because the concurrent native JSON split
-  removed `mir_json_emit_decl_generic_params(out, header);` from
-  `src/compiler/mir_json_dump.c` without yet updating that component
-  assertion. Do not report the full component gate as green.
+  parser line-cap checks, then stops at the concurrent direct-codegen import
+  assertion for `src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy`.
+  Do not report the full component gate as green.
 
 Not run:
 
@@ -186,6 +229,8 @@ Not run:
   `driver_bootstrap.sh` change.
 - Full native/selfhost integration matrix remains blocked in this environment
   by `Cannot create temporary file in C:\\Windows\\: Permission denied`.
+- Full driver oracle MIR production remains resource-bound at driver scale;
+  no source-level assignment drift result was claimed from the stopped run.
 
 ## Next executable work
 
@@ -196,10 +241,11 @@ selects it. At the next scheduled/merge boundary:
    untracked documents.
 2. Resolve or isolate the native JSON split component assertion under its own
    owner; do not absorb it into a Pergyra language rung by convenience.
-3. Re-run the unfiltered 280-row hard DRV-2 matrix and the LLVM lane once the
-   Windows temporary-file permission blocker is removed. The bounded scan is
-   green, so the first red row from the full gate—not fixture ordering or an AI
-   guess—chooses the next rung.
+3. Re-run the full driver fixpoint with a measured memory budget, then the
+   unfiltered 280-row hard DRV-2 matrix and LLVM lane once the Windows
+   temporary-file permission blocker is removed. The bounded scan is green, so
+   the first red row from the full gate, not fixture ordering or an AI guess,
+   chooses the next rung.
 4. For that row, record objective, owner, last consumer, forbidden fallback,
    and falsifier before editing.
 5. Land another executable Pergyra replacement before spending multiple
