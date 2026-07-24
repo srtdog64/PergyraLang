@@ -8,12 +8,18 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Current local HEAD and `origin/main` are `aba64ab1` (`Close semantic routine
-  local inventory SoT`).
-- `aba64ab1` is the latest executable closure: routine local inventory is
-  projected from semantic binding, initializer, and iteration facts; indexed
-  assignment use edges consume attached expression graphs instead of text
-  scans; and the for/foreach graph lane preserves the same owner boundary.
+- Current local HEAD and `origin/main` are `96a96868` (`Harden generic wrapper
+  fact failure ownership`).
+- `a42616b7` is the latest executable closure: concrete by-value wrapper
+  declarations are projected from semantic type/signature/specialization facts;
+  generic formal templates are excluded; specialized concrete return/parameter
+  types are restored; and generic actual symbol mangling preserves the
+  terminal constructed-type separator. `96a96868` closes the discovered
+  missing-fact diagnostic/import boundary without changing semantic ownership.
+- The preceding `aba64ab1` closure projects routine local inventory from
+  semantic binding, initializer, and iteration facts; indexed assignment use
+  edges consume attached expression graphs instead of text scans; and the
+  for/foreach graph lane preserves the same owner boundary.
 - The preceding `164d207e` closure still owns machine resource Claim ABI type
   from the result SSA local and Read/Write/Release/Submit receiver projection.
 - The Pergyra-built DRV-2 manifest contains 280 MIR fixtures. The latest added
@@ -37,19 +43,13 @@ The following work was present but was not included in the two commits above:
 - modified `src/compiler/mir_fact_surface_validate.c`;
 - modified `src/compiler/mir_fact_validate_internal.h`;
 - modified `src/compiler/mir_json_dump.c`;
-- modified `src/self_hosted/codegen/emission/program_emit.pgy`;
-- modified `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy`;
-- modified `src/self_hosted/compiler/symbol_table_owner.pgy`;
 - untracked `src/compiler/mir_fact_surface_validate_resource.c`;
 - untracked `src/compiler/mir_json_dump_decl.c`;
 - untracked `src/compiler/mir_json_dump_decl.h`;
 - modified `tests/self_hosted/parity/driver_bootstrap.sh`;
-- modified `tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh`;
-- modified `tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh`;
 - modified `tests/self_hosted_component_contract_smoke.sh`;
 - untracked `docs/198_market_safety_positioning.md`;
 - untracked `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
-- untracked `src/self_hosted/codegen/input/value_wrapper_materialization_owner.pgy`.
 
 The native C files are a concurrent file-split change. Do not discard, stage,
 or fold them into a self-host rung without reviewing their owner and gate.
@@ -58,7 +58,47 @@ resolved, but the untracked file remains user-owned. The driver-bootstrap
 runtime-header classifier change is plausible follow-up work but has not been
 included in an executable closure commit here.
 
-## Latest closed executable rung: semantic routine local inventory surface
+## Latest closed executable rung: generic wrapper materialization surface
+
+Objective card:
+
+- Objective: make C by-value Option/Result wrapper declarations consume one
+  semantic concrete-type inventory while excluding generic formal templates and
+  restoring concrete types from specialization facts.
+- Priority: semantic signature/formal identity, concrete specialization facts,
+  one wrapper owner, one generic symbol owner, missing-fact failure, negative
+  ratchet, then patch size.
+- Fact owners: `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy`,
+  `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy`,
+  and `src/self_hosted/compiler/symbol_table_owner.pgy`.
+- Last legitimate consumer: `GenerateCUnitFromSemanticFacts` and the
+  dependency-ordered type declaration scheduler.
+- Forbidden fallback: treating generic formal `Option<T>`/`Result<T,E>` rows as
+  concrete C wrappers, reparsing call text for actual types, and trimming the
+  terminal separator from generic actual symbol components.
+- Verification gates:
+  `tests/self_hosted/parity/wrapper_policy_probe_parity.sh`,
+  `tests/self_hosted/parity/generic_return_probe_parity.sh`, and
+  `tests/self_host_hard_contract_smoke.sh`.
+
+Observed closure:
+
+- `CodegenValueWrapperUsageSurfaceHasFormal` uses typed AST parent identity and
+  structured signature type-expression facts to suppress formal templates.
+- `CodegenValueWrapperUsageFactsFromSemantic` consumes resolved concrete return
+  and parameter types from `CodegenGenericSpecializationFacts`.
+- `CodegenSemanticFunctionParamFlatIndexOrDie` owns missing flat-parameter
+  failure; semantic generic-default row mismatch exits explicitly in its
+  semantic owner.
+- C wrapper-policy output was `option-wrapper=graph`,
+  `result-wrapper=graph`, `target-drift=reject`; generic-return output covered
+  `Int`, `Option<Int>`, and `String` plus three mismatch negatives. Both C
+  focused gates compiled with `0 error(s), 0 warning(s)` and the hard contract
+  gate exited 0.
+- `a42616b7` and the follow-up `96a96868` were committed and pushed; local and
+  remote HEAD are equal.
+
+## Previous closed executable rung: semantic routine local inventory surface
 
 Objective card:
 
@@ -206,6 +246,15 @@ Green:
 - Focused hard `set_literal_basic` producer-first parity after the parser owner
   split: `backends=1 body_fixtures=20 mir_fixtures=1`.
 - `tests/self_host_hard_contract_smoke.sh`.
+- C wrapper-policy focused parity: `option-wrapper=graph`,
+  `result-wrapper=graph`, `target-drift=reject`; missing Option/Result
+  negatives remained explicit.
+- C generic-return focused parity: `generic-call=x type=Int`,
+  `generic-call=wrapped type=Option<Int>`, `generic-call=first type=Int`, and
+  `generic-call=explicit type=String`; target, nested, and explicit mismatch
+  negatives remained rejected.
+- Both wrapper focused C compiles reported `0 error(s), 0 warning(s)`; the hard
+  contract smoke exited 0 after the closure ratchets.
 - `tests/sot_authority_edge_smoke.sh`: 48 authorities, 40 derived fact
   carriers, `CLOSED=28 BRIDGE=20 ACTIVE=0`.
 - `PGY_ALLOW_MISSING_COQ=1 tests/sot_authority_adequacy_smoke.sh`: live
@@ -223,6 +272,7 @@ Blocked by unrelated dirty work:
 Not run:
 
 - Full unfiltered 280-row hard DRV-2 matrix.
+- LLVM parity for the generic wrapper and generic-return focused rungs.
 - LLVM parity for the new Set literal rung.
 - Actual Coq/Rocq proof execution.
 - Full driver bootstrap/fixpoint for the separate dirty
