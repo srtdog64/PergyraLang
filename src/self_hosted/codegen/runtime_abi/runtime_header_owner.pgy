@@ -28,34 +28,3 @@ func RuntimeCHeaderIncludeBlock(
     }
     return "#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_allocator_inline.h\"\n#include \"pgy_runtime_text_builder_inline.h\"\n";
 }
-
-func RuntimeCHeaderOwnsCheckedArithmetic(
-    uses_allocator: Bool,
-    uses_text_builder: Bool,
-    uses_box_array: Bool,
-    uses_list: Bool,
-    uses_queue: Bool,
-    uses_set: Bool
-) -> Bool {
-    return RuntimeCHeaderRequired(
-        uses_allocator, uses_text_builder, uses_box_array, false,
-        uses_list, uses_queue, uses_set
-    );
-}
-
-func RuntimeCHeaderOwnsScalarLog(
-    uses_box_array: Bool,
-    uses_list: Bool,
-    uses_queue: Bool,
-    uses_set: Bool
-) -> Bool {
-    return uses_box_array || uses_list || uses_queue || uses_set;
-}
-
-func RuntimeCHeaderOwnsBoolToString(
-    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool
-) -> Bool {
-    return RuntimeCHeaderOwnsScalarLog(
-        uses_box_array, uses_list, uses_queue, uses_set
-    );
-}

@@ -1,5 +1,6 @@
 // Set<T> runtime ABI facts consumed by self-host C emission.
 
+import "../text/text_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 

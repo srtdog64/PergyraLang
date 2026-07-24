@@ -17,6 +17,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -100,9 +101,15 @@ compile_c() {
     local source="$2"
     local output="$3"
     local log="$BUILD_DIR/${label}.compile.log"
+    local -a compile_command=("$CC" "$source")
+    # Shared emitted-C runtime-header classifier owner (same fact as the hard installer).
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$source"; then
+        compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    compile_command+=(-o "$output")
 
     echo "[self-host-driver-bootstrap] compiling $label"
-    if ! "$CC" "$source" -o "$output" >"$log" 2>&1; then
+    if ! "${compile_command[@]}" >"$log" 2>&1; then
         echo "[self-host-driver-bootstrap] $label C compile failed" >&2
         tail -c 65536 "$log" >&2 || true
         exit 1

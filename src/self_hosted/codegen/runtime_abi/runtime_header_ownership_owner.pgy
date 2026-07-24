@@ -1,0 +1,39 @@
+// Canonical runtime inline-header helper-ownership predicates.
+//
+// Split from runtime_header_owner.pgy by responsibility: this owner answers
+// "does the selected runtime header already own this helper", while include
+// composition stays with the header owner. Implementations remain owned by
+// the canonical runtime inline headers.
+
+import "runtime_header_owner.pgy";
+
+func RuntimeCHeaderOwnsCheckedArithmetic(
+    uses_allocator: Bool,
+    uses_text_builder: Bool,
+    uses_box_array: Bool,
+    uses_list: Bool,
+    uses_queue: Bool,
+    uses_set: Bool
+) -> Bool {
+    return RuntimeCHeaderRequired(
+        uses_allocator, uses_text_builder, uses_box_array, false,
+        uses_list, uses_queue, uses_set
+    );
+}
+
+func RuntimeCHeaderOwnsScalarLog(
+    uses_box_array: Bool,
+    uses_list: Bool,
+    uses_queue: Bool,
+    uses_set: Bool
+) -> Bool {
+    return uses_box_array || uses_list || uses_queue || uses_set;
+}
+
+func RuntimeCHeaderOwnsBoolToString(
+    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool
+) -> Bool {
+    return RuntimeCHeaderOwnsScalarLog(
+        uses_box_array, uses_list, uses_queue, uses_set
+    );
+}

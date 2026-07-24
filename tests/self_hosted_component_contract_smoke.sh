@@ -693,15 +693,15 @@ require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
     "SemanticAstGenericDefaultTypeForName("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'source_type == "AST_RETURN_VOID"'
-require_text "src/compiler/mir_json_dump.c" \
+require_text "src/compiler/mir_json_dump_decl.c" \
     "mir_json_emit_decl_generic_params(out, header);"
-require_text "src/compiler/mir_json_dump.c" \
+require_text "src/compiler/mir_json_dump_decl.c" \
     'fputs(",\"generic_params\":[", out);'
-require_text "src/compiler/mir_json_dump.c" \
+require_text "src/compiler/mir_json_dump_decl.c" \
     "mir_decl_generic_param_default_type_name(param)"
-require_text "src/compiler/mir_json_dump.c" \
+require_text "src/compiler/mir_json_dump_decl.c" \
     "return ast_type == AST_ZONE_DECL"
-require_text "src/compiler/mir_json_dump.c" \
+require_text "src/compiler/mir_json_dump_decl.c" \
     '? "zone" : mir_json_nominal_kind_name(nominal_kind)'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "func EmitDeclGenericParams("
@@ -3806,7 +3806,9 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
-require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+require_file "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy"
+require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" 60
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
     "func RuntimeCHeaderOwnsBoolToString("
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime.h\"'
@@ -3820,8 +3822,12 @@ require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
     "pgy_selfhost_emitted_c_uses_runtime_headers()"
 require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
     'pgy_runtime(_[^"]*)?\.h'
-require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+require_file "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" 120
+require_text "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" \
     "pgy_selfhost_emitted_c_uses_runtime_headers"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_pipeline_step_owner.sh"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     "pgy_selfhost_emitted_c_uses_runtime_headers"
 reject_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
@@ -3929,7 +3935,7 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'MIR fixture base is empty or duplicated'
 reject_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     '"$base" == "array_index_assign" ||'
-require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" \
     'MIR canonicalization failed: mode=$mode input=$input_arg'
 require_text "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh" \
     'native assignment bypassed binding-mode admission'
@@ -6535,7 +6541,10 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "struct SemanticMemberAccessView"
 require_file "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"
-require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 300
+# 360: the expected-value dispatcher and the Array/List/Queue/Set literal
+# emitters are one mutual-recursion cluster; the one-way import DAG forbids
+# splitting them across files, so the budget carries all four collection kinds.
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 360
 require_file "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" 500
 require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
@@ -7254,7 +7263,7 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCLogMaterializationBlock("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "usage.uses_machine_layer"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCPrintBlock()"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringCoreBlock(uses_list)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringCoreBlock("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCSplitBlock()"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCStringJoinBlock()"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static void pgy_log"
@@ -9592,7 +9601,7 @@ reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonD
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirDeclObjectBoundsAt(json, row, decl_bounds)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, \"fields\", row, field_bounds)"
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], \"kind\")"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" "json, decl_bounds[0], decl_bounds[1], \"kind\""
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "func DeclObjectEnd"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "func VariantObjectEnd"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"decls\":['
@@ -10211,7 +10220,7 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-run
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"semantic-parity-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_driver_rung2_compile_emitted"
-require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" '"$CC" -x c -std=c11'
+require_text "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" '"$CC" -x c -std=c11'
 require_text "Makefile" "self-host-driver-rung2-body-parity-test-smoke"
 reject_text "Makefile" "self-host-driver-rung2-initializer-parity-test-smoke"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"

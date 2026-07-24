@@ -944,6 +944,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
+                   $(COMPILER_DIR)/mir_json_dump_decl.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
                    $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
@@ -978,6 +979,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/verified_region_plan.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
+                   $(COMPILER_DIR)/mir_fact_surface_validate_resource.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_ability_ref.c \
                    $(COMPILER_DIR)/mir_decl_field_claim_abi.c \

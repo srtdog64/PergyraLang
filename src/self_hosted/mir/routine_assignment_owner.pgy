@@ -55,12 +55,14 @@ func SelfMirLowerAssignmentFromArtifact(
             build, Concat(
                 "MIR assignment target binding type drifted: target=",
                 Concat(target, Concat(
-                    " local_type=", Concat(
-                        build.local_types[local_index], Concat(
-                            " semantic_type=",
-                            input.assignments.target_type_names[binding_row]
+                    " node=", Concat(ToString(node_id), Concat(
+                        " local_type=", Concat(
+                            build.local_types[local_index], Concat(
+                                " semantic_type=",
+                                input.assignments.target_type_names[binding_row]
+                            )
                         )
-                    )
+                    ))
                 ))
             )
         );

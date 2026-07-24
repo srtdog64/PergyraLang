@@ -687,9 +687,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
 - `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` --
   owner-directed canonical runtime header composition for allocator,
-  TextBuilder, BoxArray, and collection consumers, including whether the
-  selected header already owns scalar log and Bool-to-String helpers; it does
-  not duplicate their C implementations.
+  TextBuilder, BoxArray, and collection consumers; it does not duplicate
+  their C implementations.
+- `src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy` --
+  helper-ownership predicates for the selected runtime headers (checked
+  arithmetic, scalar log, Bool-to-String); consumers ask this owner instead
+  of re-deriving header capabilities.
 - `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy` -- bounded self-host C spawn/await runtime ABI facts for scalar Int/String async work through one tagged invocation descriptor, including named `Future<T>` handle materialization; unsupported payload/arity shapes fail closed.
 - `src/self_hosted/codegen/runtime_abi/box_array_runtime_owner.pgy` -- self-host C allocator-backed Box<Array<T>> type and constructor ABI facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
