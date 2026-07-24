@@ -10,7 +10,7 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
 
     [[ "$base" == "for_each_call" ]] || return 0
 
-    local ordinal call_graph_count
+    local ordinal call_graph_count synthetic_graph_count
     for ordinal in 0 1 2; do
         grep -Fq "{\"name\":\"__pgy_forin_$ordinal\",\"type\":\"Array<Int>\"}" \
             "$self_mir_json" || {
@@ -27,6 +27,15 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
             echo "[self-host-parity:driver-rung2] $backend foreach branch use $ordinal drifted" >&2
             exit 1
         }
+        synthetic_graph_count="$(
+            { grep -oF \
+                "\"expr0_graph\":{\"root\":0,\"nodes\":[{\"kind\":\"leaf\",\"text\":\"__pgy_forin_$ordinal\"" \
+                "$self_mir_json" || true; } | wc -l | tr -d ' '
+        )"
+        if [[ "$synthetic_graph_count" -ne 2 ]]; then
+            echo "[self-host-parity:driver-rung2] $backend foreach shared synthetic graph $ordinal drifted: $synthetic_graph_count != 2" >&2
+            exit 1
+        fi
     done
     call_graph_count="$(
         { grep -oF \

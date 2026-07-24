@@ -36,6 +36,17 @@ func SelfMirLowerForFromArtifact(
     let binding: String = iteration.binding_name;
     let start: String = iteration.start_expression;
     let stop: String = iteration.stop_expression;
+    let iteration_graph: SemanticExpressionGraphView = source_graph;
+    if iteration.collection_hoisted {
+        iteration_graph = SelfMirIterationSyntheticGraphView(
+            input.analysis.expression_surfaces, iteration
+        );
+        if !iteration_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR foreach synthetic graph root is missing"
+            );
+        }
+    }
     build = SelfMirPrepareIterationCollection(
         build, iteration, source_graph, input.machine_declaration
     );
@@ -49,7 +60,7 @@ func SelfMirLowerForFromArtifact(
     );
     if iteration.collection_hoisted {
         build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SelfMirSyntheticLocalExpressionGraph(start),
+            build, iteration_graph,
             input.machine_declaration
         );
     } else {
@@ -64,10 +75,7 @@ func SelfMirLowerForFromArtifact(
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
     build = SelfMirRoutineAtBlock(build, header);
-    let branch_graph: SemanticExpressionGraphView = source_graph;
-    if iteration.collection_hoisted {
-        branch_graph = SelfMirSyntheticLocalExpressionGraph(start);
-    }
+    let branch_graph: SemanticExpressionGraphView = iteration_graph;
     if iteration.is_foreach && !branch_graph.ok {
         return SelfMirRoutineBuildError(
             build, "MIR foreach branch expression graph is missing"

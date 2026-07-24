@@ -24,6 +24,8 @@ struct SemanticAstIterationTypeFacts {
     binding_type_names: Array<String>;
     iterable_type_names: Array<String>;
     collection_hoists: Array<Int>;
+    synthetic_names: Array<String>;
+    synthetic_graph_root_ids: Array<Int>;
     verified: Array<Int>;
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
@@ -42,7 +44,7 @@ func SemanticAstIterationTypeStructuralError(
             "owner", "SemanticAstIterationTypeFacts"
         ),
         artifact.count, empty_ints, empty_strings, empty_strings, empty_ints,
-        empty_ints, empty_strings, empty_strings
+        empty_strings, empty_ints, empty_ints, empty_strings, empty_strings
     );
 }
 
@@ -162,6 +164,8 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
     let binding_types: Array<String> = [];
     let iterable_types: Array<String> = [];
     let collection_hoists: Array<Int> = [];
+    let synthetic_names: Array<String> = [];
+    let synthetic_graph_root_ids: Array<Int> = [];
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
@@ -310,6 +314,8 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
         ArrayPush(binding_types, binding_type);
         ArrayPush(iterable_types, iterable_type);
         ArrayPush(collection_hoists, collection_hoist);
+        ArrayPush(synthetic_names, "");
+        ArrayPush(synthetic_graph_root_ids, -1);
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
@@ -317,8 +323,8 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
     }
     return SemanticAstIterationTypeFacts(
         true, "", "", artifact.count, node_ids, binding_types,
-        iterable_types, collection_hoists, verified, diagnostic_codes,
-        diagnostic_messages
+        iterable_types, collection_hoists, synthetic_names,
+        synthetic_graph_root_ids, verified, diagnostic_codes, diagnostic_messages
     );
 }
 
@@ -392,6 +398,8 @@ func SemanticAstIterationTypeFactsMatchArtifact(
         ArrayLength(facts.binding_type_names) != n ||
         ArrayLength(facts.iterable_type_names) != n ||
         ArrayLength(facts.collection_hoists) != n ||
+        ArrayLength(facts.synthetic_names) != n ||
+        ArrayLength(facts.synthetic_graph_root_ids) != n ||
         ArrayLength(facts.verified) != n ||
         ArrayLength(facts.diagnostic_codes) != n ||
         ArrayLength(facts.diagnostic_messages) != n {
@@ -423,6 +431,8 @@ func SemanticAstIterationTypeFactsReadyForMirProjection(
         ArrayLength(facts.binding_type_names) != count ||
         ArrayLength(facts.iterable_type_names) != count ||
         ArrayLength(facts.collection_hoists) != count ||
+        ArrayLength(facts.synthetic_names) != count ||
+        ArrayLength(facts.synthetic_graph_root_ids) != count ||
         ArrayLength(facts.verified) != count ||
         ArrayLength(facts.diagnostic_codes) != count ||
         ArrayLength(facts.diagnostic_messages) != count {

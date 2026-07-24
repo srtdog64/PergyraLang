@@ -1,7 +1,7 @@
 // Immutable typed-artifact and semantic-fact bundle for MIR routine lowering.
 
 import "../semantic/ast_artifact_verdict_owner.pgy";
-import "../semantic/ast_iteration_type_fact_owner.pgy";
+import "../semantic/ast_iteration_graph_root_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -18,6 +18,8 @@ struct SelfMirIterationRows {
     binding_type_names: Array<String>;
     iterable_type_names: Array<String>;
     collection_hoists: Array<Int>;
+    synthetic_names: Array<String>;
+    synthetic_graph_root_ids: Array<Int>;
 }
 
 struct SelfMirAssignmentRows {
@@ -164,7 +166,8 @@ func SelfMirIterationRowsFromSemantic(
 ) -> SelfMirIterationRows {
     return SelfMirIterationRows(
         facts.node_ids, facts.binding_type_names,
-        facts.iterable_type_names, facts.collection_hoists
+        facts.iterable_type_names, facts.collection_hoists,
+        facts.synthetic_names, facts.synthetic_graph_root_ids
     );
 }
 
@@ -172,7 +175,9 @@ func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
     let n: Int = ArrayLength(rows.node_ids);
     if ArrayLength(rows.binding_type_names) != n ||
         ArrayLength(rows.iterable_type_names) != n ||
-        ArrayLength(rows.collection_hoists) != n {
+        ArrayLength(rows.collection_hoists) != n ||
+        ArrayLength(rows.synthetic_names) != n ||
+        ArrayLength(rows.synthetic_graph_root_ids) != n {
         return false;
     }
     let i: Int = 0;
@@ -182,7 +187,13 @@ func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
             rows.iterable_type_names[i] == "" ||
             rows.iterable_type_names[i] == "Unknown" ||
             (rows.collection_hoists[i] != 0 &&
-             rows.collection_hoists[i] != 1) {
+             rows.collection_hoists[i] != 1) ||
+            (rows.collection_hoists[i] == 1 &&
+             (rows.synthetic_names[i] == "" ||
+              rows.synthetic_graph_root_ids[i] < 0)) ||
+            (rows.collection_hoists[i] == 0 &&
+             (rows.synthetic_names[i] != "" ||
+              rows.synthetic_graph_root_ids[i] != -1)) {
             return false;
         }
         let prior: Int = 0;
@@ -207,35 +218,6 @@ func SelfMirNodeDescendsFrom(
         remaining = remaining - 1;
     }
     return false;
-}
-
-func SelfMirForEachSyntheticOrdinal(
-    ref input: SelfMirRoutineInput, node_id: Int
-) -> Option<Int> {
-    if !SelfMirIterationRowsReady(input.iterations) { return None; }
-    let found: Bool = false;
-    let ordinal: Int = 0;
-    let i: Int = 0;
-    while i < ArrayLength(input.iterations.node_ids) {
-        let candidate: Int = input.iterations.node_ids[i];
-        if candidate == node_id && input.iterations.collection_hoists[i] == 1 {
-            found = true;
-        } else if input.iterations.collection_hoists[i] == 1 {
-            let candidate_is_nested: Bool = SelfMirNodeDescendsFrom(
-                input.artifact.arena, candidate, node_id
-            );
-            let current_is_nested: Bool = SelfMirNodeDescendsFrom(
-                input.artifact.arena, node_id, candidate
-            );
-            if candidate_is_nested ||
-                (!current_is_nested && candidate < node_id) {
-                ordinal = ordinal + 1;
-            }
-        }
-        i = i + 1;
-    }
-    if !found { return None; }
-    return Some(ordinal);
 }
 
 func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {

@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+2026-07-25 non-identifier foreach program-graph closure. The executable
+falsifier was `src/self_hosted/mir_lower/fixture/for_each_call.pgy`: the
+Pergyra-built MIR producer attached the source call graph to the hoist
+definition, then constructed a separate one-node graph for the synthetic
+collection local used by loop-init and branch. The instruction graph owner
+requires every attached root to belong to the same program graph, so the C
+producer failed with `MIR expression graph attachment failed`. The same failure
+reproduced at the clean parent checkpoint, so it was not caused by the current
+callable-table migration.
+
+The replacement keeps physical components but one graph authority. HIR
+`program_graph_owner.pgy` is the only structural extension API;
+`ast_iteration_graph_root_owner.pgy` asks that owner to append compiler-created
+leaf nodes, attaches semantic call-target/place overlays, and records stable
+synthetic names plus root handles in iteration facts. MIR consumes those facts.
+`SelfMirSyntheticLocalExpressionGraph` and MIR-side
+`SelfMirForEachSyntheticOrdinal` reconstruction are deleted. The structural
+gate still reports `phase=unified structural_owners=1`.
+
+The static iteration gate rejects the retired sibling-graph and MIR ordinal
+paths and forbids semantic code from mutating topology arrays directly. The
+`for_each_call` runtime gate requires each of the three synthetic handles to
+project as the same leaf graph at loop-init and branch. Focused Pergyra-built C
+and LLVM drivers each passed all 20 body fixtures plus the selected MIR
+fixture, including canonical MIR, emitted C, and execution comparison. This is
+an executable self-host replacement, not evidence that the full compiler is
+self-hosted. No full-driver pressure claim changed: the pre-MIR semantic
+lifetime falsifier and the 3 GiB cap remain active.
+
 2026-07-25 Pergyra collection-mutation program-graph use closure. Objective:
 make `ArrayPop`, `ArrayPush`, and `ArraySet` receiver/value/index SSA uses consume
 the one semantic expression graph without restoring a source-text scan or a

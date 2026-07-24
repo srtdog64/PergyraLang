@@ -189,6 +189,10 @@ inventory must not become a second fact-family owner registry.
   range/foreach header verdicts and lexical loop-binding type facts derived
   from parser-owned expression graph roots; non-identifier foreach iterables
   carry one explicit synthetic-hoist fact.
+- `src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy` -- requests
+  HIR-owned topology extension for compiler-generated foreach collection
+  locals, attaches semantic overlays, and owns their stable names/root handles;
+  MIR may consume those handles but may not construct a sibling graph.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
   return, condition, loop, defer, break/continue, log, exit, match/default,
   array mutation, and bare-call kind/payload rows used for statement routing.
@@ -663,7 +667,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- owner of array-literal roots and ordered element edges consumed by hard codegen through the semantic expression graph view.
 - `src/self_hosted/hir/program_graph_owner.pgy` -- storage owner for the stable
   `AstExpressionArena` topology shared by parser/HIR and semantic overlays;
-  call-target, place, type, MIR, and backend facts are not owned here.
+  its isolated-node append API is the only allowed compiler-generated topology
+  extension; call-target, place, type, MIR, and backend facts are not owned here.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` --
   fail-closed codegen view over semantic function signature facts, including

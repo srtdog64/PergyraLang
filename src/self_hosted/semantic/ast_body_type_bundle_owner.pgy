@@ -1,7 +1,5 @@
 // Canonical semantic assembly of body-level type facts.
-//
-// Driver and codegen consume this bundle. Neither may independently rebuild
-// initializer, iteration, assignment, or statement type rows.
+// Driver/codegen consume this bundle and may not rebuild its body-type rows.
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
@@ -9,6 +7,7 @@ import "ast_generic_specialization_fact_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
+import "ast_iteration_graph_root_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
@@ -17,11 +16,7 @@ struct SemanticAstBodyTypeBundle {
     statement_types: SemanticAstStatementTypeFacts;
     generic_specializations: SemanticAstGenericSpecializationFacts;
 }
-func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void {
-    if enabled {
-        Log(Concat("[semantic-body-type-stage] ", stage));
-    }
-}
+func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAnalysisObserved(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
@@ -116,6 +111,14 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
             generic_specializations.diagnostic_code,
             generic_specializations.diagnostic_message, -1
         );
+    } else if verdict.ok &&
+        !SemanticAstIterationSyntheticGraphRootsAttach(
+            artifact, analysis, iteration_types
+        ) {
+        verdict = SemanticAstBodyVerdictError(
+            "iteration_graph_root_unresolved",
+            "semantic foreach synthetic roots are incomplete", -1
+        );
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(
@@ -128,9 +131,7 @@ func SemanticAstBodyTypeBundleFromAnalysis(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis
 ) -> SemanticAstBodyTypeBundle {
-    return SemanticAstBodyTypeBundleFromAnalysisObserved(
-        artifact, analysis, false
-    );
+    return SemanticAstBodyTypeBundleFromAnalysisObserved(artifact, analysis, false);
 }
 func SemanticAstBodyTypeBundleReady(
     artifact: AstTreeArtifact,
@@ -141,7 +142,6 @@ func SemanticAstBodyTypeBundleReady(
         artifact, analysis, bundle
     ) == "";
 }
-
 func SemanticAstBodyTypeBundleReadinessError(
     artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis,

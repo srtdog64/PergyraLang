@@ -17,13 +17,14 @@ struct SelfMirIterationLoweringFact {
     is_foreach: Bool;
     collection_hoisted: Bool;
     synthetic_name: String;
+    synthetic_graph_root_id: Int;
 }
 
 func SelfMirIterationLoweringError(
     message: String
 ) -> SelfMirIterationLoweringFact {
     return SelfMirIterationLoweringFact(
-        false, message, "", "", "", "", "", "", false, false, ""
+        false, message, "", "", "", "", "", "", false, false, "", -1
     );
 }
 
@@ -45,6 +46,8 @@ func SelfMirIterationLoweringFactForNode(
     let binding_type: String = "";
     let iterable_type: String = "";
     let collection_hoist: Int = 0;
+    let synthetic_name: String = "";
+    let synthetic_graph_root_id: Int = -1;
     let found_iteration: Bool = false;
     let i: Int = 0;
     while i < ArrayLength(input.iterations.node_ids) {
@@ -52,6 +55,9 @@ func SelfMirIterationLoweringFactForNode(
             binding_type = input.iterations.binding_type_names[i];
             iterable_type = input.iterations.iterable_type_names[i];
             collection_hoist = input.iterations.collection_hoists[i];
+            synthetic_name = input.iterations.synthetic_names[i];
+            synthetic_graph_root_id =
+                input.iterations.synthetic_graph_root_ids[i];
             found_iteration = true;
             break;
         }
@@ -79,21 +85,18 @@ func SelfMirIterationLoweringFactForNode(
     let is_foreach: Bool = auxiliary == "";
     let stop: String = auxiliary;
     let canonical_start: String = start;
-    let synthetic_name: String = "";
     if is_foreach {
         if collection_hoist == 1 {
-            let ordinal: Option<Int> = SelfMirForEachSyntheticOrdinal(
-                input, node_id
-            );
-            if !IsSome(ordinal) {
+            if synthetic_name == "" || synthetic_graph_root_id < 0 {
                 return SelfMirIterationLoweringError(
-                    "MIR foreach synthetic-local ordinal is missing"
+                    "MIR foreach synthetic graph root is missing"
                 );
             }
-            synthetic_name = Concat(
-                "__pgy_forin_", ToString(UnwrapOption(ordinal))
-            );
             canonical_start = synthetic_name;
+        } else if synthetic_name != "" || synthetic_graph_root_id != -1 {
+            return SelfMirIterationLoweringError(
+                "MIR foreach synthetic graph root is unexpected"
+            );
         }
         stop = canonical_start;
     } else if binding_type != "Int" {
@@ -104,30 +107,22 @@ func SelfMirIterationLoweringFactForNode(
     return SelfMirIterationLoweringFact(
         true, "", binding, binding_type, iterable_type, start,
         canonical_start, stop, is_foreach, collection_hoist == 1,
-        synthetic_name
+        synthetic_name, synthetic_graph_root_id
     );
 }
 
-func SelfMirSyntheticLocalExpressionGraph(
-    name: String
+func SelfMirIterationSyntheticGraphView(
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    fact: SelfMirIterationLoweringFact
 ) -> SemanticExpressionGraphView {
-    let kinds: Array<Int> = [AstExpressionNodeLeaf()];
-    let texts: Array<String> = [name];
-    let left_children: Array<Int> = [0];
-    let right_children: Array<Int> = [0];
-    let target_kinds: Array<Int> = [SemanticCallTargetNone()];
-    let targets: Array<String> = [""];
-    let roots: Array<Int> = [0];
-    let has_roots: Array<Bool> = [true];
-    let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaUnclassified(
-        kinds, texts, left_children, right_children, target_kinds, targets
-    );
-    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        SemanticExpressionGraphArenaReady(arena), roots, has_roots, arena
-    );
     return SemanticExpressionGraphView(
-        SemanticExpressionGraphFactsReady(graph, 1), 0, graph
+        fact.collection_hoisted && fact.synthetic_graph_root_id >= 0 &&
+            fact.synthetic_graph_root_id <
+                SemanticExpressionGraphArenaNodeCount(
+                    expression_surfaces.expression_graph.arena
+                ),
+        fact.synthetic_graph_root_id,
+        expression_surfaces.expression_graph
     );
 }
 

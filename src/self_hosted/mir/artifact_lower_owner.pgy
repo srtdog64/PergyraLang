@@ -467,6 +467,9 @@ func SelfMirProgramFactsFromArtifact(
         artifact, analysis.local_bindings, initializer_types
     ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
         artifact, analysis.statements, iteration_types
+    ) || !SemanticAstIterationSyntheticGraphRootsReady(
+        artifact, analysis.statements, analysis.expression_surfaces,
+        iteration_types
     ) || !SemanticAstAssignmentTypeFactsMatchArtifact(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings, initializer_types, analysis.statements,

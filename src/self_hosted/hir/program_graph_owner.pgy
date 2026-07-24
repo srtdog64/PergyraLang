@@ -10,6 +10,12 @@ struct AstExpressionArena {
     right_children: Array<Int>;
 }
 
+struct ProgramExpressionGraphAppend {
+    ok: Bool;
+    root_id: Int;
+    arena: AstExpressionArena;
+}
+
 func ProgramExpressionGraphStorageSchema() -> String {
     return "pgy.selfhost.program-expression-topology.v1";
 }
@@ -33,4 +39,30 @@ func ProgramExpressionGraphStorageRowsAligned(
     return ArrayLength(arena.node_texts) == count &&
         ArrayLength(arena.left_children) == count &&
         ArrayLength(arena.right_children) == count;
+}
+
+func ProgramExpressionGraphAppendIsolatedNode(
+    arena: AstExpressionArena,
+    node_kind: Int,
+    node_text: String
+) -> ProgramExpressionGraphAppend {
+    let root_id: Int = AstExpressionArenaNodeCount(arena);
+    if !ProgramExpressionGraphStorageRowsAligned(arena) ||
+        node_kind < 0 || node_text == "" {
+        return ProgramExpressionGraphAppend(false, -1, arena);
+    }
+    let node_kinds: Array<Int> = arena.node_kinds;
+    let node_texts: Array<String> = arena.node_texts;
+    let left_children: Array<Int> = arena.left_children;
+    let right_children: Array<Int> = arena.right_children;
+    ArrayPush(node_kinds, node_kind);
+    ArrayPush(node_texts, node_text);
+    ArrayPush(left_children, 0);
+    ArrayPush(right_children, 0);
+    let appended: AstExpressionArena = AstExpressionArena(
+        node_kinds, node_texts, left_children, right_children
+    );
+    return ProgramExpressionGraphAppend(
+        ProgramExpressionGraphStorageRowsAligned(appended), root_id, appended
+    );
 }

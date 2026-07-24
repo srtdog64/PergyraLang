@@ -3599,8 +3599,9 @@ require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMi
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUsesAppend('
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'func SelfMirRoutineLocalInventoryFromInput('
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SemanticAstLocalBindingRangeForFunction('
-require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SelfMirForEachSyntheticOrdinal('
-require_text "src/self_hosted/mir/routine_for_owner.pgy" 'build, SelfMirSyntheticLocalExpressionGraph(start),'
+require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'input.iterations.synthetic_names[iteration_row]'
+require_text "src/self_hosted/mir/routine_for_owner.pgy" 'input.analysis.expression_surfaces, iteration'
+reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'SelfMirSyntheticLocalExpressionGraph('
 reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'branch_graph = SemanticAstExpressionGraphForNode('
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" 'ArrayLength(build.local_names)'
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" 'build.local_names[local_i]'
@@ -3663,20 +3664,32 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_foreach_call_type'
 require_text "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh" \
     'missing foreach synthetic local was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh" \
+    'foreach shared synthetic graph'
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
     'iterable_type_names: Array<String>;'
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
     'collection_hoists: Array<Int>;'
+require_file "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy" 220
+require_text "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy" \
+    'func SemanticAstIterationSyntheticGraphRootsAttach('
+require_text "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy" \
+    'ProgramExpressionGraphAppendIsolatedNode('
+require_text "src/self_hosted/hir/program_graph_owner.pgy" \
+    'func ProgramExpressionGraphAppendIsolatedNode('
+reject_text "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy" \
+    'SemanticExpressionGraphAppendNode('
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
+    'synthetic_graph_root_ids: Array<Int>;'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" \
-    'func SelfMirForEachSyntheticOrdinal('
-require_text "src/self_hosted/mir/routine_input_owner.pgy" \
-    ') -> Option<Int> {'
-reject_function_text "src/self_hosted/mir/routine_input_owner.pgy" \
-    'func SelfMirForEachSyntheticOrdinal(' 'return -1'
+    'facts.synthetic_graph_root_ids'
+reject_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    'SelfMirForEachSyntheticOrdinal('
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
-    'func SelfMirSyntheticLocalExpressionGraph('
-require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
-    '"__pgy_forin_", ToString(UnwrapOption(ordinal))'
+    'func SelfMirIterationSyntheticGraphView('
+reject_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    'SelfMirSyntheticLocalExpressionGraph('
 require_file "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

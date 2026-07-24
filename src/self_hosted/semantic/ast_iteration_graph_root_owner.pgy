@@ -1,0 +1,179 @@
+// Semantic ownership of compiler-generated foreach collection roots.
+//
+// Synthetic collection locals extend the one carried program expression
+// graph. MIR consumes their stable root handles and must not build a second
+// graph or recover the synthetic identity from AST traversal.
+
+import "ast_iteration_type_fact_owner.pgy";
+import "ast_artifact_verdict_owner.pgy";
+
+func SemanticAstIterationNodeDescendsFrom(
+    arena: AstArena, node_id: Int, ancestor_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let current: Int = UnwrapOption(cursor);
+        if current == ancestor_id { return true; }
+        cursor = TypedAstArenaParentId(arena, current);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SemanticAstIterationSyntheticOrdinal(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstIterationTypeFacts,
+    node_id: Int
+) -> Option<Int> {
+    let found: Bool = false;
+    let ordinal: Int = 0;
+    let i: Int = 0;
+    while i < SemanticAstIterationTypeCount(facts) {
+        let candidate: Int = facts.node_ids[i];
+        if candidate == node_id && facts.collection_hoists[i] == 1 {
+            found = true;
+        } else if facts.collection_hoists[i] == 1 {
+            let candidate_is_nested: Bool =
+                SemanticAstIterationNodeDescendsFrom(
+                    artifact.arena, candidate, node_id
+                );
+            let current_is_nested: Bool =
+                SemanticAstIterationNodeDescendsFrom(
+                    artifact.arena, node_id, candidate
+                );
+            if candidate_is_nested ||
+                (!current_is_nested && candidate < node_id) {
+                ordinal = ordinal + 1;
+            }
+        }
+        i = i + 1;
+    }
+    if !found { return None; }
+    return Some(ordinal);
+}
+
+func SemanticAstIterationSyntheticGraphRootsAttach(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    inout facts: SemanticAstIterationTypeFacts
+) -> Bool {
+    let count: Int = SemanticAstIterationTypeCount(facts);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.collection_hoists) != count ||
+        ArrayLength(facts.synthetic_names) != count ||
+        ArrayLength(facts.synthetic_graph_root_ids) != count ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, analysis.expression_surfaces
+        ) {
+        return false;
+    }
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let topology: AstExpressionArena = graph.arena.topology;
+    let node_texts: Array<String> = graph.arena.node_texts;
+    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    let target_names: Array<String> = graph.arena.call_target_names;
+    let place_kinds: Array<Int> = graph.arena.place_kinds;
+    let synthetic_names: Array<String> = facts.synthetic_names;
+    let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
+    let i: Int = 0;
+    while i < count {
+        if synthetic_names[i] != "" || synthetic_roots[i] != -1 {
+            return false;
+        }
+        if facts.collection_hoists[i] == 1 {
+            let ordinal: Option<Int> =
+                SemanticAstIterationSyntheticOrdinal(
+                    artifact, facts, facts.node_ids[i]
+                );
+            if !IsSome(ordinal) { return false; }
+            let name: String = Concat(
+                "__pgy_forin_", ToString(UnwrapOption(ordinal))
+            );
+            let appended: ProgramExpressionGraphAppend =
+                ProgramExpressionGraphAppendIsolatedNode(
+                    topology, AstExpressionNodeLeaf(), name
+                );
+            if !appended.ok { return false; }
+            topology = appended.arena;
+            ArrayPush(node_texts, name);
+            ArrayPush(target_kinds, SemanticCallTargetNone());
+            ArrayPush(target_names, "");
+            ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
+            ArraySet(synthetic_names, i, name);
+            ArraySet(synthetic_roots, i, appended.root_id);
+        } else if facts.collection_hoists[i] != 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+            topology, node_texts, target_kinds, target_names, place_kinds
+        );
+    let attached: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            SemanticExpressionGraphArenaReady(arena),
+            graph.roots, graph.has_roots, arena
+        );
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, attached
+        );
+    if !surfaces.ok { return false; }
+    analysis.expression_surfaces = surfaces;
+    facts.synthetic_names = synthetic_names;
+    facts.synthetic_graph_root_ids = synthetic_roots;
+    return true;
+}
+
+func SemanticAstIterationSyntheticGraphRootsReady(
+    artifact: AstTreeArtifact,
+    statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    facts: SemanticAstIterationTypeFacts
+) -> Bool {
+    let count: Int = SemanticAstIterationTypeCount(facts);
+    if !SemanticAstIterationTypeFactsReadyForMirProjection(
+        artifact, statements, facts
+    ) || ArrayLength(facts.synthetic_names) != count ||
+        ArrayLength(facts.synthetic_graph_root_ids) != count ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
+        ) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.collection_hoists[i] == 1 {
+            let ordinal: Option<Int> =
+                SemanticAstIterationSyntheticOrdinal(
+                    artifact, facts, facts.node_ids[i]
+                );
+            let root: Int = facts.synthetic_graph_root_ids[i];
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                expression_surfaces.expression_graph, root
+            );
+            let text: Option<String> = SemanticExpressionGraphNodeText(
+                expression_surfaces.expression_graph, root
+            );
+            if !IsSome(ordinal) || facts.synthetic_names[i] != Concat(
+                "__pgy_forin_", ToString(UnwrapOption(ordinal))
+            ) || !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() ||
+                !IsSome(text) || UnwrapOption(text) != facts.synthetic_names[i] ||
+                expression_surfaces.expression_graph.arena.call_target_kinds[
+                    root
+                ] != SemanticCallTargetNone() ||
+                expression_surfaces.expression_graph.arena.place_kinds[root] !=
+                    SemanticExpressionPlaceBinding() {
+                return false;
+            }
+        } else if facts.synthetic_names[i] != "" ||
+            facts.synthetic_graph_root_ids[i] != -1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

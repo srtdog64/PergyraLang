@@ -190,6 +190,34 @@ fact spine. The binary token is an accidental-direct-run interlock, not an
 authorization secret; the official pressure wrapper remains the resource
 owner.
 
+### `for_each_call`: MIR expression graph attachment failed
+
+This focused error had a different cause from the full-driver memory ceiling.
+For a non-identifier foreach such as `for value in MakeValues()`, the
+self-hosted producer correctly attached the program-owned call graph to the
+collection-hoist definition, but then built a separate one-node graph for the
+compiler-generated `__pgy_forin_N` local. The MIR instruction graph owner
+rejects mixing graph identities, so the producer stopped at `MIR expression
+graph attachment failed` before backend emission. Raising memory limits or
+loosening graph equality cannot repair this failure.
+
+The closed path is now:
+
+1. HIR's `program_graph_owner.pgy` appends the compiler-generated leaf to the
+   existing revision-local topology through its owned extension API.
+2. The semantic iteration graph-root owner attaches `none` call-target and
+   binding-place overlays and records the synthetic name/root handle.
+3. MIR consumes that carried handle for loop-init, branch, local inventory,
+   and instruction graph attachment. It does not traverse the AST to recreate
+   an ordinal and does not construct a sibling graph.
+
+Run `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh` for
+the negative ownership ratchet, then run the DRV-2 body parity gate with
+`PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER=for_each_call` for C and LLVM. The
+structural check must continue to report `phase=unified structural_owners=1`.
+This fix removes a correctness blocker; it does not change the separate
+full-driver 3 GiB pressure verdict above.
+
 The follow-up check found that exact bypass active beside a 95-fixture DRV-2
 shard. Together with a short-lived third recursive make probe, the three runs
 owned 21 project processes and 2,114 MB private memory at an early snapshot;

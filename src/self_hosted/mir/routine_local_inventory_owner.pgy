@@ -118,13 +118,10 @@ func SelfMirRoutineLocalInventoryFromInput(
             }
             let statement_index: Int = UnwrapOption(statement_index_opt);
             if input.iterations.collection_hoists[iteration_row] == 1 {
-                let ordinal: Option<Int> = SelfMirForEachSyntheticOrdinal(
-                    input, iteration_node
-                );
-                if !IsSome(ordinal) ||
+                if input.iterations.synthetic_names[iteration_row] == "" ||
                     !SelfMirRoutineLocalInventoryAppend(
                         names, types,
-                        Concat("__pgy_forin_", ToString(UnwrapOption(ordinal))),
+                        input.iterations.synthetic_names[iteration_row],
                         input.iterations.iterable_type_names[iteration_row]
                     ) {
                     return SelfMirRoutineLocalInventoryError(
