@@ -8,13 +8,20 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `4ee38b73` (`Bound MIR graph slot policy
-  ownership`), following the executable replacement in `fd2e0597` (`Close
-  collection mutation graph ownership`). It carries the graph storage
+- Active implementation checkpoint: `3ccbfd2d` (`Share semantic callable table
+  across body passes`), following `4ee38b73` (`Bound MIR graph slot policy
+  ownership`) and the executable replacement in `fd2e0597` (`Close collection
+  mutation graph ownership`). It carries the graph storage
   migration forward: the
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
   semantic graph plus instruction root/range handles.
+- `3ccbfd2d` closes one executable body-analysis lifetime seam. The body owner
+  creates one `SemanticAstExpressionFunctionTableFacts` value and routes it to
+  initializer base, iteration, and initializer-refinement consumers. The
+  callable-table fact owner validates aligned rows and fails closed on a
+  missing or malformed fact; direct legacy entry points remain fixture-facing
+  wrappers and are not used by the production body path.
 - The blocking graph gate now reports `phase=unified` with exactly one
   structural store: the program topology. The HIR, semantic, and MIR copied
   topology stores are retired.
@@ -167,6 +174,13 @@ with an approximately 120 MB golden artifact. The self-hosted failure remains
 whole-program semantic fact retention before MIR/JSON, now measured as roughly
 26x the native reference.
 
+`3ccbfd2d` removes one repeated callable-table construction from the
+production body path: initializer base, iteration, and refinement now borrow
+one artifact-scoped table fact. This is a bounded allocation/lifetime
+improvement, not evidence that the whole-program semantic retention defect is
+closed; the next falsifier remains an exclusive full-driver pressure run below
+the existing 3 GiB ceiling.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -193,6 +207,16 @@ closed on Windows if the PowerShell pressure owner is unavailable, and
 ## Last observed gates
 
 Green on the graph handle commit slice:
+
+- `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
+- `tests/self_hosted_component_contract_smoke.sh` after updating its body
+  assertion to the shared callable-table production route;
+- `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0 warning(s)`
+  after the callable-table migration;
+- GCC `-std=c11 -Isrc -Isrc/runtime -fsyntax-only` on the generated owner C;
+- `tests/self_hosted/parity/semantic_expression_normalization_owner_smoke.sh`;
+- `tests/self_hosted/parity/semantic_expression_validation_lifetime_owner_smoke.sh`;
+- `tests/self_hosted/parity/semantic_initializer_pressure_owner_smoke.sh`;
 
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_program_graph_unification_smoke.sh` with
@@ -262,51 +286,34 @@ source.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-After `4ee38b73`, the following concurrent semantic function-table/lifetime and
-parity changes were still dirty. They were excluded from the graph-policy
-commit and its detached verification. Do not discard or fold them into another
-unit implicitly:
+At `3ccbfd2d`, `main` and `origin/main` are aligned. The callable-table slice
+is committed and pushed. Three concurrent parity edits remain dirty and are
+intentionally excluded from that commit; preserve them and re-check ownership
+before the next unit:
 
-- `Makefile`;
-- `src/self_hosted/OWNERS.md` (new changes after the committed graph-policy
-  owner row);
-- `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`;
-- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`;
-- `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy`;
-- `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy`;
-- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`;
-- `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy`;
-- `src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy`;
-- `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
-- `tests/self_hosted_component_contract_smoke.sh` (new changes after the
-  committed graph-policy owner assertions).
+- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-Verify this list after the handoff snapshot because another task may advance
-`main` or add a new lifetime slice concurrently.
+No compiler, `pgy`, `driver_oracle`, GCC, Clang, or Make process was active at
+the final process check for this unit.
 
 ## Next executable work
 
-1. Finish or explicitly hand off the uncommitted semantic function-table slice.
-   Its current main-worktree compile failed on unresolved `function_names` and
-   `function_returns`; that moving-tree result is not a graph-policy regression
-   and is not green evidence for the lifetime slice.
-2. Obtain an exclusive compiler-build window, re-run the official initializer
+1. Obtain an exclusive compiler-build window, re-run the official initializer
    C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
-3. Close the measured whole-program semantic lifetime boundary. The preferred
+2. Close the measured whole-program semantic lifetime boundary. The preferred
    unit is routine-scoped analysis/verify with owner-proved output ordering and
    comparison against the native 120 MB golden artifact. Do not tune JSON or
    raise the cap before execution reaches those stages.
-4. Introduce the real revision owner and distinct stable identities
+3. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-5. After the full-driver artifact completes below 3 GiB, run the unfiltered
+4. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
