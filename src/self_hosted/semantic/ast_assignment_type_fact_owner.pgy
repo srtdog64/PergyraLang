@@ -17,7 +17,7 @@ import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
-
+import "ast_expression_function_table_fact_owner.pgy";
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -34,7 +34,6 @@ struct SemanticAstAssignmentTypeFacts {
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
 }
-
 func SemanticAstAssignmentTypeStructuralError(
     artifact: AstTreeArtifact
 ) -> SemanticAstAssignmentTypeFacts {
@@ -53,7 +52,6 @@ func SemanticAstAssignmentTypeStructuralError(
         empty_strings, empty_strings, empty_ints, empty_strings, empty_strings
     );
 }
-
 func SemanticAstAssignmentIndexRoot(
     ref graph: SemanticExpressionGraphFacts,
     target_root: Int
@@ -66,7 +64,6 @@ func SemanticAstAssignmentIndexRoot(
     }
     return SemanticExpressionGraphRightChild(graph, target_root);
 }
-
 func SemanticAstAssignmentTargetBaseRoot(
     ref graph: SemanticExpressionGraphFacts,
     target_root: Int
@@ -80,7 +77,6 @@ func SemanticAstAssignmentTargetBaseRoot(
     }
     return Some(target_root);
 }
-
 func SemanticAstAssignmentTargetBindingName(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int
@@ -106,7 +102,6 @@ func SemanticAstAssignmentTargetBindingName(
         graph, UnwrapOption(receiver)
     );
 }
-
 func SemanticAstAssignmentTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -116,7 +111,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     statements: SemanticAstStatementFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
-    assignments: SemanticAstAssignmentFacts
+    assignments: SemanticAstAssignmentFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstAssignmentTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -135,22 +131,14 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         ) {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
-
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     if !enum_facts.ok {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
-    if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, enum_facts,
-        function_names, function_returns, function_params
-    ) {
+    if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
-
     let node_ids: Array<Int> = [];
     let target_texts: Array<String> = [];
     let target_binding_modes: Array<String> = [];
@@ -238,7 +226,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             target_type = SemanticExpressionGraphScalarTypeName(
                 expression_surfaces.expression_graph,
                 UnwrapOption(target_base_root), constructors, names, types,
-                function_names, function_returns
+                function_tables.names, function_tables.returns
             );
             if target_type == "Unknown" || target_type == "" {
                 row_code = "assignment_type_unresolved";
@@ -265,8 +253,9 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         assignments.target_index_texts[i],
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, signatures,
-                        names, types, modes, function_names, function_returns,
-                        function_params, member_root_names
+                        names, types, modes, function_tables.names,
+                        function_tables.returns, function_tables.params,
+                        member_root_names
                     );
                 if !index_verdict.ok {
                     row_code = index_verdict.diagnostic_code;
@@ -275,7 +264,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     index_type = SemanticExpressionGraphScalarTypeName(
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, names, types,
-                        function_names, function_returns
+                        function_tables.names, function_tables.returns
                     );
                 }
                 if row_code == "" && (!IsSome(element_type_opt) ||
@@ -309,7 +298,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         expression_surfaces.expression_graph,
                         UnwrapOption(value_root), constructors, signatures,
                         names, types, modes,
-                        function_names, function_returns, function_params,
+                        function_tables.names, function_tables.returns,
+                        function_tables.params,
                         member_root_names
                     );
                 inferred = value_verdict.inferred_type_name;
@@ -321,7 +311,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                             expression_surfaces.expression_graph,
                             UnwrapOption(value_root), expected, constructors,
-                            names, types, function_names, function_returns
+                            names, types, function_tables.names,
+                            function_tables.returns
                         ) {
                             inferred = expected;
                         }
@@ -380,7 +371,6 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         diagnostic_codes, diagnostic_messages
     );
 }
-
 func SemanticAstAssignmentTypesAllVerified(
     ref facts: SemanticAstAssignmentTypeFacts
 ) -> Bool {
@@ -396,7 +386,6 @@ func SemanticAstAssignmentTypesAllVerified(
     }
     return true;
 }
-
 func SemanticAstAssignmentFirstDiagnosticCode(
     facts: SemanticAstAssignmentTypeFacts
 ) -> String {
@@ -412,7 +401,6 @@ func SemanticAstAssignmentFirstDiagnosticCode(
     }
     return "";
 }
-
 func SemanticAstAssignmentFirstDiagnosticMessage(
     facts: SemanticAstAssignmentTypeFacts
 ) -> String {
@@ -428,7 +416,6 @@ func SemanticAstAssignmentFirstDiagnosticMessage(
     }
     return "";
 }
-
 func SemanticAstAssignmentTypeFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -441,10 +428,16 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     assignments: SemanticAstAssignmentFacts,
     facts: SemanticAstAssignmentTypeFacts
 ) -> Bool {
+    let enum_facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, enum_facts
+        );
     let rebuilt: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statements, expression_surfaces, iteration_types, assignments
+            statements, expression_surfaces, iteration_types, assignments,
+            function_tables
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
@@ -479,7 +472,6 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     }
     return true;
 }
-
 func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Let: xs : Array<Int> = [1]\n        Assign: xs[0] = x\n        Let: box : Box = Box(1)\n        Assign: box.value = x\n"
@@ -505,10 +497,14 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
             valid, signatures, constructors, locals, initializers, statements,
             expression_surfaces
         );
+    let valid_function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, SemanticAstEnumFactsFromArtifact(valid)
+        );
     let valid_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             valid, signatures, constructors, locals, initializers, statements,
-            expression_surfaces, iterations, assignments
+            expression_surfaces, iterations, assignments, valid_function_tables
         );
     if !SemanticAstAssignmentTypeFactsMatchArtifact(
         valid, signatures, constructors, locals, initializers, statements,
@@ -525,7 +521,6 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         valid_facts.expected_type_names[2] != "Int" {
         return false;
     }
-
     let member_target_root: Option<Int> =
         SemanticAstExpressionGraphRootForNode(
             expression_surfaces, assignments.node_ids[2],
@@ -543,7 +538,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
     let drifted_target_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             valid, signatures, constructors, locals, initializers, statements,
-            expression_surfaces, iterations, assignments
+            expression_surfaces, iterations, assignments, valid_function_tables
         );
     if !drifted_target_facts.ok ||
         SemanticAstAssignmentTypesAllVerified(drifted_target_facts) ||
@@ -585,13 +580,18 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
             mismatch_initializers, mismatch_statements,
             mismatch_expression_surfaces
         );
+    let mismatch_function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            mismatch_signatures, mismatch_constructors,
+            SemanticAstEnumFactsFromArtifact(mismatch)
+        );
     let mismatch_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,
             mismatch_locals,
             mismatch_initializers, mismatch_statements,
             mismatch_expression_surfaces, mismatch_iterations,
-            mismatch_assignments
+            mismatch_assignments, mismatch_function_tables
         );
     return !SemanticAstAssignmentTypesAllVerified(mismatch_facts) &&
         SemanticAstAssignmentFirstDiagnosticCode(mismatch_facts) ==

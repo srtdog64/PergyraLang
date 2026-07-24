@@ -12,7 +12,7 @@ import "ast_expression_graph_array_literal_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_bind_statement_type_fact_owner.pgy";
-
+import "ast_expression_function_table_fact_owner.pgy";
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -26,7 +26,6 @@ struct SemanticAstStatementTypeFacts {
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
 }
-
 func SemanticAstStatementTypeStructuralError(
     artifact: AstTreeArtifact,
     fact: String
@@ -44,7 +43,6 @@ func SemanticAstStatementTypeStructuralError(
         empty_ints, empty_strings, empty_strings
     );
 }
-
 func SemanticAstStatementExpectedReturnType(
     signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int
@@ -63,7 +61,6 @@ func SemanticAstStatementExpectedReturnType(
     }
     return UnwrapOption(return_opt);
 }
-
 func SemanticAstStatementTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -72,7 +69,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
     initializer_types: SemanticAstInitializerTypeFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
-    statements: SemanticAstStatementFacts
+    statements: SemanticAstStatementFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstStatementTypeFacts {
     if !AstTreeArtifactReady(artifact) {
         return SemanticAstStatementTypeStructuralError(artifact, "artifact");
@@ -110,9 +108,6 @@ func SemanticAstStatementTypeFactsFromArtifact(
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "statement");
     }
-    let function_names: Array<String> = [];
-    let function_returns: Array<String> = [];
-    let function_params: Array<String> = [];
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     let role_facts: SemanticAstRoleFacts =
@@ -123,15 +118,11 @@ func SemanticAstStatementTypeFactsFromArtifact(
     if !role_facts.ok {
         return SemanticAstStatementTypeStructuralError(artifact, "role");
     }
-    if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, enum_facts,
-        function_names, function_returns, function_params
-    ) {
+    if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstStatementTypeStructuralError(
             artifact, "function_table"
         );
     }
-
     let node_ids: Array<Int> = [];
     let kind_tags: Array<Int> = [];
     let expected_types: Array<String> = [];
@@ -193,7 +184,6 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 artifact, environment_fact
             );
         }
-
         let kind: Int = statements.kind_tags[i];
         let expected: String = "";
         let inferred: String = "Void";
@@ -233,13 +223,15 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     expression_surfaces.expression_graph,
                     UnwrapOption(graph_root), constructors, signatures,
                     names, types, modes,
-                    function_names, function_returns, function_params,
+                    function_tables.names, function_tables.returns,
+                    function_tables.params,
                     member_root_names
                 );
             } else {
                 expression_verdict = SemanticAstExpressionVerdictFromPayload(
                     statements.payload_texts[i], names, types, modes,
-                    function_names, function_returns, function_params
+                    function_tables.names, function_tables.returns,
+                    function_tables.params
                 );
             }
             inferred = expression_verdict.inferred_type_name;
@@ -325,8 +317,9 @@ func SemanticAstStatementTypeFactsFromArtifact(
                         statements.value_texts[i],
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, signatures,
-                        names, types, modes, function_names, function_returns,
-                        function_params, member_root_names
+                        names, types, modes, function_tables.names,
+                        function_tables.returns, function_tables.params,
+                        member_root_names
                     );
                 let index_type: String = index_verdict.inferred_type_name;
                 if !index_verdict.ok {
@@ -368,8 +361,9 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         value_text, expression_surfaces.expression_graph,
                         UnwrapOption(value_root), constructors, signatures,
-                        names, types, modes, function_names, function_returns,
-                        function_params, member_root_names
+                        names, types, modes, function_tables.names,
+                        function_tables.returns, function_tables.params,
+                        member_root_names
                     );
                 inferred = value_verdict.inferred_type_name;
                 expected = UnwrapOption(element_type_opt);
@@ -413,7 +407,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                     expression_surfaces.expression_graph,
                     UnwrapOption(return_root), expected, constructors,
-                    names, types, function_names, function_returns
+                    names, types, function_tables.names,
+                    function_tables.returns
                 ) {
                     inferred = expected;
                 }
@@ -566,10 +561,15 @@ func SemanticAstStatementTypeFactsMatchArtifact(
     statements: SemanticAstStatementFacts,
     facts: SemanticAstStatementTypeFacts
 ) -> Bool {
+    let enum_facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, enum_facts
+        );
     let rebuilt: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            expression_surfaces, iteration_types, statements
+            expression_surfaces, iteration_types, statements, function_tables
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
