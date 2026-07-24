@@ -8,8 +8,10 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `9f207fdc` (`Share artifact callable table
-  across capture and body`), following `6433659b` (`Share callable table with
+- Active implementation checkpoint: `3f2b9bba` (`Unify foreach synthetic roots
+  with program graph`), following `2b95746d` (the exclusive full-driver memory
+  ceiling evidence), `9f207fdc` (`Share artifact callable table across capture
+  and body`), `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
   specialization`), `a1d508a0` (`Share callable table across assignment and
   statement passes`), `fa2d8383` (`Route call targets through shared callable
@@ -51,6 +53,11 @@ owner, and the named executable gate.
   Remaining direct `SemanticAstExpressionFunctionTables` reads are limited to
   the fact producer/contract and fixture policy probes, outside the production
   body route.
+- `3f2b9bba` closes the executable non-identifier foreach graph split. HIR's
+  program-graph owner is the only topology-extension API; semantic iteration
+  facts carry compiler-generated local names and graph root handles; MIR no
+  longer rebuilds an ordinal or a sibling one-node graph. The previously red
+  `for_each_call` C producer now passes fixed-revision C and LLVM parity.
 - The blocking graph gate now reports `phase=unified` with exactly one
   structural store: the program topology. The HIR, semantic, and MIR copied
   topology stores are retired.
@@ -115,7 +122,8 @@ owner, and the named executable gate.
   missing/foreign-handle failure, bounded lifetime, then file layout.
 - Fact owner: `src/self_hosted/hir/program_graph_owner.pgy`, registered as the
   structural carrier for `selfhost.expression_graph` rather than a competing
-  semantic authority.
+  semantic authority. Its immutable append result is the only allowed
+  compiler-generated topology extension.
 - Last legitimate consumers: semantic expression verdicts, MIR
   instruction/root/origin projection, AIR evidence publication, and verified
   C/LLVM/self-hosted projection lanes.
@@ -167,8 +175,10 @@ owner, and the named executable gate.
   ratchets the destructure owner, including the ordering requirement that
   graph uses are resolved before destructured bindings mutate local state.
 - `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh` ratchets
-  both iteration graph-use paths and is wired into the preparation contract
-  smoke.
+  both iteration graph-use paths, rejects semantic topology-array mutation,
+  MIR ordinal reconstruction, and sibling synthetic graphs, and is wired into
+  the preparation contract smoke. The `for_each_call` runtime gate requires
+  each synthetic root to project at both loop-init and branch.
 - `tests/self_hosted/parity/driver_rung2_simple_statement_graph_use_owner.sh`
   ratchets the graph-owned simple statement path and proves the collection
   text bridge is not used by that path. It is wired into the preparation
@@ -233,6 +243,11 @@ that the whole-program semantic retention defect is closed.
 carrying the artifact-owned fact through `SemanticAstArtifactAnalysis`. The
 isolated initializer, assignment, and generic projection parities remain
 green; the whole-program semantic retention defect remains open.
+
+`3f2b9bba` removes a correctness-only graph fragmentation path. It does not
+claim a full-driver memory reduction: compiler-generated foreach leaves now
+extend the one HIR-owned topology and semantic/MIR carry only overlays and root
+handles. The existing 3 GiB pressure falsifier remains authoritative.
 
 The exclusive official full bootstrap was then run from a detached
 `bec2fca3` worktree with PowerShell discoverable, isolated `BUILD_DIR`/`BIN_DIR`,
@@ -367,51 +382,32 @@ and ratcheting the graph-owned simple-statement path, the full
 `tests/self_hosted_component_contract_smoke.sh` passed on the current combined
 source.
 
-The current moving worktree is not an exclusive verification surface. Its
-component smoke currently stops at a concurrent
-`artifact_lower_owner.pgy` contract assertion, and its direct owner compile
-stops at a concurrent borrowed-ref escape in
-`SelfMirIterationSyntheticGraphView`; neither result is attributed to
-`9f207fdc`. The isolated verification worktrees listed above are the
-attributable evidence for the callable-table slices.
+On the fixed `3f2b9bba` revision, the component contract, iteration graph-use
+ratchet, program-graph unification gate (`phase=unified structural_owners=1`),
+and build-pressure contract all passed. Fresh Pergyra-built C and LLVM drivers
+each passed all 20 body fixtures plus the selected `for_each_call` MIR fixture,
+including canonical MIR, emitted C, host compile, negative checks, and runtime
+comparison. These runs are attributable to the committed revision, not the
+earlier moving-tree attempts.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At `bec2fca3`, `main` and `origin/main` are aligned. The callable-table,
-call-target, assignment, statement, generic-specialization, match-binding,
-and artifact-capture slices are committed and pushed. The following concurrent
-changes remain dirty and are intentionally excluded;
+At `3f2b9bba`, `main` and `origin/main` are aligned. The callable-table and
+foreach program-graph slices are committed and pushed. The following
+pre-existing parity changes remain dirty and were intentionally excluded;
 preserve them and re-check ownership before the next unit:
 
-- `docs/91_build_troubleshooting.md`;
-- `src/self_hosted/OWNERS.md`;
-- `src/self_hosted/PROGRESS.md`;
-- `src/self_hosted/hir/program_graph_owner.pgy`;
-- `src/self_hosted/mir/artifact_lower_owner.pgy`;
-- `src/self_hosted/mir/routine_for_owner.pgy`;
-- `src/self_hosted/mir/routine_input_owner.pgy`;
-- `src/self_hosted/mir/routine_iteration_owner.pgy`;
-- `src/self_hosted/mir/routine_local_inventory_owner.pgy`;
-- `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`;
-- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`;
-- `tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_iteration_graph_use_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
-- `tests/self_hosted_component_contract_smoke.sh`;
-- untracked `src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy`.
 
-The final process check observed concurrent compiler activity; do not stop it
-without re-identifying ownership. The isolated verification processes have
-ended.
+All focused verification processes for this slice ended normally.
 
 ## Next executable work
 
-1. The production callable-table seam is closed through artifact capture and
-   body analysis. Keep the remaining producer/fixture reads explicitly
-   bounded, then obtain the official initializer C/LLVM parity on an exclusive
-   compiler window.
+1. Keep the closed callable-table and foreach graph paths ratcheted. Do not
+   restore a semantic/MIR topology builder or treat file layout as graph
+   authority.
 2. The exclusive official full bootstrap was run with PowerShell discoverable;
    it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
