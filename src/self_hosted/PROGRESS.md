@@ -1,5 +1,32 @@
 # Self-Host Progress
 
+2026-07-25 Pergyra collection-mutation program-graph use closure. Objective:
+make `ArrayPop`, `ArrayPush`, and `ArraySet` receiver/value/index SSA uses consume
+the one semantic expression graph without restoring a source-text scan or a
+third MIR graph slot. Priority was program-graph identity, lane ownership,
+missing-receiver failure, fallback deletion, executable negative evidence, then
+file layout. A copied receiver graph, `new ? old` reads, identifier-text recovery,
+or C/LLVM-local receiver inference is forbidden.
+
+`fd2e0597` is the executable replacement: parser lanes own the receiver/value/
+index roots; MIR derives uses from graph views; Push/Set retain the two existing
+wire slots; Pop is receiver-use-only; and the retired text-use functions are
+negative-gated. `4ee38b73` is the bounded ownership follow-up: persisted
+`expr0`/`expr1` requirements live in a 98-line MIR instruction policy while the
+schema decoder/NodeId binder returns to 222 lines. The policy owns no graph
+storage, so `hir/program_graph_owner.pgy` remains the only structural owner.
+
+In a clean detached `4ee38b73` worktree, the component contract passed. Fresh
+C-built and LLVM-built DRV-2 parity each passed 20 body fixtures and four focused
+collection MIR fixtures. SoT authority adequacy and live negative mutations
+passed with Coq/Rocq explicitly skipped because no prover is installed; program
+graph unification reported `phase=unified structural_owners=1`; the build-pressure
+contract passed. The main worktree concurrently contains an unfinished semantic
+function-table/lifetime slice, so its unresolved-name compile failure is neither
+green evidence nor a regression attributed to this graph closure. The next
+executable memory rung remains owner-proved whole-program semantic lifetime
+reduction followed by a pressure-owned full-driver run below 3 GiB.
+
 2026-07-24 Pergyra generic wrapper materialization executable closure.
 Objective: materialize only concrete Option/Result value types while preserving
 the exact generic specialization symbol carried by semantic and MIR facts.

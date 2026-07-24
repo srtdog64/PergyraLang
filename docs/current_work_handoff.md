@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-07-24 (Asia/Seoul)
+Updated: 2026-07-25 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registry, the active
@@ -8,8 +8,10 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `fd2e0597` (`Close collection mutation
-  graph ownership`). It carries the graph storage migration forward: the
+- Active implementation checkpoint: `4ee38b73` (`Bound MIR graph slot policy
+  ownership`), following the executable replacement in `fd2e0597` (`Close
+  collection mutation graph ownership`). It carries the graph storage
+  migration forward: the
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
   semantic graph plus instruction root/range handles.
@@ -45,13 +47,17 @@ owner, and the named executable gate.
   foreach branch graphs fail closed before the affected instruction.
 - `d05e653c` closes the graph-complete simple statement kinds (`Log`, bare
   call, and `Exit`) through a separate graph-owned lowering path. The path
-  validates and reuses one Atom view for SSA uses and MIR attachment. The
+  validates and reuses one Atom view for SSA uses and MIR attachment.
 - `fd2e0597` closes the remaining collection mutation statement bridge. The
   parser records receiver/value/index lane facts, MIR derives receiver uses
   from the semantic graph, Push/Set preserve their value/index graph slots,
   Pop remains receiver-use-only without a third MIR graph slot, and missing
   receiver facts fail closed. The old text-use owner is deleted and the
   collection graph-use gate is wired into the preparation contract.
+- `4ee38b73` keeps that closure within the component size contract by moving
+  only the persisted `expr0`/`expr1` slot-requirement policy into
+  `expression_graph_instruction_policy_owner.pgy`. The program graph remains
+  singular; the new policy owns no graph storage or semantic identity.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -134,6 +140,9 @@ owner, and the named executable gate.
 - `tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh`
   ratchets receiver/value/index graph lanes, the missing-receiver guard, and
   the no-third-MIR-slot policy for collection mutations.
+- `expression_graph_instruction_policy_owner.pgy` is the bounded MIR-wire slot
+  policy. `expression_graph_fact_owner.pgy` remains the schema-aware decoder
+  and reconstructed NodeId binder, now below its 280-line component cap.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -204,10 +213,13 @@ Green on the graph handle commit slice:
 - `tests/self_hosted/parity/driver_rung2_simple_statement_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
-- current component contract smoke with `RC=0` after registering the new
-  lane-policy and MIR-lower bridge owners;
-- current C DRV-2 `valid_array_builtins` MIR generation and MIR re-consumption,
-  plus collection mutation parity, with `RC=0`;
+- detached `4ee38b73` component contract smoke with `RC=0` after moving all
+  stale owner assertions to the lane-policy and MIR slot-policy owners;
+- detached `4ee38b73` C and LLVM DRV-2 parity, each with 20 body fixtures and
+  four focused MIR fixtures (`valid_array_builtins`, `ast_node_array_push`,
+  `ast_node_array_set`, and `str_array`);
+- detached `4ee38b73` SoT authority adequacy, program-graph unification
+  (`phase=unified structural_owners=1`), and build-pressure contract gates;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
   MIR fixtures;
 - codegen gen1/gen2 fixed point and bounded driver seed/oracle parity before
@@ -250,24 +262,39 @@ source.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-After the graph-consumer documentation and component-gate commit, only these
-concurrent parity changes should remain dirty. Do not discard or fold them
-into another unit implicitly:
+After `4ee38b73`, the following concurrent semantic function-table/lifetime and
+parity changes were still dirty. They were excluded from the graph-policy
+commit and its detached verification. Do not discard or fold them into another
+unit implicitly:
 
+- `Makefile`;
+- `src/self_hosted/OWNERS.md` (new changes after the committed graph-policy
+  owner row);
+- `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy`;
+- `src/self_hosted/semantic/ast_expression_environment_owner.pgy`;
+- `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy`;
+- `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy`;
+- `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy`;
+- `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy`;
+- `src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy`;
+- `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
-- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
+- `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`;
+- `tests/self_hosted_component_contract_smoke.sh` (new changes after the
+  committed graph-policy owner assertions).
 
 Verify this list after the handoff snapshot because another task may advance
 `main` or add a new lifetime slice concurrently.
 
 ## Next executable work
 
-1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
-   exact dirty list. The attempted full self-host bootstrap was interrupted
-   after concurrent bootstrap activity produced no attributable result; it is
-   not green evidence for `d05e653c`.
-2. Re-run the official initializer C/LLVM parity, then
+1. Finish or explicitly hand off the uncommitted semantic function-table slice.
+   Its current main-worktree compile failed on unresolved `function_names` and
+   `function_returns`; that moving-tree result is not a graph-policy regression
+   and is not green evidence for the lifetime slice.
+2. Obtain an exclusive compiler-build window, re-run the official initializer
+   C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
@@ -289,7 +316,7 @@ Verify this list after the handoff snapshot because another task may advance
    `docs/180_compiler_logical_spine_handles_gates.md`, and the
    `selfhost.expression_graph` registry rows.
 2. Verify `git status --short --branch`, HEAD/origin, the named owner registry,
-   and the three concurrent dirty parity files.
+   and the exact concurrent dirty list above.
 3. Run the graph ratchet and build-pressure contract before a broad build.
 4. Confirm no other `pgy`, `genN`, `driver_oracle`, `gcc`, or `cc1` process is
    active before the pressure gate. Concurrent broad builds invalidate its
