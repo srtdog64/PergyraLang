@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-25 semantic lifetime and program-graph line consolidation. The
+previously isolated `codex/semantic-environment-owned-lifetime` line is merged
+with the executable foreach program-graph closure on `main`; this preserves one
+Git history instead of treating physical worktrees as competing source trees.
+The compiler semantic graph remains independently enforced as one structural
+owner by `tests/self_host_program_graph_unification_smoke.sh`.
+
+The lifetime slice is Pergyra-owned rather than a pair of backend patches.
+`ArrayPushOwnedString` and `ArrayDropOwnedStrings` are one typed collection ABI
+registered through semantic checking and self-hosted runtime-call ownership,
+then projected by both C and LLVM. Semantic expression scratch rows are
+released at their last consumer, and the artifact callable-table owner releases
+its owned rows only after body analysis has materialized every derived fact;
+the released fact is invalidated so a stale read fails closed. The initializer
+type fact no longer duplicates parser-owned expression text, and the assignment
+type fact no longer duplicates parser/assignment-owned target text.
+
+These are bounded reclamation and SoT substitutions, not a claimed memory
+closure. The last attributable source observation is still red at 3 GiB
+(`3080.9 MB` peak private for the lifetime line); the graph-only observation is
+also red (`3091.3 MB`). The combined revision must pass the same exclusive
+full-driver pressure owner before any improvement is claimed. Raising the cap,
+adding an ambient allocator fallback, or splitting lifetime policy between C
+and LLVM remains forbidden.
+
 2026-07-25 non-identifier foreach program-graph closure. The executable
 falsifier was `src/self_hosted/mir_lower/fixture/for_each_call.pgy`: the
 Pergyra-built MIR producer attached the source call graph to the hoist

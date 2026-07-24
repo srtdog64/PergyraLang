@@ -218,6 +218,33 @@ structural check must continue to report `phase=unified structural_owners=1`.
 This fix removes a correctness blocker; it does not change the separate
 full-driver 3 GiB pressure verdict above.
 
+### Source Control shows more than one `PergyraLang` root
+
+Two different graphs can look similar in the editor. The compiler program
+graph is a revision-local semantic fact and is permanently ratcheted by
+`tests/self_host_program_graph_unification_smoke.sh`. A Git linked worktree is
+only another physical checkout with its own branch and running processes; it
+is not a compiler fact owner, and the program-graph gate deliberately does not
+inspect local worktrees.
+
+Consolidate a completed linked worktree without losing its history:
+
+1. inspect `git worktree list --porcelain`, both worktree statuses, and active
+   compiler/build processes;
+2. merge the branch into `main` and run the combined owner, component, C/LLVM,
+   and program-graph gates;
+3. require `git merge-base --is-ancestor <branch> main` to succeed;
+4. remove the linked worktree only when it is clean and no process owns a path
+   below it, then delete the fully merged local/remote branch if it is no longer
+   a collaboration boundary;
+5. confirm `git worktree list` names one intended checkout and
+   `git status --short --branch` still lists every unrelated user edit.
+
+Do not delete a directory to make the editor look unified, squash away
+unmerged evidence, or add a repository test that forbids all developer
+worktrees. The durable source gate owns the compiler graph; ancestry, clean
+status, and process checks own the local Git consolidation.
+
 The follow-up check found that exact bypass active beside a 95-fixture DRV-2
 shard. Together with a short-lived third recursive make probe, the three runs
 owned 21 project processes and 2,114 MB private memory at an early snapshot;

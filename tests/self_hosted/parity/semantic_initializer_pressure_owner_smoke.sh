@@ -20,5 +20,8 @@ done
 if grep -Fq -- 'Concat("row:' "$OWNER"; then
     fail "row pressure call site constructs a marker before the observation guard"
 fi
+if grep -Fq -- "expression_texts" "$OWNER"; then
+    fail "initializer facts retain parser-owned expression text rows"
+fi
 
 echo "[self-host-parity:semantic-initializer-pressure] row marker allocation is observation-owned"

@@ -192,6 +192,32 @@ PGY_DEFINE_ARRAY_EXPORTS(Double, double)
 PGY_DEFINE_ARRAY_EXPORTS(Bool, bool)
 PGY_DEFINE_ARRAY_EXPORTS(String, char *)
 
+/* Explicit owner pair for compiler semantic scratch arrays. Unlike the
+ * ordinary exported Array<String> push, this path duplicates its input so
+ * the matching drop owns every element it releases. */
+void pgy_array_push_owned_String(PgyArray_String *arr, char *value)
+{
+    char *owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (owned == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    pgy_array_push_String(arr, owned);
+}
+
+void pgy_array_drop_owned_String(PgyArray_String *arr)
+{
+    if (arr == NULL)
+        return;
+    for (size_t i = 0; i < arr->length; i++) {
+        free(arr->data[i]);
+        arr->data[i] = NULL;
+    }
+    free(arr->data);
+    arr->data = NULL;
+    arr->length = 0;
+    arr->capacity = 0;
+}
+
 /* ArraySort extern symbols for the LLVM linker. The C backend emits a
  * self-contained translation unit and uses the static-inline kernels in
  * pgy_runtime_array_sort_inline.h; the LLVM backend links these standalone

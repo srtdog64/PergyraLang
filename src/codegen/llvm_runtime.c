@@ -402,6 +402,17 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        if (strcmp(suffix, "String") == 0) {
+          LLVMTypeRef params[] = { arr_ptr_ty, val_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name),
+                  "array_push_owned", suffix)) {
+              llvm_set_error(ctx, "Array owned-string push runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
+        }
         { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);
           if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_get", suffix)) {
@@ -426,6 +437,17 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        if (strcmp(suffix, "String") == 0) {
+          LLVMTypeRef params[] = { arr_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name),
+                  "array_drop_owned", suffix)) {
+              llvm_set_error(ctx, "Array owned-string drop runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
+        }
         /* Closure #81: declare pgy_array_sort_<T>(val_ty *data, i64 len)
          * so ArraySort can lower to a runtime call. The runtime function
          * sorts in place; the LLVM emit threads the original array value

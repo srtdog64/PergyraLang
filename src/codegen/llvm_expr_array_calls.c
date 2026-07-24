@@ -13,6 +13,7 @@
 
 typedef enum {
     LLVM_ARRAY_BUILTIN_NONE = 0,
+    LLVM_ARRAY_BUILTIN_DROP_OWNED_STRINGS,
     LLVM_ARRAY_BUILTIN_LENGTH,
     LLVM_ARRAY_BUILTIN_POP,
     LLVM_ARRAY_BUILTIN_PUSH,
@@ -21,6 +22,7 @@ typedef enum {
     LLVM_ARRAY_BUILTIN_SORT,
     LLVM_ARRAY_BUILTIN_MAP,
     LLVM_ARRAY_BUILTIN_FILTER,
+    LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING,
 } LLVMArrayBuiltinOp;
 
 typedef struct {
@@ -30,11 +32,13 @@ typedef struct {
 } LLVMArrayBuiltinSpec;
 
 static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
+    {"ArrayDropOwnedStrings", 1, LLVM_ARRAY_BUILTIN_DROP_OWNED_STRINGS},
     {"ArrayFilter", 2, LLVM_ARRAY_BUILTIN_FILTER},
     {"ArrayLength", 1, LLVM_ARRAY_BUILTIN_LENGTH},
     {"ArrayMap", 2, LLVM_ARRAY_BUILTIN_MAP},
     {"ArrayPop", 1, LLVM_ARRAY_BUILTIN_POP},
     {"ArrayPush", 2, LLVM_ARRAY_BUILTIN_PUSH},
+    {"ArrayPushOwnedString", 2, LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
     {"ArraySort", 1, LLVM_ARRAY_BUILTIN_SORT},
     {"SliceCopy", 1, LLVM_ARRAY_BUILTIN_SLICE_COPY},
@@ -455,7 +459,35 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (op == LLVM_ARRAY_BUILTIN_PUSH) {
+    if (op == LLVM_ARRAY_BUILTIN_DROP_OWNED_STRINGS) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
+        LLVMArrayVarEntry *entry = NULL;
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
+            ctx, node, arr_arg, callee_name, &entry);
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayDropOwnedStrings requires registered Array<String> receiver", out);
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        if (suffix == NULL || strcmp(suffix, "String") != 0)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayDropOwnedStrings requires Array<String>", out);
+        char fn_name[64];
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_array_drop_owned", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "array", callee_name, fn_name);
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayDropOwnedStrings requires registered runtime function", out);
+        LLVMValueRef args[] = { arr_alloca };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
+        return true;
+    }
+
+    if (op == LLVM_ARRAY_BUILTIN_PUSH ||
+        op == LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
@@ -492,9 +524,15 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_emit_raw_nominal_push(ctx, node, callee_name,
                 arr_alloca, entry, value, out);
 
+        if (op == LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING &&
+            (suffix == NULL || strcmp(suffix, "String") != 0))
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPushOwnedString requires Array<String>", out);
+
         char fn_name[64];
         if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_array_push", suffix))
+                op == LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING
+                    ? "pgy_array_push_owned" : "pgy_array_push", suffix))
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);

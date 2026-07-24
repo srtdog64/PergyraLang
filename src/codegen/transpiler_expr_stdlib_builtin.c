@@ -244,7 +244,30 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(slice);
             return result;
         }
-        if (array_op == TRANSPILER_ARRAY_OP_PUSH) {
+        if (array_op == TRANSPILER_ARRAY_OP_DROP_OWNED_STRINGS) {
+            if (!transpiler_require_c_addressable_storage(ctx, arg0,
+                    "ArrayDropOwnedStrings", "Array"))
+                return NULL;
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayDropOwnedStrings", "array");
+            if (arr == NULL)
+                return NULL;
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx, arg0,
+                    "ArrayDropOwnedStrings", false,
+                    inner_buf, sizeof(inner_buf), &inner) ||
+                strcmp(inner, "String") != 0) {
+                free(arr);
+                return NULL;
+            }
+            char *result = strdup_fmt(
+                "pgy_array_drop_owned_String(&%s)", arr);
+            free(arr);
+            return result;
+        }
+        if (array_op == TRANSPILER_ARRAY_OP_PUSH ||
+            array_op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
                     "ArrayPush", "Array"))
                 return NULL;
@@ -261,14 +284,28 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *suffix = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    arg0, "ArrayPush", false,
+                    arg0, array_op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING
+                        ? "ArrayPushOwnedString" : "ArrayPush", false,
                     inner_buf, sizeof(inner_buf), &suffix)) {
                 free(arr);
                 free(val);
                 return NULL;
             }
+            if (array_op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING &&
+                strcmp(suffix, "String") != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    "C backend: ArrayPushOwnedString requires Array<String>");
+                free(arr);
+                free(val);
+                return NULL;
+            }
             char *result = strdup_fmt(
-                "pgy_array_push_%s(&%s, %s)", suffix, arr, val);
+                array_op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING
+                    ? "pgy_array_push_owned_%s(&%s, %s)"
+                    : "pgy_array_push_%s(&%s, %s)", suffix, arr, val);
             free(arr); free(val);
             return result;
         }

@@ -8,10 +8,19 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `3f2b9bba` (`Unify foreach synthetic roots
-  with program graph`), following `2b95746d` (the exclusive full-driver memory
-  ceiling evidence), `9f207fdc` (`Share artifact callable table across capture
-  and body`), `6433659b` (`Share callable table with
+- Active implementation checkpoint combines `3f2b9bba` (`Unify foreach
+  synthetic roots with program graph`) and `14c1683b` (`Remove assignment
+  target text duplicate`) on `main`. The former closes the executable foreach
+  graph split; the latter removes the derived
+  `SemanticAstAssignmentTypeFacts.target_texts` row and routes codegen
+  readiness through parser/assignment-owned
+  `SemanticAstAssignmentFacts.target_texts`.
+- `938a5886` closes the initializer-text duplication seam, while `645d9f2c`
+  closes the reachable artifact-owned callable-table String lifetime through
+  self-hosted codegen. Ordinary `Array<String>` remains on the beta no-free
+  policy; only explicitly owned rows use the release contract.
+- Prior graph checkpoint: `9f207fdc` (`Share artifact callable table across
+  capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
   specialization`), `a1d508a0` (`Share callable table across assignment and
   statement passes`), `fa2d8383` (`Route call targets through shared callable
@@ -263,6 +272,60 @@ crossing the 3GiB ceiling by `19.3MB`. The detached worktree and its owned
 processes were removed after the measurement without touching main-worktree
 changes.
 
+`6ef7641d` closes the next measured lifetime seam without changing the
+ordinary collection policy. The semantic environment owner now uses
+`ArrayPushOwnedString` for the temporary `names`, `types`, and `modes` rows and
+`ArrayDropOwnedStrings` at its last consumer. The pair is registered in the
+type checker, C transpiler, LLVM emitter/runtime, and both runtime surfaces;
+the focused owner gate and a direct C push/drop execution harness passed. This
+is a bounded reclamation unit, not evidence that the full-driver 3 GiB
+pressure defect is closed. The next falsifier is an exclusive rebuilt
+full-driver pressure run with the same 3072 MB ceiling.
+
+`e5b8b4a3` extends that bounded reclamation to the artifact-owned callable
+table. Its producer uses an explicit owned seed mode and owned row insertion;
+the body type bundle releases `names`, `returns`, and `params` only after
+`verdict:done`, then marks the fact invalid so stale consumers fail closed.
+The callable-table gate proves there is no ordinary producer push and that the
+release follows the final body consumer. This remains a focused lifetime
+closure, not a full-driver pressure result.
+
+`645d9f2c` completes the reachable owned-lifetime path through self-hosted
+codegen. The C runtime projection duplicates owned strings, checks OOM and
+capacity overflow, drops each owned element, and resets the array. The
+codegen call owner emits the corresponding runtime symbols with explicit
+`inout` addressability; the callable-table release snapshots struct fields
+before crossing the inout boundary. This is still a bounded lifetime closure,
+not a full-driver pressure result.
+
+`938a5886` removes `SemanticAstInitializerTypeFacts.expression_texts`. That
+row duplicated parser-owned `SemanticAstLocalBindingFacts.initializer_texts`
+and had no live consumer beyond self-validation/probe constructors; readiness
+now validates node identity against the parser owner without retaining a second
+program-wide expression-text array. The initializer probe default/direct lanes,
+seed bootstrap, initializer pressure-owner smoke, component contract, and
+documentation quality gates passed. The member-call lane remains red with the
+same Windows heap-corruption exit (`0xC0000374`) on both `938a5886` and the
+preceding `645d9f2c` source checkpoint, so it is not attributed to this SoT
+de-duplication.
+
+`14c1683b` removes `SemanticAstAssignmentTypeFacts.target_texts`. Assignment
+diagnostics and codegen now read target text from the parser/assignment fact
+owner, and the type fact retains only type/verification/diagnostic rows. The
+assignment projection parity, callable-table owner, component contract, and
+UCRT self-host bootstrap seed gates passed. This is a bounded derived-fact
+de-duplication; the latest exclusive pressure result is still the red
+`aaf24849` observation below and must be rerun on this source checkpoint.
+
+The later exclusive single pressure run at handoff HEAD `416e6aad` reproduced
+the red result under the same `3072 MB` ceiling: `exit_code=-1`, elapsed
+`548250 ms`, peak working set `2537.1 MB`, peak private memory `3084.2 MB`,
+and `driver_oracle.exe` at `3073.4 MB` private across three processes. The
+pressure owner reported `limit_exceeded=true`; phase private peaks were
+orchestrate `3084.21 MB`, compile `1241.95 MB`, and link `295.39 MB`. The
+make target returned `Error 88`. This is a compiler-process retention defect,
+not system-wide free-memory exhaustion, and the `3072 MB` cap remains closed.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -272,6 +335,25 @@ last-consumer cleanup contract currently inserts the lower-level typed array
 drop operations. The next memory rung therefore needs owner-proved reclamation
 or region allocation for non-escaping temporaries, not a larger cap or an
 ambient allocator fallback.
+
+The exclusive current-source pressure run at handoff HEAD `aaf24849` then
+returned `exit_code=-1` after `549275 ms`: peak working set `2519.1 MB`, peak
+private memory `3080.9 MB`, and `driver_oracle.exe` at `3070.1 MB` private
+across three processes. The pressure owner reported `limit_exceeded=true`;
+phase private peaks were orchestrate `3080.90 MB`, compile `1253.21 MB`, and
+link `311.07 MB`, with `Error 88`. Relative to the preceding
+`3084.2 MB`/`3073.4 MB` observation, the de-duplication reduced both peaks by
+about `3.3 MB`, but the existing `3072 MB` ceiling remains red and must not be
+raised.
+
+An exclusive pressure rerun for `14c1683b` was started with isolated
+`pressure_build_14c`, `pressure_bin_14c`, `pressure_codegen_14c`, and
+`pressure_driver_14c` paths. Before the pressure-owned driver body began, an
+unrelated user-owned `driver_rung2_body_parity.sh` process appeared in the
+shared machine (`iteration_program_graph_3f2b9bba_c`, `pgy.exe`/`gcc`/`cc1`).
+The pressure run was interrupted at the seed-bootstrap stage; it produced no
+valid pressure observation and its processes are gone. The user-owned compile
+remains active and must finish before a new exclusive pressure measurement.
 
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
@@ -288,6 +370,36 @@ PowerShell pressure owner is unavailable, and
 ## Last observed gates
 
 Green on the graph handle commit slice:
+
+- `6ef7641d` semantic environment owned-lifetime gate:
+  `tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh`;
+- `6ef7641d` GCC C syntax-only checks on the changed C backend, LLVM emitter,
+  LLVM runtime, and collection type-checker files;
+- `6ef7641d` direct C execution harness for the owned String push/drop pair;
+- `e5b8b4a3` callable-table owner gate:
+  `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
+
+- `645d9f2c` owned-lifetime owner gates:
+  `tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh`
+  and `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh`;
+- `645d9f2c` self-host component contract and documentation quality gates;
+- `645d9f2c` `make -j2 self-host-codegen-bootstrap-seed-test-smoke`, with
+  gen0/gen1 compile and gen2 seed artifacts ready;
+- `938a5886` initializer expression-text de-duplication owner smoke,
+  component contract, documentation quality, and
+  `make -j2 self-host-codegen-bootstrap-seed-test-smoke`;
+- `938a5886` initializer probe default and direct-call executable lanes passed;
+  the member-call lane is an attributable red baseline blocker, not a green
+  parity result.
+- `14c1683b` assignment projection parity, assignment target-text negative
+  ratchet, callable-table owner smoke, component contract, and
+  `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
+- `14c1683b` build-pressure contract, program-graph unification, and MIR graph
+  projection ratchets passed before the pressure rerun; no pressure result was
+  claimed because the run was interrupted by the unrelated active compile.
+- The exclusive current-source full-driver pressure gate at `aaf24849` is red:
+  `peak_private_mb=3080.9`, `top_private_mb=3070.1`, and `Error 88` at the
+  unchanged `3072 MB` limit.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -346,6 +458,10 @@ Green on the graph handle commit slice:
   MIR fixtures;
 - codegen gen1/gen2 fixed point and bounded driver seed/oracle parity before
   the full-driver pressure stage.
+- The exclusive current-head full-driver pressure gate was rerun once after
+  all duplicate pressure trees were terminated: it reproduced `Error 88` at
+  `peak_private_mb=3080.9` and `top_private_mb=3070.1`; this is the current
+  falsifying fixture, not a green gate.
 
 Initializer projection passed its C/LLVM parity on the graph slice before the
 concurrent lifetime-commit burst. During the moving-HEAD burst, official C/LLVM
@@ -392,9 +508,12 @@ earlier moving-tree attempts.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At `3f2b9bba`, `main` and `origin/main` are aligned. The callable-table and
-foreach program-graph slices are committed and pushed. The following
-pre-existing parity changes remain dirty and were intentionally excluded;
+The merge candidate combines the pushed foreach program-graph checkpoint
+`3f2b9bba` with the pushed semantic-lifetime branch checkpoint `4403ee25`.
+The semantic environment, callable-table, initializer-text, and
+assignment-target-text lifetime slices are now in the same source graph as the
+one-owner foreach topology change. The following pre-existing parity changes
+remain dirty and were intentionally excluded;
 preserve them and re-check ownership before the next unit:
 
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
@@ -405,23 +524,31 @@ All focused verification processes for this slice ended normally.
 
 ## Next executable work
 
-1. Keep the closed callable-table and foreach graph paths ratcheted. Do not
-   restore a semantic/MIR topology builder or treat file layout as graph
-   authority.
-2. The exclusive official full bootstrap was run with PowerShell discoverable;
+1. Keep the callable-table lifetime and foreach graph paths ratcheted. Do not
+   restore a semantic/MIR topology builder, a released callable-table read, or
+   treat file layout as graph authority.
+2. Rerun the exclusive pressure target on the combined source checkpoint to
+   measure the bounded assignment/initializer de-duplication and explicit
+   owned-String release. The latest attributable source baseline remains red
+   at `3080.9 MB`; the later graph-only baseline is red at `3091.3 MB`.
+   First verify that every `pgy`/`genN`/`driver_oracle`/`gcc`/`cc1` process has
+   ended. If the rerun remains red, identify the next retained compiler-wide
+   materialization owner and last legitimate consumer before another change.
+3. The exclusive official full bootstrap was run with PowerShell discoverable;
    it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
-3. Close the measured whole-program semantic lifetime boundary. The preferred
-   executable unit is routine-scoped analysis/verify with owner-proved output
-   ordering and comparison against the native 120MB golden artifact. The next
-   source delta must remove a real compiler-wide materialization path before
-   rerunning the full pressure target.
-4. Introduce the real revision owner and distinct stable identities
+4. Close the measured whole-program semantic lifetime boundary. The
+   initializer and assignment text duplications are now removed; the next
+   preferred executable unit is a routine-scoped analysis/verify materialization
+   with owner-proved output ordering and comparison against the native 120MB
+   golden artifact. Do not infer a pressure improvement until the exclusive
+   target is rerun.
+5. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-5. After the full-driver artifact completes below 3 GiB, run the unfiltered
+6. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 

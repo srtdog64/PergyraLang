@@ -21,7 +21,6 @@ struct SemanticAstInitializerTypeFacts {
     diagnostic_message: String;
     artifact_node_count: Int;
     node_ids: Array<Int>;
-    expression_texts: Array<String>;
     inferred_type_names: Array<String>;
     verified: Array<Int>;
     diagnostic_codes: Array<String>;
@@ -44,7 +43,7 @@ func SemanticAstInitializerTypeStructuralError(
             "owner", "SemanticAstInitializerTypeFacts"
         ),
         artifact.count,
-        empty_ints, empty_strings, empty_strings, empty_ints,
+        empty_ints, empty_strings, empty_ints,
         empty_strings, empty_strings, empty_ints, empty_ints
     );
 }
@@ -121,7 +120,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
     );
 
     let node_ids: Array<Int> = [];
-    let expression_texts: Array<String> = [];
     let inferred_type_names: Array<String> = [];
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
@@ -162,7 +160,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
             }
             if ArrayLength(names) == 0 {
                 ArrayPush(node_ids, base_facts.node_ids[i]);
-                ArrayPush(expression_texts, base_facts.expression_texts[i]);
                 ArrayPush(inferred_type_names, base_facts.inferred_type_names[i]);
                 ArrayPush(verified, base_facts.verified[i]);
                 ArrayPush(diagnostic_codes, base_facts.diagnostic_codes[i]);
@@ -328,8 +325,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
             }
         }
         ArrayPush(node_ids, locals.node_ids[i]);
-        ArrayPush(expression_texts, expression);
-        ArrayPush(inferred_type_names, inferred);
+        ArrayPush(inferred_type_names, Concat("", inferred));
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
@@ -341,7 +337,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         i = i + 1;
     }
     return SemanticAstInitializerTypeFacts(
-        true, "", "", artifact.count, node_ids, expression_texts,
+        true, "", "", artifact.count, node_ids,
         inferred_type_names, verified, diagnostic_codes,
         diagnostic_messages, binding_kinds, binding_indices
     );
@@ -459,7 +455,6 @@ func SemanticAstInitializerTypeFactsReadyProjection(
     let count: Int = SemanticAstInitializerTypeCount(facts);
     if !facts.ok || facts.artifact_node_count != artifact.count ||
         count != SemanticAstLocalBindingCount(locals) ||
-        ArrayLength(facts.expression_texts) != count ||
         ArrayLength(facts.inferred_type_names) != count ||
         ArrayLength(facts.verified) != count ||
         ArrayLength(facts.diagnostic_codes) != count ||
@@ -471,7 +466,6 @@ func SemanticAstInitializerTypeFactsReadyProjection(
     let i: Int = 0;
     while i < count {
         if facts.node_ids[i] != locals.node_ids[i] ||
-            facts.expression_texts[i] != locals.initializer_texts[i] ||
             facts.binding_kinds[i] != locals.binding_kinds[i] ||
             facts.binding_indices[i] != locals.binding_indices[i] ||
             (facts.verified[i] != 0 && facts.verified[i] != 1) {
@@ -543,7 +537,6 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
         facts.artifact_node_count != artifact.count ||
         rebuilt.artifact_node_count != facts.artifact_node_count ||
         SemanticAstInitializerTypeCount(rebuilt) != n ||
-        ArrayLength(facts.expression_texts) != n ||
         ArrayLength(facts.inferred_type_names) != n ||
         ArrayLength(facts.verified) != n ||
         ArrayLength(facts.diagnostic_codes) != n ||
@@ -555,7 +548,6 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
     let i: Int = 0;
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
-            rebuilt.expression_texts[i] != facts.expression_texts[i] ||
             rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
             rebuilt.verified[i] != facts.verified[i] ||
             rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||

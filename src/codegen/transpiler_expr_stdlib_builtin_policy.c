@@ -21,11 +21,13 @@ typedef struct {
 } TranspilerToStringSpec;
 
 static const TranspilerArrayStdlibSpec kTranspilerArraySpecs[] = {
+    {"ArrayDropOwnedStrings", 1, TRANSPILER_ARRAY_OP_DROP_OWNED_STRINGS},
     {"ArrayFilter", 2, TRANSPILER_ARRAY_OP_FILTER},
     {"ArrayLength", 1, TRANSPILER_ARRAY_OP_LENGTH},
     {"ArrayMap", 2, TRANSPILER_ARRAY_OP_MAP},
     {"ArrayPop", 1, TRANSPILER_ARRAY_OP_POP},
     {"ArrayPush", 2, TRANSPILER_ARRAY_OP_PUSH},
+    {"ArrayPushOwnedString", 2, TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING},
     {"ArrayReverse", 1, TRANSPILER_ARRAY_OP_REVERSE},
     {"ArraySet", 3, TRANSPILER_ARRAY_OP_SET},
     {"ArraySort", 1, TRANSPILER_ARRAY_OP_SORT},

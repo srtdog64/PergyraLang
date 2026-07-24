@@ -16,3 +16,20 @@ func SemanticAstExpressionFunctionTableFactsReady(
     return facts.ok && ArrayLength(facts.names) == ArrayLength(facts.returns) &&
         ArrayLength(facts.names) == ArrayLength(facts.params);
 }
+
+// Body analysis owns the last legitimate consumer. Release only after the
+// body bundle has materialized all derived facts; a stale fact must fail closed.
+func SemanticAstExpressionFunctionTableFactsRelease(
+    inout facts: SemanticAstExpressionFunctionTableFacts
+) -> Void {
+    let names: Array<String> = facts.names;
+    let returns: Array<String> = facts.returns;
+    let params: Array<String> = facts.params;
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(returns);
+    ArrayDropOwnedStrings(params);
+    facts.names = names;
+    facts.returns = returns;
+    facts.params = params;
+    facts.ok = false;
+}
