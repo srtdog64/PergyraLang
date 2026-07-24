@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `20ba92fd` (`Close MIR let initializer use
+- Active implementation checkpoint: `0367247b` (`Close MIR if condition use
   SoT`). It carries the graph storage migration forward: the stable
   `AstExpressionArena` remains owned by
   `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
@@ -20,6 +20,10 @@ owner, and the named executable gate.
   expression-text scanning to the semantic graph view. The let owner now
   fails closed when that graph fact is missing and attaches the same view to
   MIR. The remaining routine owners are still bridge consumers.
+- `0367247b` repoints the MIR if-condition use-edge consumer in the same way:
+  one semantic graph view is validated, used for SSA use derivation, and
+  attached to MIR; a missing condition graph fails closed before instruction
+  creation. The if owner no longer scans condition text.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -77,6 +81,9 @@ owner, and the named executable gate.
   let owner: it requires graph-owned initializer uses and rejects
   `SelfMirExpressionUses`/identifier-text recovery in that owner. The gate is
   wired into the preparation contract smoke.
+- `tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh` applies the
+  same negative ratchet to the if owner and is wired into the preparation
+  contract smoke.
 - The dashboard owns the blocking `program_graph_unification` row at 13/13.
   Boundary migration and the derived-carrier registry record the owner move
   without inventing a second top-level fact family.
@@ -122,6 +129,7 @@ Green on the graph handle commit slice:
 - `tests/documentation_quality_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh`;
+- `tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh`;
 - current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
   warning(s)`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
@@ -140,6 +148,10 @@ moving-HEAD failures as a semantic regression or a green current-HEAD gate.
 `PGY_ALLOW_MISSING_COQ=1 tests/sot_authority_adequacy_smoke.sh` previously
 passed live owner/consumer binding and negative mutations. Coq/Rocq itself was
 not installed, so the proof model was a declared skip, not a green prover run.
+
+The component contract smoke was started after the if change but produced no
+result while an unrelated concurrent initializer build was active. It was
+stopped before a result and is not recorded as green evidence for `0367247b`.
 
 ## Exact remaining dirty state after the handoff snapshot
 
@@ -161,13 +173,13 @@ Verify this list after the handoff snapshot because another task may advance
 1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
    exact dirty list. The attempted full self-host bootstrap was interrupted
    after concurrent bootstrap activity produced no attributable result; it is
-   not green evidence for `20ba92fd`.
+   not green evidence for `0367247b`.
 2. Re-run the official initializer C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
    before the full oracle starts.
 3. Migrate the remaining routine `SelfMirExpressionUses` consumers (statement,
-   tracked statement, if, while, destructure, iteration, and match) to
+   tracked statement, while, destructure, iteration, and match) to
    owner-provided graph lanes. Preserve explicit target/auxiliary facts for
    collection mutations; do not delete the text bridge until every last
    legitimate consumer has a typed graph fact and a missing-fact negative gate.
