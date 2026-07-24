@@ -139,9 +139,18 @@ func SelfMirExpressionGraphAttachLast(
     let call_target_names: Array<String> = rows.call_target_names;
     source_node = source_start;
     while source_node <= view.root_id {
-        let kind: Int = view.graph.arena.topology.node_kinds[source_node];
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            view.graph, source_node
+        );
+        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+            view.graph, source_node
+        );
+        if !IsSome(kind_opt) || !IsSome(text_opt) {
+            return rows;
+        }
+        let kind: Int = UnwrapOption(kind_opt);
         ArrayPush(kinds, kind);
-        ArrayPush(texts, view.graph.arena.node_texts[source_node]);
+        ArrayPush(texts, UnwrapOption(text_opt));
         let call_target_kind: Option<Int> =
             SemanticExpressionGraphCallTargetKind(
                 view.graph, source_node
@@ -163,14 +172,24 @@ func SelfMirExpressionGraphAttachLast(
         let right: Int = 0;
         let arity: Int = AstExpressionNodeArity(kind);
         if arity >= 1 {
-            left = start + view.graph.arena.topology.left_children[source_node] -
-                source_start;
+            let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+                view.graph, source_node
+            );
+            if !IsSome(left_opt) {
+                return rows;
+            }
+            left = start + UnwrapOption(left_opt) - source_start;
         }
         if arity == 1 {
             right = 0;
         } else if arity == 2 {
-            right = start + view.graph.arena.topology.right_children[source_node] -
-                source_start;
+            let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+                view.graph, source_node
+            );
+            if !IsSome(right_opt) {
+                return rows;
+            }
+            right = start + UnwrapOption(right_opt) - source_start;
         }
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
