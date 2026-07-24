@@ -24,7 +24,7 @@ awk '
 ' "$BODY" >"$PREFLIGHT"
 
 for required in \
-    'SelfMirExpressionGraphSubtreeStart(' \
+    'SemanticExpressionGraphSubtreeStart(' \
     'SemanticExpressionGraphFactsEqual(' \
     'ArraySet(roots, instruction_index, view.root_id)' \
     'ArraySet(starts, instruction_index, source_start)' \

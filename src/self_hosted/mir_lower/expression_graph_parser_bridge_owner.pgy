@@ -1,0 +1,37 @@
+// Rebuilds only collection receiver roots absent from the MIR v1 graph slots.
+
+import "expression_graph_sequence_owner.pgy";
+
+func MirExpressionGraphSequenceAppendParserBridge(
+    sequence: MirExpressionGraphSequence,
+    expression: String
+) -> MirExpressionGraphSequence {
+    if !sequence.ok || expression == "" {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
+    let texts: Array<String> = sequence.arena.node_texts;
+    let left_children: Array<Int> = sequence.arena.topology.left_children;
+    let right_children: Array<Int> = sequence.arena.topology.right_children;
+    let call_target_kinds: Array<Int> = sequence.arena.call_target_kinds;
+    let call_target_names: Array<String> = sequence.arena.call_target_names;
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            kinds, texts, left_children, right_children,
+            call_target_kinds, call_target_names, expression
+        );
+    if !build.ok {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let roots: Array<Int> = sequence.roots;
+    ArrayPush(roots, build.root_id);
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
+            kinds, texts, left_children, right_children,
+            call_target_kinds, call_target_names
+        );
+    if !SemanticExpressionGraphArenaReady(arena) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    return MirExpressionGraphSequence(true, roots, arena);
+}

@@ -341,6 +341,10 @@ inventory must not become a second fact-family owner registry.
   codegen projections; compact-text production remains an explicit bridge for
   non-migrated expression owners and legacy/native canonicalization, not an
   alternate hard-codegen authority.
+- `src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy` --
+  expression-graph lane lifetime policy; required lanes and producer-only
+  collection-mutation receiver lanes are declared here rather than inferred by
+  semantic or MIR consumers.
 - `src/self_hosted/semantic/ast_expression_graph_build_owner.pgy` -- compact
   bridge row construction. Recursive calls carry the six row arrays directly;
   compiler-scale graph aggregates may not cross an `inout` ABI boundary.
@@ -571,6 +575,12 @@ inventory must not become a second fact-family owner registry.
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
   MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy` --
+  bounded parser-owned reconstruction of producer-only collection receiver
+  roots during MIR graph reconsumption; it is not a codegen fallback authority.
+- `src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy` --
+  structural graph-view append into the MIR-lower sequence arena with copied
+  semantic topology and call-target facts.
 - `src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy` --
   fail-closed MIR direct/member generic row decoder and final codegen-view
   projection; semantic rows are verifier evidence, not emitted-symbol input.

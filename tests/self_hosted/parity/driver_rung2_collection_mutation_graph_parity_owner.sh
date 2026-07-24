@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
-# Owns DRV-2 collection mutator value-graph preservation assertions.
+# Owns DRV-2 collection mutator graph and receiver-use assertions.
+
+pgy_selfhost_require_collection_receiver_use() {
+    local backend="$1"
+    local operation="$2"
+    local self_mir_json="$3"
+    local row
+    row="$(sed 's/},{"id":/}\n{"id":/g' "$self_mir_json" |
+        grep -F "\"arg0\":\"$operation\"" | head -n 1 || true)"
+    if [[ -z "$row" || "$row" != *'"uses":["xs.1"]'* ]]; then
+        echo "[self-host-parity:driver-rung2] $backend $operation receiver SSA use was lost" >&2
+        exit 1
+    fi
+    if [[ "$operation" == "ArrayPop" &&
+        "$row" != *'"expr0_graph":null'* ]]; then
+        echo "[self-host-parity:driver-rung2] $backend ArrayPop reopened a third persisted graph lane" >&2
+        exit 1
+    fi
+}
 
 pgy_selfhost_verify_driver_rung2_collection_mutation_graph() {
     local backend="$1"
@@ -28,6 +46,14 @@ pgy_selfhost_verify_driver_rung2_collection_mutation_graph() {
             echo "[self-host-parity:driver-rung2] $backend String ArraySet value graph was lost" >&2
             exit 1
         }
+    elif [[ "$base" == "valid_array_builtins" ]]; then
+        pgy_selfhost_require_collection_receiver_use \
+            "$backend" "ArrayPush" "$self_mir_json"
+        pgy_selfhost_require_collection_receiver_use \
+            "$backend" "ArraySet" "$self_mir_json"
+        pgy_selfhost_require_collection_receiver_use \
+            "$backend" "ArrayPop" "$self_mir_json"
+        return 0
     else
         return 0
     fi

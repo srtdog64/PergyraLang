@@ -5,6 +5,7 @@ import "../lib/source_scan_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "ast_expression_graph_build_owner.pgy";
+import "ast_expression_graph_lane_policy_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 
 struct SemanticAstExpressionShapeFact {
@@ -77,57 +78,6 @@ func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
     return SemanticAstExpressionShapeFact(
         false, "", -1, -1, -1, -1, 0, -1, false,
         -1, -1, -1, -1
-    );
-}
-
-func SemanticAstExpressionGraphAtomLaneRequired(
-    artifact: AstTreeArtifact,
-    node_id: Int
-) -> Bool {
-    return TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindIfStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindWhileStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindExitStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindValueReturnStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindLogStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindBareCallStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindAssignStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindMatchStmtTag()
-    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindDestructureStmtTag());
-}
-
-func SemanticAstExpressionGraphValueLaneRequired(
-    artifact: AstTreeArtifact,
-    node_id: Int
-) -> Bool {
-    return TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindLetStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindAssignStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindForStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindArrayPushStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
-    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindDestructureStmtTag());
-}
-
-func SemanticAstExpressionGraphAuxiliaryLaneRequired(
-    artifact: AstTreeArtifact,
-    node_id: Int
-) -> Bool {
-    return TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindForStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
     );
 }
 
@@ -214,7 +164,11 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
                 normalized_auxiliary
             );
             let migrated_atom: Bool = IsSome(atom) &&
-                SemanticAstExpressionGraphAtomLaneRequired(artifact, node_id);
+                (SemanticAstExpressionGraphAtomLaneRequired(
+                    artifact, node_id
+                ) || SemanticAstExpressionGraphAtomLaneProducerOnly(
+                    artifact, node_id
+                ));
             let migrated_value: Bool = IsSome(value) &&
                 SemanticAstExpressionGraphValueLaneRequired(artifact, node_id);
             let migrated_auxiliary: Bool = IsSome(auxiliary) &&
@@ -452,6 +406,8 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         let node_id: Int = facts.node_ids[i];
         let migrated_atom: Bool = facts.has_atoms[i] &&
             SemanticAstExpressionGraphAtomLaneRequired(artifact, node_id);
+        let producer_only_atom: Bool = facts.has_atoms[i] &&
+            SemanticAstExpressionGraphAtomLaneProducerOnly(artifact, node_id);
         let migrated_value: Bool = facts.has_values[i] &&
             SemanticAstExpressionGraphValueLaneRequired(artifact, node_id);
         let migrated_auxiliary: Bool = facts.has_auxiliary_values[i] &&
@@ -482,6 +438,8 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 }
                 valid = false;
             }
+        } else if producer_only_atom && atom_view.ok {
+            migrated_root_count = migrated_root_count + 1;
         } else if atom_view.ok {
             if failure_lane == "" {
                 failure_node_id = node_id;

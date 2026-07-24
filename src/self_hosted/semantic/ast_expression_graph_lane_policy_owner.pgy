@@ -1,0 +1,71 @@
+// Expression-graph lane lifetime policy.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+func SemanticAstExpressionGraphAtomLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIfStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindWhileStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindExitStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindValueReturnStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindLogStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindBareCallStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindAssignStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindMatchStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindDestructureStmtTag()
+    );
+}
+
+func SemanticAstExpressionGraphAtomLaneProducerOnly(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArrayPopStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArrayPushStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
+    );
+}
+
+func SemanticAstExpressionGraphValueLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindLetStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindAssignStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindForStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArrayPushStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindDestructureStmtTag()
+    );
+}
+
+func SemanticAstExpressionGraphAuxiliaryLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindForStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
+    );
+}

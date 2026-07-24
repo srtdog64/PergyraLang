@@ -3276,7 +3276,7 @@ require_max_lines "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" 300
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphRows"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
-    "func SelfMirExpressionGraphSubtreeStart("
+    "SemanticExpressionGraphSubtreeStart("
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "graph: SemanticExpressionGraphFacts;"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -3591,8 +3591,8 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirRoutineA
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'build.next_instruction_id + 1'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVersionsSnapshot('
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
-require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionUses('
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUses('
+require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUsesAppend('
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'func SelfMirRoutineLocalInventoryFromInput('
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SemanticAstLocalBindingRangeForFunction('
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" 'SelfMirForEachSyntheticOrdinal('
@@ -6484,6 +6484,28 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) == "ArraySet"'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "ArraySet"'
+require_file "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" 100
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
+    'func SemanticAstExpressionGraphAtomLaneProducerOnly('
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+    'producer_only_atom && atom_view.ok'
+require_file "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 80
+require_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    'func MirExpressionGraphSequenceAppendParserBridge('
+require_file "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy" 120
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy" \
+    'func MirExpressionGraphSequenceAppendView('
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    'func SemanticExpressionGraphSubtreeStart('
+require_file "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh" 90
+reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" \
+    "func SelfMirExpressionUses("
+reject_text "src/self_hosted/mir/expression_fact_owner.pgy" \
+    "func SelfMirTextContainsIdentifier("
 reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "func SelfMirLowerBlockFromArtifact(" \
     "SemanticAstExpressionGraphFromText(" \

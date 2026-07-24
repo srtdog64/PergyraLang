@@ -33,6 +33,12 @@ func SelfMirSimpleStatementGraphOwnedKind(kind: Int) -> Bool {
         kind == TypedAstKindExitStmtTag();
 }
 
+func SelfMirCollectionMutationKind(kind: Int) -> Bool {
+    return kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag();
+}
+
 func SelfMirLowerGraphOwnedSimpleStatement(
     build: SelfMirRoutineBuild,
     kind: Int,
@@ -63,6 +69,64 @@ func SelfMirLowerGraphOwnedSimpleStatement(
     return build;
 }
 
+func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
+    build: SelfMirRoutineBuild,
+    kind: Int,
+    payload: String,
+    value_payload: String,
+    auxiliary_payload: String,
+    target_graph: SemanticExpressionGraphView,
+    value_graph: SemanticExpressionGraphView,
+    auxiliary_graph: SemanticExpressionGraphView
+) -> SelfMirRoutineBuild {
+    let uses: Array<String> = [];
+    if !SelfMirExpressionGraphUsesAppend(build, uses, target_graph) {
+        return SelfMirRoutineBuildError(
+            build, "MIR collection mutation target expression graph is missing"
+        );
+    }
+    if kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag() {
+        if !SelfMirExpressionGraphUsesAppend(build, uses, value_graph) {
+            return SelfMirRoutineBuildError(
+                build, "MIR collection mutation value expression graph is missing"
+            );
+        }
+    }
+    if kind == TypedAstKindArraySetStmtTag() &&
+        !SelfMirExpressionGraphUsesAppend(build, uses, auxiliary_graph) {
+        return SelfMirRoutineBuildError(
+            build, "MIR collection mutation auxiliary expression graph is missing"
+        );
+    }
+    let expression: String = payload;
+    let secondary_expression: String = "";
+    let arg0: String = "";
+    if kind == TypedAstKindArrayPopStmtTag() {
+        expression = Concat("ArrayPop(", Concat(payload, ")"));
+        arg0 = "ArrayPop";
+    } else if kind == TypedAstKindArraySetStmtTag() {
+        secondary_expression = value_payload;
+        expression = Concat(
+            "ArraySet(", Concat(payload, Concat(", ", Concat(
+                value_payload, Concat(", ", Concat(auxiliary_payload, ")"))
+            )))
+        );
+        arg0 = "ArraySet";
+    } else {
+        expression = Concat(
+            "ArrayPush(", Concat(
+                payload, Concat(", ", Concat(value_payload, ")"))
+            )
+        );
+        arg0 = "ArrayPush";
+    }
+    return SelfMirRoutineAddInstruction(
+        build, "stmt", "stmt", "", arg0, "", expression,
+        secondary_expression, "AST_CALL", uses
+    );
+}
+
 func SelfMirLowerSimpleStatement(
     build: SelfMirRoutineBuild,
     kind: Int,
@@ -89,41 +153,7 @@ func SelfMirLowerSimpleStatement(
             )
         );
     }
-    let expression: String = payload;
-    let secondary_expression: String = "";
-    let arg0: String = "";
-    if kind == TypedAstKindLogStmtTag() {
-        expression = Concat("Log(", Concat(payload, ")"));
-        arg0 = "Log";
-    } else if kind == TypedAstKindArrayPopStmtTag() {
-        expression = Concat("ArrayPop(", Concat(payload, ")"));
-        arg0 = "ArrayPop";
-    } else if kind == TypedAstKindArraySetStmtTag() {
-        secondary_expression = value_payload;
-        expression = Concat(
-            "ArraySet(", Concat(payload, Concat(", ", Concat(
-                value_payload, Concat(", ", Concat(auxiliary_payload, ")"))
-            )))
-        );
-        arg0 = "ArraySet";
-    } else if kind == TypedAstKindArrayPushStmtTag() {
-        expression = Concat(
-            "ArrayPush(", Concat(
-                payload, Concat(", ", Concat(value_payload, ")"))
-            )
-        );
-        arg0 = "ArrayPush";
-    } else if kind == TypedAstKindExitStmtTag() {
-        expression = Concat("Exit(", Concat(payload, ")"));
-        arg0 = "Exit";
-    }
-    build = SelfMirRoutineAddInstruction(
-        build, "stmt", "stmt", "", arg0, "", expression,
-        secondary_expression,
-        "AST_CALL", SelfMirExpressionUses(build, expression)
+    return SelfMirRoutineBuildError(
+        build, "MIR simple statement requires an owned lowering lane"
     );
-    if kind == TypedAstKindExitStmtTag() {
-        build = SelfMirRoutineTerminate(build);
-    }
-    return build;
 }

@@ -52,6 +52,62 @@ func SelfMirLowerTrackedStatementFromArtifact(
             build, simple_graph, input.machine_declaration
         );
     }
+    if SelfMirCollectionMutationKind(kind) {
+        let target_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAtom()
+            );
+        let value_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneValue()
+            );
+        let auxiliary_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAuxiliary()
+            );
+        if !target_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR collection mutation target expression graph is missing"
+            );
+        }
+        if (kind == TypedAstKindArrayPushStmtTag() ||
+            kind == TypedAstKindArraySetStmtTag()) && !value_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR collection mutation value expression graph is missing"
+            );
+        }
+        if kind == TypedAstKindArraySetStmtTag() && !auxiliary_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR collection mutation auxiliary expression graph is missing"
+            );
+        }
+        build = SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
+            build, kind, payload, value_payload, auxiliary_payload,
+            target_graph, value_graph, auxiliary_graph
+        );
+        let graph_lane: Option<Int> =
+            SelfMirSimpleStatementExpressionGraphLane(kind);
+        if IsSome(graph_lane) {
+            build = SelfMirRoutineAttachLastExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    input.analysis.expression_surfaces,
+                    node_id, UnwrapOption(graph_lane)
+                ), input.machine_declaration
+            );
+        }
+        if kind == TypedAstKindArraySetStmtTag() {
+            build = SelfMirRoutineAttachLastSecondaryExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneValue()
+                )
+            );
+        }
+        return build;
+    }
     if SelfMirSimpleStatementKind(kind) {
         build = SelfMirLowerSimpleStatement(
             build, kind, payload, value_payload, auxiliary_payload

@@ -1,7 +1,5 @@
 // MIR expression token/use classification shared by routine lowering.
 
-import "../lib/source_scan_owner.pgy";
-
 enum SelfMirExpressionKind {
     Binary,
     Call,
@@ -11,25 +9,6 @@ enum SelfMirExpressionKind {
 func SelfMirNoUses() -> Array<String> {
     let uses: Array<String> = [];
     return uses;
-}
-
-func SelfMirTextContainsIdentifier(text: String, name: String) -> Bool {
-    let scan: Int = 0;
-    while scan < StringLength(text) {
-        let rest: String = Substring(text, scan, StringLength(text) - scan);
-        let rel: Int = StringIndexOf(rest, name);
-        if rel < 0 {
-            return false;
-        }
-        let pos: Int = scan + rel;
-        let before: String = SourceCharAt(text, pos - 1);
-        let after: String = SourceCharAt(text, pos + StringLength(name));
-        if !IsAlphaNum(before) && !IsAlphaNum(after) {
-            return true;
-        }
-        scan = pos + StringLength(name);
-    }
-    return false;
 }
 
 func SelfMirExpressionKindFromText(expression: String) -> SelfMirExpressionKind {

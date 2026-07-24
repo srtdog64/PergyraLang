@@ -470,7 +470,8 @@ func ParseOneStmt(
                     AstExpressionLaneAtom(), exit_argument
                 )
             );
-        } else if owner_kind == TypedAstKindArrayPushStmtTag() ||
+        } else if owner_kind == TypedAstKindArrayPopStmtTag() ||
+            owner_kind == TypedAstKindArrayPushStmtTag() ||
             owner_kind == TypedAstKindArraySetStmtTag() {
             ArraySet(
                 expression_graphs, 0,

@@ -63,7 +63,7 @@ pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
     fi
     for owner_fact in \
         'view: SemanticExpressionGraphView' \
-        'SelfMirExpressionGraphSubtreeStart(' \
+        'SemanticExpressionGraphSubtreeStart(' \
         'SemanticExpressionGraphNodeKind(' \
         'SemanticExpressionGraphLeftChild(' \
         'SemanticExpressionGraphRightChild(' \

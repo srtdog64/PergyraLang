@@ -6,7 +6,7 @@ func SelfMirExpressionGraphContainsLeafBinding(
     view: SemanticExpressionGraphView, name: String
 ) -> Bool {
     if !view.ok || name == "" { return false; }
-    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(start_opt) { return false; }
@@ -45,7 +45,7 @@ func SelfMirExpressionGraphUses(
 ) -> Array<String> {
     let uses: Array<String> = [];
     if !view.ok { return uses; }
-    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(start_opt) { return uses; }
@@ -77,31 +77,17 @@ func SelfMirExpressionGraphUses(
     return uses;
 }
 
-func SelfMirExpressionUses(
+func SelfMirExpressionGraphUsesAppend(
     build: SelfMirRoutineBuild,
-    expression: String
-) -> Array<String> {
-    let uses: Array<String> = [];
-    let i: Int = ArrayLength(build.local_names) - 1;
-    while i >= 0 {
-        let shadowed: Bool = false;
-        let use_i: Int = 0;
-        while use_i < ArrayLength(uses) {
-            if SelfMirSsaBaseName(uses[use_i]) == build.local_names[i] {
-                shadowed = true;
-            }
-            use_i = use_i + 1;
-        }
-        if !shadowed && build.local_versions[i] > 0 &&
-            SelfMirTextContainsIdentifier(
-            expression, build.local_names[i]
-        ) {
-            ArrayPush(
-                uses,
-                SelfMirSsaName(build.local_names[i], build.local_versions[i])
-            );
-        }
-        i = i - 1;
+    inout uses: Array<String>,
+    view: SemanticExpressionGraphView
+) -> Bool {
+    if !view.ok { return false; }
+    let graph_uses: Array<String> = SelfMirExpressionGraphUses(build, view);
+    let i: Int = 0;
+    while i < ArrayLength(graph_uses) {
+        SelfMirUsesAppendUnique(uses, graph_uses[i]);
+        i = i + 1;
     }
-    return uses;
+    return true;
 }

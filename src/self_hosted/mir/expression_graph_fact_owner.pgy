@@ -48,28 +48,6 @@ func SelfMirExpressionGraphRowsForInstructionCount(count: Int) -> SelfMirExpress
     return rows;
 }
 
-func SelfMirExpressionGraphSubtreeStart(
-    ref source: SemanticExpressionGraphFacts,
-    source_root: Int
-) -> Option<Int> {
-    let node: Int = source_root;
-    while node >= 0 {
-        let kind: Option<Int> = SemanticExpressionGraphNodeKind(source, node);
-        if !IsSome(kind) { return None; }
-        if AstExpressionNodeArity(UnwrapOption(kind)) == 0 {
-            return Some(node);
-        }
-        let left: Option<Int> = SemanticExpressionGraphLeftChild(
-            source, node
-        );
-        if !IsSome(left) || UnwrapOption(left) >= node {
-            return None;
-        }
-        node = UnwrapOption(left);
-    }
-    return None;
-}
-
 func SelfMirExpressionGraphAttachLast(
     rows: SelfMirExpressionGraphRows,
     view: SemanticExpressionGraphView
@@ -85,7 +63,7 @@ func SelfMirExpressionGraphAttachLast(
     if rows.has_roots[instruction_index] != 0 {
         return rows;
     }
-    let source_start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+    let source_start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(source_start_opt) { return rows; }

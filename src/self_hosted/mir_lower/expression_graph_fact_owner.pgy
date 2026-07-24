@@ -5,6 +5,8 @@ import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
+import "expression_graph_sequence_view_owner.pgy";
+import "expression_graph_parser_bridge_owner.pgy";
 import "expression_graph_match_owner.pgy";
 import "destructure_expression_projection_owner.pgy";
 
@@ -192,18 +194,21 @@ func MirExpressionGraphFactsForArtifact(
 ) -> SemanticExpressionGraphFacts {
     let surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
-    let sequence: MirExpressionGraphSequence =
+    let persisted_sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromJson(json);
-    if !sequence.ok {
+    if !persisted_sequence.ok {
         let invalid_roots: Array<Int> = [];
         let invalid_has_roots: Array<Bool> = [];
         return SemanticExpressionGraphFacts(
-            false, invalid_roots, invalid_has_roots, sequence.arena
+            false, invalid_roots, invalid_has_roots, persisted_sequence.arena
         );
     }
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceEmpty();
     let roots: Array<Int> = [];
     let has_roots: Array<Bool> = [];
     let sequence_i: Int = 0;
+    let persisted_root_count: Int = ArrayLength(persisted_sequence.roots);
     let valid: Bool = true;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
@@ -211,10 +216,15 @@ func MirExpressionGraphFactsForArtifact(
         let lane: Int = AstExpressionLaneAtom();
         while lane <= AstExpressionLaneAuxiliary() {
             let required: Bool = false;
+            let producer_only: Bool = false;
             let expected_text: String = "";
             if lane == AstExpressionLaneAtom() {
                 required = surfaces.has_atoms[i] &&
                     SemanticAstExpressionGraphAtomLaneRequired(
+                        artifact, node_id
+                    );
+                producer_only = surfaces.has_atoms[i] &&
+                    SemanticAstExpressionGraphAtomLaneProducerOnly(
                         artifact, node_id
                     );
                 expected_text = surfaces.normalized_atoms[i];
@@ -231,21 +241,56 @@ func MirExpressionGraphFactsForArtifact(
                     );
                 expected_text = surfaces.normalized_auxiliary_values[i];
             }
-            if required {
-                if sequence_i >= ArrayLength(sequence.roots) {
+            if producer_only {
+                sequence = MirExpressionGraphSequenceAppendParserBridge(
+                    sequence, expected_text
+                );
+                if !sequence.ok {
                     valid = false;
                     ArrayPush(roots, 0);
                     ArrayPush(has_roots, false);
                 } else {
-                    let root: Int = sequence.roots[sequence_i];
-                    if root < 0 ||
-                        root >= SemanticExpressionGraphArenaNodeCount(
-                            sequence.arena
-                        ) || sequence.arena.node_texts[root] != expected_text {
+                    let parser_root: Int = sequence.roots[
+                        ArrayLength(sequence.roots) - 1
+                    ];
+                    if sequence.arena.node_texts[parser_root] != expected_text {
                         valid = false;
                     }
-                    ArrayPush(roots, root);
+                    ArrayPush(roots, parser_root);
                     ArrayPush(has_roots, true);
+                }
+            } else if required {
+                if sequence_i >= persisted_root_count {
+                    valid = false;
+                    ArrayPush(roots, 0);
+                    ArrayPush(has_roots, false);
+                } else {
+                    let persisted_roots: Array<Int> = [];
+                    let persisted_has_roots: Array<Bool> = [];
+                    let persisted_facts: SemanticExpressionGraphFacts =
+                        SemanticExpressionGraphFacts(
+                            true, persisted_roots, persisted_has_roots,
+                            persisted_sequence.arena
+                        );
+                    let persisted_view: SemanticExpressionGraphView =
+                        SemanticExpressionGraphView(
+                            true, persisted_sequence.roots[sequence_i],
+                            persisted_facts
+                        );
+                    sequence = MirExpressionGraphSequenceAppendView(
+                        sequence, persisted_view
+                    );
+                    let root: Int = 0;
+                    if !sequence.ok {
+                        valid = false;
+                    } else {
+                        root = sequence.roots[ArrayLength(sequence.roots) - 1];
+                        if sequence.arena.node_texts[root] != expected_text {
+                            valid = false;
+                        }
+                    }
+                    ArrayPush(roots, root);
+                    ArrayPush(has_roots, sequence.ok);
                     sequence_i = sequence_i + 1;
                 }
             } else {
@@ -256,7 +301,7 @@ func MirExpressionGraphFactsForArtifact(
         }
         i = i + 1;
     }
-    if sequence_i != ArrayLength(sequence.roots) {
+    if sequence_i != persisted_root_count {
         valid = false;
     }
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(

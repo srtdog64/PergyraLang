@@ -22,7 +22,7 @@ grep -Fq 'view: SemanticExpressionGraphView' "$BODY" || {
 }
 
 for fact in \
-    'SelfMirExpressionGraphSubtreeStart(' \
+    'SemanticExpressionGraphSubtreeStart(' \
     'SemanticExpressionGraphNodeKind(' \
     'SemanticExpressionGraphLeftChild(' \
     'SemanticExpressionGraphRightChild(' \

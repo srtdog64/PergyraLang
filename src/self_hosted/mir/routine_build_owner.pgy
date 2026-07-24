@@ -149,7 +149,7 @@ func SelfMirRoutineResourceTypeForInstruction(
         }
         return "";
     }
-    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
         view.graph, view.root_id
     );
     if !IsSome(start_opt) {

@@ -7,12 +7,29 @@ func ParserCollectionStatementGraphsAppend(
     owner_kind: Int,
     expression: ParserExpressionFact
 ) -> AstExpressionGraphRows {
+    let callee: String = "ArrayPop";
+    if owner_kind == TypedAstKindArrayPushStmtTag() {
+        callee = "ArrayPush";
+    } else if owner_kind == TypedAstKindArraySetStmtTag() {
+        callee = "ArraySet";
+    }
+    let target: ParserExpressionFact =
+        ParserExpressionNamedCallArgumentAt(expression, callee, 0);
+    if !target.ok {
+        Exit(1);
+    }
+    let with_target: AstExpressionGraphRows = ParserExpressionGraphsAppend(
+        rows, owner_kind, AstExpressionLaneAtom(), target
+    );
+    if owner_kind == TypedAstKindArrayPopStmtTag() {
+        return with_target;
+    }
     if owner_kind == TypedAstKindArrayPushStmtTag() {
         let value: ParserExpressionFact =
             ParserExpressionNamedCallArgumentAt(expression, "ArrayPush", 1);
         if !value.ok { Exit(1); }
         return ParserExpressionGraphsAppend(
-            rows, owner_kind, AstExpressionLaneValue(), value
+            with_target, owner_kind, AstExpressionLaneValue(), value
         );
     }
     if owner_kind != TypedAstKindArraySetStmtTag() { Exit(1); }
@@ -22,7 +39,7 @@ func ParserCollectionStatementGraphsAppend(
         ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 2);
     if !index.ok || !value2.ok { Exit(1); }
     let with_index: AstExpressionGraphRows = ParserExpressionGraphsAppend(
-        rows, owner_kind, AstExpressionLaneValue(), index
+        with_target, owner_kind, AstExpressionLaneValue(), index
     );
     return ParserExpressionGraphsAppend(
         with_index, owner_kind, AstExpressionLaneAuxiliary(), value2
