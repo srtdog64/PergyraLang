@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PARSER_OWNER="$ROOT_DIR/src/self_hosted/parser/stmt_collection_graph_owner.pgy"
 PARSER_DISPATCH="$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
@@ -12,21 +11,20 @@ MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_statement_owner.pgy"
 DISPATCH="$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy"
 VALIDATION="$ROOT_DIR/src/self_hosted/mir/instruction_validation_owner.pgy"
 MIR_LOWER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
+MIR_SLOT_POLICY="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy"
 PARSER_BRIDGE="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy"
 SEQUENCE_VIEW="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy"
 RUNTIME_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
-
 for file in "$PARSER_OWNER" "$PARSER_DISPATCH" "$SURFACE_OWNER" \
     "$LANE_POLICY" \
     "$USE_OWNER" "$EXPRESSION_FACT_OWNER" "$MIR_OWNER" "$DISPATCH" \
-    "$VALIDATION" "$MIR_LOWER" "$PARSER_BRIDGE" "$SEQUENCE_VIEW" \
+    "$VALIDATION" "$MIR_LOWER" "$MIR_SLOT_POLICY" "$PARSER_BRIDGE" "$SEQUENCE_VIEW" \
     "$RUNTIME_PARITY"; do
     [[ -f "$file" ]] || {
         echo "[self-host-parity:collection-mutation-graph-use] owner is missing: $file" >&2
         exit 1
     }
 done
-
 require_text() {
     local file="$1"
     local term="$2"
@@ -35,7 +33,6 @@ require_text() {
         exit 1
     }
 }
-
 reject_text() {
     local file="$1"
     local term="$2"
@@ -44,7 +41,6 @@ reject_text() {
         exit 1
     fi
 }
-
 require_text "$PARSER_OWNER" "ParserExpressionNamedCallArgumentAt(expression, callee, 0)"
 require_text "$PARSER_OWNER" "AstExpressionLaneAtom(), target"
 require_text "$PARSER_OWNER" "if owner_kind == TypedAstKindArrayPopStmtTag()"
@@ -71,7 +67,7 @@ require_text "$DISPATCH" "if !target_graph.ok"
 require_text "$DISPATCH" "MIR collection mutation target expression graph is missing"
 require_text "$DISPATCH" "target_graph, value_graph, auxiliary_graph"
 reject_text "$VALIDATION" 'rows.arg0s[i] == "ArrayPop"'
-reject_text "$MIR_LOWER" 'UnwrapOption(arg0) == "ArrayPop"'
+reject_text "$MIR_SLOT_POLICY" 'UnwrapOption(arg0) == "ArrayPop"'
 require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendParserBridge("
 require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendView("
 require_text "$PARSER_BRIDGE" "SemanticExpressionGraphBuildCompactBridgeFromText("

@@ -575,6 +575,9 @@ inventory must not become a second fact-family owner registry.
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
   MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy` --
+  persisted MIR expression-graph slot requirements by instruction shape; this
+  policy does not own or duplicate the program graph.
 - `src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy` --
   bounded parser-owned reconstruction of producer-only collection receiver
   roots during MIR graph reconsumption; it is not a codegen fallback authority.

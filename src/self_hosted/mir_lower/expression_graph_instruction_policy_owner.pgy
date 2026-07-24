@@ -1,0 +1,98 @@
+// MIR instruction policy for persisted expression-graph slots.
+
+import "../lib/json_fact_table.pgy";
+
+func MirInstructionRequiresExpr0Graph(
+    instruction: JsonObjectFactTable
+) -> Bool {
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let name: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "name"
+    );
+    let arg0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "arg0"
+    );
+    let source_type: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr0"
+    );
+    let expr1: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr1"
+    );
+    if !IsSome(kind) || !IsSome(name) || !IsSome(source_type) ||
+        !IsSome(expr0) {
+        return false;
+    }
+    let instruction_kind: String = UnwrapOption(kind);
+    let instruction_name: String = UnwrapOption(name);
+    let source: String = UnwrapOption(source_type);
+    if source == "AST_DEFER_STMT" {
+        return IsSome(arg0) &&
+            (UnwrapOption(arg0) == "Log" ||
+             UnwrapOption(arg0) == "Call") &&
+            UnwrapOption(expr0) == "{...}";
+    }
+    if instruction_kind == "assign" && source == "AST_ASSIGNMENT" {
+        return IsSome(expr1) && UnwrapOption(expr0) != "" &&
+            UnwrapOption(expr1) != "";
+    }
+    if source == "AST_FOR_LOOP" {
+        if instruction_kind == "loop-init" { return true; }
+        return instruction_kind == "branch" && IsSome(expr1) &&
+            UnwrapOption(expr0) != UnwrapOption(expr1);
+    }
+    if instruction_kind == "branch" && instruction_name == "branch" &&
+        !IsSome(arg0) && source != "AST_MATCH_CASE" {
+        return true;
+    }
+    if instruction_kind == "def" &&
+        (source == "AST_LET_DECL" || source == "AST_ASSIGNMENT") {
+        return true;
+    }
+    if instruction_kind == "stmt" && source == "AST_CALL" {
+        return !IsSome(arg0) || UnwrapOption(arg0) == "" ||
+            UnwrapOption(arg0) == "Log" ||
+            UnwrapOption(arg0) == "ArrayPush" ||
+            UnwrapOption(arg0) == "ArraySet" ||
+            UnwrapOption(arg0) == "Exit";
+    }
+    return instruction_kind == "return" && source != "AST_RETURN_VOID";
+}
+
+func MirInstructionRequiresExpr1Graph(
+    instruction: JsonObjectFactTable
+) -> Bool {
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let arg0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "arg0"
+    );
+    let source_type: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr0"
+    );
+    let expr1: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr1"
+    );
+    if !IsSome(kind) || !IsSome(source_type) || !IsSome(expr0) ||
+        !IsSome(expr1) || UnwrapOption(expr0) == "" ||
+        UnwrapOption(expr1) == "" {
+        return false;
+    }
+    if UnwrapOption(kind) == "stmt" &&
+        UnwrapOption(source_type) == "AST_CALL" && IsSome(arg0) &&
+        UnwrapOption(arg0) == "ArraySet" {
+        return true;
+    }
+    if UnwrapOption(source_type) != "AST_ASSIGNMENT" { return false; }
+    if UnwrapOption(kind) == "assign" { return true; }
+    return UnwrapOption(kind) == "def" && IsSome(arg0) &&
+        UnwrapOption(arg0) != "";
+}

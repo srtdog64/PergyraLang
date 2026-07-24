@@ -3876,7 +3876,7 @@ reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
     "CollectionRuntimeBoxArrayCValueType("
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.source_types[i] == "AST_DEFER_STMT"'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'if source == "AST_DEFER_STMT"'
 require_text "src/compiler/mir_call_fact.c" \
     "mir_defer_log_expression_fact("
@@ -4754,11 +4754,11 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'CodegenSemanticDirectCallReturnTypeOrDie('
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" \
     'AstExpressionLaneAuxiliary(), upper_fact'
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
     "func SemanticAstExpressionGraphAuxiliaryLaneRequired("
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
     'node_id, AstExpressionLaneAuxiliary()'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'source == "AST_FOR_LOOP"'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'AstExpressionLaneAuxiliary()'
@@ -4859,13 +4859,15 @@ reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'requires N-way phi lowering'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     'node_id, AstExpressionLaneAtom()'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_file "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" 120
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'func MirInstructionRequiresExpr0Graph('
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'func MirInstructionRequiresExpr1Graph('
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'if UnwrapOption(kind) == "assign" { return true; }'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'UnwrapOption(arg0) == "ArraySet" {'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph("
@@ -5630,15 +5632,15 @@ reject_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixEx
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphRightChild"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindLogStmtTag()"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindBareCallStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "TypedAstKindLogStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "expression_graph: SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphValueLaneRequired"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindArrayPushStmtTag()"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAuxiliaryLaneRequired"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindArraySetStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "func SemanticAstExpressionGraphValueLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "TypedAstKindArrayPushStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "func SemanticAstExpressionGraphAuxiliaryLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" "TypedAstKindArraySetStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "arithmetic_graph.ok"
 require_file "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
@@ -6360,7 +6362,7 @@ require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'ParserExpressionNamedSingleCallArgument(expr_fact, "Exit")'
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'AstExpressionLaneAtom(), exit_argument'
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
     'TypedAstKindExitStmtTag()'
 require_file "src/self_hosted/semantic/ast_statement_type_query_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 80
@@ -6474,13 +6476,13 @@ require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'if SelfMirSimpleStatementGraphOwnedKind(kind)'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     $'rows.arg0s[i] == "ArraySet" ||\n             rows.arg0s[i] == "Exit") &&'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     $'UnwrapOption(arg0) == "ArraySet" ||\n            UnwrapOption(arg0) == "Exit";'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     'return Some(AstExpressionLaneAuxiliary());'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'UnwrapOption(arg0) == "ArraySet"'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "ArraySet"'
@@ -6514,7 +6516,7 @@ require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     "if kind == TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "Log"'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
     'UnwrapOption(arg0) == "Log"'
 reject_file "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy"
 reject_text "src/self_hosted/codegen/main.pgy" \
