@@ -8,14 +8,14 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `6b96266d` (`Unify semantic expression
-  topology under the program graph`). It moves the stable
-  `AstExpressionArena` storage owner to
-  `src/self_hosted/hir/program_graph_owner.pgy` and makes the semantic graph
-  borrow that topology instead of copying node-kind and child arrays.
-- The blocking graph gate now reports `phase=semantic-repointed` with exactly
-  two structural stores: the program topology and the still-open MIR
-  projection. The previous HIR and semantic structural stores are retired.
+- Active implementation checkpoint: `ec062184` (`Close MIR expression graph
+  topology SoT`). It completes the graph storage migration: the stable
+  `AstExpressionArena` remains owned by
+  `src/self_hosted/hir/program_graph_owner.pgy`, while MIR carries only
+  semantic graph plus instruction root/range handles.
+- The blocking graph gate now reports `phase=unified` with exactly one
+  structural store: the program topology. The HIR, semantic, and MIR copied
+  topology stores are retired.
 - `6263c490` also repoints the machine-resource receiver consumer from copied
   MIR graph rows to `SemanticExpressionGraphView`. The MIR aggregate store is
   still present, so this is consumer progress rather than the final two-to-one
@@ -26,8 +26,8 @@ owner, and the named executable gate.
 - `08c2b231` has a misleading title because two concurrent tasks raced on the
   shared Git index. Its actual content is the ability generic-bound lifetime
   closure and its smoke gate, not the program-graph migration. It is already
-  pushed and must not be treated as graph evidence. `6b96266d` is the actual
-  graph implementation commit.
+  pushed and must not be treated as graph evidence. `6b96266d` is the prior
+  graph implementation commit; `ec062184` is the MIR handle closure.
 
 ## Active program-graph objective card
 
@@ -44,8 +44,9 @@ owner, and the named executable gate.
 - Forbidden fallback: dual structural reads, `new ? old`, expression-text
   recovery, per-routine whole-program graph copies, or raising the 3 GiB cap.
 - Gate: `tests/self_host_program_graph_unification_smoke.sh`; current expected
-  state is exactly two structural owners. The MIR migration must tighten the
-  same gate to one.
+  state is exactly one structural owner. The companion
+  `tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh`
+  rejects copied MIR topology and raw graph reads.
 
 ## Implemented graph slice
 
@@ -62,9 +63,13 @@ owner, and the named executable gate.
   through the new carrier. Structural negative probes use an explicit
   `SemanticExpressionGraphArenaFromRows` builder; production capture is
   ratcheted to `FromTopology`.
-- The dashboard owns a blocking `PARTIAL` `program_graph_unification` row at
-  13/13. Boundary migration and the derived-carrier registry record the owner
-  move without inventing a second top-level fact family.
+- `SelfMirExpressionGraphRows` now stores only semantic graph handles and
+  bounded source ranges. MIR JSON, assignment verification, and the
+  initializer probe use semantic accessors; graph mismatch and invalid handles
+  fail closed. The graph gate reports one structural owner.
+- The dashboard owns the blocking `program_graph_unification` row at 13/13.
+  Boundary migration and the derived-carrier registry record the owner move
+  without inventing a second top-level fact family.
 
 ## Memory verdict
 
@@ -95,16 +100,19 @@ closed on Windows if the PowerShell pressure owner is unavailable, and
 
 ## Last observed gates
 
-Green on the graph commit slice:
+Green on the graph handle commit slice:
 
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_program_graph_unification_smoke.sh` with
-  `phase=semantic-repointed structural_owners=2`;
+  `phase=unified structural_owners=1`;
+- `tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh`;
 - `tests/boundary_migration_contract_smoke.sh` with six migration rows and
   negative mutation checks;
 - `tests/self_hosted/parity/gate_dashboard_parity.sh` at 13/13;
 - `tests/documentation_quality_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
+- current `bin/pgy.exe` DRV-2 owner import `--emit-c` with `0 error(s), 0
+  warning(s)`;
 - focused hard DRV-2 evidence: 20 body fixtures plus six selected graph-heavy
   MIR fixtures;
 - codegen gen1/gen2 fixed point and bounded driver seed/oracle parity before
@@ -122,22 +130,27 @@ moving-HEAD failures as a semantic regression or a green current-HEAD gate.
 passed live owner/consumer binding and negative mutations. Coq/Rocq itself was
 not installed, so the proof model was a declared skip, not a green prover run.
 
-## Exact remaining dirty state after the handoff commit
+## Exact remaining dirty state after the handoff snapshot
 
-Only these pre-existing/concurrent parity scripts should remain dirty. Do not
-discard or fold them into another unit implicitly:
+These concurrent changes remain dirty. Do not discard or fold them into
+another unit implicitly:
 
+- `docs/semantics/sot_owner_spine_registry.md`;
+- `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`;
+- `src/self_hosted/PROGRESS.md`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-Verify this list after the handoff commit because another task may advance
+Verify this list after the handoff snapshot because another task may advance
 `main` or add a new lifetime slice concurrently.
 
 ## Next executable work
 
 1. Obtain an exclusive compiler-build window and verify HEAD/origin plus the
-   exact dirty list.
+   exact dirty list. The attempted full self-host bootstrap was interrupted
+   after concurrent bootstrap activity produced no attributable result; it is
+   not green evidence for `ec062184`.
 2. Re-run the official initializer C/LLVM parity, then
    `self-host-driver-bootstrap-full-test-smoke` from an environment where
    PowerShell is discoverable. A Windows missing-PowerShell path must now fail
@@ -146,14 +159,11 @@ Verify this list after the handoff commit because another task may advance
    unit is routine-scoped analysis/verify with owner-proved output ordering and
    comparison against the native 120 MB golden artifact. Do not tune JSON or
    raise the cap before execution reaches those stages.
-4. Repoint remaining MIR instruction/root/origin consumers and delete
-   `SelfMirExpressionGraphRows` structural topology. Tighten the graph ratchet
-   from two stores to one; missing/foreign handles must fail closed.
-5. Introduce the real revision owner and distinct stable identities
+4. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-6. After the full-driver artifact completes below 3 GiB, run the unfiltered
+5. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
@@ -162,8 +172,8 @@ Verify this list after the handoff commit because another task may advance
 1. Read this file, `src/self_hosted/PROGRESS.md`, `src/self_hosted/OWNERS.md`,
    `docs/180_compiler_logical_spine_handles_gates.md`, and the
    `selfhost.expression_graph` registry rows.
-2. Verify `git status --short --branch`, HEAD/origin, and the three named dirty
-   parity scripts.
+2. Verify `git status --short --branch`, HEAD/origin, the named owner registry,
+   and the six concurrent dirty files.
 3. Run the graph ratchet and build-pressure contract before a broad build.
 4. Confirm no other `pgy`, `genN`, `driver_oracle`, `gcc`, or `cc1` process is
    active before the pressure gate. Concurrent broad builds invalidate its
