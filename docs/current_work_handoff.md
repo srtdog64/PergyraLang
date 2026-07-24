@@ -8,10 +8,12 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- The implementation checkpoint immediately before this handoff refresh is
-  `944a511a` (`Locate full driver semantic pressure boundary`), pushed to
-  `origin/main`. Verify the containing handoff commit with `git rev-parse HEAD`
-  because a committed handoff cannot name its own Git object ID.
+- The latest pushed implementation checkpoint is `18521263` (`Close semantic
+  normalization allocation SoT`), and `HEAD` equals `origin/main`. This unit
+  replaces allocation-returning character scans and unconditional trim copies
+  in `SemanticStripOuterParens` with byte views and source-string reuse. Its
+  focused owner gate and C initializer-projection parity pass; the full-driver
+  pressure gate remains red as recorded below.
 - `0fdaf851` closes the shared collection-call protocol for List/Queue/Set:
   family, operation, arity, argument positions, and return shape now have one
   Pergyra semantic owner consumed by the semantic and C-emission lanes. This
@@ -54,23 +56,9 @@ owner, and the named executable gate.
 The following concurrent or user-owned work remains outside the pressure
 commits:
 
-- modified `Makefile`;
-- modified native MIR files `mir_fact_surface_validate.c`,
-  `mir_fact_validate_internal.h`, and `mir_json_dump.c`, plus untracked
-  `mir_fact_surface_validate_resource.c`, `mir_json_dump_decl.c`, and
-  `mir_json_dump_decl.h` under `src/compiler/`;
-- modified `src/self_hosted/OWNERS.md`;
-- modified self-host codegen `program_emit.pgy`;
-- modified self-host runtime ABI owners `runtime_header_owner.pgy` and
-  `set_runtime_owner.pgy`, plus untracked
-  `runtime_header_ownership_owner.pgy`;
-- modified `src/self_hosted/mir/routine_assignment_owner.pgy`;
-- modified parity runners `driver_bootstrap.sh`, `driver_rung2_body_parity.sh`,
-  and the indexed-assignment, machine-MIR, match, and owner-field owners;
-- modified `tests/self_hosted_component_contract_smoke.sh`, plus untracked
-  `driver_rung2_pipeline_step_owner.sh` under `tests/self_hosted/parity/`;
-- untracked `docs/198_market_safety_positioning.md` and
-  `docs/self_hosted/22_full_matrix_inferred_let_blocker.md`.
+- modified `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
+- modified `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
+- modified `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
 The collection protocol owner, its migrated consumers, registry row, proof
 mapping, and negative gate are clean at `0fdaf851`; they are not part of the
@@ -79,7 +67,7 @@ remaining dirty state above.
 The pressure-diagnostic compiler and semantic owners
 `driver_bootstrap_main.pgy`, `driver_rung2_owner.pgy`,
 `ast_body_type_bundle_owner.pgy`, and
-`ast_initializer_type_fact_owner.pgy` are clean at `944a511a`; do not list
+`ast_initializer_type_fact_owner.pgy` are clean at `18521263`; do not list
 them as concurrent dirty work on resume.
 
 The native C files are a concurrent file-split change. Do not discard, stage,
@@ -161,7 +149,10 @@ Current measured attribution and remaining unknown:
 - The earlier JSON-leading explanation is falsified for the current 3 GiB
   crossing: MIR facts and JSON projection have not started.
 - The crossing is linear initializer-row accumulation, not one exceptional
-  row; row 5,003 completed and row 5,004 had not finished environment setup.
+  row. After the byte-view normalization closure, row 5,201 completed and row
+  5,202 had not finished environment setup; the official pressure wrapper
+  measured 2,535.6 MB working set / 3,082.6 MB private, with
+  `driver_oracle.exe` at 3,071.6 MB private, and exited 88.
 - Emitted C has no row-scope cleanup in the initializer owner. Its graph and
   verdict helpers create temporary arrays/strings; allocation-returning
   `CharAtN`, `Substring`, `StringTrim`, and `StringConcat` results are not
@@ -189,6 +180,14 @@ Latest observed gates for this slice:
 
 - `build_pressure_contract_smoke.sh`, `documentation_quality_smoke.sh`, and
   `bash -n tests/self_hosted/parity/driver_bootstrap.sh` passed.
+- `tests/self_hosted/parity/semantic_expression_normalization_owner_smoke.sh`
+  passed, and
+  `tests/self_hosted/parity/initializer_projection_probe_parity.sh` passed
+  with the C backend.
+- The official `make -s self-host-driver-bootstrap-full-test-smoke` pressure
+  gate remains red: `driver_oracle.exe` crossed the 3 GiB private limit before
+  iteration, MIR-fact, or JSON stages. This is the next falsifier for the
+  initializer row-lifetime owner.
 - C and LLVM guarded-oracle builds completed with zero diagnostics; their
   bounded `let_log` outputs were both 2,341 bytes and SHA-256-equal. Both
   binaries rejected an unowned full-driver request with exit 1 and no artifact.
