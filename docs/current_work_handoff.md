@@ -16,7 +16,7 @@ owner, and the named executable gate.
   `String` push/drop ABI and explicit inout array calls. The preceding
   `6ef7641d` slice closes the semantic scratch-array environment with the
   owned `String` push/drop pair. Ordinary `Array<String>` remains on the beta
-  no-free policy.
+  no-free policy. The latest handoff-only HEAD is `416e6aad`.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -283,6 +283,15 @@ codegen call owner emits the corresponding runtime symbols with explicit
 before crossing the inout boundary. This is still a bounded lifetime closure,
 not a full-driver pressure result.
 
+The later exclusive single pressure run at handoff HEAD `416e6aad` reproduced
+the red result under the same `3072 MB` ceiling: `exit_code=-1`, elapsed
+`548250 ms`, peak working set `2537.1 MB`, peak private memory `3084.2 MB`,
+and `driver_oracle.exe` at `3073.4 MB` private across three processes. The
+pressure owner reported `limit_exceeded=true`; phase private peaks were
+orchestrate `3084.21 MB`, compile `1241.95 MB`, and link `295.39 MB`. The
+make target returned `Error 88`. This is a compiler-process retention defect,
+not system-wide free-memory exhaustion, and the `3072 MB` cap remains closed.
+
 The pressure observation predates the final MIR handle transition, so it is
 not a measurement of the current one-owner snapshot. Source inspection also
 shows why extracting the initializer-row body into a helper is insufficient:
@@ -381,6 +390,10 @@ Green on the graph handle commit slice:
   MIR fixtures;
 - codegen gen1/gen2 fixed point and bounded driver seed/oracle parity before
   the full-driver pressure stage.
+- The exclusive current-head full-driver pressure gate was rerun once after
+  all duplicate pressure trees were terminated: it reproduced `Error 88` at
+  `peak_private_mb=3084.2` and `top_private_mb=3073.4`; this is the current
+  falsifying fixture, not a green gate.
 
 Initializer projection passed its C/LLVM parity on the graph slice before the
 concurrent lifetime-commit burst. During the moving-HEAD burst, official C/LLVM
