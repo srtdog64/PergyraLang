@@ -138,8 +138,13 @@ func SelfMirPrepareIterationCollection(
     declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirRoutineBuild {
     if !fact.collection_hoisted { return build; }
-    let uses: Array<String> = SelfMirExpressionUses(
-        build, fact.source_expression
+    if !source_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR foreach collection expression graph is missing"
+        );
+    }
+    let uses: Array<String> = SelfMirExpressionGraphUses(
+        build, source_graph
     );
     build = SelfMirRoutineAddLocal(
         build, fact.synthetic_name, fact.iterable_type_name, 1
@@ -156,10 +161,11 @@ func SelfMirPrepareIterationCollection(
 
 func SelfMirIterationBranchUses(
     build: SelfMirRoutineBuild,
-    fact: SelfMirIterationLoweringFact
+    fact: SelfMirIterationLoweringFact,
+    branch_graph: SemanticExpressionGraphView
 ) -> Array<String> {
     if !fact.is_foreach {
         return SelfMirNoUses();
     }
-    return SelfMirExpressionUses(build, fact.start_expression);
+    return SelfMirExpressionGraphUses(build, branch_graph);
 }

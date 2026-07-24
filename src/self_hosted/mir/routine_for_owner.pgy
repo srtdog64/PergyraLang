@@ -23,14 +23,21 @@ func SelfMirLowerForFromArtifact(
     if !IsSome(body_opt) {
         return SelfMirRoutineBuildError(build, "MIR for body block is missing");
     }
+    let source_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        );
+    if !source_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR for source expression graph is missing"
+        );
+    }
     let binding: String = iteration.binding_name;
     let start: String = iteration.start_expression;
     let stop: String = iteration.stop_expression;
     build = SelfMirPrepareIterationCollection(
-        build, iteration, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneValue()
-        ), input.machine_declaration
+        build, iteration, source_graph, input.machine_declaration
     );
     build = SelfMirRoutineAddLocal(
         build, binding, iteration.binding_type_name, 0
@@ -57,23 +64,29 @@ func SelfMirLowerForFromArtifact(
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
     build = SelfMirRoutineAtBlock(build, header);
+    let branch_graph: SemanticExpressionGraphView = source_graph;
+    if iteration.collection_hoisted {
+        branch_graph = SelfMirSyntheticLocalExpressionGraph(start);
+    }
+    if iteration.is_foreach && !branch_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR foreach branch expression graph is missing"
+        );
+    }
     let branch_uses: Array<String> =
-        SelfMirIterationBranchUses(build, iteration);
+        SelfMirIterationBranchUses(build, iteration, branch_graph);
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
     );
     if iteration.collection_hoisted {
         build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SelfMirSyntheticLocalExpressionGraph(start),
+            build, branch_graph,
             input.machine_declaration
         );
     } else if iteration.is_foreach {
         build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces,
-                node_id, AstExpressionLaneValue()
-            ), input.machine_declaration
+            build, branch_graph, input.machine_declaration
         );
     } else {
         build = SelfMirRoutineAttachLastExpressionGraph(
