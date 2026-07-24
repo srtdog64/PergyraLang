@@ -3,6 +3,7 @@
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
+import "../semantic/ast_expression_graph_fact_owner.pgy";
 
 func SelfMirSimpleStatementKind(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() ||
@@ -17,11 +18,6 @@ func SelfMirSimpleStatementKind(kind: Int) -> Bool {
 func SelfMirSimpleStatementExpressionGraphLane(
     kind: Int
 ) -> Option<Int> {
-    if kind == TypedAstKindLogStmtTag() ||
-        kind == TypedAstKindBareCallStmtTag() ||
-        kind == TypedAstKindExitStmtTag() {
-        return Some(AstExpressionLaneAtom());
-    }
     if kind == TypedAstKindArrayPushStmtTag() {
         return Some(AstExpressionLaneValue());
     }
@@ -29,6 +25,42 @@ func SelfMirSimpleStatementExpressionGraphLane(
         return Some(AstExpressionLaneAuxiliary());
     }
     return None;
+}
+
+func SelfMirSimpleStatementGraphOwnedKind(kind: Int) -> Bool {
+    return kind == TypedAstKindLogStmtTag() ||
+        kind == TypedAstKindBareCallStmtTag() ||
+        kind == TypedAstKindExitStmtTag();
+}
+
+func SelfMirLowerGraphOwnedSimpleStatement(
+    build: SelfMirRoutineBuild,
+    kind: Int,
+    payload: String,
+    graph: SemanticExpressionGraphView
+) -> SelfMirRoutineBuild {
+    if !graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR graph-owned simple statement graph is missing"
+        );
+    }
+    let expression: String = payload;
+    let arg0: String = "";
+    if kind == TypedAstKindLogStmtTag() {
+        expression = Concat("Log(", Concat(payload, ")"));
+        arg0 = "Log";
+    } else if kind == TypedAstKindExitStmtTag() {
+        expression = Concat("Exit(", Concat(payload, ")"));
+        arg0 = "Exit";
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "stmt", "stmt", "", arg0, "", expression, "",
+        "AST_CALL", SelfMirExpressionGraphUses(build, graph)
+    );
+    if kind == TypedAstKindExitStmtTag() {
+        build = SelfMirRoutineTerminate(build);
+    }
+    return build;
 }
 
 func SelfMirLowerSimpleStatement(

@@ -34,6 +34,24 @@ func SelfMirLowerTrackedStatementFromArtifact(
         input.analysis.statements.value_texts[statement_index];
     let auxiliary_payload: String =
         input.analysis.statements.auxiliary_texts[statement_index];
+    if SelfMirSimpleStatementGraphOwnedKind(kind) {
+        let simple_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAtom()
+            );
+        if !simple_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR graph-owned simple statement graph is missing"
+            );
+        }
+        build = SelfMirLowerGraphOwnedSimpleStatement(
+            build, kind, payload, simple_graph
+        );
+        return SelfMirRoutineAttachLastExpressionGraph(
+            build, simple_graph, input.machine_declaration
+        );
+    }
     if SelfMirSimpleStatementKind(kind) {
         build = SelfMirLowerSimpleStatement(
             build, kind, payload, value_payload, auxiliary_payload
