@@ -12,6 +12,16 @@ func SelfMirLowerWhileFromArtifact(
     node_id: Int,
     condition: String
 ) -> SelfMirRoutineBuild {
+    let condition_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        );
+    if !condition_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR while condition expression graph is missing"
+        );
+    }
     let body_opt: Option<Int> = SelfMirControlBodyBlock(
         input.artifact.arena, node_id
     );
@@ -67,13 +77,10 @@ func SelfMirLowerWhileFromArtifact(
         SelfMirExpressionSourceTypeName(
             SelfMirExpressionKindFromText(condition)
         ),
-        SelfMirExpressionUses(build, condition)
+        SelfMirExpressionGraphUses(build, condition_graph)
     );
     build = SelfMirRoutineAttachLastExpressionGraph(
-        build, SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneAtom()
-        ), input.machine_declaration
+        build, condition_graph, input.machine_declaration
     );
     build = SelfMirRoutineAddBlock(build);
     let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
