@@ -1,0 +1,176 @@
+// Set<T> call protocol facts from the parser-owned expression graph.
+
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "diagnostic_owner.pgy";
+import "expr_type_owner.pgy";
+
+struct SemanticExpressionGraphSetCallFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    return_type_name: String;
+    set_type_name: String;
+    element_type_name: String;
+}
+
+func SemanticExpressionGraphSetCallNotApplicable(
+) -> SemanticExpressionGraphSetCallFact {
+    return SemanticExpressionGraphSetCallFact(
+        false, true, "", "", "", "", ""
+    );
+}
+
+func SemanticExpressionGraphSetCallError(
+    code: String,
+    message: String
+) -> SemanticExpressionGraphSetCallFact {
+    return SemanticExpressionGraphSetCallFact(
+        true, false, code, message, "", "", ""
+    );
+}
+
+func SemanticExpressionGraphSetCallName(name: String) -> Bool {
+    return name == "SetNew" || name == "SetAdd" ||
+        name == "SetHas" || name == "SetRemove" ||
+        name == "SetSize";
+}
+
+func SemanticExpressionGraphSetCallExpectedArity(name: String) -> Int {
+    if name == "SetNew" { return 0; }
+    if name == "SetSize" { return 1; }
+    return 2;
+}
+
+func SemanticExpressionGraphSetCallFactFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    names: Array<String>,
+    types: Array<String>
+) -> SemanticExpressionGraphSetCallFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok { return SemanticExpressionGraphSetCallNotApplicable(); }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || !IsSome(callee_text) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !SemanticExpressionGraphSetCallName(UnwrapOption(callee_text)) {
+        return SemanticExpressionGraphSetCallNotApplicable();
+    }
+    let callee: String = UnwrapOption(callee_text);
+    if !target.ok || target.kind != SemanticCallTargetDirect() ||
+        target.name != callee {
+        return SemanticExpressionGraphSetCallError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_call_target"
+            )
+        );
+    }
+    let expected_arity: Int =
+        SemanticExpressionGraphSetCallExpectedArity(callee);
+    if ArrayLength(call.argument_nodes) != expected_arity {
+        return SemanticExpressionGraphSetCallError(
+            "call_arity_mismatch",
+            SemanticError3(
+                "call_arity_mismatch", "func", callee,
+                "expected", ToString(expected_arity),
+                "actual", ToString(ArrayLength(call.argument_nodes))
+            )
+        );
+    }
+    if callee == "SetNew" {
+        return SemanticExpressionGraphSetCallFact(
+            true, true, "", "", "Set<Unknown>", "Set<Unknown>",
+            "Unknown"
+        );
+    }
+    let set_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
+        graph, call.argument_nodes[0], names, types
+    );
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(set_type);
+    if !shape.ok || shape.nominal_base_name != "Set" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        if set_type == "Unknown" {
+            return SemanticExpressionGraphSetCallError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "collection_receiver_type"
+                )
+            );
+        }
+        return SemanticExpressionGraphSetCallError(
+            "builtin_arg_type_mismatch",
+            SemanticError3(
+                "builtin_arg_type_mismatch", "func", callee,
+                "expected", "Set<T>", "actual", set_type
+            )
+        );
+    }
+    let element_type: String = shape.actual_type_names[0];
+    if callee != "SetSize" {
+        let value_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, call.argument_nodes[1], names, types
+            );
+        let value_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call.argument_nodes[1]
+        );
+        if value_type == "Unknown" || !IsSome(value_text) {
+            return SemanticExpressionGraphSetCallError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "collection_value_type"
+                )
+            );
+        }
+        if !ExpressionAssignableTo(
+            element_type, value_type, UnwrapOption(value_text)
+        ) {
+            return SemanticExpressionGraphSetCallError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", callee,
+                    "expected", element_type, "actual", value_type
+                )
+            );
+        }
+    }
+    let return_type: String = "Void";
+    if callee == "SetHas" { return_type = "Bool"; }
+    if callee == "SetSize" { return_type = "Int"; }
+    return SemanticExpressionGraphSetCallFact(
+        true, true, "", "", return_type,
+        shape.canonical_name, element_type
+    );
+}
+
+func SemanticExpressionGraphSetCallFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> SemanticExpressionGraphSetCallFact {
+    let target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    return SemanticExpressionGraphSetCallFactFromResolvedTarget(
+        graph, root_id, target, names, types
+    );
+}

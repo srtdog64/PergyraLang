@@ -7,6 +7,7 @@ import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/queue_runtime_owner.pgy";
+import "../runtime_abi/set_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
@@ -153,6 +154,27 @@ func RewriteSemanticExpectedValue(
         let collection: CollectionQueueRuntimeFact =
             CollectionQueueRuntimeFactFromTypeName(expected_type);
         if !collection.ok { Die("Queue<T> runtime ABI fact is missing"); }
+        return Concat(collection.c_new_fn, "()");
+    }
+    if StartsWith(expected_type, "Set<") &&
+        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, node_id
+        );
+        let target: Option<String> = None;
+        if call.ok {
+            target = SemanticExpressionGraphCallTargetName(
+                graph, call.call_node
+            );
+        }
+        if !call.ok || !IsSome(target) ||
+            UnwrapOption(target) != "SetNew" ||
+            ArrayLength(call.argument_nodes) != 0 {
+            Die("Set<T> initializer must be SetNew with no arguments");
+        }
+        let collection: CollectionSetRuntimeFact =
+            CollectionSetRuntimeFactFromTypeName(expected_type);
+        if !collection.ok { Die("Set<T> runtime ABI fact is missing"); }
         return Concat(collection.c_new_fn, "()");
     }
     if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {

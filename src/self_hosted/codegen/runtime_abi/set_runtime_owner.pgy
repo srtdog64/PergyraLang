@@ -1,0 +1,92 @@
+// Set<T> runtime ABI facts consumed by self-host C emission.
+
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CollectionSetRuntimeFact {
+    ok: Bool;
+    type_name: String;
+    element_type: String;
+    element_c_type: String;
+    c_value_type: String;
+    c_new_fn: String;
+    c_add_fn: String;
+    c_has_fn: String;
+    c_remove_fn: String;
+    c_size_fn: String;
+}
+
+func CollectionSetRuntimeFactMissing() -> CollectionSetRuntimeFact {
+    return CollectionSetRuntimeFact(
+        false, "", "", "", "", "", "", "", "", ""
+    );
+}
+
+func CollectionSetRuntimeElementTypeOpt(
+    type_name: String
+) -> Option<String> {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "Set" ||
+        ArrayLength(shape.actual_type_names) != 1 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return None;
+    }
+    return Some(shape.actual_type_names[0]);
+}
+
+func CollectionSetRuntimeElementCValueType(element_type: String) -> String {
+    if element_type == "Int" { return "int32_t"; }
+    if element_type == "String" { return "const char *"; }
+    return "";
+}
+
+func CollectionSetRuntimeFactFromTypeName(
+    type_name: String
+) -> CollectionSetRuntimeFact {
+    let element: Option<String> = CollectionSetRuntimeElementTypeOpt(type_name);
+    if !IsSome(element) { return CollectionSetRuntimeFactMissing(); }
+    let element_type: String = UnwrapOption(element);
+    let element_c_type: String =
+        CollectionSetRuntimeElementCValueType(element_type);
+    if element_c_type == "" { return CollectionSetRuntimeFactMissing(); }
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    return CollectionSetRuntimeFact(
+        true, canonical, element_type, element_c_type,
+        CompilerSymbolCSetValueTypeName(element_type),
+        CompilerSymbolCSetOperationName("new", element_type),
+        CompilerSymbolCSetOperationName("add", element_type),
+        CompilerSymbolCSetOperationName("has", element_type),
+        CompilerSymbolCSetOperationName("remove", element_type),
+        CompilerSymbolCSetOperationName("size", element_type)
+    );
+}
+
+func CollectionSetRuntimeSpecializationBlock(type_name: String) -> String {
+    let fact: CollectionSetRuntimeFact =
+        CollectionSetRuntimeFactFromTypeName(type_name);
+    if !fact.ok {
+        Die(Concat("unsupported Set<T> runtime ABI fact: ", type_name));
+    }
+    return "";
+}
+
+func CollectionSetRuntimeContractReady() -> Bool {
+    let int_fact: CollectionSetRuntimeFact =
+        CollectionSetRuntimeFactFromTypeName("Set<Int>");
+    let string_fact: CollectionSetRuntimeFact =
+        CollectionSetRuntimeFactFromTypeName("Set<String>");
+    return int_fact.ok && int_fact.type_name == "Set<Int>" &&
+        int_fact.element_type == "Int" &&
+        int_fact.element_c_type == "int32_t" &&
+        int_fact.c_value_type == "PgySet_int" &&
+        int_fact.c_new_fn == "pgy_set_new_int" &&
+        int_fact.c_add_fn == "pgy_set_add_int" &&
+        int_fact.c_has_fn == "pgy_set_has_int" &&
+        int_fact.c_remove_fn == "pgy_set_remove_int" &&
+        int_fact.c_size_fn == "pgy_set_size_int" &&
+        string_fact.ok && string_fact.c_value_type == "PgySet_String" &&
+        string_fact.c_has_fn == "pgy_set_has_string" &&
+        !CollectionSetRuntimeFactFromTypeName("Set<Unknown>").ok &&
+        !CollectionSetRuntimeFactFromTypeName("Queue<Int>").ok;
+}

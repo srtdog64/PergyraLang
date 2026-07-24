@@ -17,6 +17,8 @@ struct CodegenTypeUsageFacts {
     list_type_names: Array<String>;
     let has_queue: Bool;
     queue_type_names: Array<String>;
+    let has_set: Bool;
+    set_type_names: Array<String>;
     let has_ast_text_node_array: Bool;
     let has_float: Bool;
     let has_allocator: Bool;
@@ -89,6 +91,31 @@ func CodegenTypeUsageQueueTypeNames(
     return type_names;
 }
 
+func CodegenTypeUsageSetTypeNames(
+    facts: SemanticAstTypeSurfaceFacts
+) -> Array<String> {
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(name) {
+            let shape: SemanticConstructedTypeNameFact =
+                SemanticConstructedTypeNameFactFrom(UnwrapOption(name));
+            if shape.ok && shape.nominal_base_name == "Set" &&
+                ArrayLength(shape.actual_type_names) == 1 &&
+                !SemanticTypeNameContainsUnresolvedUnknown(
+                    shape.canonical_name
+                ) && !CodegenTypeUsageTypeNameKnown(
+                    type_names, shape.canonical_name
+                ) {
+                ArrayPush(type_names, shape.canonical_name);
+            }
+        }
+        i = i + 1;
+    }
+    return type_names;
+}
+
 func CodegenTypeUsageHasPlainSlot(facts: SemanticAstTypeSurfaceFacts) -> Bool {
     let i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
@@ -104,6 +131,8 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         CodegenTypeUsageListTypeNames(facts);
     let queue_type_names: Array<String> =
         CodegenTypeUsageQueueTypeNames(facts);
+    let set_type_names: Array<String> =
+        CodegenTypeUsageSetTypeNames(facts);
     return CodegenTypeUsageFacts(
         SemanticAstTypeSurfaceContains(facts, "String"),
         SemanticAstTypeSurfaceContains(facts, "Result<"),
@@ -114,6 +143,8 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         list_type_names,
         ArrayLength(queue_type_names) > 0,
         queue_type_names,
+        ArrayLength(set_type_names) > 0,
+        set_type_names,
         SemanticAstTypeSurfaceContains(facts, "Array<CodegenAstTextNode"),
         SemanticAstTypeSurfaceContains(facts, "Float"),
         SemanticAstTypeSurfaceContains(facts, "Allocator"),

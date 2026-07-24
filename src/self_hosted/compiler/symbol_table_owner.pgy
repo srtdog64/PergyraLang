@@ -244,6 +244,27 @@ func CompilerSymbolCQueueOperationName(
         Concat("_", CompilerSymbolCQueueRuntimeSuffix(element_type))
     );
 }
+func CompilerSymbolCSetRuntimeSuffix(element_type: String) -> String {
+    if element_type == "Int" { return "int"; }
+    if element_type == "String" { return "string"; }
+    return CompilerSymbolCMangledTypeName(element_type);
+}
+func CompilerSymbolCSetValueTypeName(element_type: String) -> String {
+    if element_type == "Int" { return "PgySet_int"; }
+    if element_type == "String" { return "PgySet_String"; }
+    return Concat(
+        "PgySet_", CompilerSymbolCMangledTypeName(element_type)
+    );
+}
+func CompilerSymbolCSetOperationName(
+    operation: String,
+    element_type: String
+) -> String {
+    return Concat(
+        Concat("pgy_set_", operation),
+        Concat("_", CompilerSymbolCSetRuntimeSuffix(element_type))
+    );
+}
 func CompilerSymbolCGenericSpecializationName(
     base_name: String,
     actual_type_names: Array<String>

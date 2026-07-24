@@ -16,6 +16,7 @@ import "ast_expression_graph_wrapper_value_owner.pgy";
 import "ast_expression_graph_collection_mutation_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_queue_call_owner.pgy";
+import "ast_expression_graph_set_call_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -175,6 +176,26 @@ func SemanticAstExpressionVerdictFromGraph(
         return SemanticAstExpressionVerdict(
             false, queue_call.diagnostic_code,
             queue_call.diagnostic_message, text, "Unknown"
+        );
+    }
+    let set_call: SemanticExpressionGraphSetCallFact =
+        SemanticExpressionGraphSetCallNotApplicable();
+    if call_view.ok {
+        let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call_view.callee_node
+        );
+        if IsSome(callee_text) &&
+            SemanticExpressionGraphSetCallName(UnwrapOption(callee_text)) {
+            set_call = SemanticExpressionGraphSetCallFactFromGraph(
+                graph, root_id, constructors, names, types,
+                function_names, function_returns
+            );
+        }
+    }
+    if set_call.applies && !set_call.ok {
+        return SemanticAstExpressionVerdict(
+            false, set_call.diagnostic_code,
+            set_call.diagnostic_message, text, "Unknown"
         );
     }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =

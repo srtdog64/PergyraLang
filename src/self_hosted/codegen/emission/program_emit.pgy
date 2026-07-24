@@ -16,6 +16,7 @@ import "../input/semantic_kind_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/queue_runtime_owner.pgy";
+import "../runtime_abi/set_runtime_owner.pgy";
 import "../runtime_abi/checked_arithmetic_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -403,6 +404,7 @@ func GenerateCUnitFromSemanticFacts(
     let uses_array: Bool = usage.uses_array;
     let uses_list: Bool = usage.uses_list;
     let uses_queue: Bool = usage.uses_queue;
+    let uses_set: Bool = usage.uses_set;
     let uses_ast_text_node_array: Bool = usage.uses_ast_text_node_array;
     let uses_args2: Bool = usage.uses_args;
     let uses_io: Bool = usage.uses_io;
@@ -417,8 +419,8 @@ func GenerateCUnitFromSemanticFacts(
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
-    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue);
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
+    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set);
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "#include <stdio.h>\n");
@@ -432,7 +434,7 @@ func GenerateCUnitFromSemanticFacts(
     if uses_str || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
-    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue)); }
+    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set)); }
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
@@ -441,12 +443,12 @@ func GenerateCUnitFromSemanticFacts(
         TextBuilderAppend(output, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     TextBuilderAppend(output, "\n");
-    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
+    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
     if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(
-            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue),
-            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue)
+            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set),
+            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set)
         ));
     }
     if uses_print {
@@ -497,6 +499,16 @@ func GenerateCUnitFromSemanticFacts(
             )
         );
         queue_type_index = queue_type_index + 1;
+    }
+    let set_type_index: Int = 0;
+    while set_type_index < ArrayLength(usage.set_type_names) {
+        TextBuilderAppend(
+            output,
+            CollectionSetRuntimeSpecializationBlock(
+                usage.set_type_names[set_type_index]
+            )
+        );
+        set_type_index = set_type_index + 1;
     }
     if uses_args2 {
         TextBuilderAppend(output, HostIORuntimeCArgsBlock());

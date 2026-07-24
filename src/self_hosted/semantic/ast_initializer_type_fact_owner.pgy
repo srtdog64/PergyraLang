@@ -255,7 +255,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 "binding", locals.names[i],
                 "actual", inferred
             );
-        } else if inferred == "Unknown" || inferred == "" || inferred == "List<Unknown>" {
+        } else if inferred == "Unknown" || inferred == "" ||
+            inferred == "List<Unknown>" || inferred == "Queue<Unknown>" ||
+            inferred == "Set<Unknown>" {
             row_verified = 0;
             row_code = "initializer_type_unresolved";
             row_message = SemanticError2(

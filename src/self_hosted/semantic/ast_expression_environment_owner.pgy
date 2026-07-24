@@ -497,7 +497,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
         ArrayLength(modes) == 3 && modes[0] == "default_param" &&
         modes[1] == "local" && modes[2] == "local" &&
-         ArrayLength(function_names) == 114 &&
+        ArrayLength(function_names) == 119 &&
         function_names[101] == "StringConcat" &&
         function_returns[101] == "String" &&
         function_params[101] == "String|String" &&
@@ -534,8 +534,23 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         function_names[112] == "QueueEmpty" &&
         function_returns[112] == "Bool" &&
         function_params[112] == "Unknown" &&
-        function_names[113] == "F" && function_returns[113] == "Void" &&
-        function_params[113] == "Int" &&
+        function_names[113] == "SetNew" &&
+        function_returns[113] == "Set<Unknown>" &&
+        function_params[113] == "" &&
+        function_names[114] == "SetAdd" &&
+        function_returns[114] == "Void" &&
+        function_params[114] == "Unknown|Unknown" &&
+        function_names[115] == "SetRemove" &&
+        function_returns[115] == "Void" &&
+        function_params[115] == "Unknown|Unknown" &&
+        function_names[116] == "SetHas" &&
+        function_returns[116] == "Bool" &&
+        function_params[116] == "Unknown|Unknown" &&
+        function_names[117] == "SetSize" &&
+        function_returns[117] == "Int" &&
+        function_params[117] == "Unknown" &&
+        function_names[118] == "F" && function_returns[118] == "Void" &&
+        function_params[118] == "Int" &&
         SemanticAstExpressionEnumValueContractReady() &&
         SemanticAstExpressionOwnerFieldEnvironmentContractReady();
 }

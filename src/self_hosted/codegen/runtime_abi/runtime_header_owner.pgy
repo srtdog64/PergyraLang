@@ -9,17 +9,18 @@ func RuntimeCHeaderRequired(
     uses_box_array: Bool,
     uses_spawn: Bool,
     uses_list: Bool,
-    uses_queue: Bool
+    uses_queue: Bool,
+    uses_set: Bool
 ) -> Bool {
     return uses_allocator || uses_text_builder || uses_box_array ||
-        uses_spawn || uses_list || uses_queue;
+        uses_spawn || uses_list || uses_queue || uses_set;
 }
 
 func RuntimeCHeaderIncludeBlock(
     uses_box_array: Bool, uses_spawn: Bool, uses_list: Bool,
-    uses_queue: Bool
+    uses_queue: Bool, uses_set: Bool
 ) -> String {
-    if uses_box_array || uses_list || uses_queue {
+    if uses_box_array || uses_list || uses_queue || uses_set {
         return "#include \"pgy_runtime.h\"\n";
     }
     if uses_spawn {
@@ -33,18 +34,20 @@ func RuntimeCHeaderOwnsCheckedArithmetic(
     uses_text_builder: Bool,
     uses_box_array: Bool,
     uses_list: Bool,
-    uses_queue: Bool
+    uses_queue: Bool,
+    uses_set: Bool
 ) -> Bool {
     return RuntimeCHeaderRequired(
         uses_allocator, uses_text_builder, uses_box_array, false,
-        uses_list, uses_queue
+        uses_list, uses_queue, uses_set
     );
 }
 
 func RuntimeCHeaderOwnsScalarLog(
     uses_box_array: Bool,
     uses_list: Bool,
-    uses_queue: Bool
+    uses_queue: Bool,
+    uses_set: Bool
 ) -> Bool {
-    return uses_box_array || uses_list || uses_queue;
+    return uses_box_array || uses_list || uses_queue || uses_set;
 }

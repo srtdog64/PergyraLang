@@ -14,6 +14,7 @@ import "expr_rewrite.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "list_call_emit_owner.pgy";
 import "queue_call_emit_owner.pgy";
+import "set_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
@@ -406,6 +407,11 @@ func RewriteSemanticDirectCall(
         source_name == "QueuePop" || source_name == "QueueSize" ||
         source_name == "QueueEmpty" {
         return RewriteSemanticQueueCall(graph, view, source_name, env);
+    }
+    if source_name == "SetNew" || source_name == "SetAdd" ||
+        source_name == "SetRemove" || source_name == "SetHas" ||
+        source_name == "SetSize" {
+        return RewriteSemanticSetCall(graph, view, source_name, env);
     }
     if source_name == "ClaimSlot" || source_name == "Read" ||
         source_name == "Write" || source_name == "Release" {

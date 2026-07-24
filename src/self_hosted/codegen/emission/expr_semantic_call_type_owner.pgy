@@ -5,6 +5,7 @@ import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "list_call_type_owner.pgy";
 import "queue_call_type_owner.pgy";
+import "set_call_type_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/builtin_signature_owner.pgy";
@@ -27,6 +28,10 @@ func CodegenExpressionCallTypeFromGraph(
         CodegenQueueCallReturnTypeFromGraph(graph, node_id, env);
     if IsSome(queue_return) { return queue_return; }
     if CodegenQueueCallApplies(graph, node_id) { return None; }
+    let set_return: Option<String> =
+        CodegenSetCallReturnTypeFromGraph(graph, node_id, env);
+    if IsSome(set_return) { return set_return; }
+    if CodegenSetCallApplies(graph, node_id) { return None; }
     let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
         graph, call.call_node
     );

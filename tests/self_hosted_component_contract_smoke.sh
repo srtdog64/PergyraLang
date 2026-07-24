@@ -3781,13 +3781,13 @@ require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
 reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"defer_body"'
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
-require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 50
+require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue)"
+    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set)"
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime.h\"'
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
@@ -3898,9 +3898,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 277;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 278;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 277'
+    'mir_fixture_rows[@]}" -ne 278'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4045,6 +4045,8 @@ require_file "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_
 require_max_lines "tests/self_hosted/parity/driver_rung2_list_literal_context_parity_owner.sh" 100
 require_file "tests/self_hosted/parity/driver_rung2_queue_ops_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_queue_ops_parity_owner.sh" 100
+require_file "tests/self_hosted/parity/driver_rung2_set_ops_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_set_ops_parity_owner.sh" 100
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy" \
     "func SemanticExpressionGraphCallArgumentScalarTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy" \
@@ -4063,6 +4065,14 @@ require_text "src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy
     "func SemanticExpressionGraphQueueCallFactFromResolvedTarget("
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphQueueCallFactFromGraph("
+require_file "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" 220
+require_text "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" \
+    "struct SemanticExpressionGraphSetCallFact"
+require_text "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" \
+    "func SemanticExpressionGraphSetCallFactFromResolvedTarget("
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "SemanticExpressionGraphSetCallFactFromGraph("
 require_text "src/self_hosted/codegen/emission/list_call_emit_owner.pgy" \
     "func RewriteSemanticListCall("
 require_text "src/self_hosted/codegen/emission/list_call_emit_owner.pgy" \
@@ -4074,6 +4084,12 @@ require_text "src/self_hosted/codegen/emission/queue_call_emit_owner.pgy" \
     "func RewriteSemanticQueueCall("
 require_text "src/self_hosted/codegen/emission/queue_call_type_owner.pgy" \
     "CodegenQueueCallReturnTypeFromGraph"
+require_max_lines "src/self_hosted/codegen/emission/set_call_emit_owner.pgy" 80
+require_max_lines "src/self_hosted/codegen/emission/set_call_type_owner.pgy" 100
+require_text "src/self_hosted/codegen/emission/set_call_emit_owner.pgy" \
+    "func RewriteSemanticSetCall("
+require_text "src/self_hosted/codegen/emission/set_call_type_owner.pgy" \
+    "CodegenSetCallReturnTypeFromGraph"
 require_file "src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy"
 require_text "src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy" \
     "CodegenForEachCollectionRuntimeFactFromTypeName"
@@ -4484,11 +4500,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 277;"
+    "return 278;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 277'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 278'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4529,6 +4545,10 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_queue_ops"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_queue_ops_emitted_c"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_set_ops"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_set_ops_emitted_c"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/list_shadow_scope_metadata/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4536,7 +4556,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"tests/cases/backend_compare/sequence_literal_list_queue/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 277;"
+    '"tests/cases/backend_compare/set_ops/main.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "return 278;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -7049,6 +7071,14 @@ require_text "src/self_hosted/codegen/runtime_abi/queue_runtime_owner.pgy" \
     "func CollectionQueueRuntimeContractReady"
 require_text "src/self_hosted/codegen/runtime_abi/queue_runtime_owner.pgy" \
     'CompilerSymbolCQueueOperationName("push", element_type)'
+require_file "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy"
+require_max_lines "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy" 120
+require_text "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy" \
+    "struct CollectionSetRuntimeFact"
+require_text "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy" \
+    "func CollectionSetRuntimeContractReady"
+require_text "src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy" \
+    'CompilerSymbolCSetOperationName("has", element_type)'
 reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
     "CollectionListRuntime"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCAbsFn"

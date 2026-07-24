@@ -26,6 +26,8 @@ struct CodegenRuntimeUsageFacts {
     list_type_names: Array<String>;
     let uses_queue: Bool;
     queue_type_names: Array<String>;
+    let uses_set: Bool;
+    set_type_names: Array<String>;
     let uses_ast_text_node_array: Bool;
     nominal_record_arrays: CodegenNominalArrayUsageFacts;
     value_wrappers: CodegenValueWrapperUsageFacts;
@@ -79,7 +81,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_option: Bool = type_usage.has_option
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
         || CodegenExpressionUsageHasNone(expr_usage);
-    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option
+    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option || type_usage.has_set
         || type_usage.has_allocator || type_usage.has_text_builder;
     let uses_exit: Bool = kind_usage.has_exit_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
@@ -95,6 +97,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         || uses_args;
     let uses_list: Bool = type_usage.has_list;
     let uses_queue: Bool = type_usage.has_queue;
+    let uses_set: Bool = type_usage.has_set;
     let uses_ast_text_node_array: Bool = type_usage.has_ast_text_node_array;
     let nominal_record_arrays: CodegenNominalArrayUsageFacts =
         CodegenNominalArrayUsageFactsFromSemantic(
@@ -138,6 +141,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
         type_usage.list_type_names,
         uses_queue,
         type_usage.queue_type_names,
+        uses_set,
+        type_usage.set_type_names,
         uses_ast_text_node_array,
         nominal_record_arrays,
         value_wrappers,
