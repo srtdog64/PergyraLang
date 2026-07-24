@@ -3340,8 +3340,12 @@ require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.
     "func SemanticExpressionGraphCallTargetsFromSignatures("
 reject_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticExpressionGraphCallTargetsFromCallableFacts"
-require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+reject_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticAstExpressionFunctionTables("
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "function_tables: SemanticAstExpressionFunctionTableFacts"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "function_tables: SemanticAstExpressionFunctionTableFacts"
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "member_names"
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \

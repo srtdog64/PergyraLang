@@ -13,6 +13,10 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            signatures, constructors, enums
+        );
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
@@ -34,12 +38,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     );
     let carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
-            source, signatures, constructors, enums, false
+            source, signatures, constructors, enums, false, function_tables
         );
     if !carried.ok ||
         carried.arena.call_target_names[build.root_id] != "Math_Add" ||
         !SemanticExpressionGraphCallTargetsFromSignatures(
-            carried, signatures, constructors, enums, true
+            carried, signatures, constructors, enums, true, function_tables
         ).ok {
         return false;
     }
@@ -55,7 +59,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         true, carried.roots, carried.has_roots, missing_arena
     );
     if SemanticExpressionGraphCallTargetsFromSignatures(
-        missing, signatures, constructors, enums, true
+        missing, signatures, constructors, enums, true, function_tables
     ).ok {
         return false;
     }
@@ -83,7 +87,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         );
     let constructor_carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
-            constructor_source, signatures, constructors, enums, false
+            constructor_source, signatures, constructors, enums, false,
+            function_tables
         );
     let constructor_call: SemanticCallSpineView =
         SemanticCallSpineViewFromGraph(
@@ -94,7 +99,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             constructor_call.call_node
         ] != "Pair" ||
         !SemanticExpressionGraphCallTargetsFromSignatures(
-            constructor_carried, signatures, constructors, enums, true
+            constructor_carried, signatures, constructors, enums, true,
+            function_tables
         ).ok {
         return false;
     }
@@ -136,7 +142,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             )
         );
     if SemanticExpressionGraphCallTargetsFromSignatures(
-        wrong_member, signatures, constructors, enums, true
+        wrong_member, signatures, constructors, enums, true, function_tables
     ).ok {
         return false;
     }
@@ -161,7 +167,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         );
     let member_verified: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
-            member_carried, signatures, constructors, enums, true
+            member_carried, signatures, constructors, enums, true,
+            function_tables
         );
     let chain_kinds: Array<Int> = [];
     let chain_texts: Array<String> = [];

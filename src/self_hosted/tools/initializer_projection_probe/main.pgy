@@ -160,7 +160,8 @@ func ProbeAnalysisWithCallTarget(
         analysis.verdict, analysis.signatures, analysis.constructors,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
-        analysis.type_surfaces, analysis.kind_surfaces
+        analysis.type_surfaces, analysis.kind_surfaces,
+        analysis.function_tables
     );
 }
 
@@ -236,7 +237,8 @@ func ProbeAnalysisWithoutCallTarget(
         analysis.verdict, analysis.signatures, analysis.constructors,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
-        analysis.type_surfaces, analysis.kind_surfaces
+        analysis.type_surfaces, analysis.kind_surfaces,
+        analysis.function_tables
     );
 }
 

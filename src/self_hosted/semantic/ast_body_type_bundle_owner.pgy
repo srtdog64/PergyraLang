@@ -28,9 +28,7 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
     observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
     let function_tables: SemanticAstExpressionFunctionTableFacts =
-        SemanticAstExpressionFunctionTableFactsFromArtifact(
-            analysis.signatures, analysis.constructors, analysis.enums
-        );
+        analysis.function_tables;
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:start");
     let base_initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifactObservedWithFunctionTables(

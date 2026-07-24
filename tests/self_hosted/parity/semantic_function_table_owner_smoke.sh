@@ -9,6 +9,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 ENV_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy"
+ANALYSIS_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+CAPTURE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
 BODY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 INIT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
 BRIDGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy"
@@ -26,7 +28,7 @@ fail() {
     exit 1
 }
 
-for file in "$ENV_OWNER" "$FACT_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
+for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     [[ -f "$file" ]] || fail "owner is missing: ${file#$ROOT_DIR/}"
 done
 
@@ -36,15 +38,19 @@ grep -Fq 'func SemanticAstExpressionFunctionTableFactsFromArtifact' "$ENV_OWNER"
     fail "callable-table producer is missing"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsReady' "$FACT_OWNER" ||
     fail "callable-table readiness gate is missing"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsFromArtifact(' "$ANALYSIS_OWNER" ||
+    fail "artifact analysis does not own callable-table production"
 
-for consumer in "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
+for consumer in "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     if grep -Fq 'SemanticAstExpressionFunctionTables(' "$consumer"; then
         fail "consumer rebuilds callable tables: ${consumer#$ROOT_DIR/}"
     fi
 done
 
-grep -Fq 'SemanticAstExpressionFunctionTableFactsFromArtifact(' "$BODY_OWNER" ||
-    fail "body owner does not produce the shared callable-table fact"
+grep -Fq 'analysis.function_tables' "$BODY_OWNER" ||
+    fail "body owner does not consume the artifact-owned callable-table fact"
+grep -Fq 'function_tables: SemanticAstExpressionFunctionTableFacts' "$CAPTURE_OWNER" ||
+    fail "call-target capture does not consume the shared callable-table fact"
 for consumer in \
     'SemanticAstInitializerTypeFactsFromArtifactObservedWithFunctionTables(' \
     'SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(' \

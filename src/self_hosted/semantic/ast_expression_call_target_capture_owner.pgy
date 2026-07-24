@@ -112,11 +112,13 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
-    require_carried: Bool
+    require_carried: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticExpressionGraphFacts {
     if !graph.ok || !signatures.ok || !constructors.ok ||
         !enums.ok ||
-        !SemanticExpressionGraphArenaReady(graph.arena) {
+        !SemanticExpressionGraphArenaReady(graph.arena) ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticExpressionGraphFacts(
             false, graph.roots, graph.has_roots, graph.arena
         );
@@ -124,17 +126,6 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     let target_names: Array<String> = graph.arena.call_target_names;
     let target_kinds: Array<Int> = graph.arena.call_target_kinds;
     let valid: Bool = true;
-    let callable_names: Array<String> = [];
-    let callable_returns: Array<String> = [];
-    let callable_params: Array<String> = [];
-    if !SemanticAstExpressionFunctionTables(
-        signatures, constructors, enums,
-        callable_names, callable_returns, callable_params
-    ) {
-        return SemanticExpressionGraphFacts(
-            false, graph.roots, graph.has_roots, graph.arena
-        );
-    }
     let member_names: Array<String> = [];
     let signature_index: Int = 0;
     while signature_index < SemanticAstFunctionSignatureCount(signatures) {
@@ -163,7 +154,7 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
         let expected: SemanticExpressionCallTargetFact =
             SemanticExpressionCallTargetExpected(
-                graph, callable_names, member_names,
+                graph, function_tables.names, member_names,
                 require_carried, node_id
             );
         if !expected.ok {
