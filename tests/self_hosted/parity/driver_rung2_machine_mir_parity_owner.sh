@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Owns DRV-2 machine-fixture target input and command shaping.
-# Claim result-local and resource receiver graph owner
+# Claim result-local and semantic resource receiver graph owner
 
 pgy_selfhost_driver_rung2_fixture_base() {
     local path="$1"
@@ -62,14 +62,30 @@ pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
         return 1
     fi
     for owner_fact in \
-        'cfg.instructions.expr0_graphs' \
-        'AstExpressionNodeCallArgument()' \
-        'graphs.left_children[receiver_wrapper]' \
-        'graphs.right_children[receiver_wrapper]'; do
+        'view: SemanticExpressionGraphView' \
+        'SelfMirExpressionGraphSubtreeStart(' \
+        'SemanticExpressionGraphNodeKind(' \
+        'SemanticExpressionGraphLeftChild(' \
+        'SemanticExpressionGraphRightChild(' \
+        'SemanticExpressionGraphNodeText(' \
+        'AstExpressionNodeCallArgument()'; do
         grep -Fq "$owner_fact" "$owner" || {
             echo "[self-host-parity:driver-rung2] resource receiver graph owner missing: $owner_fact" >&2
             return 1
         }
+    done
+    for forbidden in \
+        'let graphs: SelfMirExpressionGraphRows = cfg.instructions.expr0_graphs;' \
+        'graphs.node_starts' \
+        'graphs.node_counts' \
+        'graphs.node_kinds' \
+        'graphs.node_texts' \
+        'graphs.left_children' \
+        'graphs.right_children'; do
+        if grep -Fq "$forbidden" "$owner"; then
+            echo "[self-host-parity:driver-rung2] resource receiver MIR graph copy read reopened: $forbidden" >&2
+            return 1
+        fi
     done
     for forbidden in \
         'cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]' \

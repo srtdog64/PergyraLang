@@ -131,10 +131,14 @@ func SelfMirSsaBaseName(ssa_name: String) -> String {
 
 func SelfMirRoutineResourceTypeForInstruction(
     build: SelfMirRoutineBuild,
+    view: SemanticExpressionGraphView,
     cfg: SelfMirCfgRows,
     instruction_index: Int,
     operation: String
 ) -> String {
+    if !view.ok {
+        return "";
+    }
     if operation == "Claim" {
         let result_local: Option<Int> = SelfMirRoutineLocalIndex(
             build,
@@ -145,30 +149,55 @@ func SelfMirRoutineResourceTypeForInstruction(
         }
         return "";
     }
-    let graphs: SelfMirExpressionGraphRows = cfg.instructions.expr0_graphs;
-    if graphs.has_roots[instruction_index] != 1 {
+    let start_opt: Option<Int> = SelfMirExpressionGraphSubtreeStart(
+        view.graph, view.root_id
+    );
+    if !IsSome(start_opt) {
         return "";
     }
-    let start: Int = graphs.node_starts[instruction_index];
-    let end: Int = start + graphs.node_counts[instruction_index];
-    let receiver_wrapper: Int = graphs.roots[instruction_index];
+    let start: Int = UnwrapOption(start_opt);
+    let end: Int = view.root_id + 1;
+    let receiver_wrapper: Int = view.root_id;
     if receiver_wrapper < start || receiver_wrapper >= end {
         return "";
     }
     if operation == "Write" {
-        receiver_wrapper = graphs.left_children[receiver_wrapper];
+        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+            view.graph, receiver_wrapper
+        );
+        if !IsSome(left_opt) {
+            return "";
+        }
+        receiver_wrapper = UnwrapOption(left_opt);
     }
+    let wrapper_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        view.graph, receiver_wrapper
+    );
     if receiver_wrapper < start || receiver_wrapper >= end ||
-        graphs.node_kinds[receiver_wrapper] !=
-            AstExpressionNodeCallArgument() {
+        !IsSome(wrapper_kind) ||
+        UnwrapOption(wrapper_kind) != AstExpressionNodeCallArgument() {
         return "";
     }
-    let receiver_node: Int = graphs.right_children[receiver_wrapper];
+    let receiver_opt: Option<Int> = SemanticExpressionGraphRightChild(
+        view.graph, receiver_wrapper
+    );
+    if !IsSome(receiver_opt) {
+        return "";
+    }
+    let receiver_node: Int = UnwrapOption(receiver_opt);
     if receiver_node < start || receiver_node >= end {
         return "";
     }
-    let receiver_name: String = graphs.node_texts[receiver_node];
-    if receiver_name == "" { return ""; }
+    let receiver_name_opt: Option<String> = SemanticExpressionGraphNodeText(
+        view.graph, receiver_node
+    );
+    if !IsSome(receiver_name_opt) {
+        return "";
+    }
+    let receiver_name: String = UnwrapOption(receiver_name_opt);
+    if receiver_name == "" {
+        return "";
+    }
     let i: Int = ArrayLength(build.local_names) - 1;
     while i >= 0 {
         if build.local_names[i] == receiver_name {
@@ -203,7 +232,7 @@ func SelfMirRoutineAttachLastExpressionGraph(
         cfg.instructions.machine_layer_runtime_operations[instruction_index];
     if operation != "" {
         let resource_type: String = SelfMirRoutineResourceTypeForInstruction(
-            build, cfg, instruction_index, operation
+            build, view, cfg, instruction_index, operation
         );
         if resource_type == "" {
             return SelfMirRoutineBuildError(
