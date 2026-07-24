@@ -1,6 +1,7 @@
 // Ability generic default/bound verdict over the canonical role fact rows.
 
 import "ast_role_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticAstAbilityGenericBoundVerdict {
     ok: Bool;
@@ -78,7 +79,9 @@ func SemanticAstAbilityGenericBoundsVerdict(
                 let bounds: Array<String> = Split(constraint, "+");
                 let bound_index: Int = 0;
                 while bound_index < ArrayLength(bounds) {
-                    let bound: String = StringTrim(bounds[bound_index]);
+                    let bound: String = SemanticTrimSourceReuse(
+                        bounds[bound_index]
+                    );
                     if bound == "" {
                         return SemanticAstAbilityGenericBoundVerdictError(
                             roles.ability_names[ability_index],
