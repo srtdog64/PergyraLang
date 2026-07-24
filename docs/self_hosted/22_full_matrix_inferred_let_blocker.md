@@ -193,3 +193,28 @@ routine with `let base: A` then a shadowed `let base: B` plus a later
   the full-fixpoint closure is gated on running the retention capture on a
   real Linux CI runner with libasan/valgrind — infrastructure, not a source
   edit reachable from this host.
+
+## Decisive bound + golden reference (2026-07-24, no profiler needed)
+
+Two measurements that convert the blocker from "unknown" to "bounded":
+
+- **The native C compiler produces the composed driver's MIR JSON in 394MB /
+  ~48s**, emitting a 120MB `pgy.mir.v1` artifact (`bin/pgy.exe
+  src/self_hosted/compiler/driver_bootstrap_main.pgy --mir-json`). So the
+  composed driver's MIR is tractable and there is now a **golden reference**
+  a future streaming self-hosted verify can be validated against. The
+  self-hosted driver dies at 10GB on the identical input: a ~26x
+  self-hosted-specific memory blowup, not a fundamental limit.
+- **The blowup is in the self-hosted SEMANTIC verify, before JSON emission**
+  (death is inside `call-targets`, upstream of MIR production). The JSON
+  assembly is not the cause: `JsonEmitArray`/`Object` use the builtin
+  `StringJoin`, which pre-sums total length and does a single allocation
+  (O(n), verified in `pgy_runtime_lib_std_exports.h`) — not quadratic Concat.
+  The 26x is therefore distributed across the self-hosted semantic fact
+  representation (`SemanticAstArtifactAnalyzeTyped` builds the whole typed-AST
+  graph + every fact table and holds them live through verify), not a single
+  point bug. Two candidate point fixes have now been falsified: the per-lane
+  reseed hoist (byte-identical, no curve change) and the JSON-Concat
+  hypothesis (join is O(n)). Closing it is a semantic-analyzer memory-model
+  reduction (per-routine scoping / streaming verify) whose correctness is now
+  validatable against the native golden once it completes.
