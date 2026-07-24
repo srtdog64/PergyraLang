@@ -12,6 +12,7 @@ import "ast_signature_artifact_match_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 struct SemanticAstAssignmentFacts {
     ok: Bool;
@@ -115,7 +116,7 @@ func SemanticAstAssignmentFactsFromArtifact(
             );
         }
         let target_raw: String = UnwrapOption(target_opt);
-        if StringLength(Trim(target_raw)) == 0 {
+        if StringLength(SemanticTrimSourceReuse(target_raw)) == 0 {
             return SemanticAstAssignmentStructuralError(
                 artifact, node_id, "target"
             );
@@ -141,7 +142,7 @@ func SemanticAstAssignmentFactsFromArtifact(
                 artifact, node_id, "function_owner"
             );
         }
-        let target: String = Trim(target_raw);
+        let target: String = SemanticTrimSourceReuse(target_raw);
         let index_open_opt: Option<Int> =
             SemanticAstAssignmentIndexOpen(target);
         let base_name: String = target;
@@ -149,11 +150,10 @@ func SemanticAstAssignmentFactsFromArtifact(
         let index_text: String = "";
         if IsSome(index_open_opt) {
             let index_open: Int = UnwrapOption(index_open_opt);
-            base_name = Trim(Substring(target, 0, index_open));
-            index_text = Trim(Substring(
-                target, index_open + 1,
-                StringLength(target) - index_open - 2
-            ));
+            base_name = SemanticTrimSourceRangeReuse(target, 0, index_open);
+            index_text = SemanticTrimSourceRangeReuse(
+                target, index_open + 1, StringLength(target) - 1
+            );
             if StringLength(base_name) == 0 || StringLength(index_text) == 0 {
                 return SemanticAstAssignmentStructuralError(
                     artifact, node_id, "indexed_target"
