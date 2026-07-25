@@ -168,27 +168,94 @@ boundary. JSON emission still has nested `Array<String>` / `Concat` lifetime
 debt, but it cannot cause a run that has not entered MIR or JSON. Do not tune
 JSON first or describe the historical 28 GiB peak as a measured JSON share.
 
-The row evidence also rules out one exceptional initializer as the immediate
-shape: thousands of rows finish and memory accumulates until the next row
-starts. Generated C inspection shows why this path can retain pressure:
-`SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved` has no
-row-scope cleanup; graph/verdict helpers materialize temporary arrays and
-strings; `CharAtN`, `Substring`, `StringTrim`, and `StringConcat` allocate; and
-`ArrayPop` only decrements length. The exact allocation share of call-spine
-views, text scans, and other verdict helpers remains `Unknown` until the next
-owner-level allocation or cache falsifier.
+The exact cause is repeated whole-graph readiness, not one exceptional
+initializer and not the backend. A synchronized marker run crossed the same
+cap at local row 3,343 (`peak_private_mb=3072.6`). Private memory rose from
+532.8 MB at row 0 to 3,001.2 MB at row 3,250, approximately 0.76 MB per local
+row; graph-root, verdict, and row-completion markers were flat inside each
+sampled row.
 
-The active repair boundary is therefore the Pergyra semantic initializer/
-expression-graph owner: reuse artifact-wide facts and graph views, replace
-allocation-returning character scans on the hot path, and establish an
-explicit scratch lifetime or cleanup contract for per-row temporaries. The
-verification gate is the same full-driver request completing below 3 GiB while
-bounded C/LLVM MIR output remains byte-equal. Raising the cap, spawning
-per-chunk compiler processes, or mirroring C-shaped backend fragments is not a
-repair. C and LLVM remain peer consumers of one Pergyra-owned semantic/MIR/ABI
-fact spine. The binary token is an accidental-direct-run interlock, not an
-authorization secret; the official pressure wrapper remains the resource
-owner.
+An allocator-interposed generated seed attributed each environment interval
+to about 400 bytes of ordinary mallocs but 1,572,828 requested realloc bytes
+across 32 realloc calls, with no frees. The large realloc stack is:
+
+`SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables`
+-> `SemanticAstExpressionSeedVisibleMatchBindings`
+-> `AstTreeArtifactReady`
+-> `AstExpressionGraphRowsReady`.
+
+`AstExpressionGraphRowsReady` constructs whole-graph `seen` and `stack`
+arrays. The initializer outer pass had already proved
+`AstTreeArtifactReady(artifact)`, but the match-binding seed repeated that
+proof for every local row. The full driver contains 8,149 local rows and the
+diagnostic AST contained no `Match` or `Case` node, so even the empty-case
+path paid for whole expression and match graph validation before it could
+return. In short: a once-per-artifact proof was accidentally executed
+once-per-local.
+
+The repair keeps readiness with one Pergyra owner. The initializer outer pass
+validates artifact and expression-surface readiness once, then calls
+`SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` inside the
+row loop. That borrowed entrypoint checks only its local ready-artifact
+contract and must not invoke `AstTreeArtifactReady` or
+`AstExpressionGraphRowsReady`. The original checked entrypoint remains for
+standalone callers and delegates to the borrowed core after performing the
+once-owned proof.
+
+`semantic_expression_environment_owned_lifetime_smoke.sh` and the component
+contract reject a checked match-binding call in the initializer hot loop or a
+whole-graph readiness call in the ready-artifact core. The executable
+verification remains initializer C/LLVM parity followed by the official
+full-driver request under the unchanged 3 GiB cap. Raising the cap, splitting
+the compiler into per-chunk processes, skipping validation, or mirroring the
+fix in separate C/LLVM fragments is not a repair. C and LLVM remain peer
+consumers of the one Pergyra-owned semantic/MIR/ABI fact spine.
+
+
+The first post-fix official full-driver run confirms that this specific seam is
+closed but does not close the full 3 GiB gate. All 8,149 initializer rows
+completed through `row:done:8148`; the run then entered
+`semantic-body-type-stage call-targets:start`. The pressure owner stopped that
+later stage after `7,992,190 ms` at `peak_private_mb=3074.3` and
+`peak_working_set_mb=2521.4`; `driver_oracle.exe` owned 3,063.3 MB private and
+the outer target returned `Error 88`. No full MIR artifact was produced. Thus
+the old per-local readiness reconstruction is no longer the 3 GiB crossing,
+while call-target resolution is the next falsifying owner boundary. Record
+these as two separate results: initializer readiness amortization is green,
+the end-to-end pressure gate remains red.
+
+### Owned semantic scratch: heap corruption versus retained memory
+
+The first owned-String cleanup attempt exposed a separate correctness failure,
+not merely a high-water mark. The initializer projection probe's C-built
+`--member-call-positive` mode exited on Windows with `0xC0000374` (heap
+corruption). Instrumenting only the generated scratch C showed
+`SemanticAstExpressionEnvironmentClear` trying to free the owner-field name
+`value`. That row had entered the owned scratch array through ordinary
+`ArrayPush`, so the cleanup contract was freeing a borrowed string.
+
+Checkpoint `ca35a157` closes the reachable mixed-ownership path as one Pergyra
+contract:
+
+- every expression-environment producer, including owner fields, match
+  bindings, and visible iteration rows, uses `ArrayPushOwnedString`;
+- assignment, call-target, place, generic-specialization, initializer,
+  iteration, and statement consumers release the scratch rows at their last
+  success-path use;
+- facts that survive cleanup copy the selected string before release, rather
+  than retaining an address into the scratch owner;
+- `semantic_expression_environment_owned_lifetime_smoke.sh` rejects an
+  ordinary environment push, a missing named-consumer cleanup, or a missing
+  result copy. The initializer/member-call C/LLVM probe remains the executable
+  corruption and parity gate.
+
+When this failure reappears, distinguish it from pressure before changing the
+memory ceiling: capture the exact process exit code, run the smallest affected
+probe, identify the first freed value and its producer, then verify both the
+producer's push operation and the last consumer. Do not fix it by disabling
+the drop, freeing in C/LLVM emitters separately, or copying the whole program
+graph. The full-driver pressure gate must still measure the committed revision;
+a crash-free focused probe alone does not prove the 3 GiB defect is closed.
 
 ### `for_each_call`: MIR expression graph attachment failed
 

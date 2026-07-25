@@ -4818,11 +4818,13 @@ reject_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedVisibleMatchBindings('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact('
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedMatchCaseBindings('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'while binding_index < ArrayLength(pattern.bindings)'
 match_binding_fast_path_order="$(awk '
-    /func SemanticAstExpressionSeedVisibleMatchBindings\(/ { active = 1 }
+    /func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
     active && /SemanticAstFunctionScopeFactsFromArtifact/ && !global { global = NR }
     active && seen && /^func / { exit }

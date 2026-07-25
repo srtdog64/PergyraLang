@@ -115,6 +115,38 @@ require_borrowed_environment_push "$OWNER_FIELDS" 'SemanticAstExpressionSeedOwne
 require_borrowed_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
 require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
 
+ready_match_body="$(function_body "$MATCH_BINDINGS" 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact')"
+[[ -n "$ready_match_body" ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] missing ready-artifact match environment owner" >&2
+    exit 1
+}
+for forbidden in 'AstTreeArtifactReady(' 'AstExpressionGraphRowsReady('; do
+    if grep -Fq "$forbidden" <<<"$ready_match_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] ready-artifact match environment repeats whole-graph readiness: $forbidden" >&2
+        exit 1
+    fi
+done
+
+checked_match_body="$(function_body "$MATCH_BINDINGS" 'SemanticAstExpressionSeedVisibleMatchBindings')"
+grep -Fq 'AstTreeArtifactReady(artifact)' <<<"$checked_match_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked match environment lost artifact readiness" >&2
+    exit 1
+}
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$checked_match_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked match environment bypasses ready-artifact owner" >&2
+    exit 1
+}
+
+initializer_body="$(function_body "$INITIALIZER_FACTS" 'SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$initializer_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] initializer hot loop lost ready-artifact match environment" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$initializer_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] initializer hot loop repeats checked match environment" >&2
+    exit 1
+fi
+
 for consumer_contract in \
     "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \

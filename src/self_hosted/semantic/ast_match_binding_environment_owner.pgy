@@ -130,7 +130,9 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     return true;
 }
 
-func SemanticAstExpressionSeedVisibleMatchBindings(
+// Hot semantic passes prove artifact/surface readiness once before iterating
+// use sites. This borrowed entrypoint must not repeat whole-graph readiness.
+func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -142,8 +144,9 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     inout modes: Array<String>,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
-    if !AstTreeArtifactReady(artifact) || use_node_id < 0 ||
-        use_node_id >= artifact.count {
+    if use_node_id < 0 || use_node_id >= artifact.count ||
+        !expression_surfaces.ok ||
+        expression_surfaces.artifact_node_count != artifact.count {
         return false;
     }
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
@@ -163,11 +166,6 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
         traversed = traversed + 1;
     }
     if ArrayLength(case_nodes) == 0 { return true; }
-    if !SemanticAstExpressionSurfaceBorrowReady(
-        artifact, expression_surfaces
-    ) {
-        return false;
-    }
     let enums: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     if !enums.ok {
@@ -190,4 +188,29 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
         i = i - 1;
     }
     return true;
+}
+
+func SemanticAstExpressionSeedVisibleMatchBindings(
+    artifact: AstTreeArtifact,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
+        ) {
+        return false;
+    }
+    return SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+        artifact, expression_surfaces, signatures, constructors,
+        function_node_id, use_node_id, names, types, modes,
+        function_tables
+    );
 }

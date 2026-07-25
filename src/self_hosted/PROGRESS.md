@@ -1,5 +1,50 @@
 # Self-Host Progress
 
+2026-07-25 initializer readiness amortization. `589b6638` first restored the
+expression environment to a borrowed-row contract: producers use ordinary
+`ArrayPush`, row reset pops logical entries while retaining reusable backing,
+and the final clear drops only the empty backing arrays. The earlier
+`ca35a157` owned-string entry below is historical and is superseded by this
+committed contract.
+
+The active Pergyra semantic slice then split match-binding seeding into a
+checked standalone entrypoint and
+`SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact`. The
+initializer outer owner already proves artifact and expression-surface
+readiness, so its 8,149-row hot loop now calls the borrowed ready-artifact core
+instead of reconstructing whole expression/match graph `seen` and `stack`
+arrays for every local. Static lifetime and component gates reject the old
+checked call or a readiness rescan in the core; focused initializer C/LLVM
+parity passed.
+
+The official full-driver gate confirms this seam but remains red overall. All
+initializer rows completed through `row:done:8148`, then the pressure owner
+stopped the later `call-targets:start` stage after `7,992,190 ms` at 3,074.3 MB
+peak private / 2,521.4 MB peak working set; `driver_oracle.exe` owned 3,063.3
+MB private and the target returned `Error 88`. No full MIR artifact was
+produced. The next executable SoT boundary is therefore call-target resolution,
+not another initializer readiness workaround and not a backend-specific C or
+LLVM patch.
+
+2026-07-25 semantic expression scratch lifetime closure (`ca35a157`). The
+focused initializer/member-call C probe exposed Windows heap corruption
+(`0xC0000374`), not an acceptable self-hosting cost. Generated-code tracing
+identified a borrowed owner-field name inserted with ordinary `ArrayPush` and
+later freed by the owned environment cleanup. Owner-field, match-binding, and
+iteration seeders now use the same owned-string insertion contract as the core
+environment owner.
+
+The last production consumers now release expression scratch rows after
+assignment, call-target, place, generic-specialization, initializer, iteration,
+and statement projection. Strings retained in result facts are copied before
+that boundary. The lifetime smoke gate names each producer and consumer and
+rejects ordinary pushes, missing cleanup, and missing result copies. The
+program graph remains a separate single structural owner and still reports
+`phase=unified structural_owners=1`; neither C nor LLVM owns a private lifetime
+policy or a copied semantic graph. Focused assignment C/LLVM parity passed.
+The full-driver 3 GiB verdict remains open until the pressure owner measures
+this exact committed revision.
+
 2026-07-25 semantic lifetime and program-graph line consolidation. The
 previously isolated `codex/semantic-environment-owned-lifetime` line is merged
 with the executable foreach program-graph closure on `main`; this preserves one
