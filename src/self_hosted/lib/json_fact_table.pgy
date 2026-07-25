@@ -81,7 +81,7 @@ func JsonDocumentObjectFactTable(json: String) -> JsonObjectFactTable {
         return EmptyJsonObjectFactTable();
     }
     let end: Int = UnwrapOption(end_opt);
-    return JsonObjectFactTableFromBounds(json, 0, end);
+    return JsonObjectFactTable(true, json, 0, end);
 }
 
 func JsonObjectFactTableReady(table: JsonObjectFactTable) -> Bool {
@@ -111,7 +111,9 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
             return 0;
         }
         let key_end: Array<Int> = [0];
-        let ignored: String = ReadJsonString(table.json, i, key_end);
+        let ignored: String = ReadJsonStringBounded(
+            table.json, i, table.end, key_end
+        );
         if key_end[0] <= i {
             return 0;
         }
@@ -153,7 +155,9 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
             return None;
         }
         let key_end: Array<Int> = [0];
-        let key: String = ReadJsonString(table.json, cursor, key_end);
+        let key: String = ReadJsonStringBounded(
+            table.json, cursor, table.end, key_end
+        );
         if key_end[0] <= cursor {
             return None;
         }
@@ -255,7 +259,7 @@ func JsonScalarToken(json: String, start: Int, end: Int) -> String {
     }
     if JsonCharCodeAt(json, StringLength(json), value_start) == JsonAsciiCode("\"") {
         let string_end: Array<Int> = [0];
-        return ReadJsonString(json, value_start, string_end);
+        return ReadJsonStringBounded(json, value_start, end, string_end);
     }
     return Substring(json, value_start, end - value_start);
 }

@@ -649,6 +649,12 @@ inventory must not become a second fact-family owner registry.
   machine-contact projection validation for MIR JSON rows.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
   capture boundary/kind/writer fact validation for MIR JSON input.
+- `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one
+  document-order declaration identity/span inventory shared across canonical
+  declaration-family projection phases.
+- `src/self_hosted/lib/json_bounded_fact_read.pgy` -- exact-bound JSON object
+  fact reads that consume structure-owner spans without rediscovering the full
+  document length.
 - `src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy` --
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.

@@ -178,7 +178,13 @@ func MirExpressionGraphSequenceAppend(
     if !IsSome(root_opt) || !JsonArrayObjectFactTableReady(nodes) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let count: Int = JsonArrayObjectFactCount(nodes);
+    let count: Int = 0;
+    let count_cursor: Int = nodes.start + 1;
+    let count_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(nodes.json, count_cursor, nodes.end, count_bounds) {
+        count = count + 1;
+        count_cursor = count_bounds[1];
+    }
     let local_root: Int = ToInt(UnwrapOption(root_opt));
     if count == 0 || local_root < 0 || local_root >= count {
         return MirExpressionGraphSequenceError(sequence);
@@ -192,8 +198,10 @@ func MirExpressionGraphSequenceAppend(
     let call_target_names: Array<String> = sequence.arena.call_target_names;
     let offset: Int = ArrayLength(kinds);
     let i: Int = 0;
-    while i < count {
-        let node: JsonObjectFactTable = JsonArrayObjectFactAt(nodes, i);
+    let cursor: Int = nodes.start + 1;
+    let node_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(nodes.json, cursor, nodes.end, node_bounds) {
+        let node: JsonObjectFactTable = JsonObjectFactTableFromBounds(nodes.json, node_bounds[0], node_bounds[1]);
         let kind_text: Option<String> = JsonObjectFactStringFieldOpt(
             node, "kind"
         );
@@ -273,6 +281,7 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(call_target_kinds, target_kind);
         ArrayPush(call_target_names, UnwrapOption(target_name));
         i = i + 1;
+        cursor = node_bounds[1];
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);

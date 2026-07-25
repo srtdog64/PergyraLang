@@ -31,9 +31,15 @@ func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
     while JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
-        ArrayPush(kinds, MirObjectStringFact(json, bounds[0], bounds[1], "kind"));
-        ArrayPush(owners, MirObjectStringFact(json, bounds[0], bounds[1], "owner"));
-        ArrayPush(names, MirObjectStringFact(json, bounds[0], bounds[1], "name"));
+        ArrayPush(kinds, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "kind"
+        ));
+        ArrayPush(owners, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "owner"
+        ));
+        ArrayPush(names, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "name"
+        ));
         cursor = bounds[1];
     }
     return MirProgramRoutineIndex(true, starts, ends, kinds, owners, names);

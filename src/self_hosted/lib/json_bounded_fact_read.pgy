@@ -1,0 +1,266 @@
+// Exact-bound JSON fact reads for positions produced by a validated document.
+//
+// These functions never rediscover the whole document length.  Callers may use
+// them only with end-exclusive bounds carried from the JSON structure owner.
+
+import "json.pgy";
+
+func JsonArrayEndWithin(
+    json: String,
+    open: Int,
+    limit: Int
+) -> Option<Int> {
+    let n: Int = limit;
+    let i: Int = open;
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let escape: Bool = false;
+    while i < limit {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if in_string {
+            if escape {
+                escape = false;
+            } else if c == JsonAsciiCode("\\") {
+                escape = true;
+            } else if c == JsonAsciiCode("\"") {
+                in_string = false;
+            }
+        } else if c == JsonAsciiCode("\"") {
+            in_string = true;
+        } else if c == JsonAsciiCode("[") {
+            depth = depth + 1;
+        } else if c == JsonAsciiCode("]") {
+            depth = depth - 1;
+            if depth == 0 { return Some(i); }
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func JsonStringEndWithin(
+    json: String,
+    open: Int,
+    limit: Int
+) -> Option<Int> {
+    let n: Int = limit;
+    if open < 0 || open >= limit ||
+        JsonCharCodeAt(json, n, open) != JsonAsciiCode("\"") {
+        return None;
+    }
+    let i: Int = open + 1;
+    while i < limit {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("\"") { return Some(i + 1); }
+        if c == JsonAsciiCode("\\") {
+            if i + 1 >= limit { return None; }
+            i = i + 2;
+            continue;
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func JsonValueEndWithin(
+    json: String,
+    value_start: Int,
+    end: Int
+) -> Option<Int> {
+    let i: Int = JsonSkipWhitespaceWithin(json, value_start, end);
+    if i >= end { return None; }
+    let n: Int = end;
+    let c: Int = JsonCharCodeAt(json, n, i);
+    if c == JsonAsciiCode("\"") {
+        return JsonStringEndWithin(json, i, end);
+    }
+    if c == JsonAsciiCode("{") {
+        return JsonObjectEndWithin(json, i, end);
+    }
+    if c == JsonAsciiCode("[") {
+        let array_close: Int = JsonArrayEndWithin(json, i, end)?;
+        return Some(array_close + 1);
+    }
+    while i < end {
+        let d: Int = JsonCharCodeAt(json, n, i);
+        if d == JsonAsciiCode(",") || d == JsonAsciiCode("}") ||
+            d == JsonAsciiCode("]") {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return Some(i);
+}
+
+func JsonObjectFieldValueBoundsWithin(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String,
+    inout bounds: Array<Int>
+) -> Bool {
+    if start < 0 || end <= start { return false; }
+    let n: Int = end;
+    if JsonCharCodeAt(json, n, start) != JsonAsciiCode("{") {
+        return false;
+    }
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return false; }
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("}") { return false; }
+        if c == JsonAsciiCode(",") {
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") { return false; }
+        let key_end: Array<Int> = [0];
+        let key: String = ReadJsonStringBounded(
+            json, i, end, key_end
+        );
+        if key_end[0] <= i { return false; }
+        i = JsonSkipWhitespaceWithin(json, key_end[0], end);
+        if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
+            return false;
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) { return false; }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if key == field {
+            ArraySet(bounds, 0, i);
+            ArraySet(bounds, 1, value_end);
+            return true;
+        }
+        i = value_end;
+    }
+    return false;
+}
+
+func JsonObjectStringFieldOptWithin(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String
+) -> Option<String> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBoundsWithin(
+        json, start, end, field, bounds
+    ) {
+        return None;
+    }
+    if bounds[0] >= bounds[1] ||
+        JsonCharCodeAt(json, bounds[1], bounds[0]) != JsonAsciiCode("\"") {
+        return None;
+    }
+    let string_end: Array<Int> = [0];
+    let value: String = ReadJsonStringBounded(
+        json, bounds[0], bounds[1], string_end
+    );
+    if string_end[0] <= bounds[0] { return None; }
+    return Some(value);
+}
+
+func JsonObjectNumberFieldOptWithin(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String
+) -> Option<String> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBoundsWithin(
+        json, start, end, field, bounds
+    ) {
+        return None;
+    }
+    let i: Int = bounds[0];
+    let n: Int = bounds[1];
+    if i < bounds[1] && JsonCharCodeAt(json, n, i) == JsonAsciiCode("-") {
+        i = i + 1;
+        if i >= bounds[1] { return None; }
+    }
+    while i < bounds[1] {
+        if !JsonIsDigitCode(JsonCharCodeAt(json, n, i)) { return None; }
+        i = i + 1;
+    }
+    if i == bounds[0] { return None; }
+    return Some(Substring(json, bounds[0], i - bounds[0]));
+}
+
+func JsonObjectBoolFieldEqualsWithin(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String,
+    expected: Bool
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBoundsWithin(
+        json, start, end, field, bounds
+    ) {
+        return false;
+    }
+    if expected {
+        return bounds[0] + 4 == bounds[1] &&
+            Substring(json, bounds[0], 4) == "true";
+    }
+    return bounds[0] + 5 == bounds[1] &&
+        Substring(json, bounds[0], 5) == "false";
+}
+
+func JsonObjectTwoFieldValueBoundsWithin(
+    json: String,
+    start: Int,
+    end: Int,
+    first_field: String,
+    second_field: String,
+    inout first_bounds: Array<Int>,
+    inout second_bounds: Array<Int>
+) -> Bool {
+    if start < 0 || end <= start { return false; }
+    let n: Int = end;
+    if JsonCharCodeAt(json, n, start) != JsonAsciiCode("{") {
+        return false;
+    }
+    let first_found: Bool = false;
+    let second_found: Bool = false;
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return false; }
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("}") { return true; }
+        if c == JsonAsciiCode(",") {
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") { return false; }
+        let key_end: Array<Int> = [0];
+        let key: String = ReadJsonStringBounded(
+            json, i, end, key_end
+        );
+        if key_end[0] <= i { return false; }
+        i = JsonSkipWhitespaceWithin(json, key_end[0], end);
+        if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
+            return false;
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) { return false; }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if key == first_field {
+            ArraySet(first_bounds, 0, i);
+            ArraySet(first_bounds, 1, value_end);
+            first_found = true;
+        }
+        if key == second_field {
+            ArraySet(second_bounds, 0, i);
+            ArraySet(second_bounds, 1, value_end);
+            second_found = true;
+        }
+        if first_found && second_found { return true; }
+        i = value_end;
+    }
+    return false;
+}

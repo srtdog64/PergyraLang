@@ -291,35 +291,68 @@ func CanonicalizeOracleMirJsonBridge(
     );
 }
 
-func CompileMirJsonTextToCForTargetVerified(
-    json: String,
-    machine_declaration: SelfHostMachineLayerDeclaration,
-    target_projection: CompilerTargetProjectionFact
+func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool
 ) -> CompilerEmissionArtifact {
-    if !MirMachineLayerFactsReady(json, machine_declaration) {
-        Die("self-host C emission rejected invalid machine-layer facts");
-    }
+    let json: String = admitted.json;
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:mir-to-ast:start"
+    );
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTree(json)
+        EmitMirProgramTreeFromRoutineIndex(admitted.routines, json)
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:mir-to-ast:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:expression-graph:start"
     );
     let graph: SemanticExpressionGraphFacts =
         MirExpressionGraphFactsForArtifact(json, artifact);
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:expression-graph:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:semantic:start"
+    );
     let analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeWithExpressionGraph(
             artifact, true, graph
         );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:semantic:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:verify:start"
+    );
     let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+        VerifyArtifactAnalysisForDriverRung2Observed(
+            artifact, analysis, observe_pressure
+        );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:verify:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:assignment-binding:start"
+    );
     if !MirAssignmentBindingModesMatchSemanticFacts(
         json, verified.body_types.assignment_types
     ) {
         Die("MIR assignment binding-mode fact is missing or invalid");
     }
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:assignment-binding:done"
+    );
     let semantic_body_types: SemanticAstBodyTypeBundle =
         verified.body_types;
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:generic-specialization:start"
+    );
     let mir_generic_specializations: CodegenGenericSpecializationFacts =
         MirCodegenGenericSpecializationFacts(
             json, verified.analysis.signatures,
@@ -332,15 +365,28 @@ func CompileMirJsonTextToCForTargetVerified(
             mir_generic_specializations.diagnostic_message
         ));
     }
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:generic-specialization:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:codegen-view:start"
+    );
     let body_types: CodegenSemanticBodyTypeFacts =
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
             artifact, verified.analysis, semantic_body_types,
             mir_generic_specializations
         );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:codegen-view:done"
+    );
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:c-emission:start"
+    );
     let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
-            artifact, verified.analysis, body_types, machine_declaration,
+            artifact, verified.analysis, body_types,
+            admitted.machine_declaration,
             target_projection
         ),
         target_projection.schema,
@@ -350,7 +396,57 @@ func CompileMirJsonTextToCForTargetVerified(
     if !CompilerEmissionArtifactReady(emission) {
         Die("self-host C emission artifact target fingerprint is missing or invalid");
     }
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:c-emission:done"
+    );
     return emission;
+}
+
+func CompileMirJsonTextToCForTargetVerifiedObserved(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool
+) -> CompilerEmissionArtifact {
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:machine-layer-admission:start"
+    );
+    let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
+        MirMachineLayerAdmitJsonInput(json, machine_declaration);
+    if !IsSome(admitted_opt) {
+        Die("self-host C emission rejected invalid machine-layer facts");
+    }
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:machine-layer-admission:done"
+    );
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        UnwrapOption(admitted_opt);
+    return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
+        admitted, target_projection, observe_pressure
+    );
+}
+
+func CompileMirJsonTextToCForTargetVerified(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact
+) -> CompilerEmissionArtifact {
+    return CompileMirJsonTextToCForTargetVerifiedObserved(
+        json, machine_declaration, target_projection, false
+    );
+}
+
+func CompileMachineAdmittedMirJsonToCVerifiedObserved(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    observe_pressure: Bool
+) -> CompilerEmissionArtifact {
+    return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
+        admitted,
+        CompilerTargetProjectionFactFromOwner(
+            CompilerTargetCpuCProjection()
+        ),
+        observe_pressure
+    );
 }
 
 func CompileMirJsonTextToCVerified(
@@ -379,8 +475,26 @@ func CompileMirJsonToCVerified(
     mir_json_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> CompilerEmissionArtifact with caps io_read {
-    let json: String = MirJsonReadInput(
-        mir_json_path, machine_declaration
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            mir_json_path, machine_declaration
+        );
+    return CompileMachineAdmittedMirJsonToCVerifiedObserved(
+        admitted, false
     );
-    return CompileMirJsonTextToCVerified(json, machine_declaration);
+}
+
+func CompileMirJsonToCVerifiedObserved(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> CompilerEmissionArtifact with caps io_read {
+    DriverRung2PressureStage(true, "consumer:input:start");
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInputObserved(
+            mir_json_path, machine_declaration, true
+        );
+    DriverRung2PressureStage(true, "consumer:input:done");
+    return CompileMachineAdmittedMirJsonToCVerifiedObserved(
+        admitted, true
+    );
 }

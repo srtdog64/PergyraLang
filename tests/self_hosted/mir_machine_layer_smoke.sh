@@ -23,7 +23,7 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 grep -Fq -- 'CompilerRuntimeCallAbiMachineLayerManifestId' "$MACHINE_OWNER"
-grep -Fq -- 'MirMachineLayerFactsReady' "$INPUT"
+grep -Fq -- 'MirMachineLayerAdmitJsonInputObserved' "$INPUT"
 grep -Fq -- 'MirMachineLayerObjectReady' "$OWNER"
 grep -Fq -- 'machine_contact_kind' "$OWNER"
 grep -Fq -- 'physical_grant' "$OWNER"

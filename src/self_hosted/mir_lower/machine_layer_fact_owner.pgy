@@ -7,8 +7,24 @@
 // operation or infer a device contact from syntax payloads.
 
 import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
+
+// Typed proof carrier for a MIR document admitted by the one machine-layer
+// validator.  Consumers must carry the declaration used for admission with the
+// JSON instead of validating the JSON and then accepting a separate declaration.
+struct MirMachineLayerAdmittedJsonInput {
+    let json: String;
+    let machine_declaration: SelfHostMachineLayerDeclaration;
+    let routines: MirProgramRoutineIndex;
+}
+
+func MirMachineLayerPressureStage(enabled: Bool, stage: String) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] ", stage));
+    }
+}
 
 func MirMachineLayerContactIndex(operation: String) -> Int {
     let row: Int = 0;
@@ -27,17 +43,19 @@ func MirMachineLayerObjectReady(
     end: Int,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Bool {
-    let manifest: String = MirObjectStringFact(json, start, end, "manifest");
-    let operation: String = MirObjectStringFact(json, start, end, "operation");
-    let physical_grant: String = MirObjectStringFact(
+    let manifest: String = MirObjectStringFactAtBounds(
+        json, start, end, "manifest");
+    let operation: String = MirObjectStringFactAtBounds(
+        json, start, end, "operation");
+    let physical_grant: String = MirObjectStringFactAtBounds(
         json, start, end, "physical_grant");
-    let physical_base: String = MirObjectNumberFact(
+    let physical_base: String = MirObjectNumberFactAtBounds(
         json, start, end, "physical_base");
-    let physical_size: String = MirObjectNumberFact(
+    let physical_size: String = MirObjectNumberFactAtBounds(
         json, start, end, "physical_size");
-    let physical_mode: String = MirObjectStringFact(
+    let physical_mode: String = MirObjectStringFactAtBounds(
         json, start, end, "physical_mode");
-    let runtime_operation: String = MirObjectStringFact(
+    let runtime_operation: String = MirObjectStringFactAtBounds(
         json, start, end, "runtime_operation");
     let contact_index: Int = MirMachineLayerContactIndex(operation);
     if !SelfHostMachineLayerDeclarationReady(declaration) ||
@@ -50,14 +68,14 @@ func MirMachineLayerObjectReady(
         runtime_operation != CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(contact_index) {
         return false;
     }
-    return JsonObjectBoolFieldEquals(
-            json, MirFactObjectStart(json, start), end,
+    return JsonObjectBoolFieldEqualsWithin(
+            json, start, end,
             "hardware_adequate", true) &&
-        JsonObjectBoolFieldEquals(
-            json, MirFactObjectStart(json, start), end,
+        JsonObjectBoolFieldEqualsWithin(
+            json, start, end,
             "authority_required", true) &&
-        JsonObjectBoolFieldEquals(
-            json, MirFactObjectStart(json, start), end,
+        JsonObjectBoolFieldEqualsWithin(
+            json, start, end,
             "live_lease_required", true);
 }
 
@@ -67,22 +85,47 @@ func MirMachineLayerInstructionReady(
     end: Int,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Bool {
-    let value_bounds: Array<Int> = [0, 0];
-    let contact_kind: String = MirObjectStringFact(
-        json, start, end, "machine_contact_kind");
-    if !MirObjectFieldValueBounds(json, start, end, "machine_layer", value_bounds) {
+    let contact_bounds: Array<Int> = [0 - 1, 0 - 1];
+    let value_bounds: Array<Int> = [0 - 1, 0 - 1];
+    if !JsonObjectTwoFieldValueBoundsWithin(
+        json, start, end,
+        "machine_contact_kind", "machine_layer",
+        contact_bounds, value_bounds
+    ) {
+        return false;
+    }
+    let contact_kind: String = "";
+    if contact_bounds[0] >= 0 {
+        let contact_value_kind: Int = JsonCharCodeAt(
+            json, contact_bounds[1], contact_bounds[0]
+        );
+        if contact_value_kind == JsonAsciiCode("\"") {
+            let contact_end: Array<Int> = [0];
+            contact_kind = ReadJsonStringBounded(
+                json, contact_bounds[0], contact_bounds[1], contact_end
+            );
+            if contact_end[0] != contact_bounds[1] { return false; }
+        } else if contact_value_kind != JsonAsciiCode("n") ||
+            contact_bounds[0] + 4 != contact_bounds[1] ||
+            Substring(json, contact_bounds[0], 4) != "null" {
+            return false;
+        }
+    }
+    if value_bounds[0] < 0 {
         return StringLength(contact_kind) == 0;
     }
     let value_kind: Int = JsonCharCodeAt(
-        json, StringLength(json), value_bounds[0]);
+        json, value_bounds[1], value_bounds[0]);
     if value_kind == JsonAsciiCode("n") {
-        return StringLength(contact_kind) == 0;
+        return StringLength(contact_kind) == 0 &&
+            value_bounds[0] + 4 == value_bounds[1] &&
+            Substring(json, value_bounds[0], 4) == "null";
     }
     if value_kind != JsonAsciiCode("{") {
         return false;
     }
     return StringLength(contact_kind) > 0 &&
-        contact_kind == MirObjectStringFact(
+        contact_kind == MirObjectStringFactAtBounds(
             json, value_bounds[0], value_bounds[1], "operation") &&
         MirMachineLayerObjectReady(
             json, value_bounds[0], value_bounds[1], declaration
@@ -93,61 +136,110 @@ func MirMachineLayerInstructionRuntimeOperation(
     json: String, start: Int, end: Int
 ) -> String {
     let value_bounds: Array<Int> = [0, 0];
-    if !MirObjectFieldValueBounds(
+    if !MirObjectFieldValueBoundsAtBounds(
         json, start, end, "machine_layer", value_bounds) {
         return "";
     }
-    if JsonCharCodeAt(json, StringLength(json), value_bounds[0]) !=
+    if JsonCharCodeAt(json, value_bounds[1], value_bounds[0]) !=
         JsonAsciiCode("{") {
         return "";
     }
-    return MirObjectStringFact(
+    return MirObjectStringFactAtBounds(
         json, value_bounds[0], value_bounds[1], "runtime_operation");
 }
 
 // Validate all machine-layer objects without rebuilding the native manifest
 // or walking source/AST data.  Missing/null machine_layer is permitted for
 // non-contact instructions; a present malformed object is always fatal.
-func MirMachineLayerFactsReady(
+func MirMachineLayerRoutineIndexFactsReady(
     json: String,
-    declaration: SelfHostMachineLayerDeclaration
+    declaration: SelfHostMachineLayerDeclaration,
+    ref routines: MirProgramRoutineIndex
 ) -> Bool {
     if !CompilerRuntimeCallAbiMachineLayerProjectionReady() {
         return false;
     }
+    if !routines.valid { return false; }
     let routine_row: Int = 0;
-    let routine_bounds: Array<Int> = [0, 0];
-    while MirRoutineObjectBoundsAt(json, routine_row, routine_bounds) {
+    while routine_row < MirProgramRoutineIndexCount(routines) {
+        let routine_start: Int = routines.starts[routine_row];
+        let routine_end: Int = routines.ends[routine_row];
         let blocks_bounds: Array<Int> = [0, 0];
-        if !MirObjectArrayBounds(
-            json, routine_bounds[0], routine_bounds[1], "blocks", blocks_bounds) {
+        if !MirObjectArrayBoundsAtBounds(
+            json, routine_start, routine_end, "blocks", blocks_bounds) {
             return false;
         }
-        let block_row: Int = 0;
+        let block_cursor: Int = blocks_bounds[0] + 1;
         let block_bounds: Array<Int> = [0, 0];
-        while MirObjectArrayObjectBoundsAt(
-            json, routine_bounds[0], routine_bounds[1], "blocks",
-            block_row, block_bounds) {
+        while JsonArrayNextObjectBounds(
+            json, block_cursor, blocks_bounds[1], block_bounds) {
             let instructions_bounds: Array<Int> = [0, 0];
-            if MirObjectArrayBounds(
+            if MirObjectArrayBoundsAtBounds(
                 json, block_bounds[0], block_bounds[1],
                 "instructions", instructions_bounds) {
-                let instruction_row: Int = 0;
+                let instruction_cursor: Int = instructions_bounds[0] + 1;
                 let instruction_bounds: Array<Int> = [0, 0];
-                while MirObjectArrayObjectBoundsAt(
-                    json, block_bounds[0], block_bounds[1],
-                    "instructions", instruction_row, instruction_bounds) {
+                while JsonArrayNextObjectBounds(
+                    json, instruction_cursor, instructions_bounds[1],
+                    instruction_bounds) {
                     if !MirMachineLayerInstructionReady(
                         json, instruction_bounds[0], instruction_bounds[1],
                         declaration) {
                         return false;
                     }
-                    instruction_row = instruction_row + 1;
+                    instruction_cursor = instruction_bounds[1];
                 }
             }
-            block_row = block_row + 1;
+            block_cursor = block_bounds[1];
         }
         routine_row = routine_row + 1;
     }
     return true;
+}
+
+func MirMachineLayerAdmitJsonInputObserved(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> Option<MirMachineLayerAdmittedJsonInput> {
+    MirMachineLayerPressureStage(
+        observe_pressure, "consumer:input:machine-layer:routine-index:start"
+    );
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    if !routines.valid {
+        return None;
+    }
+    MirMachineLayerPressureStage(
+        observe_pressure, "consumer:input:machine-layer:routine-index:done"
+    );
+    MirMachineLayerPressureStage(
+        observe_pressure, "consumer:input:machine-layer:instruction-scan:start"
+    );
+    if !MirMachineLayerRoutineIndexFactsReady(
+        json, machine_declaration, routines
+    ) {
+        return None;
+    }
+    MirMachineLayerPressureStage(
+        observe_pressure, "consumer:input:machine-layer:instruction-scan:done"
+    );
+    return Some(MirMachineLayerAdmittedJsonInput(
+        json, machine_declaration, routines
+    ));
+}
+
+func MirMachineLayerAdmitJsonInput(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> Option<MirMachineLayerAdmittedJsonInput> {
+    return MirMachineLayerAdmitJsonInputObserved(
+        json, machine_declaration, false
+    );
+}
+
+func MirMachineLayerFactsReady(
+    json: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    return IsSome(MirMachineLayerAdmitJsonInput(json, declaration));
 }

@@ -1,0 +1,68 @@
+// MIR program declaration inventory index.
+//
+// Captured once from the pgy.mir.v1 declaration array.  Canonical declaration
+// family ordering remains a lowering policy; this owner preserves document
+// identity and spans so each policy phase does not rediscover JSON rows.
+
+import "json_fact_read.pgy";
+
+struct MirProgramDeclarationIndex {
+    let valid: Bool;
+    let starts: Array<Int>;
+    let ends: Array<Int>;
+    let kinds: Array<String>;
+    let names: Array<String>;
+}
+
+func MirProgramDeclarationIndexCursorAtEnd(
+    json: String,
+    cursor: Int,
+    array_end: Int
+) -> Bool {
+    let i: Int = JsonSkipWhitespace(json, cursor, array_end);
+    return i < array_end &&
+        JsonCharCodeAt(json, StringLength(json), i) == JsonAsciiCode("]");
+}
+
+func BuildMirProgramDeclarationIndex(
+    json: String
+) -> MirProgramDeclarationIndex {
+    let starts: Array<Int> = [];
+    let ends: Array<Int> = [];
+    let kinds: Array<String> = [];
+    let names: Array<String> = [];
+    let array_bounds: Array<Int> = [0, 0];
+    if !MirDeclArrayBounds(json, array_bounds) {
+        return MirProgramDeclarationIndex(
+            false, starts, ends, kinds, names
+        );
+    }
+
+    let cursor: Int = array_bounds[0] + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(
+        json, cursor, array_bounds[1], bounds
+    ) {
+        ArrayPush(starts, bounds[0]);
+        ArrayPush(ends, bounds[1]);
+        ArrayPush(kinds, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "kind"
+        ));
+        ArrayPush(names, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "name"
+        ));
+        cursor = bounds[1];
+    }
+    let valid: Bool = MirProgramDeclarationIndexCursorAtEnd(
+        json, cursor, array_bounds[1]
+    ) && ArrayLength(starts) == ArrayLength(ends) &&
+        ArrayLength(starts) == ArrayLength(kinds) &&
+        ArrayLength(starts) == ArrayLength(names);
+    return MirProgramDeclarationIndex(valid, starts, ends, kinds, names);
+}
+
+func MirProgramDeclarationIndexCount(
+    ref index: MirProgramDeclarationIndex
+) -> Int {
+    return ArrayLength(index.starts);
+}

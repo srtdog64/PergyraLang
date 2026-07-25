@@ -7,6 +7,7 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
+import "program_declaration_index_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "routine_lower.pgy";
 
@@ -540,24 +541,26 @@ func EmitCanonicalDeclRow(
 
 func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> String {
     let chunks: Array<String> = [];
-    let decl_bounds: Array<Int> = [0, 0];
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(json);
+    if !declarations.valid {
+        MirLowerFailClosed("MIR declaration inventory is missing");
+    }
     let phase: Int = 0;
     while phase < 4 {
         let row: Int = 0;
-        while MirDeclObjectBoundsAt(json, row, decl_bounds) {
-            let kind: String = MirObjectStringFact(
-                json, decl_bounds[0], decl_bounds[1], "kind"
-            );
+        while row < MirProgramDeclarationIndexCount(declarations) {
+            let decl_start: Int = declarations.starts[row];
+            let decl_end: Int = declarations.ends[row];
+            let kind: String = declarations.kinds[row];
             if kind == "unsupported" {
                 let ast_type: String = MirObjectStringFact(
-                    json, decl_bounds[0], decl_bounds[1], "ast_type"
+                    json, decl_start, decl_end, "ast_type"
                 );
                 let nominal_kind: String = MirObjectStringFact(
-                    json, decl_bounds[0], decl_bounds[1], "nominal_kind"
+                    json, decl_start, decl_end, "nominal_kind"
                 );
-                let name: String = MirObjectStringFact(
-                    json, decl_bounds[0], decl_bounds[1], "name"
-                );
+                let name: String = declarations.names[row];
                 let display_kind: String = ast_type;
                 if ast_type == "AST_CLASS_DECL" && nominal_kind != "" {
                     display_kind = nominal_kind;
@@ -574,16 +577,14 @@ func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> Stri
                 ));
             }
             if canonical_phase == phase {
-                let name: String = MirObjectStringFact(
-                    json, decl_bounds[0], decl_bounds[1], "name"
-                );
+                let name: String = declarations.names[row];
                 if StringLength(name) == 0 {
                     MirLowerFailClosed(Concat(
                         kind, " declaration is missing name fact"
                     ));
                 }
                 ArrayPush(chunks, EmitCanonicalDeclRow(
-                    routines, json, decl_bounds[0], decl_bounds[1],
+                    routines, json, decl_start, decl_end,
                     kind, name
                 ));
             }

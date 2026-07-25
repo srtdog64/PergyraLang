@@ -5,6 +5,7 @@
 // schema decisions in their local control flow.
 
 import "../lib/json.pgy";
+import "../lib/json_bounded_fact_read.pgy";
 import "../lib/json_fact_table.pgy";
 
 func MirFactObjectStart(json: String, start: Int) -> Int {
@@ -27,6 +28,60 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
         i = i - 1;
     }
     return start;
+}
+
+func MirObjectStringFactAtBounds(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String
+) -> String {
+    let value: Option<String> = JsonObjectStringFieldOptWithin(
+        json, start, end, field
+    );
+    if !IsSome(value) { return ""; }
+    return UnwrapOption(value);
+}
+
+func MirObjectNumberFactAtBounds(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String
+) -> String {
+    let value: Option<String> = JsonObjectNumberFieldOptWithin(
+        json, start, end, field
+    );
+    if !IsSome(value) { return ""; }
+    return UnwrapOption(value);
+}
+
+func MirObjectFieldValueBoundsAtBounds(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String,
+    inout bounds: Array<Int>
+) -> Bool {
+    return JsonObjectFieldValueBoundsWithin(
+        json, start, end, field, bounds
+    );
+}
+
+func MirObjectArrayBoundsAtBounds(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String,
+    inout bounds: Array<Int>
+) -> Bool {
+    if !JsonObjectFieldValueBoundsWithin(
+        json, start, end, field, bounds
+    ) {
+        return false;
+    }
+    return bounds[0] < bounds[1] &&
+        JsonCharCodeAt(json, bounds[1], bounds[0]) == JsonAsciiCode("[");
 }
 
 func MirDocumentSchemaEquals(json: String, expected: String) -> Bool {

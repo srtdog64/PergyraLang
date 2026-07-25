@@ -9,8 +9,10 @@ import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_lower.pgy";
 
-func EmitMirProgramTree(json: String) -> String {
-    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+func EmitMirProgramTreeFromRoutineIndex(
+    ref routines: MirProgramRoutineIndex,
+    json: String
+) -> String {
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
@@ -35,4 +37,9 @@ func EmitMirProgramTree(json: String) -> String {
         MirLowerFailClosed("no supported routines found in MIR-JSON document");
     }
     return StringJoin(chunks, "");
+}
+
+func EmitMirProgramTree(json: String) -> String {
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    return EmitMirProgramTreeFromRoutineIndex(routines, json);
 }

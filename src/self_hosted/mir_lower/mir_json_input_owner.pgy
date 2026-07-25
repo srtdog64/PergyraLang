@@ -16,22 +16,79 @@ func MirJsonInputPath(args: Array<String>) -> String {
     return args[0];
 }
 
-func MirJsonReadInput(
+func MirJsonInputPressureStage(enabled: Bool, stage: String) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] ", stage));
+    }
+}
+
+func MirJsonReadMachineAdmittedInputObserved(
     path: String,
-    declaration: SelfHostMachineLayerDeclaration
-) -> String {
+    declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> MirMachineLayerAdmittedJsonInput {
     let json: String = ReadFile(path);
     if StringLength(json) == 0 {
         MirLowerFailClosed(Concat("empty or unreadable MIR-JSON file: ", path));
     }
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:file-read:done"
+    );
     if !MirDocumentSchemaEquals(json, "pgy.mir.v1") {
         MirLowerFailClosed("input is not a pgy.mir.v1 MIR-JSON document");
     }
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:schema:done"
+    );
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:parallel-capture:start"
+    );
     if !MirParallelCaptureFactsReady(json) {
         MirLowerFailClosed("MIR parallel capture facts are missing or invalid");
     }
-    if !MirMachineLayerFactsReady(json, declaration) {
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:parallel-capture:done"
+    );
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:machine-layer:start"
+    );
+    let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
+        MirMachineLayerAdmitJsonInputObserved(
+            json, declaration, observe_pressure
+        );
+    if !IsSome(admitted_opt) {
         MirLowerFailClosed("MIR machine-layer facts are missing or invalid");
     }
-    return json;
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:machine-layer:done"
+    );
+    return UnwrapOption(admitted_opt);
+}
+
+func MirJsonReadMachineAdmittedInput(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> MirMachineLayerAdmittedJsonInput {
+    return MirJsonReadMachineAdmittedInputObserved(
+        path, declaration, false
+    );
+}
+
+func MirJsonReadInputObserved(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> String {
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInputObserved(
+            path, declaration, observe_pressure
+        );
+    return admitted.json;
+}
+
+func MirJsonReadInput(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    return MirJsonReadInputObserved(path, declaration, false);
 }

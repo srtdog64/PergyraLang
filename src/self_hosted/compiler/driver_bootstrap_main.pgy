@@ -55,7 +55,21 @@ func Main() -> Void with caps env, io_read, io_write {
         }
         return;
     }
-    if ArrayLength(args) == 3 && args[0] == "--mir-json" {
+    if (ArrayLength(args) == 3 || ArrayLength(args) == 4) &&
+        args[0] == "--mir-json" {
+        if ArrayLength(args) == 4 &&
+            args[3] != "--observe-mir-consumer-stages" {
+            Die("unknown MIR consumer observation token");
+        }
+        if ArrayLength(args) == 4 {
+            WriteFile(
+                args[2],
+                CompileMirJsonToCVerifiedObserved(
+                    args[1], machine_declaration
+                ).payload
+            );
+            return;
+        }
         WriteFile(
             args[2],
             CompileMirJsonToCVerified(
