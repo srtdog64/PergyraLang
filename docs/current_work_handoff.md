@@ -8,8 +8,9 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `d62553ee` (`linearize MIR routine fact
-  consumption`) on `main`. Its exact-span predecessor is `157c340b`, its
+- Implementation checkpoint: `67502f50` (`bound MIR document string
+  consumption`) on `main`. Its routine-consumer predecessor is `d62553ee`, its
+  exact-span predecessor is `157c340b`, its
   machine-admission predecessor is `0857899e`, and the complete artifact
   predecessor is `6329356f` (`bound-mir-json-string-leaf-lifetime`).
 - The verified driver now proves semantic readiness once and enters
@@ -41,6 +42,10 @@ owner, and the named executable gate.
   identity now consume one exact routine/instruction owner. CFG structural
   merge is a pure `mir_cfg_graph_owner.pgy` query with branch-local blocked
   reachability; the routine index no longer runs candidate-local BFS.
+- The hard MIR input builds one `MirDocumentFactIndex` and carries its root and
+  top-level array bounds through schema, capture, routine, and machine
+  admission. Exact-bound string materialization no longer calls
+  `Substring(json, ...)`, and null tokens use `SubEqualsWithLen`.
 
 ## Exact dirty state
 
@@ -108,6 +113,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-routine-fact-exact` | 58.0 MB | 70.8 MB | Routine fact bundle consumes exact spans; reached `first-top-level-routine-fact-index:done`. |
 | `full-mir-consumer-routine-indexed` | 58.0 MB | 70.7 MB | Result/match facts consume one routine index; first top-level routine completed, no gen2 output. |
 | `full-mir-consumer-cfg-owner` | 57.8 MB | 68.7 MB | Structural merge uses branch-local blocked reachability; first top-level routine completed, no 16 marker or gen2 output. |
+| `mir-document-index-driver-build-v2` | 2319.9 MB | 2322.4 MB | Integrated C driver compiled in 57,528 ms below the fixed cap. |
+| `full-mir-consumer-document-index` | 63.4 MB | 74.0 MB | Timed out at 300,554 ms after the 16-routine marker; no gen2 output. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -141,7 +148,16 @@ O(B^2) branch-local BFS. The full artifact contains 20,022 blocks, 34,091
 instructions, 3,532 phi rows, and 214,151 expression-graph nodes. Its first
 top-level routine is only 2,063 bytes with one block/instruction, so the fixed
 window is dominated by the admitted machine path and accumulated routine
-work, not by that routine or memory. No run opened a partial gen2 C artifact.
+work, not by that routine or memory.
+
+`67502f50` closes another observed hidden length path. The 34,091 null
+machine-layer tokens performed about 1.766 TB of whole-document length walking,
+and the minimum kind/name routine decode added about 243 GB, because bounded
+reads still materialized through native `Substring(json, ...)`. The common
+JSON owner now uses the caller limit while materializing strings, and machine
+null reads use `SubEqualsWithLen`. The unchanged 300-second run advanced from
+the first routine to 16 routines at only 63.4 MB peak private. This remains
+RED: no run opened a partial gen2 C artifact.
 
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
@@ -163,15 +179,17 @@ executable slice is active; none is a green CFG/runtime verdict.
 
 ## Last observed gates
 
-Green on `d62553ee` plus the documented working measurements:
+Green on `67502f50` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
+- `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
+  plain, escaped, empty, and truncated exact-bound strings);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`mir-cfg-owner-driver-build`): exit 0, 58,512 ms, 2,422.7 MB peak
-  private / 2,411.3 MB peak working set;
+  owner (`mir-document-index-driver-build-v2`): exit 0, 57,528 ms, 2,319.9 MB
+  peak private / 2,322.4 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
@@ -215,15 +233,20 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-key-compare.*`, `full-mir-consumer-exact-span.*`, and
 `full-mir-consumer-routine-fact-exact.*`,
 `full-mir-consumer-routine-indexed.*`, and
-`full-mir-consumer-cfg-owner.*`. These files are diagnostic evidence only, not
+`full-mir-consumer-cfg-owner.*`, and
+`full-mir-consumer-document-index.*`. The current executable is
+`driver_oracle_document_index.exe`; its 414-byte bounded result is
+`bounded_mir_document_index.c`. These files are diagnostic evidence only, not
 semantic authority or commit content.
 
 ## Next executable work
 
-1. Close the next executable CPU seam in the admitted machine instruction
-   scan or the routine block-row lookup. Reuse the existing admission and
-   routine index; do not add a second document/CFG authority or restore a
-   generic JSON read.
+1. Capture one program instruction identity behind the existing routine index
+   so machine admission does not discard the routine/block/instruction spans
+   that `MirRoutineFactIndex` immediately scans again. Keep result identity in
+   its current routine fact owner, carry kind/source type and raw machine spans,
+   and reject a second JSON structure walk. Do not add a second document/CFG
+   authority or restore a generic JSON read.
 2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
    under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the

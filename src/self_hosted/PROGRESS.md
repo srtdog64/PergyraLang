@@ -1,5 +1,33 @@
 # Self-Host Progress
 
+2026-07-26 MIR document-index and bounded-string progression (`67502f50`).
+The hard MIR input path now scans the 51,807,108-byte document root once and
+carries the root, declaration, routine, and parallel-capture array bounds into
+schema, capture, and machine admission. It no longer rebuilds three independent
+top-level fact tables. Compatibility entrypoints still perform their own one
+admission; the production path statically rejects those fallback calls.
+
+The audit also found a hidden whole-document cost inside the exact-bound API.
+Every one of the 34,091 `machine_layer:null` rows used `Substring(json, ..., 4)`,
+whose native implementation first calls `strlen(json)`: about 1.766 TB of
+logical walking. At least 4,690 routine identity decodes reached the same
+`ReadJsonStringBounded -> Substring(json)` path, another 243 GB before nonempty
+owners. Null validation now uses `SubEqualsWithLen`, and bounded string
+materialization copies with the caller-owned limit rather than rediscovering
+the 51.8 MB document length. A focused executable gate proves plain, escaped,
+empty, and truncated reads through both C and LLVM.
+
+The integrated C driver build `mir-document-index-driver-build-v2` is green in
+57,528 ms at 2,319.9 MB peak private / 2,322.4 MB peak working set. Its bounded
+MIR result is still exactly 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The fixed 300-second full-artifact gate remains CPU-red, but it advanced from
+one top-level routine to the `top-level-routines:16` marker at only 63.4 MB
+peak private / 74.0 MB peak working set. No gen2 C file was opened. The next
+executable seam is the instruction structure that machine admission scans and
+then discards before `MirRoutineFactIndex` scans it again; it must reuse the
+existing program/routine identity rather than add a second JSON authority.
+
 2026-07-26 MIR routine-consumer single-owner progression (`d62553ee`). The
 admitted routine span now feeds one `MirRoutineHeaderFacts` capture for
 generics, parameters, ABI carriage/resource/pass shape, and return type.

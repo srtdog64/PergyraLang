@@ -521,6 +521,8 @@ Measured evidence:
 | `full-mir-consumer-routine-indexed` | timeout, 300,471 ms | 58.0 MB | 70.7 MB | first top-level routine done; no gen2 output |
 | `mir-cfg-owner-driver-build` | exit 0, 58,512 ms | 2,422.7 MB | 2,411.3 MB | integrated driver compiled |
 | `full-mir-consumer-cfg-owner` | timeout, 300,687 ms | 57.8 MB | 68.7 MB | first top-level routine done; no 16 marker or gen2 output |
+| `mir-document-index-driver-build-v2` | exit 0, 57,528 ms | 2,319.9 MB | 2,322.4 MB | one document index and bounded string reads compiled |
+| `full-mir-consumer-document-index` | timeout, 300,554 ms | 63.4 MB | 74.0 MB | reached 16 top-level routines; no gen2 output |
 
 The full artifact has 2,345 routines, 20,022 blocks, 34,091 instructions,
 3,532 phi rows, and 214,151 expression-graph nodes. Its first top-level
@@ -530,6 +532,31 @@ the admitted input/machine path and accumulated routine work. Do not raise the
 3072 MB cap or the 300-second focused window to hide that cost; close the next
 owner-directed scan and require `consumer:mir-to-ast:done` before claiming
 gen2.
+
+The next audit found that an API being named `Bounded` was not enough to make
+its returned String bounded in cost. The full artifact stores
+`machine_layer:null` in all 34,091 instruction rows. Each row verified the
+four-byte token with `Substring(json, start, 4)`, and native `Substring` first
+calls `strlen(json)`. That is about 1,766,156,118,828 bytes (1.766 TB) of
+logical document walking plus 34,091 unnecessary token allocations. Routine
+kind/name decoding reached the same materialization path at least 4,690 times,
+another 242,975,336,520 bytes (243 GB), before counting nonempty owners.
+
+The closure is shared by C and LLVM rather than attached to a backend. The
+machine null check uses `SubEqualsWithLen`; `ReadJsonStringBounded` builds the
+result from `CharAtN(json, limit, ...)` and never calls `Substring(json, ...)`.
+`json_bounded_string_owner_smoke.sh` proves normal, escaped, empty, and
+truncated inputs on both backends, and the component gate rejects restoration
+of the unbounded materialization. The production hard path also carries one
+`MirDocumentFactIndex` instead of independently rebuilding the root for schema,
+parallel capture, and routine admission.
+
+This change does not complete self-hosting. It improves the same fixed window
+from one completed top-level routine to 16, while memory remains around 74 MB
+working set. The next CPU owner seam is the instruction structure walked once
+by machine admission and then walked again by `MirRoutineFactIndex`. Preserve
+one program/routine instruction identity and do not hide the cost with a
+larger timeout, a second parsed document, or a C-only parser.
 
 The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
 earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep
