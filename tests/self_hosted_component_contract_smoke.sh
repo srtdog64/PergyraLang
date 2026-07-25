@@ -437,6 +437,7 @@ for mir_producer_owner in \
     destructure_type_json_projection_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy \
+    instruction_json_artifact_writer_owner.pgy \
     program_json_artifact_writer_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
@@ -505,6 +506,34 @@ require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'SelfMirJsonRoutineWriteFile(facts, routine_i, output)'
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'SelfMirJsonBlockWriteFile('
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonInstructionWriteFile('
+reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonInstruction('
+require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'func SelfMirJsonExpressionGraphWriteFile('
+require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'func SelfMirJsonInstructionWriteFile('
+reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonExpressionGraph('
+reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'JsonEmitFieldRaw("expr0_graph"'
+reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'JsonEmitFieldRaw("expr1_graph"'
+require_file "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy"
+require_file "tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh"
+require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
+    'SelfMirProgramJson(projection.facts)'
+require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
+    'SelfMirProgramJsonWriteFile(projection.facts, args[2])'
+require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
+    'if ReadFile(args[3]) != "writer-preopen-sentinel"'
+require_text "tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh" \
+    'if ! cmp -s "$string_json" "$stream_json"'
+require_text "tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh" \
+    'if ! cmp -s "$c_json" "$llvm_json"'
+require_text "Makefile" \
+    'self-host-mir-json-instruction-writer-parity-test-smoke:'
 reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'FileWrite(output, SelfMirJsonRoutine(facts, routine_i))'
 reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \

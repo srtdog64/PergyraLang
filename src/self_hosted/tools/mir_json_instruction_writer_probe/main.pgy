@@ -1,0 +1,52 @@
+// Byte-parity probe for the sequential MIR instruction artifact writer.
+// The String and file projections consume the exact same verified facts so
+// producer nondeterminism cannot hide a wire-order or escaping difference.
+
+import "../../compiler/driver_rung2_owner.pgy";
+
+func MirJsonInstructionWriterInvalidFacts(
+    facts: SelfMirProgramFacts
+) -> SelfMirProgramFacts {
+    let invalid: SelfMirProgramFacts = facts;
+    let cfg: SelfMirCfgRows = invalid.cfg;
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let ids: Array<Int> = instructions.ids;
+    ArrayPush(ids, -1);
+    instructions.ids = ids;
+    cfg.instructions = instructions;
+    invalid.cfg = cfg;
+    return invalid;
+}
+
+func Main() -> Void with caps env, io_read, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 4 {
+        Die("MIR JSON instruction writer probe requires source, String output, file output, and invalid output paths");
+    }
+
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromAnalysisObserved(
+            artifact, analysis, SelfHostMachineLayerDeclarationEmpty(), false
+        );
+    let string_json: String = SelfMirProgramJson(projection.facts);
+    if string_json == "" { Die("String MIR JSON projection failed"); }
+    WriteFile(args[1], string_json);
+    if !SelfMirProgramJsonWriteFile(projection.facts, args[2]) {
+        Die("sequential MIR JSON artifact projection failed");
+    }
+
+    WriteFile(args[3], "writer-preopen-sentinel");
+    let invalid: SelfMirProgramFacts =
+        MirJsonInstructionWriterInvalidFacts(projection.facts);
+    if SelfMirProgramJsonWriteFile(invalid, args[3]) {
+        Die("sequential MIR JSON writer accepted invalid instruction rows");
+    }
+    if ReadFile(args[3]) != "writer-preopen-sentinel" {
+        Die("invalid MIR facts opened or truncated the output artifact");
+    }
+    DriverRung2MirProjectionRelease(projection);
+    Log("mir-json-instruction-writer-byte-probe-ok");
+}

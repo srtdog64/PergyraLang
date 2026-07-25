@@ -3,13 +3,13 @@
 // owner only removes the redundant whole-program materialization at a file
 // boundary.
 
-import "json_projection_owner.pgy";
+import "instruction_json_artifact_writer_owner.pgy";
 
 func SelfMirJsonBlockWriteFile(
     facts: SelfMirProgramFacts,
     block_index: Int,
     output: Int
-) -> Void {
+) -> Bool {
     let blocks: SelfMirBlockRows = facts.cfg.blocks;
     FileWrite(output, "{");
     FileWrite(output, JsonEmitFieldNumber(
@@ -23,9 +23,11 @@ func SelfMirJsonBlockWriteFile(
     let instruction_i: Int = 0;
     while instruction_i < blocks.instruction_counts[block_index] {
         if instruction_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, SelfMirJsonInstruction(
-            facts, blocks.instruction_starts[block_index] + instruction_i
-        ));
+        if !SelfMirJsonInstructionWriteFile(
+            facts,
+            blocks.instruction_starts[block_index] + instruction_i,
+            output
+        ) { return false; }
         instruction_i = instruction_i + 1;
     }
     FileWrite(output, "]");
@@ -42,13 +44,14 @@ func SelfMirJsonBlockWriteFile(
         ));
     }
     FileWrite(output, "}");
+    return true;
 }
 
 func SelfMirJsonRoutineWriteFile(
     facts: SelfMirProgramFacts,
     routine_index: Int,
     output: Int
-) -> Void {
+) -> Bool {
     let rows: SelfMirRoutineRows = facts.routines;
     FileWrite(output, "{");
     FileWrite(output, JsonEmitFieldString("name", rows.names[routine_index]));
@@ -223,9 +226,9 @@ func SelfMirJsonRoutineWriteFile(
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
         if block_i > 0 { FileWrite(output, ","); }
-        SelfMirJsonBlockWriteFile(
+        if !SelfMirJsonBlockWriteFile(
             facts, rows.block_starts[routine_index] + block_i, output
-        );
+        ) { return false; }
         block_i = block_i + 1;
     }
 
@@ -241,6 +244,7 @@ func SelfMirJsonRoutineWriteFile(
         local_i = local_i + 1;
     }
     FileWrite(output, "]}");
+    return true;
 }
 
 func SelfMirProgramJsonWriteFile(
@@ -287,7 +291,10 @@ func SelfMirProgramJsonWriteFile(
     let routine_i: Int = 0;
     while routine_i < ArrayLength(facts.routines.names) {
         if routine_i > 0 { FileWrite(output, ","); }
-        SelfMirJsonRoutineWriteFile(facts, routine_i, output);
+        if !SelfMirJsonRoutineWriteFile(facts, routine_i, output) {
+            FileClose(output);
+            return false;
+        }
         routine_i = routine_i + 1;
     }
     FileWrite(output, "]}");

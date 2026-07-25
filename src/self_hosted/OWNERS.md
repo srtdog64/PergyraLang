@@ -572,9 +572,15 @@ inventory must not become a second fact-family owner registry.
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
+- `src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy` --
+  sequential file framing for unbounded instruction-local expression graphs,
+  match/destructure lists, uses, and runtime-call ABI auxiliary rows; it reads
+  only verified `SelfMirProgramFacts` and cannot establish semantic facts.
 - `src/self_hosted/mir/program_json_artifact_writer_owner.pgy` -- bounded
-  file-artifact materialization of the same verified `pgy.mir.v1` row order;
-  `SelfMirProgramFacts` remains the semantic owner.
+  program/routine/block file-artifact framing of the same verified
+  `pgy.mir.v1` row order; instruction-local unbounded rows are delegated to
+  the sequential artifact writer and `SelfMirProgramFacts` remains the
+  semantic owner.
 - `src/self_hosted/mir/abi_layout_json_projection_owner.pgy` -- self-host
   producer ABI-layout tuple and explicit dynamic-row projection.
 - `src/self_hosted/mir/machine_layer_json_projection_owner.pgy` -- machine
@@ -916,6 +922,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/tools/initializer_projection_probe/main.pgy` -- focused
   executable proof that unannotated local types reach MIR through semantic
   initializer rows, direct scalar argument trees, and fail-closed graph damage.
+- `src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy` -- raw
+  byte parity between the fixture-only MIR String projection and production
+  sequential artifact writer over the same verified facts, plus invalid-fact
+  rejection before output open/truncation.
 - `src/self_hosted/tools/gate_dashboard/main.pgy` -- Pergyra-owned gate
   dashboard CLI and manifest/result composition boundary.
 - `src/self_hosted/tools/gate_dashboard/result_owner.pgy` -- fail-closed gate
