@@ -67,9 +67,9 @@ func SemanticAstExpressionSeedEnumValues(
     while i < ArrayLength(enums.variant_names) {
         if enums.variant_param_counts[i] == 0 &&
             !EnvContainsName(names, enums.variant_names[i]) {
-            ArrayPushOwnedString(names, enums.variant_names[i]);
-            ArrayPushOwnedString(types, enums.variant_enum_names[i]);
-            ArrayPushOwnedString(modes, "enum_value");
+            ArrayPush(names, enums.variant_names[i]);
+            ArrayPush(types, enums.variant_enum_names[i]);
+            ArrayPush(modes, "enum_value");
         }
         i = i + 1;
     }
@@ -309,7 +309,7 @@ func SemanticAstExpressionSeedParameterModes(
         } else if mode == 3 {
             mode_name = "ref_param";
         }
-        ArrayPushOwnedString(modes, mode_name);
+        ArrayPush(modes, mode_name);
         i = i + 1;
     }
     return true;
@@ -346,8 +346,8 @@ func SemanticAstExpressionSeedParameters(
         if !IsSome(name) || !IsSome(type_name) {
             return false;
         }
-        ArrayPushOwnedString(names, UnwrapOption(name));
-        ArrayPushOwnedString(types, UnwrapOption(type_name));
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(types, UnwrapOption(type_name));
         i = i + 1;
     }
     return true;
@@ -384,8 +384,8 @@ func SemanticAstExpressionSeedVisibleLocals(
             if type_name == "" || type_name == "Unknown" {
                 return false;
             }
-            ArrayPushOwnedString(names, locals.names[i]);
-            ArrayPushOwnedString(types, type_name);
+            ArrayPush(names, locals.names[i]);
+            ArrayPush(types, type_name);
         }
         i = i + 1;
     }
@@ -410,19 +410,21 @@ func SemanticAstExpressionSeedVisibleLocalModes(
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[i], use_node_id
             ) {
-            ArrayPushOwnedString(modes, "local");
+            ArrayPush(modes, "local");
         }
         i = i + 1;
     }
     return true;
 }
 
-// Scratch rows own their strings. Copy any fact that outlives this boundary.
-func SemanticAstExpressionEnvironmentClear(
-    inout names: Array<String>,
-    inout types: Array<String>,
-    inout modes: Array<String>
-) -> Void {
+// Borrowed rows retain backing storage on reset; clear drops only an empty view.
+func SemanticAstExpressionEnvironmentReset(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>) -> Void {
+    while ArrayLength(names) > 0 { ArrayPop(names); }
+    while ArrayLength(types) > 0 { ArrayPop(types); }
+    while ArrayLength(modes) > 0 { ArrayPop(modes); }
+}
+func SemanticAstExpressionEnvironmentClear(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>) -> Void {
+    SemanticAstExpressionEnvironmentReset(names, types, modes);
     ArrayDropOwnedStrings(names);
     ArrayDropOwnedStrings(types);
     ArrayDropOwnedStrings(modes);
@@ -460,9 +462,9 @@ func SemanticAstExpressionSeedVisibleIterationRows(
             if binding_type == "" || binding_type == "Unknown" {
                 return false;
             }
-            ArrayPushOwnedString(names, iteration_binding_names[i]);
-            ArrayPushOwnedString(types, binding_type);
-            ArrayPushOwnedString(modes, "loop_binding");
+            ArrayPush(names, iteration_binding_names[i]);
+            ArrayPush(types, binding_type);
+            ArrayPush(modes, "loop_binding");
         }
         i = i + 1;
     }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Owns the compiler-semantic temporary String-array lifetime boundary.
-# Ordinary Array<String> remains on the beta no-free policy.
+# Expression environments borrow semantic facts; persistent function tables
+# retain the explicit owned String-array pair.
 
 set -euo pipefail
 
@@ -45,21 +46,47 @@ function_body() {
     sed -n "/func ${function_name}(/,/^}/p" "$path"
 }
 
-reject_ordinary_environment_push() {
+require_borrowed_environment_push() {
     local path="$1"
     local function_name="$2"
     local body
     body="$(function_body "$path" "$function_name")"
-    if tr '\n' ' ' <<<"$body" | grep -Eq \
-        'ArrayPush[[:space:]]*\([[:space:]]*(names|types|modes)[[:space:]]*,'; then
-        echo "[self-host-parity:semantic-environment-lifetime] $function_name retained a non-owned environment push" >&2
+    if [[ -z "$body" ]]; then
+        echo "[self-host-parity:semantic-environment-lifetime] missing producer $function_name" >&2
+        exit 1
+    fi
+    if grep -Eq 'ArrayPushOwnedString[[:space:]]*\([[:space:]]*(names|types|modes)[[:space:]]*,' <<<"$body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] $function_name copied a borrowed environment row" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'ArrayPush[[:space:]]*\([[:space:]]*(names|types|modes)[[:space:]]*,' <<<"$body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] $function_name lost its borrowed environment row" >&2
         exit 1
     fi
 }
 
+reset_body="$(sed -n '/func SemanticAstExpressionEnvironmentReset(/,/^}/p' "$OWNER")"
+for term in \
+    'while ArrayLength(names) > 0 { ArrayPop(names); }' \
+    'while ArrayLength(types) > 0 { ArrayPop(types); }' \
+    'while ArrayLength(modes) > 0 { ArrayPop(modes); }'; do
+    grep -Fq "$term" <<<"$reset_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] borrowed reset missing: $term" >&2
+        exit 1
+    }
+done
+if grep -Fq 'ArrayDropOwnedStrings' <<<"$reset_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] borrowed reset frees owner facts" >&2
+    exit 1
+fi
+
 clear_body="$(sed -n '/func SemanticAstExpressionEnvironmentClear(/,/^}/p' "$OWNER")"
+grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' <<<"$clear_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] last-consumer reset missing" >&2
+    exit 1
+}
 grep -Fq 'ArrayDropOwnedStrings(names);' <<<"$clear_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] names cleanup owner missing" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] empty names backing cleanup missing" >&2
     exit 1
 }
 grep -Fq 'ArrayDropOwnedStrings(types);' <<<"$clear_body" || {
@@ -71,33 +98,22 @@ grep -Fq 'ArrayDropOwnedStrings(modes);' <<<"$clear_body" || {
     exit 1
 }
 if grep -Eq 'Array(Pop|Push)\((names|types|modes)' <<<"$clear_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] clear path retained ordinary array mutation" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] clear bypassed borrowed reset owner" >&2
     exit 1
 fi
 
-for term in \
-    'ArrayPushOwnedString(names,' \
-    'ArrayPushOwnedString(types,' \
-    'ArrayPushOwnedString(modes,'; do
-    grep -Fq "$term" "$OWNER" || {
-        echo "[self-host-parity:semantic-environment-lifetime] missing $term" >&2
-        exit 1
-    }
-done
-
 for producer in \
     'SemanticAstExpressionSeedEnumValues' \
-    'SemanticAstExpressionSeedConstructors' \
     'SemanticAstExpressionSeedParameters' \
     'SemanticAstExpressionSeedParameterModes' \
     'SemanticAstExpressionSeedVisibleLocals' \
     'SemanticAstExpressionSeedVisibleLocalModes' \
     'SemanticAstExpressionSeedVisibleIterationRows'; do
-    reject_ordinary_environment_push "$OWNER" "$producer"
+    require_borrowed_environment_push "$OWNER" "$producer"
 done
-reject_ordinary_environment_push "$OWNER_FIELDS" 'SemanticAstExpressionSeedOwnerFields'
-reject_ordinary_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
-reject_ordinary_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
+require_borrowed_environment_push "$OWNER_FIELDS" 'SemanticAstExpressionSeedOwnerFields'
+require_borrowed_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
+require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
 
 for consumer_contract in \
     "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
@@ -112,6 +128,18 @@ for consumer_contract in \
     function_body "$path" "$function_name" |
         grep -Fq 'SemanticAstExpressionEnvironmentClear(names, types, modes);' || {
         echo "[self-host-parity:semantic-environment-lifetime] missing last-consumer cleanup in $function_name" >&2
+        exit 1
+    }
+done
+
+for reuse_contract in \
+    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables"; do
+    path="${reuse_contract%%|*}"
+    function_name="${reuse_contract#*|}"
+    function_body "$path" "$function_name" |
+        grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' || {
+        echo "[self-host-parity:semantic-environment-lifetime] growing environment backing is not reused in $function_name" >&2
         exit 1
     }
 done
@@ -172,4 +200,4 @@ grep -Fq '"Array<String>", "inout"' "$CODEGEN_CALL_EMITTER"
 grep -Fq 'CollectionRuntimeCOwnedStringPushFn()' "$CODEGEN_CALL_EMITTER"
 grep -Fq 'CollectionRuntimeCOwnedStringDropFn()' "$CODEGEN_CALL_EMITTER"
 
-echo "[self-host-parity:semantic-environment-lifetime] owned String scratch cleanup is owner-directed"
+echo "[self-host-parity:semantic-environment-lifetime] borrowed environment reset and owned table cleanup are owner-directed"

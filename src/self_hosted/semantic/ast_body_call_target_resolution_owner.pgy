@@ -53,7 +53,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                         analysis.signatures, surface_index
                     );
                 if surface_index != seeded_surface {
-                    SemanticAstExpressionEnvironmentClear(names, types, modes);
+                    SemanticAstExpressionEnvironmentReset(names, types, modes);
                     if !IsSome(function_node_id) ||
                         !SemanticAstExpressionSeedOwnerFields(
                             analysis.signatures, analysis.constructors,

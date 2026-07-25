@@ -116,11 +116,11 @@ func SemanticAstIterationSeedVisibleRows(
             if binding_type == "" || binding_type == "Unknown" {
                 return false;
             }
-            ArrayPushOwnedString(
+            ArrayPush(
                 names, statements.payload_texts[statement_index]
             );
-            ArrayPushOwnedString(types, binding_type);
-            ArrayPushOwnedString(modes, "loop_binding");
+            ArrayPush(types, binding_type);
+            ArrayPush(modes, "loop_binding");
         }
         i = i + 1;
     }

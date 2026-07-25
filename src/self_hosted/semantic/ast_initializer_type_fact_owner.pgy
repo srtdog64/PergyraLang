@@ -148,7 +148,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:start", i
         );
-        SemanticAstExpressionEnvironmentClear(names, types, modes);
+        SemanticAstExpressionEnvironmentReset(names, types, modes);
         if reuse_unaffected {
             if !SemanticAstExpressionSeedVisibleIterationRows(
                 artifact, iteration_node_ids, iteration_function_node_ids,
@@ -169,7 +169,7 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
                 i = i + 1;
                 continue;
             }
-            SemanticAstExpressionEnvironmentClear(names, types, modes);
+            SemanticAstExpressionEnvironmentReset(names, types, modes);
         }
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes

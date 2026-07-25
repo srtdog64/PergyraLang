@@ -66,9 +66,9 @@ func SemanticAstExpressionSeedOwnerFields(
                 if !IsSome(field_name) || !IsSome(field_type) {
                     return false;
                 }
-                ArrayPushOwnedString(names, UnwrapOption(field_name));
-                ArrayPushOwnedString(types, UnwrapOption(field_type));
-                ArrayPushOwnedString(modes, "owner_field");
+                ArrayPush(names, UnwrapOption(field_name));
+                ArrayPush(types, UnwrapOption(field_type));
+                ArrayPush(modes, "owner_field");
                 field_index = field_index + 1;
             }
             return true;
