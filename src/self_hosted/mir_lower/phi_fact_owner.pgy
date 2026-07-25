@@ -69,26 +69,8 @@ func MirPhiSsaNameMatches(
         ToString(ToInt(version)) == version;
 }
 
-func MirPhiResultExists(
-    ref index: MirRoutineFactIndex, json: String, wanted: String
-) -> Bool {
-    let block_id: Int = 0;
-    let bounds: Array<Int> = [0, 0];
-    while block_id < ArrayLength(index.block_starts) {
-        let instruction_row: Int = 0;
-        while MirRoutineFactIndexInstructionBounds(
-            index, index.block_starts[block_id], instruction_row, bounds
-        ) {
-            if MirObjectStringFact(
-                json, bounds[0], bounds[1], "result"
-            ) == wanted {
-                return true;
-            }
-            instruction_row = instruction_row + 1;
-        }
-        block_id = block_id + 1;
-    }
-    return false;
+func MirPhiResultExists(ref index: MirRoutineFactIndex, wanted: String) -> Bool {
+    return MirRoutineFactIndexResultExists(index, wanted);
 }
 
 func MirPhiParameterEntryExists(
@@ -98,17 +80,22 @@ func MirPhiParameterEntryExists(
     wanted: String
 ) -> Bool {
     if wanted != Concat(local_name, ".0") { return false; }
-    let row: Int = 0;
+    let params_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+        json, index.routine_start, index.routine_end,
+        "params", params_bounds
+    ) { return false; }
+    let cursor: Int = params_bounds[0] + 1;
     let bounds: Array<Int> = [0, 0];
-    while MirObjectArrayObjectBoundsAt(
-        json, index.routine_start, index.routine_end, "params", row, bounds
+    while JsonArrayNextObjectBounds(
+        json, cursor, params_bounds[1], bounds
     ) {
-        if MirObjectStringFact(
+        if MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "name"
         ) == local_name {
             return true;
         }
-        row = row + 1;
+        cursor = bounds[1];
     }
     return false;
 }
@@ -116,7 +103,10 @@ func MirPhiParameterEntryExists(
 func MirRoutinePhiFactsReady(
     ref index: MirRoutineFactIndex, json: String
 ) -> Bool {
-    if !index.valid { return false; }
+    if !index.valid ||
+        ArrayLength(index.instruction_results) != ArrayLength(index.instruction_starts) {
+        return false;
+    }
     let block_id: Int = 0;
     while block_id < ArrayLength(index.block_starts) {
         let predecessors: Array<Int> = MirPhiPredecessorSources(index, block_id);
@@ -130,31 +120,30 @@ func MirRoutinePhiFactsReady(
         while MirRoutineFactIndexInstructionBounds(
             index, index.block_starts[block_id], instruction_row, bounds
         ) {
-            let kind: String = MirObjectStringFact(
+            let kind: String = MirObjectStringFactAtBounds(
                 json, bounds[0], bounds[1], "kind"
             );
             if kind == "phi" {
                 if seen_non_phi || predecessor_count < 2 {
                     return false;
                 }
-                let name: String = MirObjectStringFact(
+                let name: String = MirObjectStringFactAtBounds(
                     json, bounds[0], bounds[1], "name"
                 );
-                let result: String = MirObjectStringFact(
-                    json, bounds[0], bounds[1], "result"
-                );
-                let use_count: Int = MirObjectArrayStringFactCount(
+                let result: String = index.instruction_results[
+                    index.block_instruction_starts[block_id] + instruction_row
+                ];
+                let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
                     json, bounds[0], bounds[1], "uses"
                 );
+                let use_count: Int = ArrayLength(uses);
                 if use_count != predecessor_count ||
                     !MirPhiSsaNameMatches(result, name, false) {
                     return false;
                 }
                 let use_i: Int = 0;
                 while use_i < use_count {
-                    let use_name: String = MirObjectArrayStringFactAt(
-                        json, bounds[0], bounds[1], "uses", use_i
-                    );
+                    let use_name: String = uses[use_i];
                     // A loop-carried phi may name its own result on the
                     // incoming back-edge.  This is the canonical SSA
                     // representation of the value preserved by a continue
@@ -164,7 +153,7 @@ func MirRoutinePhiFactsReady(
                         MirPhiBackedgeSlotContains(backedge_slots, use_i);
                     if (!self_backedge && use_name == result) ||
                         !MirPhiSsaNameMatches(use_name, name, true) ||
-                        (!self_backedge && !MirPhiResultExists(index, json, use_name) &&
+                        (!self_backedge && !MirPhiResultExists(index, use_name) &&
                             !MirPhiParameterEntryExists(
                                 index, json, name, use_name
                             )) {

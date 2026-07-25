@@ -8,7 +8,7 @@ import "expression_graph_sequence_owner.pgy";
 func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
                                 indent: String, expr0: String) -> String {
     let init: String = StringTrim(expr0);
-    let elem_type: String = MirObjectStringFact(
+    let elem_type: String = MirObjectStringFactAtBounds(
         json, inst_start, inst_end, "destructure_element_type"
     );
     if StringLength(init) == 0 {
@@ -18,15 +18,18 @@ func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
         MirLowerFailClosed(Concat("destructure initializer element type is unknown: ", init));
     }
     let binding_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBounds(json, inst_start, inst_end, "destructure_bindings", binding_bounds) {
+    if !MirObjectArrayBoundsAtBounds(
+        json, inst_start, inst_end, "destructure_bindings", binding_bounds
+    ) {
         MirLowerFailClosed("destructure instruction is missing binding-name facts");
     }
-    let first_binding: String = MirObjectArrayStringFactAt(
-        json, inst_start, inst_end, "destructure_bindings", 0
+    let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
+        json, inst_start, inst_end, "destructure_bindings"
     );
-    if first_binding == "" {
+    if ArrayLength(bindings) == 0 || bindings[0] == "" {
         MirLowerFailClosed("destructure instruction has no binding-name facts");
     }
+    let first_binding: String = bindings[0];
 
     let out: String = "";
     let source: String = init;
@@ -37,13 +40,13 @@ func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
     }
 
     let index: Int = 0;
-    let name: String = MirObjectArrayStringFactAt(json, inst_start, inst_end, "destructure_bindings", index);
-    while StringLength(name) > 0 {
+    while index < ArrayLength(bindings) &&
+        StringLength(bindings[index]) > 0 {
+        let name: String = bindings[index];
         out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
             Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
                 Concat("[", Concat(ToString(index), "]\n"))))))))));
         index = index + 1;
-        name = MirObjectArrayStringFactAt(json, inst_start, inst_end, "destructure_bindings", index);
     }
     if index == 0 {
         MirLowerFailClosed("destructure instruction has no binding-name facts");
@@ -74,7 +77,7 @@ func MirDeclaredLocalTypeFact(
     kind: String, source_type: String
 ) -> String {
     if kind != "def" || source_type != "AST_LET_DECL" { return ""; }
-    let type_name: String = MirObjectStringFact(
+    let type_name: String = MirObjectStringFactAtBounds(
         json, inst_start, inst_end, "abi_type_name"
     );
     if StringLength(type_name) == 0 {

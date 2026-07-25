@@ -41,7 +41,32 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
             ArrayPush(chunks, EmitRoutineTreeAtSpan(
                 json, rpos, routine_end, "  ", observe_pressure && total == 0
             ));
+            if observe_pressure && total == 0 {
+                MirProgramLowerPressureStage(
+                    true, "consumer:mir-to-ast:first-top-level-routine:done"
+                );
+            }
             total = total + 1;
+            if observe_pressure && total == 16 {
+                MirProgramLowerPressureStage(
+                    true, "consumer:mir-to-ast:top-level-routines:16"
+                );
+            }
+            if observe_pressure && total == 64 {
+                MirProgramLowerPressureStage(
+                    true, "consumer:mir-to-ast:top-level-routines:64"
+                );
+            }
+            if observe_pressure && total == 256 {
+                MirProgramLowerPressureStage(
+                    true, "consumer:mir-to-ast:top-level-routines:256"
+                );
+            }
+            if observe_pressure && total == 1024 {
+                MirProgramLowerPressureStage(
+                    true, "consumer:mir-to-ast:top-level-routines:1024"
+                );
+            }
         }
         row = row + 1;
     }

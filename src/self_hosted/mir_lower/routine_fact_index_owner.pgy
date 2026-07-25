@@ -26,6 +26,7 @@ struct MirRoutineFactIndex {
     let block_instruction_counts: Array<Int>;
     let instruction_starts: Array<Int>;
     let instruction_ends: Array<Int>;
+    let instruction_results: Array<String>;
     let source_local_names: Array<String>;
     let source_local_types: Array<String>;
     let source_syntax_id: String;
@@ -70,6 +71,7 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
     let block_instruction_counts: Array<Int> = [];
     let instruction_starts: Array<Int> = [];
     let instruction_ends: Array<Int> = [];
+    let instruction_results: Array<String> = [];
     let source_local_names: Array<String> = [];
     let source_local_types: Array<String> = [];
     let source_syntax_id: String = MirObjectNumberFactAtBounds(
@@ -184,6 +186,7 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
                 while JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds) {
                     ArrayPush(instruction_starts, instruction_bounds[0]);
                     ArrayPush(instruction_ends, instruction_bounds[1]);
+                    ArrayPush(instruction_results, MirObjectStringFactAtBounds(json, instruction_bounds[0], instruction_bounds[1], "result"));
                     if MirObjectStringFactAtBounds(json, instruction_bounds[0],
                             instruction_bounds[1], "kind") == "branch" {
                         let source_type: String = MirObjectStringFactAtBounds(json,
@@ -265,27 +268,10 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
             false_id = ToInt(block_succ_false[block]);
         }
         if true_id >= 0 && false_id >= 0 {
-            let true_distance: Array<Int> =
-                MirRoutineGraphDistances(block_succ_true, block_succ_false, true_id);
-            let false_distance: Array<Int> =
-                MirRoutineGraphDistances(block_succ_true, block_succ_false, false_id);
-            let best_distance: Int = 2147483647;
-            let candidate: Int = 0;
-            while candidate < block_count {
-                if candidate != block && true_distance[candidate] >= 0 &&
-                    false_distance[candidate] >= 0 && MirRoutineGraphIsSameIterationMerge(block_succ_true, block_succ_false, block, true_id, false_id, candidate) {
-                    let distance: Int = true_distance[candidate] + false_distance[candidate];
-                    if distance < best_distance {
-                        best_distance = distance;
-                        merge = candidate;
-                    }
-                }
-                candidate = candidate + 1;
-            }
-            if merge < 0 && StringLength(block_succ_true[true_id]) == 0 &&
-                StringLength(block_succ_false[true_id]) == 0 {
-                merge = false_id;
-            }
+            merge = MirRoutineGraphStructuralMerge(
+                block_succ_true, block_succ_false, block,
+                true_id, false_id
+            );
         }
         ArrayPush(block_structural_merges, merge);
         block = block + 1;
@@ -314,7 +300,7 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
         block_starts, block_ends, backedge_headers, block_succ_true,
         block_succ_false, block_has_conditional_branch, block_structural_merges,
         block_instruction_starts,
-        block_instruction_counts, instruction_starts, instruction_ends,
+        block_instruction_counts, instruction_starts, instruction_ends, instruction_results,
         source_local_names, source_local_types, source_syntax_id, iteration_type_facts,
         function_param_flow_parameter_indices, function_param_flow_masks,
         resource_flow_symbol_declared_count, resource_flow_stable_indices,
@@ -547,14 +533,8 @@ func MirRoutineFactIndexBlockIsTerminal(
         index.block_succ_false[block_id] == "";
 }
 
-func MirRoutineFactIndexBlockBounds(
-    ref index: MirRoutineFactIndex,
-    block_id: Int,
-    inout bounds: Array<Int>
-) -> Bool {
-    if !index.valid || block_id < 0 || block_id >= ArrayLength(index.block_starts) {
-        return false;
-    }
+func MirRoutineFactIndexBlockBounds(ref index: MirRoutineFactIndex, block_id: Int, inout bounds: Array<Int>) -> Bool {
+    if !index.valid || block_id < 0 || block_id >= ArrayLength(index.block_starts) { return false; }
     ArraySet(bounds, 0, index.block_starts[block_id]);
     ArraySet(bounds, 1, index.block_ends[block_id]);
     return true;
@@ -563,37 +543,37 @@ func MirRoutineFactIndexBlockBounds(
 func MirRoutineFactIndexBlockRow(ref index: MirRoutineFactIndex, block_start: Int) -> Int {
     let row: Int = 0;
     while row < ArrayLength(index.block_starts) {
-        if index.block_starts[row] == block_start {
-            return row;
-        }
+        if index.block_starts[row] == block_start { return row; }
         row = row + 1;
     }
     return 0 - 1;
 }
 
-func MirRoutineFactIndexInstructionBounds(
-    ref index: MirRoutineFactIndex,
-    block_start: Int,
-    instruction_row: Int,
-    inout bounds: Array<Int>
-) -> Bool {
+func MirRoutineFactIndexInstructionBounds(ref index: MirRoutineFactIndex, block_start: Int, instruction_row: Int, inout bounds: Array<Int>) -> Bool {
     let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);
     if block_row < 0 || instruction_row < 0 ||
-        instruction_row >= index.block_instruction_counts[block_row] {
-        return false;
-    }
+        instruction_row >= index.block_instruction_counts[block_row] { return false; }
     let row: Int = index.block_instruction_starts[block_row] + instruction_row;
     ArraySet(bounds, 0, index.instruction_starts[row]);
     ArraySet(bounds, 1, index.instruction_ends[row]);
     return true;
 }
 
+func MirRoutineFactIndexResultExists(ref index: MirRoutineFactIndex, wanted: String) -> Bool {
+    if !index.valid || wanted == "" { return false; }
+    if ArrayLength(index.instruction_results) != ArrayLength(index.instruction_starts) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_results) {
+        if index.instruction_results[row] == wanted { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
 func MirRoutineFactIndexSourceLocalType(ref index: MirRoutineFactIndex, name: String) -> String {
     let row: Int = 0;
     while row < ArrayLength(index.source_local_names) {
-        if index.source_local_names[row] == name {
-            return index.source_local_types[row];
-        }
+        if index.source_local_names[row] == name { return index.source_local_types[row]; }
         row = row + 1;
     }
     return "";

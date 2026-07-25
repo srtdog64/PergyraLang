@@ -40,49 +40,104 @@ func MirRoutineGraphDistances(
     return distances;
 }
 
-func MirRoutineGraphCanReachAvoiding(
+func MirRoutineGraphDistancesAvoiding(
     block_succ_true: Array<String>,
     block_succ_false: Array<String>,
     start: Int,
-    want: Int,
     blocked: Int
-) -> Bool {
+) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
-    if start < 0 || start >= block_count || want < 0 ||
-        want >= block_count || start == blocked {
-        return false;
-    }
-    let visited: Array<Int> = [];
+    let distances: Array<Int> = [];
     let row: Int = 0;
     while row < block_count {
-        ArrayPush(visited, 0);
+        ArrayPush(distances, 0 - 1);
         row = row + 1;
     }
+    if start < 0 || start >= block_count || start == blocked {
+        return distances;
+    }
     let queue: Array<Int> = [start];
-    ArraySet(visited, start, 1);
+    ArraySet(distances, start, 0);
     let cursor: Int = 0;
     while cursor < ArrayLength(queue) {
         let block: Int = queue[cursor];
-        if block == want { return true; }
+        let next_distance: Int = distances[block] + 1;
         if StringLength(block_succ_true[block]) > 0 {
             let target: Int = ToInt(block_succ_true[block]);
             if target >= 0 && target < block_count && target != blocked &&
-                visited[target] == 0 {
-                ArraySet(visited, target, 1);
+                distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
                 ArrayPush(queue, target);
             }
         }
         if StringLength(block_succ_false[block]) > 0 {
             let target: Int = ToInt(block_succ_false[block]);
             if target >= 0 && target < block_count && target != blocked &&
-                visited[target] == 0 {
-                ArraySet(visited, target, 1);
+                distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
                 ArrayPush(queue, target);
             }
         }
         cursor = cursor + 1;
     }
-    return false;
+    return distances;
+}
+
+func MirRoutineGraphCanReachAvoiding(
+    block_succ_true: Array<String>, block_succ_false: Array<String>,
+    start: Int, want: Int, blocked: Int
+) -> Bool {
+    if want < 0 || want >= ArrayLength(block_succ_true) { return false; }
+    let distances: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        block_succ_true, block_succ_false, start, blocked
+    );
+    return distances[want] >= 0;
+}
+
+func MirRoutineGraphStructuralMerge(
+    block_succ_true: Array<String>, block_succ_false: Array<String>,
+    branch: Int, true_start: Int, false_start: Int
+) -> Int {
+    let block_count: Int = ArrayLength(block_succ_true);
+    let merge: Int = 0 - 1;
+    if branch < 0 || branch >= block_count ||
+        true_start < 0 || true_start >= block_count ||
+        false_start < 0 || false_start >= block_count {
+        return merge;
+    }
+    let true_distance: Array<Int> = MirRoutineGraphDistances(
+        block_succ_true, block_succ_false, true_start
+    );
+    let false_distance: Array<Int> = MirRoutineGraphDistances(
+        block_succ_true, block_succ_false, false_start
+    );
+    let true_without_branch: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        block_succ_true, block_succ_false, true_start, branch
+    );
+    let false_without_branch: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        block_succ_true, block_succ_false, false_start, branch
+    );
+    let best_distance: Int = 2147483647;
+    let candidate: Int = 0;
+    while candidate < block_count {
+        if candidate != branch && true_distance[candidate] >= 0 &&
+            false_distance[candidate] >= 0 &&
+            true_without_branch[candidate] >= 0 &&
+            false_without_branch[candidate] >= 0 {
+            let distance: Int = true_distance[candidate] +
+                false_distance[candidate];
+            if distance < best_distance {
+                best_distance = distance;
+                merge = candidate;
+            }
+        }
+        candidate = candidate + 1;
+    }
+    if merge < 0 && block_succ_true[true_start] == "" &&
+        block_succ_false[true_start] == "" {
+        merge = false_start;
+    }
+    return merge;
 }
 
 func MirRoutineEdgeTargetsDominator(
@@ -107,18 +162,5 @@ func MirRoutineEdgeTargetsDominator(
     if source == target { return true; }
     return !MirRoutineGraphCanReachAvoiding(
         block_succ_true, block_succ_false, 0, source, target
-    );
-}
-
-// A structural merge belongs to the current branch execution only when both
-// arms can reach it without re-entering the branch through a loop backedge.
-func MirRoutineGraphIsSameIterationMerge(
-    block_succ_true: Array<String>, block_succ_false: Array<String>,
-    branch: Int, true_start: Int, false_start: Int, candidate: Int
-) -> Bool {
-    return MirRoutineGraphCanReachAvoiding(
-        block_succ_true, block_succ_false, true_start, candidate, branch
-    ) && MirRoutineGraphCanReachAvoiding(
-        block_succ_true, block_succ_false, false_start, candidate, branch
     );
 }

@@ -157,6 +157,39 @@ func MirObjectArrayObjectBoundsAt(
     return JsonArrayObjectBoundsAt(json, array_bounds[0], array_bounds[1], row, bounds);
 }
 
+func MirObjectArrayStringFactsAtBounds(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String
+) -> Array<String> {
+    let values: Array<String> = [];
+    let array_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+        json, start, end, field, array_bounds
+    ) { return values; }
+    let cursor: Int = array_bounds[0] + 1;
+    while cursor < array_bounds[1] {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, array_bounds[1]);
+        if cursor >= array_bounds[1] { return values; }
+        let code: Int = JsonCharCodeAt(json, array_bounds[1], cursor);
+        if code == JsonAsciiCode("]") { return values; }
+        if code == JsonAsciiCode(",") {
+            cursor = cursor + 1;
+            continue;
+        }
+        if code != JsonAsciiCode("\"") { return values; }
+        let value_end: Array<Int> = [0];
+        let value: String = ReadJsonStringBounded(
+            json, cursor, array_bounds[1], value_end
+        );
+        if value_end[0] <= cursor { return values; }
+        ArrayPush(values, value);
+        cursor = value_end[0];
+    }
+    return values;
+}
+
 func MirDeclArrayObjectFactTable(json: String) -> JsonArrayObjectFactTable {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
     return JsonObjectFactArrayObjectTable(root, "decls");

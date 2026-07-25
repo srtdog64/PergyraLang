@@ -1,0 +1,73 @@
+// Executable contract for the self-host MIR CFG graph owner.
+
+import "../../../src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy";
+
+func Main() -> Void {
+    let failures: Int = 0;
+
+    let diamond_true: Array<String> = ["1", "3", "3", ""];
+    let diamond_false: Array<String> = ["2", "", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        diamond_true, diamond_false, 0, 1, 2
+    ) != 3 { failures = failures + 1; }
+
+    // The true arm can reach block 3 only by re-entering branch 0. That is a
+    // later iteration, not the current branch's structural merge.
+    let reentry_true: Array<String> = ["1", "0", "3", ""];
+    let reentry_false: Array<String> = ["2", "", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        reentry_true, reentry_false, 0, 1, 2
+    ) != (0 - 1) { failures = failures + 1; }
+
+    // Eligibility uses blocked reachability, but ranking must keep the
+    // original unrestricted distance. Block 3 wins 4 versus block 4's 5.
+    let ranking_true: Array<String> = [
+        "1", "0", "3", "", "", "6", "7", "10", "4", "4", "3"
+    ];
+    let ranking_false: Array<String> = [
+        "2", "5", "8", "", "", "9", "", "", "", "", ""
+    ];
+    if MirRoutineGraphStructuralMerge(
+        ranking_true, ranking_false, 0, 1, 2
+    ) != 3 { failures = failures + 1; }
+
+    let self_loop_true: Array<String> = ["0", "2", ""];
+    let self_loop_false: Array<String> = ["1", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        self_loop_true, self_loop_false, 0, 0, 1
+    ) != (0 - 1) { failures = failures + 1; }
+    let blocked_from_start: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        self_loop_true, self_loop_false, 0, 0
+    );
+    if blocked_from_start[0] >= 0 || blocked_from_start[1] >= 0 {
+        failures = failures + 1;
+    }
+
+    // Equal unrestricted scores retain the lower candidate id.
+    let tied_true: Array<String> = ["1", "3", "3", "", ""];
+    let tied_false: Array<String> = ["2", "4", "4", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        tied_true, tied_false, 0, 1, 2
+    ) != 3 { failures = failures + 1; }
+
+    let fallback_true: Array<String> = ["1", "", ""];
+    let fallback_false: Array<String> = ["2", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        fallback_true, fallback_false, 0, 1, 2
+    ) != 2 { failures = failures + 1; }
+
+    // Structural merge selection intentionally preserves disconnected CFG
+    // component behavior; entry reachability belongs to backedge admission.
+    let detached_true: Array<String> = ["", "", "3", "5", "5", ""];
+    let detached_false: Array<String> = ["", "", "4", "", "", ""];
+    if MirRoutineGraphStructuralMerge(
+        detached_true, detached_false, 2, 3, 4
+    ) != 5 { failures = failures + 1; }
+
+    if failures == 0 {
+        Log("mir-cfg-graph-query-ok");
+    } else {
+        Log(Concat("mir-cfg-graph-query-failures=", ToString(failures)));
+        Exit(1);
+    }
+}

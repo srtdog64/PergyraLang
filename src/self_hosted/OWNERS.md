@@ -644,7 +644,8 @@ inventory must not become a second fact-family owner registry.
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
 - `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy` -- pure CFG distance,
-  reachability, and dominator-edge queries used by the routine fact index.
+  blocked-reachability, structural-merge, and dominator-edge queries used by
+  the routine fact index.
 - `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
   machine-contact projection validation for MIR JSON rows.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel

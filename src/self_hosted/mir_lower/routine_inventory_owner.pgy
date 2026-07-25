@@ -1,104 +1,67 @@
-// MIR routine inventory fact owner for self-hosted mir_lower.
+// MIR routine header inventory owner for self-hosted mir_lower.
 //
-// This module owns bounded routine header facts in pgy.mir.v1 JSON. Routine
-// identity and exact object spans belong to program_routine_index_owner.pgy;
-// CFG reconstruction and AST-tree emission belong to routine_lower.pgy.
+// The caller supplies the exact routine span admitted by the program routine
+// index. This owner captures header arrays once so AST rendering does not
+// restart `generics` or `params` lookup for each projected field.
 
 import "json_fact_read.pgy";
 
-func RoutineBlocksBounds(json: String, routine_name_end: Int, span_end: Int, inout bounds: Array<Int>) -> Bool {
-    return MirObjectArrayBounds(json, routine_name_end, span_end, "blocks", bounds);
+struct MirRoutineHeaderFacts {
+    let generic_names: Array<String>;
+    let param_names: Array<String>;
+    let param_types: Array<String>;
+    let param_carriages: Array<String>;
+    let param_resources: Array<String>;
+    let param_pass_shapes: Array<String>;
+    let return_type: String;
 }
 
-func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int {
-    let bounds: Array<Int> = [0, 0];
-    if RoutineBlocksBounds(json, routine_name_end, span_end, bounds) {
-        return bounds[0];
-    }
-    return span_end;
-}
-
-func RoutineParamCount(json: String, rpos: Int, header_end: Int) -> Int {
-    let count: Int = 0;
-    let bounds: Array<Int> = [0, 0];
-    while MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", count, bounds) {
-        count = count + 1;
-    }
-    return count;
-}
-
-func RoutineGenericCount(json: String, rpos: Int, header_end: Int) -> Int {
-    return MirObjectArrayStringFactCount(
-        json, rpos, header_end, "generics"
+func BuildMirRoutineHeaderFacts(
+    json: String,
+    routine_start: Int,
+    routine_end: Int
+) -> MirRoutineHeaderFacts {
+    let generic_names: Array<String> = MirObjectArrayStringFactsAtBounds(
+        json, routine_start, routine_end, "generics"
     );
-}
-
-func RoutineGenericNameAt(
-    json: String, rpos: Int, header_end: Int, row: Int
-) -> String {
-    return MirObjectArrayStringFactAt(
-        json, rpos, header_end, "generics", row
+    let param_names: Array<String> = [];
+    let param_types: Array<String> = [];
+    let param_carriages: Array<String> = [];
+    let param_resources: Array<String> = [];
+    let param_pass_shapes: Array<String> = [];
+    let params_bounds: Array<Int> = [0, 0];
+    if MirObjectArrayBoundsAtBounds(
+        json, routine_start, routine_end, "params", params_bounds
+    ) {
+        let cursor: Int = params_bounds[0] + 1;
+        let param_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, cursor, params_bounds[1], param_bounds
+        ) {
+            ArrayPush(param_names, MirObjectStringFactAtBounds(
+                json, param_bounds[0], param_bounds[1], "name"
+            ));
+            ArrayPush(param_types, MirObjectStringFactAtBounds(
+                json, param_bounds[0], param_bounds[1], "type"
+            ));
+            ArrayPush(param_carriages, MirObjectStringFactAtBounds(
+                json, param_bounds[0], param_bounds[1], "carriage"
+            ));
+            ArrayPush(param_resources, MirObjectStringFactAtBounds(
+                json, param_bounds[0], param_bounds[1], "resource"
+            ));
+            ArrayPush(param_pass_shapes, MirObjectStringFactAtBounds(
+                json, param_bounds[0], param_bounds[1], "pass"
+            ));
+            cursor = param_bounds[1];
+        }
+    }
+    let return_type: String = MirObjectStringFactAtBounds(
+        json, routine_start, routine_end, "return"
     );
-}
-
-func RoutineParamNameAt(json: String, rpos: Int, header_end: Int, row: Int) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", row, bounds) {
-        return "";
-    }
-    return MirObjectStringFact(json, bounds[0], bounds[1], "name");
-}
-
-func RoutineParamTypeAt(json: String, rpos: Int, header_end: Int, row: Int) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", row, bounds) {
-        return "";
-    }
-    return MirObjectStringFact(json, bounds[0], bounds[1], "type");
-}
-
-func RoutineParamCarriageAt(
-    json: String, rpos: Int, header_end: Int, row: Int
-) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(
-        json, rpos, header_end, "params", row, bounds
-    ) { return ""; }
-    return MirObjectStringFact(json, bounds[0], bounds[1], "carriage");
-}
-
-func RoutineParamResourceAt(
-    json: String, rpos: Int, header_end: Int, row: Int
-) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(
-        json, rpos, header_end, "params", row, bounds
-    ) { return ""; }
-    return MirObjectStringFact(json, bounds[0], bounds[1], "resource");
-}
-
-func RoutineParamPassAt(
-    json: String, rpos: Int, header_end: Int, row: Int
-) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(
-        json, rpos, header_end, "params", row, bounds
-    ) { return ""; }
-    return MirObjectStringFact(json, bounds[0], bounds[1], "pass");
-}
-
-func RoutineReturnType(json: String, rpos: Int, header_end: Int) -> String {
-    let rtype: String = MirObjectStringFact(json, rpos, header_end, "return");
-    if StringLength(rtype) == 0 {
-        return "Void";
-    }
-    return rtype;
-}
-
-func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int> {
-    let bounds: Array<Int> = [0, 0];
-    if RoutineBlocksBounds(json, routine_name_end, span_end, bounds) {
-        return Some(bounds[0]);
-    }
-    return None;
+    if return_type == "" { return_type = "Void"; }
+    return MirRoutineHeaderFacts(
+        generic_names, param_names, param_types, param_carriages,
+        param_resources, param_pass_shapes, return_type
+    );
 }

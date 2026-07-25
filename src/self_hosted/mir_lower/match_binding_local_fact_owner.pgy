@@ -28,24 +28,22 @@ func BuildMirMatchBindingLocalFacts(
     while instruction < ArrayLength(instruction_starts) {
         let start: Int = instruction_starts[instruction];
         let end: Int = instruction_ends[instruction];
-        let binding_count: Int = MirObjectArrayStringFactCount(
+        let binding_names: Array<String> = MirObjectArrayStringFactsAtBounds(
             json, start, end, "match_bindings"
         );
-        let type_count: Int = MirObjectArrayStringFactCount(
+        let binding_types: Array<String> = MirObjectArrayStringFactsAtBounds(
             json, start, end, "match_binding_types"
         );
+        let binding_count: Int = ArrayLength(binding_names);
+        let type_count: Int = ArrayLength(binding_types);
         if binding_count != type_count {
             valid = false;
             validation_stage = "match_binding_type_count";
         } else {
             let binding: Int = 0;
             while binding < binding_count {
-                let name: String = MirObjectArrayStringFactAt(
-                    json, start, end, "match_bindings", binding
-                );
-                let type_name: String = MirObjectArrayStringFactAt(
-                    json, start, end, "match_binding_types", binding
-                );
+                let name: String = binding_names[binding];
+                let type_name: String = binding_types[binding];
                 if name == "" || type_name == "" || type_name == "Unknown" {
                     valid = false;
                     validation_stage = "match_binding_type";

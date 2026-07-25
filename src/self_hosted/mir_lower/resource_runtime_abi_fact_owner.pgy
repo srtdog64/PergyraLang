@@ -64,17 +64,17 @@ func MirResourceRuntimeRowFactReady(
     json: String, inst_start: Int, inst_end: Int
 ) -> Bool {
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, MirFactObjectStart(json, inst_start), inst_end);
+        json, inst_start, inst_end);
     let required: Bool = JsonObjectFactHasField(
         instruction, "runtime_call_abi_required"
     );
-    if required && !JsonObjectBoolFieldEquals(
+    if required && !JsonObjectBoolFieldEqualsWithin(
         instruction.json, instruction.start, instruction.end,
         "runtime_call_abi_required", true
     ) {
         return false;
     }
-    let operation: String = MirObjectStringFact(
+    let operation: String = MirObjectStringFactAtBounds(
         json, inst_start, inst_end, "name");
     let machine_operation: String =
         MirMachineLayerInstructionRuntimeOperation(

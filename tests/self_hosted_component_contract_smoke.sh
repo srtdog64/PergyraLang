@@ -3753,7 +3753,7 @@ require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" 'JsonEm
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'func RoutineParamCarriageAt('
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'let param_carriages: Array<String>;'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'param_prefix = "ref ";'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'if p_mode == 2 {'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'if p_mode == 2 {'
@@ -7790,21 +7790,21 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routin
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineSpanEnd("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName("
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamCount"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamNameAt"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamTypeAt"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksBounds"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int>"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "struct MirRoutineHeaderFacts"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func BuildMirRoutineHeaderFacts("
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonArrayNextObjectBounds("
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFactAtBounds("
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParam"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocks"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds(json, routine_name_end, span_end, \"blocks\", bounds)"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"name\":'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"blocks\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, routine_start, header_end)"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, routine_start, header_end)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BuildMirRoutineHeaderFacts("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ArrayLength(header.param_names)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionBoundsAt"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockInstructionBoundsAt(index, bs, row, bounds)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionKind"
@@ -7828,6 +7828,27 @@ for exact_bool_owner in \
     reject_text "src/self_hosted/mir_lower/$exact_bool_owner" "JsonObjectBoolFieldEquals("
     require_text "src/self_hosted/mir_lower/$exact_bool_owner" "JsonObjectBoolFieldEqualsWithin("
 done
+for exact_render_owner in \
+    "routine_lower.pgy" \
+    "stmt_render.pgy" \
+    "match_binding_render_owner.pgy"; do
+    reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectStringFact("
+    reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectNumberFact("
+    reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectArrayBounds("
+    reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectArrayStringFactCount("
+    reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectArrayStringFactAt("
+    require_text "src/self_hosted/mir_lower/$exact_render_owner" "AtBounds("
+done
+for exact_abi_owner in \
+    "abi_layout_fact_owner.pgy" \
+    "resource_runtime_abi_fact_owner.pgy"; do
+    reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirObjectStringFact("
+    reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirObjectNumberFact("
+    reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEquals("
+    reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirFactObjectStart("
+    require_text "src/self_hosted/mir_lower/$exact_abi_owner" "AtBounds("
+    require_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEqualsWithin("
+done
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "loop_flow_fact_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "mir_cfg_graph_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "resource_flow_fact_owner.pgy";'
@@ -7839,6 +7860,48 @@ require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     'func MirPhiResultExists('
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     'func MirPhiParameterEntryExists('
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'let instruction_results: Array<String>;'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'ArrayPush(instruction_results, MirObjectStringFactAtBounds('
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'func MirRoutineFactIndexResultExists('
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'return MirRoutineFactIndexResultExists(index, wanted);'
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirPhiResultExists" "json"
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirPhiResultExists" "MirRoutineFactIndexInstructionBounds("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" '"result"'
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'ArrayLength(index.instruction_results) != ArrayLength(index.instruction_starts)'
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirPhiResultExists" "MirObjectStringFact("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirPhiParameterEntryExists" "MirObjectArrayObjectBoundsAt("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" "MirObjectStringFact("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" "MirObjectArrayStringFactCount("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" "MirObjectArrayStringFactAt("
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "MirObjectStringFactAtBounds("
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "JsonArrayNextObjectBounds("
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func MirObjectArrayStringFactsAtBounds("
+reject_function_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func MirObjectArrayStringFactsAtBounds" "StringLength(json)"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "MirObjectArrayStringFactsAtBounds("
+reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "MirObjectArrayStringFactCount("
+reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "MirObjectArrayStringFactAt("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'if !MirRoutinePhiFactsReady(index, json)'
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
@@ -7847,7 +7910,7 @@ require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'unknown match phi input was accepted'
 require_file "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy"
 require_file "src/self_hosted/mir_lower/resource_flow_fact_owner.pgy"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, inst_start, inst_end, \"kind\")"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFactAtBounds(json, inst_start, inst_end, \"kind\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockSuccessor(index, bs, false_edge)"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockBounds("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockRow("
@@ -7857,10 +7920,29 @@ require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutin
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "MirRoutineGraphCanReachAvoiding("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
-    "func MirRoutineGraphIsSameIterationMerge("
+    "func MirRoutineGraphDistancesAvoiding("
+require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "func MirRoutineGraphStructuralMerge("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "MirRoutineGraphIsSameIterationMerge("
+    "merge = MirRoutineGraphStructuralMerge("
+reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "MirRoutineGraphDistances("
+reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "MirRoutineGraphDistancesAvoiding("
+reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "func MirRoutineGraphIsSameIterationMerge("
+require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "let distance: Int = true_distance[candidate] +"
+reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "let distance: Int = true_without_branch[candidate]"
+reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
+    "let distance: Int = false_without_branch[candidate]"
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "target <= block_row"
+require_text "Makefile" "self-host-mir-cfg-graph-query-test-smoke:"
+require_text "tests/self_hosted/fixtures/mir_cfg_graph_query_owner.pgy" \
+    "MirRoutineGraphStructuralMerge("
+require_text "tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh" \
+    "C/LLVM structural merge owner parity ok"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(index, bs, false)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let key: String = Concat("\"id\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, ",\"reachable\""'
@@ -7880,8 +7962,9 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" "let rpos: Int = rout
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "MirProgramRoutineIndexCount(routines)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine("
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let routine_name_end: Int = name_bounds[1]"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "json, routine_name_end, routine_end"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirObjectStringFactAtBounds(json, routine_start, routine_end, \"name\")"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "routine_name_end"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'Substring(json, e[0]'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"function"'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"method"'
@@ -9942,7 +10025,8 @@ reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"method
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"variants\":['
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "ReadJsonString(json,"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFact(json, rpos"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFactAtBounds("
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFact("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectFieldValueBounds(json, rpos"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "func MirProgramRoutineIndexFindMethodRow("
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
@@ -9957,8 +10041,20 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:declarations:done"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:top-level-routines:done"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "consumer:mir-to-ast:first-top-level-routine:done"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "consumer:mir-to-ast:top-level-routines:16"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "consumer:mir-to-ast:top-level-routines:64"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "consumer:mir-to-ast:top-level-routines:256"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "consumer:mir-to-ast:top-level-routines:1024"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:first-top-level-routine-fact-index:done"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:first-top-level-routine-validation:done"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "EmitMirProgramTreeFromRoutineIndexObserved("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtSpan("
@@ -9971,7 +10067,7 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineSpanEnd("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineObjectEnd("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFactAtBounds(json, kp, inst_end, \"source_type\")"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirInstructionAbiLayoutFactReady"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutIdFromRow"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutHashU32"
@@ -10010,10 +10106,12 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" "SelfMirJsonAppendR
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi_required"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "bool_helper_while_slot"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "class_helper_method_chain/main.pgy"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"
-require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_bindings", binding_index'
-require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" '"match_binding_types", binding_index'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let pattern: String = patterns[0]"
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \
+    'let binding: String = bindings[binding_index]'
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \
+    'let binding_type: String = binding_types[binding_index]'
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbol_count"
 require_text "src/compiler/mir_json_dump_flow.c" "resource_flow_symbols"
 require_text "src/compiler/mir_json_dump_flow.c" "loop_flow_summary_count"
@@ -10058,7 +10156,8 @@ require_text "Makefile" "self-host-mir-loop-flow-summary-test-smoke"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"match_patterns\":['
-require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactAt(json, inst_start, inst_end, \"destructure_bindings\", index)"
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" "let name: String = bindings[index]"
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" '"defer_body"'
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     'instruction, "expr0_graph"'

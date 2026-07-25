@@ -9,17 +9,17 @@ func MirMatchBindingLineForInstruction(
     instruction_end: Int,
     indent: String
 ) -> String {
-    let source_type: String = MirObjectStringFact(
+    let source_type: String = MirObjectStringFactAtBounds(
         json, instruction_start, instruction_end, "source_type"
     );
     if source_type != "AST_MATCH_CASE" { return ""; }
-    let variant: String = MirObjectStringFact(
+    let variant: String = MirObjectStringFactAtBounds(
         json, instruction_start, instruction_end, "match_variant"
     );
     if variant == "" {
         return "";
     }
-    let match_subject: String = MirObjectStringFact(
+    let match_subject: String = MirObjectStringFactAtBounds(
         json, instruction_start, instruction_end, "expr0"
     );
     if match_subject == "" {
@@ -27,12 +27,14 @@ func MirMatchBindingLineForInstruction(
             variant, " match case is missing subject MIR fact"
         ));
     }
-    let binding_count: Int = MirObjectArrayStringFactCount(
+    let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
         json, instruction_start, instruction_end, "match_bindings"
     );
-    let binding_type_count: Int = MirObjectArrayStringFactCount(
+    let binding_types: Array<String> = MirObjectArrayStringFactsAtBounds(
         json, instruction_start, instruction_end, "match_binding_types"
     );
+    let binding_count: Int = ArrayLength(bindings);
+    let binding_type_count: Int = ArrayLength(binding_types);
     if binding_count != binding_type_count {
         MirLowerFailClosed(Concat(
             variant, " match case binding/type cardinality is inconsistent"
@@ -48,14 +50,8 @@ func MirMatchBindingLineForInstruction(
     let out: String = "";
     let binding_index: Int = 0;
     while binding_index < binding_count {
-        let binding: String = MirObjectArrayStringFactAt(
-            json, instruction_start, instruction_end,
-            "match_bindings", binding_index
-        );
-        let binding_type: String = MirObjectArrayStringFactAt(
-            json, instruction_start, instruction_end,
-            "match_binding_types", binding_index
-        );
+        let binding: String = bindings[binding_index];
+        let binding_type: String = binding_types[binding_index];
         if binding == "" || binding_type == "" ||
             binding_type == "Unknown" {
             MirLowerFailClosed(Concat(

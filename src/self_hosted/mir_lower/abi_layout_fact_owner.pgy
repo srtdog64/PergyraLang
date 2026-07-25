@@ -117,10 +117,10 @@ func MirAbiLayoutHashRow(row: JsonObjectFactTable) -> Long {
     hash = MirAbiLayoutHashString(
         hash, MirAbiLayoutStringField(row, "type"));
     hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFact(
+        hash, ToInt(MirObjectNumberFactAtBounds(
             row.json, row.start, row.end, "size")) as Long);
     hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFact(
+        hash, ToInt(MirObjectNumberFactAtBounds(
             row.json, row.start, row.end, "align")) as Long);
     hash = MirAbiLayoutHashU32(hash, field_count as Long);
 
@@ -130,13 +130,13 @@ func MirAbiLayoutHashRow(row: JsonObjectFactTable) -> Long {
         hash = MirAbiLayoutHashString(
             hash, MirAbiLayoutStringField(field, "name"));
         hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFact(
+            hash, ToInt(MirObjectNumberFactAtBounds(
                 field.json, field.start, field.end, "offset")) as Long);
         hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFact(
+            hash, ToInt(MirObjectNumberFactAtBounds(
                 field.json, field.start, field.end, "size")) as Long);
         hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFact(
+            hash, ToInt(MirObjectNumberFactAtBounds(
                 field.json, field.start, field.end, "align")) as Long);
         i = i + 1;
     }
@@ -146,15 +146,15 @@ func MirAbiLayoutHashRow(row: JsonObjectFactTable) -> Long {
     hash = MirAbiLayoutHashString(
         hash, MirAbiLayoutStringField(row, "inner_c_type"));
     hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFact(
+        hash, ToInt(MirObjectNumberFactAtBounds(
             row.json, row.start, row.end, "representation")) as Long);
     hash = MirAbiLayoutHashString(
         hash, MirAbiLayoutStringField(row, "discriminant"));
     hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFact(
+        hash, ToInt(MirObjectNumberFactAtBounds(
             row.json, row.start, row.end, "primary_tag")) as Long);
     hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFact(
+        hash, ToInt(MirObjectNumberFactAtBounds(
             row.json, row.start, row.end, "secondary_tag")) as Long);
     return MirAbiLayoutHashString(
         hash, MirAbiLayoutStringField(row, "niche_none_pattern"));
@@ -169,7 +169,7 @@ func MirInstructionAbiLayoutFactReady(
     json: String, inst_start: Int, inst_end: Int
 ) -> Bool {
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, MirFactObjectStart(json, inst_start), inst_end);
+        json, inst_start, inst_end);
     if !JsonObjectFactTableReady(instruction) ||
         !JsonObjectFactHasField(instruction, "abi_type_name") ||
         !JsonObjectFactHasField(instruction, "abi_layout_id") ||
@@ -183,10 +183,10 @@ func MirInstructionAbiLayoutFactReady(
         return false;
     }
     let id: Int = ToInt(UnwrapOption(id_opt));
-    let required: Bool = JsonObjectBoolFieldEquals(
+    let required: Bool = JsonObjectBoolFieldEqualsWithin(
         json, instruction.start, instruction.end,
         "abi_layout_required", true);
-    let optional: Bool = JsonObjectBoolFieldEquals(
+    let optional: Bool = JsonObjectBoolFieldEqualsWithin(
         json, instruction.start, instruction.end,
         "abi_layout_required", false);
     let row: JsonObjectFactTable = JsonObjectFactObjectTable(
@@ -224,11 +224,11 @@ func MirInstructionAbiLayoutFactReady(
                 !JsonObjectFactHasField(field, "size") ||
                 !JsonObjectFactHasField(field, "align") ||
                 StringLength(MirAbiLayoutStringField(field, "name")) == 0 ||
-                StringLength(MirObjectNumberFact(
+                StringLength(MirObjectNumberFactAtBounds(
                     field.json, field.start, field.end, "offset")) == 0 ||
-                StringLength(MirObjectNumberFact(
+                StringLength(MirObjectNumberFactAtBounds(
                     field.json, field.start, field.end, "size")) == 0 ||
-                StringLength(MirObjectNumberFact(
+                StringLength(MirObjectNumberFactAtBounds(
                     field.json, field.start, field.end, "align")) == 0 {
                 return false;
             }

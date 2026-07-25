@@ -59,7 +59,7 @@ func BlockInstructionBoundsAt(ref index: MirRoutineFactIndex, bs: Int, row: Int,
 }
 
 func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> String {
-    return MirObjectStringFact(json, inst_start, inst_end, "kind");
+    return MirObjectStringFactAtBounds(json, inst_start, inst_end, "kind");
 }
 
 func BlockInstructionOfKindBounds(
@@ -89,7 +89,7 @@ func BlockBounds(ref index: MirRoutineFactIndex, json: String, id: String, inout
     if !MirRoutineFactIndexBlockBounds(index, ToInt(id), o) {
         return false;
     }
-    return MirObjectNumberFact(json, o[0], o[1], "id") == id;
+    return MirObjectNumberFactAtBounds(json, o[0], o[1], "id") == id;
 }
 
 // Branch condition within [bs,be); "" if the block does not end in a branch or
@@ -101,21 +101,24 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
     }
     let kp: Int = inst_bounds[0];
     let inst_end: Int = inst_bounds[1];
-    let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
+    let source_type: String = MirObjectStringFactAtBounds(json, kp, inst_end, "source_type");
     if source_type == "AST_CONTINUE" || source_type == "AST_BREAK" {
         return "";
     }
     if source_type == "AST_MATCH_CASE" {
-        let match_subject: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-        let pattern_count: Int = MirObjectArrayStringFactCount(json, kp, inst_end, "match_patterns");
+        let match_subject: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
+        let patterns: Array<String> = MirObjectArrayStringFactsAtBounds(
+            json, kp, inst_end, "match_patterns"
+        );
+        let pattern_count: Int = ArrayLength(patterns);
         if StringLength(match_subject) == 0 || pattern_count == 0 {
             MirLowerFailClosed("match-case branch is missing MIR subject/pattern facts");
         }
         if pattern_count > 1 {
             MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
         }
-        let pattern: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_patterns", 0);
-        let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
+        let pattern: String = patterns[0];
+        let variant: String = MirObjectStringFactAtBounds(json, kp, inst_end, "match_variant");
         if variant == "Some" {
             return Concat("IsSome(", Concat(match_subject, ")"));
         }
@@ -142,9 +145,9 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
         return Concat(match_subject, Concat(" == ", pattern));
     }
     if source_type == "AST_FOR_LOOP" {
-        let binding: String = MirObjectStringFact(json, kp, inst_end, "arg0");
-        let start: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-        let stop: String = MirObjectStringFact(json, kp, inst_end, "expr1");
+        let binding: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg0");
+        let start: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
+        let stop: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr1");
         if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
             let iter_type: String = MirRoutineFactIndexSourceLocalType(index, start);
             let binding_type: String =
@@ -159,7 +162,7 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
             return header;
         }
     }
-    let cond: String = MirObjectStringFact(json, kp, inst_end, "expr0");
+    let cond: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
     if StringLength(cond) > 0 {
         return cond;
     }
@@ -200,7 +203,7 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
             );
         }
         if ikind == "destructure" {
-            let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
+            let d_expr0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
             ArrayPush(chunks, RenderDestructureFromFacts(
                 json, kp, inst_end, indent, d_expr0));
         }
@@ -210,14 +213,14 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
         // expression `current`) and reopen AST inference during canonicalization.
         if ikind != "branch" && ikind != "loop-init" &&
             ikind != "resource-op" {
-            let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-            let expr1: String = MirObjectStringFact(json, kp, inst_end, "expr1");
-            let arg0: String = MirObjectStringFact(json, kp, inst_end, "arg0");
-            let arg1: String = MirObjectStringFact(json, kp, inst_end, "arg1");
-            let slot_anchor: String = MirObjectStringFact(
+            let expr0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
+            let expr1: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr1");
+            let arg0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg0");
+            let arg1: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg1");
+            let slot_anchor: String = MirObjectStringFactAtBounds(
                 json, kp, inst_end, "slot_anchor"
             );
-            let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
+            let source_type: String = MirObjectStringFactAtBounds(json, kp, inst_end, "source_type");
             let local_type: String = MirDeclaredLocalTypeFact(json, kp, inst_end, ikind, source_type);
             if ikind == "stmt" && source_type == "AST_BIND_STMT" {
                 if arg0 == "" || arg1 == "" || slot_anchor == "" ||
@@ -292,9 +295,9 @@ func BlockHasLoopTransfer(ref index: MirRoutineFactIndex, json: String,
     if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
         return false;
     }
-    let source_type: String = MirObjectStringFact(
+    let source_type: String = MirObjectStringFactAtBounds(
         json, inst_bounds[0], inst_bounds[1], "source_type");
-    let condition: String = MirObjectStringFact(
+    let condition: String = MirObjectStringFactAtBounds(
         json, inst_bounds[0], inst_bounds[1], "expr0");
     return source_type == "AST_BREAK" || source_type == "AST_CONTINUE" ||
         condition == "true";
@@ -456,10 +459,10 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
 }
 
 func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine_end: Int, routine_indent: String, self_type: String, observe_fact_index: Bool) -> String {
-    let name_bounds: Array<Int> = [0, 0];
-    if routine_end <= routine_start || !MirObjectFieldValueBoundsAtBounds(json, routine_start, routine_end, "name", name_bounds) { MirLowerFailClosed("malformed routine name"); }
-    let routine_name_end: Int = name_bounds[1];
     let routine: String = MirObjectStringFactAtBounds(json, routine_start, routine_end, "name");
+    if routine_end <= routine_start || routine == "" {
+        MirLowerFailClosed("malformed routine name");
+    }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, routine_start, routine_end);
     if !index.valid {
         MirLowerFailClosed(Concat(
@@ -497,17 +500,20 @@ func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine
             routine
         ));
     }
-    let header_end: Int = RoutineHeaderEnd(json, routine_name_end, routine_end);
+    if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-validation:done"); }
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+        json, routine_start, routine_end
+    );
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
 
-    let generic_count: Int = RoutineGenericCount(json, routine_start, header_end);
+    let generic_count: Int = ArrayLength(header.generic_names);
     if generic_count > 0 {
         let generic_text: String = "";
         let generic_i: Int = 0;
         while generic_i < generic_count {
-            let generic_name: String = RoutineGenericNameAt(json, routine_start, header_end, generic_i);
+            let generic_name: String = header.generic_names[generic_i];
             if generic_name == "" {
                 MirLowerFailClosed(Concat(
                     "routine generic parameter is missing name fact: ", routine
@@ -527,17 +533,17 @@ func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine
         );
     }
     ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
-    let param_count: Int = RoutineParamCount(json, routine_start, header_end);
+    let param_count: Int = ArrayLength(header.param_names);
     let param_row: Int = 0;
     while param_row < param_count {
-        let pname: String = RoutineParamNameAt(json, routine_start, header_end, param_row);
+        let pname: String = header.param_names[param_row];
         if StringLength(pname) == 0 {
             MirLowerFailClosed(Concat("routine parameter is missing name fact: ", routine));
         }
-        let ptype: String = RoutineParamTypeAt(json, routine_start, header_end, param_row);
-        let carriage: String = RoutineParamCarriageAt(json, routine_start, header_end, param_row);
-        let resource_kind: String = RoutineParamResourceAt(json, routine_start, header_end, param_row);
-        let pass_shape: String = RoutineParamPassAt(json, routine_start, header_end, param_row);
+        let ptype: String = header.param_types[param_row];
+        let carriage: String = header.param_carriages[param_row];
+        let resource_kind: String = header.param_resources[param_row];
+        let pass_shape: String = header.param_pass_shapes[param_row];
         if (carriage != "value" && carriage != "value-result" &&
             carriage != "owner-handle" && carriage != "readonly-ref") ||
             (pass_shape != "direct" && pass_shape != "indirect") ||
@@ -567,17 +573,11 @@ func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine
         param_row = param_row + 1;
     }
 
-    let rtype: String = RoutineReturnType(json, routine_start, header_end);
+    let rtype: String = header.return_type;
     ArrayPush(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     ArrayPush(chunks, Concat(ppad, "Body:\n"));
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
-    let bp: Option<Int> = RoutineBlocksStart(
-        json, routine_name_end, routine_end
-    );
-    if !IsSome(bp) {
-        MirLowerFailClosed(Concat("routine is missing blocks fact: ", routine));
-    }
     let region: String = EmitRegion(index, json, "0", "",
         Concat(item_pad, "  "), "", "");
     if StringLength(region) == 0 {
@@ -587,13 +587,8 @@ func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTreeAtSpan(
-    json: String,
-    routine_start: Int,
-    routine_end: Int,
-    routine_indent: String,
-    observe_fact_index: Bool
-) -> String {
+func EmitRoutineTreeAtSpan(json: String, routine_start: Int, routine_end: Int,
+                           routine_indent: String, observe_fact_index: Bool) -> String {
     return EmitRoutineTreeWithSelfTypeAtSpan(
         json, routine_start, routine_end, routine_indent, "", observe_fact_index
     );
