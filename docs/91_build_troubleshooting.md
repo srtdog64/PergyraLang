@@ -413,6 +413,57 @@ emit gen2 C, compile it, and run the bounded generated-driver parity preflight.
 completed process, byte parity, complete JSON, and observed stage completion;
 it is not a new claim of atomic file-write error reporting.
 
+### Full MIR consumer: low memory, high CPU, repeated `strlen`
+
+The completed 51,807,108-byte artifact exposed a different defect in the
+`--mir-json` consumer. The process stayed between roughly 50 and 64 MB private
+while holding one CPU core, produced no partial C, and timed out before machine
+admission completed. This is not the earlier 3 GiB production-memory defect.
+
+The first consumer implementation used row-index lookups that rebuilt root and
+array tables. Replacing those with a carried `MirProgramRoutineIndex` and
+sequential block/instruction cursors removed the logical O(N-squared) lookup,
+but the generated C still called `strlen(json)` inside every cursor and field
+read. For 2,345 routines, 20,022 blocks, and 34,091 instructions, the three
+cursor calls alone implied about 8.8 TB of avoidable byte walking. Routine
+`kind`/`owner`/`name` reads added further whole-document length discovery.
+
+Checkpoint `e9592a6a` establishes these rules:
+
+- a path input creates one typed machine admission and carries the declaration
+  and routine index used by that proof;
+- exact-bound JSON access is available only for spans produced by a validated
+  structure owner; general JSON callers retain their ordinary length boundary;
+- machine validation uses sequential exact routine/block/instruction bounds,
+  and the old row-index restart calls are statically rejected;
+- declaration phases reuse one document-order declaration inventory;
+- expression-graph node arrays use sequential cursors rather than count/index
+  restarts.
+
+The fixed 300-second observations show the progression:
+
+| label | peak private MB | last stage |
+|---|---:|---|
+| `full-mir-consumer-admitted` | 53.0 | `machine-layer:start` |
+| `full-mir-consumer-bounded-cursor` | 54.8 | `routine-index:start` |
+| `full-mir-consumer-exact-bound` | 59.3 | `routine-index:done`, then `instruction-scan:start` |
+| `full-mir-consumer-machine-twofield` | 63.6 | `instruction-scan:start` |
+
+The final row is still RED: combining `machine_contact_kind` and
+`machine_layer` into one exact object pass did not finish all 34,091
+instructions within 300 seconds. Do not report gen2 or bootstrap completion,
+raise the timeout as a substitute for ownership work, skip machine validation,
+or add a C/LLVM-specific parser. The next falsifier is
+`consumer:input:machine-layer:instruction-scan:done`; profile bounded key
+decode/allocation first, then decide between allocation-free key comparison and
+a writer-owned machine-fact inventory.
+
+Two broad gates currently stop later for unrelated existing reasons. The
+machine smoke reaches MIR lowering and then reports `local declaration is
+missing its MIR ABI type fact`. The full MIR JSON parity expects enum variants
+without the current `param_types:[]` field. Preserve both as explicit red
+evidence rather than calling this consumer slice fully green.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

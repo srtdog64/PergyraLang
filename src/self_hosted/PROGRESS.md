@@ -33,6 +33,35 @@ executable rung consumes this exact artifact to emit and compile gen2, then
 checks the bounded gen2/gen1 parity fixture without reopening a native fact
 owner.
 
+2026-07-25 admitted MIR consumer scan closure (`e9592a6a`). The path-based
+consumer now validates machine-layer facts once and carries the admitted JSON,
+the exact machine declaration, and one `MirProgramRoutineIndex` through the
+lowering boundary. `EmitMirProgramTreeFromRoutineIndex` reuses that index;
+raw-text compatibility entrypoints perform their own one admission and then
+enter the same core. The old second machine validation is statically rejected.
+
+The first 51,807,108-byte consumer attempts exposed CPU rescan debt rather
+than memory pressure. `JsonArrayNextObjectBounds`, whitespace, object-end, and
+routine identity reads repeatedly rediscovered the full JSON length; generated
+C lowered each `StringLength(json)` to `strlen`. The structural cursor alone
+performed at least 56,458 rows and roughly 8.8 TB of avoidable length walking.
+Exact-bound JSON fact reads now consume only structure-owner `[start,end)`
+spans. Routine and declaration inventories are built once, canonical
+declaration phases reuse the inventory, and expression-graph node arrays use
+sequential bounds instead of indexed restart scans.
+
+The improvement is executable but gen2 is not complete. Under the unchanged
+3072 MB cap, `full-mir-consumer-exact-bound` reached
+`machine-layer:routine-index:done` for the first time and stopped at
+`instruction-scan:start` after 300,145 ms with 59.3 MB peak private.
+`full-mir-consumer-machine-twofield` combined the two instruction machine
+fields into one bounded object pass, but still timed out at the same marker
+after 300,552 ms with 63.6 MB peak private. No partial gen2 C was opened. The
+next active executable seam is the remaining per-instruction JSON key decode
+and allocation cost; it must become a bounded key comparison or a writer-owned
+machine fact inventory without skipping machine validation or adding another
+backend-specific JSON authority.
+
 2026-07-25 initializer environment cursor executable rung (`ffe31ce8`).
 `ast_initializer_environment_cursor_owner.pgy` now keeps one function base
 environment and one active lexical-local suffix while initializer rows advance
