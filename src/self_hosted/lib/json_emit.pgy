@@ -1,7 +1,9 @@
 // Shared JSON emission primitives for self-hosted fact-shaped tools.
 
-func JsonEscapeString(value: String) -> String {
-    let output_allocator: Allocator = AllocatorResult();
+func JsonEscapeStringWithAllocator(
+    value: String,
+    result_allocator: Allocator
+) -> String {
     let output: TextBuilder = TextBuilderNew(StringLength(value) + 1);
     let i: Int = 0;
     let n: Int = StringLength(value);
@@ -35,21 +37,63 @@ func JsonEscapeString(value: String) -> String {
             output, Substring(value, span_start, n - span_start)
         );
     }
-    let escaped_value: String = TextBuilderFinish(output, output_allocator);
-    AllocatorDestroy(output_allocator);
+    let escaped_value: String = TextBuilderFinish(
+        output, result_allocator
+    );
     return escaped_value;
 }
 
-func JsonStringLiteral(value: String) -> String {
-    let escaped: String = JsonEscapeString(value);
-    let output_allocator: Allocator = AllocatorResult();
+func JsonEscapeString(value: String) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let escaped: String = JsonEscapeStringWithAllocator(
+        value, result_allocator
+    );
+    AllocatorDestroy(result_allocator);
+    return escaped;
+}
+
+func JsonStringLiteralWithAllocator(
+    value: String,
+    result_allocator: Allocator
+) -> String {
+    let escaped: String = JsonEscapeStringWithAllocator(
+        value, result_allocator
+    );
     let output: TextBuilder = TextBuilderNew(StringLength(escaped) + 3);
     TextBuilderAppend(output, "\"");
     TextBuilderAppend(output, escaped);
     TextBuilderAppend(output, "\"");
-    let literal: String = TextBuilderFinish(output, output_allocator);
-    AllocatorDestroy(output_allocator);
+    let literal: String = TextBuilderFinish(output, result_allocator);
     return literal;
+}
+
+func JsonStringLiteral(value: String) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let literal: String = JsonStringLiteralWithAllocator(
+        value, result_allocator
+    );
+    AllocatorDestroy(result_allocator);
+    return literal;
+}
+
+// FileWrite is synchronous on both native backends.  Keep the escaped and
+// quoted transient bytes in one call-local pool and release them only after
+// the write returns; production artifact writers must not retain the result.
+func JsonStringLiteralWriteFile(
+    output: Int,
+    value: String
+) -> Bool {
+    let value_length: Int = StringLength(value);
+    if value_length < 0 || value_length > 536870909 { return false; }
+    let transient_allocator: Allocator = AllocatorPool(
+        value_length * 4 + 8
+    );
+    let literal: String = JsonStringLiteralWithAllocator(
+        value, transient_allocator
+    );
+    FileWrite(output, literal);
+    AllocatorDestroy(transient_allocator);
+    return true;
 }
 
 func JsonEmitCollection(

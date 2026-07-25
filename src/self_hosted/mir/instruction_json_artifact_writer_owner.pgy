@@ -8,6 +8,17 @@
 
 import "json_projection_owner.pgy";
 
+func SelfMirJsonOptionalStringWriteFile(
+    output: Int,
+    value: String
+) -> Bool {
+    if value == "" {
+        FileWrite(output, "null");
+        return true;
+    }
+    return JsonStringLiteralWriteFile(output, value);
+}
+
 func SelfMirJsonExpressionGraphWriteFile(
     rows: SelfMirExpressionGraphRows,
     instruction_index: Int,
@@ -66,21 +77,23 @@ func SelfMirJsonExpressionGraphWriteFile(
 
         if i > 0 { FileWrite(output, ","); }
         FileWrite(output, "{\"kind\":");
-        FileWrite(output, JsonStringLiteral(
+        if !JsonStringLiteralWriteFile(output,
             SelfMirExpressionGraphKindName(kind)
-        ));
+        ) { return false; }
         FileWrite(output, ",\"text\":");
-        FileWrite(output, JsonStringLiteral(UnwrapOption(text_opt)));
+        if !JsonStringLiteralWriteFile(
+            output, UnwrapOption(text_opt)
+        ) { return false; }
         FileWrite(output, ",\"call_target_kind\":");
-        FileWrite(output, JsonStringLiteral(
+        if !JsonStringLiteralWriteFile(output,
             SelfMirExpressionCallTargetKindName(
                 UnwrapOption(call_target_kind_opt)
             )
-        ));
+        ) { return false; }
         FileWrite(output, ",\"call_target_name\":");
-        FileWrite(output, JsonStringLiteral(
+        if !JsonStringLiteralWriteFile(output,
             UnwrapOption(call_target_name_opt)
-        ));
+        ) { return false; }
         FileWrite(output, ",\"left\":");
         if arity == 0 {
             FileWrite(output, "null");
@@ -104,7 +117,7 @@ func SelfMirJsonMatchFieldsWriteFile(
     rows: SelfMirInstructionRows,
     instruction_index: Int,
     output: Int
-) -> Void {
+) -> Bool {
     let fact_index: Option<Int> = SelfMirMatchFactIndexForInstruction(
         rows.match_facts, instruction_index
     );
@@ -114,18 +127,20 @@ func SelfMirJsonMatchFieldsWriteFile(
         let pattern_i: Int = 0;
         while pattern_i < rows.match_facts.pattern_counts[row] {
             if pattern_i > 0 { FileWrite(output, ","); }
-            FileWrite(output, JsonStringLiteral(rows.match_facts.patterns[
+            if !JsonStringLiteralWriteFile(
+                output, rows.match_facts.patterns[
                 rows.match_facts.pattern_starts[row] + pattern_i
-            ]));
+                ]
+            ) { return false; }
             pattern_i = pattern_i + 1;
         }
     }
     FileWrite(output, "],\"match_variant\":");
     if IsSome(fact_index) &&
         rows.match_facts.variants[UnwrapOption(fact_index)] != "" {
-        FileWrite(output, JsonStringLiteral(
-            rows.match_facts.variants[UnwrapOption(fact_index)]
-        ));
+        if !JsonStringLiteralWriteFile(
+            output, rows.match_facts.variants[UnwrapOption(fact_index)]
+        ) { return false; }
     } else {
         FileWrite(output, "null");
     }
@@ -135,9 +150,11 @@ func SelfMirJsonMatchFieldsWriteFile(
         let binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
             if binding_i > 0 { FileWrite(output, ","); }
-            FileWrite(output, JsonStringLiteral(rows.match_facts.bindings[
-                rows.match_facts.binding_starts[row] + binding_i
-            ]));
+            if !JsonStringLiteralWriteFile(
+                output, rows.match_facts.bindings[
+                    rows.match_facts.binding_starts[row] + binding_i
+                ]
+            ) { return false; }
             binding_i = binding_i + 1;
         }
     }
@@ -147,30 +164,31 @@ func SelfMirJsonMatchFieldsWriteFile(
         let binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
             if binding_i > 0 { FileWrite(output, ","); }
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.match_facts.binding_types[
                     rows.match_facts.binding_starts[row] + binding_i
                 ]
-            ));
+            ) { return false; }
             binding_i = binding_i + 1;
         }
     }
     FileWrite(output, "]");
+    return true;
 }
 
 func SelfMirJsonDestructureFieldsWriteFile(
     rows: SelfMirInstructionRows,
     instruction_index: Int,
     output: Int
-) -> Void {
+) -> Bool {
     let fact_index: Option<Int> = SelfMirDestructureFactIndexForInstruction(
         rows.destructure_facts, instruction_index
     );
     FileWrite(output, ",\"destructure_element_type\":");
     if IsSome(fact_index) {
-        FileWrite(output, JsonStringLiteral(
+        if !JsonStringLiteralWriteFile(output,
             rows.destructure_facts.element_types[UnwrapOption(fact_index)]
-        ));
+        ) { return false; }
     } else {
         FileWrite(output, "null");
     }
@@ -180,69 +198,71 @@ func SelfMirJsonDestructureFieldsWriteFile(
         let binding_i: Int = 0;
         while binding_i < rows.destructure_facts.binding_counts[row] {
             if binding_i > 0 { FileWrite(output, ","); }
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.destructure_facts.bindings[
                     rows.destructure_facts.binding_starts[row] + binding_i
                 ]
-            ));
+            ) { return false; }
             binding_i = binding_i + 1;
         }
     }
     FileWrite(output, "]");
+    return true;
 }
 
 func SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
     rows: SelfMirInstructionRows,
     instruction_index: Int,
     output: Int
-) -> Void {
-    if rows.runtime_call_abi.present[instruction_index] != 1 { return; }
+) -> Bool {
+    if rows.runtime_call_abi.present[instruction_index] != 1 { return true; }
     FileWrite(output,
         ",\"runtime_call_abi_required\":true,\"runtime_call_abi\":{");
     FileWrite(output, "\"owner\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.owners[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"id\":");
     FileWrite(output, ToString(
         rows.runtime_call_abi.runtime_call_abi_ids[instruction_index]
     ));
     FileWrite(output, ",\"domain\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.domains[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"type\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.type_names[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"operation\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.operations[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"symbol\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.symbols[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"target_kind\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.target_kinds[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"materialization\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.materializations[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, ",\"call_shape\":");
-    FileWrite(output, JsonStringLiteral(
+    if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.call_shapes[instruction_index]
-    ));
+    ) { return false; }
     FileWrite(output, "}");
+    return true;
 }
 
 func SelfMirJsonRuntimeCallAbiAuxWriteFile(
     rows: SelfMirInstructionRows,
     instruction_index: Int,
     output: Int
-) -> Void {
+) -> Bool {
     let wrote: Bool = false;
     let i: Int = 0;
     while i < ArrayLength(rows.runtime_call_abi.aux_instruction_indices) {
@@ -255,46 +275,47 @@ func SelfMirJsonRuntimeCallAbiAuxWriteFile(
                 FileWrite(output, ",");
             }
             FileWrite(output, "{\"owner\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_owners[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"id\":");
             FileWrite(output, ToString(
                 rows.runtime_call_abi.aux_runtime_call_abi_ids[i]
             ));
             FileWrite(output, ",\"domain\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_domains[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"type\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_type_names[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"operation\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_operations[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"symbol\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_symbols[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"target_kind\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_target_kinds[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"materialization\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_materializations[i]
-            ));
+            ) { return false; }
             FileWrite(output, ",\"call_shape\":");
-            FileWrite(output, JsonStringLiteral(
+            if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_call_shapes[i]
-            ));
+            ) { return false; }
             FileWrite(output, "}");
         }
         i = i + 1;
     }
     if wrote { FileWrite(output, "]"); }
+    return true;
 }
 
 func SelfMirJsonInstructionWriteFile(
@@ -331,29 +352,33 @@ func SelfMirJsonInstructionWriteFile(
     FileWrite(output, "{\"id\":");
     FileWrite(output, ToString(rows.ids[instruction_index]));
     FileWrite(output, ",\"kind\":");
-    FileWrite(output, JsonStringLiteral(rows.kinds[instruction_index]));
+    if !JsonStringLiteralWriteFile(
+        output, rows.kinds[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"name\":");
-    FileWrite(output, JsonStringLiteral(rows.names[instruction_index]));
+    if !JsonStringLiteralWriteFile(
+        output, rows.names[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"result\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.results[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.results[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"arg0\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.arg0s[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.arg0s[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"arg1\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.arg1s[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.arg1s[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"slot_anchor\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.slot_anchors[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.slot_anchors[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"abi_type_name\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(abi_type_name)
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, abi_type_name
+    ) { return false; }
     FileWrite(output, ",\"abi_layout_id\":");
     FileWrite(output, SelfMirJsonAbiLayoutId(abi_layout));
     FileWrite(output, ",\"abi_layout_required\":");
@@ -369,47 +394,53 @@ func SelfMirJsonInstructionWriteFile(
         FileWrite(output, "null");
     }
     FileWrite(output, ",\"expr0\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.expr0s[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.expr0s[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"expr0_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr0_graphs, instruction_index, output
     ) { return false; }
     FileWrite(output, ",\"expr1\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.expr1s[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.expr1s[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"expr1_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr1_graphs, instruction_index, output
     ) { return false; }
     FileWrite(output, ",\"source_type\":");
-    FileWrite(output, SelfMirJsonOptionalString(
-        SelfMirOptionalString(rows.source_types[instruction_index])
-    ));
+    if !SelfMirJsonOptionalStringWriteFile(
+        output, rows.source_types[instruction_index]
+    ) { return false; }
     FileWrite(output, ",\"machine_contact_kind\":");
-    FileWrite(output, JsonStringLiteral(machine.contact_kind));
+    if !JsonStringLiteralWriteFile(
+        output, machine.contact_kind
+    ) { return false; }
     FileWrite(output, ",\"machine_layer\":");
     FileWrite(output, SelfMirJsonMachineLayer(machine));
-    SelfMirJsonMatchFieldsWriteFile(rows, instruction_index, output);
-    SelfMirJsonDestructureFieldsWriteFile(rows, instruction_index, output);
+    if !SelfMirJsonMatchFieldsWriteFile(
+        rows, instruction_index, output
+    ) { return false; }
+    if !SelfMirJsonDestructureFieldsWriteFile(
+        rows, instruction_index, output
+    ) { return false; }
     FileWrite(output, ",\"uses\":[");
     let use_i: Int = 0;
     while use_i < rows.use_counts[instruction_index] {
         if use_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, JsonStringLiteral(
+        if !JsonStringLiteralWriteFile(output,
             rows.uses[rows.use_starts[instruction_index] + use_i]
-        ));
+        ) { return false; }
         use_i = use_i + 1;
     }
     FileWrite(output, "]");
-    SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
+    if !SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
         rows, instruction_index, output
-    );
-    SelfMirJsonRuntimeCallAbiAuxWriteFile(
+    ) { return false; }
+    if !SelfMirJsonRuntimeCallAbiAuxWriteFile(
         rows, instruction_index, output
-    );
+    ) { return false; }
     FileWrite(output, "}");
     return true;
 }

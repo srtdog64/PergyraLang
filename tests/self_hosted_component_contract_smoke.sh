@@ -520,6 +520,16 @@ reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'JsonEmitFieldRaw("expr0_graph"'
 reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'JsonEmitFieldRaw("expr1_graph"'
+require_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonStringLiteralWriteFile('
+require_text "src/self_hosted/lib/json_emit.pgy" \
+    'let transient_allocator: Allocator = AllocatorPool('
+require_text "src/self_hosted/lib/json_emit.pgy" \
+    'AllocatorDestroy(transient_allocator);'
+require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'JsonStringLiteralWriteFile('
+reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'FileWrite(output, JsonStringLiteral('
 require_file "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy"
 require_file "tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh"
 require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
