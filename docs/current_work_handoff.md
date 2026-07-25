@@ -8,19 +8,17 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint combines `3f2b9bba` (`Unify foreach
-  synthetic roots with program graph`) and `14c1683b` (`Remove assignment
-  target text duplicate`) on `main`. The former closes the executable foreach
-  graph split; the latter removes the derived
-  `SemanticAstAssignmentTypeFacts.target_texts` row and routes codegen
-  readiness through parser/assignment-owned
-  `SemanticAstAssignmentFacts.target_texts`.
-- `938a5886` closes the initializer-text duplication seam, while `645d9f2c`
-  closes the reachable artifact-owned callable-table String lifetime through
-  self-hosted codegen. Ordinary `Array<String>` remains on the beta no-free
-  policy; only explicitly owned rows use the release contract.
-- Prior graph checkpoint: `9f207fdc` (`Share artifact callable table across
-  capture and body`), following `6433659b` (`Share callable table with
+- Active implementation checkpoint is `ca35a157` (`Close semantic expression
+  scratch lifetime`) on `main`. It follows `0eec8b45` (`Route MIR enum facts
+  through semantic owner`), `3f2b9bba` (`Unify foreach synthetic roots with
+  program graph`), and `14c1683b` (`Remove assignment target text duplicate`).
+  Expression-environment producers now share the owned-string contract,
+  production consumers release scratch at their last use, and persisted result
+  strings are copied before release. MIR declaration projection consumes the
+  artifact-owned `analysis.enums` fact; the AST enum rescan is negative-gated.
+  Ordinary `Array<String>` remains on the beta no-free policy.
+- Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
+  across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
   specialization`), `a1d508a0` (`Share callable table across assignment and
   statement passes`), `fa2d8383` (`Route call targets through shared callable
@@ -366,6 +364,18 @@ processes were gone after completion. This is a red compiler-process
 retention observation, not system-wide free-memory exhaustion; the `3072 MB`
 cap remains closed.
 
+The completed baseline pressure for source checkpoint `0eec8b45` used isolated
+`pressure_build_0ee`, `pressure_bin_0ee`, `pressure_codegen_0ee`, and
+`pressure_driver_0ee` paths. The pressure owner recorded `exit_code=-1` after
+`670952 ms`, `peak_working_set_mb=2531.8`, `peak_private_mb=3079.8`,
+`top_private_process=driver_oracle.exe`, `top_private_mb=3068.8`, and
+`peak_processes=3` against the unchanged `3072 MB` ceiling. It reported
+`limit_exceeded=true`; phase private peaks were orchestrate `3079.805 MB`,
+compile `1242.059 MB`, and link `490.325 MB`. The outer make target returned
+`RC=1` / `Error 88`. No pressure-owned compiler process remained after
+completion. This is the final `0eec8b45` baseline only; the user-owned
+`ca35a157` fixed pressure on `main` was intentionally not started here.
+
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
 current correctness bridge and an explicit performance falsifier; it must be
@@ -414,6 +424,20 @@ Green on the graph handle commit slice:
   `peak_working_set_mb=2551.9`, and `top_private_mb=3079.8` at the unchanged
   `3072 MB` limit. Phase private peaks were orchestrate `3090.875 MB`, compile
   `1245.180 MB`, and link `488.848 MB`.
+- `0eec8b45` semantic enum lifetime owner smoke, callable-table owner smoke,
+  build-pressure contract, program-graph unification, MIR graph projection,
+  and `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
+- The `0eec8b45` baseline full-driver pressure gate is red:
+  `exit_code=-1`, outer make `RC=1` / `Error 88`, `elapsed_ms=670952`,
+  `peak_private_mb=3079.8`, `peak_working_set_mb=2531.8`, and
+  `top_private_mb=3068.8` at the unchanged `3072 MB` limit. The fixed
+  `ca35a157` pressure run is owned by the user on `main` and is not claimed
+  here.
+- `make self-host-preparation-contract-test-smoke` reached the component and
+  substrate contracts, but the existing hard contract failed because
+  `src/self_hosted/compiler/driver_rung2_owner.pgy` is missing
+  `tests/cases/backend_compare/device_slot_machine_layer/main.pgy`; this is
+  recorded as a baseline contract mismatch, not as a green gate.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -523,32 +547,35 @@ earlier moving-tree attempts.
 ## Exact remaining dirty state after the handoff snapshot
 
 The main source graph contains the foreach program-graph checkpoint
-`3f2b9bba`, semantic-lifetime checkpoint `4403ee25`, completed pressure
-observation `e987d15c`, and MIR enum-owner closure `0eec8b45`. The semantic
-environment, callable table, initializer/assignment projections, foreach
-topology, and MIR enum consumer therefore share the same Git ancestry. The
-following concurrent changes remain dirty in `main` and are intentionally
-excluded; preserve them and re-check ownership before the next unit:
+`3f2b9bba`, semantic-lifetime checkpoint `4403ee25`, pressure observations
+`e987d15c` and `35e3106c`, MIR enum-owner closure `0eec8b45`, and scratch
+lifetime closure `ca35a157`. The semantic environment, callable table,
+initializer/assignment projections, foreach topology, and MIR enum consumer
+therefore share one Git ancestry. The following concurrent changes remain
+dirty in `main` and are intentionally excluded; preserve them and re-check
+ownership before the next unit:
 
+- `docs/91_build_troubleshooting.md`;
+- `src/self_hosted/PROGRESS.md`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-The delegated `semantic_lifetime` worktree is running an exclusive pressure
-measurement for `0eec8b45`. Do not remove that worktree or branch until the
-run finishes, its result is integrated, and ancestry/process checks pass.
+The delegated `semantic_lifetime` pressure finished, its result is integrated,
+and its pressure-owned processes ended. Remove that clean worktree and merged
+branch only after its Codex task has stopped and the ancestry check passes.
 
 ## Next executable work
 
-1. Keep the callable-table, program-graph, and MIR enum-owner ratchets closed.
-   Do not restore a semantic/MIR topology builder, released callable-table
-   read, AST enum rescan, or treat file layout as graph authority.
-2. Finish the active expression-environment owned-lifetime slice, including
-   the C/LLVM initializer/member-call regression and its negative gate. Then
-   integrate the exclusive `0eec8b45` pressure result without raising the
+1. Run the official initializer/member-call C/LLVM parity and then the
+   exclusive fixed pressure on exact checkpoint `ca35a157`. Compare against
+   the `0eec8b45` baseline (`peak_private_mb=3079.8 MB`) without raising the
    `3072 MB` cap.
-3. The exclusive official full bootstrap was run with PowerShell discoverable;
-   it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
+2. Keep the callable-table, program-graph, MIR enum-owner, and scratch-lifetime
+   ratchets closed. Do not restore a topology builder, released fact read, AST
+   enum rescan, ordinary push into owned scratch, or file-layout authority.
+3. The `0eec8b45` exclusive full bootstrap was run with PowerShell discoverable;
+   it is red at the 3GiB pressure ceiling (`peak_private_mb=3079.8`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
 4. Close the measured whole-program semantic lifetime boundary. The
