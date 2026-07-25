@@ -460,6 +460,44 @@ validation, or add a C/LLVM-specific parser. The next falsifier is
 `consumer:mir-to-ast:done` using the same admitted routine and declaration
 inventories.
 
+#### Exact MIR-to-AST span consumption result
+
+Checkpoint `157c340b` carries the admitted structure spans into the first real
+MIR-to-AST consumers instead of reopening document-wide discovery. The owner
+changes are deliberately one-way:
+
+- declaration fields take their array bounds once and advance with
+  `JsonArrayNextObjectBounds`;
+- method lookup returns the routine-index row, so class, role, and top-level
+  callers all pass the indexed routine start and end;
+- the old `RoutineObjectEnd`, `RoutineNameEnd`, and document-end fallback are
+  deleted and statically rejected;
+- routine iteration/resource/loop/CFG/local facts use only exact `AtBounds` or
+  `Within` reads over structure-owner spans.
+
+The 142 declarations contain 1,110 fields. The retired indexed field loop made
+9,902 object visits including terminal checks and, through its generic JSON
+path, at least 47,290 whole-document `strlen` calls: 2,449,958,137,320 bytes of
+logical walking. `full-mir-consumer-exact-span` then reached the new
+`consumer:mir-to-ast:declarations:done` marker before its 300-second timeout;
+peak private was 58.0 MB and peak working set was 70.7 MB.
+
+The next exact routine-fact bundle removes the generic block successor,
+instruction-array, and instruction-kind reads. On 20,022 blocks and 34,091
+instructions, those retired paths represented a measured lower bound of about
+118.9 TB more whole-document walking. The successor run
+`full-mir-consumer-routine-fact-exact` reached
+`consumer:mir-to-ast:first-top-level-routine-fact-index:done`, timed out after
+300,425 ms, and remained at 58.0 MB peak private / 70.8 MB peak working set.
+No gen2 C file was opened. A bounded MIR fixture still emits the prior exact
+414 bytes (SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`).
+
+This is still RED bootstrap evidence: the active seam is after the first valid
+top-level routine index and before `top-level-routines:done`. Keep the 300
+second diagnostic window and 3072 MB cap fixed. Do not replace the remaining
+reads with another parsed document, backend-specific path, or source recovery.
+
 Two broad gates currently stop later for unrelated existing reasons. The
 machine smoke reaches MIR lowering and then reports `local declaration is
 missing its MIR ABI type fact`. The full MIR JSON parity expects enum variants

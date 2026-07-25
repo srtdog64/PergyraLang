@@ -62,6 +62,28 @@ partial gen2 C was opened. The machine admission CPU seam is closed; the next
 active executable seam is the MIR-to-AST lowering pass reached by that same
 admitted artifact.
 
+2026-07-25 MIR-to-AST exact-span executable closure (`157c340b`). The admitted
+declaration and routine inventories now keep their exact object ends through
+declaration emission, method lookup, top-level routine lowering, and the
+per-routine fact bundle. `EmitDeclFields` walks the owned field array with one
+forward cursor instead of restarting at row zero, and routine lowering can no
+longer rediscover an object end or fall back to the document end. Iteration,
+resource-flow, loop-flow, block, instruction, and local fact reads consume the
+same validated `[start,end)` spans through bounded accessors. Static gates
+reject the retired generic reads in these owners.
+
+The first fixed-window run, `full-mir-consumer-exact-span`, reached
+`consumer:mir-to-ast:declarations:done`; the field-array change removed a
+measured lower bound of 47,290 whole-document `strlen` calls, about 2.45 TB of
+logical byte walking. The successor `full-mir-consumer-routine-fact-exact`
+also reached `consumer:mir-to-ast:first-top-level-routine-fact-index:done`.
+It removed at least another 118.9 TB of logical whole-document walking from
+block successor/instruction-array and instruction-kind reads. Both runs timed
+out at 300 seconds with 58.0 MB peak private, not memory pressure, and neither
+opened a partial gen2 C output. The bounded MIR consumer still emits the same
+414 bytes as the prior driver. The active CPU seam is now after the first valid
+routine fact index and before all top-level routines return.
+
 2026-07-25 initializer environment cursor executable rung (`ffe31ce8`).
 `ast_initializer_environment_cursor_owner.pgy` now keeps one function base
 environment and one active lexical-local suffix while initializer rows advance

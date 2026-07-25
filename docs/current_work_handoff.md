@@ -8,9 +8,9 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `0857899e` (`avoid-admitted-MIR-key-allocations`)
-  on `main`. Its typed-admission predecessor is `e9592a6a`; the complete
-  artifact predecessor is `6329356f`
+- Implementation checkpoint: `157c340b` (`bound MIR-to-AST fact scans`) on
+  `main`. Its machine-admission predecessor is `0857899e`, its typed-admission
+  predecessor is `e9592a6a`, and the complete artifact predecessor is `6329356f`
   (`bound-mir-json-string-leaf-lifetime`).
 - The verified driver now proves semantic readiness once and enters
   `SelfMirProgramFactsFromReadyArtifact`; the independently callable checked
@@ -100,6 +100,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-exact-bound` | 59.3 MB | 72.0 MB | Reached `routine-index:done`; timed out after `instruction-scan:start`. |
 | `full-mir-consumer-machine-twofield` | 63.6 MB | 76.0 MB | One-pass two-field instruction read; still timed out after `instruction-scan:start`. |
 | `full-mir-consumer-key-compare` | 57.1 MB | 69.9 MB | Machine/input admission completed; timed out after `mir-to-ast:start`. |
+| `full-mir-consumer-exact-span` | 58.0 MB | 70.7 MB | Declaration fields and routine ends consume carried spans; reached `declarations:done`. |
+| `full-mir-consumer-routine-fact-exact` | 58.0 MB | 70.8 MB | Routine fact bundle consumes exact spans; reached `first-top-level-routine-fact-index:done`. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -125,8 +127,10 @@ routine/block/instruction row, implying about 8.8 TB of avoidable length
 walking before field reads. Exact-bound readers removed that debt and reached
 `routine-index:done` for the first time. Allocation-free normal-key comparison
 then completed the instruction scan, machine admission, and input boundary.
-The active cost has moved to MIR-to-AST lowering. No run opened or produced a
-partial gen2 C artifact.
+`157c340b` next removed about 2.45 TB of logical declaration-field walking and
+at least 118.9 TB from the routine fact prefix. The active cost is now after
+the first valid top-level routine index and before all top-level routines
+return. No run opened or produced a partial gen2 C artifact.
 
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
@@ -146,11 +150,13 @@ executable slice is active.
 
 ## Last observed gates
 
-Green on `0857899e` plus the documented working measurement:
+Green on `157c340b` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`consumer-key-compare-driver-build`): exit 0, 2,437.2 MB peak private;
+  owner (`routine-fact-exact-driver-build`): exit 0, 2,429.3 MB peak private;
+- bounded MIR consumer byte check: 414 bytes, SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
   clean plus malformed/missing manifest negatives);
 - `tests/self_hosted/parity/air_graph_json_validator_parity.sh` (C/LLVM,
@@ -187,16 +193,18 @@ input. Pressure evidence remains under
 `.tmp/build-pressure/instruction-stream-ready.*` and
 `.tmp/build-pressure/instruction-string-pool-ready.*`. Consumer progression is
 captured by `full-mir-consumer-admitted.*`,
-`full-mir-consumer-exact-bound.*`, and
-`full-mir-consumer-machine-twofield.*`, and
-`full-mir-consumer-key-compare.*`. These files are diagnostic evidence
+`full-mir-consumer-exact-bound.*`,
+`full-mir-consumer-machine-twofield.*`,
+`full-mir-consumer-key-compare.*`, `full-mir-consumer-exact-span.*`, and
+`full-mir-consumer-routine-fact-exact.*`. These files are diagnostic evidence
 only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile `EmitMirProgramTreeFromRoutineIndex` and close its first remaining
-   indexed or unbounded JSON fact read. Reuse the admitted routine and
-   declaration inventories; do not create a second document authority.
+1. Profile the post-index validation/rendering path after
+   `first-top-level-routine-fact-index:done` and close its first remaining
+   indexed or unbounded JSON fact read. Reuse the admitted routine index and
+   per-routine fact index; do not create a second document authority.
 2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
    under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
