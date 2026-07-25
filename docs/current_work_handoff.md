@@ -8,15 +8,17 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint: `14c1683b` (`Remove assignment target text
-  duplicate`) on the isolated branch
-  `codex/semantic-environment-owned-lifetime`. It removes the derived
-  `SemanticAstAssignmentTypeFacts.target_texts` row and routes the codegen
-  readiness check through the parser/assignment-owned
-  `SemanticAstAssignmentFacts.target_texts` row. The preceding `938a5886`
-  slice closes the initializer-text duplication seam, while `645d9f2c` closes
-  the reachable artifact-owned callable table lifetime path through self-hosted
-  codegen; ordinary `Array<String>` remains on the beta no-free policy.
+- Active implementation checkpoint: `0eec8b45` (`Route MIR enum facts through
+  semantic owner`) on the isolated branch
+  `codex/semantic-environment-owned-lifetime`. MIR declaration projection now
+  consumes the artifact-owned `analysis.enums` fact, and the former AST enum
+  rescan is rejected by an executable negative ratchet. This checkpoint is
+  already merged into `main`; `main` subsequently contains the user-owned
+  `ca35a157` scratch-lifetime fix. The preceding `14c1683b` slice removes the
+  derived `SemanticAstAssignmentTypeFacts.target_texts` row and routes codegen
+  readiness through the parser/assignment-owned
+  `SemanticAstAssignmentFacts.target_texts` row. Ordinary `Array<String>`
+  remains on the beta no-free policy.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -351,6 +353,18 @@ processes were gone after completion. This is a red compiler-process
 retention observation, not system-wide free-memory exhaustion; the `3072 MB`
 cap remains closed.
 
+The completed baseline pressure for source checkpoint `0eec8b45` used isolated
+`pressure_build_0ee`, `pressure_bin_0ee`, `pressure_codegen_0ee`, and
+`pressure_driver_0ee` paths. The pressure owner recorded `exit_code=-1` after
+`670952 ms`, `peak_working_set_mb=2531.8`, `peak_private_mb=3079.8`,
+`top_private_process=driver_oracle.exe`, `top_private_mb=3068.8`, and
+`peak_processes=3` against the unchanged `3072 MB` ceiling. It reported
+`limit_exceeded=true`; phase private peaks were orchestrate `3079.805 MB`,
+compile `1242.059 MB`, and link `490.325 MB`. The outer make target returned
+`RC=1` / `Error 88`. No pressure-owned compiler process remained after
+completion. This is the final `0eec8b45` baseline only; the user-owned
+`ca35a157` fixed pressure on `main` was intentionally not started here.
+
 Until a real revision identity lands, foreign MIR graph rejection uses
 `SemanticExpressionGraphFactsEqual`, a whole-graph comparison. That is the
 current correctness bridge and an explicit performance falsifier; it must be
@@ -399,6 +413,20 @@ Green on the graph handle commit slice:
   `peak_working_set_mb=2551.9`, and `top_private_mb=3079.8` at the unchanged
   `3072 MB` limit. Phase private peaks were orchestrate `3090.875 MB`, compile
   `1245.180 MB`, and link `488.848 MB`.
+- `0eec8b45` semantic enum lifetime owner smoke, callable-table owner smoke,
+  build-pressure contract, program-graph unification, MIR graph projection,
+  and `make -j2 self-host-codegen-bootstrap-seed-test-smoke` passed.
+- The `0eec8b45` baseline full-driver pressure gate is red:
+  `exit_code=-1`, outer make `RC=1` / `Error 88`, `elapsed_ms=670952`,
+  `peak_private_mb=3079.8`, `peak_working_set_mb=2531.8`, and
+  `top_private_mb=3068.8` at the unchanged `3072 MB` limit. The fixed
+  `ca35a157` pressure run is owned by the user on `main` and is not claimed
+  here.
+- `make self-host-preparation-contract-test-smoke` reached the component and
+  substrate contracts, but the existing hard contract failed because
+  `src/self_hosted/compiler/driver_rung2_owner.pgy` is missing
+  `tests/cases/backend_compare/device_slot_machine_layer/main.pgy`; this is
+  recorded as a baseline contract mismatch, not as a green gate.
 
 - `tests/self_hosted/parity/semantic_function_table_owner_smoke.sh` after
   adding the match-binding and expression-place consumers;
@@ -507,14 +535,16 @@ attributable evidence for the callable-table slices.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-At isolated HEAD `4403ee25`, the semantic environment, callable-table,
-initializer-text, and assignment-target-text lifetime slices are clean and
-pushed on `codex/semantic-environment-owned-lifetime`; the completed pressure
-run created no new source commit. `main` and `origin/main` are aligned at
-`40ce750e` after the delegated merge of `4403ee25`. The following concurrent
+At isolated HEAD `0eec8b45`, the semantic environment and MIR enum owner
+closure are clean and pushed on `codex/semantic-environment-owned-lifetime`;
+the completed baseline pressure created no new source commit. `main` and
+`origin/main` are aligned at `ca35a157`, with the delegated `0eec8b45` merge
+and the user-owned scratch-lifetime fix included. The following concurrent
 changes remain dirty in `main` and are intentionally excluded; preserve them
 and re-check ownership before the next unit:
 
+- `docs/91_build_troubleshooting.md`;
+- `src/self_hosted/PROGRESS.md`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
@@ -525,17 +555,16 @@ branch as part of this handoff.
 
 ## Next executable work
 
-1. `14c1683b` is the latest executable source closure. The completed exclusive
-   pressure rerun is red at `peak_private_mb=3090.9 MB`; identify the next
-   retained compiler-wide materialization owner and last legitimate consumer
-   before adding another cleanup or representation change. Do not raise the
-   `3072 MB` cap.
+1. `0eec8b45` is the latest isolated executable source closure. Its completed
+   baseline pressure is red at `peak_private_mb=3079.8 MB`; the user owns the
+   next fixed `ca35a157` pressure run on `main`. Do not start another pressure
+   run from this handoff and do not raise the `3072 MB` cap.
 2. The production callable-table seam is closed through artifact capture and
    body analysis. Keep the remaining producer/fixture reads explicitly
    bounded, then obtain the official initializer C/LLVM parity on an exclusive
    compiler window.
-3. The exclusive official full bootstrap was run with PowerShell discoverable;
-   it is red at the 3GiB pressure ceiling (`peak_private_mb=3091.3`). Do not
+3. The `0eec8b45` exclusive full bootstrap was run with PowerShell discoverable;
+   it is red at the 3GiB pressure ceiling (`peak_private_mb=3079.8`). Do not
    raise the cap or use a system-free-memory reading as the fix. Preserve the
    pressure contract and use the recorded peak as the falsifying fixture.
 4. Close the measured whole-program semantic lifetime boundary. The
