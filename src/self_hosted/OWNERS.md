@@ -660,14 +660,16 @@ inventory must not become a second fact-family owner registry.
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
-- `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one
-  document-order routine identity inventory shared by declaration and routine
-  reconstruction.
+- `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one admitted
+  document-order routine/block/instruction structure view, including
+  instruction kind/source type and raw machine spans, shared by machine
+  admission, declaration lookup, and routine reconstruction.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
 - `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine
-  block, instruction, source-local, successor, backedge, structural-merge, and
-  loop-flow index facts consumed by recursive CFG reconstruction.
+  result, source-local, successor, backedge, structural-merge, and loop-flow
+  facts layered on the admitted program structure view and consumed by
+  recursive CFG reconstruction.
 - `src/self_hosted/mir_lower/resource_flow_fact_owner.pgy` -- native
   ResourceFlowUniverse identity row parsing and count validation.
 - `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried

@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+2026-07-26 admitted MIR program-instruction view progression (`190d0dbf`).
+`MirProgramRoutineIndex` now captures one ordered routine/block/instruction
+structure plus instruction kind/source type and raw machine contact/layer
+spans. Machine admission consumes those spans directly, and
+`MirRoutineFactIndex` consumes the same block/instruction partitions instead of
+reopening nested arrays. Instruction result identity remains in the routine
+fact owner; the program view is a derived `pgy.mir.v1` carrier, not a second
+MIR authority.
+
+Review found that the first version called the whole-program
+`MirProgramRoutineIndexStructureReady` validator from every routine builder.
+That recreated the repeated whole-graph validation defect. Readiness is now
+proved once at admission, per-routine construction uses an O(1) row guard, and
+the component contract rejects the full validator inside
+`BuildMirRoutineFactIndex`. The focused structure fixture passes C and LLVM for
+valid partitions and machine spans and rejects scalar array tails, missing
+required structure, corrupted counts, and invalid rows.
+
+The integrated v3 C driver built in 50,974 ms at 2,405.9 MB peak private /
+2,409.3 MB working set. Its bounded result remains exactly 414 bytes, SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The unchanged full-artifact window is still RED: timeout at 300,606 ms,
+85.2 MB peak private / 93.6 MB working set, `limit_exceeded=false`, last marker
+`top-level-routines:16`, and no gen2 file. Routines 1-64 contain only 274,581
+of 51,741,503 routine-object bytes (0.531%), so 64 would be a progress sentinel,
+not completion. The next executable seam is the routine emitter's remaining
+raw instruction kind/source-type/machine-span consumers; registry status stays
+`BRIDGE` and released/default substitution is unchanged.
+
 2026-07-26 MIR document-index and bounded-string progression (`67502f50`).
 The hard MIR input path now scans the 51,807,108-byte document root once and
 carries the root, declaration, routine, and parallel-capture array bounds into

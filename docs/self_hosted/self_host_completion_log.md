@@ -8151,3 +8151,20 @@ Released/default replacement remains 0%.
 - This closes only leaf-subject `Option<T>` matching with one `Some` binding
   and zero `None` bindings. Enum variants, complex scrutinees, multiple
   bindings, and released/default compiler replacement remain open.
+
+### 2026-07-26 -- Admitted MIR structure is reused by routine lowering
+
+- `MirProgramRoutineIndex` now captures one routine/block/instruction
+  partition plus instruction kind/source type and raw machine spans from the
+  admitted `pgy.mir.v1` artifact. Machine admission and
+  `MirRoutineFactIndex` consume that view rather than reopening nested arrays.
+- Full structure readiness is proved once at admission. Per-routine fact
+  construction uses an O(1) row guard, and the component contract rejects the
+  accidentally repeated whole-program validator.
+- The C/LLVM structure gate rejects malformed scalar tails, missing required
+  structure, corrupted counts, and invalid row access. The integrated C driver
+  builds below 3 GiB and preserves the 414-byte bounded output.
+- The 300-second full-artifact run remains RED at the 16-routine marker with
+  85.2 MB peak private and no gen2 output. Direct instruction kind/source type
+  and machine-span consumers remain, so `mir.execution_graph` stays `BRIDGE`
+  and released/default substitution is unchanged.

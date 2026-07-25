@@ -523,6 +523,8 @@ Measured evidence:
 | `full-mir-consumer-cfg-owner` | timeout, 300,687 ms | 57.8 MB | 68.7 MB | first top-level routine done; no 16 marker or gen2 output |
 | `mir-document-index-driver-build-v2` | exit 0, 57,528 ms | 2,319.9 MB | 2,322.4 MB | one document index and bounded string reads compiled |
 | `full-mir-consumer-document-index` | timeout, 300,554 ms | 63.4 MB | 74.0 MB | reached 16 top-level routines; no gen2 output |
+| `mir-program-instruction-index-driver-build-v3` | exit 0, 50,974 ms | 2,405.9 MB | 2,409.3 MB | admitted structural view and O(1) routine row guard compiled |
+| `full-mir-consumer-program-instruction-index-v3` | timeout, 300,606 ms | 85.2 MB | 93.6 MB | still reached 16 top-level routines; no gen2 output; cap not crossed |
 
 The full artifact has 2,345 routines, 20,022 blocks, 34,091 instructions,
 3,532 phi rows, and 214,151 expression-graph nodes. Its first top-level
@@ -532,6 +534,11 @@ the admitted input/machine path and accumulated routine work. Do not raise the
 3072 MB cap or the 300-second focused window to hide that cost; close the next
 owner-directed scan and require `consumer:mir-to-ast:done` before claiming
 gen2.
+
+A streaming routine-object audit makes the coarse markers explicit. Routines
+1-64 total 274,581 of 51,741,503 bytes (0.531%); the tail from routine 65 owns
+99.469% of bytes. Reaching 16 or 64 is therefore only a CPU progress sentinel,
+never a bootstrap or completion verdict.
 
 The next audit found that an API being named `Bounded` was not enough to make
 its returned String bounded in cost. The full artifact stores
@@ -551,12 +558,16 @@ of the unbounded materialization. The production hard path also carries one
 `MirDocumentFactIndex` instead of independently rebuilding the root for schema,
 parallel capture, and routine admission.
 
-This change does not complete self-hosting. It improves the same fixed window
-from one completed top-level routine to 16, while memory remains around 74 MB
-working set. The next CPU owner seam is the instruction structure walked once
-by machine admission and then walked again by `MirRoutineFactIndex`. Preserve
-one program/routine instruction identity and do not hide the cost with a
-larger timeout, a second parsed document, or a C-only parser.
+This change does not complete self-hosting. It improved the fixed window from
+one completed top-level routine to 16. Checkpoint `190d0dbf` then captured one
+program/routine/block/instruction view for machine admission and
+`MirRoutineFactIndex`, eliminating that second structural walk. Review also
+removed a whole-program structure validator accidentally repeated per routine.
+The v3 run nevertheless remained at 16, proving these were real but not
+dominant costs. The next CPU owner seam is the routine emitter's direct
+instruction `kind`, `source_type`, and `machine_layer` field reopening. Keep
+the 300-second/3072 MB boundaries and migrate those consumers as one admitted
+view rather than adding another parser or backend-local cache.
 
 The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
 earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep

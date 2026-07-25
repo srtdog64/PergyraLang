@@ -8,8 +8,9 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `67502f50` (`bound MIR document string
-  consumption`) on `main`. Its routine-consumer predecessor is `d62553ee`, its
+- Implementation checkpoint: `190d0dbf` (`reuse admitted MIR instruction
+  structure`) on `main`. Its document-index predecessor is `67502f50`, its
+  routine-consumer predecessor is `d62553ee`, its
   exact-span predecessor is `157c340b`, its
   machine-admission predecessor is `0857899e`, and the complete artifact
   predecessor is `6329356f` (`bound-mir-json-string-leaf-lifetime`).
@@ -46,6 +47,11 @@ owner, and the named executable gate.
   top-level array bounds through schema, capture, routine, and machine
   admission. Exact-bound string materialization no longer calls
   `Substring(json, ...)`, and null tokens use `SubEqualsWithLen`.
+- The admitted `MirProgramRoutineIndex` captures the program-order
+  routine/block/instruction structure, instruction kind/source type, and raw
+  machine spans. Machine admission and `MirRoutineFactIndex` consume this
+  derived `pgy.mir.v1` view. Whole-program readiness is proved once at
+  admission; per-routine construction uses an O(1) row guard.
 
 ## Exact dirty state
 
@@ -71,17 +77,20 @@ file should remain dirty.
 - Fact owner: the verified `SelfMirProgramFacts` producer and its completed
   `pgy.mir.v1` artifact. `MirMachineLayerAdmittedJsonInput` carries the one
   machine proof, declaration, and routine span inventory; consumers may not
-  reconstruct a second producer or machine authority.
+  reconstruct a second producer or machine authority. `MirProgramRoutineIndex`
+  remains a derived structural view, not another semantic owner.
 - Last legitimate consumer: current `driver_oracle.exe --mir-json` emitting
   `driver_gen2.c`, followed by the native C compiler only as the bootstrap
   object-code boundary.
 - Forbidden fallback: regenerating a native oracle MIR per generation,
   backend-specific JSON reads, source-text fact recovery, process-sharded fact
-  stores, `new ? old` authority, or raising the 3072 MB cap.
-- Focused falsifier: the current artifact must reach
-  `consumer:mir-to-ast:done` under the 3072 MB pressure owner. It must then emit
-  gen2 C, compile cleanly, and consume the existing bounded MIR fixture to the
-  same C bytes as gen1.
+  stores, per-routine whole-program structure revalidation, `new ? old`
+  authority, or raising the 3072 MB cap.
+- Focused falsifier: phi, branch/loop, block emission, match rendering, and
+  resource-runtime consumers must take admitted instruction kind/source type
+  and machine spans without reopening them. The same 300-second run must move
+  beyond 16 routines; 64 is only a progress sentinel because the first 64
+  routines contain 0.531% of routine bytes.
 - Acceptance gate: pressure-owned full MIR consumption, gen2 compilation, and
   byte-exact generated bounded preflight all succeed; only then advance to the
   gen2/gen3 fixed-point comparison.
@@ -115,6 +124,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-cfg-owner` | 57.8 MB | 68.7 MB | Structural merge uses branch-local blocked reachability; first top-level routine completed, no 16 marker or gen2 output. |
 | `mir-document-index-driver-build-v2` | 2319.9 MB | 2322.4 MB | Integrated C driver compiled in 57,528 ms below the fixed cap. |
 | `full-mir-consumer-document-index` | 63.4 MB | 74.0 MB | Timed out at 300,554 ms after the 16-routine marker; no gen2 output. |
+| `mir-program-instruction-index-driver-build-v3` | 2405.9 MB | 2409.3 MB | Integrated C driver compiled in 50,974 ms below the fixed cap. |
+| `full-mir-consumer-program-instruction-index-v3` | 85.2 MB | 93.6 MB | Timed out at 300,606 ms after the 16-routine marker; no gen2 output or cap crossing. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -159,6 +170,17 @@ null reads use `SubEqualsWithLen`. The unchanged 300-second run advanced from
 the first routine to 16 routines at only 63.4 MB peak private. This remains
 RED: no run opened a partial gen2 C artifact.
 
+`190d0dbf` closes the next structural duplication. The admitted program view
+captures 2,345 routine, 20,022 block, and 34,091 instruction spans once and
+carries kind/source type plus machine contact/layer spans. Machine admission
+and per-routine fact construction no longer rescan nested structure. Review
+also found and removed a whole-program `StructureReady` call from every routine
+builder; the component contract rejects its return. The v3 fixed-window run
+still ended at the 16-routine marker, so the removed work was real but not the
+dominant remaining cost. Routines 1-64 contain only 274,581 of 51,741,503
+routine-object bytes (0.531%); neither marker is completion. Peak private was
+85.2 MB, `limit_exceeded=false`, and no gen2 file was opened.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -179,17 +201,20 @@ executable slice is active; none is a green CFG/runtime verdict.
 
 ## Last observed gates
 
-Green on `67502f50` plus the documented working measurements:
+Green on `190d0dbf` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
   plain, escaped, empty, and truncated exact-bound strings);
+- `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
+  partitions, direct-field spans, malformed scalar tails, missing structure,
+  corrupted counts, and invalid row guards);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`mir-document-index-driver-build-v2`): exit 0, 57,528 ms, 2,319.9 MB
-  peak private / 2,322.4 MB peak working set;
+  owner (`mir-program-instruction-index-driver-build-v3`): exit 0, 50,974 ms,
+  2,405.9 MB peak private / 2,409.3 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
@@ -234,19 +259,18 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-routine-fact-exact.*`,
 `full-mir-consumer-routine-indexed.*`, and
 `full-mir-consumer-cfg-owner.*`, and
-`full-mir-consumer-document-index.*`. The current executable is
-`driver_oracle_document_index.exe`; its 414-byte bounded result is
-`bounded_mir_document_index.c`. These files are diagnostic evidence only, not
-semantic authority or commit content.
+`full-mir-consumer-document-index.*`, and
+`full-mir-consumer-program-instruction-index-v3.*`. The current executable is
+`driver_oracle_program_instruction_index_v3.exe`; its 414-byte bounded result
+is `bounded_mir_program_instruction_index_v3.c`. These files are diagnostic
+evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Capture one program instruction identity behind the existing routine index
-   so machine admission does not discard the routine/block/instruction spans
-   that `MirRoutineFactIndex` immediately scans again. Keep result identity in
-   its current routine fact owner, carry kind/source type and raw machine spans,
-   and reject a second JSON structure walk. Do not add a second document/CFG
-   authority or restore a generic JSON read.
+1. Migrate phi, branch/loop, block statement, match, and resource-runtime
+   consumers to the admitted instruction kind/source type and machine spans.
+   Keep result identity in `MirRoutineFactIndex`, reject direct field reopens,
+   and bind the view to its admitted JSON lifetime without a second authority.
 2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
    under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the

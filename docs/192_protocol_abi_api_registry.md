@@ -2,7 +2,7 @@
 
 Status: `derived-crosswalk, gate-backed`
 Date: 2026-07-20
-Updated: 2026-07-22
+Updated: 2026-07-26
 
 This document is the single crosswalk for the compiler's externally visible
 and cross-stage protocols. It is **not** a new source of truth. The existing
@@ -63,6 +63,15 @@ validates presence, shape, and the ID before
 accepting an instruction, and the rung-2 mutation gate removes a required
 row or mutates its static ID. This is a bounded producer closure, not a claim
 that every native static row has already migrated.
+The current self-host `pgy.mir.v1` consumer projects one admitted
+`MirProgramRoutineIndex` and routine-local `MirRoutineFactIndex` from that wire.
+The program view captures routine/block/instruction partitions, kind/source
+type, and machine spans once; machine admission proves full structure and the
+routine builder may not repeat that whole-program validation. The C/LLVM
+`self-host-mir-program-routine-index-owner-test-smoke` gate covers malformed
+array tails, missing structure, corrupted counts, and invalid rows. This row
+stays `BRIDGE`: direct routine-emission field consumers and full gen2 emission
+remain open.
 Each lowered MIR row also carries `runtime_call_abi_id`, a stable hash identity
 of `domain|abi_type|operation`; C, LLVM, and self-host consumers recompute and
 validate that identity and reject a missing or mutated value. The self-host

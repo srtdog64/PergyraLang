@@ -197,6 +197,15 @@ executable value-flow witness for `Result<Dish,CookErr>` and its missing-
 binding-type mutation. Native C does not gain a parallel wrapper inference
 path.
 
+For the self-host `pgy.mir.v1` consumer, `MirProgramRoutineIndex` is one
+admitted local view of `mir.execution_graph`: it captures routine, block, and
+instruction partitions plus kind/source-type and machine spans once.
+`MirRoutineFactIndex` layers routine-local result/CFG facts on that identity.
+Neither row is a new authority. Machine admission proves full structure once;
+per-routine whole-program validation and nested-array reopening are negative
+gated. The family remains `BRIDGE` because routine emission still reopens some
+instruction fields and the full artifact has not reached gen2 emission.
+
 For `abi.runtime_call_rows`, the declared owner remains `SFAbiRuntimeCallRows`
 under `SOMirAbi`. The current stable-identity sub-rung is executable: MIR
 materializes `runtime_call_abi_id` from the canonical domain/type/operation key,
