@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Owns DRV-2 machine-fixture target input and command shaping.
-# Claim result-local and semantic resource receiver graph owner
+# Claim result-local and resource receiver graph owner
+# The receiver is carried by the semantic graph owner, not backend text.
 
 pgy_selfhost_driver_rung2_fixture_base() {
     local path="$1"

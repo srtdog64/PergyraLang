@@ -108,7 +108,6 @@ path | primary_term | owner_id | relation
 
 <!-- BEGIN sot-derived-fact-registry -->
 ```text
-src/self_hosted/hir/program_graph_owner.pgy | ProgramExpressionGraphStorageSchema | selfhost.expression_graph | bridge
 src/self_hosted/parser/expression_fact_owner.pgy | ParserExpressionFact | selfhost.expression_graph | local_view
 src/self_hosted/parser/expression_scalar_fact_owner.pgy | ParserExpressionScalarFactContractReady | selfhost.expression_graph | local_view
 src/self_hosted/hir/ast_match_pattern_fact_owner.pgy | AstMatchCasePatternFact | hir.typed_control_flow | projection
@@ -143,6 +142,7 @@ src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy | SemanticAstGener
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy | SemanticAstSignatureTypeExpressionFacts | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | selfhost.expression_graph | bridge
 src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy | SemanticExpressionGraphFacts | selfhost.expression_graph | bridge
+src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy | SemanticAstExpressionFunctionTableFacts | selfhost.function_declaration_rows | projection
 src/self_hosted/semantic/delimited_range_fact_owner.pgy | SemanticDelimitedRangeFacts | semantic.symbol_type_graph | local_view
 src/self_hosted/semantic/expression_operator_fact_owner.pgy | SemanticTopLevelOperatorFacts | selfhost.expression_surface | local_view
 src/self_hosted/semantic/expression_cast_fact_owner.pgy | SemanticOuterCastTargetType | selfhost.expression_surface | bridge

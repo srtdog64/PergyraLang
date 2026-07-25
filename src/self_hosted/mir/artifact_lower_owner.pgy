@@ -444,7 +444,9 @@ func SelfMirCanonicalInstructionIds(
     );
 }
 
-func SelfMirProgramFactsFromArtifact(
+// Driver verification owns whole-semantic readiness before MIR materialization.
+// This borrowed entrypoint must not repeat that graph-wide proof.
+func SelfMirProgramFactsFromReadyArtifact(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
@@ -455,43 +457,6 @@ func SelfMirProgramFactsFromArtifact(
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
-    if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
-        return SelfMirProgramFactsError(
-            facts, "mir_artifact_invalid",
-            "MIR producer requires matching semantic artifact facts"
-        );
-    }
-    if !SemanticExpressionGraphCarriedCallTargetsReady(
-        analysis.expression_surfaces.expression_graph
-    ) || !SemanticAstInitializerTypeFactsReadyProjection(
-        artifact, analysis.local_bindings, initializer_types
-    ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
-        artifact, analysis.statements, iteration_types
-    ) || !SemanticAstIterationSyntheticGraphRootsReady(
-        artifact, analysis.statements, analysis.expression_surfaces,
-        iteration_types
-    ) || !SemanticAstAssignmentTypeFactsMatchArtifact(
-        artifact, analysis.signatures, analysis.constructors,
-        analysis.local_bindings, initializer_types, analysis.statements,
-        analysis.expression_surfaces, iteration_types,
-        analysis.assignments, analysis.enums, assignment_types
-    ) || !SemanticAstStatementTypeFactsMatchArtifact(
-        artifact, analysis.signatures, analysis.constructors,
-        analysis.local_bindings, initializer_types,
-        analysis.expression_surfaces, iteration_types,
-        analysis.statements, statement_types
-    ) || !SelfMirAssignmentRowsReady(
-        SelfMirAssignmentRowsFromSemantic(assignment_types)
-    ) || !SemanticAstGenericSpecializationFactsReady(
-        generic_specializations
-    ) || !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
-        generic_specializations, analysis.expression_surfaces
-    ) {
-        return SelfMirProgramFactsError(
-            facts, "mir_artifact_invalid",
-            "MIR producer requires matching initializer and iteration type facts"
-        );
-    }
     let iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
         if iteration_types.verified[iteration_i] != 1 ||
@@ -571,4 +536,59 @@ func SelfMirProgramFactsFromArtifact(
         i = i + 1;
     }
     return SelfMirCanonicalInstructionIds(facts);
+}
+
+func SelfMirProgramFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    assignment_types: SemanticAstAssignmentTypeFacts,
+    statement_types: SemanticAstStatementTypeFacts,
+    generic_specializations: SemanticAstGenericSpecializationFacts,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirProgramFacts {
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
+        return SelfMirProgramFactsError(
+            facts, "mir_artifact_invalid",
+            "MIR producer requires matching semantic artifact facts"
+        );
+    }
+    if !SemanticExpressionGraphCarriedCallTargetsReady(
+        analysis.expression_surfaces.expression_graph
+    ) || !SemanticAstInitializerTypeFactsReadyProjection(
+        artifact, analysis.local_bindings, initializer_types
+    ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
+        artifact, analysis.statements, iteration_types
+    ) || !SemanticAstIterationSyntheticGraphRootsReady(
+        artifact, analysis.statements, analysis.expression_surfaces,
+        iteration_types
+    ) || !SemanticAstAssignmentTypeFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, initializer_types, analysis.statements,
+        analysis.expression_surfaces, iteration_types,
+        analysis.assignments, analysis.enums, assignment_types
+    ) || !SemanticAstStatementTypeFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, initializer_types,
+        analysis.expression_surfaces, iteration_types,
+        analysis.statements, statement_types
+    ) || !SelfMirAssignmentRowsReady(
+        SelfMirAssignmentRowsFromSemantic(assignment_types)
+    ) || !SemanticAstGenericSpecializationFactsReady(
+        generic_specializations
+    ) || !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+        generic_specializations, analysis.expression_surfaces
+    ) {
+        return SelfMirProgramFactsError(
+            facts, "mir_artifact_invalid",
+            "MIR producer requires matching initializer and iteration type facts"
+        );
+    }
+    return SelfMirProgramFactsFromReadyArtifact(
+        artifact, analysis, initializer_types, iteration_types,
+        assignment_types, statement_types, generic_specializations,
+        machine_declaration
+    );
 }

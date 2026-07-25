@@ -1,0 +1,296 @@
+// Bounded pgy.mir.v1 artifact projection from the verified MIR fact owner.
+// The schema and row renderers stay shared with the String projection; this
+// owner only removes the redundant whole-program materialization at a file
+// boundary.
+
+import "json_projection_owner.pgy";
+
+func SelfMirJsonBlockWriteFile(
+    facts: SelfMirProgramFacts,
+    block_index: Int,
+    output: Int
+) -> Void {
+    let blocks: SelfMirBlockRows = facts.cfg.blocks;
+    FileWrite(output, "{");
+    FileWrite(output, JsonEmitFieldNumber(
+        "id", ToString(blocks.ids[block_index])
+    ));
+    FileWrite(output, ",");
+    FileWrite(output, JsonEmitFieldBool(
+        "reachable", blocks.reachable[block_index] == 1
+    ));
+    FileWrite(output, ",\"instructions\":[");
+    let instruction_i: Int = 0;
+    while instruction_i < blocks.instruction_counts[block_index] {
+        if instruction_i > 0 { FileWrite(output, ","); }
+        FileWrite(output, SelfMirJsonInstruction(
+            facts, blocks.instruction_starts[block_index] + instruction_i
+        ));
+        instruction_i = instruction_i + 1;
+    }
+    FileWrite(output, "]");
+    if blocks.has_succ_true[block_index] == 1 {
+        FileWrite(output, ",");
+        FileWrite(output, JsonEmitFieldNumber(
+            "succ_true", ToString(blocks.succ_true[block_index])
+        ));
+    }
+    if blocks.has_succ_false[block_index] == 1 {
+        FileWrite(output, ",");
+        FileWrite(output, JsonEmitFieldNumber(
+            "succ_false", ToString(blocks.succ_false[block_index])
+        ));
+    }
+    FileWrite(output, "}");
+}
+
+func SelfMirJsonRoutineWriteFile(
+    facts: SelfMirProgramFacts,
+    routine_index: Int,
+    output: Int
+) -> Void {
+    let rows: SelfMirRoutineRows = facts.routines;
+    FileWrite(output, "{");
+    FileWrite(output, JsonEmitFieldString("name", rows.names[routine_index]));
+    FileWrite(output, ",");
+    FileWrite(output, JsonEmitFieldString("kind", rows.kinds[routine_index]));
+    FileWrite(output, ",");
+    FileWrite(output, JsonEmitFieldNumber(
+        "source_syntax_id", ToString(rows.node_ids[routine_index])
+    ));
+    if rows.owners[routine_index] != "" {
+        FileWrite(output, ",");
+        FileWrite(output, JsonEmitFieldString(
+            "owner", rows.owners[routine_index]
+        ));
+    }
+
+    FileWrite(output, ",\"generics\":[");
+    let generic_i: Int = 0;
+    while generic_i < rows.generic_counts[routine_index] {
+        if generic_i > 0 { FileWrite(output, ","); }
+        FileWrite(output, JsonStringLiteral(rows.generic_names[
+            rows.generic_starts[routine_index] + generic_i
+        ]));
+        generic_i = generic_i + 1;
+    }
+
+    FileWrite(output, "],\"params\":[");
+    let param_i: Int = 0;
+    while param_i < rows.param_counts[routine_index] {
+        if param_i > 0 { FileWrite(output, ","); }
+        let param_row: Int = rows.param_starts[routine_index] + param_i;
+        FileWrite(output, JsonEmitObject([
+            JsonEmitFieldString("name", rows.param_names[param_row]),
+            JsonEmitFieldRaw("type", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.param_types[param_row])
+            )),
+            JsonEmitFieldString(
+                "carriage", SelfMirParamCarriageName(
+                    rows.param_abi_kinds[param_row]
+                )
+            ),
+            JsonEmitFieldString(
+                "resource", SelfMirParamResourceKindName(
+                    rows.param_resource_kinds[param_row]
+                )
+            ),
+            JsonEmitFieldString(
+                "pass", SelfMirParamPassName(rows.param_abi_kinds[param_row])
+            )
+        ]));
+        param_i = param_i + 1;
+    }
+    FileWrite(output, "],");
+    FileWrite(output, JsonEmitFieldString(
+        "return", rows.return_types[routine_index]
+    ));
+    FileWrite(output, ",\"resource_flow_symbol_count\":0");
+    FileWrite(output, ",\"resource_flow_symbols\":[]");
+
+    let loop_rows: SelfMirLoopFlowRows = rows.loop_flows;
+    let summary_count: Int = loop_rows.routine_counts[routine_index];
+    FileWrite(output, ",\"loop_flow_summary_count\":");
+    FileWrite(output, ToString(summary_count));
+    FileWrite(output, ",\"loop_flow_summaries\":[");
+    let summary_i: Int = 0;
+    while summary_i < summary_count {
+        if summary_i > 0 { FileWrite(output, ","); }
+        let summary_row: Int =
+            loop_rows.routine_starts[routine_index] + summary_i;
+        let summary_kind: String = "while";
+        if loop_rows.summaries.kinds[summary_row] == 1 {
+            summary_kind = "for";
+        }
+        FileWrite(output, JsonEmitObject([
+            JsonEmitFieldNumber("loop_syntax_id", ToString(
+                loop_rows.summaries.loop_node_ids[summary_row]
+            )),
+            JsonEmitFieldString("kind", summary_kind),
+            JsonEmitFieldNumber("effect_base", ToString(
+                loop_rows.summaries.effect_bases[summary_row]
+            )),
+            JsonEmitFieldNumber("effect_delta", ToString(
+                loop_rows.summaries.effect_deltas[summary_row]
+            )),
+            JsonEmitFieldNumber("flags", ToString(
+                loop_rows.summaries.flags[summary_row]
+            )),
+            JsonEmitFieldNumber("entry_state_start", ToString(
+                loop_rows.summaries.entry_state_starts[summary_row]
+            )),
+            JsonEmitFieldNumber("entry_state_count", ToString(
+                loop_rows.summaries.entry_state_counts[summary_row]
+            )),
+            JsonEmitFieldNumber("exit_state_start", ToString(
+                loop_rows.summaries.exit_state_starts[summary_row]
+            )),
+            JsonEmitFieldNumber("exit_state_count", ToString(
+                loop_rows.summaries.exit_state_counts[summary_row]
+            ))
+        ]));
+        summary_i = summary_i + 1;
+    }
+
+    let state_count: Int = ArrayLength(loop_rows.states.stable_indices);
+    FileWrite(output, "],\"loop_flow_state_count\":");
+    FileWrite(output, ToString(state_count));
+    FileWrite(output, ",\"loop_flow_states\":[");
+    let state_i: Int = 0;
+    while state_i < state_count {
+        if state_i > 0 { FileWrite(output, ","); }
+        FileWrite(output, JsonEmitObject([
+            JsonEmitFieldNumber("stable_index", ToString(
+                loop_rows.states.stable_indices[state_i]
+            )),
+            JsonEmitFieldBool(
+                "is_consumed", loop_rows.states.consumed_flags[state_i] == 1
+            ),
+            JsonEmitFieldBool(
+                "is_used", loop_rows.states.used_flags[state_i] == 1
+            ),
+            JsonEmitFieldNumber("access_mask", ToString(
+                loop_rows.states.access_masks[state_i]
+            )),
+            JsonEmitFieldNumber("slot_state", ToString(
+                loop_rows.states.slot_states[state_i]
+            )),
+            JsonEmitFieldNumber("semantic_state", ToString(
+                loop_rows.states.semantic_states[state_i]
+            )),
+            JsonEmitFieldNumber("pool_id", ToString(
+                loop_rows.states.pool_ids[state_i]
+            ))
+        ]));
+        state_i = state_i + 1;
+    }
+
+    let iteration_count: Int = rows.iteration_counts[routine_index];
+    FileWrite(output, "],\"iteration_type_fact_count\":");
+    FileWrite(output, ToString(iteration_count));
+    FileWrite(output, ",\"iteration_type_facts\":[");
+    let iteration_i: Int = 0;
+    while iteration_i < iteration_count {
+        if iteration_i > 0 { FileWrite(output, ","); }
+        let iteration_row: Int =
+            rows.iteration_starts[routine_index] + iteration_i;
+        FileWrite(output, JsonEmitObject([
+            JsonEmitFieldNumber(
+                "function_syntax_id", ToString(rows.node_ids[routine_index])
+            ),
+            JsonEmitFieldNumber("iteration_syntax_id", ToString(
+                rows.iteration_node_ids[iteration_row]
+            )),
+            JsonEmitFieldString(
+                "binding_type", rows.iteration_binding_types[iteration_row]
+            ),
+            JsonEmitFieldString(
+                "iterable_type", rows.iteration_iterable_types[iteration_row]
+            ),
+            JsonEmitFieldBool("collection_hoisted",
+                rows.iteration_collection_hoists[iteration_row] == 1)
+        ]));
+        iteration_i = iteration_i + 1;
+    }
+
+    FileWrite(output, "],\"destructure_type_fact_count\":");
+    FileWrite(output, ToString(
+        rows.destructure_type_facts.routine_counts[routine_index]
+    ));
+    FileWrite(output, ",\"destructure_type_facts\":");
+    FileWrite(output, SelfMirJsonDestructureTypeFacts(rows, routine_index));
+    FileWrite(output, ",\"blocks\":[");
+    let block_i: Int = 0;
+    while block_i < rows.block_counts[routine_index] {
+        if block_i > 0 { FileWrite(output, ","); }
+        SelfMirJsonBlockWriteFile(
+            facts, rows.block_starts[routine_index] + block_i, output
+        );
+        block_i = block_i + 1;
+    }
+
+    FileWrite(output, "],\"source_locals\":[");
+    let local_i: Int = 0;
+    while local_i < rows.local_counts[routine_index] {
+        if local_i > 0 { FileWrite(output, ","); }
+        let local_row: Int = rows.local_starts[routine_index] + local_i;
+        FileWrite(output, JsonEmitObject([
+            JsonEmitFieldString("name", rows.local_names[local_row]),
+            JsonEmitFieldString("type", rows.local_types[local_row])
+        ]));
+        local_i = local_i + 1;
+    }
+    FileWrite(output, "]}");
+}
+
+func SelfMirProgramJsonWriteFile(
+    facts: SelfMirProgramFacts,
+    output_path: String
+) -> Bool {
+    if !SelfMirProgramFactsReady(facts) { return false; }
+    let output: Int = FileOpen(output_path, "w");
+    if output < 0 { return false; }
+
+    FileWrite(output, "{\"schema\":\"pgy.mir.v1\",\"decls\":[");
+    let declaration_i: Int = 0;
+    while declaration_i < ArrayLength(facts.declarations.names) {
+        if declaration_i > 0 { FileWrite(output, ","); }
+        FileWrite(
+            output, SelfMirJsonDeclaration(facts, declaration_i)
+        );
+        declaration_i = declaration_i + 1;
+    }
+
+    FileWrite(output, "],\"generic_method_specializations\":[");
+    let specialization_i: Int = 0;
+    while specialization_i <
+        SelfMirGenericSpecializationCount(facts.generic_specializations) {
+        if specialization_i > 0 { FileWrite(output, ","); }
+        FileWrite(output, SelfMirJsonGenericSpecialization(
+            facts.generic_specializations, specialization_i
+        ));
+        specialization_i = specialization_i + 1;
+    }
+
+    FileWrite(output, "],\"parallel_capture_boundaries\":[");
+    let parallel_i: Int = 0;
+    while parallel_i <
+        ArrayLength(facts.parallel_captures.source_stable_ids) {
+        if parallel_i > 0 { FileWrite(output, ","); }
+        FileWrite(output, SelfMirJsonParallelCaptureBoundary(
+            facts.parallel_captures, parallel_i
+        ));
+        parallel_i = parallel_i + 1;
+    }
+
+    FileWrite(output, "],\"routines\":[");
+    let routine_i: Int = 0;
+    while routine_i < ArrayLength(facts.routines.names) {
+        if routine_i > 0 { FileWrite(output, ","); }
+        SelfMirJsonRoutineWriteFile(facts, routine_i, output);
+        routine_i = routine_i + 1;
+    }
+    FileWrite(output, "]}");
+    FileClose(output);
+    return true;
+}

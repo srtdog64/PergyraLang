@@ -1,43 +1,103 @@
 // Shared JSON emission primitives for self-hosted fact-shaped tools.
 
 func JsonEscapeString(value: String) -> String {
-    let chunks: Array<String> = [];
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(StringLength(value) + 1);
     let i: Int = 0;
     let n: Int = StringLength(value);
+    let span_start: Int = 0;
     while i < n {
-        let c: String = Substring(value, i, 1);
-        if c == "\"" {
-            ArrayPush(chunks, "\\\"");
-        } else if c == "\\" {
-            ArrayPush(chunks, "\\\\");
-        } else if c == "\n" {
-            ArrayPush(chunks, "\\n");
-        } else if c == "\r" {
-            ArrayPush(chunks, "\\r");
-        } else if c == "\t" {
-            ArrayPush(chunks, "\\t");
-        } else {
-            ArrayPush(chunks, c);
+        let escaped: String = "";
+        if SubEqualsWithLen(value, n, i, 1, "\"") {
+            escaped = "\\\"";
+        } else if SubEqualsWithLen(value, n, i, 1, "\\") {
+            escaped = "\\\\";
+        } else if SubEqualsWithLen(value, n, i, 1, "\n") {
+            escaped = "\\n";
+        } else if SubEqualsWithLen(value, n, i, 1, "\r") {
+            escaped = "\\r";
+        } else if SubEqualsWithLen(value, n, i, 1, "\t") {
+            escaped = "\\t";
+        }
+        if escaped != "" {
+            if i > span_start {
+                TextBuilderAppend(
+                    output, Substring(value, span_start, i - span_start)
+                );
+            }
+            TextBuilderAppend(output, escaped);
+            span_start = i + 1;
         }
         i = i + 1;
     }
-    return StringJoin(chunks, "");
+    if span_start < n {
+        TextBuilderAppend(
+            output, Substring(value, span_start, n - span_start)
+        );
+    }
+    let escaped_value: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return escaped_value;
 }
 
 func JsonStringLiteral(value: String) -> String {
-    return Concat("\"", Concat(JsonEscapeString(value), "\""));
+    let escaped: String = JsonEscapeString(value);
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(StringLength(escaped) + 3);
+    TextBuilderAppend(output, "\"");
+    TextBuilderAppend(output, escaped);
+    TextBuilderAppend(output, "\"");
+    let literal: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return literal;
+}
+
+func JsonEmitCollection(
+    items: Array<String>, open_token: String, close_token: String
+) -> String {
+    let capacity: Int = StringLength(open_token) +
+        StringLength(close_token) + 1;
+    let size_i: Int = 0;
+    while size_i < ArrayLength(items) {
+        capacity = capacity + StringLength(items[size_i]);
+        if size_i > 0 { capacity = capacity + 1; }
+        size_i = size_i + 1;
+    }
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(capacity);
+    TextBuilderAppend(output, open_token);
+    let i: Int = 0;
+    while i < ArrayLength(items) {
+        if i > 0 { TextBuilderAppend(output, ","); }
+        TextBuilderAppend(output, items[i]);
+        i = i + 1;
+    }
+    TextBuilderAppend(output, close_token);
+    let collection: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return collection;
 }
 
 func JsonEmitObject(fields: Array<String>) -> String {
-    return Concat("{", Concat(StringJoin(fields, ","), "}"));
+    return JsonEmitCollection(fields, "{", "}");
 }
 
 func JsonEmitArray(items: Array<String>) -> String {
-    return Concat("[", Concat(StringJoin(items, ","), "]"));
+    return JsonEmitCollection(items, "[", "]");
 }
 
 func JsonEmitFieldRaw(key: String, raw_value: String) -> String {
-    return Concat(JsonStringLiteral(key), Concat(":", raw_value));
+    let encoded_key: String = JsonStringLiteral(key);
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(
+        StringLength(encoded_key) + StringLength(raw_value) + 2
+    );
+    TextBuilderAppend(output, encoded_key);
+    TextBuilderAppend(output, ":");
+    TextBuilderAppend(output, raw_value);
+    let field: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return field;
 }
 
 func JsonEmitFieldString(key: String, value: String) -> String {

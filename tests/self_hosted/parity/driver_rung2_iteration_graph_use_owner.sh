@@ -58,4 +58,4 @@ require_text "$INPUT_OWNER" "facts.synthetic_graph_root_ids"
 require_text "$LOCAL_OWNER" "input.iterations.synthetic_names[iteration_row]"
 reject_text "$INPUT_OWNER" "SelfMirForEachSyntheticOrdinal("
 
-echo "[self-host-parity:iteration-graph-use] iteration uses share one semantic program graph"
+echo "[self-host-parity:iteration-graph-use] iteration uses are graph-owned and share one semantic program graph"

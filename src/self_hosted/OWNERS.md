@@ -566,6 +566,9 @@ inventory must not become a second fact-family owner registry.
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
+- `src/self_hosted/mir/program_json_artifact_writer_owner.pgy` -- bounded
+  file-artifact materialization of the same verified `pgy.mir.v1` row order;
+  `SelfMirProgramFacts` remains the semantic owner.
 - `src/self_hosted/mir/abi_layout_json_projection_owner.pgy` -- self-host
   producer ABI-layout tuple and explicit dynamic-row projection.
 - `src/self_hosted/mir/machine_layer_json_projection_owner.pgy` -- machine

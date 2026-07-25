@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# CLOSED initializer verdict fallbacks:
+# semantic_normalization_char_at
+# semantic_normalization_trim_copy
+# semantic_validation_trim_copy
 # Focused C/LLVM proof for semantic initializer type projection into MIR.
 # Registry ratchets: source_initializer_type_rescan and
 # backend_initializer_type_guess are forbidden in every last consumer.

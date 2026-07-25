@@ -436,7 +436,8 @@ for mir_producer_owner in \
     destructure_type_fact_owner.pgy \
     destructure_type_json_projection_owner.pgy \
     program_verify_owner.pgy \
-    json_projection_owner.pgy; do
+    json_projection_owner.pgy \
+    program_json_artifact_writer_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
 done
@@ -479,13 +480,39 @@ require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromArtifact"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "inout build: SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromArtifact"
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromReadyArtifact"
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "if target_text == target &&"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirCanonicalInstructionIds"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsReady"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsValidationError"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirBlockRowsValidationError"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirRoutineNameForBlockRow"
-require_text "src/self_hosted/lib/json_emit.pgy" 'return StringJoin(chunks, "");'
-reject_text "src/self_hosted/lib/json_emit.pgy" 'out = Concat(out, c)'
+require_text "src/self_hosted/lib/json_emit.pgy" 'func JsonEmitCollection('
+require_text "src/self_hosted/lib/json_emit.pgy" 'let output: TextBuilder = TextBuilderNew('
+require_text "src/self_hosted/lib/json_emit.pgy" 'TextBuilderFinish(output, output_allocator)'
+reject_text "src/self_hosted/lib/json_emit.pgy" 'Substring(value, i, 1)'
+reject_text "src/self_hosted/lib/json_emit.pgy" 'StringJoin(chunks, "")'
+reject_text "src/self_hosted/lib/json_emit.pgy" 'return Concat("{", Concat(StringJoin('
+reject_text "src/self_hosted/lib/json_emit.pgy" 'return Concat("[", Concat(StringJoin('
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'TextBuilderAppend(output, routines[routine_i])'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'let output: TextBuilder = TextBuilderNew(capacity);'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'func SelfMirProgramJsonWriteFile('
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonRoutineWriteFile(facts, routine_i, output)'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonBlockWriteFile('
+reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'FileWrite(output, SelfMirJsonRoutine(facts, routine_i))'
+reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonBlock(facts,'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'if output < 0 { return false; }'
+reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'let routines: Array<String>'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
@@ -497,8 +524,10 @@ require_text "src/self_hosted/mir/instruction_validation_owner.pgy" 'rows.source
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR producer emitted invalid fact rows"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "func SelfMirProgramJson"
-require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldString("schema", "pgy.mir.v1")'
-require_text "src/self_hosted/mir/json_projection_owner.pgy" '"parallel_capture_boundaries", JsonEmitArray(parallel_captures)'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'let prefix: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":";'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'let capture_prefix: String = ",\"parallel_capture_boundaries\":";'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbol_count"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbols"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summary_count"'
@@ -3572,10 +3601,21 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssign
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CanonicalizeMirJsonVerified"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromArtifact("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramJson(mir_facts)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromReadyArtifact("
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SelfMirProgramFactsFromArtifact("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SelfMirProgramJson(projection.facts)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'CompileSourceToMirJsonFilePressureObserved('
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'CompileSourceToMirJsonFileVerified('
+reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'let mir_json: String'
+reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'SelfMirProgramJson('
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
@@ -3927,7 +3967,7 @@ require_max_lines "src/self_hosted/mir/generic_specialization_owner.pgy" 220
 require_file "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy" 100
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
-    '"generic_method_specializations"'
+    'let generic_prefix: String = ",\"generic_method_specializations\":";'
 reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"generic_specializations"'
 require_file "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy"

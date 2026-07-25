@@ -19,6 +19,7 @@ import "../mir_lower/assignment_binding_mode_fact_owner.pgy";
 import "../mir_lower/generic_specialization_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
+import "../mir/program_json_artifact_writer_owner.pgy";
 import "../mir/program_assignment_parameter_use_contract_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
 import "driver_rung2_readiness_owner.pgy";
@@ -27,6 +28,11 @@ import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
+}
+
+struct DriverRung2MirProjection {
+    facts: SelfMirProgramFacts;
+    analysis: SemanticAstArtifactAnalysis;
 }
 
 func VerifyArtifactAnalysisForDriverRung2Observed(
@@ -83,12 +89,12 @@ func DriverRung2PressureStage(enabled: Bool, stage: String) -> Void {
     }
 }
 
-func CompileArtifactAnalysisToMirJsonVerifiedObserved(
+func DriverRung2MirProjectionFromAnalysisObserved(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
-) -> String {
+) -> DriverRung2MirProjection {
     DriverRung2PressureStage(observe_pressure, "verify:start");
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2Observed(
@@ -96,7 +102,7 @@ func CompileArtifactAnalysisToMirJsonVerifiedObserved(
         );
     DriverRung2PressureStage(observe_pressure, "verify:done");
     DriverRung2PressureStage(observe_pressure, "mir-facts:start");
-    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
+    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromReadyArtifact(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types,
@@ -109,20 +115,59 @@ func CompileArtifactAnalysisToMirJsonVerifiedObserved(
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:done");
+    return DriverRung2MirProjection(mir_facts, verified.analysis);
+}
+
+func DriverRung2MirProjectionRelease(
+    inout projection: DriverRung2MirProjection
+) -> Void {
+    let terminal_analysis: SemanticAstArtifactAnalysis = projection.analysis;
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        terminal_analysis.function_tables;
+    SemanticAstExpressionFunctionTableFactsRelease(function_tables);
+    terminal_analysis.function_tables = function_tables;
+    projection.analysis = terminal_analysis;
+}
+
+func CompileArtifactAnalysisToMirJsonVerifiedObserved(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> String {
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromAnalysisObserved(
+            artifact, analysis, machine_declaration, observe_pressure
+        );
     DriverRung2PressureStage(observe_pressure, "json:start");
-    let json: String = SelfMirProgramJson(mir_facts);
+    let json: String = SelfMirProgramJson(projection.facts);
     if json == "" {
         Log("self-host MIR JSON projection failed closed");
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "json:done");
-    let terminal_analysis: SemanticAstArtifactAnalysis = verified.analysis;
-    let function_tables: SemanticAstExpressionFunctionTableFacts =
-        terminal_analysis.function_tables;
-    SemanticAstExpressionFunctionTableFactsRelease(function_tables);
-    terminal_analysis.function_tables = function_tables;
-    verified.analysis = terminal_analysis;
+    DriverRung2MirProjectionRelease(projection);
     return json;
+}
+
+func CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    output_path: String,
+    observe_pressure: Bool
+) -> Void {
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromAnalysisObserved(
+            artifact, analysis, machine_declaration, observe_pressure
+        );
+    DriverRung2PressureStage(observe_pressure, "json-write:start");
+    if !SelfMirProgramJsonWriteFile(projection.facts, output_path) {
+        Log("self-host MIR JSON artifact projection failed closed");
+        Exit(1);
+    }
+    DriverRung2PressureStage(observe_pressure, "json-write:done");
+    DriverRung2MirProjectionRelease(projection);
 }
 
 func CompileArtifactAnalysisToMirJsonVerified(
@@ -154,6 +199,18 @@ func CompileSourceToMirJsonVerified(
     );
 }
 
+func CompileSourceToMirJsonFileVerified(
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> Void with caps io_read, io_write {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
+        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true),
+        machine_declaration, output_path, false
+    );
+}
+
 func CompileSourceToMirJsonPressureObserved(
     source_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
@@ -167,6 +224,23 @@ func CompileSourceToMirJsonPressureObserved(
     DriverRung2PressureStage(true, "semantic:done");
     return CompileArtifactAnalysisToMirJsonVerifiedObserved(
         artifact, analysis, machine_declaration, true
+    );
+}
+
+func CompileSourceToMirJsonFilePressureObserved(
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> Void with caps io_read, io_write {
+    DriverRung2PressureStage(true, "ast:start");
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    DriverRung2PressureStage(true, "ast:done");
+    DriverRung2PressureStage(true, "semantic:start");
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    DriverRung2PressureStage(true, "semantic:done");
+    CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
+        artifact, analysis, machine_declaration, output_path, true
     );
 }
 

@@ -256,6 +256,63 @@ MIR artifact was produced, and the active falsifier is now MIR-fact
 materialization. Keep the 3 GiB cap unchanged and diagnose that Pergyra owner
 instead of adding backend-local C/LLVM state.
 
+### MIR readiness and nested JSON materialization
+
+The next current-source runs separated two more defects. First, the verified
+driver had already completed `SemanticAstBodyTypeBundleReady` but called the
+checked `SelfMirProgramFactsFromArtifact`, repeating the whole-semantic proof
+at the MIR boundary. The driver now calls
+`SelfMirProgramFactsFromReadyArtifact`; the checked entrypoint remains for
+standalone callers and delegates after its own proof. The focused run then
+completed `mir-facts:start` instead of crossing the cap, peaking at 2,865.8 MB,
+and failed closed on a concrete invariant:
+
+```text
+MIR assignment target binding type drifted: target=base node=5290
+local_type=ParserExpressionFact semantic_type=String
+```
+
+Node 5290 belongs to `ApplyPostfixFact` and represents `base.text = ...`.
+Comparing the root-local type to the final selected member type was valid only
+for a direct `x = ...` target. The MIR owner now performs that equality check
+only when `target_text == target`; composite targets retain root-local
+existence plus their semantic target graph and final type facts.
+
+That correction exposed a distinct JSON high-water mark. All later runs
+completed `mir-facts:done` and entered JSON projection:
+
+| label | elapsed ms | peak private MB | last evidence |
+|---|---:|---:|---|
+| `assignment-composite-ready` | 1,095,642 | 3,233.9 | `json:start`; no artifact |
+| `json-builder-ready` | 936,636 | 3,195.6 | shared `TextBuilder`; still `json:start` |
+| `json-file-ready` | 960,383 | 3,290.1 | 20,013,056-byte partial file; whole routine string |
+| `json-block-file-ready` | 999,598 | 3,197.3 | 20,901,888-byte partial file; instruction strings |
+
+The original shared emitter allocated one `Substring` per character, then
+`StringJoin` plus nested `Concat` copies for each object and array. It now
+uses span-based escaping and exact-capacity `TextBuilder` assembly. The
+production MIR artifact path also writes schema tokens, declarations,
+specializations, captures, routines, and blocks directly to one file owner;
+the bootstrap CLI no longer stores a whole-program `mir_json: String` before
+`WriteFile`. A small fixture is byte-identical to the prior self-host path at
+11,262 bytes with SHA-256
+`007d5dacdd8157a0d5dd0f87975f82c7abe2fa4987983afb3945bd61b29efc09`, and a
+shared JSON escape/object probe emits identical bytes through C and LLVM.
+
+These changes are real executable replacements, but they do not make the full
+pressure gate green. The last run was stable near 2,933 MB immediately before
+JSON writing, then retained per-instruction/field strings until the cap. A
+complete full-driver MIR artifact still does not exist. Do not respond by
+raising the cap, adding a C- or LLVM-specific serializer, or splitting the
+compiler into process chunks. The next active owner is the initializer
+expression environment: static inventory shows the current visible-local
+reconstruction is O(sum of squared local counts), including about 8,000 locals
+in the largest function. Replace that with one scope-aware sequential cursor,
+then rerun this same pressure gate. `FileWrite` currently has no observable
+write-status result after a valid `FileOpen`; the new writer therefore proves
+open failure and byte parity but does not claim atomic or error-reporting file
+semantics that the runtime does not yet expose.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

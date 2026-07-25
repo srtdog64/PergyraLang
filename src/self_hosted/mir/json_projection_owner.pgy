@@ -543,16 +543,58 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
         SelfMirJsonGenericSpecializations(
             facts.generic_specializations
         );
-    return JsonEmitObject([
-        JsonEmitFieldString("schema", "pgy.mir.v1"),
-        JsonEmitFieldRaw("decls", JsonEmitArray(declarations)),
-        JsonEmitFieldRaw(
-            "generic_method_specializations",
-            JsonEmitArray(generic_specializations)
-        ),
-        JsonEmitFieldRaw(
-            "parallel_capture_boundaries", JsonEmitArray(parallel_captures)
-        ),
-        JsonEmitFieldRaw("routines", JsonEmitArray(routines))
-    ]);
+    let prefix: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":";
+    let generic_prefix: String = ",\"generic_method_specializations\":";
+    let capture_prefix: String = ",\"parallel_capture_boundaries\":";
+    let routine_prefix: String = ",\"routines\":";
+    let capacity: Int = StringLength(prefix) +
+        SelfMirJsonTextArrayWireLength(declarations) +
+        StringLength(generic_prefix) +
+        SelfMirJsonTextArrayWireLength(generic_specializations) +
+        StringLength(capture_prefix) +
+        SelfMirJsonTextArrayWireLength(parallel_captures) +
+        StringLength(routine_prefix) +
+        SelfMirJsonTextArrayWireLength(routines) + 2;
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(capacity);
+    TextBuilderAppend(output, prefix);
+    TextBuilderAppend(output, "[");
+    let declaration_i: Int = 0;
+    while declaration_i < ArrayLength(declarations) {
+        if declaration_i > 0 { TextBuilderAppend(output, ","); }
+        TextBuilderAppend(output, declarations[declaration_i]);
+        declaration_i = declaration_i + 1;
+    }
+    TextBuilderAppend(output, "]");
+    TextBuilderAppend(output, generic_prefix);
+    TextBuilderAppend(output, "[");
+    let specialization_i: Int = 0;
+    while specialization_i < ArrayLength(generic_specializations) {
+        if specialization_i > 0 { TextBuilderAppend(output, ","); }
+        TextBuilderAppend(output, generic_specializations[specialization_i]);
+        specialization_i = specialization_i + 1;
+    }
+    TextBuilderAppend(output, "]");
+    TextBuilderAppend(output, capture_prefix);
+    TextBuilderAppend(output, "[");
+    let parallel_i: Int = 0;
+    while parallel_i < ArrayLength(parallel_captures) {
+        if parallel_i > 0 { TextBuilderAppend(output, ","); }
+        TextBuilderAppend(output, parallel_captures[parallel_i]);
+        parallel_i = parallel_i + 1;
+    }
+    TextBuilderAppend(output, "]");
+    TextBuilderAppend(output, routine_prefix);
+    TextBuilderAppend(output, "[");
+    let routine_i: Int = 0;
+    while routine_i < ArrayLength(routines) {
+        if routine_i > 0 { TextBuilderAppend(output, ","); }
+        TextBuilderAppend(output, routines[routine_i]);
+        routine_i = routine_i + 1;
+    }
+    TextBuilderAppend(output, "]");
+    TextBuilderAppend(output, "}");
+    let json: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return json;
 }

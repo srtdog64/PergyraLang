@@ -11,3 +11,14 @@ func SelfMirJsonOptionalString(value: Option<String>) -> String {
     if !IsSome(value) { return "null"; }
     return JsonStringLiteral(UnwrapOption(value));
 }
+
+func SelfMirJsonTextArrayWireLength(items: Array<String>) -> Int {
+    let length: Int = 2;
+    let i: Int = 0;
+    while i < ArrayLength(items) {
+        length = length + StringLength(items[i]);
+        if i > 0 { length = length + 1; }
+        i = i + 1;
+    }
+    return length;
+}

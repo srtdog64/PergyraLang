@@ -1,5 +1,43 @@
 # Self-Host Progress
 
+2026-07-25 MIR readiness, composite assignment, and JSON artifact lifetime
+delta. The verified driver now calls
+`SelfMirProgramFactsFromReadyArtifact` after the body bundle has already owned
+the whole-semantic proof; the checked standalone entrypoint retains that proof
+and delegates. This moved the full source through `mir-facts:done` below the
+3 GiB cap and exposed the first real MIR invariant failure instead of another
+readiness rescan.
+
+Node 5290 was `ApplyPostfixFact`'s `base.text = ...`: the root local `base` has
+type `ParserExpressionFact`, while the selected member has type `String`.
+`routine_assignment_owner.pgy` now enforces root-local/final-target type
+equality only for direct assignments (`target_text == target`); member and
+indexed targets keep root existence plus semantic target-graph/type facts.
+The focused lifetime/component gates and initializer C/LLVM parity passed.
+
+The next full measurements all completed MIR fact construction and isolated a
+separate JSON lifetime defect. `assignment-composite-ready` reached
+`json:start` and crossed at 3,233.9 MB. Replacing the shared JSON emitter's
+per-character `Substring` and nested `StringJoin`/`Concat` assembly with
+`TextBuilder` reduced that result to 3,195.6 MB but did not close the cap.
+The production `--emit-mir-json-verified` path now writes the same
+`pgy.mir.v1` order through
+`program_json_artifact_writer_owner.pgy`; program, routine, and block strings
+are no longer materialized as one aggregate. Small-fixture output remains
+byte-identical to the prior self-host path (11,262 bytes, SHA-256
+`007d5dacdd8157a0d5dd0f87975f82c7abe2fa4987983afb3945bd61b29efc09`), and
+the shared JSON escape/object probe is byte-identical through C and LLVM.
+
+The end-to-end cap is still red. Whole-routine file emission stopped at
+3,290.1 MB with a 20,013,056-byte partial artifact; routine/block streaming
+advanced to 20,901,888 bytes and reduced the peak to 3,197.3 MB, but retained
+small instruction/field strings still accumulate above a roughly 2,933 MB
+pre-JSON baseline. No complete full-driver MIR artifact exists yet. The next
+active optimization owner is the initializer expression-environment cursor:
+the current per-local environment reconstruction is statically O(sum of
+squared function-local counts) and must become one scope-aware sequential
+owner before adding more JSON fragments or any backend-local cache.
+
 2026-07-25 initializer readiness amortization. `589b6638` first restored the
 expression environment to a borrowed-row contract: producers use ordinary
 `ArrayPush`, row reset pops logical entries while retaining reusable backing,

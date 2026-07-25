@@ -17,6 +17,8 @@ GENERIC_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fac
 INITIALIZER_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
 STATEMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
+MIR_FACTS="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
+DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 TYPECHECK="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_array.c"
 TRANS_POLICY="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
 TRANS_EMIT="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
@@ -30,7 +32,8 @@ CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_c
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$PLACE_FACTS" "$GENERIC_FACTS" \
-    "$INITIALIZER_FACTS" "$STATEMENT_FACTS" "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
+    "$INITIALIZER_FACTS" "$STATEMENT_FACTS" "$MIR_FACTS" "$DRIVER" \
+    "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
     "$CODEGEN_CALL_EMITTER"; do
@@ -192,6 +195,39 @@ grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$
 }
 if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$generic_body"; then
     echo "[self-host-parity:semantic-environment-lifetime] generic resolver repeats checked match environment" >&2
+    exit 1
+fi
+
+mir_ready_body="$(function_body "$MIR_FACTS" 'SelfMirProgramFactsFromReadyArtifact')"
+for forbidden in \
+    'SemanticAstArtifactAnalysisMatches(' \
+    'SemanticAstInitializerTypeFactsReadyProjection(' \
+    'SemanticAstAssignmentTypeFactsMatchArtifact(' \
+    'SemanticAstStatementTypeFactsMatchArtifact(' \
+    'SemanticAstGenericSpecializationFactsMatchExpressionGraph('; do
+    if grep -Fq "$forbidden" <<<"$mir_ready_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] MIR ready-artifact core repeats whole-semantic proof: $forbidden" >&2
+        exit 1
+    fi
+done
+
+mir_checked_body="$(function_body "$MIR_FACTS" 'SelfMirProgramFactsFromArtifact')"
+grep -Fq 'SemanticAstArtifactAnalysisMatches(' <<<"$mir_checked_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked MIR entrypoint lost artifact proof" >&2
+    exit 1
+}
+grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$mir_checked_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked MIR entrypoint bypasses ready-artifact owner" >&2
+    exit 1
+}
+
+driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromAnalysisObserved')"
+grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$driver_mir_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] verified driver lost ready-artifact MIR path" >&2
+    exit 1
+}
+if grep -Fq 'SelfMirProgramFactsFromArtifact(' <<<"$driver_mir_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] verified driver repeats checked MIR proof" >&2
     exit 1
 fi
 
