@@ -1,5 +1,44 @@
 # Self-Host Progress
 
+2026-07-26 MIR routine-consumer single-owner progression (`d62553ee`). The
+admitted routine span now feeds one `MirRoutineHeaderFacts` capture for
+generics, parameters, ABI carriage/resource/pass shape, and return type.
+Instruction-local match/destructure arrays and scalar render/ABI reads consume
+exact owner bounds; they no longer count and restart the same JSON array.
+`MirRoutineFactIndex` captures every instruction result once, and phi
+validation consumes that index instead of rescanning every instruction JSON
+for every phi use. Missing or misaligned result facts fail closed.
+
+CFG structural-merge selection now belongs entirely to
+`mir_cfg_graph_owner.pgy`. Each conditional branch computes its two
+branch-blocked reachability arrays once, while the original unrestricted
+distance sum, ascending candidate order, strict tie break, terminal fallback,
+and disconnected-component behavior remain unchanged. This reduces the
+structural-merge analysis from candidate-local BFS, worst-case O(B^3), to
+branch-local BFS, O(B^2), without creating another compiler fact owner or
+splitting the Pergyra implementation into C-style fragments. The focused
+production-function gate exercises diamond, re-entry-only, ranking, self-loop,
+tie, fallback, and detached-component cases through C and LLVM.
+
+The integrated C driver build `mir-cfg-owner-driver-build` exited 0 in 58,512
+ms at 2,422.7 MB peak private / 2,411.3 MB peak working set. Its bounded MIR
+consumer output remains byte-identical at 414 bytes, SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The unchanged 300-second full-artifact gate
+`full-mir-consumer-cfg-owner` remained CPU-red: 57.8 MB peak private / 68.7 MB
+peak working set, last marker
+`consumer:mir-to-ast:first-top-level-routine:done`, no 16-routine marker, and
+no gen2 C output opened. The first top-level routine itself is only 2,063
+bytes, one block, and one instruction; the fixed window is dominated by the
+admission and accumulated consumer work, not that routine or memory pressure.
+This is executable substitution progress but not a completed gen2 or
+self-hosted driver.
+
+The filtered broad `mir_json_parity.sh` attempt for `dir_walk` and
+`break_after_stmt` stopped before CFG/runtime parity because reconstructed C
+omitted the current runtime panic declarations. That is explicit adjacent RED
+evidence, not a CFG-owner regression or a green result.
+
 2026-07-25 sequential MIR instruction JSON artifact closure (`e5587bee`,
 `6329356f`). Production block emission no longer calls
 `SelfMirJsonInstruction(...) -> String`. The responsibility-named instruction

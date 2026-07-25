@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-07-25 (Asia/Seoul)
+Updated: 2026-07-26 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -8,10 +8,10 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `157c340b` (`bound MIR-to-AST fact scans`) on
-  `main`. Its machine-admission predecessor is `0857899e`, its typed-admission
-  predecessor is `e9592a6a`, and the complete artifact predecessor is `6329356f`
-  (`bound-mir-json-string-leaf-lifetime`).
+- Implementation checkpoint: `d62553ee` (`linearize MIR routine fact
+  consumption`) on `main`. Its exact-span predecessor is `157c340b`, its
+  machine-admission predecessor is `0857899e`, and the complete artifact
+  predecessor is `6329356f` (`bound-mir-json-string-leaf-lifetime`).
 - The verified driver now proves semantic readiness once and enters
   `SelfMirProgramFactsFromReadyArtifact`; the independently callable checked
   entrypoint still owns the complete validation contract.
@@ -37,6 +37,10 @@ owner, and the named executable gate.
   exact declaration and routine index used by that proof. Exact-bound JSON
   readers accept only structure-owner spans; declaration phases and the first
   AST reconstruction reuse their inventories instead of rebuilding root facts.
+- Routine headers, match/destructure arrays, render/ABI facts, and phi result
+  identity now consume one exact routine/instruction owner. CFG structural
+  merge is a pure `mir_cfg_graph_owner.pgy` query with branch-local blocked
+  reachability; the routine index no longer runs candidate-local BFS.
 
 ## Exact dirty state
 
@@ -102,6 +106,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-key-compare` | 57.1 MB | 69.9 MB | Machine/input admission completed; timed out after `mir-to-ast:start`. |
 | `full-mir-consumer-exact-span` | 58.0 MB | 70.7 MB | Declaration fields and routine ends consume carried spans; reached `declarations:done`. |
 | `full-mir-consumer-routine-fact-exact` | 58.0 MB | 70.8 MB | Routine fact bundle consumes exact spans; reached `first-top-level-routine-fact-index:done`. |
+| `full-mir-consumer-routine-indexed` | 58.0 MB | 70.7 MB | Result/match facts consume one routine index; first top-level routine completed, no gen2 output. |
+| `full-mir-consumer-cfg-owner` | 57.8 MB | 68.7 MB | Structural merge uses branch-local blocked reachability; first top-level routine completed, no 16 marker or gen2 output. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -128,9 +134,14 @@ walking before field reads. Exact-bound readers removed that debt and reached
 `routine-index:done` for the first time. Allocation-free normal-key comparison
 then completed the instruction scan, machine admission, and input boundary.
 `157c340b` next removed about 2.45 TB of logical declaration-field walking and
-at least 118.9 TB from the routine fact prefix. The active cost is now after
-the first valid top-level routine index and before all top-level routines
-return. No run opened or produced a partial gen2 C artifact.
+at least 118.9 TB from the routine fact prefix. `d62553ee` captures routine
+headers, instruction results, and instruction-local arrays once, then moves
+structural-merge selection from worst-case O(B^3) candidate-local BFS to
+O(B^2) branch-local BFS. The full artifact contains 20,022 blocks, 34,091
+instructions, 3,532 phi rows, and 214,151 expression-graph nodes. Its first
+top-level routine is only 2,063 bytes with one block/instruction, so the fixed
+window is dominated by the admitted machine path and accumulated routine
+work, not by that routine or memory. No run opened a partial gen2 C artifact.
 
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
@@ -142,19 +153,25 @@ opened or truncated. The earlier 11,262-byte small fixture SHA remains
 return a `FileWrite` status, so the writer must not claim write-error detection
 that the runtime cannot provide.
 
-Two broad runs are explicit RED evidence. `mir_machine_layer_smoke.sh` reaches
+Three broad runs are explicit RED evidence. `mir_machine_layer_smoke.sh` reaches
 the MIR consumer and then fails at the existing `local declaration is missing
 its MIR ABI type fact`. `mir_json_parity.sh` expects an enum variant substring
-without the current `param_types:[]` field. Update those owners only when their
-executable slice is active.
+without the current `param_types:[]` field. A filtered `dir_walk` /
+`break_after_stmt` attempt stops earlier because reconstructed C lacks current
+`PGY_RUNTIME_PANIC` declarations. Update those owners only when their
+executable slice is active; none is a green CFG/runtime verdict.
 
 ## Last observed gates
 
-Green on `157c340b` plus the documented working measurements:
+Green on `d62553ee` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
+- `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
+  diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
+  detached-component witnesses);
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`routine-fact-exact-driver-build`): exit 0, 2,429.3 MB peak private;
+  owner (`mir-cfg-owner-driver-build`): exit 0, 58,512 ms, 2,422.7 MB peak
+  private / 2,411.3 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
@@ -196,15 +213,17 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-exact-bound.*`,
 `full-mir-consumer-machine-twofield.*`,
 `full-mir-consumer-key-compare.*`, `full-mir-consumer-exact-span.*`, and
-`full-mir-consumer-routine-fact-exact.*`. These files are diagnostic evidence
-only, not semantic authority or commit content.
+`full-mir-consumer-routine-fact-exact.*`,
+`full-mir-consumer-routine-indexed.*`, and
+`full-mir-consumer-cfg-owner.*`. These files are diagnostic evidence only, not
+semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile the post-index validation/rendering path after
-   `first-top-level-routine-fact-index:done` and close its first remaining
-   indexed or unbounded JSON fact read. Reuse the admitted routine index and
-   per-routine fact index; do not create a second document authority.
+1. Close the next executable CPU seam in the admitted machine instruction
+   scan or the routine block-row lookup. Reuse the existing admission and
+   routine index; do not add a second document/CFG authority or restore a
+   generic JSON read.
 2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
    under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
@@ -212,9 +231,10 @@ only, not semantic authority or commit content.
 4. Run the generated driver on the existing bounded MIR fixture and compare
    emitted C bytes with the current driver output, then advance to gen2/gen3
    only after bounded parity is green.
-5. Keep the ABI-type and stale enum-parity failures separate from this active
-   CPU seam; do not raise either the 300-second diagnostic window or 3072 MB
-   memory cap as a substitute for closing the owner path.
+5. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+   failures separate from this active CPU seam; do not raise either the
+   300-second diagnostic window or 3072 MB memory cap as a substitute for
+   closing the owner path.
 
 ## Resume sequence
 

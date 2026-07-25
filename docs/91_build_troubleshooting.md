@@ -493,6 +493,49 @@ No gen2 C file was opened. A bounded MIR fixture still emits the prior exact
 414 bytes (SHA-256
 `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`).
 
+#### Routine-consumer CPU closure after exact spans
+
+Checkpoint `d62553ee` keeps routine header, instruction result, phi-use,
+match/destructure, render, and ABI reads behind the admitted routine/index
+owners. In particular, every instruction `result` is decoded once into
+`MirRoutineFactIndex`; phi validation does not reopen every instruction JSON
+for every use. Match binding arrays are captured sequentially instead of using
+count-plus-index restart reads. These are CPU-complexity changes, not a larger
+memory allowance.
+
+The same checkpoint moves structural-merge selection into the pure CFG graph
+owner. The old path ran two blocked BFS queries for every candidate block,
+giving worst-case O(B^3) work and repeated `visited`/`queue` allocation. The
+new path computes two blocked reachability arrays per conditional branch and
+uses them only for eligibility. It deliberately retains unrestricted distance
+for ranking, candidate order, strict `<` ties, terminal fallback, and detached
+component behavior. `mir_cfg_graph_query_owner_smoke.sh` proves those
+conditions through both C and LLVM; the component contract rejects return of
+the retired candidate-local query.
+
+Measured evidence:
+
+| Slice | Result | Peak private | Peak working set | Last evidence |
+| --- | --- | ---: | ---: | --- |
+| `mir-routine-indexed-consumer-driver-build` | exit 0, 52,074 ms | 2,427.8 MB | 2,416.3 MB | integrated driver compiled |
+| `full-mir-consumer-routine-indexed` | timeout, 300,471 ms | 58.0 MB | 70.7 MB | first top-level routine done; no gen2 output |
+| `mir-cfg-owner-driver-build` | exit 0, 58,512 ms | 2,422.7 MB | 2,411.3 MB | integrated driver compiled |
+| `full-mir-consumer-cfg-owner` | timeout, 300,687 ms | 57.8 MB | 68.7 MB | first top-level routine done; no 16 marker or gen2 output |
+
+The full artifact has 2,345 routines, 20,022 blocks, 34,091 instructions,
+3,532 phi rows, and 214,151 expression-graph nodes. Its first top-level
+routine is only 2,063 bytes with one block/instruction, so that routine is not
+the 300-second cause. The diagnostic window still spends most of its time in
+the admitted input/machine path and accumulated routine work. Do not raise the
+3072 MB cap or the 300-second focused window to hide that cost; close the next
+owner-directed scan and require `consumer:mir-to-ast:done` before claiming
+gen2.
+
+The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
+earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep
+that compile RED separate from CFG analysis. It is neither proof against this
+optimization nor a successful runtime parity result.
+
 This is still RED bootstrap evidence: the active seam is after the first valid
 top-level routine index and before `top-level-routines:done`. Keep the 300
 second diagnostic window and 3072 MB cap fixed. Do not replace the remaining
