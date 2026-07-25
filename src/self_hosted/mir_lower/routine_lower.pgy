@@ -455,21 +455,19 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
-    let routine_name_end_opt: Option<Int> = RoutineNameEnd(json, rpos);
-    if !IsSome(routine_name_end_opt) {
-        MirLowerFailClosed("malformed routine name");
-    }
-    let routine_name_end: Int = UnwrapOption(routine_name_end_opt);
-    let routine: String = RoutineName(json, rpos);
-    let span_end: Int = RoutineSpanEnd(json, routine_name_end);
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, rpos, span_end);
+func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine_end: Int, routine_indent: String, self_type: String, observe_fact_index: Bool) -> String {
+    let name_bounds: Array<Int> = [0, 0];
+    if routine_end <= routine_start || !MirObjectFieldValueBoundsAtBounds(json, routine_start, routine_end, "name", name_bounds) { MirLowerFailClosed("malformed routine name"); }
+    let routine_name_end: Int = name_bounds[1];
+    let routine: String = MirObjectStringFactAtBounds(json, routine_start, routine_end, "name");
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, routine_start, routine_end);
     if !index.valid {
         MirLowerFailClosed(Concat(
             "routine MIR fact index is incomplete: ",
             Concat(routine, Concat(" [", Concat(index.validation_stage, "]")))
         ));
     }
+    if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-fact-index:done"); }
     if !MirRoutinePhiFactsReady(index, json) {
         MirLowerFailClosed(Concat(
             "MIR phi facts are missing or inconsistent: ", routine
@@ -499,19 +497,17 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
             routine
         ));
     }
-    let header_end: Int = RoutineHeaderEnd(json, routine_name_end, span_end);
+    let header_end: Int = RoutineHeaderEnd(json, routine_name_end, routine_end);
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
 
-    let generic_count: Int = RoutineGenericCount(json, rpos, header_end);
+    let generic_count: Int = RoutineGenericCount(json, routine_start, header_end);
     if generic_count > 0 {
         let generic_text: String = "";
         let generic_i: Int = 0;
         while generic_i < generic_count {
-            let generic_name: String = RoutineGenericNameAt(
-                json, rpos, header_end, generic_i
-            );
+            let generic_name: String = RoutineGenericNameAt(json, routine_start, header_end, generic_i);
             if generic_name == "" {
                 MirLowerFailClosed(Concat(
                     "routine generic parameter is missing name fact: ", routine
@@ -531,23 +527,17 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
         );
     }
     ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
-    let param_count: Int = RoutineParamCount(json, rpos, header_end);
+    let param_count: Int = RoutineParamCount(json, routine_start, header_end);
     let param_row: Int = 0;
     while param_row < param_count {
-        let pname: String = RoutineParamNameAt(json, rpos, header_end, param_row);
+        let pname: String = RoutineParamNameAt(json, routine_start, header_end, param_row);
         if StringLength(pname) == 0 {
             MirLowerFailClosed(Concat("routine parameter is missing name fact: ", routine));
         }
-        let ptype: String = RoutineParamTypeAt(json, rpos, header_end, param_row);
-        let carriage: String = RoutineParamCarriageAt(
-            json, rpos, header_end, param_row
-        );
-        let resource_kind: String = RoutineParamResourceAt(
-            json, rpos, header_end, param_row
-        );
-        let pass_shape: String = RoutineParamPassAt(
-            json, rpos, header_end, param_row
-        );
+        let ptype: String = RoutineParamTypeAt(json, routine_start, header_end, param_row);
+        let carriage: String = RoutineParamCarriageAt(json, routine_start, header_end, param_row);
+        let resource_kind: String = RoutineParamResourceAt(json, routine_start, header_end, param_row);
+        let pass_shape: String = RoutineParamPassAt(json, routine_start, header_end, param_row);
         if (carriage != "value" && carriage != "value-result" &&
             carriage != "owner-handle" && carriage != "readonly-ref") ||
             (pass_shape != "direct" && pass_shape != "indirect") ||
@@ -577,12 +567,14 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
         param_row = param_row + 1;
     }
 
-    let rtype: String = RoutineReturnType(json, rpos, header_end);
+    let rtype: String = RoutineReturnType(json, routine_start, header_end);
     ArrayPush(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     ArrayPush(chunks, Concat(ppad, "Body:\n"));
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
-    let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end);
+    let bp: Option<Int> = RoutineBlocksStart(
+        json, routine_name_end, routine_end
+    );
     if !IsSome(bp) {
         MirLowerFailClosed(Concat("routine is missing blocks fact: ", routine));
     }
@@ -595,6 +587,14 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String {
-    return EmitRoutineTreeWithSelfType(json, rpos, routine_indent, "");
+func EmitRoutineTreeAtSpan(
+    json: String,
+    routine_start: Int,
+    routine_end: Int,
+    routine_indent: String,
+    observe_fact_index: Bool
+) -> String {
+    return EmitRoutineTreeWithSelfTypeAtSpan(
+        json, routine_start, routine_end, routine_indent, "", observe_fact_index
+    );
 }

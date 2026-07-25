@@ -1,25 +1,10 @@
 // MIR routine inventory fact owner for self-hosted mir_lower.
 //
-// This module owns discovery of routine declarations and bounded routine
-// header facts in pgy.mir.v1 JSON. CFG reconstruction and AST-tree emission
-// belong to routine_lower.pgy.
+// This module owns bounded routine header facts in pgy.mir.v1 JSON. Routine
+// identity and exact object spans belong to program_routine_index_owner.pgy;
+// CFG reconstruction and AST-tree emission belong to routine_lower.pgy.
 
 import "json_fact_read.pgy";
-
-func RoutineObjectEnd(json: String, rpos: Int) -> Option<Int> {
-    return MirObjectEnd(json, rpos, StringLength(json));
-}
-
-func RoutineSpanEnd(json: String, routine_name_end: Int) -> Int {
-    let object_end_opt: Option<Int> = MirObjectEnd(json, routine_name_end, StringLength(json));
-    if IsSome(object_end_opt) {
-        let object_end: Int = UnwrapOption(object_end_opt);
-        if object_end > routine_name_end {
-            return object_end;
-        }
-    }
-    return StringLength(json);
-}
 
 func RoutineBlocksBounds(json: String, routine_name_end: Int, span_end: Int, inout bounds: Array<Int>) -> Bool {
     return MirObjectArrayBounds(json, routine_name_end, span_end, "blocks", bounds);
@@ -31,23 +16,6 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
         return bounds[0];
     }
     return span_end;
-}
-
-func RoutineNameEnd(json: String, rpos: Int) -> Option<Int> {
-    let object_end: Int = RoutineObjectEnd(json, rpos)?;
-    let bounds: Array<Int> = [0, 0];
-    if object_end <= rpos || !MirObjectFieldValueBounds(json, rpos, object_end, "name", bounds) {
-        return None;
-    }
-    return Some(bounds[1]);
-}
-
-func RoutineName(json: String, rpos: Int) -> String {
-    let object_end_opt: Option<Int> = RoutineObjectEnd(json, rpos);
-    if !IsSome(object_end_opt) {
-        return "";
-    }
-    return MirObjectStringFact(json, rpos, UnwrapOption(object_end_opt), "name");
 }
 
 func RoutineParamCount(json: String, rpos: Int, header_end: Int) -> Int {

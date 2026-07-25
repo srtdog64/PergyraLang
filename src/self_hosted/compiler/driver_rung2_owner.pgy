@@ -301,7 +301,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:mir-to-ast:start"
     );
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTreeFromRoutineIndex(admitted.routines, json)
+        EmitMirProgramTreeFromRoutineIndexObserved(
+            admitted.routines, json, observe_pressure
+        )
     );
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:done"

@@ -25,12 +25,12 @@ func BuildMirResourceFlowFacts(
     let parameter_flags: Array<Int> = [];
     let parameter_indices: Array<Int> = [];
     let names: Array<String> = [];
-    let declared: String = MirObjectNumberFact(
+    let declared: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end, "resource_flow_symbol_count");
     let valid: Bool = true;
     let bounds: Array<Int> = [0, 0];
     if StringLength(declared) == 0 ||
-        !MirObjectArrayBounds(
+        !MirObjectArrayBoundsAtBounds(
             json, routine_start, routine_end,
             "resource_flow_symbols", bounds) {
         valid = false;
@@ -39,21 +39,21 @@ func BuildMirResourceFlowFacts(
         let row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, cursor, bounds[1], row_bounds) {
-            let stable: String = MirObjectNumberFact(
+            let stable: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "stable_index");
-            let syntax: String = MirObjectNumberFact(
+            let syntax: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "declaration_syntax_id");
-            let kind: String = MirObjectNumberFact(
+            let kind: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "symbol_kind");
-            let parameter: String = MirObjectNumberFact(
+            let parameter: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "parameter_index");
-            let name: String = MirObjectStringFact(
+            let name: String = MirObjectStringFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "name");
             let parameter_flag: Int = 0;
-            if JsonObjectBoolFieldEquals(
+            if JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds[0], row_bounds[1], "is_parameter", true) {
                 parameter_flag = 1;
-            } else if !JsonObjectBoolFieldEquals(
+            } else if !JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds[0], row_bounds[1], "is_parameter", false) {
                 valid = false;
             }

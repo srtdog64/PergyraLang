@@ -49,7 +49,7 @@ func MirProgramRoutineIndexCount(ref index: MirProgramRoutineIndex) -> Int {
     return ArrayLength(index.starts);
 }
 
-func MirProgramRoutineIndexFind(
+func MirProgramRoutineIndexFindMethodRow(
     ref index: MirProgramRoutineIndex,
     owner: String,
     name: String
@@ -58,7 +58,7 @@ func MirProgramRoutineIndexFind(
     while row < ArrayLength(index.starts) {
         if index.kinds[row] == "method" &&
             index.owners[row] == owner && index.names[row] == name {
-            return Some(index.starts[row]);
+            return Some(row);
         }
         row = row + 1;
     }

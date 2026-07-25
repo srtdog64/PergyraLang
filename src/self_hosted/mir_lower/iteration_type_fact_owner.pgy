@@ -27,11 +27,11 @@ func BuildMirIterationTypeFacts(
     let iterable_types: Array<String> = [];
     let collection_hoists: Array<Int> = [];
     let valid: Bool = StringLength(routine_syntax_id) > 0;
-    let declared_count: String = MirObjectNumberFact(
+    let declared_count: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end, "iteration_type_fact_count"
     );
     let rows: Array<Int> = [0, 0];
-    if StringLength(declared_count) == 0 || !MirObjectArrayBounds(
+    if StringLength(declared_count) == 0 || !MirObjectArrayBoundsAtBounds(
         json, routine_start, routine_end, "iteration_type_facts", rows
     ) {
         valid = false;
@@ -39,24 +39,24 @@ func BuildMirIterationTypeFacts(
         let cursor: Int = rows[0] + 1;
         let row: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(json, cursor, rows[1], row) {
-            let function_id: String = MirObjectNumberFact(
+            let function_id: String = MirObjectNumberFactAtBounds(
                 json, row[0], row[1], "function_syntax_id"
             );
-            let iteration_id: String = MirObjectNumberFact(
+            let iteration_id: String = MirObjectNumberFactAtBounds(
                 json, row[0], row[1], "iteration_syntax_id"
             );
-            let binding_type: String = MirObjectStringFact(
+            let binding_type: String = MirObjectStringFactAtBounds(
                 json, row[0], row[1], "binding_type"
             );
-            let iterable_type: String = MirObjectStringFact(
+            let iterable_type: String = MirObjectStringFactAtBounds(
                 json, row[0], row[1], "iterable_type"
             );
             let hoisted: Int = 0 - 1;
-            if JsonObjectBoolFieldEquals(
+            if JsonObjectBoolFieldEqualsWithin(
                 json, row[0], row[1], "collection_hoisted", true
             ) {
                 hoisted = 1;
-            } else if JsonObjectBoolFieldEquals(
+            } else if JsonObjectBoolFieldEqualsWithin(
                 json, row[0], row[1], "collection_hoisted", false
             ) {
                 hoisted = 0;

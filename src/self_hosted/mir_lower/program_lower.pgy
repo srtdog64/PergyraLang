@@ -9,14 +9,24 @@ import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_lower.pgy";
 
-func EmitMirProgramTreeFromRoutineIndex(
+func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] ", stage));
+    }
+}
+
+func EmitMirProgramTreeFromRoutineIndexObserved(
     ref routines: MirProgramRoutineIndex,
-    json: String
+    json: String,
+    observe_pressure: Bool
 ) -> String {
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
     let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];
+    MirProgramLowerPressureStage(
+        observe_pressure, "consumer:mir-to-ast:declarations:done"
+    );
     let total: Int = 0;
     let row: Int = 0;
     if MirProgramRoutineIndexCount(routines) == 0 {
@@ -24,10 +34,13 @@ func EmitMirProgramTreeFromRoutineIndex(
     }
     while row < MirProgramRoutineIndexCount(routines) {
         let rpos: Int = routines.starts[row];
+        let routine_end: Int = routines.ends[row];
         let kind: String = routines.kinds[row];
         let owner: String = routines.owners[row];
         if kind == "function" || StringLength(owner) == 0 {
-            ArrayPush(chunks, EmitRoutineTree(json, rpos, "  "));
+            ArrayPush(chunks, EmitRoutineTreeAtSpan(
+                json, rpos, routine_end, "  ", observe_pressure && total == 0
+            ));
             total = total + 1;
         }
         row = row + 1;
@@ -36,7 +49,17 @@ func EmitMirProgramTreeFromRoutineIndex(
     if total == 0 {
         MirLowerFailClosed("no supported routines found in MIR-JSON document");
     }
+    MirProgramLowerPressureStage(
+        observe_pressure, "consumer:mir-to-ast:top-level-routines:done"
+    );
     return StringJoin(chunks, "");
+}
+
+func EmitMirProgramTreeFromRoutineIndex(
+    ref routines: MirProgramRoutineIndex,
+    json: String
+) -> String {
+    return EmitMirProgramTreeFromRoutineIndexObserved(routines, json, false);
 }
 
 func EmitMirProgramTree(json: String) -> String {

@@ -32,7 +32,7 @@ func BuildMirLoopFlowFacts(
     routine_start: Int,
     routine_end: Int
 ) -> MirLoopFlowFacts {
-    let summary_declared_count: String = MirObjectNumberFact(
+    let summary_declared_count: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end, "loop_flow_summary_count");
     let summary_loop_ids: Array<Int> = [];
     let summary_kinds: Array<Int> = [];
@@ -43,7 +43,7 @@ func BuildMirLoopFlowFacts(
     let summary_entry_counts: Array<Int> = [];
     let summary_exit_starts: Array<Int> = [];
     let summary_exit_counts: Array<Int> = [];
-    let state_declared_count: String = MirObjectNumberFact(
+    let state_declared_count: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end, "loop_flow_state_count");
     let state_stable_indices: Array<Int> = [];
     let state_consumed_flags: Array<Int> = [];
@@ -56,7 +56,7 @@ func BuildMirLoopFlowFacts(
 
     let summary_bounds: Array<Int> = [0, 0];
     if StringLength(summary_declared_count) == 0 ||
-        !MirObjectArrayBounds(
+        !MirObjectArrayBoundsAtBounds(
             json, routine_start, routine_end,
             "loop_flow_summaries", summary_bounds) {
         valid = false;
@@ -65,23 +65,23 @@ func BuildMirLoopFlowFacts(
         let row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, cursor, summary_bounds[1], row_bounds) {
-            let loop_id: String = MirObjectNumberFact(
+            let loop_id: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "loop_syntax_id");
-            let kind_name: String = MirObjectStringFact(
+            let kind_name: String = MirObjectStringFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "kind");
-            let effect_base: String = MirObjectNumberFact(
+            let effect_base: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "effect_base");
-            let effect_delta: String = MirObjectNumberFact(
+            let effect_delta: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "effect_delta");
-            let flags: String = MirObjectNumberFact(
+            let flags: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "flags");
-            let entry_start: String = MirObjectNumberFact(
+            let entry_start: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "entry_state_start");
-            let entry_count: String = MirObjectNumberFact(
+            let entry_count: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "entry_state_count");
-            let exit_start: String = MirObjectNumberFact(
+            let exit_start: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "exit_state_start");
-            let exit_count: String = MirObjectNumberFact(
+            let exit_count: String = MirObjectNumberFactAtBounds(
                 json, row_bounds[0], row_bounds[1], "exit_state_count");
             let kind: Int = 0 - 1;
             if kind_name == "while" {
@@ -118,7 +118,7 @@ func BuildMirLoopFlowFacts(
 
     let state_bounds: Array<Int> = [0, 0];
     if StringLength(state_declared_count) == 0 ||
-        !MirObjectArrayBounds(
+        !MirObjectArrayBoundsAtBounds(
             json, routine_start, routine_end,
             "loop_flow_states", state_bounds) {
         valid = false;
@@ -127,29 +127,29 @@ func BuildMirLoopFlowFacts(
         let row_bounds2: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
             json, cursor2, state_bounds[1], row_bounds2) {
-            let stable_index: String = MirObjectNumberFact(
+            let stable_index: String = MirObjectNumberFactAtBounds(
                 json, row_bounds2[0], row_bounds2[1], "stable_index");
-            let access_mask: String = MirObjectNumberFact(
+            let access_mask: String = MirObjectNumberFactAtBounds(
                 json, row_bounds2[0], row_bounds2[1], "access_mask");
-            let slot_state: String = MirObjectNumberFact(
+            let slot_state: String = MirObjectNumberFactAtBounds(
                 json, row_bounds2[0], row_bounds2[1], "slot_state");
-            let semantic_state: String = MirObjectNumberFact(
+            let semantic_state: String = MirObjectNumberFactAtBounds(
                 json, row_bounds2[0], row_bounds2[1], "semantic_state");
-            let pool_id: String = MirObjectNumberFact(
+            let pool_id: String = MirObjectNumberFactAtBounds(
                 json, row_bounds2[0], row_bounds2[1], "pool_id");
             let consumed: Int = 0;
             let used: Int = 0;
-            if JsonObjectBoolFieldEquals(
+            if JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds2[0], row_bounds2[1], "is_consumed", true) {
                 consumed = 1;
-            } else if !JsonObjectBoolFieldEquals(
+            } else if !JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds2[0], row_bounds2[1], "is_consumed", false) {
                 valid = false;
             }
-            if JsonObjectBoolFieldEquals(
+            if JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds2[0], row_bounds2[1], "is_used", true) {
                 used = 1;
-            } else if !JsonObjectBoolFieldEquals(
+            } else if !JsonObjectBoolFieldEqualsWithin(
                 json, row_bounds2[0], row_bounds2[1], "is_used", false) {
                 valid = false;
             }
