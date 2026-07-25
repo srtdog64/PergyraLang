@@ -564,10 +564,50 @@ program/routine/block/instruction view for machine admission and
 `MirRoutineFactIndex`, eliminating that second structural walk. Review also
 removed a whole-program structure validator accidentally repeated per routine.
 The v3 run nevertheless remained at 16, proving these were real but not
-dominant costs. The next CPU owner seam is the routine emitter's direct
-instruction `kind`, `source_type`, and `machine_layer` field reopening. Keep
-the 300-second/3072 MB boundaries and migrate those consumers as one admitted
-view rather than adding another parser or backend-local cache.
+dominant costs.
+
+#### Full-document fact-table copies and phi wire semantics
+
+The next detailed run separated a low-memory CPU defect from the earlier 3 GiB
+readiness defect. Converting fact accessors to `ref` did not improve v9:
+routine 16 still completed at 133,593 ms, with 82.6 MB peak private. The
+constructor `JsonObjectFactTableFromBounds` was still placing the complete
+51.8 MB source `String` by value into each instruction-local table.
+
+Checkpoint `06f6994d` makes the common ABI/resource decisions directly from
+the admitted instruction bounds. A local instruction table is constructed only
+when a nested fact is actually present. In the same marker slice, ABI
+validation fell from 492 ms to 9 ms, resource validation from 646 ms to 0 ms,
+and routine 16 from 133,593 ms to 69,919 ms. Use only pressure records with
+`output_capture_complete=true` for these comparisons.
+
+That speedup exposed a separate producer-wire mismatch. MIR `phi.uses` is an
+incoming value inventory, not a predecessor-indexed native machine phi table.
+`FindTopLevelComma` has seven CFG predecessors at its loop header but only two
+inventory values. The fail-closed condition is therefore
+`2 <= use_count <= predecessor_count`; a self-result input is valid only when
+the CFG owner proves an incoming backedge. v11 passed that counterexample and
+continued to routine 64.
+
+CFG successors are now decoded once into integer block identities. Missing
+fields alone become the internal negative sentinel; an explicit negative wire
+successor is rejected by a C/LLVM executable ratchet. Do not use `own` to force
+borrowed string arrays through the BFS helpers: the correct boundary is typed
+integer identity, and generated value-array calls copy only their descriptor.
+
+The v13 full run timed out at 180,056 ms with 88.6 MB peak private / 96.6 MB
+working set, routine 64 at 99,447 ms, and routine 128 at 164,457 ms.
+`limit_exceeded=false` and `output_capture_complete=true`. The final v14
+integrated driver built in 48,451 ms at 2,442.7 MB peak private and preserved
+the 414-byte bounded output SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+No complete gen2 file exists.
+
+Keep the two memory stories distinct. The historical 3 GiB defect ran
+once-per-artifact readiness once per local and repeatedly revalidated a whole
+graph. The current consumer defect stays around 83-97 MB and accumulates CPU
+work after routine 128. Preserve the 180/300-second diagnostic window and
+3072 MB cap, then close only the next measured routine-owner seam.
 
 The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
 earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep

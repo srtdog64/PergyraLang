@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+2026-07-26 admitted instruction-view CPU progression (`06f6994d`).
+Routine lowering now reuses one typed instruction view and canonical block-id
+projection from the admitted `MirProgramRoutineIndex`. Common no-layout and
+no-resource instructions are validated from exact bounds without constructing
+an instruction fact table that embeds the complete 51.8 MB source String.
+Changing table accessors to `ref` alone was falsified by v9; the table
+constructor, not the accessor parameter, owned the repeated copy.
+
+The observed instruction slice improved from 492 ms to 9 ms for ABI facts and
+from 646 ms to 0 ms for resource facts. Routine 16 moved from 133,593 ms to
+69,919 ms. The next counterexample showed that MIR phi `uses` is an incoming
+value inventory rather than a predecessor-indexed machine phi table:
+`FindTopLevelComma` has seven predecessors and two inventory values. The owner
+now requires `2 <= use_count <= predecessor_count` and permits a self-result
+only with a CFG-proven incoming backedge.
+
+CFG successors are decoded once into integer identities. Missing facts use an
+internal sentinel, while explicit negative wire successors fail closed in the
+C/LLVM structure gate. The final v14 integrated C driver built in 48,451 ms at
+2,442.7 MB peak private / 2,430.8 MB working set. The bounded result remains
+414 bytes, SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+
+The full v13 artifact run is still RED: timeout at 180,056 ms, 88.6 MB peak
+private / 96.6 MB working set, routine 64 at 99,447 ms, and routine 128 at
+164,457 ms. It did not reach `consumer:mir-to-ast:done` and emitted no complete
+gen2 artifact. `mir.execution_graph` remains `BRIDGE`; self-hosting and the
+bootstrap fixed point are not complete.
+
 2026-07-26 admitted MIR program-instruction view progression (`190d0dbf`).
 `MirProgramRoutineIndex` now captures one ordered routine/block/instruction
 structure plus instruction kind/source type and raw machine contact/layer

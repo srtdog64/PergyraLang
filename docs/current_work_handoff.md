@@ -6,10 +6,48 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Execution directive: gen2 takeover before global SoT closure
+
+Effective 2026-07-26, freeze broad SoT expansion and new fixture breadth until
+the integrated gen2 driver exists and takes over the compiler-source build.
+This is a scheduling boundary, not permission to bypass an owner or weaken a
+fail-closed check. The planning estimate for attempting to close the remaining
+SoT globally is approximately one year because the unresolved ownership seams
+are individually difficult; treating that global closure as a prerequisite
+would prevent the executable bootstrap from reaching a terminus.
+
+Count the active bootstrap in this order:
+
+1. the existing C-owned seed consumes the complete compiler source and emits
+   the full `driver_gen2.c`;
+2. the native C compiler builds that artifact into the integrated gen2 driver;
+3. gen2 consumes the same complete compiler source and emits `driver_gen3.c`;
+4. only then compare gen2/gen3 artifacts and behavior for the fixed point.
+
+The first hard self-host threshold is step 3: gen2 must take over the complete
+compiler-source build currently performed by the C-owned seed. A bounded
+component fixed point, additional owner document, registry closure, or fixture
+count does not satisfy that threshold.
+
+Apply SoT work only when the current executable rung exposes a concrete missing
+fact. Name that fact, its owner, its last legitimate consumer, the forbidden
+fallback, and the falsifying case; close only that blocking seam, then resume
+the same gen2 run. Do not sweep unrelated `BRIDGE` rows or pursue global
+registry closure. Do not add breadth fixtures. A new fixture is allowed only
+as the smallest reproducer for the blocker observed on the active complete
+gen2 path, and it must not become a substitute for rerunning that path.
+
+Reassess the remaining SoT and fixture backlog only after gen2 has consumed the
+same complete source successfully. Until then, executable artifacts and their
+observed gates outrank SoT percentage, document volume, fixture count, and
+bounded-only parity as progress evidence.
+
 ## Resume checkpoint
 
-- Implementation checkpoint: `190d0dbf` (`reuse admitted MIR instruction
-  structure`) on `main`. Its document-index predecessor is `67502f50`, its
+- Implementation checkpoint: `06f6994d` (`reuse admitted MIR facts during
+  reconstruction`) on `main`. Its evidence predecessor is `84f68161`, its
+  admitted-structure predecessor is `190d0dbf`, its document-index predecessor
+  is `67502f50`, its
   routine-consumer predecessor is `d62553ee`, its
   exact-span predecessor is `157c340b`, its
   machine-admission predecessor is `0857899e`, and the complete artifact
@@ -52,6 +90,17 @@ owner, and the named executable gate.
   machine spans. Machine admission and `MirRoutineFactIndex` consume this
   derived `pgy.mir.v1` view. Whole-program readiness is proved once at
   admission; per-routine construction uses an O(1) row guard.
+- Routine reconstruction now consumes a typed instruction view and a canonical
+  CFG block-id projection from that admitted structure. Common no-layout and
+  no-resource instructions are decided from exact bounds without constructing
+  a value-owned instruction table over the complete 51.8 MB source String.
+- CFG successor identity is decoded once into `Array<Int>` rows. Missing edges
+  alone use the internal negative sentinel; an explicit negative wire target
+  fails closed at `cfg_successor` and is exercised through both C and LLVM.
+- MIR phi `uses` is treated as the producer-owned incoming-value inventory, not
+  a predecessor-indexed native phi table. Its accepted arity is
+  `2 <= use_count <= predecessor_count`, and a self-result input requires a
+  CFG-proven incoming backedge.
 
 ## Exact dirty state
 
@@ -69,11 +118,12 @@ file should remain dirty.
 ## Active executable objective card
 
 - Objective: finish MIR-to-AST lowering for the completed admitted full-driver
-  MIR artifact, then emit and compile gen2 C and prove the generated driver on
-  the bounded parity preflight.
+  MIR artifact, emit and compile the integrated gen2 driver, and immediately
+  make gen2 consume the same complete compiler source to emit gen3.
 - Priority: preserve the exact `pgy.mir.v1` artifact identity, keep the MIR
   consumer and semantic owners fail closed, stay below the fixed pressure cap,
-  then establish gen2/gen1 bounded behavior before widening the fixture.
+  complete the gen2 takeover, then establish the fixed point. Do not widen SoT
+  or fixtures before that takeover.
 - Fact owner: the verified `SelfMirProgramFacts` producer and its completed
   `pgy.mir.v1` artifact. `MirMachineLayerAdmittedJsonInput` carries the one
   machine proof, declaration, and routine span inventory; consumers may not
@@ -86,14 +136,16 @@ file should remain dirty.
   backend-specific JSON reads, source-text fact recovery, process-sharded fact
   stores, per-routine whole-program structure revalidation, `new ? old`
   authority, or raising the 3072 MB cap.
-- Focused falsifier: phi, branch/loop, block emission, match rendering, and
-  resource-runtime consumers must take admitted instruction kind/source type
-  and machine spans without reopening them. The same 300-second run must move
-  beyond 16 routines; 64 is only a progress sentinel because the first 64
-  routines contain 0.531% of routine bytes.
-- Acceptance gate: pressure-owned full MIR consumption, gen2 compilation, and
-  byte-exact generated bounded preflight all succeed; only then advance to the
-  gen2/gen3 fixed-point comparison.
+- Focused falsifier: continue the same admitted artifact beyond the observed
+  `top-level-routines:128` marker and either reach the next 64-routine marker or
+  expose one named routine/owner failure. Do not open the later expression-
+  graph or assignment post-pass until `consumer:mir-to-ast:done` is observed.
+  Even 128 is only a progress sentinel, not gen2.
+- Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
+  that artifact builds, and the resulting gen2 consumes the same complete
+  compiler source to emit `driver_gen3.c`. The bounded preflight remains a
+  focused diagnostic, not a prerequisite track that may delay this takeover;
+  compare gen2/gen3 only after both complete artifacts exist.
 
 ## Latest measured evidence
 
@@ -126,6 +178,12 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-document-index` | 63.4 MB | 74.0 MB | Timed out at 300,554 ms after the 16-routine marker; no gen2 output. |
 | `mir-program-instruction-index-driver-build-v3` | 2405.9 MB | 2409.3 MB | Integrated C driver compiled in 50,974 ms below the fixed cap. |
 | `full-mir-consumer-program-instruction-index-v3` | 85.2 MB | 93.6 MB | Timed out at 300,606 ms after the 16-routine marker; no gen2 output or cap crossing. |
+| `full-mir-consumer-borrowed-fact-v9` | 82.6 MB | 92.8 MB | `ref` accessors alone did not help; routine 16 completed at 133,593 ms. |
+| `full-mir-consumer-bounds-fast-v10` | 82.7 MB | 91.1 MB | Exact-bound common paths cut routine 16 to 69,919 ms, then exposed `FindTopLevelComma` phi inventory drift. |
+| `full-mir-consumer-phi-inventory-v11` | 88.5 MB | 96.7 MB | Passed the phi counterexample and reached routine 64 at 99,411 ms; timed out with no gen2. |
+| `full-mir-consumer-direct-block-v12` | 88.5 MB | 96.5 MB | Direct canonical block rows preserved behavior; routine 64 at 99,803 ms. |
+| `full-mir-consumer-int-cfg-v13` | 88.6 MB | 96.6 MB | Timed out at 180,056 ms; routine 64 at 99,447 ms and routine 128 at 164,457 ms; no gen2. |
+| `mir-int-cfg-negative-ratchet-driver-build-v14` | 2442.7 MB | 2430.8 MB | Final-source integrated C driver compiled in 48,451 ms below the cap. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -181,6 +239,26 @@ dominant remaining cost. Routines 1-64 contain only 274,581 of 51,741,503
 routine-object bytes (0.531%); neither marker is completion. Peak private was
 85.2 MB, `limit_exceeded=false`, and no gen2 file was opened.
 
+`06f6994d` closes the instruction-local copy seam reached by that run. Merely
+changing fact-table accessors to `ref` did not improve the v9 timing. Detailed
+v8/v9 markers showed that `JsonObjectFactTableFromBounds` still copied the
+complete 51.8 MB source `String` into every local instruction table. Exact-bound
+ABI/resource common paths avoid constructing that table: the observed
+instruction ABI step fell from 492 ms to 9 ms, the resource step from 646 ms to
+0 ms, and routine 16 from 133,593 ms to 69,919 ms. The next real producer-wire
+counterexample was `FindTopLevelComma`, whose loop header has seven CFG
+predecessors but two incoming inventory values. The phi owner now preserves
+that wire meaning and v11 passed it.
+
+The v13 full-artifact run kept `output_capture_complete=true`,
+`limit_exceeded=false`, and only 88.6 MB peak private while reaching routine 64
+at 99,447 ms and routine 128 at 164,457 ms. This is a CPU bottleneck, not a
+return of the 3 GiB memory defect. The final v14 driver build stayed below the
+cap and its bounded output remained exactly 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+No run reached `consumer:mir-to-ast:done` or opened a complete
+`driver_gen2.c`.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -201,22 +279,24 @@ executable slice is active; none is a green CFG/runtime verdict.
 
 ## Last observed gates
 
-Green on `190d0dbf` plus the documented working measurements:
+Green on `06f6994d` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
   plain, escaped, empty, and truncated exact-bound strings);
 - `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
   partitions, direct-field spans, malformed scalar tails, missing structure,
-  corrupted counts, and invalid row guards);
+  corrupted counts, invalid row guards, and explicit negative CFG successor
+  rejection);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`mir-program-instruction-index-driver-build-v3`): exit 0, 50,974 ms,
-  2,405.9 MB peak private / 2,409.3 MB peak working set;
+  owner (`mir-int-cfg-negative-ratchet-driver-build-v14`): exit 0, 48,451 ms,
+  2,442.7 MB peak private / 2,430.8 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+- `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
   clean plus malformed/missing manifest negatives);
 - `tests/self_hosted/parity/air_graph_json_validator_parity.sh` (C/LLVM,
@@ -236,6 +316,11 @@ Green on `190d0dbf` plus the documented working measurements:
 - `python scripts/sot_registry_gate.py`:
   `49 authorities, 41 derived fact carriers; CLOSED=29 BRIDGE=20 ACTIVE=0`;
 - `git diff --check` and `git diff --cached --check`.
+
+`tests/self_host_hard_contract_smoke.sh` remains RED at the unrelated existing
+manifest assertion that `driver_rung2_owner.pgy` contain
+`tests/cases/backend_compare/device_slot_machine_layer/main.pgy`. This was not
+weakened or relabeled as success.
 
 The shell gates must use `C:\Program Files\Git\bin\bash.exe` in the current
 Windows environment. `C:\Windows\System32\bash.exe` resolves to WSL and fails
@@ -261,24 +346,28 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-cfg-owner.*`, and
 `full-mir-consumer-document-index.*`, and
 `full-mir-consumer-program-instruction-index-v3.*`. The current executable is
-`driver_oracle_program_instruction_index_v3.exe`; its 414-byte bounded result
-is `bounded_mir_program_instruction_index_v3.c`. These files are diagnostic
-evidence only, not semantic authority or commit content.
+`driver_oracle_int_cfg_v14.exe`; its 414-byte bounded result is
+`bounded_int_cfg_v14.c`. The latest full consumer evidence is
+`full-mir-consumer-int-cfg-v13.*`, including complete stage capture through the
+128-routine marker. These files are diagnostic evidence only, not semantic
+authority or commit content.
 
 ## Next executable work
 
-1. Migrate phi, branch/loop, block statement, match, and resource-runtime
-   consumers to the admitted instruction kind/source type and machine spans.
-   Keep result identity in `MirRoutineFactIndex`, reject direct field reopens,
-   and bind the view to its admitted JSON lifetime without a second authority.
-2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
-   under the fixed pressure owner.
+1. Profile the accumulated routine range after marker 128 using the current
+   admitted instruction/CFG owners. Close only the first measured owner seam;
+   do not introduce a second document parser, cache, or backend-local graph.
+2. Re-run the current artifact until the next 64-routine marker and ultimately
+   `consumer:mir-to-ast:done` are observed under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
-4. Run the generated driver on the existing bounded MIR fixture and compare
-   emitted C bytes with the current driver output, then advance to gen2/gen3
-   only after bounded parity is green.
-5. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+4. Make the generated gen2 driver consume the same complete compiler source
+   and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
+   expansion; close only a concrete owner seam that blocks this exact run.
+5. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+   MIR fixture only as a focused falsifier when diagnosing a failure on this
+   path, not as an independent breadth campaign.
+6. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

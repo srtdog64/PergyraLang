@@ -8168,3 +8168,27 @@ Released/default replacement remains 0%.
   85.2 MB peak private and no gen2 output. Direct instruction kind/source type
   and machine-span consumers remain, so `mir.execution_graph` stays `BRIDGE`
   and released/default substitution is unchanged.
+
+### 2026-07-26 -- MIR instruction-view CPU seam and phi inventory
+
+- `06f6994d` makes routine lowering consume typed instruction and canonical CFG
+  views from the admitted program index. ABI/resource common paths inspect
+  exact bounds without constructing an instruction fact table over the entire
+  51.8 MB source String.
+- The measured ABI step fell from 492 ms to 9 ms, resource validation from
+  646 ms to 0 ms, and routine 16 from 133,593 ms to 69,919 ms. A `ref`-only
+  accessor change was measured first and did not improve the run.
+- Phi `uses` now follows the producer-owned incoming-value inventory contract:
+  `2 <= use_count <= predecessor_count`, with a self-result accepted only for a
+  CFG-proven backedge. The `FindTopLevelComma` seven-predecessor/two-value
+  counterexample then passed.
+- CFG successor identity is stored once as integer block IDs. Missing edges use
+  the internal sentinel; explicit negative wire targets fail closed in the
+  C/LLVM executable structure gate.
+- The final integrated v14 C driver built below 3 GiB and preserved the bounded
+  414-byte output with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The v13 full run reached routine 128 at 164,457 ms with only 88.6 MB peak
+  private, then timed out without `mir-to-ast:done`.
+- This does not complete gen2, self-hosting, or the bootstrap fixed point; no
+  complete `driver_gen2.c` was emitted.
