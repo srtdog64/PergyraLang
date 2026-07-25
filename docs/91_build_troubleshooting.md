@@ -234,6 +234,28 @@ positive evidence for the call-target consumer migration, not a full green
 result. The active falsifier has moved to expression-place resolution, which
 still used the checked match-environment entrypoint at this checkpoint.
 
+Three subsequent current-source shards moved that same owner contract through
+the remaining hot semantic-body consumers. The expression-place shard
+completed `expression-places:done` and `assignment:done`, then stopped at
+`statement:start` after `266,437 ms` (`peak_private_mb=3076.9`,
+`peak_working_set_mb=2519.2`, oracle private 3,075.7 MB). The statement shard
+completed `statement:done`, then stopped at `generic:start` after `274,579 ms`
+(`peak_private_mb=3074.7`, `peak_working_set_mb=2529.0`, oracle private
+3,073.5 MB). The generic shard completed `generic:done`, `verdict:done`,
+`body-types:ready`, and `verify:done`, then stopped at `mir-facts:start` after
+`264,914 ms` (`peak_private_mb=3073.5`, `peak_working_set_mb=2531.1`, oracle
+private 3,072.3 MB).
+
+Each migrated consumer now proves expression-surface readiness once at its
+owner boundary and uses
+`SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` inside the
+row/surface loop. The lifetime smoke gate rejects restoration of the checked
+entrypoint. These observations prove executable movement through the complete
+semantic-body bundle; they do not make the full pressure gate green. No full
+MIR artifact was produced, and the active falsifier is now MIR-fact
+materialization. Keep the 3 GiB cap unchanged and diagnose that Pergyra owner
+instead of adding backend-local C/LLVM state.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

@@ -38,6 +38,24 @@ The focused 3 GiB shard completed `call-targets:done` and
 `initializer-refine:done`, then crossed at `expression-places:start` after
 328,425 ms (`peak_private_mb=3072.8`, oracle private 3,071.5 MB). This counts as
 an executable consumer migration; the full pressure gate remains red and the
+
+2026-07-25 remaining semantic-body readiness closure. Expression-place,
+statement, and generic-specialization consumers now borrow the ready-artifact
+match environment after their outer owner has proved expression-surface
+readiness. The lifetime gate rejects a checked match-environment call returning
+inside any of these hot loops. Focused lifetime/component gates and initializer
+C/LLVM parity passed after every slice.
+
+The expression-place shard completed expression-place and assignment stages
+before stopping at `statement:start` after 266,437 ms (3,076.9 MB peak
+private). The statement shard completed that stage before stopping at
+`generic:start` after 274,579 ms (3,074.7 MB peak private). The generic shard
+completed `generic:done`, `verdict:done`, `body-types:ready`, and `verify:done`
+before stopping at `mir-facts:start` after 264,914 ms (3,073.5 MB peak private,
+3,072.3 MB owned by the oracle). This is executable self-host progress through
+the complete semantic-body bundle, not a full-pressure green result. No full
+MIR artifact was produced; MIR-fact materialization is the next executable SoT
+boundary. C and LLVM remain peer backends over the same Pergyra fact spine.
 next active consumer is expression-place resolution.
 2026-07-25 semantic expression scratch lifetime closure (`ca35a157`). The
 focused initializer/member-call C probe exposed Windows heap corruption

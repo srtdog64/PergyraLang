@@ -157,6 +157,44 @@ if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$c
     exit 1
 fi
 
+place_body="$(function_body "$PLACE_FACTS" 'SemanticAstAnalysisResolveExpressionPlacesFromBody')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$place_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] expression-place resolver lost ready-artifact match environment" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$place_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] expression-place resolver repeats checked match environment" >&2
+    exit 1
+fi
+statement_body="$(function_body "$STATEMENT_FACTS" 'SemanticAstStatementTypeFactsFromArtifact')"
+grep -Fq 'SemanticAstExpressionSurfaceBorrowReady(' <<<"$statement_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] statement resolver lost expression-surface readiness proof" >&2
+    exit 1
+}
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$statement_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] statement resolver lost ready-artifact match environment" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$statement_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] statement resolver repeats checked match environment" >&2
+    exit 1
+fi
+
+
+generic_body="$(function_body "$GENERIC_FACTS" 'SemanticAstGenericSpecializationFactsFromBody')"
+grep -Fq 'SemanticAstExpressionSurfaceBorrowReady(' <<<"$generic_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] generic resolver lost expression-surface readiness proof" >&2
+    exit 1
+}
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$generic_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] generic resolver lost ready-artifact match environment" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$generic_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] generic resolver repeats checked match environment" >&2
+    exit 1
+fi
+
 for consumer_contract in \
     "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \

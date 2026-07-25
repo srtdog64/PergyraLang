@@ -103,11 +103,10 @@ func SemanticAstStatementTypeFactsFromArtifact(
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "iteration");
     }
-    if !SemanticAstStatementFactsMatchArtifact(
-        artifact, signatures, statements
-    ) {
+    if !SemanticAstStatementFactsMatchArtifact(artifact, signatures, statements) {
         return SemanticAstStatementTypeStructuralError(artifact, "statement");
     }
+    if !SemanticAstExpressionSurfaceBorrowReady(artifact, expression_surfaces) { return SemanticAstStatementTypeStructuralError(artifact, "expression_surface"); }
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     let role_facts: SemanticAstRoleFacts =
@@ -171,7 +170,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) { environment_fact = "iteration_environment"; }
-        else if !SemanticAstExpressionSeedVisibleMatchBindings(
+        else if !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
             artifact, expression_surfaces, signatures, constructors,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes, function_tables
