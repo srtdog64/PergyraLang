@@ -355,6 +355,64 @@ each `FileWrite`. Stream those fields from the same MIR facts, retain the
 String serializer only as a fixture bridge, and require byte-exact C/LLVM/file
 parity. Do not split policy between backends or add a second MIR fact read.
 
+#### Sequential instruction writer and call-local JSON leaf result
+
+Checkpoint `e5587bee` removes that aggregate production call. The
+responsibility-named instruction artifact writer preserves the canonical
+instruction field order while directly framing expression-graph nodes,
+match/destructure arrays, uses, and runtime-call ABI auxiliary rows. It does
+not introduce another MIR store or backend-specific serializer;
+`SelfMirProgramFacts` remains the sole semantic owner. The old String
+projection remains a fixture oracle only. The focused gate feeds the exact
+same facts to String and file projections, compares raw bytes without newline
+or canonicalization normalization, compiles the probe through C and LLVM, and
+covers small, graph-heavy, match, destructure, and ABI/optional fixtures.
+Invalid instruction row counts are rejected before `FileOpen`, so a sentinel
+artifact is not truncated.
+
+The first fixed-cap result isolated one more lifetime seam:
+
+| label | elapsed ms | peak private MB | peak working set MB | artifact |
+|---|---:|---:|---:|---:|
+| `instruction-stream-ready` | 810,472 | 3,092.7 | 2,574.5 | 40,263,680-byte partial |
+| `instruction-string-pool-ready` | 675,355 | 3,064.3 | 2,544.9 | 51,807,108-byte complete |
+
+`instruction-stream-ready` completed all 8,266 current initializer rows,
+semantic verification, and MIR facts, then started JSON at about 2,956 MB.
+It advanced almost three times as many artifact bytes as
+`initializer-cursor-ready`, but private memory rose from 2,956.1 MB to
+3,092.7 MB over the final two samples. Direct graph framing had removed the
+large nested object copies, while every `JsonStringLiteral` still promoted
+its escaped and quoted results into `AllocatorResult()`. Because
+`AllocatorDestroy` has no pool to release in that mode, synchronous
+`FileWrite` did not end those lifetimes.
+
+Checkpoint `6329356f` adds an allocator-parameterized JSON string emitter and
+uses it only at the file boundary. `JsonStringLiteralWriteFile` sizes a
+call-local pool for the worst supported escaping expansion, writes the
+literal synchronously, and destroys the pool after `FileWrite` returns. The
+production instruction writer now uses that boundary for all unbounded graph
+and list string leaves. Numeric `ToString`, fixed ABI layout objects, and
+program/routine framing were not changed without evidence.
+
+The successor run exited 0 below the unchanged 3072 MB ceiling. Its top
+`driver_oracle.exe` owned 3,063.1 MB; there were two measured processes and no
+compiler/link subprocess. The output is a complete `pgy.mir.v1` document with
+SHA-256
+`1621adf4070bc778dd90493e29db857c22f13722d951bea8a94d1241e9ee884e`,
+2,345 routines, 142 declarations, a closing `]}`, and a successful full JSON
+parse. The pressure log reached `json-write:done`. This is the first complete
+current full-driver MIR artifact under the 3 GiB gate.
+
+Do not overstate the margin: the sampled peak is only 7.7 MB below the cap,
+so this closes artifact production but not the broader compiler memory debt.
+Do not raise the limit or recreate facts in a second process. The next rung is
+the existing Pergyra MIR consumer: consume this exact completed artifact to
+emit gen2 C, compile it, and run the bounded generated-driver parity preflight.
+`FileWrite` still has no status return, so success here means valid open,
+completed process, byte parity, complete JSON, and observed stage completion;
+it is not a new claim of atomic file-write error reporting.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

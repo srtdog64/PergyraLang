@@ -1,5 +1,38 @@
 # Self-Host Progress
 
+2026-07-25 sequential MIR instruction JSON artifact closure (`e5587bee`,
+`6329356f`). Production block emission no longer calls
+`SelfMirJsonInstruction(...) -> String`. The responsibility-named instruction
+artifact writer emits expression-graph nodes, match/destructure rows, uses,
+and runtime-call ABI auxiliary rows sequentially from the one verified
+`SelfMirProgramFacts` owner. The String projection remains only as a focused
+wire oracle. A new raw-byte gate compiles the probe through C and LLVM and
+compares String/file bytes for small, graph-heavy, match, destructure, and
+ABI/optional fixtures; it also proves invalid instruction rows are rejected
+before an existing output file is opened or truncated.
+
+The first fixed-cap run after aggregate instruction/graph removal remained
+red: `instruction-stream-ready`, elapsed 810,472 ms, peak private 3,092.7 MB,
+peak working set 2,574.5 MB, and a 40,263,680-byte partial artifact. It began
+JSON near 2,956 MB and then accumulated escaped/quoted leaf strings allocated
+through `AllocatorResult()`. `JsonStringLiteralWriteFile` now gives those
+transient bytes one call-local pool and destroys it only after synchronous
+`FileWrite` returns. This preserves the wire while bounding leaf lifetime.
+
+The exact successor run is green at the unchanged 3072 MB ceiling:
+`instruction-string-pool-ready`, exit 0, elapsed 675,355 ms, peak private
+3,064.3 MB, peak working set 2,544.9 MB, top oracle private 3,063.1 MB, and no
+compiler/link subprocess. It completed a 51,807,108-byte `pgy.mir.v1` artifact
+with SHA-256
+`1621adf4070bc778dd90493e29db857c22f13722d951bea8a94d1241e9ee884e`,
+2,345 routines, and 142 declarations; the pressure log reached
+`json-write:done` and a full JSON parse succeeded. This closes production MIR
+artifact creation under the cap, but the margin is only 7.7 MB and the
+generated-driver consumer/fixed-point gate has not yet run. The next active
+executable rung consumes this exact artifact to emit and compile gen2, then
+checks the bounded gen2/gen1 parity fixture without reopening a native fact
+owner.
+
 2026-07-25 initializer environment cursor executable rung (`ffe31ce8`).
 `ast_initializer_environment_cursor_owner.pgy` now keeps one function base
 environment and one active lexical-local suffix while initializer rows advance
