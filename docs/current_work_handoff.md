@@ -8,15 +8,27 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Active implementation checkpoint is `ca35a157` (`Close semantic expression
-  scratch lifetime`) on `main`. It follows `0eec8b45` (`Route MIR enum facts
-  through semantic owner`), `3f2b9bba` (`Unify foreach synthetic roots with
-  program graph`), and `14c1683b` (`Remove assignment target text duplicate`).
-  Expression-environment producers now share the owned-string contract,
-  production consumers release scratch at their last use, and persisted result
-  strings are copied before release. MIR declaration projection consumes the
-  artifact-owned `analysis.enums` fact; the AST enum rescan is negative-gated.
-  Ordinary `Array<String>` remains on the beta no-free policy.
+- Implementation checkpoint is `d255644e` on `main`; it closes initializer
+  graph readiness. It follows `589b6638` (`Reuse borrowed semantic
+  environments`) and `0406dc75` (`Route assignment enum facts through
+  analysis owner`); at this refresh it is two commits ahead of `origin/main`.
+  Temporary expression environments borrow semantic strings through ordinary
+  `ArrayPush`; row reset pops logical entries while retaining backing, and
+  final clear releases only empty backing arrays.
+- `d255644e` closes the initializer readiness slice. The outer initializer
+  owner proves artifact and expression-surface readiness once, then calls
+  `SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` for each
+  local. The standalone checked entrypoint retains the full proof and
+  delegates. Static gates forbid the checked call in the hot loop and forbid
+  whole-graph readiness in the ready-artifact core.
+- Focused lifetime/component gates and initializer C/LLVM parity passed. The
+  official full request completed all 8,149 initializer rows through
+  `row:done:8148`, then crossed the unchanged 3 GiB limit after
+  `call-targets:start`: `elapsed_ms=7992190`,
+  `peak_private_mb=3074.3`, `peak_working_set_mb=2521.4`, and
+  `driver_oracle.exe=3063.3 MB` private. The target returned `Error 88` and
+  produced no full MIR artifact. Initializer readiness amortization is green;
+  the end-to-end pressure gate remains red at call-target resolution.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -546,49 +558,39 @@ earlier moving-tree attempts.
 
 ## Exact remaining dirty state after the handoff snapshot
 
-The main source graph contains the foreach program-graph checkpoint
-`3f2b9bba`, semantic-lifetime checkpoint `4403ee25`, pressure observations
-`e987d15c` and `35e3106c`, MIR enum-owner closure `0eec8b45`, and scratch
-lifetime closure `ca35a157`. The semantic environment, callable table,
-initializer/assignment projections, foreach topology, and MIR enum consumer
-therefore share one Git ancestry. The following concurrent changes remain
-dirty in `main` and are intentionally excluded; preserve them and re-check
-ownership before the next unit:
+The implementation, gates, troubleshooting note, and progress entry are
+committed in `d255644e`. The handoff refresh is committed separately so that
+the implementation checkpoint remains exact. No task-owned dirty files remain.
 
-- `docs/91_build_troubleshooting.md`;
-- `src/self_hosted/PROGRESS.md`;
+The following three parity scripts are concurrent user work and must remain
+dirty, unstaged, and unmodified:
+
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-The delegated `semantic_lifetime` pressure finished, its result is integrated,
-and its pressure-owned processes ended. Remove that clean worktree and merged
-branch only after its Codex task has stopped and the ancestry check passes.
+All pressure-owned processes ended after the `Error 88` verdict. Temporary
+`.tmp/pressure_*_ready` artifacts are diagnostic output, not semantic
+authority and not commit content.
 
 ## Next executable work
 
-1. Run the official initializer/member-call C/LLVM parity and then the
-   exclusive fixed pressure on exact checkpoint `ca35a157`. Compare against
-   the `0eec8b45` baseline (`peak_private_mb=3079.8 MB`) without raising the
-   `3072 MB` cap.
-2. Keep the callable-table, program-graph, MIR enum-owner, and scratch-lifetime
-   ratchets closed. Do not restore a topology builder, released fact read, AST
-   enum rescan, ordinary push into owned scratch, or file-layout authority.
-3. The `0eec8b45` exclusive full bootstrap was run with PowerShell discoverable;
-   it is red at the 3GiB pressure ceiling (`peak_private_mb=3079.8`). Do not
-   raise the cap or use a system-free-memory reading as the fix. Preserve the
-   pressure contract and use the recorded peak as the falsifying fixture.
-4. Close the measured whole-program semantic lifetime boundary. The
-   initializer and assignment text duplications are now removed; the next
-   preferred executable unit is a routine-scoped analysis/verify materialization
-   with owner-proved output ordering and comparison against the native 120MB
-   golden artifact. Do not infer a pressure improvement until the exclusive
-   target is rerun.
-5. Introduce the real revision owner and distinct stable identities
+1. Enter the call-target-resolution SoT boundary exposed by the official run.
+   Name the exact repeated owner/fact construction before changing structure;
+   do not return to initializer readiness or raise the 3 GiB cap.
+2. Keep program-graph, callable-table, enum-fact, borrowed-environment, and
+   ready-artifact ratchets closed. C and LLVM remain peer consumers of one
+   Pergyra semantic/MIR fact spine; no backend-local cache or compatibility
+   read is allowed.
+3. Add a focused negative gate for the call-target old path, run the narrow
+   C/LLVM parity, then rerun the official 3072 MB full request. Claim full
+   closure only when the full MIR artifact is produced and the fixed-point
+   comparison completes.
+4. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
    domain or inventing a compatibility identity.
-6. After the full-driver artifact completes below 3 GiB, run the unfiltered
+5. After the full-driver artifact completes below 3 GiB, run the unfiltered
    280-row C/LLVM/self-hosted matrix. Its first red row chooses the next
    executable substitution rung.
 
