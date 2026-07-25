@@ -8,27 +8,31 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint is `d255644e` on `main`; it closes initializer
-  graph readiness. It follows `589b6638` (`Reuse borrowed semantic
-  environments`) and `0406dc75` (`Route assignment enum facts through
-  analysis owner`); at this refresh it is two commits ahead of `origin/main`.
-  Temporary expression environments borrow semantic strings through ordinary
-  `ArrayPush`; row reset pops logical entries while retaining backing, and
-  final clear releases only empty backing arrays.
-- `d255644e` closes the initializer readiness slice. The outer initializer
-  owner proves artifact and expression-surface readiness once, then calls
-  `SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` for each
-  local. The standalone checked entrypoint retains the full proof and
-  delegates. Static gates forbid the checked call in the hot loop and forbid
-  whole-graph readiness in the ready-artifact core.
-- Focused lifetime/component gates and initializer C/LLVM parity passed. The
-  official full request completed all 8,149 initializer rows through
-  `row:done:8148`, then crossed the unchanged 3 GiB limit after
-  `call-targets:start`: `elapsed_ms=7992190`,
-  `peak_private_mb=3074.3`, `peak_working_set_mb=2521.4`, and
-  `driver_oracle.exe=3063.3 MB` private. The target returned `Error 88` and
-  produced no full MIR artifact. Initializer readiness amortization is green;
-  the end-to-end pressure gate remains red at call-target resolution.
+- Implementation checkpoint is `329dd151` on `main`; it closes the remaining
+  semantic-body readiness consumers reached after `97c2d631` closed
+  call-target resolution. The chain starts with `589b6638` (borrowed
+  expression environments) and `d255644e` (initializer readiness
+  amortization). Temporary expression environments retain reusable backing
+  between rows and release the empty backing arrays only at final clear.
+- Expression-place, statement, and generic-specialization owners now prove
+  expression-surface readiness once at their outer boundary and call
+  `SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` inside
+  their hot loops. The standalone entrypoint keeps the checked proof for
+  independent callers. The lifetime gate forbids restoring the checked call in
+  any migrated loop or restoring whole-graph readiness in the borrowed core.
+- Focused lifetime/component gates and initializer C/LLVM parity passed after
+  every slice. The expression-place shard completed
+  `expression-places:done` and `assignment:done`, then stopped at
+  `statement:start` after 266,437 ms and 3,076.9 MB peak private. The
+  statement shard completed `statement:done`, then stopped at
+  `generic:start` after 274,579 ms and 3,074.7 MB peak private.
+- The latest generic shard completed `generic:done`, `verdict:done`,
+  `body-types:ready`, and `verify:done`, then crossed the unchanged 3 GiB
+  cap at `mir-facts:start`: `elapsed_ms=264914`,
+  `peak_private_mb=3073.5`, `peak_working_set_mb=2531.1`, and
+  `driver_oracle.exe=3072.3 MB` private. No full MIR artifact was produced.
+  The semantic-body bundle is executable past verification; the end-to-end
+  pressure gate remains red at MIR-fact materialization.
 - Prior graph checkpoint: `9f207fdc` (`Share artifact callable table
   across capture and body`), following `6433659b` (`Share callable table with
   match binding`), `561d8ae1` (`Share callable table with generic
@@ -575,17 +579,18 @@ authority and not commit content.
 
 ## Next executable work
 
-1. Enter the call-target-resolution SoT boundary exposed by the official run.
-   Name the exact repeated owner/fact construction before changing structure;
-   do not return to initializer readiness or raise the 3 GiB cap.
+1. Enter the MIR-fact materialization boundary exposed by the latest focused
+   pressure shard. Name the exact owner, retained fact, and last consumer before
+   changing structure; do not return to semantic-body readiness or raise the
+   3 GiB cap.
 2. Keep program-graph, callable-table, enum-fact, borrowed-environment, and
    ready-artifact ratchets closed. C and LLVM remain peer consumers of one
    Pergyra semantic/MIR fact spine; no backend-local cache or compatibility
    read is allowed.
-3. Add a focused negative gate for the call-target old path, run the narrow
-   C/LLVM parity, then rerun the official 3072 MB full request. Claim full
-   closure only when the full MIR artifact is produced and the fixed-point
-   comparison completes.
+3. Add a focused negative gate for the exact MIR-fact old path, run the narrow
+   C/LLVM parity, then rerun the 3072 MB pressure shard. Claim full closure only
+   when the full MIR artifact is produced and the fixed-point comparison
+   completes.
 4. Introduce the real revision owner and distinct stable identities
    (`CompilationRevisionId`, `ExpressionNodeId`, `SyntaxNodeId`, `TypeId`,
    `SymbolId`, `InstructionId`, `ValueId`) without aliasing them to one integer
