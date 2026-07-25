@@ -15,7 +15,6 @@ import "../compiler/machine_layer_declaration_consumer.pgy";
 // validator.  Consumers must carry the declaration used for admission with the
 // JSON instead of validating the JSON and then accepting a separate declaration.
 struct MirMachineLayerAdmittedJsonInput {
-    let json: String;
     let machine_declaration: SelfHostMachineLayerDeclaration;
     let routines: MirProgramRoutineIndex;
 }
@@ -150,30 +149,37 @@ func MirMachineLayerInstructionReady(
     );
 }
 
+func MirMachineLayerInstructionRuntimeOperationAtBounds(
+    json: String, value_start: Int, value_end: Int
+) -> String {
+    if value_start < 0 || value_end <= value_start ||
+        JsonCharCodeAt(json, value_end, value_start) !=
+        JsonAsciiCode("{") {
+        return "";
+    }
+    return MirObjectStringFactAtBounds(
+        json, value_start, value_end, "runtime_operation");
+}
+
 func MirMachineLayerInstructionRuntimeOperation(
     json: String, start: Int, end: Int
 ) -> String {
     let value_bounds: Array<Int> = [0, 0];
     if !MirObjectFieldValueBoundsAtBounds(
-        json, start, end, "machine_layer", value_bounds) {
-        return "";
-    }
-    if JsonCharCodeAt(json, value_bounds[1], value_bounds[0]) !=
-        JsonAsciiCode("{") {
-        return "";
-    }
-    return MirObjectStringFactAtBounds(
-        json, value_bounds[0], value_bounds[1], "runtime_operation");
+        json, start, end, "machine_layer", value_bounds) { return ""; }
+    return MirMachineLayerInstructionRuntimeOperationAtBounds(
+        json, value_bounds[0], value_bounds[1]
+    );
 }
 
 // Validate all machine-layer objects without rebuilding the native manifest
 // or walking source/AST data.  Missing/null machine_layer is permitted for
 // non-contact instructions; a present malformed object is always fatal.
 func MirMachineLayerRoutineIndexFactsReady(
-    json: String,
     declaration: SelfHostMachineLayerDeclaration,
     ref routines: MirProgramRoutineIndex
 ) -> Bool {
+    let json: String = routines.source_json;
     if !CompilerRuntimeCallAbiMachineLayerProjectionReady() {
         return false;
     }
@@ -203,17 +209,17 @@ func MirMachineLayerAdmitJsonInputObserved(
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
     if !document.valid { return None; }
     return MirMachineLayerAdmitDocumentObserved(
-        json, machine_declaration, document, observe_pressure
+        machine_declaration, document, observe_pressure
     );
 }
 
 func MirMachineLayerAdmitDocumentObserved(
-    json: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
     document: MirDocumentFactIndex,
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
     if !document.valid { return None; }
+    let json: String = document.routines.json;
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
     );
@@ -230,7 +236,7 @@ func MirMachineLayerAdmitDocumentObserved(
         observe_pressure, "consumer:input:machine-layer:instruction-scan:start"
     );
     if !MirMachineLayerRoutineIndexFactsReady(
-        json, machine_declaration, routines
+        machine_declaration, routines
     ) {
         return None;
     }
@@ -238,7 +244,7 @@ func MirMachineLayerAdmitDocumentObserved(
         observe_pressure, "consumer:input:machine-layer:instruction-scan:done"
     );
     return Some(MirMachineLayerAdmittedJsonInput(
-        json, machine_declaration, routines
+        machine_declaration, routines
     ));
 }
 

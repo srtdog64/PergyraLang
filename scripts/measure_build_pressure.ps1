@@ -5,6 +5,7 @@ param(
     [int]$LimitMB = 3072,
     [int]$IntervalMs = 500,
     [int]$TimeoutSec = 0,
+    [int]$OutputDrainTimeoutMs = 5000,
     [switch]$StopOnLimit,
     [string]$OutDir = ".tmp/build-pressure"
 )
@@ -18,9 +19,12 @@ $samplePath = Join-Path $OutDir "$safeLabel.samples.csv"
 $summaryPath = Join-Path $OutDir "$safeLabel.summary.json"
 $stdoutPath = Join-Path $OutDir "$safeLabel.stdout.log"
 $stderrPath = Join-Path $OutDir "$safeLabel.stderr.log"
+$stagePath = Join-Path $OutDir "$safeLabel.stages.csv"
 
 "elapsed_ms,phase,proc_count,compile_proc_count,link_proc_count,working_set_mb,private_mb,max_proc,top_private_mb" |
     Set-Content -Encoding ASCII -Path $samplePath
+"observed_elapsed_ms,stream,stage" |
+    Set-Content -Encoding ASCII -Path $stagePath
 
 if (Test-Path $stdoutPath) {
     Remove-Item -LiteralPath $stdoutPath -Force
@@ -58,6 +62,182 @@ function ConvertTo-NativeArgument {
     return $builder.ToString()
 }
 
+if (-not ("BuildPressureOutputCapture" -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+
+public sealed class BuildPressureOutputCapture : IDisposable
+{
+    private readonly StringBuilder stdoutText = new StringBuilder();
+    private readonly StringBuilder stderrText = new StringBuilder();
+    private readonly StringBuilder stdoutStageLine = new StringBuilder();
+    private readonly StringBuilder stderrStageLine = new StringBuilder();
+    private readonly Stopwatch clock = new Stopwatch();
+    private readonly StreamWriter stageWriter;
+    private StreamReader stdoutReader;
+    private StreamReader stderrReader;
+    private Task stdoutTask;
+    private Task stderrTask;
+    private volatile bool stdoutEof;
+    private volatile bool stderrEof;
+
+    public BuildPressureOutputCapture(string stagePath)
+    {
+        stageWriter = new StreamWriter(
+            stagePath, true, new UTF8Encoding(false));
+        stageWriter.AutoFlush = true;
+    }
+
+    public void StartClock()
+    {
+        clock.Restart();
+    }
+
+    public void Start(StreamReader output, StreamReader error)
+    {
+        stdoutReader = output;
+        stderrReader = error;
+        stdoutTask = PumpAsync(
+            stdoutReader, stdoutText, stdoutStageLine, "stdout", true);
+        stderrTask = PumpAsync(
+            stderrReader, stderrText, stderrStageLine, "stderr", false);
+    }
+
+    private async Task PumpAsync(
+        StreamReader reader,
+        StringBuilder captured,
+        StringBuilder stageLine,
+        string stream,
+        bool isStdout)
+    {
+        char[] buffer = new char[4096];
+        try
+        {
+            while (true)
+            {
+                int count = await reader.ReadAsync(
+                    buffer, 0, buffer.Length).ConfigureAwait(false);
+                if (count == 0)
+                {
+                    RecordTrailingStage(stream, stageLine);
+                    if (isStdout) { stdoutEof = true; }
+                    else { stderrEof = true; }
+                    return;
+                }
+                lock (captured)
+                {
+                    captured.Append(buffer, 0, count);
+                }
+                CaptureStageLines(stream, stageLine, buffer, count);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (IOException)
+        {
+        }
+    }
+
+    private void CaptureStageLines(
+        string stream,
+        StringBuilder pending,
+        char[] buffer,
+        int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            char current = buffer[i];
+            if (current == '\n')
+            {
+                RecordTrailingStage(stream, pending);
+                pending.Clear();
+            }
+            else
+            {
+                pending.Append(current);
+            }
+        }
+    }
+
+    private void RecordTrailingStage(string stream, StringBuilder pending)
+    {
+        if (pending.Length == 0)
+        {
+            return;
+        }
+        string line = pending.ToString();
+        if (line.EndsWith("\r", StringComparison.Ordinal))
+        {
+            line = line.Substring(0, line.Length - 1);
+        }
+        if (!line.StartsWith(
+                "[driver-pressure-stage]", StringComparison.Ordinal) &&
+            !line.StartsWith(
+                "[semantic-body-type-stage]", StringComparison.Ordinal) &&
+            !line.StartsWith(
+                "[semantic-initializer-stage]", StringComparison.Ordinal))
+        {
+            return;
+        }
+        string escapedStage = line.Replace("\"", "\"\"");
+        lock (stageWriter)
+        {
+            stageWriter.WriteLine(
+                "{0},{1},\"{2}\"",
+                clock.ElapsedMilliseconds,
+                stream,
+                escapedStage);
+        }
+    }
+
+    public string StandardOutputText()
+    {
+        lock (stdoutText) { return stdoutText.ToString(); }
+    }
+
+    public string StandardErrorText()
+    {
+        lock (stderrText) { return stderrText.ToString(); }
+    }
+
+    public bool WaitForCompletion(int timeoutMs)
+    {
+        if (stdoutTask == null || stderrTask == null)
+        {
+            return false;
+        }
+        try
+        {
+            return Task.WaitAll(
+                new Task[] { stdoutTask, stderrTask }, timeoutMs) &&
+                stdoutEof && stderrEof;
+        }
+        catch (AggregateException)
+        {
+            return false;
+        }
+    }
+
+    public void AbortReaders()
+    {
+        if (stdoutReader != null) { stdoutReader.Dispose(); }
+        if (stderrReader != null) { stderrReader.Dispose(); }
+    }
+
+    public void Dispose()
+    {
+        AbortReaders();
+        stageWriter.Dispose();
+    }
+}
+'@
+}
+
 # A probe invoked from a Make target must start a fresh build owner. Inheriting
 # GNU make's jobserver handles/level through PowerShell can detach or misreport
 # the measured child on Windows.
@@ -77,12 +257,16 @@ $processInfo.RedirectStandardError = $true
 $processInfo.EnvironmentVariables["PGY_BUILD_PRESSURE_ACTIVE"] = "1"
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $processInfo
+$capture = [BuildPressureOutputCapture]::new(
+    [System.IO.Path]::GetFullPath($stagePath)
+)
+$started = Get-Date
+$capture.StartClock()
 if (-not $process.Start()) {
+    $capture.Dispose()
     throw "failed to start measured build"
 }
-$stdoutTask = $process.StandardOutput.ReadToEndAsync()
-$stderrTask = $process.StandardError.ReadToEndAsync()
-$started = Get-Date
+$capture.Start($process.StandardOutput, $process.StandardError)
 $peakWorkingSet = 0.0
 $peakPrivate = 0.0
 $peakProcessCount = 0
@@ -258,17 +442,30 @@ while (-not $process.HasExited) {
     $process.Refresh()
 }
 
-$process.WaitForExit()
-$exitCode = [int]$process.ExitCode
+$rootExitComplete = $process.WaitForExit($OutputDrainTimeoutMs)
+if (-not $rootExitComplete) {
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    $rootExitComplete = $process.WaitForExit($OutputDrainTimeoutMs)
+}
+$outputCaptureComplete = $capture.WaitForCompletion($OutputDrainTimeoutMs)
+$outputCaptureStopped = $outputCaptureComplete
+if (-not $outputCaptureComplete) {
+    $capture.AbortReaders()
+    $outputCaptureStopped = $capture.WaitForCompletion($OutputDrainTimeoutMs)
+}
+$stdoutText = $capture.StandardOutputText()
+$stderrText = $capture.StandardErrorText()
+if ($outputCaptureStopped) { $capture.Dispose() }
+$exitCode = if ($rootExitComplete) { [int]$process.ExitCode } else { -1 }
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText(
     [System.IO.Path]::GetFullPath($stdoutPath),
-    $stdoutTask.Result,
+    $stdoutText,
     $utf8NoBom
 )
 [System.IO.File]::WriteAllText(
     [System.IO.Path]::GetFullPath($stderrPath),
-    $stderrTask.Result,
+    $stderrText,
     $utf8NoBom
 )
 if ($timedOut) {
@@ -291,12 +488,14 @@ $summary = [ordered]@{
     stop_on_limit = [bool]$StopOnLimit
     limit_exceeded = $limitExceeded
     detached_compiler_worker_tracking = $true
+    output_capture_complete = $outputCaptureComplete
     phases = [ordered]@{
         orchestrate = $phaseStats.orchestrate
         compile = $phaseStats.compile
         link = $phaseStats.link
     }
     samples = $samplePath
+    stages = $stagePath
 }
 $summary | ConvertTo-Json -Depth 4 | Set-Content -Encoding ASCII -Path $summaryPath
 

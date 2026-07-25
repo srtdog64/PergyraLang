@@ -7,11 +7,9 @@ func MirMatchBindingLineForInstruction(
     json: String,
     instruction_start: Int,
     instruction_end: Int,
+    source_type: String,
     indent: String
 ) -> String {
-    let source_type: String = MirObjectStringFactAtBounds(
-        json, instruction_start, instruction_end, "source_type"
-    );
     if source_type != "AST_MATCH_CASE" { return ""; }
     let variant: String = MirObjectStringFactAtBounds(
         json, instruction_start, instruction_end, "match_variant"

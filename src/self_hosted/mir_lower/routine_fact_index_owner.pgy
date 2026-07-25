@@ -19,8 +19,8 @@ struct MirRoutineFactIndex {
     let block_starts: Array<Int>;
     let block_ends: Array<Int>;
     let backedge_headers: Array<Int>;
-    let block_succ_true: Array<String>;
-    let block_succ_false: Array<String>;
+    let block_succ_true: Array<Int>;
+    let block_succ_false: Array<Int>;
     let block_has_conditional_branch: Array<Int>;
     let block_structural_merges: Array<Int>;
     let block_instruction_starts: Array<Int>;
@@ -60,7 +60,8 @@ struct MirRoutineFactIndex {
     let loop_flow_state_semantic_states: Array<Int>;
     let loop_flow_state_pool_ids: Array<Int>;
 }
-func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex, routine_row: Int) -> MirRoutineFactIndex {
+func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row: Int) -> MirRoutineFactIndex {
+    let json: String = routines.source_json;
     let routine_start: Int = 0;
     let routine_end: Int = 0;
     let routine_row_ready: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
@@ -68,8 +69,8 @@ func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex
     let block_starts: Array<Int> = [];
     let block_ends: Array<Int> = [];
     let backedge_headers: Array<Int> = [];
-    let block_succ_true: Array<String> = [];
-    let block_succ_false: Array<String> = [];
+    let block_succ_true: Array<Int> = [];
+    let block_succ_false: Array<Int> = [];
     let block_has_conditional_branch: Array<Int> = [];
     let block_structural_merges: Array<Int> = [];
     let block_instruction_starts: Array<Int> = [];
@@ -183,10 +184,14 @@ func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex
             ArrayPush(block_starts, block_start);
             ArrayPush(block_ends, block_end);
             ArrayPush(backedge_headers, 0);
-            ArrayPush(block_succ_true, MirObjectNumberFactAtBounds(
-                json, block_start, block_end, "succ_true"));
-            ArrayPush(block_succ_false, MirObjectNumberFactAtBounds(
-                json, block_start, block_end, "succ_false"));
+            let true_successor_fact: String = MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_true");
+            let true_successor: Int = 0 - 1;
+            if StringLength(true_successor_fact) > 0 { true_successor = ToInt(true_successor_fact); if true_successor < 0 { valid = false; validation_stage = "cfg_successor"; } }
+            ArrayPush(block_succ_true, true_successor);
+            let false_successor_fact: String = MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_false");
+            let false_successor: Int = 0 - 1;
+            if StringLength(false_successor_fact) > 0 { false_successor = ToInt(false_successor_fact); if false_successor < 0 { valid = false; validation_stage = "cfg_successor"; } }
+            ArrayPush(block_succ_false, false_successor);
             ArrayPush(block_instruction_starts, ArrayLength(instruction_starts));
             let instruction_count: Int = routines.block_instruction_counts[global_block];
             let global_instruction_start: Int = routines.block_instruction_starts[global_block];
@@ -224,24 +229,19 @@ func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex
             block_offset = block_offset + 1;
         }
     }
-
     // Successor rows are owner facts, not optional hints.  Reject an out of
     // range target before any graph query so malformed input cannot turn a
     // negative index into a fabricated loop/backedge fact.
     let successor_block_count: Int = ArrayLength(block_starts);
     let successor_row: Int = 0;
     while successor_row < successor_block_count {
-        let true_target: String = block_succ_true[successor_row];
-        if StringLength(true_target) > 0 &&
-            (ToInt(true_target) < 0 ||
-             ToInt(true_target) >= successor_block_count) {
+        let true_target: Int = block_succ_true[successor_row];
+        if true_target >= successor_block_count {
             valid = false;
             validation_stage = "cfg_successor";
         }
-        let false_target: String = block_succ_false[successor_row];
-        if StringLength(false_target) > 0 &&
-            (ToInt(false_target) < 0 ||
-             ToInt(false_target) >= successor_block_count) {
+        let false_target: Int = block_succ_false[successor_row];
+        if false_target >= successor_block_count {
             valid = false;
             validation_stage = "cfg_successor";
         }
@@ -254,18 +254,18 @@ func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex
     // source, i.e. the edge closes a cycle in the owner-directed CFG.
     let block_row: Int = 0;
     while block_row < ArrayLength(block_starts) {
-        let true_succ: String = block_succ_true[block_row];
-        if StringLength(true_succ) > 0 {
-            let target: Int = ToInt(true_succ);
+        let true_succ: Int = block_succ_true[block_row];
+        if true_succ >= 0 {
+            let target: Int = true_succ;
             if target < ArrayLength(backedge_headers) &&
                 MirRoutineEdgeTargetsDominator(
                     block_succ_true, block_succ_false, block_row, target) {
                 ArraySet(backedge_headers, target, 1);
             }
         }
-        let false_succ: String = block_succ_false[block_row];
-        if StringLength(false_succ) > 0 {
-            let target: Int = ToInt(false_succ);
+        let false_succ: Int = block_succ_false[block_row];
+        if false_succ >= 0 {
+            let target: Int = false_succ;
             if target < ArrayLength(backedge_headers) &&
                 MirRoutineEdgeTargetsDominator(
                     block_succ_true, block_succ_false, block_row, target) {
@@ -280,13 +280,9 @@ func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex
     while block < block_count {
         let merge: Int = 0 - 1;
         let true_id: Int = 0 - 1;
-        if StringLength(block_succ_true[block]) > 0 {
-            true_id = ToInt(block_succ_true[block]);
-        }
+        if block_succ_true[block] >= 0 { true_id = block_succ_true[block]; }
         let false_id: Int = 0 - 1;
-        if StringLength(block_succ_false[block]) > 0 {
-            false_id = ToInt(block_succ_false[block]);
-        }
+        if block_succ_false[block] >= 0 { false_id = block_succ_false[block]; }
         if true_id >= 0 && false_id >= 0 {
             merge = MirRoutineGraphStructuralMerge(
                 block_succ_true, block_succ_false, block,
@@ -507,17 +503,19 @@ func MirRoutineFactIndexHasIncomingBackedge(ref index: MirRoutineFactIndex, bloc
 
 func MirRoutineFactIndexBlockSuccessor(
     ref index: MirRoutineFactIndex,
-    block_start: Int,
+    block_id: Int,
     false_edge: Bool
 ) -> String {
-    let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);
-    if block_row < 0 {
+    if block_id < 0 || block_id >= ArrayLength(index.block_succ_true) ||
+        block_id >= ArrayLength(index.block_succ_false) {
         return "";
     }
     if false_edge {
-        return index.block_succ_false[block_row];
+        if index.block_succ_false[block_id] < 0 { return ""; }
+        return ToString(index.block_succ_false[block_id]);
     }
-    return index.block_succ_true[block_row];
+    if index.block_succ_true[block_id] < 0 { return ""; }
+    return ToString(index.block_succ_true[block_id]);
 }
 
 func MirRoutineFactIndexBlockHasConditionalBranch(
@@ -549,8 +547,8 @@ func MirRoutineFactIndexBlockIsTerminal(
     if block_id < 0 || block_id >= ArrayLength(index.block_succ_true) {
         return false;
     }
-    return index.block_succ_true[block_id] == "" &&
-        index.block_succ_false[block_id] == "";
+    return index.block_succ_true[block_id] < 0 &&
+        index.block_succ_false[block_id] < 0;
 }
 
 func MirRoutineFactIndexBlockBounds(ref index: MirRoutineFactIndex, block_id: Int, inout bounds: Array<Int>) -> Bool {

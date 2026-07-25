@@ -1,0 +1,82 @@
+// Typed routine-local view of the admitted program instruction identity.
+//
+// The program index owns global structure and scalar instruction facts. This
+// view performs the only routine/block/instruction coordinate conversion; it
+// does not copy arrays or reopen kind/source/machine fields from JSON.
+
+import "program_routine_index_owner.pgy";
+
+struct MirRoutineInstructionView {
+    let valid: Bool;
+    let global_row: Int;
+    let start: Int;
+    let end: Int;
+    let kind: String;
+    let source_type: String;
+    let machine_layer_start: Int;
+    let machine_layer_end: Int;
+}
+
+struct MirRoutineInstructionSelection {
+    let valid: Bool;
+    let found: Bool;
+    let instruction: MirRoutineInstructionView;
+}
+
+func EmptyMirRoutineInstructionView() -> MirRoutineInstructionView {
+    return MirRoutineInstructionView(
+        false, 0 - 1, 0, 0, "", "", 0 - 1, 0 - 1
+    );
+}
+
+func MirRoutineInstructionViewAt(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_block_row: Int,
+    block_instruction_row: Int
+) -> MirRoutineInstructionView {
+    let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        routines, routine_row, routine_block_row, block_instruction_row
+    );
+    if global_row < 0 { return EmptyMirRoutineInstructionView(); }
+    return MirRoutineInstructionView(
+        true,
+        global_row,
+        routines.instruction_starts[global_row],
+        routines.instruction_ends[global_row],
+        routines.instruction_kinds[global_row],
+        routines.instruction_source_types[global_row],
+        routines.instruction_machine_layer_starts[global_row],
+        routines.instruction_machine_layer_ends[global_row]
+    );
+}
+
+func MirRoutineInstructionViewOfKind(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_block_row: Int,
+    wanted: String
+) -> MirRoutineInstructionSelection {
+    let empty: MirRoutineInstructionView = EmptyMirRoutineInstructionView();
+    let count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
+        routines, routine_row, routine_block_row
+    );
+    if count < 0 {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let row: Int = 0;
+    while row < count {
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, routine_block_row, row
+            );
+        if !instruction.valid {
+            return MirRoutineInstructionSelection(false, false, empty);
+        }
+        if instruction.kind == wanted {
+            return MirRoutineInstructionSelection(true, true, instruction);
+        }
+        row = row + 1;
+    }
+    return MirRoutineInstructionSelection(true, false, empty);
+}

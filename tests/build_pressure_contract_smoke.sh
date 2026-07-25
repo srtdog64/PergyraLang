@@ -23,6 +23,22 @@ require 'peak_working_set_mb'
 require 'peak_private_mb'
 require 'ConvertTo-Json -Depth 4'
 require '$summaryPath'
+require '$stagePath'
+require 'observed_elapsed_ms,stream,stage'
+require 'BuildPressureOutputCapture'
+require 'ReadAsync('
+require '[driver-pressure-stage]'
+require '[semantic-body-type-stage]'
+require '[semantic-initializer-stage]'
+require 'WaitForCompletion'
+require 'AbortReaders'
+require 'output_capture_complete = $outputCaptureComplete'
+require '[int]$OutputDrainTimeoutMs = 5000'
+if grep -Fq 'BeginOutputReadLine()' "$PROBE"; then
+    echo "[build-pressure-contract] line-normalizing stdout capture returned" >&2
+    exit 1
+fi
+require 'stages = $stagePath'
 require '$env:MAKEFLAGS = $null'
 require '$env:MAKELEVEL = $null'
 require 'New-Object System.Diagnostics.ProcessStartInfo'
@@ -32,7 +48,7 @@ require 'cc1|cc1plus|lto1|lto-wrapper|collect2|ld'
 require 'pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+'
 require 'driver_(oracle|seed|gen[0-9]+|c|llvm)'
 require 'detached_compiler_worker_tracking = $true'
-require '$exitCode = [int]$process.ExitCode'
+require '$exitCode = if ($rootExitComplete) { [int]$process.ExitCode } else { -1 }'
 require 'New-Object System.Text.UTF8Encoding($false)'
 require '[switch]$StopOnLimit'
 require 'limit_exceeded = $limitExceeded'
@@ -64,7 +80,7 @@ grep -Fq 'full driver MIR production requires the pressure-owned bootstrap gate'
     || { echo "[build-pressure-contract] full driver binary lacks its direct-call rejection" >&2; exit 1; }
 grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
-grep -Fq 'CompileSourceToMirJsonPressureObserved(' "$DRIVER_MAIN" \
+grep -Fq 'CompileSourceToMirJsonFilePressureObserved(' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] full driver binary lacks stage observation" >&2; exit 1; }
 grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
     || { echo "[build-pressure-contract] full driver pressure stages are not observable" >&2; exit 1; }

@@ -59,7 +59,7 @@ func MirJsonReadMachineAdmittedInputObserved(
     );
     let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
         MirMachineLayerAdmitDocumentObserved(
-            json, declaration, document, observe_pressure
+            declaration, document, observe_pressure
         );
     if !IsSome(admitted_opt) {
         MirLowerFailClosed("MIR machine-layer facts are missing or invalid");
@@ -88,7 +88,7 @@ func MirJsonReadInputObserved(
         MirJsonReadMachineAdmittedInputObserved(
             path, declaration, observe_pressure
         );
-    return admitted.json;
+    return admitted.routines.source_json;
 }
 
 func MirJsonReadInput(

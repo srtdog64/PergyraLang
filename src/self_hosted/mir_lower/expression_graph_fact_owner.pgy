@@ -33,7 +33,7 @@ func MirExpressionGraphSequenceFromJson(json: String) -> MirExpressionGraphSeque
     let routine_i: Int = 0;
     while routine_i < MirProgramRoutineIndexCount(routines) {
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-            json, routines, routine_i
+            routines, routine_i
         );
         if !index.valid {
             return MirExpressionGraphSequenceError(sequence);

@@ -296,13 +296,13 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
 ) -> CompilerEmissionArtifact {
-    let json: String = admitted.json;
+    let json: String = admitted.routines.source_json;
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:start"
     );
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTreeFromRoutineIndexObserved(
-            admitted.routines, json, observe_pressure
+            admitted.routines, observe_pressure
         )
     );
     DriverRung2PressureStage(

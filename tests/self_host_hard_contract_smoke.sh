@@ -274,7 +274,7 @@ forbid_function_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" 
     "GenerateCFromVerifiedSemanticArtifact" \
     "CompilerTargetCapabilityEnvelopeReady()"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "MirResourceRuntimeRowFactReady(json, kp, inst_end)"
+    "MirResourceRuntimeRowFactReady(routines, instruction)"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "CompilerRuntimeCallAbiFactForNativeResource("
 require_file "src/self_hosted/mir/routine_local_inventory_owner.pgy"

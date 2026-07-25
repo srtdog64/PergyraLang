@@ -289,7 +289,10 @@ func MirDeclArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
 }
 
 func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
-    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(MirDeclArrayObjectFactTable(json), row);
+    let declarations: JsonArrayObjectFactTable =
+        MirDeclArrayObjectFactTable(json);
+    let row_fact: JsonObjectFactTable =
+        JsonArrayObjectFactAt(declarations, row);
     if !JsonObjectFactTableReady(row_fact) {
         return false;
     }
@@ -360,7 +363,10 @@ func MirRoutineArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
 }
 
 func MirRoutineObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
-    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(MirRoutineArrayObjectFactTable(json), row);
+    let routines: JsonArrayObjectFactTable =
+        MirRoutineArrayObjectFactTable(json);
+    let row_fact: JsonObjectFactTable =
+        JsonArrayObjectFactAt(routines, row);
     if !JsonObjectFactTableReady(row_fact) {
         return false;
     }

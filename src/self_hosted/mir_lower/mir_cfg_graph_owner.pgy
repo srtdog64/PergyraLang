@@ -1,8 +1,8 @@
 // Pure CFG queries used while building a per-routine MIR fact index.
 
 func MirRoutineGraphDistances(
-    block_succ_true: Array<String>,
-    block_succ_false: Array<String>,
+    block_succ_true: Array<Int>,
+    block_succ_false: Array<Int>,
     start: Int
 ) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
@@ -21,15 +21,17 @@ func MirRoutineGraphDistances(
     while cursor < ArrayLength(queue) {
         let block: Int = queue[cursor];
         let next_distance: Int = distances[block] + 1;
-        if StringLength(block_succ_true[block]) > 0 {
-            let target: Int = ToInt(block_succ_true[block]);
+        let true_succ: Int = block_succ_true[block];
+        if true_succ >= 0 {
+            let target: Int = true_succ;
             if target >= 0 && target < block_count && distances[target] < 0 {
                 ArraySet(distances, target, next_distance);
                 ArrayPush(queue, target);
             }
         }
-        if StringLength(block_succ_false[block]) > 0 {
-            let target: Int = ToInt(block_succ_false[block]);
+        let false_succ: Int = block_succ_false[block];
+        if false_succ >= 0 {
+            let target: Int = false_succ;
             if target >= 0 && target < block_count && distances[target] < 0 {
                 ArraySet(distances, target, next_distance);
                 ArrayPush(queue, target);
@@ -41,8 +43,8 @@ func MirRoutineGraphDistances(
 }
 
 func MirRoutineGraphDistancesAvoiding(
-    block_succ_true: Array<String>,
-    block_succ_false: Array<String>,
+    block_succ_true: Array<Int>,
+    block_succ_false: Array<Int>,
     start: Int,
     blocked: Int
 ) -> Array<Int> {
@@ -62,16 +64,18 @@ func MirRoutineGraphDistancesAvoiding(
     while cursor < ArrayLength(queue) {
         let block: Int = queue[cursor];
         let next_distance: Int = distances[block] + 1;
-        if StringLength(block_succ_true[block]) > 0 {
-            let target: Int = ToInt(block_succ_true[block]);
+        let true_succ: Int = block_succ_true[block];
+        if true_succ >= 0 {
+            let target: Int = true_succ;
             if target >= 0 && target < block_count && target != blocked &&
                 distances[target] < 0 {
                 ArraySet(distances, target, next_distance);
                 ArrayPush(queue, target);
             }
         }
-        if StringLength(block_succ_false[block]) > 0 {
-            let target: Int = ToInt(block_succ_false[block]);
+        let false_succ: Int = block_succ_false[block];
+        if false_succ >= 0 {
+            let target: Int = false_succ;
             if target >= 0 && target < block_count && target != blocked &&
                 distances[target] < 0 {
                 ArraySet(distances, target, next_distance);
@@ -84,7 +88,8 @@ func MirRoutineGraphDistancesAvoiding(
 }
 
 func MirRoutineGraphCanReachAvoiding(
-    block_succ_true: Array<String>, block_succ_false: Array<String>,
+    block_succ_true: Array<Int>,
+    block_succ_false: Array<Int>,
     start: Int, want: Int, blocked: Int
 ) -> Bool {
     if want < 0 || want >= ArrayLength(block_succ_true) { return false; }
@@ -95,7 +100,8 @@ func MirRoutineGraphCanReachAvoiding(
 }
 
 func MirRoutineGraphStructuralMerge(
-    block_succ_true: Array<String>, block_succ_false: Array<String>,
+    block_succ_true: Array<Int>,
+    block_succ_false: Array<Int>,
     branch: Int, true_start: Int, false_start: Int
 ) -> Int {
     let block_count: Int = ArrayLength(block_succ_true);
@@ -133,16 +139,16 @@ func MirRoutineGraphStructuralMerge(
         }
         candidate = candidate + 1;
     }
-    if merge < 0 && block_succ_true[true_start] == "" &&
-        block_succ_false[true_start] == "" {
+    if merge < 0 && block_succ_true[true_start] < 0 &&
+        block_succ_false[true_start] < 0 {
         merge = false_start;
     }
     return merge;
 }
 
 func MirRoutineEdgeTargetsDominator(
-    block_succ_true: Array<String>,
-    block_succ_false: Array<String>,
+    block_succ_true: Array<Int>,
+    block_succ_false: Array<Int>,
     source: Int,
     target: Int
 ) -> Bool {
@@ -160,7 +166,8 @@ func MirRoutineEdgeTargetsDominator(
         return false;
     }
     if source == target { return true; }
-    return !MirRoutineGraphCanReachAvoiding(
-        block_succ_true, block_succ_false, 0, source, target
+    let avoiding_target: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        block_succ_true, block_succ_false, 0, target
     );
+    return avoiding_target[source] < 0;
 }

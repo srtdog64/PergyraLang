@@ -1,6 +1,8 @@
 // Executable contract for the flattened MIR program routine structure index.
 
 import "../../../src/self_hosted/mir_lower/program_routine_index_owner.pgy";
+import "../../../src/self_hosted/mir_lower/routine_instruction_view_owner.pgy";
+import "../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
 
 func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
@@ -43,6 +45,7 @@ func Main() -> Void {
     let index: MirProgramRoutineIndex =
         BuildMirProgramRoutineIndexFromTable(document.routines);
     if !MirProgramRoutineIndexStructureReady(index) ||
+        index.source_json != json || index.source_length != StringLength(json) ||
         !MirProgramRoutineIndexRowReady(index, 0) ||
         !MirProgramRoutineIndexRowReady(index, 1) ||
         MirProgramRoutineIndexRowReady(index, 0 - 1) ||
@@ -67,6 +70,24 @@ func Main() -> Void {
         index.instruction_source_types[2] != "" {
         failures = failures + 1;
     }
+    let first_view: MirRoutineInstructionView =
+        MirRoutineInstructionViewAt(index, 0, 0, 0);
+    let phi_selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionViewOfKind(index, 1, 0, "phi");
+    let empty_selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionViewOfKind(index, 1, 1, "branch");
+    if !first_view.valid || first_view.global_row != 0 ||
+        first_view.kind != "def" ||
+        first_view.source_type != "AST_LET_DECL" ||
+        !phi_selection.valid || !phi_selection.found ||
+        phi_selection.instruction.global_row != 2 ||
+        phi_selection.instruction.source_type != "" ||
+        !empty_selection.valid || empty_selection.found ||
+        MirRoutineInstructionViewAt(index, 0 - 1, 0, 0).valid ||
+        MirRoutineInstructionViewAt(index, 0, 1, 0).valid ||
+        MirRoutineInstructionViewAt(index, 0, 0, 2).valid {
+        failures = failures + 1;
+    }
     let method_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
         index, "Box", "Ping"
     );
@@ -83,6 +104,25 @@ func Main() -> Void {
         json, index.instruction_machine_contact_ends[1],
         index.instruction_machine_contact_starts[1]
     ) != JsonAsciiCode("\"") {
+        failures = failures + 1;
+    }
+
+    let missing_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(index, 0);
+    let negative_successor_routine: String =
+        "{\"kind\":\"function\",\"name\":\"N\",\"source_syntax_id\":1,\"blocks\":[{\"id\":0,\"succ_true\":-1,\"instructions\":[]}]}";
+    let negative_successor_json: String = Concat(
+        prefix, Concat(negative_successor_routine, "]}")
+    );
+    let negative_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(negative_successor_json);
+    let negative_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(negative_successor_document.routines);
+    let negative_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(negative_successor_program, 0);
+    if missing_successor_index.block_succ_true[0] != (0 - 1) ||
+        negative_successor_index.valid ||
+        negative_successor_index.validation_stage != "cfg_successor" {
         failures = failures + 1;
     }
 
@@ -113,11 +153,46 @@ func Main() -> Void {
         prefix,
         "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0}]}]}"
     );
+    let missing_source_type: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"machine_contact_kind\":\"\",\"machine_layer\":null}]}]}]}"
+    );
+    let wrong_source_type: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":{},\"machine_contact_kind\":\"\",\"machine_layer\":null}]}]}]}"
+    );
+    let duplicate_source_type: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"source_type\":\"AST_CALL\",\"machine_contact_kind\":\"\",\"machine_layer\":null}]}]}]}"
+    );
+    let missing_instruction_comma: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\" \"source_type\":\"AST_CALL\"}]}]}]}"
+    );
+    let leading_instruction_comma: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{,\"kind\":\"def\",\"source_type\":\"AST_CALL\"}]}]}]}"
+    );
+    let repeated_instruction_comma: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",,\"source_type\":\"AST_CALL\"}]}]}]}"
+    );
+    let trailing_instruction_comma: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_CALL\",}]}]}]}"
+    );
     if MirProgramRoutineIndexJsonReady(scalar_routine) ||
         MirProgramRoutineIndexJsonReady(scalar_block) ||
         MirProgramRoutineIndexJsonReady(scalar_instruction) ||
         MirProgramRoutineIndexJsonReady(missing_kind) ||
-        MirProgramRoutineIndexJsonReady(missing_instructions) {
+        MirProgramRoutineIndexJsonReady(missing_instructions) ||
+        MirProgramRoutineIndexJsonReady(missing_source_type) ||
+        MirProgramRoutineIndexJsonReady(wrong_source_type) ||
+        MirProgramRoutineIndexJsonReady(duplicate_source_type) ||
+        MirProgramRoutineIndexJsonReady(missing_instruction_comma) ||
+        MirProgramRoutineIndexJsonReady(leading_instruction_comma) ||
+        MirProgramRoutineIndexJsonReady(repeated_instruction_comma) ||
+        MirProgramRoutineIndexJsonReady(trailing_instruction_comma) {
         failures = failures + 1;
     }
 

@@ -8,6 +8,8 @@ import "json_fact_read.pgy";
 import "match_binding_render_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
+import "routine_cfg_projection_owner.pgy";
+import "routine_instruction_view_owner.pgy";
 import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
@@ -48,59 +50,22 @@ func RoutineParamResourceMatchesType(
 // Block ids are sequential digit strings ("0".."n"); block lookup consumes the
 // MIR `blocks` row and verifies the row's `id` fact.
 // ---------------------------------------------------------------------------
-// Successor id fact for `field` (`succ_true` / `succ_false`) within a block.
-// "" when the field is absent (no such edge).
-func ReadSucc(ref index: MirRoutineFactIndex, bs: Int, false_edge: Bool) -> String {
-    return MirRoutineFactIndexBlockSuccessor(index, bs, false_edge);
-}
-
-func BlockInstructionBoundsAt(ref index: MirRoutineFactIndex, bs: Int, row: Int, inout bounds: Array<Int>) -> Bool {
-    return MirRoutineFactIndexInstructionBounds(index, bs, row, bounds);
-}
-
-func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> String {
-    return MirObjectStringFactAtBounds(json, inst_start, inst_end, "kind");
-}
-func BlockInstructionOfKindBounds(
-    ref index: MirRoutineFactIndex,
-    json: String,
-    bs: Int,
-    wanted: String,
-    inout bounds: Array<Int>
-) -> Bool {
-    let row: Int = 0;
-    while BlockInstructionBoundsAt(index, bs, row, bounds) {
-        if BlockInstructionKind(json, bounds[0], bounds[1]) == wanted {
-            return true;
-        }
-        row = row + 1;
-    }
-    return false;
-}
-
-// Resolve block `id` to its MIR `blocks` row span [o[0], o[1]); false if not
-// found. The supported MIR subset uses sequential block ids, but we still check
-// the row's `id` fact before returning it.
-func BlockBounds(ref index: MirRoutineFactIndex, json: String, id: String, inout o: Array<Int>) -> Bool {
-    if StringLength(id) == 0 {
-        return false;
-    }
-    if !MirRoutineFactIndexBlockBounds(index, ToInt(id), o) {
-        return false;
-    }
-    return MirObjectNumberFactAtBounds(json, o[0], o[1], "id") == id;
-}
-
 // Branch condition within [bs,be); "" if the block does not end in a branch or
 // the branch does not carry the required MIR fact.
-func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -> String {
-    let inst_bounds: Array<Int> = [0, 0];
-    if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
-        return "";
-    }
-    let kp: Int = inst_bounds[0];
-    let inst_end: Int = inst_bounds[1];
-    let source_type: String = MirObjectStringFactAtBounds(json, kp, inst_end, "source_type");
+func BlockCond(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int) -> String {
+    let json: String = routines.source_json;
+    let selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionViewOfKind(
+            routines, routine_row, block_row, "branch"
+        );
+    if !selection.valid { MirLowerFailClosed("invalid branch instruction view"); }
+    if !selection.found { return ""; }
+    let instruction: MirRoutineInstructionView = selection.instruction;
+    let kp: Int = instruction.start;
+    let inst_end: Int = instruction.end;
+    let source_type: String = instruction.source_type;
     if source_type == "AST_CONTINUE" || source_type == "AST_BREAK" {
         return "";
     }
@@ -168,39 +133,59 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
     return "";
 }
 
-func BlockMatchBindingLine(ref index: MirRoutineFactIndex, json: String,
-                           bs: Int, be: Int, indent: String) -> String {
-    let inst_bounds: Array<Int> = [0, 0];
-    if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
-        return "";
-    }
+func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int, indent: String) -> String {
+    let json: String = routines.source_json;
+    let selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionViewOfKind(
+            routines, routine_row, block_row, "branch"
+        );
+    if !selection.valid { MirLowerFailClosed("invalid match instruction view"); }
+    if !selection.found { return ""; }
+    let instruction: MirRoutineInstructionView = selection.instruction;
     return MirMatchBindingLineForInstruction(
-        json, inst_bounds[0], inst_bounds[1], indent
+        json, instruction.start, instruction.end,
+        instruction.source_type, indent
     );
 }
 
-// Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
+// Emit the non-branch statement lines of one admitted block row. `phi`
 // instructions carry no statement fact and are skipped by the string-value
 // guard.
-func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
-                    bs: Int, be: Int, indent: String) -> String {
+func EmitBlockStmts(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int, indent: String, observe_instruction: Bool) -> String {
+    let json: String = routines.source_json;
     let chunks: Array<String> = [];
+    let instruction_count: Int =
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            routines, routine_row, block_row
+        );
+    if instruction_count < 0 { MirLowerFailClosed("invalid block instruction view"); }
     let row: Int = 0;
-    let inst_bounds: Array<Int> = [0, 0];
-    while BlockInstructionBoundsAt(index, bs, row, inst_bounds) {
-        let kp: Int = inst_bounds[0];
-        let inst_end: Int = inst_bounds[1];
-        let ikind: String = BlockInstructionKind(json, kp, inst_end);
+    while row < instruction_count {
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, block_row, row
+            );
+        if !instruction.valid { MirLowerFailClosed("invalid instruction view row"); }
+        let kp: Int = instruction.start;
+        let inst_end: Int = instruction.end;
+        let ikind: String = instruction.kind;
+        let source_type: String = instruction.source_type;
         if !MirInstructionAbiLayoutFactReady(json, kp, inst_end) {
             MirLowerFailClosed(
                 "instruction is missing or carries an invalid MIR ABI layout fact"
             );
         }
-        if !MirResourceRuntimeRowFactReady(json, kp, inst_end) {
+        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:abi:done"); }
+        if !MirResourceRuntimeRowFactReady(routines, instruction) {
             MirLowerFailClosed(
                 "resource instruction or consumer is missing its lowered runtime-call ABI row"
             );
         }
+        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:resource:done"); }
         if ikind == "destructure" {
             let d_expr0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
             ArrayPush(chunks, RenderDestructureFromFacts(
@@ -219,7 +204,6 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
             let slot_anchor: String = MirObjectStringFactAtBounds(
                 json, kp, inst_end, "slot_anchor"
             );
-            let source_type: String = MirObjectStringFactAtBounds(json, kp, inst_end, "source_type");
             let local_type: String = MirDeclaredLocalTypeFact(json, kp, inst_end, ikind, source_type);
             if ikind == "stmt" && source_type == "AST_BIND_STMT" {
                 if arg0 == "" || arg1 == "" || slot_anchor == "" ||
@@ -250,54 +234,30 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
+        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:render:done"); }
         row = row + 1;
     }
     return StringJoin(chunks, "");
-}
-
-// Render a loop header. A `for` branch carries `for <binding>` as its condition
-// (`For: i in 0..3`); anything else is a `while` (`While: (i < 3)`).
-func LoopHeaderLine(cond: String) -> String {
-    if StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for " {
-        return Concat("For: ", Substring(cond, 4, StringLength(cond) - 4));
-    }
-    return Concat("While: ", cond);
-}
-
-func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
-    if StringLength(id) == 0 {
-        return false;
-    }
-    if StringLength(loop_header) > 0 && id == loop_header {
-        return true;
-    }
-    if StringLength(loop_exit) > 0 && id == loop_exit {
-        return true;
-    }
-    return false;
-}
-
-func BlockHasIncomingBackedge(ref index: MirRoutineFactIndex, want: String) -> Bool {
-    if StringLength(want) == 0 {
-        return false;
-    }
-    return MirRoutineFactIndexHasIncomingBackedge(index, ToInt(want));
 }
 
 // A loop whose every body path transfers out (for example, `break` on both
 // branches) has no CFG backedge to project.  Its native summary is still
 // authoritative; detect that shape from the branch facts without reopening
 // the source body.  `while true` is the other canonical no-backedge shape.
-func BlockHasLoopTransfer(ref index: MirRoutineFactIndex, json: String,
-                          bs: Int, be: Int) -> Bool {
-    let inst_bounds: Array<Int> = [0, 0];
-    if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
-        return false;
-    }
-    let source_type: String = MirObjectStringFactAtBounds(
-        json, inst_bounds[0], inst_bounds[1], "source_type");
+func BlockHasLoopTransfer(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int) -> Bool {
+    let json: String = routines.source_json;
+    let selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionViewOfKind(
+            routines, routine_row, block_row, "branch"
+        );
+    if !selection.valid { return false; }
+    if !selection.found { return false; }
+    let instruction: MirRoutineInstructionView = selection.instruction;
+    let source_type: String = instruction.source_type;
     let condition: String = MirObjectStringFactAtBounds(
-        json, inst_bounds[0], inst_bounds[1], "expr0");
+        json, instruction.start, instruction.end, "expr0");
     return source_type == "AST_BREAK" || source_type == "AST_CONTINUE" ||
         condition == "true";
 }
@@ -308,7 +268,8 @@ func BlockHasLoopTransfer(ref index: MirRoutineFactIndex, json: String,
 // not synthesize a replacement summary from those edges.
 func LoopFlowSummaryProjectionReady(
     ref index: MirRoutineFactIndex,
-    json: String
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int
 ) -> Bool {
     let summary_count: Int = ArrayLength(index.loop_flow_summary_loop_ids);
     let summary_row: Int = 0;
@@ -318,11 +279,9 @@ func LoopFlowSummaryProjectionReady(
     while block_row < ArrayLength(index.backedge_headers) {
         let block_is_backedge: Bool =
             index.backedge_headers[block_row] == 1;
-        let bounds: Array<Int> = [0, 0];
-        if !MirRoutineFactIndexBlockBounds(index, block_row, bounds) {
-            return false;
-        }
-        let cond: String = BlockCond(index, json, bounds[0], bounds[1]);
+        let cond: String = BlockCond(
+            index, routines, routine_row, block_row
+        );
         let is_for: Bool = StringLength(cond) >= 4 &&
             Substring(cond, 0, 4) == "for ";
         // Backedge analysis can mark an inner merge target in the same cycle
@@ -334,7 +293,9 @@ func LoopFlowSummaryProjectionReady(
         if block_is_backedge {
             has_backedge = true;
         }
-        if BlockHasLoopTransfer(index, json, bounds[0], bounds[1]) {
+        if BlockHasLoopTransfer(
+            index, routines, routine_row, block_row
+        ) {
             has_loop_transfer = true;
         }
         if is_loop {
@@ -373,25 +334,33 @@ func LoopFlowSummaryProjectionReady(
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(index: MirRoutineFactIndex, json: String,
-                start: String, stop: String, indent: String,
-                loop_header: String, loop_exit: String) -> String {
+func EmitRegion(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    start: String, stop: String, indent: String,
+    loop_header: String, loop_exit: String,
+    observe_first_block: Bool) -> String {
     let chunks: Array<String> = [];
     let cur: String = start;
     let guard: Int = 0;
     while StringLength(cur) > 0 && cur != stop && guard < 100000 {
         guard = guard + 1;
-        let o: Array<Int> = [0, 0];
-        if !BlockBounds(index, json, cur, o) {
-            return StringJoin(chunks, "");
+        let block_row: Int = RoutineCfgBlockRow(index, cur);
+        if block_row < 0 {
+            MirLowerFailClosed("CFG successor names an invalid block identity");
         }
-        let bs: Int = o[0];
-        let be: Int = o[1];
-        let stmts: String = EmitBlockStmts(index, json, bs, be, indent);
+        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:block-bounds:done"); }
+        let stmts: String = EmitBlockStmts(
+            index, routines, routine_row, block_row, indent,
+            observe_first_block && guard == 1
+        );
+        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:statements:done"); }
         ArrayPush(chunks, stmts);
-        let cond: String = BlockCond(index, json, bs, be);
+        let cond: String = BlockCond(
+            index, routines, routine_row, block_row
+        );
+        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:condition:done"); }
         if StringLength(cond) == 0 {
-            let next: String = ReadSucc(index, bs, false);
+            let next: String = ReadSucc(index, cur, false);
             if StringLength(loop_header) > 0 && next == loop_header {
                 ArrayPush(chunks, Concat(indent, "Continue\n"));
                 cur = stop;
@@ -402,8 +371,8 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 cur = next;
             }
         } else {
-            let t: String = ReadSucc(index, bs, false);
-            let f: String = ReadSucc(index, bs, true);
+            let t: String = ReadSucc(index, cur, false);
+            let f: String = ReadSucc(index, cur, true);
             let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
             let isLoop: Bool = isFor ||
                 BlockHasIncomingBackedge(index, cur);
@@ -412,7 +381,8 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 ArrayPush(chunks, Concat(indent, "  Block:\n"));
-                ArrayPush(chunks, EmitRegion(index, json, t, cur, Concat(indent, "    "), cur, f));
+                ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                    t, cur, Concat(indent, "    "), cur, f, false));
                 cur = f;
             } else {
                 let structural_merge: String =
@@ -424,13 +394,13 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 // fact before projecting the fallthrough arm as continuation.
                 let then_terminates_or_flows_to_loop_exit: Bool = false;
                 if structural_merge == t {
-                    let then_bounds: Array<Int> = [0, 0];
+                    let then_row: Int = RoutineCfgBlockRow(index, t);
                     then_terminates_or_flows_to_loop_exit =
-                        MirRoutineFactIndexBlockIsTerminal(index, ToInt(t));
+                        MirRoutineFactIndexBlockIsTerminal(index, then_row);
                     if !then_terminates_or_flows_to_loop_exit &&
-                        BlockBounds(index, json, t, then_bounds) {
+                        then_row >= 0 {
                         then_terminates_or_flows_to_loop_exit = IsLoopAbrupt(
-                            ReadSucc(index, then_bounds[0], false),
+                            ReadSucc(index, t, false),
                             loop_header, loop_exit
                         );
                     }
@@ -443,12 +413,17 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 ArrayPush(chunks, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 ArrayPush(chunks, Concat(indent, "  Then:\n"));
                 ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                ArrayPush(chunks, BlockMatchBindingLine(index, json, bs, be, Concat(indent, "      ")));
-                ArrayPush(chunks, EmitRegion(index, json, t, merge, Concat(indent, "      "), loop_header, loop_exit));
+                ArrayPush(chunks, BlockMatchBindingLine(index, routines,
+                    routine_row, block_row, Concat(indent, "      ")));
+                ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                    t, merge, Concat(indent, "      "), loop_header, loop_exit,
+                    false));
                 if hasElse {
                     ArrayPush(chunks, Concat(indent, "  Else:\n"));
                     ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                    ArrayPush(chunks, EmitRegion(index, json, f, merge, Concat(indent, "      "), loop_header, loop_exit));
+                    ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                        f, merge, Concat(indent, "      "), loop_header,
+                        loop_exit, false));
                 }
                 cur = merge;
             }
@@ -458,16 +433,17 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
 }
 
 func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, routine_row: Int,
-    json: String, routine_indent: String,
-    self_type: String, observe_fact_index: Bool) -> String {
+    routine_indent: String, self_type: String,
+    observe_fact_index: Bool, observe_after_sixteen: Bool) -> String {
     if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
+    let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
     let routine_end: Int = routines.ends[routine_row];
     let routine: String = routines.names[routine_row];
     if routine_end <= routine_start || routine == "" {
         MirLowerFailClosed("malformed routine name");
     }
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, routines, routine_row);
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine_row);
     if !index.valid {
         MirLowerFailClosed(Concat(
             "routine MIR fact index is incomplete: ",
@@ -475,7 +451,8 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
         ));
     }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-fact-index:done"); }
-    if !MirRoutinePhiFactsReady(index, json) {
+    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:fact-index:done"); }
+    if !MirRoutinePhiFactsReady(index, routines, routine_row) {
         MirLowerFailClosed(Concat(
             "MIR phi facts are missing or inconsistent: ", routine
         ));
@@ -498,16 +475,18 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
             routine
         ));
     }
-    if !LoopFlowSummaryProjectionReady(index, json) {
+    if !LoopFlowSummaryProjectionReady(index, routines, routine_row) {
         MirLowerFailClosed(Concat(
             "routine LoopFlowSummary facts do not match CFG loop projection: ",
             routine
         ));
     }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-validation:done"); }
+    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:validation:done"); }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end
     );
+    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:header:done"); }
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
@@ -582,19 +561,21 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     ArrayPush(chunks, Concat(ppad, "Body:\n"));
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
-    let region: String = EmitRegion(index, json, "0", "",
-        Concat(item_pad, "  "), "", "");
+    let region: String = EmitRegion(index, routines, routine_row,
+        "0", "", Concat(item_pad, "  "), "", "", observe_after_sixteen);
     if StringLength(region) == 0 {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
+    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:done"); }
     ArrayPush(chunks, region);
     return StringJoin(chunks, "");
 }
 
 func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
-    routine_row: Int, json: String, routine_indent: String,
-    observe_fact_index: Bool) -> String {
+    routine_row: Int, routine_indent: String,
+    observe_fact_index: Bool, observe_after_sixteen: Bool) -> String {
     return EmitRoutineTreeWithSelfTypeAtRow(
-        routines, routine_row, json, routine_indent, "", observe_fact_index
+        routines, routine_row, routine_indent, "",
+        observe_fact_index, observe_after_sixteen
     );
 }

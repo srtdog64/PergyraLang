@@ -17,13 +17,12 @@ func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
 
 func EmitMirProgramTreeFromRoutineIndexObserved(
     ref routines: MirProgramRoutineIndex,
-    json: String,
     observe_pressure: Bool
 ) -> String {
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
-    let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];
+    let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines)];
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:declarations:done"
     );
@@ -37,7 +36,9 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
         let owner: String = routines.owners[row];
         if kind == "function" || StringLength(owner) == 0 {
             ArrayPush(chunks, EmitRoutineTreeAtRow(
-                routines, row, json, "  ", observe_pressure && total == 0
+                routines, row, "  ",
+                observe_pressure && total == 0,
+                observe_pressure && total == 16
             ));
             if observe_pressure && total == 0 {
                 MirProgramLowerPressureStage(
@@ -50,19 +51,12 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
                     true, "consumer:mir-to-ast:top-level-routines:16"
                 );
             }
-            if observe_pressure && total == 64 {
+            if observe_pressure && total % 64 == 0 {
                 MirProgramLowerPressureStage(
-                    true, "consumer:mir-to-ast:top-level-routines:64"
-                );
-            }
-            if observe_pressure && total == 256 {
-                MirProgramLowerPressureStage(
-                    true, "consumer:mir-to-ast:top-level-routines:256"
-                );
-            }
-            if observe_pressure && total == 1024 {
-                MirProgramLowerPressureStage(
-                    true, "consumer:mir-to-ast:top-level-routines:1024"
+                    true, Concat(
+                        "consumer:mir-to-ast:top-level-routines:",
+                        ToString(total)
+                    )
                 );
             }
         }
@@ -79,13 +73,12 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
 }
 
 func EmitMirProgramTreeFromRoutineIndex(
-    ref routines: MirProgramRoutineIndex,
-    json: String
+    ref routines: MirProgramRoutineIndex
 ) -> String {
-    return EmitMirProgramTreeFromRoutineIndexObserved(routines, json, false);
+    return EmitMirProgramTreeFromRoutineIndexObserved(routines, false);
 }
 
 func EmitMirProgramTree(json: String) -> String {
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
-    return EmitMirProgramTreeFromRoutineIndex(routines, json);
+    return EmitMirProgramTreeFromRoutineIndex(routines);
 }

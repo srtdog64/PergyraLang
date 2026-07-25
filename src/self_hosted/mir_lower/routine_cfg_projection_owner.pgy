@@ -1,0 +1,48 @@
+// Routine-local CFG projection queries used by structured MIR reconstruction.
+//
+// Successor, block identity, loop header, and loop-exit classification stay
+// behind the admitted routine fact index. This owner does not rescan program
+// roots or infer a replacement CFG from source text.
+
+import "routine_fact_index_owner.pgy";
+
+func RoutineCfgBlockRow(
+    ref index: MirRoutineFactIndex, id: String
+) -> Int {
+    let row: Int = ToInt(id);
+    if StringLength(id) == 0 || ToString(row) != id || row < 0 ||
+        row >= ArrayLength(index.block_starts) {
+        return 0 - 1;
+    }
+    return row;
+}
+
+func ReadSucc(
+    ref index: MirRoutineFactIndex, id: String, false_edge: Bool
+) -> String {
+    let row: Int = RoutineCfgBlockRow(index, id);
+    if row < 0 { return ""; }
+    return MirRoutineFactIndexBlockSuccessor(index, row, false_edge);
+}
+
+func LoopHeaderLine(cond: String) -> String {
+    if StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for " {
+        return Concat("For: ", Substring(cond, 4, StringLength(cond) - 4));
+    }
+    return Concat("While: ", cond);
+}
+
+func IsLoopAbrupt(
+    id: String, loop_header: String, loop_exit: String
+) -> Bool {
+    if StringLength(id) == 0 { return false; }
+    if StringLength(loop_header) > 0 && id == loop_header { return true; }
+    return StringLength(loop_exit) > 0 && id == loop_exit;
+}
+
+func BlockHasIncomingBackedge(
+    ref index: MirRoutineFactIndex, want: String
+) -> Bool {
+    let row: Int = RoutineCfgBlockRow(index, want);
+    return row >= 0 && MirRoutineFactIndexHasIncomingBackedge(index, row);
+}

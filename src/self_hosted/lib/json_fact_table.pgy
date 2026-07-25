@@ -4,6 +4,7 @@
 // for field spans through accessors instead of discovering object bounds.
 
 import "json.pgy";
+import "json_bounded_fact_read.pgy";
 
 struct JsonObjectFactTable {
     let valid: Bool;
@@ -36,7 +37,7 @@ func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
     if i >= end {
         return "invalid";
     }
-    let c: Int = JsonCharCodeAt(json, StringLength(json), i);
+    let c: Int = JsonCharCodeAt(json, end, i);
     if c == JsonAsciiCode("\"") {
         return "string";
     }
@@ -62,10 +63,10 @@ func JsonObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonOb
     if start < 0 || end <= start {
         return EmptyJsonObjectFactTable();
     }
-    if JsonCharCodeAt(json, StringLength(json), start) != JsonAsciiCode("{") {
+    if JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
         return EmptyJsonObjectFactTable();
     }
-    let object_end_opt: Option<Int> = JsonObjectEnd(json, start, end);
+    let object_end_opt: Option<Int> = JsonObjectEndWithin(json, start, end);
     if !IsSome(object_end_opt) {
         return EmptyJsonObjectFactTable();
     }
@@ -84,11 +85,11 @@ func JsonDocumentObjectFactTable(json: String) -> JsonObjectFactTable {
     return JsonObjectFactTable(true, json, 0, end);
 }
 
-func JsonObjectFactTableReady(table: JsonObjectFactTable) -> Bool {
+func JsonObjectFactTableReady(ref table: JsonObjectFactTable) -> Bool {
     return table.valid && table.start >= 0 && table.end > table.start;
 }
 
-func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
+func JsonObjectFactCount(ref table: JsonObjectFactTable) -> Int {
     if !JsonObjectFactTableReady(table) {
         return 0;
     }
@@ -99,7 +100,7 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
         if i >= table.end {
             return 0;
         }
-        let c: Int = JsonCharCodeAt(table.json, StringLength(table.json), i);
+        let c: Int = JsonCharCodeAt(table.json, table.end, i);
         if c == JsonAsciiCode("}") {
             return count;
         }
@@ -118,11 +119,14 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if i >= table.end || JsonCharCodeAt(table.json, StringLength(table.json), i) != JsonAsciiCode(":") {
+        if i >= table.end ||
+            JsonCharCodeAt(table.json, table.end, i) != JsonAsciiCode(":") {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, i + 1, table.end);
-        let value_end_opt: Option<Int> = JsonValueEnd(table.json, i, table.end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(
+            table.json, i, table.end
+        );
         if !IsSome(value_end_opt) {
             return 0;
         }
@@ -132,7 +136,7 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
     return 0;
 }
 
-func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<Int> {
+func JsonObjectFactIndex(ref table: JsonObjectFactTable, field: String) -> Option<Int> {
     if !JsonObjectFactTableReady(table) {
         return None;
     }
@@ -143,7 +147,7 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
         if cursor >= table.end {
             return None;
         }
-        let c: Int = JsonCharCodeAt(table.json, StringLength(table.json), cursor);
+        let c: Int = JsonCharCodeAt(table.json, table.end, cursor);
         if c == JsonAsciiCode("}") {
             return None;
         }
@@ -162,11 +166,14 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if cursor >= table.end || JsonCharCodeAt(table.json, StringLength(table.json), cursor) != JsonAsciiCode(":") {
+        if cursor >= table.end ||
+            JsonCharCodeAt(table.json, table.end, cursor) != JsonAsciiCode(":") {
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, cursor + 1, table.end);
-        let value_end_opt: Option<Int> = JsonValueEnd(table.json, cursor, table.end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(
+            table.json, cursor, table.end
+        );
         if !IsSome(value_end_opt) {
             return None;
         }
@@ -179,19 +186,21 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
     return None;
 }
 
-func JsonObjectFactHasField(table: JsonObjectFactTable, field: String) -> Bool {
+func JsonObjectFactHasField(ref table: JsonObjectFactTable, field: String) -> Bool {
     let index_opt: Option<Int> = JsonObjectFactIndex(table, field);
     return IsSome(index_opt);
 }
 
-func JsonObjectFactValueBounds(table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
+func JsonObjectFactValueBounds(ref table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
     if !JsonObjectFactTableReady(table) {
         return false;
     }
-    return JsonObjectFieldValueBounds(table.json, table.start, table.end, field, bounds);
+    return JsonObjectFieldValueBoundsWithin(
+        table.json, table.start, table.end, field, bounds
+    );
 }
 
-func JsonObjectFactValueKind(table: JsonObjectFactTable, field: String) -> Option<String> {
+func JsonObjectFactValueKind(ref table: JsonObjectFactTable, field: String) -> Option<String> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactValueBounds(table, field, bounds) {
         return None;
@@ -199,7 +208,7 @@ func JsonObjectFactValueKind(table: JsonObjectFactTable, field: String) -> Optio
     return Some(JsonValueKindAt(table.json, bounds[0], bounds[1]));
 }
 
-func JsonObjectFactArrayBounds(table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
+func JsonObjectFactArrayBounds(ref table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
     let kind_opt: Option<String> = JsonObjectFactValueKind(table, field);
     if !IsSome(kind_opt) {
         return false;
@@ -210,7 +219,7 @@ func JsonObjectFactArrayBounds(table: JsonObjectFactTable, field: String, inout 
     return JsonObjectFactValueBounds(table, field, bounds);
 }
 
-func JsonObjectFactObjectTable(table: JsonObjectFactTable, field: String) -> JsonObjectFactTable {
+func JsonObjectFactObjectTable(ref table: JsonObjectFactTable, field: String) -> JsonObjectFactTable {
     let kind_opt: Option<String> = JsonObjectFactValueKind(table, field);
     if !IsSome(kind_opt) {
         return EmptyJsonObjectFactTable();
@@ -225,14 +234,16 @@ func JsonObjectFactObjectTable(table: JsonObjectFactTable, field: String) -> Jso
     return JsonObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
 }
 
-func JsonObjectFactStringFieldOpt(table: JsonObjectFactTable, field: String) -> Option<String> {
+func JsonObjectFactStringFieldOpt(ref table: JsonObjectFactTable, field: String) -> Option<String> {
     if !JsonObjectFactTableReady(table) {
         return None;
     }
-    return JsonObjectStringFieldOpt(table.json, table.start, table.end, field);
+    return JsonObjectStringFieldOptWithin(
+        table.json, table.start, table.end, field
+    );
 }
 
-func JsonObjectFactStringFieldEquals(table: JsonObjectFactTable, field: String, expected: String) -> Bool {
+func JsonObjectFactStringFieldEquals(ref table: JsonObjectFactTable, field: String, expected: String) -> Bool {
     let actual: Option<String> = JsonObjectFactStringFieldOpt(table, field);
     if !IsSome(actual) {
         return false;
@@ -245,11 +256,13 @@ func JsonDocumentFactStringFieldEquals(json: String, field: String, expected: St
     return JsonObjectFactStringFieldEquals(root, field, expected);
 }
 
-func JsonObjectFactNumberFieldOpt(table: JsonObjectFactTable, field: String) -> Option<String> {
+func JsonObjectFactNumberFieldOpt(ref table: JsonObjectFactTable, field: String) -> Option<String> {
     if !JsonObjectFactTableReady(table) {
         return None;
     }
-    return JsonObjectNumberFieldOpt(table.json, table.start, table.end, field);
+    return JsonObjectNumberFieldOptWithin(
+        table.json, table.start, table.end, field
+    );
 }
 
 func JsonScalarToken(json: String, start: Int, end: Int) -> String {
@@ -257,7 +270,7 @@ func JsonScalarToken(json: String, start: Int, end: Int) -> String {
     if value_start >= end {
         return "";
     }
-    if JsonCharCodeAt(json, StringLength(json), value_start) == JsonAsciiCode("\"") {
+    if JsonCharCodeAt(json, end, value_start) == JsonAsciiCode("\"") {
         let string_end: Array<Int> = [0];
         return ReadJsonStringBounded(json, value_start, end, string_end);
     }
@@ -274,7 +287,7 @@ func JsonCollectScalarFieldValues(
     if start < 0 || end <= start {
         return;
     }
-    let n: Int = StringLength(json);
+    let n: Int = end;
     let open: Int = JsonCharCodeAt(json, n, start);
     if open == JsonAsciiCode("{") {
         let i: Int = start + 1;
@@ -291,7 +304,7 @@ func JsonCollectScalarFieldValues(
                 return;
             }
             let key_end: Array<Int> = [0];
-            let key: String = ReadJsonString(json, i, key_end);
+            let key: String = ReadJsonStringBounded(json, i, end, key_end);
             if key_end[0] <= i {
                 return;
             }
@@ -300,7 +313,7 @@ func JsonCollectScalarFieldValues(
                 return;
             }
             i = JsonSkipWhitespace(json, i + 1, end);
-            let value_end_opt: Option<Int> = JsonValueEnd(json, i, end);
+            let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
             if !IsSome(value_end_opt) {
                 return;
             }
@@ -327,7 +340,7 @@ func JsonCollectScalarFieldValues(
                 j = j + 1;
                 continue;
             }
-            let item_end_opt: Option<Int> = JsonValueEnd(json, j, end);
+            let item_end_opt: Option<Int> = JsonValueEndWithin(json, j, end);
             if !IsSome(item_end_opt) {
                 return;
             }
@@ -355,10 +368,10 @@ func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> J
     if start < 0 || end <= start {
         return EmptyJsonArrayObjectFactTable();
     }
-    if JsonCharCodeAt(json, StringLength(json), start) != JsonAsciiCode("[") {
+    if JsonCharCodeAt(json, end, start) != JsonAsciiCode("[") {
         return EmptyJsonArrayObjectFactTable();
     }
-    let array_end_opt: Option<Int> = JsonArrayEnd(json, start, end);
+    let array_end_opt: Option<Int> = JsonArrayEndWithin(json, start, end);
     if !IsSome(array_end_opt) {
         return EmptyJsonArrayObjectFactTable();
     }
@@ -368,7 +381,7 @@ func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> J
     return JsonArrayObjectFactTable(true, json, start, end);
 }
 
-func JsonObjectFactArrayObjectTable(table: JsonObjectFactTable, field: String) -> JsonArrayObjectFactTable {
+func JsonObjectFactArrayObjectTable(ref table: JsonObjectFactTable, field: String) -> JsonArrayObjectFactTable {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(table, field, bounds) {
         return EmptyJsonArrayObjectFactTable();
@@ -376,29 +389,49 @@ func JsonObjectFactArrayObjectTable(table: JsonObjectFactTable, field: String) -
     return JsonArrayObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
 }
 
-func JsonArrayObjectFactTableReady(table: JsonArrayObjectFactTable) -> Bool {
+func JsonArrayObjectFactTableReady(ref table: JsonArrayObjectFactTable) -> Bool {
     return table.valid && table.start >= 0 && table.end > table.start;
 }
 
-func JsonArrayObjectFactCount(table: JsonArrayObjectFactTable) -> Int {
+func JsonArrayObjectFactCount(ref table: JsonArrayObjectFactTable) -> Int {
     if !JsonArrayObjectFactTableReady(table) {
         return 0;
     }
-    return JsonArrayObjectCount(table.json, table.start, table.end);
+    let count: Int = 0;
+    let cursor: Int = table.start + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(
+        table.json, cursor, table.end, bounds
+    ) {
+        count = count + 1;
+        cursor = bounds[1];
+    }
+    return count;
 }
 
-func JsonArrayObjectFactAt(table: JsonArrayObjectFactTable, index: Int) -> JsonObjectFactTable {
+func JsonArrayObjectFactAt(ref table: JsonArrayObjectFactTable, index: Int) -> JsonObjectFactTable {
     if !JsonArrayObjectFactTableReady(table) {
         return EmptyJsonObjectFactTable();
     }
+    if index < 0 { return EmptyJsonObjectFactTable(); }
+    let row: Int = 0;
+    let cursor: Int = table.start + 1;
     let bounds: Array<Int> = [0, 0];
-    if !JsonArrayObjectBoundsAt(table.json, table.start, table.end, index, bounds) {
-        return EmptyJsonObjectFactTable();
+    while JsonArrayNextObjectBounds(
+        table.json, cursor, table.end, bounds
+    ) {
+        if row == index {
+            return JsonObjectFactTableFromBounds(
+                table.json, bounds[0], bounds[1]
+            );
+        }
+        row = row + 1;
+        cursor = bounds[1];
     }
-    return JsonObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
+    return EmptyJsonObjectFactTable();
 }
 
-func JsonArrayObjectFactFieldCount(table: JsonArrayObjectFactTable, field: String) -> Int {
+func JsonArrayObjectFactFieldCount(ref table: JsonArrayObjectFactTable, field: String) -> Int {
     let count: Int = 0;
     let row: Int = 0;
     let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
@@ -413,7 +446,7 @@ func JsonArrayObjectFactFieldCount(table: JsonArrayObjectFactTable, field: Strin
 }
 
 func JsonArrayObjectFactStringFieldEqualsCount(
-    table: JsonArrayObjectFactTable,
+    ref table: JsonArrayObjectFactTable,
     field: String,
     expected: String
 ) -> Int {
@@ -424,9 +457,13 @@ func JsonArrayObjectFactStringFieldEqualsCount(
         let value_bounds: Array<Int> = [0, 0];
         if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
             if value_bounds[0] < value_bounds[1] &&
-                JsonCharCodeAt(table.json, StringLength(table.json), value_bounds[0]) == JsonAsciiCode("\"") {
+                JsonCharCodeAt(
+                    table.json, value_bounds[1], value_bounds[0]
+                ) == JsonAsciiCode("\"") {
                 let value_end: Array<Int> = [0];
-                let actual: String = ReadJsonString(table.json, value_bounds[0], value_end);
+                let actual: String = ReadJsonStringBounded(
+                    table.json, value_bounds[0], value_bounds[1], value_end
+                );
                 if value_end[0] > value_bounds[0] && actual == expected {
                     count = count + 1;
                 }
@@ -439,7 +476,7 @@ func JsonArrayObjectFactStringFieldEqualsCount(
 }
 
 func JsonArrayObjectFactBoolFieldEqualsCount(
-    table: JsonArrayObjectFactTable,
+    ref table: JsonArrayObjectFactTable,
     field: String,
     expected: Bool
 ) -> Int {

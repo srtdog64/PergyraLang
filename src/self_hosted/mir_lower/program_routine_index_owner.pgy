@@ -16,8 +16,135 @@ func MirProgramRoutineArrayCursorAtEnd(
         JsonCharCodeAt(json, array_end, i) == JsonAsciiCode("]");
 }
 
+struct MirProgramInstructionIdentityCapture {
+    let valid: Bool;
+    let kind: String;
+    let source_type: String;
+    let machine_contact_start: Int;
+    let machine_contact_end: Int;
+    let machine_layer_start: Int;
+    let machine_layer_end: Int;
+}
+
+func InvalidMirProgramInstructionIdentityCapture(
+) -> MirProgramInstructionIdentityCapture {
+    return MirProgramInstructionIdentityCapture(
+        false, "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    );
+}
+
+func MirProgramInstructionIdentityCaptureWithin(
+    json: String, start: Int, end: Int
+) -> MirProgramInstructionIdentityCapture {
+    if start < 0 || end <= start ||
+        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        return InvalidMirProgramInstructionIdentityCapture();
+    }
+    let kind: String = "";
+    let source_type: String = "";
+    let contact_start: Int = 0 - 1;
+    let contact_end: Int = 0 - 1;
+    let machine_start: Int = 0 - 1;
+    let machine_end: Int = 0 - 1;
+    let kind_seen: Bool = false;
+    let source_type_seen: Bool = false;
+    let contact_seen: Bool = false;
+    let machine_seen: Bool = false;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return InvalidMirProgramInstructionIdentityCapture(); }
+        let c: Int = JsonCharCodeAt(json, end, i);
+        if c == JsonAsciiCode("}") {
+            if after_comma || !kind_seen || kind == "" ||
+                !source_type_seen {
+                return InvalidMirProgramInstructionIdentityCapture();
+            }
+            return MirProgramInstructionIdentityCapture(
+                true, kind, source_type,
+                contact_start, contact_end, machine_start, machine_end
+            );
+        }
+        if !expect_member {
+            if c != JsonAsciiCode(",") {
+                return InvalidMirProgramInstructionIdentityCapture();
+            }
+            expect_member = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") {
+            return InvalidMirProgramInstructionIdentityCapture();
+        }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) {
+            return InvalidMirProgramInstructionIdentityCapture();
+        }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let is_kind: Bool = JsonObjectKeyEqualsWithin(json, i, key_end, "kind");
+        let is_source_type: Bool =
+            JsonObjectKeyEqualsWithin(json, i, key_end, "source_type");
+        let is_contact: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "machine_contact_kind"
+        );
+        let is_machine: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "machine_layer"
+        );
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
+        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            return InvalidMirProgramInstructionIdentityCapture();
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) {
+            return InvalidMirProgramInstructionIdentityCapture();
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if is_kind || is_source_type {
+            if (is_kind && kind_seen) ||
+                (is_source_type && source_type_seen) {
+                return InvalidMirProgramInstructionIdentityCapture();
+            }
+            if JsonCharCodeAt(json, value_end, i) == JsonAsciiCode("\"") {
+                let decoded_end: Array<Int> = [0];
+                let value: String = ReadJsonStringBounded(
+                    json, i, value_end, decoded_end
+                );
+                if decoded_end[0] != value_end || value == "" {
+                    return InvalidMirProgramInstructionIdentityCapture();
+                }
+                if is_kind { kind = value; kind_seen = true; }
+                if is_source_type {
+                    source_type = value;
+                    source_type_seen = true;
+                }
+            } else if is_source_type && i + 4 == value_end &&
+                SubEqualsWithLen(json, value_end, i, 4, "null") {
+                source_type_seen = true;
+            } else {
+                return InvalidMirProgramInstructionIdentityCapture();
+            }
+        } else if is_contact {
+            if contact_seen { return InvalidMirProgramInstructionIdentityCapture(); }
+            contact_start = i; contact_end = value_end; contact_seen = true;
+        } else if is_machine {
+            if machine_seen { return InvalidMirProgramInstructionIdentityCapture(); }
+            machine_start = i; machine_end = value_end; machine_seen = true;
+        }
+        i = value_end;
+        expect_member = false;
+        after_comma = false;
+    }
+    return InvalidMirProgramInstructionIdentityCapture();
+}
+
 struct MirProgramRoutineIndex {
     let valid: Bool;
+    let source_json: String;
+    let source_length: Int;
     let starts: Array<Int>;
     let ends: Array<Int>;
     let kinds: Array<String>;
@@ -40,7 +167,7 @@ struct MirProgramRoutineIndex {
 }
 
 func BuildMirProgramRoutineIndexFromTable(
-    routines: JsonArrayObjectFactTable
+    ref routines: JsonArrayObjectFactTable
 ) -> MirProgramRoutineIndex {
     let json: String = routines.json;
     let starts: Array<Int> = [];
@@ -65,7 +192,8 @@ func BuildMirProgramRoutineIndexFromTable(
     let valid: Bool = true;
     if !JsonArrayObjectFactTableReady(routines) {
         return MirProgramRoutineIndex(
-            false, starts, ends, kinds, owners, names,
+            false, json, StringLength(json),
+            starts, ends, kinds, owners, names,
             routine_block_starts, routine_block_counts,
             block_starts, block_ends,
             block_instruction_starts, block_instruction_counts,
@@ -108,6 +236,11 @@ func BuildMirProgramRoutineIndexFromTable(
             while JsonArrayNextObjectBounds(
                 json, block_cursor, blocks_bounds[1], block_bounds
             ) {
+                if MirObjectNumberFactAtBounds(
+                    json, block_bounds[0], block_bounds[1], "id"
+                ) != ToString(routine_block_count) {
+                    valid = false;
+                }
                 ArrayPush(block_starts, block_bounds[0]);
                 ArrayPush(block_ends, block_bounds[1]);
                 ArrayPush(
@@ -127,43 +260,28 @@ func BuildMirProgramRoutineIndexFromTable(
                     ) {
                         ArrayPush(instruction_starts, instruction_bounds[0]);
                         ArrayPush(instruction_ends, instruction_bounds[1]);
-                        let instruction_kind: String = MirObjectStringFactAtBounds(
-                            json, instruction_bounds[0], instruction_bounds[1],
-                            "kind"
-                        );
-                        if instruction_kind == "" { valid = false; }
-                        ArrayPush(instruction_kinds, instruction_kind);
-                        ArrayPush(
-                            instruction_source_types,
-                            MirObjectStringFactAtBounds(
-                                json, instruction_bounds[0],
-                                instruction_bounds[1], "source_type"
-                            )
-                        );
-                        let contact_bounds: Array<Int> = [0 - 1, 0 - 1];
-                        let machine_bounds: Array<Int> = [0 - 1, 0 - 1];
-                        if !JsonObjectTwoFieldValueBoundsWithin(
-                            json, instruction_bounds[0], instruction_bounds[1],
-                            "machine_contact_kind", "machine_layer",
-                            contact_bounds, machine_bounds
-                        ) {
-                            valid = false;
-                        }
+                        let identity: MirProgramInstructionIdentityCapture =
+                            MirProgramInstructionIdentityCaptureWithin(
+                                json, instruction_bounds[0], instruction_bounds[1]
+                            );
+                        if !identity.valid { valid = false; }
+                        ArrayPush(instruction_kinds, identity.kind);
+                        ArrayPush(instruction_source_types, identity.source_type);
                         ArrayPush(
                             instruction_machine_contact_starts,
-                            contact_bounds[0]
+                            identity.machine_contact_start
                         );
                         ArrayPush(
                             instruction_machine_contact_ends,
-                            contact_bounds[1]
+                            identity.machine_contact_end
                         );
                         ArrayPush(
                             instruction_machine_layer_starts,
-                            machine_bounds[0]
+                            identity.machine_layer_start
                         );
                         ArrayPush(
                             instruction_machine_layer_ends,
-                            machine_bounds[1]
+                            identity.machine_layer_end
                         );
                         instruction_count = instruction_count + 1;
                         instruction_cursor = instruction_bounds[1];
@@ -189,7 +307,8 @@ func BuildMirProgramRoutineIndexFromTable(
         valid = false;
     }
     return MirProgramRoutineIndex(
-        valid, starts, ends, kinds, owners, names,
+        valid, json, StringLength(json),
+        starts, ends, kinds, owners, names,
         routine_block_starts, routine_block_counts,
         block_starts, block_ends,
         block_instruction_starts, block_instruction_counts,
@@ -228,9 +347,76 @@ func MirProgramRoutineIndexRowReady(
     let block_start: Int = index.routine_block_starts[row];
     let block_count: Int = index.routine_block_counts[row];
     return index.starts[row] >= 0 && index.ends[row] > index.starts[row] &&
+        index.ends[row] <= index.source_length &&
         index.kinds[row] != "" && index.names[row] != "" &&
         block_start >= 0 && block_count >= 0 &&
         block_start + block_count <= ArrayLength(index.block_starts);
+}
+
+func MirProgramRoutineIndexGlobalInstructionRow(
+    ref index: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_block_row: Int,
+    block_instruction_row: Int
+) -> Int {
+    if !MirProgramRoutineIndexRowReady(index, routine_row) ||
+        routine_block_row < 0 || block_instruction_row < 0 ||
+        routine_block_row >= index.routine_block_counts[routine_row] {
+        return 0 - 1;
+    }
+    let block_row: Int =
+        index.routine_block_starts[routine_row] + routine_block_row;
+    if block_row < 0 ||
+        block_row >= ArrayLength(index.block_instruction_starts) ||
+        block_row >= ArrayLength(index.block_instruction_counts) ||
+        block_instruction_row >= index.block_instruction_counts[block_row] {
+        return 0 - 1;
+    }
+    let instruction_row: Int =
+        index.block_instruction_starts[block_row] + block_instruction_row;
+    if instruction_row < 0 ||
+        instruction_row >= ArrayLength(index.instruction_starts) ||
+        instruction_row >= ArrayLength(index.instruction_ends) ||
+        instruction_row >= ArrayLength(index.instruction_kinds) ||
+        instruction_row >= ArrayLength(index.instruction_source_types) ||
+        instruction_row >= ArrayLength(
+            index.instruction_machine_contact_starts) ||
+        instruction_row >= ArrayLength(
+            index.instruction_machine_contact_ends) ||
+        instruction_row >= ArrayLength(
+            index.instruction_machine_layer_starts) ||
+        instruction_row >= ArrayLength(
+            index.instruction_machine_layer_ends) {
+        return 0 - 1;
+    }
+    let instruction_start: Int = index.instruction_starts[instruction_row];
+    let instruction_end: Int = index.instruction_ends[instruction_row];
+    if instruction_start < index.block_starts[block_row] ||
+        instruction_end > index.block_ends[block_row] ||
+        instruction_end <= instruction_start ||
+        instruction_end > index.source_length {
+        return 0 - 1;
+    }
+    return instruction_row;
+}
+
+func MirProgramRoutineIndexBlockInstructionCountAt(
+    ref index: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_block_row: Int
+) -> Int {
+    if !MirProgramRoutineIndexRowReady(index, routine_row) ||
+        routine_block_row < 0 ||
+        routine_block_row >= index.routine_block_counts[routine_row] {
+        return 0 - 1;
+    }
+    let block_row: Int =
+        index.routine_block_starts[routine_row] + routine_block_row;
+    if block_row < 0 ||
+        block_row >= ArrayLength(index.block_instruction_counts) {
+        return 0 - 1;
+    }
+    return index.block_instruction_counts[block_row];
 }
 
 func MirProgramRoutineIndexStructureReady(
@@ -239,7 +425,9 @@ func MirProgramRoutineIndexStructureReady(
     let routine_count: Int = ArrayLength(index.starts);
     let block_count: Int = ArrayLength(index.block_starts);
     let instruction_count: Int = ArrayLength(index.instruction_starts);
-    if !index.valid || routine_count != ArrayLength(index.ends) ||
+    if !index.valid ||
+        index.source_length != StringLength(index.source_json) ||
+        routine_count != ArrayLength(index.ends) ||
         routine_count != ArrayLength(index.kinds) {
         return false;
     }
@@ -267,7 +455,10 @@ func MirProgramRoutineIndexStructureReady(
     let routine_row: Int = 0;
     while routine_row < routine_count {
         let count: Int = index.routine_block_counts[routine_row];
-        if index.kinds[routine_row] == "" || index.names[routine_row] == "" ||
+        if index.starts[routine_row] < 0 ||
+            index.ends[routine_row] > index.source_length ||
+            index.ends[routine_row] <= index.starts[routine_row] ||
+            index.kinds[routine_row] == "" || index.names[routine_row] == "" ||
             index.routine_block_starts[routine_row] != expected_block ||
             count < 0 || expected_block + count > block_count {
             return false;

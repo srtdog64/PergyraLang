@@ -660,6 +660,12 @@ inventory must not become a second fact-family owner registry.
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy` -- routine-local
+  successor, block identity, loop-header, and loop-exit projection queries over
+  the admitted routine fact index.
+- `src/self_hosted/mir_lower/routine_instruction_view_owner.pgy` -- typed
+  routine/block/instruction coordinate view over the program instruction
+  identity; consumers cannot reopen kind/source/machine fields.
 - `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one admitted
   document-order routine/block/instruction structure view, including
   instruction kind/source type and raw machine spans, shared by machine
