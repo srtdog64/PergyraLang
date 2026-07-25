@@ -8173,8 +8173,8 @@ Released/default replacement remains 0%.
 
 - `06f6994d` makes routine lowering consume typed instruction and canonical CFG
   views from the admitted program index. ABI/resource common paths inspect
-  exact bounds without constructing an instruction fact table over the entire
-  51.8 MB source String.
+  exact bounds without repeatedly constructing and validating an instruction
+  fact table against the 51.8 MB-backed source view.
 - The measured ABI step fell from 492 ms to 9 ms, resource validation from
   646 ms to 0 ms, and routine 16 from 133,593 ms to 69,919 ms. A `ref`-only
   accessor change was measured first and did not improve the run.
@@ -8192,3 +8192,41 @@ Released/default replacement remains 0%.
   private, then timed out without `mir-to-ast:done`.
 - This does not complete gen2, self-hosting, or the bootstrap fixed point; no
   complete `driver_gen2.c` was emitted.
+
+### 2026-07-26 -- Routine-local scalar facts replace repeated instruction reads
+
+- `dd68d6f3` adds one `MirRoutineInstructionFactBundle` per routine fact-index
+  construction. It captures
+  `result`, `expr0`, `expr1`, `arg0`, `arg1`, `slot_anchor`, `abi_type_name`,
+  and `match_variant` from the program-owned instruction spans in one strict
+  pass. The program index remains structure/identity-only rather than mixing
+  global and routine-local evidence lifetimes.
+- Render, match, expression-graph, assignment, local-type, and phi consumers
+  read that bundle. Duplicate or non-string scalar values fail closed. The
+  builder also verifies that a block's instruction range ends at the next
+  program-owned block boundary, preventing a corrupted count from reading the
+  next routine.
+- The active MIR-to-AST reconstruction reuses that bundle. The later
+  expression-graph and assignment post-passes still reconstruct routine
+  indexes, so cross-pass capture is not yet closed.
+- Phi predecessor count is computed lazily only after a phi is encountered.
+  The incoming-backedge answer now comes from `MirRoutineFactIndex` instead of
+  replaying a dominator query. A current-driver `nested_if_in_loop` MIR round
+  trip passed; injecting a one-predecessor header phi exited 1 with
+  `MIR phi facts are missing or inconsistent`.
+- Generated-C inspection corrected the previous CPU diagnosis. A Pergyra
+  `String` is emitted as `char *`, and an instruction fact table stores that
+  source pointer plus bounds; it did not deep-copy the complete 51.8 MB payload
+  per table. The measured cost was repeated object validation and field/bound
+  discovery over the same source view.
+- The v23 integrated C driver built in 47,746 ms at 2,509.8 MB peak private /
+  2,498.5 MB working set and preserved the exact 414-byte bounded SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The full 180-second run used only 87.0 MB peak private / 95.3 MB working set
+  and reached routine 128 at 160,331 ms, 4,688 ms earlier than the v14
+  300-second run's routine-128 marker. It still timed out and opened no gen2
+  artifact.
+- The broad DRV-2 body attempt remains RED before its MIR fixture phase because
+  `valid_array_builtins` emitted C lacks `<string.h>` and current runtime panic
+  declarations. This is recorded separately from the focused phi result and
+  is not relabeled green.

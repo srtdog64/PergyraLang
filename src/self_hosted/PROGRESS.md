@@ -1,12 +1,42 @@
 # Self-Host Progress
 
+2026-07-26 routine-local instruction scalar progression (`dd68d6f3`).
+`MirRoutineInstructionFactBundle` now captures result/render/ABI/match scalars
+in one pass per routine fact-index construction from the admitted program
+instruction spans. Program-global
+structure and routine-local facts remain separate. Render, match, expression
+graph, assignment, and phi consumers use the bundle; duplicate or non-string
+scalar rows and a corrupted count that would cross into the next routine fail
+closed. Phi context is computed lazily only for blocks containing a phi, and
+the canonical incoming-backedge fact replaces a duplicate dominator proof. The
+active MIR-to-AST reconstruction reuses this bundle; the later expression-graph
+and assignment post-passes still rebuild routine indexes and remain an open
+re-entry seam.
+
+Generated-C inspection corrected the prior diagnosis: an instruction fact
+table did not deep-copy the 51.8 MB source payload. Pergyra `String` is passed
+as `char *`, and the table stores the pointer plus bounds. The real cost was
+repeated instruction-object validation and repeated field/bound discovery.
+
+The current v23 integrated C driver built in 47,746 ms at 2,509.8 MB peak
+private / 2,498.5 MB working set. Its bounded result remains 414 bytes with
+SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The 180-second production run stayed at 87.0 MB peak private / 95.3 MB working
+set and reached routine 64 at 96,607 ms and routine 128 at 160,331 ms. That is
+4,688 ms earlier than the v14 300-second run's routine-128 marker but still
+timed out without `mir-to-ast:done` or a gen2 artifact. A current-driver `nested_if_in_loop` MIR
+round trip passed, and a forged one-predecessor header phi failed with the
+owned diagnostic. The broader body gate remains RED at the unrelated
+`valid_array_builtins` emitted-runtime-header failure.
+
 2026-07-26 admitted instruction-view CPU progression (`06f6994d`).
 Routine lowering now reuses one typed instruction view and canonical block-id
 projection from the admitted `MirProgramRoutineIndex`. Common no-layout and
-no-resource instructions are validated from exact bounds without constructing
-an instruction fact table that embeds the complete 51.8 MB source String.
-Changing table accessors to `ref` alone was falsified by v9; the table
-constructor, not the accessor parameter, owned the repeated copy.
+no-resource instructions are validated from exact bounds without repeatedly
+revalidating the same instruction table and rediscovering its field bounds.
+Changing table accessors to `ref` alone was falsified by v9; the table and
+field reads, not a deep copy of the source payload, owned the repeated work.
 
 The observed instruction slice improved from 492 ms to 9 ms for ABI facts and
 from 646 ms to 0 ms for resource facts. Routine 16 moved from 133,593 ms to

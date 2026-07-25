@@ -44,8 +44,9 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `06f6994d` (`reuse admitted MIR facts during
-  reconstruction`) on `main`. Its evidence predecessor is `84f68161`, its
+- Implementation checkpoint: `dd68d6f3` (`reuse routine-local MIR scalar
+  facts`) on `main`. Its instruction-view predecessor is `06f6994d`, its
+  evidence predecessor is `84f68161`, its
   admitted-structure predecessor is `190d0dbf`, its document-index predecessor
   is `67502f50`, its
   routine-consumer predecessor is `d62553ee`, its
@@ -92,8 +93,8 @@ bounded-only parity as progress evidence.
   admission; per-routine construction uses an O(1) row guard.
 - Routine reconstruction now consumes a typed instruction view and a canonical
   CFG block-id projection from that admitted structure. Common no-layout and
-  no-resource instructions are decided from exact bounds without constructing
-  a value-owned instruction table over the complete 51.8 MB source String.
+  no-resource instructions are decided from exact bounds without repeatedly
+  validating the same instruction object and rediscovering its field bounds.
 - CFG successor identity is decoded once into `Array<Int>` rows. Missing edges
   alone use the internal negative sentinel; an explicit negative wire target
   fails closed at `cfg_successor` and is exercised through both C and LLVM.
@@ -101,19 +102,25 @@ bounded-only parity as progress evidence.
   a predecessor-indexed native phi table. Its accepted arity is
   `2 <= use_count <= predecessor_count`, and a self-result input requires a
   CFG-proven incoming backedge.
+- Each `MirRoutineInstructionFactBundle` construction now captures `result`,
+  `expr0`, `expr1`, `arg0`, `arg1`, `slot_anchor`, `abi_type_name`, and
+  `match_variant` in one pass over a routine's program-owned spans. It remains
+  routine-local rather than turning the program index into a second
+  global/local aggregate. Render,
+  match, graph, assignment, and phi consumers use that bundle. A malformed
+  count cannot cross into the next routine, and duplicate or non-string scalar
+  fields fail closed.
 
 ## Exact dirty state
 
-No task-owned implementation or documentation change is dirty at the
-implementation checkpoint. These three unstaged files are concurrent user work
-and must remain unmodified and excluded from task commits:
+At the handoff checkpoint represented by this file, `main` and `origin/main`
+are synchronized and no task-owned implementation or documentation change is
+dirty. These three unstaged files are concurrent user work and must remain
+unmodified and excluded from task commits:
 
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
-
-At the documentation checkpoint, no task-owned implementation or documentation
-file should remain dirty.
 
 ## Active executable objective card
 
@@ -184,6 +191,9 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-direct-block-v12` | 88.5 MB | 96.5 MB | Direct canonical block rows preserved behavior; routine 64 at 99,803 ms. |
 | `full-mir-consumer-int-cfg-v13` | 88.6 MB | 96.6 MB | Timed out at 180,056 ms; routine 64 at 99,447 ms and routine 128 at 164,457 ms; no gen2. |
 | `mir-int-cfg-negative-ratchet-driver-build-v14` | 2442.7 MB | 2430.8 MB | Final-source integrated C driver compiled in 48,451 ms below the cap. |
+| `full-mir-consumer-int-cfg-v14-300s` | 94.3 MB | 102.1 MB | Timed out at 300,324 ms; routine 192 at 235,898 ms; no gen2. |
+| `mir-routine-scalar-bundle-driver-build-v23` | 2509.8 MB | 2498.5 MB | Current-source integrated C driver compiled in 47,746 ms below the cap. |
+| `full-mir-consumer-routine-scalar-bundle-v23` | 87.0 MB | 95.3 MB | Timed out at 180,343 ms; routine 64 at 96,607 ms and routine 128 at 160,331 ms; no gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -239,11 +249,14 @@ dominant remaining cost. Routines 1-64 contain only 274,581 of 51,741,503
 routine-object bytes (0.531%); neither marker is completion. Peak private was
 85.2 MB, `limit_exceeded=false`, and no gen2 file was opened.
 
-`06f6994d` closes the instruction-local copy seam reached by that run. Merely
-changing fact-table accessors to `ref` did not improve the v9 timing. Detailed
-v8/v9 markers showed that `JsonObjectFactTableFromBounds` still copied the
-complete 51.8 MB source `String` into every local instruction table. Exact-bound
-ABI/resource common paths avoid constructing that table: the observed
+`06f6994d` closes the instruction-local repeat-scan seam reached by that run.
+Merely changing fact-table accessors to `ref` did not improve the v9 timing.
+Generated-C inspection corrected the earlier diagnosis: `String` is passed as
+a `char *`, and `JsonObjectFactTable` stores that source pointer plus bounds;
+it does not deep-copy 51.8 MB into every table. The real cost was repeatedly
+revalidating the same instruction object and rediscovering fields/bounds from
+the same 51.8 MB-backed source view. Exact-bound ABI/resource common paths
+avoid those repeated object/table reads: the observed
 instruction ABI step fell from 492 ms to 9 ms, the resource step from 646 ms to
 0 ms, and routine 16 from 133,593 ms to 69,919 ms. The next real producer-wire
 counterexample was `FindTopLevelComma`, whose loop header has seven CFG
@@ -259,6 +272,21 @@ cap and its bounded output remained exactly 414 bytes with SHA-256
 No run reached `consumer:mir-to-ast:done` or opened a complete
 `driver_gen2.c`.
 
+`dd68d6f3` closes the next measured routine-local seam. Each routine fact-index
+construction now captures the render/result fields in one strict scalar pass,
+while the admitted program index remains structure/identity-only. The active
+MIR-to-AST reconstruction reuses that bundle, but the later expression-graph
+and assignment post-passes still reconstruct a routine index and remain an
+open re-entry seam. Phi context is computed lazily
+only for blocks that actually contain a phi, and its incoming-backedge fact is
+read from the canonical routine index instead of recomputing dominators. The
+current v23 build completed in 47,746 ms below 3 GiB and preserved the exact
+414-byte bounded SHA. Its 180-second run used 87.0 MB peak private / 95.3 MB
+working set and moved routine 128 from the v14 300-second run's 165,019 ms to
+160,331 ms. The improvement is real but modest; repeated scalar reads were not the
+dominant remaining cost. `output_capture_complete=true`,
+`limit_exceeded=false`, and no gen2 output was opened.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -269,17 +297,23 @@ opened or truncated. The earlier 11,262-byte small fixture SHA remains
 return a `FileWrite` status, so the writer must not claim write-error detection
 that the runtime cannot provide.
 
-Three broad runs are explicit RED evidence. `mir_machine_layer_smoke.sh` reaches
+Broad runs remain explicit RED evidence. `mir_machine_layer_smoke.sh` reaches
 the MIR consumer and then fails at the existing `local declaration is missing
 its MIR ABI type fact`. `mir_json_parity.sh` expects an enum variant substring
 without the current `param_types:[]` field. A filtered `dir_walk` /
 `break_after_stmt` attempt stops earlier because reconstructed C lacks current
 `PGY_RUNTIME_PANIC` declarations. Update those owners only when their
 executable slice is active; none is a green CFG/runtime verdict.
+The current focused DRV-2 body attempt also stopped while compiling
+`valid_array_builtins` because emitted C omitted `<string.h>` and runtime panic
+declarations. The separately isolated `nested_if_in_loop` current-driver run
+is green, and a forged one-predecessor header phi is rejected with
+`MIR phi facts are missing or inconsistent`; this does not relabel the broad
+body gate green.
 
 ## Last observed gates
 
-Green on `06f6994d` plus the documented working measurements:
+Green on `dd68d6f3` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -292,11 +326,13 @@ Green on `06f6994d` plus the documented working measurements:
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`mir-int-cfg-negative-ratchet-driver-build-v14`): exit 0, 48,451 ms,
-  2,442.7 MB peak private / 2,430.8 MB peak working set;
+  owner (`mir-routine-scalar-bundle-driver-build-v23`): exit 0, 47,746 ms,
+  2,509.8 MB peak private / 2,498.5 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/build_pressure_contract_smoke.sh`;
+- focused current-driver `nested_if_in_loop` MIR production/consumption plus a
+  forged one-predecessor header-phi rejection;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
   clean plus malformed/missing manifest negatives);
 - `tests/self_hosted/parity/air_graph_json_validator_parity.sh` (C/LLVM,
@@ -345,18 +381,22 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-routine-indexed.*`, and
 `full-mir-consumer-cfg-owner.*`, and
 `full-mir-consumer-document-index.*`, and
-`full-mir-consumer-program-instruction-index-v3.*`. The current executable is
-`driver_oracle_int_cfg_v14.exe`; its 414-byte bounded result is
-`bounded_int_cfg_v14.c`. The latest full consumer evidence is
-`full-mir-consumer-int-cfg-v13.*`, including complete stage capture through the
-128-routine marker. These files are diagnostic evidence only, not semantic
-authority or commit content.
+`full-mir-consumer-program-instruction-index-v3.*`,
+`full-mir-consumer-int-cfg-v14-300s.*`, and
+`full-mir-consumer-routine-scalar-bundle-v23.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_scalar_bundle_v23.exe`; its 414-byte
+bounded result is `.tmp/self_hosted/driver_bootstrap/` followed by
+`bounded_scalar_bundle_v23.c`. The latest full consumer evidence includes
+complete stage capture through the 128-routine marker. These files are
+diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
 1. Profile the accumulated routine range after marker 128 using the current
-   admitted instruction/CFG owners. Close only the first measured owner seam;
-   do not introduce a second document parser, cache, or backend-local graph.
+   admitted instruction/CFG owners. The scalar bundle moved the marker only
+   modestly, so do not repeat that hypothesis. Close only the first newly
+   measured owner seam; do not introduce a second document parser, cache, or
+   backend-local graph.
 2. Re-run the current artifact until the next 64-routine marker and ultimately
    `consumer:mir-to-ast:done` are observed under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the

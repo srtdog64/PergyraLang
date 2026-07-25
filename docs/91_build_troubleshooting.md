@@ -566,13 +566,16 @@ removed a whole-program structure validator accidentally repeated per routine.
 The v3 run nevertheless remained at 16, proving these were real but not
 dominant costs.
 
-#### Full-document fact-table copies and phi wire semantics
+#### Repeated instruction-object reads and phi wire semantics
 
 The next detailed run separated a low-memory CPU defect from the earlier 3 GiB
 readiness defect. Converting fact accessors to `ref` did not improve v9:
 routine 16 still completed at 133,593 ms, with 82.6 MB peak private. The
-constructor `JsonObjectFactTableFromBounds` was still placing the complete
-51.8 MB source `String` by value into each instruction-local table.
+initial interpretation that `JsonObjectFactTableFromBounds` copied the complete
+51.8 MB source `String` into each local table was wrong. Generated C passes a
+`String` as `char *`; the table copies only that pointer and its bounds. The
+measured CPU cost came from reconstructing/revalidating the instruction table
+and rescanning the same object to rediscover fields and value bounds.
 
 Checkpoint `06f6994d` makes the common ABI/resource decisions directly from
 the admitted instruction bounds. A local instruction table is constructed only
@@ -605,14 +608,45 @@ No complete gen2 file exists.
 
 Keep the two memory stories distinct. The historical 3 GiB defect ran
 once-per-artifact readiness once per local and repeatedly revalidated a whole
-graph. The current consumer defect stays around 83-97 MB and accumulates CPU
-work after routine 128. Preserve the 180/300-second diagnostic window and
-3072 MB cap, then close only the next measured routine-owner seam.
+graph. The current consumer defect stays around 83-94 MB peak private /
+91-102 MB working set and accumulates CPU work after routine 128. Preserve the
+180/300-second diagnostic window and 3072 MB cap, then close only the next
+measured routine-owner seam.
+
+Checkpoint `dd68d6f3` moves the next local reads behind one
+`MirRoutineInstructionFactBundle`. Each routine fact-index construction captures
+`result`, render scalars, ABI type, slot anchor, and match variant in one pass
+over the program-owned instruction spans. The bundle is deliberately
+routine-local: adding these rows to `MirProgramRoutineIndex` would mix program
+structure with local fact
+lifetime. Duplicate/non-string scalars and a count that would cross into the
+next routine fail closed. Phi predecessor count is now computed only for a
+block that actually contains a phi, while the incoming-backedge answer comes
+from the canonical routine fact index rather than another dominator walk.
+
+The current v23 integrated build exited 0 in 47,746 ms at 2,509.8 MB peak
+private / 2,498.5 MB working set. The bounded output remains exactly 414 bytes
+with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The full 180-second run timed out at 180,343 ms with only 87.0 MB peak private /
+95.3 MB working set, reached routine 64 at 96,607 ms and routine 128 at 160,331
+ms, and opened no gen2 output. Against the v14 300-second run's routine-128
+marker, the same marker moved from 165,019 ms by 4,688 ms. This proves a real
+but non-dominant CPU seam; it is not a memory regression or self-host
+completion. The active MIR-to-AST
+reconstruction reuses the bundle, but the later expression-graph and assignment
+post-passes still reconstruct routine indexes; that re-entry remains open.
 
 The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
 earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep
 that compile RED separate from CFG analysis. It is neither proof against this
 optimization nor a successful runtime parity result.
+The current focused body-gate attempt similarly stops at
+`valid_array_builtins`: emitted C lacks `<string.h>` plus the runtime panic
+declarations. A separately isolated current-driver `nested_if_in_loop` MIR
+round trip passes, and injecting a one-predecessor header phi is rejected with
+the owned phi diagnostic. Record the broad gate as RED until its runtime-header
+owner is fixed.
 
 This is still RED bootstrap evidence: the active seam is after the first valid
 top-level routine index and before `top-level-routines:done`. Keep the 300
