@@ -1,5 +1,36 @@
 # Self-Host Progress
 
+2026-07-25 initializer environment cursor executable rung (`ffe31ce8`).
+`ast_initializer_environment_cursor_owner.pgy` now keeps one function base
+environment and one active lexical-local suffix while initializer rows advance
+in source order. `SemanticAstLocalBindingFacts` and the typed AST arena remain
+the identity/order/scope authorities. The cursor owns only transient traversal
+state, publishes a destructure node's rows atomically after their shared
+initializer verdict, restores outer bindings on scope exit, and fails closed on
+function/node order drift. The initializer production loop no longer calls
+`SemanticAstExpressionSeedVisibleLocals` or
+`SemanticAstExpressionSeedVisibleLocalModes` per row. Its standalone wrapper
+also releases the callable table it creates after the last consumer.
+
+The cursor owner smoke, borrowed-lifetime smoke, component contract, protocol
+and SoT registries, and the expanded initializer projection parity passed.
+Both C and LLVM prove outer-shadow visibility, nested-scope restoration, and
+atomic destructure publication; self-reference and sibling-scope leakage fail
+with `undefined_symbol`.
+
+The exclusive full-driver pressure run on `ffe31ce8` remains red at the
+unchanged 3072 MB ceiling: label `initializer-cursor-ready`, elapsed 869,913 ms,
+peak private 3,117.9 MB, peak working set 2,601.7 MB, and oracle private
+3,116.7 MB. It completed every 8,229-row base initializer, the full semantic
+body, verification, and MIR facts, then crossed after `json-write:start` with a
+13,709,312-byte partial artifact inside routine
+`SemanticExpressionGraphNodeKind`. Compared with `json-block-file-ready`, the
+cap was reached about 129,685 ms earlier and the sampled overshoot was 79.4 MB
+smaller, but the pre-JSON baseline remained approximately 2,937 MB; this is not
+a memory-gate closure. The next executable owner is instruction JSON file
+emission: remove `SelfMirJsonInstruction(...) -> String` from the production
+writer while preserving the same `pgy.mir.v1` field order and byte parity.
+
 2026-07-25 MIR readiness, composite assignment, and JSON artifact lifetime
 delta. The verified driver now calls
 `SelfMirProgramFactsFromReadyArtifact` after the body bundle has already owned

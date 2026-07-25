@@ -313,6 +313,48 @@ write-status result after a valid `FileOpen`; the new writer therefore proves
 open failure and byte parity but does not claim atomic or error-reporting file
 semantics that the runtime does not yet expose.
 
+#### Sequential initializer environment cursor result
+
+Checkpoint `ffe31ce8` replaces the two per-row full-function local scans in the
+initializer production loop. The cursor seeds enum/owner/parameter rows once
+per function, keeps visible locals as a lexical suffix, pops that suffix on
+scope exit, and appends transient iteration/match rows only for the current
+verdict. It delays local publication until the current syntax node completes;
+all rows from one destructure node become visible together. Local identity,
+source order, and scope still belong to `SemanticAstLocalBindingFacts` and the
+typed AST arena, so the cursor is not a second semantic authority.
+
+The executable C/LLVM parity covers outer-shadow reads, outer binding
+restoration after a nested scope, and atomic destructure publication.
+Self-reference and sibling-scope leakage both fail with `undefined_symbol`.
+The static cursor gate rejects the retired full-range calls inside the
+initializer loop and forbids owned-string insertion into the borrowed
+environment arrays.
+
+The exact committed pressure result is:
+
+| label | elapsed ms | peak private MB | peak working set MB | partial artifact |
+|---|---:|---:|---:|---:|
+| `initializer-cursor-ready` | 869,913 | 3,117.9 | 2,601.7 | 13,709,312 bytes |
+
+The run completed base initializer rows 0 through 8,228, the remaining
+semantic-body passes, verification, and MIR facts. It crossed the unchanged
+3072 MB ceiling only after `json-write:start`, while writing routine
+`SemanticExpressionGraphNodeKind`. `driver_oracle.exe` owned 3,116.7 MB
+private and no measured process remained afterward. Relative to
+`json-block-file-ready`, time to the cap improved by 129,685 ms and sampled
+peak overshoot was 79.4 MB smaller. Do not interpret the latter as 79.4 MB of
+reclaimed live state: both runs are kill-on-limit samples, and the new pre-JSON
+baseline was still about 2,937 MB.
+
+This falsifies the cursor as the remaining JSON crossing. The next production
+owner is the instruction serializer called by
+`SelfMirJsonBlockWriteFile`: it still materializes one complete
+`SelfMirJsonInstruction` string, including nested expression graphs, before
+each `FileWrite`. Stream those fields from the same MIR facts, retain the
+String serializer only as a fixture bridge, and require byte-exact C/LLVM/file
+parity. Do not split policy between backends or add a second MIR fact read.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
