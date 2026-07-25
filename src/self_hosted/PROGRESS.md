@@ -51,16 +51,16 @@ declaration phases reuse the inventory, and expression-graph node arrays use
 sequential bounds instead of indexed restart scans.
 
 The improvement is executable but gen2 is not complete. Under the unchanged
-3072 MB cap, `full-mir-consumer-exact-bound` reached
-`machine-layer:routine-index:done` for the first time and stopped at
-`instruction-scan:start` after 300,145 ms with 59.3 MB peak private.
-`full-mir-consumer-machine-twofield` combined the two instruction machine
-fields into one bounded object pass, but still timed out at the same marker
-after 300,552 ms with 63.6 MB peak private. No partial gen2 C was opened. The
-next active executable seam is the remaining per-instruction JSON key decode
-and allocation cost; it must become a bounded key comparison or a writer-owned
-machine fact inventory without skipping machine validation or adding another
-backend-specific JSON authority.
+3072 MB cap, `full-mir-consumer-exact-bound` first reached
+`machine-layer:routine-index:done`, while the two-field pass still stopped at
+`instruction-scan:start`. Checkpoint `0857899e` compares normal bounded JSON
+keys without decoding them into temporary Strings and retains the old decoder
+only for an escaped key. `full-mir-consumer-key-compare` then reached
+`instruction-scan:done`, `machine-layer:done`, and `input:done` before stopping
+at `consumer:mir-to-ast:start` after 300,437 ms. Peak private was 57.1 MB and no
+partial gen2 C was opened. The machine admission CPU seam is closed; the next
+active executable seam is the MIR-to-AST lowering pass reached by that same
+admitted artifact.
 
 2026-07-25 initializer environment cursor executable rung (`ffe31ce8`).
 `ast_initializer_environment_cursor_owner.pgy` now keeps one function base

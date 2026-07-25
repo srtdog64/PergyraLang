@@ -8,8 +8,9 @@ owner, and the named executable gate.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `e9592a6a` (`linearize-admitted-MIR-fact-scans`)
-  on `main`. Its complete-artifact predecessor is `6329356f`
+- Implementation checkpoint: `0857899e` (`avoid-admitted-MIR-key-allocations`)
+  on `main`. Its typed-admission predecessor is `e9592a6a`; the complete
+  artifact predecessor is `6329356f`
   (`bound-mir-json-string-leaf-lifetime`).
 - The verified driver now proves semantic readiness once and enters
   `SelfMirProgramFactsFromReadyArtifact`; the independently callable checked
@@ -52,9 +53,9 @@ file should remain dirty.
 
 ## Active executable objective card
 
-- Objective: finish the admitted machine instruction scan for the completed
-  Pergyra-produced full-driver MIR artifact, then emit and compile gen2 C and
-  prove the generated driver on the bounded parity preflight.
+- Objective: finish MIR-to-AST lowering for the completed admitted full-driver
+  MIR artifact, then emit and compile gen2 C and prove the generated driver on
+  the bounded parity preflight.
 - Priority: preserve the exact `pgy.mir.v1` artifact identity, keep the MIR
   consumer and semantic owners fail closed, stay below the fixed pressure cap,
   then establish gen2/gen1 bounded behavior before widening the fixture.
@@ -68,10 +69,10 @@ file should remain dirty.
 - Forbidden fallback: regenerating a native oracle MIR per generation,
   backend-specific JSON reads, source-text fact recovery, process-sharded fact
   stores, `new ? old` authority, or raising the 3072 MB cap.
-- Focused falsifier: the current artifact must first reach
-  `consumer:input:machine-layer:instruction-scan:done` under the 3072 MB
-  pressure owner. It must then emit gen2 C, compile cleanly, and consume the
-  existing bounded MIR fixture to the same C bytes as gen1.
+- Focused falsifier: the current artifact must reach
+  `consumer:mir-to-ast:done` under the 3072 MB pressure owner. It must then emit
+  gen2 C, compile cleanly, and consume the existing bounded MIR fixture to the
+  same C bytes as gen1.
 - Acceptance gate: pressure-owned full MIR consumption, gen2 compilation, and
   byte-exact generated bounded preflight all succeed; only then advance to the
   gen2/gen3 fixed-point comparison.
@@ -98,6 +99,7 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-bounded-cursor` | 54.8 MB | 67.8 MB | Timed out while building the routine index; cursor-only `strlen` debt remained in field reads. |
 | `full-mir-consumer-exact-bound` | 59.3 MB | 72.0 MB | Reached `routine-index:done`; timed out after `instruction-scan:start`. |
 | `full-mir-consumer-machine-twofield` | 63.6 MB | 76.0 MB | One-pass two-field instruction read; still timed out after `instruction-scan:start`. |
+| `full-mir-consumer-key-compare` | 57.1 MB | 69.9 MB | Machine/input admission completed; timed out after `mir-to-ast:start`. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -121,9 +123,10 @@ The consumer measurements are CPU failures, not memory failures. The first
 cursor implementation called generated `strlen(json)` at least three times per
 routine/block/instruction row, implying about 8.8 TB of avoidable length
 walking before field reads. Exact-bound readers removed that debt and reached
-`routine-index:done` for the first time. The remaining active cost is decoding
-and allocating instruction object keys during the machine scan. No run opened
-or produced a partial gen2 C artifact.
+`routine-index:done` for the first time. Allocation-free normal-key comparison
+then completed the instruction scan, machine admission, and input boundary.
+The active cost has moved to MIR-to-AST lowering. No run opened or produced a
+partial gen2 C artifact.
 
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
@@ -143,12 +146,11 @@ executable slice is active.
 
 ## Last observed gates
 
-Green on `e9592a6a` plus the documented working measurement:
+Green on `0857899e` plus the documented working measurement:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`consumer-machine-twofield-driver-build`): exit 0, 2,458.0 MB peak
-  private;
+  owner (`consumer-key-compare-driver-build`): exit 0, 2,437.2 MB peak private;
 - `tests/self_hosted/parity/module_manifest_resolver_parity.sh` (C/LLVM,
   clean plus malformed/missing manifest negatives);
 - `tests/self_hosted/parity/air_graph_json_validator_parity.sh` (C/LLVM,
@@ -186,18 +188,18 @@ input. Pressure evidence remains under
 `.tmp/build-pressure/instruction-string-pool-ready.*`. Consumer progression is
 captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-exact-bound.*`, and
-`full-mir-consumer-machine-twofield.*`. These files are diagnostic evidence
+`full-mir-consumer-machine-twofield.*`, and
+`full-mir-consumer-key-compare.*`. These files are diagnostic evidence
 only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile the exact-bound instruction machine scan and choose one objective
-   card: allocation-free bounded key comparison or a writer-owned machine fact
-   inventory. Do not skip validation or add a backend-local parser.
-2. Re-run the current artifact until
-   `consumer:input:machine-layer:instruction-scan:done` and `input:done` are
-   observed under the fixed pressure owner.
-3. Continue the same run to emit `driver_gen2.c`, then compile that C as the
+1. Profile `EmitMirProgramTreeFromRoutineIndex` and close its first remaining
+   indexed or unbounded JSON fact read. Reuse the admitted routine and
+   declaration inventories; do not create a second document authority.
+2. Re-run the current artifact until `consumer:mir-to-ast:done` is observed
+   under the fixed pressure owner.
+3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
 4. Run the generated driver on the existing bounded MIR fixture and compare
    emitted C bytes with the current driver output, then advance to gen2/gen3

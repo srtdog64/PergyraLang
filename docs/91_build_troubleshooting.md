@@ -448,15 +448,17 @@ The fixed 300-second observations show the progression:
 | `full-mir-consumer-bounded-cursor` | 54.8 | `routine-index:start` |
 | `full-mir-consumer-exact-bound` | 59.3 | `routine-index:done`, then `instruction-scan:start` |
 | `full-mir-consumer-machine-twofield` | 63.6 | `instruction-scan:start` |
+| `full-mir-consumer-key-compare` | 57.1 | machine/input admission done, then `mir-to-ast:start` |
 
-The final row is still RED: combining `machine_contact_kind` and
-`machine_layer` into one exact object pass did not finish all 34,091
-instructions within 300 seconds. Do not report gen2 or bootstrap completion,
-raise the timeout as a substitute for ownership work, skip machine validation,
-or add a C/LLVM-specific parser. The next falsifier is
-`consumer:input:machine-layer:instruction-scan:done`; profile bounded key
-decode/allocation first, then decide between allocation-free key comparison and
-a writer-owned machine-fact inventory.
+`0857899e` removes normal-key allocation from the exact-bound field reader and
+keeps bounded decode only as an escaped-key fallback. The final row proves
+`instruction-scan:done`, `machine-layer:done`, and `input:done`; machine
+admission is no longer the first CPU blocker. The run is still RED because it
+timed out after `consumer:mir-to-ast:start`. Do not report gen2 or bootstrap
+completion, raise the timeout as a substitute for ownership work, skip
+validation, or add a C/LLVM-specific parser. The next falsifier is
+`consumer:mir-to-ast:done` using the same admitted routine and declaration
+inventories.
 
 Two broad gates currently stop later for unrelated existing reasons. The
 machine smoke reaches MIR lowering and then reports `local declaration is
