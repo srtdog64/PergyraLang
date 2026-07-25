@@ -79,6 +79,56 @@ func MirMachineLayerObjectReady(
             "live_lease_required", true);
 }
 
+func MirMachineLayerInstructionBoundsReady(
+    json: String,
+    contact_start: Int,
+    contact_end: Int,
+    value_start: Int,
+    value_end: Int,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    let contact_kind: String = "";
+    if contact_start >= 0 {
+        let contact_value_kind: Int = JsonCharCodeAt(
+            json, contact_end, contact_start
+        );
+        if contact_value_kind == JsonAsciiCode("\"") {
+            let decoded_end: Array<Int> = [0];
+            contact_kind = ReadJsonStringBounded(
+                json, contact_start, contact_end, decoded_end
+            );
+            if decoded_end[0] != contact_end { return false; }
+        } else if contact_value_kind != JsonAsciiCode("n") ||
+            contact_start + 4 != contact_end ||
+            !SubEqualsWithLen(
+                json, contact_end, contact_start, 4, "null"
+            ) {
+            return false;
+        }
+    }
+    if value_start < 0 {
+        return StringLength(contact_kind) == 0;
+    }
+    let value_kind: Int = JsonCharCodeAt(
+        json, value_end, value_start);
+    if value_kind == JsonAsciiCode("n") {
+        return StringLength(contact_kind) == 0 &&
+            value_start + 4 == value_end &&
+            SubEqualsWithLen(
+                json, value_end, value_start, 4, "null"
+            );
+    }
+    if value_kind != JsonAsciiCode("{") {
+        return false;
+    }
+    return StringLength(contact_kind) > 0 &&
+        contact_kind == MirObjectStringFactAtBounds(
+            json, value_start, value_end, "operation") &&
+        MirMachineLayerObjectReady(
+            json, value_start, value_end, declaration
+        );
+}
+
 func MirMachineLayerInstructionReady(
     json: String,
     start: Int,
@@ -94,46 +144,10 @@ func MirMachineLayerInstructionReady(
     ) {
         return false;
     }
-    let contact_kind: String = "";
-    if contact_bounds[0] >= 0 {
-        let contact_value_kind: Int = JsonCharCodeAt(
-            json, contact_bounds[1], contact_bounds[0]
-        );
-        if contact_value_kind == JsonAsciiCode("\"") {
-            let contact_end: Array<Int> = [0];
-            contact_kind = ReadJsonStringBounded(
-                json, contact_bounds[0], contact_bounds[1], contact_end
-            );
-            if contact_end[0] != contact_bounds[1] { return false; }
-        } else if contact_value_kind != JsonAsciiCode("n") ||
-            contact_bounds[0] + 4 != contact_bounds[1] ||
-            !SubEqualsWithLen(
-                json, contact_bounds[1], contact_bounds[0], 4, "null"
-            ) {
-            return false;
-        }
-    }
-    if value_bounds[0] < 0 {
-        return StringLength(contact_kind) == 0;
-    }
-    let value_kind: Int = JsonCharCodeAt(
-        json, value_bounds[1], value_bounds[0]);
-    if value_kind == JsonAsciiCode("n") {
-        return StringLength(contact_kind) == 0 &&
-            value_bounds[0] + 4 == value_bounds[1] &&
-            SubEqualsWithLen(
-                json, value_bounds[1], value_bounds[0], 4, "null"
-            );
-    }
-    if value_kind != JsonAsciiCode("{") {
-        return false;
-    }
-    return StringLength(contact_kind) > 0 &&
-        contact_kind == MirObjectStringFactAtBounds(
-            json, value_bounds[0], value_bounds[1], "operation") &&
-        MirMachineLayerObjectReady(
-            json, value_bounds[0], value_bounds[1], declaration
-        );
+    return MirMachineLayerInstructionBoundsReady(
+        json, contact_bounds[0], contact_bounds[1],
+        value_bounds[0], value_bounds[1], declaration
+    );
 }
 
 func MirMachineLayerInstructionRuntimeOperation(
@@ -163,40 +177,20 @@ func MirMachineLayerRoutineIndexFactsReady(
     if !CompilerRuntimeCallAbiMachineLayerProjectionReady() {
         return false;
     }
-    if !routines.valid { return false; }
-    let routine_row: Int = 0;
-    while routine_row < MirProgramRoutineIndexCount(routines) {
-        let routine_start: Int = routines.starts[routine_row];
-        let routine_end: Int = routines.ends[routine_row];
-        let blocks_bounds: Array<Int> = [0, 0];
-        if !MirObjectArrayBoundsAtBounds(
-            json, routine_start, routine_end, "blocks", blocks_bounds) {
+    if !MirProgramRoutineIndexStructureReady(routines) { return false; }
+    let instruction_row: Int = 0;
+    while instruction_row < ArrayLength(routines.instruction_starts) {
+        if !MirMachineLayerInstructionBoundsReady(
+            json,
+            routines.instruction_machine_contact_starts[instruction_row],
+            routines.instruction_machine_contact_ends[instruction_row],
+            routines.instruction_machine_layer_starts[instruction_row],
+            routines.instruction_machine_layer_ends[instruction_row],
+            declaration
+        ) {
             return false;
         }
-        let block_cursor: Int = blocks_bounds[0] + 1;
-        let block_bounds: Array<Int> = [0, 0];
-        while JsonArrayNextObjectBounds(
-            json, block_cursor, blocks_bounds[1], block_bounds) {
-            let instructions_bounds: Array<Int> = [0, 0];
-            if MirObjectArrayBoundsAtBounds(
-                json, block_bounds[0], block_bounds[1],
-                "instructions", instructions_bounds) {
-                let instruction_cursor: Int = instructions_bounds[0] + 1;
-                let instruction_bounds: Array<Int> = [0, 0];
-                while JsonArrayNextObjectBounds(
-                    json, instruction_cursor, instructions_bounds[1],
-                    instruction_bounds) {
-                    if !MirMachineLayerInstructionReady(
-                        json, instruction_bounds[0], instruction_bounds[1],
-                        declaration) {
-                        return false;
-                    }
-                    instruction_cursor = instruction_bounds[1];
-                }
-            }
-            block_cursor = block_bounds[1];
-        }
-        routine_row = routine_row + 1;
+        instruction_row = instruction_row + 1;
     }
     return true;
 }

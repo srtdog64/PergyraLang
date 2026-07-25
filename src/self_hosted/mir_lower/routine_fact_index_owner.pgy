@@ -4,6 +4,7 @@
 // integer spans and decoded source-local rows, so recursive CFG reconstruction
 // does not rediscover array rows from the beginning of the JSON document.
 import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
 import "loop_flow_fact_owner.pgy";
 import "iteration_type_fact_owner.pgy";
 import "match_binding_local_fact_owner.pgy";
@@ -59,7 +60,11 @@ struct MirRoutineFactIndex {
     let loop_flow_state_semantic_states: Array<Int>;
     let loop_flow_state_pool_ids: Array<Int>;
 }
-func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int) -> MirRoutineFactIndex {
+func BuildMirRoutineFactIndex(json: String, ref routines: MirProgramRoutineIndex, routine_row: Int) -> MirRoutineFactIndex {
+    let routine_start: Int = 0;
+    let routine_end: Int = 0;
+    let routine_row_ready: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
+    if routine_row_ready { routine_start = routines.starts[routine_row]; routine_end = routines.ends[routine_row]; }
     let block_starts: Array<Int> = [];
     let block_ends: Array<Int> = [];
     let backedge_headers: Array<Int> = [];
@@ -84,8 +89,9 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
     let function_param_flow_masks: Array<Int> = [];
     let resource_flow_symbol_declared_count: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end, "resource_flow_symbol_count");
-    let valid: Bool = true;
+    let valid: Bool = routine_row_ready;
     let validation_stage: String = "ok";
+    if !routine_row_ready { validation_stage = "program_structure"; }
     let resource_facts: MirResourceFlowFacts = BuildMirResourceFlowFacts(
         json, routine_start, routine_end);
     if !iteration_type_facts.valid { valid = false; validation_stage = "iteration_type_facts"; }
@@ -160,48 +166,62 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
         valid = false;
         validation_stage = "function_param_count";
     }
-    let blocks_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(json, routine_start, routine_end, "blocks", blocks_bounds) {
+    let global_block_start: Int = 0;
+    let routine_block_count: Int = 0;
+    if routine_row_ready { global_block_start = routines.routine_block_starts[routine_row]; routine_block_count = routines.routine_block_counts[routine_row]; }
+    if !routine_row_ready ||
+        global_block_start < 0 || routine_block_count < 0 ||
+        global_block_start + routine_block_count > ArrayLength(routines.block_starts) {
         valid = false;
-        validation_stage = "blocks_bounds";
+        validation_stage = "program_structure";
     } else {
-        let block_cursor: Int = blocks_bounds[0] + 1;
-        let block_bounds: Array<Int> = [0, 0];
-        while JsonArrayNextObjectBounds(json, block_cursor, blocks_bounds[1], block_bounds) {
-            ArrayPush(block_starts, block_bounds[0]);
-            ArrayPush(block_ends, block_bounds[1]);
+        let block_offset: Int = 0;
+        while block_offset < routine_block_count {
+            let global_block: Int = global_block_start + block_offset;
+            let block_start: Int = routines.block_starts[global_block];
+            let block_end: Int = routines.block_ends[global_block];
+            ArrayPush(block_starts, block_start);
+            ArrayPush(block_ends, block_end);
             ArrayPush(backedge_headers, 0);
             ArrayPush(block_succ_true, MirObjectNumberFactAtBounds(
-                json, block_bounds[0], block_bounds[1], "succ_true"));
+                json, block_start, block_end, "succ_true"));
             ArrayPush(block_succ_false, MirObjectNumberFactAtBounds(
-                json, block_bounds[0], block_bounds[1], "succ_false"));
+                json, block_start, block_end, "succ_false"));
             ArrayPush(block_instruction_starts, ArrayLength(instruction_starts));
-
-            let instruction_count: Int = 0;
+            let instruction_count: Int = routines.block_instruction_counts[global_block];
+            let global_instruction_start: Int = routines.block_instruction_starts[global_block];
             let has_conditional_branch: Int = 0;
-            let instructions_bounds: Array<Int> = [0, 0];
-            if MirObjectArrayBoundsAtBounds(json, block_bounds[0], block_bounds[1], "instructions", instructions_bounds) {
-                let instruction_cursor: Int = instructions_bounds[0] + 1;
-                let instruction_bounds: Array<Int> = [0, 0];
-                while JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds) {
-                    ArrayPush(instruction_starts, instruction_bounds[0]);
-                    ArrayPush(instruction_ends, instruction_bounds[1]);
-                    ArrayPush(instruction_results, MirObjectStringFactAtBounds(json, instruction_bounds[0], instruction_bounds[1], "result"));
-                    if MirObjectStringFactAtBounds(json, instruction_bounds[0],
-                            instruction_bounds[1], "kind") == "branch" {
-                        let source_type: String = MirObjectStringFactAtBounds(json,
-                            instruction_bounds[0], instruction_bounds[1], "source_type");
+            if global_instruction_start < 0 || instruction_count < 0 ||
+                global_instruction_start + instruction_count > ArrayLength(routines.instruction_starts) {
+                valid = false;
+                validation_stage = "program_structure";
+            } else {
+                let instruction_offset: Int = 0;
+                while instruction_offset < instruction_count {
+                    let global_instruction: Int = global_instruction_start + instruction_offset;
+                    let instruction_start: Int = routines.instruction_starts[global_instruction];
+                    let instruction_end: Int = routines.instruction_ends[global_instruction];
+                    ArrayPush(instruction_starts, instruction_start);
+                    ArrayPush(instruction_ends, instruction_end);
+                    ArrayPush(
+                        instruction_results,
+                        MirObjectStringFactAtBounds(
+                            json, instruction_start, instruction_end, "result"
+                        )
+                    );
+                    if routines.instruction_kinds[global_instruction] ==
+                        "branch" {
+                        let source_type: String = routines.instruction_source_types[global_instruction];
                         if source_type != "AST_CONTINUE" && source_type != "AST_BREAK" {
                             has_conditional_branch = 1;
                         }
                     }
-                    instruction_count = instruction_count + 1;
-                    instruction_cursor = instruction_bounds[1];
+                    instruction_offset = instruction_offset + 1;
                 }
             }
             ArrayPush(block_instruction_counts, instruction_count);
             ArrayPush(block_has_conditional_branch, has_conditional_branch);
-            block_cursor = block_bounds[1];
+            block_offset = block_offset + 1;
         }
     }
 

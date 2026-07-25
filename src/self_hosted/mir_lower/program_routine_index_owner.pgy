@@ -6,6 +6,16 @@
 
 import "json_fact_read.pgy";
 
+func MirProgramRoutineArrayCursorAtEnd(
+    json: String,
+    cursor: Int,
+    array_end: Int
+) -> Bool {
+    let i: Int = JsonSkipWhitespaceWithin(json, cursor, array_end);
+    return i < array_end &&
+        JsonCharCodeAt(json, array_end, i) == JsonAsciiCode("]");
+}
+
 struct MirProgramRoutineIndex {
     let valid: Bool;
     let starts: Array<Int>;
@@ -13,6 +23,20 @@ struct MirProgramRoutineIndex {
     let kinds: Array<String>;
     let owners: Array<String>;
     let names: Array<String>;
+    let routine_block_starts: Array<Int>;
+    let routine_block_counts: Array<Int>;
+    let block_starts: Array<Int>;
+    let block_ends: Array<Int>;
+    let block_instruction_starts: Array<Int>;
+    let block_instruction_counts: Array<Int>;
+    let instruction_starts: Array<Int>;
+    let instruction_ends: Array<Int>;
+    let instruction_kinds: Array<String>;
+    let instruction_source_types: Array<String>;
+    let instruction_machine_contact_starts: Array<Int>;
+    let instruction_machine_contact_ends: Array<Int>;
+    let instruction_machine_layer_starts: Array<Int>;
+    let instruction_machine_layer_ends: Array<Int>;
 }
 
 func BuildMirProgramRoutineIndexFromTable(
@@ -24,8 +48,34 @@ func BuildMirProgramRoutineIndexFromTable(
     let kinds: Array<String> = [];
     let owners: Array<String> = [];
     let names: Array<String> = [];
+    let routine_block_starts: Array<Int> = [];
+    let routine_block_counts: Array<Int> = [];
+    let block_starts: Array<Int> = [];
+    let block_ends: Array<Int> = [];
+    let block_instruction_starts: Array<Int> = [];
+    let block_instruction_counts: Array<Int> = [];
+    let instruction_starts: Array<Int> = [];
+    let instruction_ends: Array<Int> = [];
+    let instruction_kinds: Array<String> = [];
+    let instruction_source_types: Array<String> = [];
+    let instruction_machine_contact_starts: Array<Int> = [];
+    let instruction_machine_contact_ends: Array<Int> = [];
+    let instruction_machine_layer_starts: Array<Int> = [];
+    let instruction_machine_layer_ends: Array<Int> = [];
+    let valid: Bool = true;
     if !JsonArrayObjectFactTableReady(routines) {
-        return MirProgramRoutineIndex(false, starts, ends, kinds, owners, names);
+        return MirProgramRoutineIndex(
+            false, starts, ends, kinds, owners, names,
+            routine_block_starts, routine_block_counts,
+            block_starts, block_ends,
+            block_instruction_starts, block_instruction_counts,
+            instruction_starts, instruction_ends,
+            instruction_kinds, instruction_source_types,
+            instruction_machine_contact_starts,
+            instruction_machine_contact_ends,
+            instruction_machine_layer_starts,
+            instruction_machine_layer_ends
+        );
     }
 
     let cursor: Int = routines.start + 1;
@@ -33,18 +83,123 @@ func BuildMirProgramRoutineIndexFromTable(
     while JsonArrayNextObjectBounds(json, cursor, routines.end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
-        ArrayPush(kinds, MirObjectStringFactAtBounds(
+        let routine_kind: String = MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "kind"
-        ));
+        );
+        let routine_name: String = MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "name"
+        );
+        if routine_kind == "" || routine_name == "" { valid = false; }
+        ArrayPush(kinds, routine_kind);
         ArrayPush(owners, MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "owner"
         ));
-        ArrayPush(names, MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "name"
-        ));
+        ArrayPush(names, routine_name);
+        ArrayPush(routine_block_starts, ArrayLength(block_starts));
+        let routine_block_count: Int = 0;
+        let blocks_bounds: Array<Int> = [0, 0];
+        if !MirObjectArrayBoundsAtBounds(
+            json, bounds[0], bounds[1], "blocks", blocks_bounds
+        ) {
+            valid = false;
+        } else {
+            let block_cursor: Int = blocks_bounds[0] + 1;
+            let block_bounds: Array<Int> = [0, 0];
+            while JsonArrayNextObjectBounds(
+                json, block_cursor, blocks_bounds[1], block_bounds
+            ) {
+                ArrayPush(block_starts, block_bounds[0]);
+                ArrayPush(block_ends, block_bounds[1]);
+                ArrayPush(
+                    block_instruction_starts, ArrayLength(instruction_starts)
+                );
+                let instruction_count: Int = 0;
+                let instructions_bounds: Array<Int> = [0, 0];
+                if MirObjectArrayBoundsAtBounds(
+                    json, block_bounds[0], block_bounds[1],
+                    "instructions", instructions_bounds
+                ) {
+                    let instruction_cursor: Int = instructions_bounds[0] + 1;
+                    let instruction_bounds: Array<Int> = [0, 0];
+                    while JsonArrayNextObjectBounds(
+                        json, instruction_cursor, instructions_bounds[1],
+                        instruction_bounds
+                    ) {
+                        ArrayPush(instruction_starts, instruction_bounds[0]);
+                        ArrayPush(instruction_ends, instruction_bounds[1]);
+                        let instruction_kind: String = MirObjectStringFactAtBounds(
+                            json, instruction_bounds[0], instruction_bounds[1],
+                            "kind"
+                        );
+                        if instruction_kind == "" { valid = false; }
+                        ArrayPush(instruction_kinds, instruction_kind);
+                        ArrayPush(
+                            instruction_source_types,
+                            MirObjectStringFactAtBounds(
+                                json, instruction_bounds[0],
+                                instruction_bounds[1], "source_type"
+                            )
+                        );
+                        let contact_bounds: Array<Int> = [0 - 1, 0 - 1];
+                        let machine_bounds: Array<Int> = [0 - 1, 0 - 1];
+                        if !JsonObjectTwoFieldValueBoundsWithin(
+                            json, instruction_bounds[0], instruction_bounds[1],
+                            "machine_contact_kind", "machine_layer",
+                            contact_bounds, machine_bounds
+                        ) {
+                            valid = false;
+                        }
+                        ArrayPush(
+                            instruction_machine_contact_starts,
+                            contact_bounds[0]
+                        );
+                        ArrayPush(
+                            instruction_machine_contact_ends,
+                            contact_bounds[1]
+                        );
+                        ArrayPush(
+                            instruction_machine_layer_starts,
+                            machine_bounds[0]
+                        );
+                        ArrayPush(
+                            instruction_machine_layer_ends,
+                            machine_bounds[1]
+                        );
+                        instruction_count = instruction_count + 1;
+                        instruction_cursor = instruction_bounds[1];
+                    }
+                    if !MirProgramRoutineArrayCursorAtEnd(
+                        json, instruction_cursor, instructions_bounds[1]
+                    ) { valid = false; }
+                } else {
+                    valid = false;
+                }
+                ArrayPush(block_instruction_counts, instruction_count);
+                routine_block_count = routine_block_count + 1;
+                block_cursor = block_bounds[1];
+            }
+            if !MirProgramRoutineArrayCursorAtEnd(
+                json, block_cursor, blocks_bounds[1]
+            ) { valid = false; }
+        }
+        ArrayPush(routine_block_counts, routine_block_count);
         cursor = bounds[1];
     }
-    return MirProgramRoutineIndex(true, starts, ends, kinds, owners, names);
+    if !MirProgramRoutineArrayCursorAtEnd(json, cursor, routines.end) {
+        valid = false;
+    }
+    return MirProgramRoutineIndex(
+        valid, starts, ends, kinds, owners, names,
+        routine_block_starts, routine_block_counts,
+        block_starts, block_ends,
+        block_instruction_starts, block_instruction_counts,
+        instruction_starts, instruction_ends,
+        instruction_kinds, instruction_source_types,
+        instruction_machine_contact_starts,
+        instruction_machine_contact_ends,
+        instruction_machine_layer_starts,
+        instruction_machine_layer_ends
+    );
 }
 
 func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
@@ -54,6 +209,130 @@ func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
 
 func MirProgramRoutineIndexCount(ref index: MirProgramRoutineIndex) -> Int {
     return ArrayLength(index.starts);
+}
+
+func MirProgramRoutineIndexRowReady(
+    ref index: MirProgramRoutineIndex,
+    row: Int
+) -> Bool {
+    let routine_count: Int = ArrayLength(index.starts);
+    if !index.valid || row < 0 || row >= routine_count ||
+        routine_count != ArrayLength(index.ends) ||
+        routine_count != ArrayLength(index.kinds) ||
+        routine_count != ArrayLength(index.owners) ||
+        routine_count != ArrayLength(index.names) ||
+        routine_count != ArrayLength(index.routine_block_starts) ||
+        routine_count != ArrayLength(index.routine_block_counts) {
+        return false;
+    }
+    let block_start: Int = index.routine_block_starts[row];
+    let block_count: Int = index.routine_block_counts[row];
+    return index.starts[row] >= 0 && index.ends[row] > index.starts[row] &&
+        index.kinds[row] != "" && index.names[row] != "" &&
+        block_start >= 0 && block_count >= 0 &&
+        block_start + block_count <= ArrayLength(index.block_starts);
+}
+
+func MirProgramRoutineIndexStructureReady(
+    ref index: MirProgramRoutineIndex
+) -> Bool {
+    let routine_count: Int = ArrayLength(index.starts);
+    let block_count: Int = ArrayLength(index.block_starts);
+    let instruction_count: Int = ArrayLength(index.instruction_starts);
+    if !index.valid || routine_count != ArrayLength(index.ends) ||
+        routine_count != ArrayLength(index.kinds) {
+        return false;
+    }
+    if routine_count != ArrayLength(index.owners) ||
+        routine_count != ArrayLength(index.names) ||
+        routine_count != ArrayLength(index.routine_block_starts) ||
+        routine_count != ArrayLength(index.routine_block_counts) ||
+        block_count != ArrayLength(index.block_ends) ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        instruction_count != ArrayLength(index.instruction_ends) ||
+        instruction_count != ArrayLength(index.instruction_kinds) ||
+        instruction_count != ArrayLength(index.instruction_source_types) ||
+        instruction_count != ArrayLength(
+            index.instruction_machine_contact_starts) ||
+        instruction_count != ArrayLength(
+            index.instruction_machine_contact_ends) ||
+        instruction_count != ArrayLength(
+            index.instruction_machine_layer_starts) ||
+        instruction_count != ArrayLength(
+            index.instruction_machine_layer_ends) {
+        return false;
+    }
+    let expected_block: Int = 0;
+    let routine_row: Int = 0;
+    while routine_row < routine_count {
+        let count: Int = index.routine_block_counts[routine_row];
+        if index.kinds[routine_row] == "" || index.names[routine_row] == "" ||
+            index.routine_block_starts[routine_row] != expected_block ||
+            count < 0 || expected_block + count > block_count {
+            return false;
+        }
+        let local_block: Int = 0;
+        while local_block < count {
+            let block_row: Int = expected_block + local_block;
+            if index.block_starts[block_row] < index.starts[routine_row] ||
+                index.block_ends[block_row] > index.ends[routine_row] ||
+                index.block_ends[block_row] <= index.block_starts[block_row] {
+                return false;
+            }
+            local_block = local_block + 1;
+        }
+        expected_block = expected_block + count;
+        routine_row = routine_row + 1;
+    }
+    if expected_block != block_count { return false; }
+    let expected_instruction: Int = 0;
+    let block_row: Int = 0;
+    while block_row < block_count {
+        let count: Int = index.block_instruction_counts[block_row];
+        if index.block_instruction_starts[block_row] != expected_instruction ||
+            count < 0 || expected_instruction + count > instruction_count {
+            return false;
+        }
+        let local_instruction: Int = 0;
+        while local_instruction < count {
+            let instruction_row: Int = expected_instruction + local_instruction;
+            let instruction_start: Int = index.instruction_starts[instruction_row];
+            let instruction_end: Int = index.instruction_ends[instruction_row];
+            let contact_start: Int =
+                index.instruction_machine_contact_starts[instruction_row];
+            let contact_end: Int =
+                index.instruction_machine_contact_ends[instruction_row];
+            let machine_start: Int =
+                index.instruction_machine_layer_starts[instruction_row];
+            let machine_end: Int =
+                index.instruction_machine_layer_ends[instruction_row];
+            if index.instruction_kinds[instruction_row] == "" ||
+                instruction_start <
+                    index.block_starts[block_row] ||
+                instruction_end >
+                    index.block_ends[block_row] ||
+                instruction_end <= instruction_start ||
+                ((contact_start < 0 || contact_end < 0) &&
+                    (contact_start != (0 - 1) || contact_end != (0 - 1))) ||
+                (contact_start >= 0 &&
+                    (contact_start < instruction_start ||
+                     contact_end > instruction_end ||
+                     contact_end <= contact_start)) ||
+                ((machine_start < 0 || machine_end < 0) &&
+                    (machine_start != (0 - 1) || machine_end != (0 - 1))) ||
+                (machine_start >= 0 &&
+                    (machine_start < instruction_start ||
+                     machine_end > instruction_end ||
+                     machine_end <= machine_start)) {
+                return false;
+            }
+            local_instruction = local_instruction + 1;
+        }
+        expected_instruction = expected_instruction + count;
+        block_row = block_row + 1;
+    }
+    return expected_instruction == instruction_count;
 }
 
 func MirProgramRoutineIndexFindMethodRow(

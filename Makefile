@@ -3127,13 +3127,16 @@ self-host-mir-json-parity-test-smoke: $(PGY)
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh
 
+self-host-mir-program-routine-index-owner-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh
+
 self-host-json-bounded-string-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_bounded_string_owner_smoke.sh
 
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
 
-.PHONY: self-host-mir-cfg-graph-query-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
+.PHONY: self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh

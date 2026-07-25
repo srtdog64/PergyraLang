@@ -10,12 +10,12 @@ func MirAssignmentBindingModesMatchSemanticFacts(
 ) -> Bool {
     if !facts.ok { return false; }
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
-    if !routines.valid { return false; }
+    if !MirProgramRoutineIndexStructureReady(routines) { return false; }
     let assignment_i: Int = 0;
     let routine_i: Int = 0;
     while routine_i < MirProgramRoutineIndexCount(routines) {
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-            json, routines.starts[routine_i], routines.ends[routine_i]
+            json, routines, routine_i
         );
         if !index.valid { return false; }
         let instruction_i: Int = 0;

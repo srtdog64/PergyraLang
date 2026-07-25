@@ -61,7 +61,6 @@ func BlockInstructionBoundsAt(ref index: MirRoutineFactIndex, bs: Int, row: Int,
 func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> String {
     return MirObjectStringFactAtBounds(json, inst_start, inst_end, "kind");
 }
-
 func BlockInstructionOfKindBounds(
     ref index: MirRoutineFactIndex,
     json: String,
@@ -458,12 +457,17 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine_end: Int, routine_indent: String, self_type: String, observe_fact_index: Bool) -> String {
-    let routine: String = MirObjectStringFactAtBounds(json, routine_start, routine_end, "name");
+func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, routine_row: Int,
+    json: String, routine_indent: String,
+    self_type: String, observe_fact_index: Bool) -> String {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
+    let routine_start: Int = routines.starts[routine_row];
+    let routine_end: Int = routines.ends[routine_row];
+    let routine: String = routines.names[routine_row];
     if routine_end <= routine_start || routine == "" {
         MirLowerFailClosed("malformed routine name");
     }
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, routine_start, routine_end);
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, routines, routine_row);
     if !index.valid {
         MirLowerFailClosed(Concat(
             "routine MIR fact index is incomplete: ",
@@ -587,9 +591,10 @@ func EmitRoutineTreeWithSelfTypeAtSpan(json: String, routine_start: Int, routine
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTreeAtSpan(json: String, routine_start: Int, routine_end: Int,
-                           routine_indent: String, observe_fact_index: Bool) -> String {
-    return EmitRoutineTreeWithSelfTypeAtSpan(
-        json, routine_start, routine_end, routine_indent, "", observe_fact_index
+func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
+    routine_row: Int, json: String, routine_indent: String,
+    observe_fact_index: Bool) -> String {
+    return EmitRoutineTreeWithSelfTypeAtRow(
+        routines, routine_row, json, routine_indent, "", observe_fact_index
     );
 }

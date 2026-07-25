@@ -33,13 +33,11 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
         MirLowerFailClosed("no routine name in MIR-JSON");
     }
     while row < MirProgramRoutineIndexCount(routines) {
-        let rpos: Int = routines.starts[row];
-        let routine_end: Int = routines.ends[row];
         let kind: String = routines.kinds[row];
         let owner: String = routines.owners[row];
         if kind == "function" || StringLength(owner) == 0 {
-            ArrayPush(chunks, EmitRoutineTreeAtSpan(
-                json, rpos, routine_end, "  ", observe_pressure && total == 0
+            ArrayPush(chunks, EmitRoutineTreeAtRow(
+                routines, row, json, "  ", observe_pressure && total == 0
             ));
             if observe_pressure && total == 0 {
                 MirProgramLowerPressureStage(

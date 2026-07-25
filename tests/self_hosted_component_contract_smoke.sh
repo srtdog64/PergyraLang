@@ -3487,8 +3487,25 @@ require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
 reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerAdmitDocumentObserved(" \
     "BuildMirProgramRoutineIndex(json)"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "let instruction_starts: Array<Int>;"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "let instruction_kinds: Array<String>;"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "let instruction_machine_layer_starts: Array<Int>;"
+require_file "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy"
+require_file "tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh"
+require_text "Makefile" \
+    "self-host-mir-program-routine-index-owner-test-smoke:"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
-    "while JsonArrayNextObjectBounds("
+    "while instruction_row < ArrayLength(routines.instruction_starts)"
+reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerRoutineIndexFactsReady(" \
+    "JsonArrayNextObjectBounds("
+reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerRoutineIndexFactsReady(" '"blocks"'
+reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerRoutineIndexFactsReady(" '"instructions"'
 reject_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "MirRoutineObjectBoundsAt("
 reject_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
@@ -7837,7 +7854,10 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructio
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockInstructionBoundsAt(index, bs, row, bounds)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionKind"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionOfKindBounds"
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds)"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "JsonArrayNextObjectBounds("
+reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds)"
 for exact_routine_owner in \
     "routine_fact_index_owner.pgy" \
     "iteration_type_fact_owner.pgy" \
@@ -7891,7 +7911,9 @@ require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'let instruction_results: Array<String>;'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    'ArrayPush(instruction_results, MirObjectStringFactAtBounds('
+    'instruction_results,'
+reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    'instruction_results'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'func MirRoutineFactIndexResultExists('
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
@@ -7986,12 +8008,13 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, 
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json)"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "let rpos: Int = routines.starts[row]"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "EmitRoutineTreeAtRow("
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "MirProgramRoutineIndexCount(routines)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine("
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "MirObjectStringFactAtBounds(json, routine_start, routine_end, \"name\")"
+    "let routine: String = routines.names[routine_row];"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "routine_name_end"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'Substring(json, e[0]'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"function"'
@@ -9980,7 +10003,7 @@ reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "let key: String"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectTwoFieldValueBoundsWithin(" "let key: String"
-require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "MirObjectArrayBoundsAtBounds("
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "MirObjectStringFactAtBounds("
@@ -10074,8 +10097,8 @@ reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "MirObjectStringFact(json, bounds[0], bounds[1]"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return Some(row)"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return None"
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" "routines.ends[routine_index]"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "let routine_end: Int = routines.ends[row]"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "routines, routine_index, json"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:declarations:done"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -10096,11 +10119,24 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:first-top-level-routine-validation:done"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "EmitMirProgramTreeFromRoutineIndexObserved("
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtSpan("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtRow("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "json, routine_start, routine_end"
+    "json, routines, routine_row"
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "func EmitRoutineTreeWithSelfTypeAtSpan" "StringLength(json)"
+    "func EmitRoutineTreeWithSelfTypeAtRow" "StringLength(json)"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func EmitRoutineTreeWithSelfTypeAtSpan("
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" '"blocks"'
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" '"instructions"'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "routines.instruction_kinds[global_instruction]"
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" \
+    "MirProgramRoutineIndexStructureReady("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "MirProgramRoutineIndexRowReady(routines, routine_row)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineNameEnd("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineSpanEnd("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineObjectEnd("

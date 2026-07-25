@@ -172,8 +172,9 @@ func EmitClassMethods(ref routines: MirProgramRoutineIndex, json: String,
             MirLowerFailClosed(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
         }
         let routine_index: Int = UnwrapOption(routine_row);
-        out = Concat(out, EmitRoutineTreeAtSpan(json,
-            routines.starts[routine_index], routines.ends[routine_index], "      ", false));
+        out = Concat(out, EmitRoutineTreeAtRow(
+            routines, routine_index, json, "      ", false
+        ));
         row = row + 1;
     }
     if StringLength(out) > 0 {
@@ -320,9 +321,9 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, json: String,
                 ));
             }
             let routine_index: Int = UnwrapOption(routine_row);
-            out = Concat(out, EmitRoutineTreeWithSelfTypeAtSpan(json,
-                routines.starts[routine_index], routines.ends[routine_index],
-                "      ", for_type, false));
+            out = Concat(out, EmitRoutineTreeWithSelfTypeAtRow(
+                routines, routine_index, json, "      ", for_type, false
+            ));
             local_method_index = local_method_index + 1;
         }
         impl_index = impl_index + 1;

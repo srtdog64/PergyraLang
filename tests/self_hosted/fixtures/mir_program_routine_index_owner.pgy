@@ -1,0 +1,139 @@
+// Executable contract for the flattened MIR program routine structure index.
+
+import "../../../src/self_hosted/mir_lower/program_routine_index_owner.pgy";
+
+func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    if !document.valid { return false; }
+    let index: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(document.routines);
+    return MirProgramRoutineIndexStructureReady(index);
+}
+
+func Main() -> Void {
+    let failures: Int = 0;
+    let first_instruction: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
+    let second_instruction: String =
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"machine_layer\":{\"operation\":\"x\"},\"machine_contact_kind\":\"x\"}";
+    let third_instruction: String =
+        "{\"kind\":\"phi\",\"source_type\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let first_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(first_instruction, Concat(",", Concat(second_instruction, "]}")))
+    );
+    let second_block: String = Concat(
+        "{\"id\":0,\"instructions\":[", Concat(third_instruction, "]}")
+    );
+    let empty_block: String = "{\"id\":1,\"instructions\":[]}";
+    let first_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[",
+        Concat(first_block, "]}")
+    );
+    let second_routine: String = Concat(
+        "{\"kind\":\"method\",\"owner\":\"Box\",\"name\":\"Ping\",\"blocks\":[",
+        Concat(second_block, Concat(",", Concat(empty_block, "]}")))
+    );
+    let prefix: String =
+        "{\"schema\":\"pgy.mir.v1\",\"decls\":[],\"parallel_capture_boundaries\":[],\"routines\":[";
+    let json: String = Concat(
+        prefix, Concat(first_routine, Concat(",", Concat(second_routine, "]}")))
+    );
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    let index: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(document.routines);
+    if !MirProgramRoutineIndexStructureReady(index) ||
+        !MirProgramRoutineIndexRowReady(index, 0) ||
+        !MirProgramRoutineIndexRowReady(index, 1) ||
+        MirProgramRoutineIndexRowReady(index, 0 - 1) ||
+        MirProgramRoutineIndexRowReady(index, 2) ||
+        ArrayLength(index.starts) != 2 ||
+        index.routine_block_starts[0] != 0 ||
+        index.routine_block_counts[0] != 1 ||
+        index.routine_block_starts[1] != 1 ||
+        index.routine_block_counts[1] != 2 ||
+        ArrayLength(index.block_starts) != 3 ||
+        index.block_instruction_starts[0] != 0 ||
+        index.block_instruction_counts[0] != 2 ||
+        index.block_instruction_starts[1] != 2 ||
+        index.block_instruction_counts[1] != 1 ||
+        index.block_instruction_starts[2] != 3 ||
+        index.block_instruction_counts[2] != 0 ||
+        index.instruction_kinds[0] != "def" ||
+        index.instruction_kinds[1] != "stmt" ||
+        index.instruction_kinds[2] != "phi" ||
+        index.instruction_source_types[0] != "AST_LET_DECL" ||
+        index.instruction_source_types[1] != "AST_CALL" ||
+        index.instruction_source_types[2] != "" {
+        failures = failures + 1;
+    }
+    let method_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
+        index, "Box", "Ping"
+    );
+    if !IsSome(method_row) || UnwrapOption(method_row) != 1 {
+        failures = failures + 1;
+    }
+    if JsonCharCodeAt(
+        json, index.instruction_machine_layer_ends[0],
+        index.instruction_machine_layer_starts[0]
+    ) != JsonAsciiCode("n") || JsonCharCodeAt(
+        json, index.instruction_machine_layer_ends[1],
+        index.instruction_machine_layer_starts[1]
+    ) != JsonAsciiCode("{") || JsonCharCodeAt(
+        json, index.instruction_machine_contact_ends[1],
+        index.instruction_machine_contact_starts[1]
+    ) != JsonAsciiCode("\"") {
+        failures = failures + 1;
+    }
+
+    let scalar_routine: String = Concat(
+        prefix, Concat(first_routine, Concat(",7,", Concat(second_routine, "]}")))
+    );
+    let scalar_block_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[",
+        Concat(first_block, Concat(",7,", Concat(empty_block, "]}")))
+    );
+    let scalar_block: String = Concat(prefix, Concat(scalar_block_routine, "]}"));
+    let scalar_instruction_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(first_instruction, Concat(",7,", Concat(second_instruction, "]}")))
+    );
+    let scalar_instruction_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[",
+        Concat(scalar_instruction_block, "]}")
+    );
+    let scalar_instruction: String = Concat(
+        prefix, Concat(scalar_instruction_routine, "]}")
+    );
+    let missing_kind: String = Concat(
+        prefix,
+        "{\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[]}]}]}"
+    );
+    let missing_instructions: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0}]}]}"
+    );
+    if MirProgramRoutineIndexJsonReady(scalar_routine) ||
+        MirProgramRoutineIndexJsonReady(scalar_block) ||
+        MirProgramRoutineIndexJsonReady(scalar_instruction) ||
+        MirProgramRoutineIndexJsonReady(missing_kind) ||
+        MirProgramRoutineIndexJsonReady(missing_instructions) {
+        failures = failures + 1;
+    }
+
+    let corrupted_counts: Array<Int> = index.block_instruction_counts;
+    ArraySet(corrupted_counts, 0, 3);
+    if MirProgramRoutineIndexStructureReady(index) ||
+        MirProgramRoutineIndexRowReady(index, 0 - 1) ||
+        MirProgramRoutineIndexRowReady(index, 2) {
+        failures = failures + 1;
+    }
+    if failures == 0 {
+        Log("mir-program-routine-index-owner-ok");
+    } else {
+        Log(Concat(
+            "mir-program-routine-index-owner-failures=", ToString(failures)
+        ));
+        Exit(1);
+    }
+}
