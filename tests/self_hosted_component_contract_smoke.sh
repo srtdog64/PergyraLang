@@ -9832,12 +9832,18 @@ require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectBoolFieldEqualsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectTwoFieldValueBoundsWithin("
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectKeyEqualsWithin("
 require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "StringLength(json)"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectStringFieldOptWithin(" "StringLength(json)"
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectFieldValueBoundsWithin(" "let key: String"
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectTwoFieldValueBoundsWithin(" "let key: String"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "MirObjectArrayBoundsAtBounds("
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \

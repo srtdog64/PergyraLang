@@ -5,6 +5,33 @@
 
 import "json.pgy";
 
+func JsonObjectKeyEqualsWithin(
+    json: String,
+    key_open: Int,
+    key_end: Int,
+    expected: String
+) -> Bool {
+    if key_open < 0 || key_end <= key_open + 1 { return false; }
+    let expected_length: Int = StringLength(expected);
+    let raw_length: Int = key_end - key_open - 2;
+    let row: Int = 0;
+    while row < raw_length {
+        let actual: Int = JsonCharCodeAt(json, key_end, key_open + 1 + row);
+        if actual == JsonAsciiCode("\\") {
+            let decoded_end: Array<Int> = [0];
+            return ReadJsonStringBounded(
+                json, key_open, key_end, decoded_end
+            ) == expected && decoded_end[0] == key_end;
+        }
+        if row >= expected_length ||
+            actual != JsonCharCodeAt(expected, expected_length, row) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return row == expected_length;
+}
+
 func JsonArrayEndWithin(
     json: String,
     open: Int,
@@ -115,12 +142,13 @@ func JsonObjectFieldValueBoundsWithin(
             continue;
         }
         if c != JsonAsciiCode("\"") { return false; }
-        let key_end: Array<Int> = [0];
-        let key: String = ReadJsonStringBounded(
-            json, i, end, key_end
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) { return false; }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let matches: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, field
         );
-        if key_end[0] <= i { return false; }
-        i = JsonSkipWhitespaceWithin(json, key_end[0], end);
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
         if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
             return false;
         }
@@ -128,7 +156,7 @@ func JsonObjectFieldValueBoundsWithin(
         let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
         if !IsSome(value_end_opt) { return false; }
         let value_end: Int = UnwrapOption(value_end_opt);
-        if key == field {
+        if matches {
             ArraySet(bounds, 0, i);
             ArraySet(bounds, 1, value_end);
             return true;
@@ -236,12 +264,16 @@ func JsonObjectTwoFieldValueBoundsWithin(
             continue;
         }
         if c != JsonAsciiCode("\"") { return false; }
-        let key_end: Array<Int> = [0];
-        let key: String = ReadJsonStringBounded(
-            json, i, end, key_end
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) { return false; }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let matches_first: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, first_field
         );
-        if key_end[0] <= i { return false; }
-        i = JsonSkipWhitespaceWithin(json, key_end[0], end);
+        let matches_second: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, second_field
+        );
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
         if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
             return false;
         }
@@ -249,12 +281,12 @@ func JsonObjectTwoFieldValueBoundsWithin(
         let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
         if !IsSome(value_end_opt) { return false; }
         let value_end: Int = UnwrapOption(value_end_opt);
-        if key == first_field {
+        if matches_first {
             ArraySet(first_bounds, 0, i);
             ArraySet(first_bounds, 1, value_end);
             first_found = true;
         }
-        if key == second_field {
+        if matches_second {
             ArraySet(second_bounds, 0, i);
             ArraySet(second_bounds, 1, value_end);
             second_found = true;
