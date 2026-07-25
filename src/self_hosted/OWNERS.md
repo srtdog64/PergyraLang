@@ -157,6 +157,12 @@ inventory must not become a second fact-family owner registry.
   local-binding, and parser expression-graph facts without source re-scanning
   or projection-text recovery; declared List<T> sequence literals are
   contextualized here from the graph-owned element compatibility fact.
+- `src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy` --
+  initializer-only sequential visibility cursor. Local identity, order, and
+  scope remain owned by local-binding/typed-AST facts; this owner keeps the
+  function base environment and active lexical-local suffix, publishes all
+  bindings from one destructure node atomically, and removes row-by-row full
+  function scans.
 - `src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy`
   -- routes the shared callable-table fact into initializer base/refinement
   consumers without rebuilding it per pass.

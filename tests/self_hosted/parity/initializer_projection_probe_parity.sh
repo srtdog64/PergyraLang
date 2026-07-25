@@ -319,6 +319,25 @@ run_probe() {
         "$LABEL" "$BUILD_DIR" "$NOMINAL_CALL_EXPECTED" \
         "$nominal_call_out" "run_output"
 
+    local cursor_case cursor_mode cursor_expected cursor_raw cursor_out
+    for cursor_case in \
+        'outer_shadow|--cursor-outer-shadow-positive|cursor-outer-shadow=Int' \
+        'nested_exit|--cursor-nested-exit-positive|cursor-nested-exit=Int' \
+        'destructure|--cursor-destructure-atomic-positive|cursor-destructure=atomic'; do
+        cursor_mode="${cursor_case#*|}"
+        cursor_mode="${cursor_mode%%|*}"
+        cursor_expected="${cursor_case##*|}"
+        cursor_raw="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.raw"
+        cursor_out="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.out"
+        (cd "$ROOT_DIR" && "$bin" "$cursor_mode" >"$cursor_raw")
+        pgy_selfhost_normalize_text_artifact <"$cursor_raw" >"$cursor_out"
+        grep -Fxq "$cursor_expected" "$cursor_out" || {
+            echo "[$LABEL] backend=$backend $cursor_mode output drifted" >&2
+            cat "$cursor_out" >&2
+            exit 1
+        }
+    done
+
     local mode rc diagnostic
     for mode in missing-initializer-row missing-inferred-type \
         unknown-scalar-operand scalar-type-mismatch \
@@ -329,7 +348,8 @@ run_probe() {
         missing-carried-member-target \
         missing-carried-direct-target \
         missing-carried-generic-member-target \
-        missing-carried-chained-member-target; do
+        missing-carried-chained-member-target \
+        cursor-self-reference cursor-sibling-leak; do
         diagnostic='matching initializer and iteration type facts'
         if [[ "$mode" == "unknown-scalar-operand" ]]; then
             diagnostic='undefined_symbol'
@@ -356,6 +376,9 @@ run_probe() {
                 "$mode" == "missing-carried-generic-member-target" || \
                 "$mode" == "missing-carried-chained-member-target" ]]; then
             diagnostic='matching initializer and iteration type facts'
+        elif [[ "$mode" == "cursor-self-reference" || \
+                "$mode" == "cursor-sibling-leak" ]]; then
+            diagnostic='undefined_symbol'
         fi
         set +e
         (cd "$ROOT_DIR" && "$bin" "--$mode" \
@@ -421,6 +444,18 @@ if [[ " $BACKENDS " == *" llvm "* ]]; then
             "$LABEL" "$BUILD_DIR" \
             "$BUILD_DIR/probe_c.nominal_call.out" \
             "$BUILD_DIR/probe_llvm.nominal_call.out"
+        assert_llvm_leg_with_artifact_owner \
+            "$LABEL" "$BUILD_DIR" \
+            "$BUILD_DIR/probe_c.cursor_outer_shadow.out" \
+            "$BUILD_DIR/probe_llvm.cursor_outer_shadow.out"
+        assert_llvm_leg_with_artifact_owner \
+            "$LABEL" "$BUILD_DIR" \
+            "$BUILD_DIR/probe_c.cursor_nested_exit.out" \
+            "$BUILD_DIR/probe_llvm.cursor_nested_exit.out"
+        assert_llvm_leg_with_artifact_owner \
+            "$LABEL" "$BUILD_DIR" \
+            "$BUILD_DIR/probe_c.cursor_destructure.out" \
+            "$BUILD_DIR/probe_llvm.cursor_destructure.out"
     elif [[ "$llvm_rc" -eq 2 ]]; then
         echo "[$LABEL] llvm-leg skipped (compiler built without LLVM backend support)"
     else

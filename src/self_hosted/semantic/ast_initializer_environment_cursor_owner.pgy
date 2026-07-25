@@ -1,0 +1,251 @@
+// Sequential local-environment cursor for initializer verdicts.
+//
+// Local identity, source order, function ownership, and lexical scope remain
+// owned by SemanticAstLocalBindingFacts and the typed AST arena. This cursor
+// owns only the transient state needed to avoid rebuilding that environment
+// from the complete function range for every initializer row.
+
+import "ast_expression_environment_owner.pgy";
+
+struct SemanticAstInitializerEnvironmentCursor {
+    ok: Bool;
+    function_node_id: Int;
+    last_node_id: Int;
+    base_count: Int;
+    blocked_scope_node_id: Int;
+    active_local_rows: Array<Int>;
+}
+
+func SemanticAstInitializerEnvironmentCursorEmpty(
+) -> SemanticAstInitializerEnvironmentCursor {
+    let active_local_rows: Array<Int> = [];
+    return SemanticAstInitializerEnvironmentCursor(
+        true, -1, -1, 0, -1, active_local_rows
+    );
+}
+
+func SemanticAstInitializerEnvironmentCursorInvalid(
+    cursor: SemanticAstInitializerEnvironmentCursor
+) -> SemanticAstInitializerEnvironmentCursor {
+    cursor.ok = false;
+    return cursor;
+}
+
+func SemanticAstInitializerEnvironmentCursorShapeReady(
+    cursor: SemanticAstInitializerEnvironmentCursor,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>
+) -> Bool {
+    let local_count: Int = ArrayLength(cursor.active_local_rows);
+    return cursor.ok && cursor.base_count >= 0 &&
+        ArrayLength(names) == ArrayLength(types) &&
+        ArrayLength(names) == ArrayLength(modes) &&
+        ArrayLength(names) == cursor.base_count + local_count;
+}
+
+func SemanticAstInitializerEnvironmentCursorResetLocals(
+    cursor: SemanticAstInitializerEnvironmentCursor
+) -> SemanticAstInitializerEnvironmentCursor {
+    let active_local_rows: Array<Int> = cursor.active_local_rows;
+    while ArrayLength(active_local_rows) > 0 {
+        ArrayPop(active_local_rows);
+    }
+    cursor.active_local_rows = active_local_rows;
+    return cursor;
+}
+
+func SemanticAstInitializerEnvironmentCursorAdvance(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    enum_facts: SemanticAstEnumFacts,
+    locals: SemanticAstLocalBindingFacts,
+    row_index: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    cursor: SemanticAstInitializerEnvironmentCursor
+) -> SemanticAstInitializerEnvironmentCursor {
+    let count: Int = SemanticAstLocalBindingCount(locals);
+    if !cursor.ok || row_index < 0 || row_index >= count ||
+        ArrayLength(locals.function_node_ids) != count ||
+        ArrayLength(locals.scope_node_ids) != count ||
+        ArrayLength(locals.node_ids) != count {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    let function_node_id: Int = locals.function_node_ids[row_index];
+    let use_node_id: Int = locals.node_ids[row_index];
+    if function_node_id < 0 || use_node_id < 0 ||
+        locals.scope_node_ids[row_index] < 0 {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    if !SemanticAstInitializerEnvironmentCursorShapeReady(
+        cursor, names, types, modes
+    ) {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+
+    if cursor.function_node_id != function_node_id {
+        if cursor.function_node_id >= 0 &&
+            function_node_id <= cursor.function_node_id {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        SemanticAstExpressionEnvironmentReset(names, types, modes);
+        cursor = SemanticAstInitializerEnvironmentCursorResetLocals(cursor);
+        if !SemanticAstExpressionSeedEnumValues(
+            enum_facts, names, types, modes
+        ) || !SemanticAstExpressionSeedOwnerFields(
+            signatures, constructors, function_node_id, names, types, modes
+        ) || !SemanticAstExpressionSeedParameters(
+            signatures, function_node_id, names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, function_node_id, modes
+        ) || ArrayLength(names) != ArrayLength(types) ||
+            ArrayLength(names) != ArrayLength(modes) {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        cursor.function_node_id = function_node_id;
+        cursor.last_node_id = use_node_id;
+        cursor.base_count = ArrayLength(names);
+        cursor.blocked_scope_node_id = -1;
+        return cursor;
+    }
+
+    if use_node_id < cursor.last_node_id {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    if cursor.blocked_scope_node_id >= 0 {
+        if SemanticAstExpressionScopeVisible(
+            artifact.arena, cursor.blocked_scope_node_id, use_node_id
+        ) {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        cursor.blocked_scope_node_id = -1;
+    }
+    let active_local_rows: Array<Int> = cursor.active_local_rows;
+    let pruning: Bool = true;
+    while pruning && ArrayLength(active_local_rows) > 0 {
+        let active_index: Int =
+            active_local_rows[ArrayLength(active_local_rows) - 1];
+        if active_index < 0 || active_index >= row_index {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        if SemanticAstExpressionScopeVisible(
+            artifact.arena, locals.scope_node_ids[active_index], use_node_id
+        ) {
+            pruning = false;
+        } else {
+            ArrayPop(active_local_rows);
+            ArrayPop(names);
+            ArrayPop(types);
+            ArrayPop(modes);
+        }
+    }
+    cursor.active_local_rows = active_local_rows;
+    cursor.last_node_id = use_node_id;
+    if !SemanticAstInitializerEnvironmentCursorShapeReady(
+        cursor, names, types, modes
+    ) {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    return cursor;
+}
+
+func SemanticAstInitializerEnvironmentTruncateTransient(
+    persistent_count: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if persistent_count < 0 || ArrayLength(names) != ArrayLength(types) ||
+        ArrayLength(names) != ArrayLength(modes) ||
+        persistent_count > ArrayLength(names) {
+        return false;
+    }
+    while ArrayLength(names) > persistent_count {
+        ArrayPop(names);
+        ArrayPop(types);
+        ArrayPop(modes);
+    }
+    return ArrayLength(names) == persistent_count &&
+        ArrayLength(types) == persistent_count &&
+        ArrayLength(modes) == persistent_count;
+}
+
+func SemanticAstInitializerEnvironmentCursorCommitCompletedNode(
+    locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    row_index: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    cursor: SemanticAstInitializerEnvironmentCursor
+) -> SemanticAstInitializerEnvironmentCursor {
+    let count: Int = SemanticAstLocalBindingCount(locals);
+    if !SemanticAstInitializerEnvironmentCursorShapeReady(
+        cursor, names, types, modes
+    ) || row_index < 0 || row_index >= count ||
+        row_index >= ArrayLength(inferred_types) ||
+        locals.function_node_ids[row_index] != cursor.function_node_id ||
+        locals.node_ids[row_index] != cursor.last_node_id {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    if row_index + 1 < count &&
+        locals.node_ids[row_index + 1] == locals.node_ids[row_index] {
+        return cursor;
+    }
+
+    let group_start: Int = row_index;
+    while group_start > 0 &&
+        locals.node_ids[group_start - 1] == locals.node_ids[row_index] {
+        group_start = group_start - 1;
+    }
+    let i: Int = group_start;
+    let publishable: Bool = true;
+    while i <= row_index {
+        if locals.function_node_ids[i] != cursor.function_node_id ||
+            locals.scope_node_ids[i] != locals.scope_node_ids[row_index] ||
+            i >= ArrayLength(locals.names) ||
+            i >= ArrayLength(locals.has_declared_types) ||
+            i >= ArrayLength(locals.declared_type_names) ||
+            i >= ArrayLength(inferred_types) {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        let type_name: String = inferred_types[i];
+        if locals.has_declared_types[i] == 1 {
+            type_name = locals.declared_type_names[i];
+        } else if locals.has_declared_types[i] != 0 {
+            return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+        }
+        if type_name == "" || type_name == "Unknown" {
+            publishable = false;
+        }
+        i = i + 1;
+    }
+    if !publishable {
+        cursor.blocked_scope_node_id = locals.scope_node_ids[row_index];
+        return cursor;
+    }
+
+    let active_local_rows: Array<Int> = cursor.active_local_rows;
+    i = group_start;
+    while i <= row_index {
+        let type_name: String = inferred_types[i];
+        if locals.has_declared_types[i] == 1 {
+            type_name = locals.declared_type_names[i];
+        }
+        ArrayPush(names, locals.names[i]);
+        ArrayPush(types, type_name);
+        ArrayPush(modes, "local");
+        ArrayPush(active_local_rows, i);
+        i = i + 1;
+    }
+    cursor.active_local_rows = active_local_rows;
+    if !SemanticAstInitializerEnvironmentCursorShapeReady(
+        cursor, names, types, modes
+    ) {
+        return SemanticAstInitializerEnvironmentCursorInvalid(cursor);
+    }
+    return cursor;
+}

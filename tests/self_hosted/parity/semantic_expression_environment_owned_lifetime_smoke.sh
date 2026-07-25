@@ -15,6 +15,7 @@ CALL_TARGETS="$ROOT_DIR/src/self_hosted/semantic/ast_body_call_target_resolution
 PLACE_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 GENERIC_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 INITIALIZER_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
+INITIALIZER_CURSOR="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
 STATEMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 MIR_FACTS="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
@@ -32,7 +33,8 @@ CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_c
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$PLACE_FACTS" "$GENERIC_FACTS" \
-    "$INITIALIZER_FACTS" "$STATEMENT_FACTS" "$MIR_FACTS" "$DRIVER" \
+    "$INITIALIZER_FACTS" "$INITIALIZER_CURSOR" "$STATEMENT_FACTS" \
+    "$MIR_FACTS" "$DRIVER" \
     "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
@@ -149,6 +151,12 @@ if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$i
     echo "[self-host-parity:semantic-environment-lifetime] initializer hot loop repeats checked match environment" >&2
     exit 1
 fi
+initializer_wrapper_body="$(function_body "$INITIALIZER_FACTS" 'SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved')"
+grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' \
+    <<<"$initializer_wrapper_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] standalone initializer wrapper leaked its owned callable table" >&2
+    exit 1
+}
 
 call_target_body="$(function_body "$CALL_TARGETS" 'SemanticAstAnalysisResolveCallTargetsFromBody')"
 grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$call_target_body" || {
@@ -250,7 +258,7 @@ done
 
 for reuse_contract in \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \
-    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables"; do
+    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"
     function_body "$path" "$function_name" |

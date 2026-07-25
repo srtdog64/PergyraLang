@@ -3070,6 +3070,17 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "str
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypesAllVerified"
+require_file "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" 260
+require_text "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" \
+    "struct SemanticAstInitializerEnvironmentCursor"
+require_text "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" \
+    "func SemanticAstInitializerEnvironmentCursorAdvance("
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticAstInitializerEnvironmentCursorCommitCompletedNode("
+require_file "tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh"
+require_text "Makefile" \
+    "tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh"
 require_file "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" "func SemanticAstInitializerTypeFactsContractReady"
@@ -3096,7 +3107,7 @@ require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owne
 require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "base_facts, true"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
-    "if reuse_unaffected {"
+    "if reuse_unaffected && !iteration_environment_visible {"
 reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "AstTreeArtifactFromText(source"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
