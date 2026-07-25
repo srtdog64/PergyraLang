@@ -8,18 +8,15 @@ func MirMatchBindingLineForInstruction(
     instruction_start: Int,
     instruction_end: Int,
     source_type: String,
+    match_variant: String,
+    match_subject: String,
     indent: String
 ) -> String {
     if source_type != "AST_MATCH_CASE" { return ""; }
-    let variant: String = MirObjectStringFactAtBounds(
-        json, instruction_start, instruction_end, "match_variant"
-    );
+    let variant: String = match_variant;
     if variant == "" {
         return "";
     }
-    let match_subject: String = MirObjectStringFactAtBounds(
-        json, instruction_start, instruction_end, "expr0"
-    );
     if match_subject == "" {
         MirLowerFailClosed(Concat(
             variant, " match case is missing subject MIR fact"

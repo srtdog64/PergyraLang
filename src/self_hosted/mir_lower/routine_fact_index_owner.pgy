@@ -10,6 +10,7 @@ import "iteration_type_fact_owner.pgy";
 import "match_binding_local_fact_owner.pgy";
 import "mir_cfg_graph_owner.pgy";
 import "resource_flow_fact_owner.pgy";
+import "routine_instruction_fact_bundle_owner.pgy";
 struct MirRoutineFactIndex {
     let valid: Bool;
     let validation_stage: String;
@@ -25,9 +26,7 @@ struct MirRoutineFactIndex {
     let block_structural_merges: Array<Int>;
     let block_instruction_starts: Array<Int>;
     let block_instruction_counts: Array<Int>;
-    let instruction_starts: Array<Int>;
-    let instruction_ends: Array<Int>;
-    let instruction_results: Array<String>;
+    let instruction_facts: MirRoutineInstructionFactBundle;
     let source_local_names: Array<String>;
     let source_local_types: Array<String>;
     let source_syntax_id: String;
@@ -75,9 +74,6 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     let block_structural_merges: Array<Int> = [];
     let block_instruction_starts: Array<Int> = [];
     let block_instruction_counts: Array<Int> = [];
-    let instruction_starts: Array<Int> = [];
-    let instruction_ends: Array<Int> = [];
-    let instruction_results: Array<String> = [];
     let source_local_names: Array<String> = [];
     let source_local_types: Array<String> = [];
     let source_syntax_id: String = MirObjectNumberFactAtBounds(
@@ -93,6 +89,19 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     let valid: Bool = routine_row_ready;
     let validation_stage: String = "ok";
     if !routine_row_ready { validation_stage = "program_structure"; }
+    let expected_instruction_block_count: Int = 0;
+    if routine_row_ready {
+        expected_instruction_block_count =
+            routines.routine_block_counts[routine_row];
+    }
+    let instruction_facts: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(routines, routine_row);
+    if !MirRoutineInstructionFactBundleReady(
+        instruction_facts, expected_instruction_block_count
+    ) {
+        valid = false;
+        validation_stage = "instruction_scalar_facts";
+    }
     let resource_facts: MirResourceFlowFacts = BuildMirResourceFlowFacts(
         json, routine_start, routine_end);
     if !iteration_type_facts.valid { valid = false; validation_stage = "iteration_type_facts"; }
@@ -192,40 +201,29 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
             let false_successor: Int = 0 - 1;
             if StringLength(false_successor_fact) > 0 { false_successor = ToInt(false_successor_fact); if false_successor < 0 { valid = false; validation_stage = "cfg_successor"; } }
             ArrayPush(block_succ_false, false_successor);
-            ArrayPush(block_instruction_starts, ArrayLength(instruction_starts));
+            ArrayPush(
+                block_instruction_starts,
+                routines.block_instruction_starts[global_block] -
+                    instruction_facts.global_start
+            );
             let instruction_count: Int = routines.block_instruction_counts[global_block];
-            let global_instruction_start: Int = routines.block_instruction_starts[global_block];
-            let has_conditional_branch: Int = 0;
-            if global_instruction_start < 0 || instruction_count < 0 ||
-                global_instruction_start + instruction_count > ArrayLength(routines.instruction_starts) {
+            if instruction_count < 0 || block_offset >= ArrayLength(
+                instruction_facts.block_has_conditional_branch
+            ) {
                 valid = false;
                 validation_stage = "program_structure";
-            } else {
-                let instruction_offset: Int = 0;
-                while instruction_offset < instruction_count {
-                    let global_instruction: Int = global_instruction_start + instruction_offset;
-                    let instruction_start: Int = routines.instruction_starts[global_instruction];
-                    let instruction_end: Int = routines.instruction_ends[global_instruction];
-                    ArrayPush(instruction_starts, instruction_start);
-                    ArrayPush(instruction_ends, instruction_end);
-                    ArrayPush(
-                        instruction_results,
-                        MirObjectStringFactAtBounds(
-                            json, instruction_start, instruction_end, "result"
-                        )
-                    );
-                    if routines.instruction_kinds[global_instruction] ==
-                        "branch" {
-                        let source_type: String = routines.instruction_source_types[global_instruction];
-                        if source_type != "AST_CONTINUE" && source_type != "AST_BREAK" {
-                            has_conditional_branch = 1;
-                        }
-                    }
-                    instruction_offset = instruction_offset + 1;
-                }
             }
             ArrayPush(block_instruction_counts, instruction_count);
-            ArrayPush(block_has_conditional_branch, has_conditional_branch);
+            if block_offset < ArrayLength(
+                instruction_facts.block_has_conditional_branch
+            ) {
+                ArrayPush(
+                    block_has_conditional_branch,
+                    instruction_facts.block_has_conditional_branch[block_offset]
+                );
+            } else {
+                ArrayPush(block_has_conditional_branch, 0);
+            }
             block_offset = block_offset + 1;
         }
     }
@@ -306,7 +304,10 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         }
     }
 
-    let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(json, instruction_starts, instruction_ends, source_local_names, source_local_types);
+    let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(
+        json, instruction_facts.starts, instruction_facts.ends,
+        source_local_names, source_local_types
+    );
     source_local_names = match_locals.names;
     source_local_types = match_locals.types;
     if !match_locals.valid { valid = false; validation_stage = match_locals.validation_stage; }
@@ -316,7 +317,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         block_starts, block_ends, backedge_headers, block_succ_true,
         block_succ_false, block_has_conditional_branch, block_structural_merges,
         block_instruction_starts,
-        block_instruction_counts, instruction_starts, instruction_ends, instruction_results,
+        block_instruction_counts, instruction_facts,
         source_local_names, source_local_types, source_syntax_id, iteration_type_facts,
         function_param_flow_parameter_indices, function_param_flow_masks,
         resource_flow_symbol_declared_count, resource_flow_stable_indices,
@@ -572,17 +573,18 @@ func MirRoutineFactIndexInstructionBounds(ref index: MirRoutineFactIndex, block_
     if block_row < 0 || instruction_row < 0 ||
         instruction_row >= index.block_instruction_counts[block_row] { return false; }
     let row: Int = index.block_instruction_starts[block_row] + instruction_row;
-    ArraySet(bounds, 0, index.instruction_starts[row]);
-    ArraySet(bounds, 1, index.instruction_ends[row]);
+    ArraySet(bounds, 0, index.instruction_facts.starts[row]);
+    ArraySet(bounds, 1, index.instruction_facts.ends[row]);
     return true;
 }
 
 func MirRoutineFactIndexResultExists(ref index: MirRoutineFactIndex, wanted: String) -> Bool {
     if !index.valid || wanted == "" { return false; }
-    if ArrayLength(index.instruction_results) != ArrayLength(index.instruction_starts) { return false; }
+    if ArrayLength(index.instruction_facts.results) !=
+        ArrayLength(index.instruction_facts.starts) { return false; }
     let row: Int = 0;
-    while row < ArrayLength(index.instruction_results) {
-        if index.instruction_results[row] == wanted { return true; }
+    while row < ArrayLength(index.instruction_facts.results) {
+        if index.instruction_facts.results[row] == wanted { return true; }
         row = row + 1;
     }
     return false;

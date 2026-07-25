@@ -63,6 +63,11 @@ func BlockCond(ref index: MirRoutineFactIndex,
     if !selection.valid { MirLowerFailClosed("invalid branch instruction view"); }
     if !selection.found { return ""; }
     let instruction: MirRoutineInstructionView = selection.instruction;
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid { MirLowerFailClosed("invalid branch scalar facts"); }
     let kp: Int = instruction.start;
     let inst_end: Int = instruction.end;
     let source_type: String = instruction.source_type;
@@ -70,7 +75,7 @@ func BlockCond(ref index: MirRoutineFactIndex,
         return "";
     }
     if source_type == "AST_MATCH_CASE" {
-        let match_subject: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
+        let match_subject: String = scalar.expr0;
         let patterns: Array<String> = MirObjectArrayStringFactsAtBounds(
             json, kp, inst_end, "match_patterns"
         );
@@ -82,7 +87,7 @@ func BlockCond(ref index: MirRoutineFactIndex,
             MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
         }
         let pattern: String = patterns[0];
-        let variant: String = MirObjectStringFactAtBounds(json, kp, inst_end, "match_variant");
+        let variant: String = scalar.match_variant;
         if variant == "Some" {
             return Concat("IsSome(", Concat(match_subject, ")"));
         }
@@ -109,9 +114,9 @@ func BlockCond(ref index: MirRoutineFactIndex,
         return Concat(match_subject, Concat(" == ", pattern));
     }
     if source_type == "AST_FOR_LOOP" {
-        let binding: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg0");
-        let start: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
-        let stop: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr1");
+        let binding: String = scalar.arg0;
+        let start: String = scalar.expr0;
+        let stop: String = scalar.expr1;
         if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
             let iter_type: String = MirRoutineFactIndexSourceLocalType(index, start);
             let binding_type: String =
@@ -126,7 +131,7 @@ func BlockCond(ref index: MirRoutineFactIndex,
             return header;
         }
     }
-    let cond: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
+    let cond: String = scalar.expr0;
     if StringLength(cond) > 0 {
         return cond;
     }
@@ -144,9 +149,15 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
     if !selection.valid { MirLowerFailClosed("invalid match instruction view"); }
     if !selection.found { return ""; }
     let instruction: MirRoutineInstructionView = selection.instruction;
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid { MirLowerFailClosed("invalid match scalar facts"); }
     return MirMatchBindingLineForInstruction(
         json, instruction.start, instruction.end,
-        instruction.source_type, indent
+        instruction.source_type, scalar.match_variant,
+        scalar.expr0, indent
     );
 }
 
@@ -170,6 +181,11 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
                 routines, routine_row, block_row, row
             );
         if !instruction.valid { MirLowerFailClosed("invalid instruction view row"); }
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, instruction.global_row
+            );
+        if !scalar.valid { MirLowerFailClosed("invalid instruction scalar facts"); }
         let kp: Int = instruction.start;
         let inst_end: Int = instruction.end;
         let ikind: String = instruction.kind;
@@ -187,9 +203,8 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
         }
         if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:resource:done"); }
         if ikind == "destructure" {
-            let d_expr0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
             ArrayPush(chunks, RenderDestructureFromFacts(
-                json, kp, inst_end, indent, d_expr0));
+                json, kp, inst_end, indent, scalar.expr0));
         }
         // Resource-op rows are MIR evidence for an already-owned executable
         // def/stmt row.  Re-emitting expr0 here would manufacture a second
@@ -197,14 +212,14 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
         // expression `current`) and reopen AST inference during canonicalization.
         if ikind != "branch" && ikind != "loop-init" &&
             ikind != "resource-op" {
-            let expr0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr0");
-            let expr1: String = MirObjectStringFactAtBounds(json, kp, inst_end, "expr1");
-            let arg0: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg0");
-            let arg1: String = MirObjectStringFactAtBounds(json, kp, inst_end, "arg1");
-            let slot_anchor: String = MirObjectStringFactAtBounds(
-                json, kp, inst_end, "slot_anchor"
+            let expr0: String = scalar.expr0;
+            let expr1: String = scalar.expr1;
+            let arg0: String = scalar.arg0;
+            let arg1: String = scalar.arg1;
+            let slot_anchor: String = scalar.slot_anchor;
+            let local_type: String = MirDeclaredLocalTypeFact(
+                ikind, source_type, scalar.abi_type_name
             );
-            let local_type: String = MirDeclaredLocalTypeFact(json, kp, inst_end, ikind, source_type);
             if ikind == "stmt" && source_type == "AST_BIND_STMT" {
                 if arg0 == "" || arg1 == "" || slot_anchor == "" ||
                     expr0 != "" || expr1 != "" {
@@ -247,7 +262,6 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
 func BlockHasLoopTransfer(ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex, routine_row: Int,
     block_row: Int) -> Bool {
-    let json: String = routines.source_json;
     let selection: MirRoutineInstructionSelection =
         MirRoutineInstructionViewOfKind(
             routines, routine_row, block_row, "branch"
@@ -255,9 +269,13 @@ func BlockHasLoopTransfer(ref index: MirRoutineFactIndex,
     if !selection.valid { return false; }
     if !selection.found { return false; }
     let instruction: MirRoutineInstructionView = selection.instruction;
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid { return false; }
     let source_type: String = instruction.source_type;
-    let condition: String = MirObjectStringFactAtBounds(
-        json, instruction.start, instruction.end, "expr0");
+    let condition: String = scalar.expr0;
     return source_type == "AST_BREAK" || source_type == "AST_CONTINUE" ||
         condition == "true";
 }
@@ -443,6 +461,7 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     if routine_end <= routine_start || routine == "" {
         MirLowerFailClosed("malformed routine name");
     }
+    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:fact-index:start"); }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine_row);
     if !index.valid {
         MirLowerFailClosed(Concat(

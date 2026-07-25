@@ -4,43 +4,24 @@ import "json_fact_read.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_instruction_view_owner.pgy";
 
-func MirPhiPredecessorSources(
+func MirPhiPredecessorCount(
     ref index: MirRoutineFactIndex, block_id: Int
-) -> Array<Int> {
-    let sources: Array<Int> = [];
+) -> Int {
+    let count: Int = 0;
     let row: Int = 0;
     while row < ArrayLength(index.block_starts) {
         if index.block_succ_true[row] == block_id {
-            ArrayPush(sources, row);
+            count = count + 1;
         }
         // A conditional with identical arms still has one distinct
         // predecessor block, hence one phi input.
         if index.block_succ_false[row] == block_id &&
             index.block_succ_true[row] != block_id {
-            ArrayPush(sources, row);
+            count = count + 1;
         }
         row = row + 1;
     }
-    return sources;
-}
-
-func MirPhiBackedgeSlots(
-    ref index: MirRoutineFactIndex, block_id: Int,
-    predecessors: Array<Int>
-) -> Array<Int> {
-    let slots: Array<Int> = [];
-    let slot: Int = 0;
-    while slot < ArrayLength(predecessors) {
-        let source: Int = predecessors[slot];
-        if MirRoutineEdgeTargetsDominator(
-            index.block_succ_true, index.block_succ_false,
-            source, block_id
-        ) {
-            ArrayPush(slots, slot);
-        }
-        slot = slot + 1;
-    }
-    return slots;
+    return count;
 }
 
 func MirPhiSsaNameMatches(
@@ -98,18 +79,17 @@ func MirRoutinePhiFactsReady(
 ) -> Bool {
     let json: String = routines.source_json;
     if !index.valid ||
-        ArrayLength(index.instruction_results) != ArrayLength(index.instruction_starts) ||
-        ArrayLength(index.instruction_results) != ArrayLength(index.instruction_ends) {
+        ArrayLength(index.instruction_facts.results) !=
+            ArrayLength(index.instruction_facts.starts) ||
+        ArrayLength(index.instruction_facts.results) !=
+            ArrayLength(index.instruction_facts.ends) {
         return false;
     }
     let block_id: Int = 0;
     while block_id < ArrayLength(index.block_starts) {
-        let predecessors: Array<Int> = MirPhiPredecessorSources(index, block_id);
-        let predecessor_count: Int = ArrayLength(predecessors);
-        let backedge_slots: Array<Int> = MirPhiBackedgeSlots(
-            index, block_id, predecessors
-        );
-        let has_backedge: Bool = ArrayLength(backedge_slots) > 0;
+        let predecessor_count: Int = 0;
+        let has_backedge: Bool = false;
+        let phi_context_ready: Bool = false;
         let seen_non_phi: Bool = false;
         let instruction_row: Int = 0;
         let instruction_count: Int =
@@ -130,6 +110,13 @@ func MirRoutinePhiFactsReady(
             if !instruction.valid { return false; }
             let kind: String = instruction.kind;
             if kind == "phi" {
+                if !phi_context_ready {
+                    predecessor_count = MirPhiPredecessorCount(index, block_id);
+                    has_backedge = MirRoutineFactIndexHasIncomingBackedge(
+                        index, block_id
+                    );
+                    phi_context_ready = true;
+                }
                 if seen_non_phi || predecessor_count < 2 {
                     return false;
                 }
@@ -139,10 +126,11 @@ func MirRoutinePhiFactsReady(
                 let result_row: Int =
                     index.block_instruction_starts[block_id] + instruction_row;
                 if result_row < 0 ||
-                    result_row >= ArrayLength(index.instruction_results) {
+                    result_row >= ArrayLength(index.instruction_facts.results) {
                     return false;
                 }
-                let result: String = index.instruction_results[result_row];
+                let result: String =
+                    index.instruction_facts.results[result_row];
                 let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
                     json, instruction.start, instruction.end, "uses"
                 );

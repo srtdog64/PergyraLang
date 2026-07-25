@@ -39,11 +39,11 @@ func MirExpressionGraphSequenceFromJson(json: String) -> MirExpressionGraphSeque
             return MirExpressionGraphSequenceError(sequence);
         }
         let instruction_i: Int = 0;
-        while instruction_i < ArrayLength(index.instruction_starts) {
+        while instruction_i < ArrayLength(index.instruction_facts.starts) {
             let instruction: JsonObjectFactTable =
                 JsonObjectFactTableFromBounds(
-                    json, index.instruction_starts[instruction_i],
-                    index.instruction_ends[instruction_i]
+                    json, index.instruction_facts.starts[instruction_i],
+                    index.instruction_facts.ends[instruction_i]
                 );
             let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
                 instruction, "expr0_graph"

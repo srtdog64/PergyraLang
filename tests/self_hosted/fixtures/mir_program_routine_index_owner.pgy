@@ -15,7 +15,7 @@ func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
 func Main() -> Void {
     let failures: Int = 0;
     let first_instruction: String =
-        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"result\":\"%0\",\"expr0\":\"1\",\"expr1\":null,\"arg0\":\"x\",\"arg1\":\"\",\"slot_anchor\":\"slot\",\"abi_type_name\":\"Int\",\"match_variant\":\"Some\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"expr0\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
     let second_instruction: String =
         "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"machine_layer\":{\"operation\":\"x\"},\"machine_contact_kind\":\"x\"}";
     let third_instruction: String =
@@ -76,9 +76,20 @@ func Main() -> Void {
         MirRoutineInstructionViewOfKind(index, 1, 0, "phi");
     let empty_selection: MirRoutineInstructionSelection =
         MirRoutineInstructionViewOfKind(index, 1, 1, "branch");
+    let first_facts: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(index, 0);
+    let first_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            first_facts.instruction_facts, first_view.global_row
+        );
     if !first_view.valid || first_view.global_row != 0 ||
         first_view.kind != "def" ||
         first_view.source_type != "AST_LET_DECL" ||
+        !first_facts.instruction_facts.valid || !first_scalar.valid ||
+        first_scalar.result != "%0" || first_scalar.expr0 != "1" ||
+        first_scalar.arg0 != "x" || first_scalar.slot_anchor != "slot" ||
+        first_scalar.abi_type_name != "Int" ||
+        first_scalar.match_variant != "Some" ||
         !phi_selection.valid || !phi_selection.found ||
         phi_selection.instruction.global_row != 2 ||
         phi_selection.instruction.source_type != "" ||
@@ -165,6 +176,14 @@ func Main() -> Void {
         prefix,
         "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"source_type\":\"AST_CALL\",\"machine_contact_kind\":\"\",\"machine_layer\":null}]}]}]}"
     );
+    let duplicate_expr0: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"expr0\":\"1\",\"expr0\":\"2\"}]}]}]}"
+    );
+    let wrong_expr0: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"expr0\":{}}]}]}]}"
+    );
     let missing_instruction_comma: String = Concat(
         prefix,
         "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\" \"source_type\":\"AST_CALL\"}]}]}]}"
@@ -195,10 +214,29 @@ func Main() -> Void {
         MirProgramRoutineIndexJsonReady(trailing_instruction_comma) {
         failures = failures + 1;
     }
+    let duplicate_expr0_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(duplicate_expr0);
+    let duplicate_expr0_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            duplicate_expr0_document.routines
+        );
+    let wrong_expr0_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(wrong_expr0);
+    let wrong_expr0_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(wrong_expr0_document.routines);
+    if BuildMirRoutineInstructionFactBundle(
+            duplicate_expr0_program, 0
+        ).valid ||
+        BuildMirRoutineInstructionFactBundle(wrong_expr0_program, 0).valid {
+        failures = failures + 1;
+    }
 
     let corrupted_counts: Array<Int> = index.block_instruction_counts;
     ArraySet(corrupted_counts, 0, 3);
-    if MirProgramRoutineIndexStructureReady(index) ||
+    let corrupted_instruction_facts: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(index, 0);
+    if corrupted_instruction_facts.valid ||
+        MirProgramRoutineIndexStructureReady(index) ||
         MirProgramRoutineIndexRowReady(index, 0 - 1) ||
         MirProgramRoutineIndexRowReady(index, 2) {
         failures = failures + 1;
