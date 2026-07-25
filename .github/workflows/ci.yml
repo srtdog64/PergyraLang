@@ -146,6 +146,14 @@ jobs:
         # compile failure, kernel-check failure, or axiom-budget drift.
         run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check.sh
 
+      - name: Prove the axiom-budget gate actually bites
+        # coq_kernel_check.sh fail-closes structurally, but a reject path that
+        # has never fired cannot be told apart from a no-op. This runs the gate
+        # against a planted corpus (clean control + one planted Admitted) and
+        # asserts it passes the former and fail-closes on the latter -- the
+        # "negative gate" half of the check. Same prover, same OPAMROOT pinning.
+        run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check_selftest.sh
+
   backend-compare-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 30  # hang budget (docs/190 C1): a leg-deadlock shard dies fast

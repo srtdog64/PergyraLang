@@ -16,10 +16,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROOFS_DIR="$ROOT_DIR/docs/semantics/proofs"
 
-EXPECTED_AXIOMS="SlotCalculus.MaxSlotId
-SlotCalculus.verify_token"
+# PROOFS_DIR and EXPECTED_AXIOMS are overridable ONLY so this gate's own
+# negative self-test (coq_kernel_check_selftest.sh) can point it at a planted
+# corpus and prove the axiom-budget logic actually bites -- a "negative gate" in
+# the SoT sense. Unset, they resolve to the real corpus and its two declared
+# abstractions, so a normal run is unchanged. `${VAR-default}` (not `:-`) lets
+# the self-test pass an explicitly empty EXPECTED_AXIOMS ("no axioms allowed").
+PROOFS_DIR="${PGY_COQ_PROOFS_DIR:-$ROOT_DIR/docs/semantics/proofs}"
+
+EXPECTED_AXIOMS="${PGY_COQ_EXPECTED_AXIOMS-SlotCalculus.MaxSlotId
+SlotCalculus.verify_token}"
 
 # Rocq 9 renamed the CLI: `rocq compile` replaces `coqc`, `rocqchk` replaces
 # `coqchk`. The Rocq Platform installer still ships the legacy names, so a local
@@ -52,12 +59,15 @@ echo "coq-kernel-check: $($coq_version_cmd 2>&1 | head -1) [compile='$coq_compil
 
 proof_count=0
 for proof_abs in "$PROOFS_DIR"/*.v; do
-    (cd "$ROOT_DIR" && $coq_compile "docs/semantics/proofs/$(basename "$proof_abs")")
+    # Compile from within PROOFS_DIR so the gate follows the override instead of
+    # a hardcoded path. Each proof is self-contained (stdlib Requires only, no
+    # local cross-Require), so no -Q/-R load path is needed.
+    (cd "$PROOFS_DIR" && $coq_compile "$(basename "$proof_abs")")
     proof_count=$((proof_count + 1))
 done
 
 if [ "$proof_count" -eq 0 ]; then
-    echo "coq-kernel-check: FAIL -- no .v proofs found under docs/semantics/proofs" >&2
+    echo "coq-kernel-check: FAIL -- no .v proofs found under $PROOFS_DIR" >&2
     exit 1
 fi
 echo "coq-kernel-check: $proof_count proofs compiled"
