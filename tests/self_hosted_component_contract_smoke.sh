@@ -3326,7 +3326,7 @@ require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environme
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     "func SemanticAstExpressionSeedOwnerFields("
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
-    'ArrayPush(modes, "owner_field")'
+    'ArrayPushOwnedString(modes, "owner_field")'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "SemanticAstExpressionOwnerFieldEnvironmentContractReady()"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300

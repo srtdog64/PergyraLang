@@ -474,7 +474,7 @@ func SelfMirProgramFactsFromArtifact(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings, initializer_types, analysis.statements,
         analysis.expression_surfaces, iteration_types,
-        analysis.assignments, assignment_types
+        analysis.assignments, analysis.enums, assignment_types
     ) || !SemanticAstStatementTypeFactsMatchArtifact(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings, initializer_types,

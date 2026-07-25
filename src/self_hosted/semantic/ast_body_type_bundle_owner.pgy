@@ -69,7 +69,7 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.statements,
             analysis.expression_surfaces, iteration_types,
-            analysis.assignments, function_tables
+            analysis.assignments, analysis.enums, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "assignment:done");
     SemanticAstBodyTypeStage(observe_pressure, "statement:start");
