@@ -101,23 +101,16 @@ func ReadJsonStringBounded(
 ) -> String {
     let n: Int = limit;
     let i: Int = open + 1;
-    let segment_start: Int = i;
     let chunks: Array<String> = [];
     while i < n {
         let c: Int = JsonCharCodeAt(json, n, i);
         if c == JsonAsciiCode("\"") {
-            if i > segment_start {
-                ArrayPush(chunks, Substring(json, segment_start, i - segment_start));
-            }
             ArraySet(end, 0, i + 1);
             return StringJoin(chunks, "");
         }
         if c == JsonAsciiCode("\\") {
             if i + 1 >= n {
                 return "";
-            }
-            if i > segment_start {
-                ArrayPush(chunks, Substring(json, segment_start, i - segment_start));
             }
             let e: Int = JsonCharCodeAt(json, n, i + 1);
             if e == JsonAsciiCode("n") {
@@ -134,8 +127,8 @@ func ReadJsonStringBounded(
                 ArrayPush(chunks, CharAtN(json, n, i + 1));
             }
             i = i + 2;
-            segment_start = i;
         } else {
+            ArrayPush(chunks, CharAtN(json, n, i));
             i = i + 1;
         }
     }

@@ -107,7 +107,9 @@ func MirMachineLayerInstructionReady(
             if contact_end[0] != contact_bounds[1] { return false; }
         } else if contact_value_kind != JsonAsciiCode("n") ||
             contact_bounds[0] + 4 != contact_bounds[1] ||
-            Substring(json, contact_bounds[0], 4) != "null" {
+            !SubEqualsWithLen(
+                json, contact_bounds[1], contact_bounds[0], 4, "null"
+            ) {
             return false;
         }
     }
@@ -119,7 +121,9 @@ func MirMachineLayerInstructionReady(
     if value_kind == JsonAsciiCode("n") {
         return StringLength(contact_kind) == 0 &&
             value_bounds[0] + 4 == value_bounds[1] &&
-            Substring(json, value_bounds[0], 4) == "null";
+            SubEqualsWithLen(
+                json, value_bounds[1], value_bounds[0], 4, "null"
+            );
     }
     if value_kind != JsonAsciiCode("{") {
         return false;
@@ -202,10 +206,26 @@ func MirMachineLayerAdmitJsonInputObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    if !document.valid { return None; }
+    return MirMachineLayerAdmitDocumentObserved(
+        json, machine_declaration, document, observe_pressure
+    );
+}
+
+func MirMachineLayerAdmitDocumentObserved(
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    document: MirDocumentFactIndex,
+    observe_pressure: Bool
+) -> Option<MirMachineLayerAdmittedJsonInput> {
+    if !document.valid { return None; }
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
     );
-    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndexFromTable(
+        document.routines
+    );
     if !routines.valid {
         return None;
     }

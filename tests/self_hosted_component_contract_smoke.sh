@@ -3483,7 +3483,10 @@ require_text "src/self_hosted/mir/machine_layer_projection_owner.pgy" \
 require_text "src/self_hosted/mir/machine_layer_projection_owner.pgy" \
     "declaration.grant_base"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
-    "let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);"
+    "let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndexFromTable("
+reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerAdmitDocumentObserved(" \
+    "BuildMirProgramRoutineIndex(json)"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "while JsonArrayNextObjectBounds("
 reject_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
@@ -3654,6 +3657,29 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     '"consumer:input:parallel-capture:done"'
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     '"consumer:input:machine-layer:done"'
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "struct MirDocumentFactIndex"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func BuildMirDocumentFactIndex("
+reject_function_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func BuildMirDocumentFactIndex(" \
+    "JsonDocumentObjectFactTable("
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    'JsonObjectKeyEqualsWithin('
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);"
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "MirParallelCaptureFactsFromTableReady("
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "MirMachineLayerAdmitDocumentObserved("
+reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "func MirJsonReadMachineAdmittedInputObserved(" \
+    "MirDocumentSchemaEquals("
+reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "func MirJsonReadMachineAdmittedInputObserved(" \
+    "MirParallelCaptureFactsReady("
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     '"--observe-mir-consumer-stages"'
 require_file "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
@@ -7764,7 +7790,8 @@ for mir_owner in \
     require_text "src/self_hosted/mir_lower/run_owner.pgy" "import \"$mir_owner\";"
 done
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "json_fact_read.pgy";'
-require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'MirDocumentSchemaEquals(json, "pgy.mir.v1")'
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    'JsonObjectFactStringFieldEquals('
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
@@ -7796,7 +7823,8 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonArrayN
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFactAtBounds("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParam"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocks"
-require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds)"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "JsonArrayNextObjectBounds(json, cursor, routines.end, bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
@@ -9937,6 +9965,13 @@ require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectKeyEqualsWithin("
 require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
+reject_function_text "src/self_hosted/lib/json.pgy" \
+    "func ReadJsonStringBounded(" "Substring(json"
+require_text "src/self_hosted/lib/json.pgy" \
+    "ArrayPush(chunks, CharAtN("
+require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"
+require_file "tests/self_hosted/parity/json_bounded_string_owner_smoke.sh"
+require_text "Makefile" "self-host-json-bounded-string-test-smoke:"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "StringLength(json)"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -9962,6 +9997,10 @@ require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
 reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerInstructionReady(" \
     "MirObjectFieldValueBoundsAtBounds("
+reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerInstructionReady(" "Substring(json"
+require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "SubEqualsWithLen("
 require_text "src/self_hosted/lib/json_fact_table.pgy" \
     "let end_opt: Option<Int> = JsonDocumentObjectEnd(json);"
 require_text "src/self_hosted/lib/json_fact_table.pgy" \

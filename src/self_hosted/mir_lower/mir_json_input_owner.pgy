@@ -34,7 +34,10 @@ func MirJsonReadMachineAdmittedInputObserved(
     MirJsonInputPressureStage(
         observe_pressure, "consumer:input:file-read:done"
     );
-    if !MirDocumentSchemaEquals(json, "pgy.mir.v1") {
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    if !document.valid || !JsonObjectFactStringFieldEquals(
+        document.root, "schema", "pgy.mir.v1"
+    ) {
         MirLowerFailClosed("input is not a pgy.mir.v1 MIR-JSON document");
     }
     MirJsonInputPressureStage(
@@ -43,7 +46,9 @@ func MirJsonReadMachineAdmittedInputObserved(
     MirJsonInputPressureStage(
         observe_pressure, "consumer:input:parallel-capture:start"
     );
-    if !MirParallelCaptureFactsReady(json) {
+    if !MirParallelCaptureFactsFromTableReady(
+        document.parallel_capture_boundaries
+    ) {
         MirLowerFailClosed("MIR parallel capture facts are missing or invalid");
     }
     MirJsonInputPressureStage(
@@ -53,8 +58,8 @@ func MirJsonReadMachineAdmittedInputObserved(
         observe_pressure, "consumer:input:machine-layer:start"
     );
     let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
-        MirMachineLayerAdmitJsonInputObserved(
-            json, declaration, observe_pressure
+        MirMachineLayerAdmitDocumentObserved(
+            json, declaration, document, observe_pressure
         );
     if !IsSome(admitted_opt) {
         MirLowerFailClosed("MIR machine-layer facts are missing or invalid");

@@ -1,0 +1,47 @@
+// Executable contract for exact-bound JSON string materialization.
+
+import "../../../src/self_hosted/lib/json.pgy";
+
+func JsonBoundedStringEquals(
+    encoded: String,
+    expected: String,
+    expected_end: Int
+) -> Bool {
+    let end: Array<Int> = [0];
+    let actual: String = ReadJsonStringBounded(
+        encoded, 0, StringLength(encoded), end
+    );
+    return actual == expected && end[0] == expected_end;
+}
+
+func Main() -> Void {
+    let failures: Int = 0;
+    let plain: String = "\"routine_name\"";
+    if !JsonBoundedStringEquals(
+        plain, "routine_name", StringLength(plain)
+    ) { failures = failures + 1; }
+
+    let escaped: String = "\"line\\nquote\\\"slash\\\\x\"";
+    if !JsonBoundedStringEquals(
+        escaped, "line\nquote\"slash\\x", StringLength(escaped)
+    ) { failures = failures + 1; }
+
+    let empty: String = "\"\"";
+    if !JsonBoundedStringEquals(empty, "", 2) {
+        failures = failures + 1;
+    }
+
+    let truncated_end: Array<Int> = [0];
+    if ReadJsonStringBounded(
+        plain, 0, StringLength(plain) - 1, truncated_end
+    ) != "" || truncated_end[0] != 0 {
+        failures = failures + 1;
+    }
+
+    if failures == 0 {
+        Log("json-bounded-string-owner-ok");
+    } else {
+        Log(Concat("json-bounded-string-owner-failures=", ToString(failures)));
+        Exit(1);
+    }
+}

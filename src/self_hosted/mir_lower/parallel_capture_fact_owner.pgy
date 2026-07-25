@@ -4,7 +4,7 @@
 // owners may consume only documents admitted here; unknown kinds and malformed
 // writer rows fail closed instead of being ignored as extension text.
 
-import "../lib/json_fact_table.pgy";
+import "json_fact_read.pgy";
 
 func MirParallelCaptureBoundaryTable(json: String) -> JsonArrayObjectFactTable {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
@@ -98,9 +98,9 @@ func MirParallelCaptureBoundaryReady(row: JsonObjectFactTable) -> Bool {
     return true;
 }
 
-func MirParallelCaptureFactsReady(json: String) -> Bool {
-    let boundaries: JsonArrayObjectFactTable =
-        MirParallelCaptureBoundaryTable(json);
+func MirParallelCaptureFactsFromTableReady(
+    boundaries: JsonArrayObjectFactTable
+) -> Bool {
     if !JsonArrayObjectFactTableReady(boundaries) {
         return false;
     }
@@ -136,4 +136,12 @@ func MirParallelCaptureFactsReady(json: String) -> Bool {
         i = i + 1;
     }
     return true;
+}
+
+func MirParallelCaptureFactsReady(json: String) -> Bool {
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    if !document.valid { return false; }
+    return MirParallelCaptureFactsFromTableReady(
+        document.parallel_capture_boundaries
+    );
 }

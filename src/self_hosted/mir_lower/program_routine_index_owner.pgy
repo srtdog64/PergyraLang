@@ -15,20 +15,22 @@ struct MirProgramRoutineIndex {
     let names: Array<String>;
 }
 
-func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
+func BuildMirProgramRoutineIndexFromTable(
+    routines: JsonArrayObjectFactTable
+) -> MirProgramRoutineIndex {
+    let json: String = routines.json;
     let starts: Array<Int> = [];
     let ends: Array<Int> = [];
     let kinds: Array<String> = [];
     let owners: Array<String> = [];
     let names: Array<String> = [];
-    let array_bounds: Array<Int> = [0, 0];
-    if !MirRoutineArrayBounds(json, array_bounds) {
+    if !JsonArrayObjectFactTableReady(routines) {
         return MirProgramRoutineIndex(false, starts, ends, kinds, owners, names);
     }
 
-    let cursor: Int = array_bounds[0] + 1;
+    let cursor: Int = routines.start + 1;
     let bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds) {
+    while JsonArrayNextObjectBounds(json, cursor, routines.end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
         ArrayPush(kinds, MirObjectStringFactAtBounds(
@@ -43,6 +45,11 @@ func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
         cursor = bounds[1];
     }
     return MirProgramRoutineIndex(true, starts, ends, kinds, owners, names);
+}
+
+func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    return BuildMirProgramRoutineIndexFromTable(document.routines);
 }
 
 func MirProgramRoutineIndexCount(ref index: MirProgramRoutineIndex) -> Int {

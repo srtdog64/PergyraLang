@@ -8,6 +8,89 @@ import "../lib/json.pgy";
 import "../lib/json_bounded_fact_read.pgy";
 import "../lib/json_fact_table.pgy";
 
+struct MirDocumentFactIndex {
+    let valid: Bool;
+    let root: JsonObjectFactTable;
+    let declarations: JsonArrayObjectFactTable;
+    let routines: JsonArrayObjectFactTable;
+    let parallel_capture_boundaries: JsonArrayObjectFactTable;
+}
+
+func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
+    let root: JsonObjectFactTable = EmptyJsonObjectFactTable();
+    let declarations: JsonArrayObjectFactTable =
+        EmptyJsonArrayObjectFactTable();
+    let routines: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
+    let boundaries: JsonArrayObjectFactTable =
+        EmptyJsonArrayObjectFactTable();
+    let n: Int = StringLength(json);
+    if n <= 0 || JsonCharCodeAt(json, n, 0) != JsonAsciiCode("{") {
+        return MirDocumentFactIndex(
+            false, root, declarations, routines, boundaries
+        );
+    }
+    let cursor: Int = 1;
+    while cursor < n {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, n);
+        if cursor >= n { break; }
+        let code: Int = JsonCharCodeAt(json, n, cursor);
+        if code == JsonAsciiCode("}") {
+            root = JsonObjectFactTable(true, json, 0, cursor + 1);
+            return MirDocumentFactIndex(
+                true, root, declarations, routines, boundaries
+            );
+        }
+        if code == JsonAsciiCode(",") {
+            cursor = cursor + 1;
+            continue;
+        }
+        if code != JsonAsciiCode("\"") { break; }
+        let key_start: Int = cursor;
+        let key_end_opt: Option<Int> = JsonStringEndWithin(
+            json, key_start, n
+        );
+        if !IsSome(key_end_opt) { break; }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        cursor = JsonSkipWhitespaceWithin(json, key_end, n);
+        if cursor >= n ||
+            JsonCharCodeAt(json, n, cursor) != JsonAsciiCode(":") {
+            break;
+        }
+        let value_start: Int = JsonSkipWhitespaceWithin(
+            json, cursor + 1, n
+        );
+        let value_end_opt: Option<Int> = JsonValueEndWithin(
+            json, value_start, n
+        );
+        if !IsSome(value_end_opt) { break; }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if value_start < value_end &&
+            JsonCharCodeAt(json, value_end, value_start) ==
+                JsonAsciiCode("[") {
+            let table: JsonArrayObjectFactTable = JsonArrayObjectFactTable(
+                true, json, value_start, value_end
+            );
+            if JsonObjectKeyEqualsWithin(
+                json, key_start, key_end, "decls"
+            ) {
+                declarations = table;
+            } else if JsonObjectKeyEqualsWithin(
+                json, key_start, key_end, "routines"
+            ) {
+                routines = table;
+            } else if JsonObjectKeyEqualsWithin(
+                json, key_start, key_end, "parallel_capture_boundaries"
+            ) {
+                boundaries = table;
+            }
+        }
+        cursor = value_end;
+    }
+    return MirDocumentFactIndex(
+        false, root, declarations, routines, boundaries
+    );
+}
+
 func MirFactObjectStart(json: String, start: Int) -> Int {
     if start < 0 {
         return start;
