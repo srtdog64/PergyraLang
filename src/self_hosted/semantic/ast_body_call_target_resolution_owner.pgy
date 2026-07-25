@@ -76,7 +76,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                             artifact, analysis.statements, iteration_types,
                             UnwrapOption(function_node_id), use_node_id,
                             names, types, modes
-                        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+                        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
                             artifact, analysis.expression_surfaces,
                             analysis.signatures, analysis.constructors,
                             UnwrapOption(function_node_id), use_node_id,

@@ -147,6 +147,16 @@ if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$i
     exit 1
 fi
 
+call_target_body="$(function_body "$CALL_TARGETS" 'SemanticAstAnalysisResolveCallTargetsFromBody')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$call_target_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver lost ready-artifact match environment" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$call_target_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver repeats checked match environment" >&2
+    exit 1
+fi
+
 for consumer_contract in \
     "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \

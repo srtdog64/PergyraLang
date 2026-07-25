@@ -224,6 +224,16 @@ while call-target resolution is the next falsifying owner boundary. Record
 these as two separate results: initializer readiness amortization is green,
 the end-to-end pressure gate remains red.
 
+A focused current-source pressure shard then applied the same ready-artifact
+contract to `SemanticAstAnalysisResolveCallTargetsFromBody`. It completed
+`call-targets:done` and `initializer-refine:done`, then entered
+`expression-places:start`. The unchanged pressure owner stopped that next
+consumer after `328,425 ms` at `peak_private_mb=3072.8` and
+`peak_working_set_mb=2514.6`; the oracle owned 3,071.5 MB private. This is
+positive evidence for the call-target consumer migration, not a full green
+result. The active falsifier has moved to expression-place resolution, which
+still used the checked match-environment entrypoint at this checkpoint.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

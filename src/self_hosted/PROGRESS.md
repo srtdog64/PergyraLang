@@ -26,6 +26,19 @@ produced. The next executable SoT boundary is therefore call-target resolution,
 not another initializer readiness workaround and not a backend-specific C or
 LLVM patch.
 
+
+2026-07-25 call-target readiness consumer closure. The body resolver already
+proved the expression surface once but called the checked match-environment
+entrypoint per surface. It now borrows the same ready-artifact core as the
+initializer, and the lifetime gate rejects restoration of the checked call.
+Focused lifetime/component gates and initializer/call-target C/LLVM parity
+passed.
+
+The focused 3 GiB shard completed `call-targets:done` and
+`initializer-refine:done`, then crossed at `expression-places:start` after
+328,425 ms (`peak_private_mb=3072.8`, oracle private 3,071.5 MB). This counts as
+an executable consumer migration; the full pressure gate remains red and the
+next active consumer is expression-place resolution.
 2026-07-25 semantic expression scratch lifetime closure (`ca35a157`). The
 focused initializer/member-call C probe exposed Windows heap corruption
 (`0xC0000374`), not an acceptable self-hosting cost. Generated-code tracing
