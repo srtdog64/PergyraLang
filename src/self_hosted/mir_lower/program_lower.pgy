@@ -22,7 +22,11 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
-    let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines)];
+    let abi_validation: MirAbiLayoutValidationSession =
+        NewMirAbiLayoutValidationSession();
+    let chunks: Array<String> = [
+        "Program:\n", EmitStructDecls(routines, abi_validation)
+    ];
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:declarations:done"
     );
@@ -49,7 +53,7 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
             ArrayPush(chunks, EmitRoutineTreeAtRow(
                 routines, row, "  ",
                 observe_pressure && total == 0,
-                observe_focused_routine
+                observe_focused_routine, abi_validation
             ));
             if observe_pressure && total == 0 {
                 MirProgramLowerPressureStage(
@@ -100,6 +104,9 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
 
     if total == 0 {
         MirLowerFailClosed("no supported routines found in MIR-JSON document");
+    }
+    if !MirAbiLayoutValidationSessionReady(abi_validation) {
+        MirLowerFailClosed("MIR ABI validation session is inconsistent");
     }
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:top-level-routines:done"

@@ -573,9 +573,12 @@ require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
 reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'let routines: Array<String>'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);'
-require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines)];'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'NewMirAbiLayoutValidationSession()'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    '"Program:\n", EmitStructDecls(routines, abi_validation)'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls(ref routines: MirProgramRoutineIndex) -> String'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 4'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'if canonical_phase == phase'
@@ -10237,7 +10240,7 @@ reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return Some(row)"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return None"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    'routines, routine_index, "      ", false, false'
+    '"      ", false, false, abi_validation'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:declarations:done"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -10356,6 +10359,17 @@ reject_function_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" 
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirCapturedAbiLayoutFactReady"
 require_max_lines "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" 600
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "struct MirAbiLayoutValidationSession"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "session.valid_type_names[row]"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "session.required_type_keys[row] == type_key"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "session.required_layout_keys[row] == layout_key"
+reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirAbiRequiredTupleSeen(" \
+    "session.required_ids[row] == id)"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "MirAbiLayoutRowCaptureWithin("
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "MirAbiLayoutIdFromCapture("
@@ -10389,6 +10403,10 @@ reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "MirAbiLayoutIdFromRow("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirCapturedAbiLayoutFactReady("
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mutated_required_abi_row"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mutated_required_abi.abi_layout_end,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirInstructionAbiLayoutFactReady("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "instruction is missing or carries an invalid MIR ABI layout fact"

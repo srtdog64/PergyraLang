@@ -164,9 +164,9 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
 // Emit the non-branch statement lines of one admitted block row. `phi`
 // instructions carry no statement fact and are skipped by the string-value
 // guard.
-func EmitBlockStmts(ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex, routine_row: Int,
-    block_row: Int, indent: String, observe_instruction: Bool) -> String {
+func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
+    routine_row: Int, block_row: Int, indent: String, observe_instruction: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let chunks: Array<String> = [];
     let instruction_count: Int =
@@ -191,8 +191,10 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
         if !MirCapturedAbiLayoutFactReady(
-            json, scalar.abi_type_start, scalar.abi_type_end, scalar.abi_layout_id_start, scalar.abi_layout_id_end,
-            scalar.abi_layout_required_start, scalar.abi_layout_required_end, scalar.abi_layout_start, scalar.abi_layout_end) {
+            json, scalar.abi_type_start, scalar.abi_type_end,
+            scalar.abi_layout_id_start, scalar.abi_layout_id_end,
+            scalar.abi_layout_required_start, scalar.abi_layout_required_end,
+            scalar.abi_layout_start, scalar.abi_layout_end, abi_validation) {
             MirLowerFailClosed("instruction is missing or carries an invalid MIR ABI layout fact");
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":abi:done"))))); }
@@ -347,16 +349,14 @@ func LoopFlowSummaryProjectionReady(
     }
     return false;
 }
-
 // Emit the structured tree for blocks from `start` until reaching `stop`
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex, routine_row: Int,
-    start: String, stop: String, indent: String,
-    loop_header: String, loop_exit: String,
-    observe_first_block: Bool) -> String {
+func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
+    routine_row: Int, start: String, stop: String, indent: String,
+    loop_header: String, loop_exit: String, observe_first_block: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let chunks: Array<String> = [];
     let cur: String = start;
     let guard: Int = 0;
@@ -369,7 +369,7 @@ func EmitRegion(ref index: MirRoutineFactIndex,
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":bounds:done"))); }
         let stmts: String = EmitBlockStmts(
             index, routines, routine_row, block_row, indent,
-            observe_first_block
+            observe_first_block, abi_validation
         );
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":statements:done"))); }
         ArrayPush(chunks, stmts);
@@ -400,7 +400,8 @@ func EmitRegion(ref index: MirRoutineFactIndex,
                 ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 ArrayPush(chunks, Concat(indent, "  Block:\n"));
                 ArrayPush(chunks, EmitRegion(index, routines, routine_row,
-                    t, cur, Concat(indent, "    "), cur, f, observe_first_block));
+                    t, cur, Concat(indent, "    "), cur, f, observe_first_block,
+                    abi_validation));
                 cur = f;
             } else {
                 let structural_merge: String =
@@ -435,13 +436,13 @@ func EmitRegion(ref index: MirRoutineFactIndex,
                     routine_row, block_row, Concat(indent, "      ")));
                 ArrayPush(chunks, EmitRegion(index, routines, routine_row,
                     t, merge, Concat(indent, "      "), loop_header, loop_exit,
-                    observe_first_block));
+                    observe_first_block, abi_validation));
                 if hasElse {
                     ArrayPush(chunks, Concat(indent, "  Else:\n"));
                     ArrayPush(chunks, Concat(indent, "    Block:\n"));
                     ArrayPush(chunks, EmitRegion(index, routines, routine_row,
                         f, merge, Concat(indent, "      "), loop_header,
-                        loop_exit, observe_first_block));
+                        loop_exit, observe_first_block, abi_validation));
                 }
                 cur = merge;
             }
@@ -449,10 +450,10 @@ func EmitRegion(ref index: MirRoutineFactIndex,
     }
     return StringJoin(chunks, "");
 }
-
-func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, routine_row: Int,
-    routine_indent: String, self_type: String,
-    observe_fact_index: Bool, observe_focused_routine: Bool) -> String {
+func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_indent: String, self_type: String, observe_fact_index: Bool,
+    observe_focused_routine: Bool, inout abi_validation: MirAbiLayoutValidationSession) -> String {
     if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
     let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
@@ -581,7 +582,7 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
     let region: String = EmitRegion(index, routines, routine_row,
-        "0", "", Concat(item_pad, "  "), "", "", observe_focused_routine);
+        "0", "", Concat(item_pad, "  "), "", "", observe_focused_routine, abi_validation);
     if StringLength(region) == 0 {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
@@ -589,12 +590,11 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     ArrayPush(chunks, region);
     return StringJoin(chunks, "");
 }
-
 func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
-    routine_row: Int, routine_indent: String,
-    observe_fact_index: Bool, observe_focused_routine: Bool) -> String {
+    routine_row: Int, routine_indent: String, observe_fact_index: Bool,
+    observe_focused_routine: Bool, inout abi_validation: MirAbiLayoutValidationSession) -> String {
     return EmitRoutineTreeWithSelfTypeAtRow(
         routines, routine_row, routine_indent, "",
-        observe_fact_index, observe_focused_routine
+        observe_fact_index, observe_focused_routine, abi_validation
     );
 }

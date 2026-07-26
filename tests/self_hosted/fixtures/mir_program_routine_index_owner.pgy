@@ -15,6 +15,8 @@ func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
 
 func Main() -> Void {
     let failures: Int = 0;
+    let abi_validation: MirAbiLayoutValidationSession =
+        NewMirAbiLayoutValidationSession();
     let first_instruction: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"result\":\"%0\",\"expr0\":\"1\",\"expr1\":null,\"arg0\":\"x\",\"arg1\":\"\",\"slot_anchor\":\"slot\",\"abi_type_name\":\"Int\",\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"match_variant\":\"Some\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"expr0\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
     let second_instruction: String =
@@ -105,7 +107,8 @@ func Main() -> Void {
         first_scalar.abi_layout_id_start, first_scalar.abi_layout_id_end,
         first_scalar.abi_layout_required_start,
         first_scalar.abi_layout_required_end,
-        first_scalar.abi_layout_start, first_scalar.abi_layout_end
+        first_scalar.abi_layout_start, first_scalar.abi_layout_end,
+        abi_validation
     ) {
         Log("mir-program-routine-index-owner-positive-abi-failed");
         failures = failures + 1;
@@ -260,12 +263,31 @@ func Main() -> Void {
         MirRoutineInstructionScalarCaptureWithin(
             required_abi_row, 0, StringLength(required_abi_row)
         );
+    let mutated_required_abi_row: String = StringReplace(
+        required_abi_row, "\"offset\":0", "\"offset\":1"
+    );
+    let mutated_required_abi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            mutated_required_abi_row, 0,
+            StringLength(mutated_required_abi_row)
+        );
+    let reordered_required_abi_row: String = StringReplace(
+        required_abi_row,
+        "\"type\":\"Array<Int>\",\"size\":32",
+        "\"size\":32,\"type\":\"Array<Int>\""
+    );
+    let reordered_required_abi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            reordered_required_abi_row, 0,
+            StringLength(reordered_required_abi_row)
+        );
     let required_abi_layout: JsonObjectFactTable =
         JsonObjectFactTableFromBounds(
             required_abi_row, required_abi.abi_layout_start,
             required_abi.abi_layout_end
         );
     if !wrong_abi.valid || !duplicate_abi.valid || !required_abi.valid ||
+        !mutated_required_abi.valid || !reordered_required_abi.valid ||
         MirAbiLayoutIdFromRow(required_abi_layout) != 599770891 ||
         !MirCapturedAbiLayoutFactReady(
             required_abi_row, required_abi.abi_type_start,
@@ -273,7 +295,19 @@ func Main() -> Void {
             required_abi.abi_layout_id_end,
             required_abi.abi_layout_required_start,
             required_abi.abi_layout_required_end,
-            required_abi.abi_layout_start, required_abi.abi_layout_end
+            required_abi.abi_layout_start, required_abi.abi_layout_end,
+            abi_validation
+        ) || !MirCapturedAbiLayoutFactReady(
+            reordered_required_abi_row,
+            reordered_required_abi.abi_type_start,
+            reordered_required_abi.abi_type_end,
+            reordered_required_abi.abi_layout_id_start,
+            reordered_required_abi.abi_layout_id_end,
+            reordered_required_abi.abi_layout_required_start,
+            reordered_required_abi.abi_layout_required_end,
+            reordered_required_abi.abi_layout_start,
+            reordered_required_abi.abi_layout_end,
+            abi_validation
         ) ||
         MirCapturedAbiLayoutFactReady(
             wrong_abi_row, wrong_abi.abi_type_start,
@@ -281,14 +315,27 @@ func Main() -> Void {
             wrong_abi.abi_layout_id_end,
             wrong_abi.abi_layout_required_start,
             wrong_abi.abi_layout_required_end,
-            wrong_abi.abi_layout_start, wrong_abi.abi_layout_end
+            wrong_abi.abi_layout_start, wrong_abi.abi_layout_end,
+            abi_validation
         ) || MirCapturedAbiLayoutFactReady(
             duplicate_abi_row, duplicate_abi.abi_type_start,
             duplicate_abi.abi_type_end, duplicate_abi.abi_layout_id_start,
             duplicate_abi.abi_layout_id_end,
             duplicate_abi.abi_layout_required_start,
             duplicate_abi.abi_layout_required_end,
-            duplicate_abi.abi_layout_start, duplicate_abi.abi_layout_end
+            duplicate_abi.abi_layout_start, duplicate_abi.abi_layout_end,
+            abi_validation
+        ) || MirCapturedAbiLayoutFactReady(
+            mutated_required_abi_row,
+            mutated_required_abi.abi_type_start,
+            mutated_required_abi.abi_type_end,
+            mutated_required_abi.abi_layout_id_start,
+            mutated_required_abi.abi_layout_id_end,
+            mutated_required_abi.abi_layout_required_start,
+            mutated_required_abi.abi_layout_required_end,
+            mutated_required_abi.abi_layout_start,
+            mutated_required_abi.abi_layout_end,
+            abi_validation
         ) {
         Log("mir-program-routine-index-owner-negative-abi-failed");
         failures = failures + 1;
