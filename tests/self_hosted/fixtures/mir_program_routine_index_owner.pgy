@@ -32,7 +32,7 @@ func Main() -> Void {
     );
     let empty_block: String = "{\"id\":1,\"instructions\":[]}";
     let first_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"A\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
         Concat(first_block, "]}")
     );
     let second_routine: String = Concat(
@@ -86,8 +86,8 @@ func Main() -> Void {
             first_facts.instruction_facts, first_view.global_row
         );
     let missing_branch: MirRoutineInstructionSelection =
-        MirRoutineInstructionFactBundleBranchAtBlock(
-            first_facts.instruction_facts, index, 0, 0
+        MirRoutineFactIndexBranchAtBlock(
+            first_facts, index, 0, 0
         );
     if !first_view.valid || first_view.global_row != 0 ||
         first_view.kind != "def" ||
@@ -147,7 +147,7 @@ func Main() -> Void {
         Concat(first_instruction, Concat(",", Concat(branch_instruction, "]}")))
     );
     let branch_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"Branch\",\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"Branch\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
         Concat(branch_block, "]}")
     );
     let branch_json: String = Concat(
@@ -157,27 +157,40 @@ func Main() -> Void {
         BuildMirDocumentFactIndex(branch_json);
     let branch_program: MirProgramRoutineIndex =
         BuildMirProgramRoutineIndexFromTable(branch_document.routines);
-    let branch_facts: MirRoutineInstructionFactBundle =
-        BuildMirRoutineInstructionFactBundle(branch_program, 0);
+    let branch_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(branch_program, 0);
     let branch_selection: MirRoutineInstructionSelection =
-        MirRoutineInstructionFactBundleBranchAtBlock(
-            branch_facts, branch_program, 0, 0
+        MirRoutineFactIndexBranchAtBlock(
+            branch_index, branch_program, 0, 0
         );
     if !branch_selection.valid || !branch_selection.found ||
         branch_selection.instruction.global_row != 1 ||
         branch_selection.instruction.kind != "branch" ||
-        ArrayLength(branch_facts.block_branch_global_rows) != 1 ||
-        branch_facts.block_branch_global_rows[0] != 1 {
+        ArrayLength(
+            branch_index.instruction_facts.block_branch_global_rows
+        ) != 1 ||
+        branch_index.instruction_facts.block_branch_global_rows[0] != 1 {
         Log("mir-program-routine-index-owner-branch-row-failed");
         failures = failures + 1;
     }
     let forged_branch_rows: Array<Int> =
-        branch_facts.block_branch_global_rows;
+        branch_index.instruction_facts.block_branch_global_rows;
     ArraySet(forged_branch_rows, 0, 0);
-    if MirRoutineInstructionFactBundleBranchAtBlock(
-        branch_facts, branch_program, 0, 0
+    if MirRoutineFactIndexBranchAtBlock(
+        branch_index, branch_program, 0, 0
     ).valid {
         Log("mir-program-routine-index-owner-forged-branch-kind-failed");
+        failures = failures + 1;
+    }
+    let out_of_block_branch_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(branch_program, 0);
+    let out_of_block_branch_rows: Array<Int> =
+        out_of_block_branch_index.instruction_facts.block_branch_global_rows;
+    ArraySet(out_of_block_branch_rows, 0, 2);
+    if MirRoutineFactIndexBranchAtBlock(
+        out_of_block_branch_index, branch_program, 0, 0
+    ).valid {
+        Log("mir-program-routine-index-owner-out-of-block-branch-failed");
         failures = failures + 1;
     }
     let duplicate_branch_block: String = Concat(

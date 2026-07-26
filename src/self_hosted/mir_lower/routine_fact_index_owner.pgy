@@ -11,6 +11,7 @@ import "match_binding_local_fact_owner.pgy";
 import "mir_cfg_graph_owner.pgy";
 import "resource_flow_fact_owner.pgy";
 import "routine_instruction_fact_bundle_owner.pgy";
+import "routine_instruction_view_owner.pgy";
 struct MirRoutineFactIndex {
     let valid: Bool;
     let validation_stage: String;
@@ -551,6 +552,21 @@ func MirRoutineFactIndexBlockRow(ref index: MirRoutineFactIndex, block_start: In
     }
     return 0 - 1;
 }
+
+func MirRoutineFactIndexBranchAtBlock(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex, routine_row: Int, block_row: Int) -> MirRoutineInstructionSelection {
+    let empty: MirRoutineInstructionView = EmptyMirRoutineInstructionView(); let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || !index.instruction_facts.valid || routine_row < 0 || routine_row >= ArrayLength(routines.starts) || routine_row >= ArrayLength(routines.ends) || routine_row >= ArrayLength(routines.routine_block_starts) || routine_row >= ArrayLength(routines.routine_block_counts) || index.routine_start != routines.starts[routine_row] || index.routine_end != routines.ends[routine_row] || routines.routine_block_counts[routine_row] != block_count || block_count != ArrayLength(index.block_ends) || block_count != ArrayLength(index.block_instruction_starts) || block_count != ArrayLength(index.block_instruction_counts) || block_count != ArrayLength(index.instruction_facts.block_branch_global_rows) || block_row < 0 || block_row >= block_count { return MirRoutineInstructionSelection(false, false, empty); }
+    let global_block: Int = routines.routine_block_starts[routine_row] + block_row;
+    if global_block < 0 || global_block >= ArrayLength(routines.block_starts) || global_block >= ArrayLength(routines.block_ends) || global_block >= ArrayLength(routines.block_instruction_starts) || global_block >= ArrayLength(routines.block_instruction_counts) || index.block_starts[block_row] != routines.block_starts[global_block] || index.block_ends[block_row] != routines.block_ends[global_block] { return MirRoutineInstructionSelection(false, false, empty); }
+    let local_instruction_start: Int = index.block_instruction_starts[block_row];
+    let instruction_count: Int = index.block_instruction_counts[block_row];
+    let program_instruction_start: Int = routines.block_instruction_starts[global_block];
+    if local_instruction_start < 0 || instruction_count < 0 || instruction_count != routines.block_instruction_counts[global_block] || program_instruction_start - index.instruction_facts.global_start != local_instruction_start { return MirRoutineInstructionSelection(false, false, empty); }
+    let branch_global_row: Int = index.instruction_facts.block_branch_global_rows[block_row];
+    if branch_global_row < 0 { return MirRoutineInstructionSelection(branch_global_row == 0 - 1, false, empty); }
+    let fact_row: Int = branch_global_row - index.instruction_facts.global_start;
+    if fact_row < local_instruction_start || fact_row >= local_instruction_start + instruction_count || branch_global_row < program_instruction_start || branch_global_row >= program_instruction_start + instruction_count || branch_global_row >= ArrayLength(routines.instruction_starts) || branch_global_row >= ArrayLength(routines.instruction_ends) || branch_global_row >= ArrayLength(routines.instruction_kinds) || branch_global_row >= ArrayLength(routines.instruction_source_types) || branch_global_row >= ArrayLength(routines.instruction_machine_layer_starts) || branch_global_row >= ArrayLength(routines.instruction_machine_layer_ends) || fact_row >= ArrayLength(index.instruction_facts.starts) || fact_row >= ArrayLength(index.instruction_facts.ends) || index.instruction_facts.starts[fact_row] != routines.instruction_starts[branch_global_row] || index.instruction_facts.ends[fact_row] != routines.instruction_ends[branch_global_row] || routines.instruction_kinds[branch_global_row] != "branch" { return MirRoutineInstructionSelection(false, false, empty); }
+    return MirRoutineInstructionSelection(true, true, MirRoutineInstructionView(true, branch_global_row, routines.instruction_starts[branch_global_row], routines.instruction_ends[branch_global_row], routines.instruction_kinds[branch_global_row], routines.instruction_source_types[branch_global_row], routines.instruction_machine_layer_starts[branch_global_row], routines.instruction_machine_layer_ends[branch_global_row])); }
 
 func MirRoutineFactIndexInstructionBounds(ref index: MirRoutineFactIndex, block_start: Int, instruction_row: Int, inout bounds: Array<Int>) -> Bool {
     let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);

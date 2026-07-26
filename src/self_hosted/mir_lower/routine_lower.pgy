@@ -57,8 +57,8 @@ func BlockCond(ref index: MirRoutineFactIndex,
     block_row: Int) -> String {
     let json: String = routines.source_json;
     let selection: MirRoutineInstructionSelection =
-        MirRoutineInstructionFactBundleBranchAtBlock(
-            index.instruction_facts, routines, routine_row, block_row
+        MirRoutineFactIndexBranchAtBlock(
+            index, routines, routine_row, block_row
         );
     if !selection.valid { MirLowerFailClosed("invalid branch instruction view"); }
     if !selection.found { return ""; }
@@ -143,8 +143,8 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
     block_row: Int, indent: String) -> String {
     let json: String = routines.source_json;
     let selection: MirRoutineInstructionSelection =
-        MirRoutineInstructionFactBundleBranchAtBlock(
-            index.instruction_facts, routines, routine_row, block_row
+        MirRoutineFactIndexBranchAtBlock(
+            index, routines, routine_row, block_row
         );
     if !selection.valid { MirLowerFailClosed("invalid match instruction view"); }
     if !selection.found { return ""; }
@@ -265,8 +265,8 @@ func BlockHasLoopTransfer(ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex, routine_row: Int,
     block_row: Int) -> Bool {
     let selection: MirRoutineInstructionSelection =
-        MirRoutineInstructionFactBundleBranchAtBlock(
-            index.instruction_facts, routines, routine_row, block_row
+        MirRoutineFactIndexBranchAtBlock(
+            index, routines, routine_row, block_row
         );
     if !selection.valid { MirLowerFailClosed("invalid loop transfer branch facts"); }
     if !selection.found { return false; }

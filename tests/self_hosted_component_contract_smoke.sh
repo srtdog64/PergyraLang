@@ -10375,9 +10375,31 @@ require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pg
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let block_branch_global_rows: Array<Int>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "func MirRoutineInstructionFactBundleBranchAtBlock("
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "if branch_global_row >= 0"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func MirRoutineFactIndexBranchAtBlock("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "index.instruction_facts.block_branch_global_rows[block_row]"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'routines.instruction_kinds[branch_global_row] != "branch"'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "branch_global_row == 0 - 1"
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func MirRoutineFactIndexBranchAtBlock(" \
+    "MirProgramRoutineIndexRowReady("
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func MirRoutineFactIndexBranchAtBlock(" \
+    "MirProgramRoutineIndexStructureReady("
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func MirRoutineFactIndexBranchAtBlock(" \
+    "MirRoutineInstructionFactBundleReady("
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func MirRoutineFactIndexBranchAtBlock(" \
+    "MirRoutineInstructionViewOfKind("
+reject_regex_under "src/self_hosted" \
+    "MirRoutineInstructionFactBundleBranchAtBlock"
+reject_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "MirRoutineInstructionFactBundleBranchAtBlock"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "count * 8 == ArrayLength(facts.abi_layout_bounds)"
 reject_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
@@ -10411,7 +10433,9 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineInstructionFactBundleAtGlobal("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "MirRoutineInstructionFactBundleBranchAtBlock("
+    "MirRoutineFactIndexBranchAtBlock("
+require_text_count_at_least "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirRoutineFactIndexBranchAtBlock(" 3
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineInstructionViewOfKind("
 reject_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
