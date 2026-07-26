@@ -8,52 +8,39 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Implementation checkpoint: `390efa08` on `main` (v67 one typed scalar block,
-  shared SSA identity, owner-directed formatted-print/C ABI, and one-pass
-  document/graph admission for C and LLVM). Its parent `dbd3ddb2` records the
-  v66 typed local/use/add/direct-call checkpoint.
-- The Pergyra-built gen2 driver directly emitted one verified 54,205,046-byte
-  MIR artifact from the current complete compiler source, SHA-256
-  `3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`.
-  It is byte-identical to the separate C-oracle artifact. The Pergyra-built
-  seed consumes this Pergyra artifact to emit complete gen2 C; gen2 consumes
-  the unchanged artifact and emits byte-identical gen3 C.
-- Gen2/gen3 C is 3,378,704 bytes / 59,482 lines with SHA-256
-  `6aaf915d67fb129fce6a85bece93d9c814c66dadf94578c8ee160e7b9e1f7087`.
-  Both generations compile, and both reproduce the established 414-byte
-  bounded artifact with SHA-256
-  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
-- This closes Pergyra-owned complete-source MIR production and the explicit
-  gen2/gen3 fixed point. It does not replace the released/default C-owned
-  `pgy`; released/default replacement remains 0%.
-- The Pergyra-built integrated driver now admits the hello `pgy.mir.v1`
-  artifact once and directly projects the same identity to C and LLVM without
-  rebuilding AST or semantic artifacts. Both artifacts compile, run, and
-  match the native C runtime oracle. The admitted artifact SHA-256 is
-  `1c31e768cecf6650710d6a77745a4b0aae34d1fe0ee71acf96fd23d9c76e0c34`.
-  This closes only the one-routine/one-block/ASCII literal-`Log` shape; general
-  backend admission and default selection remain open.
-- v66 adds `let x:Int=21; Log(ToString(x+x))`. The Pergyra-built driver emitted
-  one 2,341-byte MIR artifact with SHA-256
-  `0ad63b8802e964f238807aabf3f2c73e59a1f795dc7fa73e078a59aff998ecee`.
-  Its typed local/result/use/add/direct-call facts drove both C and LLVM; both
-  compiled and matched native output `42`. Result/use/missing-use, `subtract`,
-  and alternate-call-target mutations failed before output on both targets.
-- v67 generalizes that fixed shape to N typed `Int` definitions followed by N
-  graph-owned `Log(ToString(binary))` statements. The final Pergyra-built r3
-  driver emitted one 4,135-byte `multilet.pgy` MIR with SHA-256
-  `31fb7b7300674c1483a5c54370d90a66c1ab1d4cddc3998d2eafbc03931f4efd`.
-  The unchanged identity drove compiling C and LLVM with native-equal output
-  `35` then `12`; second-result/use, divide, statement-order, ABI, document-
-  reindex, raw bridge, and target negatives reject before output.
-- The v59-v67 memory conclusion is stable: cumulative graph copying and
-  repeated whole-arena/readiness validation caused the historical 20+ GiB /
-  3 GiB symptom. The Pergyra full-source producer used 1,091.0 MB peak private;
-  all complete producer, consumer, and fixed-point legs stayed below the
-  unchanged 3,072 MB cap. The v66 bounded integrated rebuild had an observed
-  in-flight sample of 2,108.9/2,096.3 MB private/working set; this is not a
-  claimed peak. The final v67 r3 seed emission had an observed in-flight sample
-  of 764.8/673.3 MB private/working set, also not a claimed peak.
+- Implementation checkpoint: `bc33eead` on `main` (v68 one MIR-owned CFG,
+  one AIR certificate, one target-neutral verified plan, and that same plan
+  consumed by both C and LLVM). Its parent `e4cd4a4d` is the v67 handoff and
+  `390efa08` is the preceding scalar-block implementation.
+- The Pergyra-built v68 driver emitted one 3,413-byte `ifelse.pgy` MIR with
+  SHA-256
+  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`.
+  Its typed owner facts describe one routine and a reachable four-block
+  diamond with no phi. Certificate issuance validates that identity and CFG
+  once; later certificate/plan checks compare fixed-size fields and
+  self-digests instead of rescanning the MIR, CFG, or expression graph.
+- The certificate binds the MIR digest, CFG digest, exactly one
+  `mir_terminator` evidence item, and zero fallback/drift. The verified plan
+  binds that certificate, target capability fingerprint, branch condition,
+  two literal arms, and merge roles. One plan then drives both direct emitters;
+  both artifacts compile and match native output `pos`.
+- C and LLVM emission remain together in
+  `direct_mir_backend_emission_owner.pgy`, split by Pergyra responsibility
+  rather than by backend. `direct_mir_backend_projection_owner.pgy` now only
+  orchestrates admission, plan construction, emission, and final artifact
+  validation.
+- The Pergyra-built bounded integrated driver rebuild is green, including
+  bounded MIR seed/oracle and consumer parity. One observed in-flight gen2
+  sample was 882.5/782.0 MB private/working set; this is a sample, not a peak.
+  It is consistent with removing repeated whole-graph revalidation but does
+  not replace the established pressure-gate measurements.
+- The historical 20+ GiB / 3 GiB symptom came from cumulative graph copying
+  and repeated whole-arena/readiness validation. The accepted v68 path
+  specifically removes the new CFG version of that defect: verify once when
+  issuing the certificate, then carry bounded identity evidence.
+- This is a real Pergyra-owned replacement for the bounded direct-CFG path.
+  It does not replace the released/default C-owned `pgy`; released/default
+  replacement remains 0%.
 
 ## Exact dirty state at this handoff
 
@@ -65,38 +52,39 @@ must remain unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v63-v67 implementation or documentation file should remain dirty.
+No v63-v68 implementation or documentation file should remain dirty.
 
 ## Active executable objective card
 
-- Objective: admit `src/self_hosted/mir_lower/fixture/ifelse.pgy` through one
-  shared CFG/AIR plan boundary. Its current 3,413-byte MIR has SHA-256
-  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
-  one routine, four blocks, no phi, and native output `pos`; both direct
-  backends currently reject it without an artifact.
-- Priority: preserve one MIR identity, consume MIR-owned block/successor/
-  branch/use/graph facts, bind them to a MIR-bound AIR certificate, produce one
-  verified projection plan, then let both targets consume that plan. Phi and
-  assignment widening remain later.
-- Fact owner: machine-admitted `MirProgramRoutineIndex`, `MirRoutineFactIndex`,
-  instruction-use facts, and the expression-graph arena own the CFG and branch
-  inputs. AIR owns the MIR-bound certificate; the verified plan owner binds
-  certificate, MIR identity, and target facts. No backend is a CFG fact owner.
-- Last legitimate consumers: one backend-neutral CFG admission/planner and the
-  final C/LLVM emitters consuming its verified plan. The native compiler and
-  native AIR JSON remain oracle evidence, not direct backend inputs.
-- Forbidden fallback: fixture-specific `ifelse` projection, backend reads of
-  raw `succ_*`, raw `expr0`, or AIR JSON, AST/semantic reconstruction, one plan
-  or MIR per backend, an unbound certificate/plan, `new ? old` reads, raising
-  the 3,072 MB cap, or promoting ordinary `pgy` early.
-- Focused falsifier: missing/out-of-range successor, branch-instruction versus
-  edge mismatch, block ID/order drift, condition leaf/use SSA mismatch,
-  missing `mir_terminator`, AIR fallback/drift, and post-verification
-  certificate/plan identity mutation must all reject before output.
-- Acceptance gate: one unchanged `ifelse` MIR and one MIR-bound AIR certificate
-  must produce one verified plan consumed by compiling C and LLVM with
-  oracle-equal `pos`, while all CFG/certificate/plan negatives and the existing
-  scalar/no-bridge ratchets pass. This still does not authorize default `pgy`.
+- Objective: extend the same v68 certificate/plan path to
+  `src/self_hosted/mir_lower/fixture/if_else_assign.pgy`. Its current
+  4,916-byte MIR has SHA-256
+  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`,
+  one routine, the same four-block diamond, exactly one merge phi, and native
+  output `2`.
+- Priority: keep the existing MIR identity, AIR certificate, and single
+  target-neutral plan; add only the phi incoming/predecessor/result-SSA facts
+  exposed by this executable rung, then make both emitters consume the widened
+  plan. Do not create a second assignment plan or a fixture-specific lane.
+- Fact owner: `phi_fact_owner.pgy`, `MirRoutineFactIndex`, typed instruction-use
+  and SSA facts, and the existing expression-graph arena own the source facts.
+  `mir_cfg_certificate_owner.pgy` owns one-time CFG certification and
+  `direct_mir_cfg_plan_owner.pgy` owns the backend-neutral consumable plan.
+- Last legitimate consumers: the existing plan builder and the final C/LLVM
+  emitters consuming only that plan. The native compiler, MIR JSON text, and
+  AIR JSON remain oracle evidence rather than backend inputs.
+- Forbidden fallback: fixture-name dispatch, raw phi/successor/expression JSON
+  reads in a backend, a second plan or certificate, AST/semantic reconstruction,
+  backend-specific CFG readers, repeated whole-graph validation, `new ? old`
+  compatibility reads, raising the 3,072 MB cap, or promoting default `pgy`.
+- Focused falsifier: missing phi, incoming-count/predecessor mismatch, stale
+  incoming/result SSA identity, merge-edge mutation, certificate/plan identity
+  mutation, fallback, and AIR drift must reject before either output opens.
+- Acceptance gate: extend `one_mir_cfg_air_plan_projection.sh` so one unchanged
+  assignment MIR issues one certificate and one widened plan, both C and LLVM
+  compile and match native output `2`, and the phi/identity negatives reject.
+  A new per-fixture graph is not justified unless this gate proves the current
+  owner cannot express the rung.
 
 ## Current measured evidence
 
@@ -117,6 +105,8 @@ No v63-v67 implementation or documentation file should remain dirty.
 | v66 hello + let_log direct C/LLVM gate | 0 / 17,371 ms | not separately sampled | Both MIR identities remained stable; C/LLVM compiled and matched native output; result/use/missing-use/operator/call-target negatives passed. |
 | v67 final r3 bounded integrated-driver rebuild | 0 / not separately timed | 764.8 / 673.3 MB observed sample | Final source, document carrier, one-pass graph schema, and owner-directed ABI projection compiled into the Pergyra-built seed; bounded MIR consumer parity passed. |
 | v67 hello + let_log + multilet direct C/LLVM gate | 0 / 24,462 ms | not separately sampled | All three MIR identities remained stable; C/LLVM compiled and matched native outputs; local/use/operator/order/ABI/reindex/bridge/target negatives passed. |
+| v68 bounded integrated-driver rebuild | 0 / not separately timed | 882.5 / 782.0 MB observed sample | Current certificate, plan, and combined C/LLVM emission owner compiled into the Pergyra-built seed; bounded seed/oracle and consumer parity passed. The sample is not a peak. |
+| v68 scalar regression + CFG/AIR plan gate | 0 / not separately timed | not separately sampled | Hello, `let_log`, and `multilet` remained green; one unchanged `ifelse` MIR drove one certificate/plan and both compiled backends with native-equal `pos`; CFG, AIR, certificate, plan, and target negatives rejected before output. |
 
 ## Current gates and artifacts
 
@@ -125,12 +115,19 @@ Green:
 - focused parser interpolation graph contract and 188-row parser manifest;
 - native/self-host/fixture AST byte parity for `pipe_and_try`;
 - DRV-2 C build and executable `let_log` readiness;
+- native current-source `driver_bootstrap_main.pgy` C build: 0 errors and
+  0 warnings;
+- Pergyra-built bounded `tests/self_hosted/parity/driver_bootstrap.sh`, with
+  seed/oracle production and bounded MIR consumer parity;
+- `tests/self_hosted/parity/one_mir_dual_backend_projection.sh` using the
+  Pergyra-built v68 seed for hello, `let_log`, and `multilet`;
+- `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh` using that same
+  seed for `ifelse`, including CFG/AIR/certificate/plan mutation negatives;
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
-- `bash -n tests/self_hosted/parity/driver_bootstrap.sh`;
-- `bash -n tests/self_hosted/parity/one_mir_dual_backend_projection.sh`;
-- `tests/self_hosted/parity/one_mir_dual_backend_projection.sh` using the final
-  Pergyra-built v67 r3 seed for hello, `let_log`, and `multilet`;
+- `python scripts/sot_registry_gate.py`: 51 authorities, 42 derived carriers,
+  `CLOSED=31 BRIDGE=20 ACTIVE=0`;
+- `python scripts/protocol_registry_gate.py`: 7 protocol rows;
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_ci_profile_smoke.sh`;
 - `PGY_DOC_QUALITY_FULL_UTF8=1 tests/documentation_quality_smoke.sh`;
@@ -141,6 +138,10 @@ Green:
 
 Environment omission:
 
+- `tests/formal_semantics_smoke.sh` passed its structural registry/load-path
+  checks with `PGY_ALLOW_MISSING_COQ=1`, then declared the missing prover skip.
+  No Coq/Rocq binary is installed, so the 41 proofs were not machine-checked;
+  do not report this as proof-kernel success.
 - `mingw32-make` is not installed on this host, so the Make wrapper target was
   not executable. Its full-fixpoint runner body was invoked directly with the
   same environment and pressure contract; do not claim the wrapper passed.
@@ -175,7 +176,21 @@ Current ignored evidence:
 - `.tmp/self_hosted/driver/bootstrap_v67_multilet_r3/`;
 - `.tmp/self_hosted/driver/one_mir_v67_formal_r3/`;
 - `.tmp/self_hosted/v67_falsifier/`;
+- `.tmp/self_hosted/driver/bootstrap_v68_ifelse_native/`;
+- `.tmp/self_hosted/driver/bootstrap_v68_ifelse_r1/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_air_plan/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v68_native/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v68_r1/`;
+- `.tmp/self_hosted/driver/one_mir_v68_native/`;
 - `.tmp/next_cfg_rung_audit/`.
+
+Current open boundary:
+
+- `CompilerEmissionArtifact` still does not carry the verified plan revision
+  and digest as a repository-wide artifact fact. The direct v68 emitter checks
+  the plan immediately before artifact creation, so the bounded path is closed,
+  but global artifact carriage remains open and must not be inferred from this
+  fixture gate.
 
 ## Historical execution directive: gen2 takeover before global SoT closure
 
