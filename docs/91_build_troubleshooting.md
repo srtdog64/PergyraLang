@@ -843,6 +843,38 @@ static counts are large, and do not rerun the same revision until a favorable
 sample appears. Select the next exact duplicate owner/consumer, add a negative
 gate, and keep the 300-second/3,072 MB falsifier unchanged.
 
+#### Carry the unique branch row instead of searching each block again
+
+The next full-input census found 20,022 blocks, 34,091 instructions, and 8,387
+blocks with a branch terminator. Three mandatory routine-lowering consumers
+were each reconstructing typed instruction views while searching every block
+for the same unique branch. That repeated at least 77,112 view
+reconstructions beyond the rows the consumers actually needed.
+
+Checkpoint `4ee29ce2` extends the existing routine-local
+`MirRoutineInstructionFactBundle` scalar pass with one branch global row per
+block. `BlockCond`, `BlockHasLoopTransfer`, and `BlockMatchBindingLine` consume
+that fact. A genuinely missing branch remains an explicit valid/not-found
+result; duplicate branches, a row outside its block, scalar-span mismatch, or
+a carried row whose program-owned kind is not `branch` fail closed. The old
+routine-lowering branch searches are statically rejected. This does not add a
+program-global scalar aggregate, second cache, JSON fallback, or backend split.
+
+The exact-source v45 driver built in 52,025 ms at 2,534.1 MB peak private /
+2,522.6 MB working set. Its bounded output remained 414 bytes with the
+established SHA, and the wrong-ABI input exited 1 with the owned diagnostic and
+no output. The fixed 300-second run reached routine 704 at 161,510 ms, routine
+896 at 189,756 ms, routine 1,600 at 238,576 ms, routine 1,920 at 288,324 ms,
+and routine 1,984 at 298,381 ms. It timed out at 300,345 ms with 204.8 MB peak
+private / 206.9 MB working set and no cap crossing.
+
+This is the first observation of routine 1,984 under the fixed window. At the
+shared routine-1,920 marker, v45 is 2,984 ms (1.02%) earlier than v44 and 1,730
+ms earlier than v43. The result is modest but positive; it is not bootstrap
+completion. Routine 2,048, `consumer:mir-to-ast:done`, and gen2 output remain
+absent. Keep the 300-second/3,072 MB gate unchanged; routine 2,048 is the next
+fixed falsifier.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

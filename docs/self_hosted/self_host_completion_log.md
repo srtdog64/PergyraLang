@@ -8368,3 +8368,32 @@ Released/default replacement remains 0%.
   owner/fallback closure but a CPU negative/noise result. Routine 1,984,
   MIR-to-AST completion, gen2 output, compilation, and gen3 comparison remain
   absent; structural-merge/phi caching is not authorized by this result.
+
+### 2026-07-26 -- Routine facts carry each block's unique branch row
+
+- `4ee29ce2` makes the existing routine-local
+  `MirRoutineInstructionFactBundle` scalar pass record the unique branch global
+  row for each block. Duplicate branches invalidate the bundle. No
+  program-global scalar aggregate, new cache, JSON fallback, or backend split
+  was introduced.
+- `BlockCond`, `BlockHasLoopTransfer`, and `BlockMatchBindingLine` consume the
+  carried row instead of calling `MirRoutineInstructionViewOfKind` for every
+  block. The owner distinguishes valid missing from invalid data and rejects an
+  out-of-block row, scalar-span mismatch, or program-owned kind other than
+  `branch`. The component ratchet forbids the deleted routine-lowering search.
+- The focused C/LLVM routine-index fixture covers missing, unique, duplicate,
+  and forged non-branch rows. The routine-index parity and self-host component
+  contract gates pass.
+- The exact-source v45 driver built in 52,025 ms at 2,534.1 MB peak private /
+  2,522.6 MB working set. Its 1,487 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed 300-second run reached routine 1,920 at 288,324 ms and, for the
+  first time, routine 1,984 at 298,381 ms. It timed out at 300,345 ms with
+  204.8 MB peak private / 206.9 MB working set and no cap crossing. The shared
+  routine-1,920 marker is 2,984 ms (1.02%) earlier than v44.
+- This is executable progress, not self-host completion. Routine 2,048,
+  `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, and
+  gen3 comparison remain absent. The next fixed-window falsifier is routine
+  2,048 under the unchanged 300-second/3,072 MB gate.

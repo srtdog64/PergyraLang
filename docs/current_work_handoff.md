@@ -44,10 +44,11 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `ec4b9eef` (`cover invalid CFG backedge batch
-  results`) on `main`, with owner implementation `73133678` (`batch MIR CFG
-  backedge facts per routine`). Its scalar-key predecessor is `dfc8e406`, its
-  optional ABI scalar predecessor is `bf8a56b8`, its
+- Implementation checkpoint: `4ee29ce2` (`carry MIR branch rows in routine
+  facts`) on `main`. Its CFG negative predecessor is `ec4b9eef` (`cover invalid
+  CFG backedge batch results`), with CFG owner implementation `73133678`
+  (`batch MIR CFG backedge facts per routine`). Its scalar-key predecessor is
+  `dfc8e406`, its optional ABI scalar predecessor is `bf8a56b8`, its
   exact ABI witness predecessor is `0da9c5c2`, its ABI
   row-capture predecessor is `a5d56f42`, its
   routine-scalar predecessor is `dd68d6f3`, its
@@ -141,6 +142,13 @@ bounded-only parity as progress evidence.
   per-edge function is deleted. Invalid batch input is an empty typed result
   and a nonempty consumer reports `cfg_backedge`. Structural merge and phi are
   unchanged.
+- The routine-local instruction fact bundle now carries each block's unique
+  branch global row from its existing scalar pass. Condition, loop-transfer,
+  and match-binding consumers use that row instead of searching the block
+  again. Duplicate, out-of-block, scalar-span-mismatched, or non-branch rows
+  fail closed; the deleted routine-lowering search cannot return as a fallback.
+  The program index remains structure/identity-only rather than becoming a
+  second global/local scalar aggregate.
 
 ## Exact dirty state
 
@@ -175,10 +183,10 @@ unmodified and excluded from task commits:
   stores, per-routine whole-program structure revalidation, `new ? old`
   authority, or raising the 3072 MB cap.
 - Focused falsifier: continue the same admitted artifact beyond the observed
-  `top-level-routines:1920` marker and either reach routine 1,984 or expose one
+  `top-level-routines:1984` marker and either reach routine 2,048 or expose one
   named routine/owner failure. Do not open the later expression-graph or
   assignment post-pass until `consumer:mir-to-ast:done` is observed. Even
-  1,920 of 2,345 top-level routines is only a progress sentinel, not gen2.
+  1,984 of 2,345 top-level routines is only a progress sentinel, not gen2.
 - Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
   that artifact builds, and the resulting gen2 consumes the same complete
   compiler source to emit `driver_gen3.c`. The bounded preflight remains a
@@ -237,6 +245,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-key-dispatch-v43-300s` | 215.1 MB | 217.1 MB | Timed out at 300,268 ms after routine 704 at 162,255 ms, routine 896 at 190,875 ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms; no routine 1,984 or gen2. |
 | `full-mir-consumer-cfg-backedge-batch-v44-build` | 2433.5 MB | 2427.0 MB | Exact-source integrated C driver compiled in 52,316 ms below the fixed cap. |
 | `full-mir-consumer-cfg-backedge-batch-v44-300s` | 202.7 MB | 205.0 MB | Timed out at 300,682 ms after routine 704 at 162,403 ms, routine 896 at 191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at 291,308 ms; CPU negative/noise versus v43, no routine 1,984 or gen2. |
+| `full-mir-consumer-branch-row-bundle-v45-build` | 2534.1 MB | 2522.6 MB | Exact-source integrated C driver compiled in 52,025 ms below the fixed cap. |
+| `full-mir-consumer-branch-row-bundle-v45-300s` | 204.8 MB | 206.9 MB | Timed out at 300,345 ms after routine 704 at 161,510 ms, routine 896 at 189,756 ms, routine 1,600 at 238,576 ms, routine 1,920 at 288,324 ms, and the first routine 1,984 marker at 298,381 ms; no routine 2,048 or gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -418,6 +428,23 @@ set was 202.7/205.0 MB. No routine 1,984, `mir-to-ast:done`, or gen2 file exists
 The single CFG owner and negative ratchet remain useful, but this evidence does
 not authorize structural-merge or phi caching as the next CPU track.
 
+`4ee29ce2` closes the next measured routine-lowering seam in the existing
+routine-local fact bundle. Its scalar pass records one unique branch global row
+per block, and condition, loop-transfer, and match-binding consumers no longer
+reconstruct typed instruction views to search each block. The complete input
+contains 20,022 blocks, 34,091 instructions, and 8,387 branch blocks; the three
+mandatory searches removed at least 77,112 repeated view reconstructions.
+Duplicate branches and forged row identity fail closed, and a component ratchet
+forbids the old call in `routine_lower.pgy`.
+
+The exact-source v45 driver built in 52,025 ms below 3 GiB, preserved the
+414-byte bounded SHA, and rejected the wrong-ABI input without opening output.
+The fixed-window run reached routine 1,920 at 288,324 ms and the first routine
+1,984 marker at 298,381 ms before timing out at 300,345 ms. Peak
+private/working set was 204.8/206.9 MB. That shared 1,920 marker is 2,984 ms
+(1.02%) earlier than v44. This remains RED for bootstrap completion: no routine
+2,048, `consumer:mir-to-ast:done`, or gen2 file exists.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -444,15 +471,15 @@ body gate green.
 
 ## Last observed gates
 
-Green on `ec4b9eef` plus the documented working measurements:
+Green on `4ee29ce2` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
   plain, escaped, empty, and truncated exact-bound strings);
 - `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
   partitions, direct-field spans, malformed scalar tails, missing structure,
-  corrupted counts, invalid row guards, and explicit negative CFG successor
-  rejection);
+  corrupted counts, invalid row guards, explicit negative CFG successor
+  rejection, and missing/unique/duplicate/forged branch-row facts);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
@@ -461,8 +488,8 @@ Green on `ec4b9eef` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-cfg-backedge-batch-v44-build`): exit 0, 52,316 ms,
-  2,433.5 MB peak private / 2,427.0 MB peak working set;
+  owner (`full-mir-consumer-branch-row-bundle-v45-build`): exit 0, 52,025 ms,
+  2,534.1 MB peak private / 2,522.6 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -526,35 +553,30 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-abi-exact-reuse-v41-300s.*`,
 `full-mir-consumer-abi-optional-fast-v42-300s.*`, and
 `full-mir-consumer-key-dispatch-v43-300s.*`, and
-`full-mir-consumer-cfg-backedge-batch-v44-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v44_cfg_backedge_batch.exe`; its
+`full-mir-consumer-cfg-backedge-batch-v44-300s.*`, and
+`full-mir-consumer-branch-row-bundle-v45-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v45_branch_row_bundle.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v44_bounded.c`. The latest full consumer
-evidence includes complete stage capture through the 1,920-routine marker. These
+`.tmp/self_hosted/driver_bootstrap/v45_bounded.c`. The latest full consumer
+evidence includes complete stage capture through the 1,984-routine marker. These
 files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Extend the existing routine-local `MirRoutineInstructionFactBundle` scalar
-   pass with one `block_branch_global_rows` projection. Each block owns either
-   the unique branch terminator's global row or the missing sentinel. The full
-   MIR has 20,022 blocks, 34,091 instructions, and 8,387 branch blocks; removing
-   three mandatory block searches eliminates at least 77,112 repeated typed
-   instruction-view reconstructions before optional match use.
-2. Migrate `BlockCond`, `BlockHasLoopTransfer`, and `BlockMatchBindingLine` to
-   that owner fact. Last consumers must fail closed when the carried row is
-   missing, duplicated, out of block, or no longer a branch. Re-searching the
-   block/JSON, accepting the first branch, adding a program-global scalar
-   aggregate, or keeping `MirRoutineInstructionViewOfKind(..., "branch")` as a
-   fallback is forbidden. Prove duplicate and kind-mismatch negatives through
-   C/LLVM plus a static zero-call ratchet in `routine_lower.pgy`.
-3. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. The executable
-   falsifier remains routine 1,984. Do not claim the estimated 77,112-call
-   reduction as a speedup until that fixed-window marker is observed.
-4. Re-run the current artifact until marker 1,984 and ultimately
-   `consumer:mir-to-ast:done` are observed under the fixed pressure owner. Add
-   post-loop markers for top-level completion, string join, and AST inventory
-   so the projected 355.9-second lower bound cannot be mistaken for completion.
+1. Use the v45 stage capture around routines 1,984 through 2,048 to identify
+   one exact repeated owner/consumer operation on the active MIR-to-AST path.
+   Before editing, record its fact owner, last legitimate consumer, forbidden
+   fallback, and one falsifying fixture. Static call counts alone do not
+   authorize a new cache, graph, aggregate, or backend-specific read path.
+2. Close only that measured seam behind its existing Pergyra owner, delete the
+   old read/search path, and add the narrow C/LLVM or component negative ratchet
+   that prevents dual authority. Keep C and LLVM as peer native backends.
+3. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. The next fixed
+   falsifier is routine 2,048 under the unchanged 300-second/3,072 MB owner; do
+   not describe the change as a speedup unless that window provides evidence.
+4. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
+   observed. Post-loop markers for top-level completion, string join, and AST
+   inventory must distinguish projected completion from an observed result.
 5. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
 6. Make the generated gen2 driver consume the same complete compiler source

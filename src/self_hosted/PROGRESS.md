@@ -1,5 +1,28 @@
 # Self-Host Progress
 
+2026-07-26 routine-local branch row carriage (`4ee29ce2`). The existing
+`MirRoutineInstructionFactBundle` scalar pass now records the unique branch
+global row for each block. `BlockCond`, `BlockHasLoopTransfer`, and
+`BlockMatchBindingLine` consume that fact instead of searching every block for
+`kind=branch`. A missing branch remains an explicit valid/not-found result;
+duplicate branches, a row outside the block, a scalar-span mismatch, or a row
+whose program-owned kind is not `branch` fail closed. The old routine-lowering
+search calls are statically rejected. No program-global scalar aggregate, new
+file/cache, JSON fallback, or backend split was added.
+
+The exact-source v45 driver built in 52,025 ms at 2,534.1 MB peak private /
+2,522.6 MB working set. Its bounded run finished in 1,487 ms and preserved the
+414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+300-second full consumer reached routine 704 at 161,510 ms, routine 896 at
+189,756 ms, routine 1,600 at 238,576 ms, routine 1,920 at 288,324 ms, and the
+new routine-1,984 falsifier at 298,381 ms. It timed out at 300,345 ms with
+204.8 MB peak private / 206.9 MB working set, no routine 2,048,
+`consumer:mir-to-ast:done`, or gen2 output. Routine 1,920 is 2,984 ms (1.02%)
+earlier than v44 and 1,730 ms earlier than v43. The next fixed-window
+falsifier is routine 2,048.
+
 2026-07-26 routine-level CFG backedge batch (`73133678`, negative fixture
 `ec4b9eef`). The existing CFG graph owner now computes entry reachability once
 and one avoiding traversal per reachable distinct incoming target, then marks
