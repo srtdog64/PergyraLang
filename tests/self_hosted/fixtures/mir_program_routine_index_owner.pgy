@@ -294,12 +294,130 @@ func Main() -> Void {
         );
     let out_of_range_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(out_of_range_successor_program, 0);
+    let successor_routine_prefix: String =
+        "{\"kind\":\"function\",\"name\":\"Successor\",\"source_syntax_id\":1,\"function_param_flow_summary_count\":0,\"function_param_flow_summaries\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"loop_flow_summary_count\":0,\"loop_flow_summaries\":[],\"loop_flow_state_count\":0,\"loop_flow_states\":[],\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"blocks\":[";
+    let terminal_successor_block: String =
+        "{\"instructions\":[],\"id\":1}";
+    let reordered_successor_block: String =
+        "{\"succ_false\":1,\"id\":0,\"instructions\":[],\"succ_true\":1}";
+    let reordered_successor_routine: String = Concat(
+        successor_routine_prefix,
+        Concat(
+            reordered_successor_block,
+            Concat(",", Concat(terminal_successor_block, "]}"))
+        )
+    );
+    let reordered_successor_json: String = Concat(
+        prefix, Concat(reordered_successor_routine, "]}")
+    );
+    let reordered_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(reordered_successor_json);
+    let reordered_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            reordered_successor_document.routines
+        );
+    let reordered_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(reordered_successor_program, 0);
+    let single_successor_block: String =
+        "{\"id\":0,\"instructions\":[],\"succ_true\":1}";
+    let single_successor_routine: String = Concat(
+        successor_routine_prefix,
+        Concat(
+            single_successor_block,
+            Concat(",", Concat(terminal_successor_block, "]}"))
+        )
+    );
+    let single_successor_json: String = Concat(
+        prefix, Concat(single_successor_routine, "]}")
+    );
+    let single_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(single_successor_json);
+    let single_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            single_successor_document.routines
+        );
+    let single_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(single_successor_program, 0);
+    let string_successor_block: String =
+        "{\"id\":0,\"instructions\":[],\"succ_true\":\"1\"}";
+    let string_successor_routine: String = Concat(
+        successor_routine_prefix,
+        Concat(
+            string_successor_block,
+            Concat(",", Concat(terminal_successor_block, "]}"))
+        )
+    );
+    let string_successor_json: String = Concat(
+        prefix, Concat(string_successor_routine, "]}")
+    );
+    let string_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(string_successor_json);
+    let string_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(string_successor_document.routines);
+    let string_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(string_successor_program, 0);
+    let duplicate_successor_block: String =
+        "{\"id\":0,\"succ_true\":1,\"instructions\":[],\"succ_true\":1}";
+    let duplicate_successor_routine: String = Concat(
+        successor_routine_prefix,
+        Concat(
+            duplicate_successor_block,
+            Concat(",", Concat(terminal_successor_block, "]}"))
+        )
+    );
+    let duplicate_successor_json: String = Concat(
+        prefix, Concat(duplicate_successor_routine, "]}")
+    );
+    let duplicate_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(duplicate_successor_json);
+    let duplicate_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            duplicate_successor_document.routines
+        );
+    let duplicate_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(duplicate_successor_program, 0);
+    let escaped_duplicate_successor_block: String =
+        "{\"id\":0,\"succ_true\":1,\"\\succ_true\":1,\"instructions\":[]}";
+    let escaped_duplicate_successor_routine: String = Concat(
+        successor_routine_prefix,
+        Concat(
+            escaped_duplicate_successor_block,
+            Concat(",", Concat(terminal_successor_block, "]}"))
+        )
+    );
+    let escaped_duplicate_successor_json: String = Concat(
+        prefix, Concat(escaped_duplicate_successor_routine, "]}")
+    );
+    let escaped_duplicate_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(escaped_duplicate_successor_json);
+    let escaped_duplicate_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            escaped_duplicate_successor_document.routines
+        );
+    let escaped_duplicate_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(escaped_duplicate_successor_program, 0);
     if missing_successor_index.block_succ_true[0] != (0 - 1) ||
+        !reordered_successor_index.valid ||
+        reordered_successor_index.block_succ_true[0] != 1 ||
+        reordered_successor_index.block_succ_false[0] != 1 ||
+        reordered_successor_index.block_succ_true[1] != (0 - 1) ||
+        reordered_successor_index.block_succ_false[1] != (0 - 1) ||
+        !single_successor_index.valid ||
+        single_successor_index.block_succ_true[0] != 1 ||
+        single_successor_index.block_succ_false[0] != (0 - 1) ||
+        string_successor_index.valid ||
+        string_successor_index.validation_stage != "cfg_successor" ||
+        duplicate_successor_index.valid ||
+        duplicate_successor_index.validation_stage != "cfg_successor" ||
+        escaped_duplicate_successor_index.valid ||
+        escaped_duplicate_successor_index.validation_stage !=
+            "cfg_successor" ||
         negative_successor_index.valid ||
         negative_successor_index.validation_stage != "cfg_successor" ||
         out_of_range_successor_index.valid ||
-        out_of_range_successor_index.validation_stage != "cfg_backedge" ||
+        out_of_range_successor_index.validation_stage != "cfg_successor" ||
         ArrayLength(out_of_range_successor_index.backedge_headers) != 0 {
+        Log("mir-program-routine-index-owner-successor-capture-failed");
         failures = failures + 1;
     }
 

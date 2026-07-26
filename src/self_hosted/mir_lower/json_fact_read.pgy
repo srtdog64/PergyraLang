@@ -139,6 +139,103 @@ func MirObjectNumberFactAtBounds(
     return UnwrapOption(value);
 }
 
+// One order-independent pass over a MIR block owns both optional CFG
+// successor tokens. Missing fields remain the internal negative sentinel;
+// present fields must be unique non-negative integer tokens.
+struct MirBlockSuccessorCapture {
+    let valid: Bool;
+    let succ_true: Int;
+    let succ_false: Int;
+}
+
+func InvalidMirBlockSuccessorCapture() -> MirBlockSuccessorCapture {
+    return MirBlockSuccessorCapture(false, 0 - 1, 0 - 1);
+}
+
+func MirBlockSuccessorCaptureWithin(
+    json: String,
+    start: Int,
+    end: Int
+) -> MirBlockSuccessorCapture {
+    if start < 0 || end <= start ||
+        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        return InvalidMirBlockSuccessorCapture();
+    }
+    let succ_true: Int = 0 - 1;
+    let succ_false: Int = 0 - 1;
+    let true_seen: Bool = false;
+    let false_seen: Bool = false;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return InvalidMirBlockSuccessorCapture(); }
+        let code: Int = JsonCharCodeAt(json, end, i);
+        if code == JsonAsciiCode("}") {
+            if after_comma || i + 1 != end {
+                return InvalidMirBlockSuccessorCapture();
+            }
+            return MirBlockSuccessorCapture(true, succ_true, succ_false);
+        }
+        if !expect_member {
+            if code != JsonAsciiCode(",") {
+                return InvalidMirBlockSuccessorCapture();
+            }
+            expect_member = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if code != JsonAsciiCode("\"") {
+            return InvalidMirBlockSuccessorCapture();
+        }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) {
+            return InvalidMirBlockSuccessorCapture();
+        }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let is_true: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "succ_true"
+        );
+        let is_false: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "succ_false"
+        );
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
+        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            return InvalidMirBlockSuccessorCapture();
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) {
+            return InvalidMirBlockSuccessorCapture();
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if is_true || is_false {
+            if (is_true && true_seen) || (is_false && false_seen) {
+                return InvalidMirBlockSuccessorCapture();
+            }
+            let digit: Int = i;
+            while digit < value_end && JsonIsDigitCode(
+                JsonCharCodeAt(json, value_end, digit)
+            ) {
+                digit = digit + 1;
+            }
+            if digit == i || digit != value_end {
+                return InvalidMirBlockSuccessorCapture();
+            }
+            let value: Int = ToInt(Substring(json, i, value_end - i));
+            if value < 0 { return InvalidMirBlockSuccessorCapture(); }
+            if is_true { succ_true = value; true_seen = true; }
+            if is_false { succ_false = value; false_seen = true; }
+        }
+        i = value_end;
+        expect_member = false;
+        after_comma = false;
+    }
+    return InvalidMirBlockSuccessorCapture();
+}
+
 func MirObjectFieldValueBoundsAtBounds(
     json: String,
     start: Int,
