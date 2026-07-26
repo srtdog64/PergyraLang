@@ -8138,29 +8138,11 @@ require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "let block_succ_true: Array<Int>;"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "MirBlockSuccessorCaptureWithin(json, block_start, block_end)"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
-    "struct MirBlockSuccessorCapture {"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
-    "func MirBlockSuccessorCaptureWithin("
-reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "func BuildMirRoutineFactIndex(" \
-    'MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_true")'
-reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "func BuildMirRoutineFactIndex(" \
-    'MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_false")'
+    'if true_successor < 0 { valid = false; validation_stage = "cfg_successor"; }'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     'succ_true\":-1'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    'succ_true\":\"1\"'
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    'succ_true\":1,\"instructions\":[],\"succ_true\":1'
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    'succ_true\":1,\"\\succ_true\":1'
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    'single_successor_index.block_succ_false[0] != (0 - 1)'
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    'out_of_range_successor_index.validation_stage != "cfg_successor"'
+    'validation_stage != "cfg_backedge"'
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "Array<String>"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \

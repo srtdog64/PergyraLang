@@ -194,11 +194,14 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
             ArrayPush(block_starts, block_start);
             ArrayPush(block_ends, block_end);
             ArrayPush(backedge_headers, 0);
-            let successors: MirBlockSuccessorCapture =
-                MirBlockSuccessorCaptureWithin(json, block_start, block_end);
-            if !successors.valid { valid = false; validation_stage = "cfg_successor"; }
-            ArrayPush(block_succ_true, successors.succ_true);
-            ArrayPush(block_succ_false, successors.succ_false);
+            let true_successor_fact: String = MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_true");
+            let true_successor: Int = 0 - 1;
+            if StringLength(true_successor_fact) > 0 { true_successor = ToInt(true_successor_fact); if true_successor < 0 { valid = false; validation_stage = "cfg_successor"; } }
+            ArrayPush(block_succ_true, true_successor);
+            let false_successor_fact: String = MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_false");
+            let false_successor: Int = 0 - 1;
+            if StringLength(false_successor_fact) > 0 { false_successor = ToInt(false_successor_fact); if false_successor < 0 { valid = false; validation_stage = "cfg_successor"; } }
+            ArrayPush(block_succ_false, false_successor);
             ArrayPush(
                 block_instruction_starts,
                 routines.block_instruction_starts[global_block] -
@@ -252,7 +255,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     );
     if ArrayLength(backedge_headers) != successor_block_count {
         valid = false;
-        if validation_stage != "cfg_successor" { validation_stage = "cfg_backedge"; }
+        validation_stage = "cfg_backedge";
     }
 
     let block_count: Int = ArrayLength(block_starts);
