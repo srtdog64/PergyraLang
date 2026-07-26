@@ -44,8 +44,10 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `a05aaf06` (`admit MIR phi prefixes once per
-  routine`) on `main`. Its phi-prefix carrier predecessor is `99e76e76` (`carry
+- Implementation checkpoint: `8074d6c8` (`admit MIR branch selection through
+  routine facts`) on `main`. Its phi-prefix admission predecessor is
+  `a05aaf06` (`admit MIR phi prefixes once per routine`). Its phi-prefix carrier
+  predecessor is `99e76e76` (`carry
   MIR phi prefixes in routine facts`). Its branch-row predecessor is `4ee29ce2` (`carry MIR
   branch rows in routine facts`). Its CFG negative predecessor is `ec4b9eef`
   (`cover invalid CFG backedge batch results`), with CFG owner implementation
@@ -147,11 +149,13 @@ bounded-only parity as progress evidence.
   unchanged.
 - The routine-local instruction fact bundle now carries each block's unique
   branch global row from its existing scalar pass. Condition, loop-transfer,
-  and match-binding consumers use that row instead of searching the block
-  again. Duplicate, out-of-block, scalar-span-mismatched, or non-branch rows
-  fail closed; the deleted routine-lowering search cannot return as a fallback.
-  The program index remains structure/identity-only rather than becoming a
-  second global/local scalar aggregate.
+  and match-binding consumers select that row through the admitted routine fact
+  index instead of searching the block or repeating full bundle admission.
+  Routine/block identity, local/global range, scalar span, and final branch kind
+  are checked. Duplicate, out-of-block, scalar-span-mismatched, or non-branch
+  rows fail closed; the old bundle accessor and routine-lowering search cannot
+  return as fallbacks. The program index remains structure/identity-only rather
+  than becoming a second global/local scalar aggregate.
 - The same routine-local bundle carries each block's leading phi count. A phi
   after the first non-phi is an invalid sentinel. The phi semantic owner scans
   only that prefix while retaining predecessor, arity, result, incoming-use,
@@ -261,6 +265,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-phi-prefix-bundle-v46-300s` | 202.1 MB | 204.3 MB | Timed out at 300,163 ms after routine 704 at 163,937 ms, routine 896 at 193,024 ms, routine 1,600 at 242,500 ms, and routine 1,920 at 293,716 ms; CPU negative/noise versus v45, no routine 1,984/2,048 or gen2. |
 | `full-mir-consumer-phi-prefix-admission-v47-build` | 2535.7 MB | 2524.3 MB | Exact-source integrated C driver compiled in 51,436 ms below the fixed cap. |
 | `full-mir-consumer-phi-prefix-admission-v47-300s` | 207.7 MB | 209.7 MB | Timed out at 300,384 ms after routine 704 at 158,438 ms, routine 896 at 186,805 ms, routine 1,600 at 234,127 ms, routine 1,920 at 283,594 ms, and routine 1,984 at 293,201 ms; recovered v46 and improved on v45, no routine 2,048 or gen2. |
+| `full-mir-consumer-branch-index-admission-v48-build` | 2567.8 MB | 2557.0 MB | Exact-source integrated C driver compiled in 51,479 ms below the fixed cap. |
+| `full-mir-consumer-branch-index-admission-v48-300s` | 206.3 MB | 208.3 MB | Timed out at 300,615 ms after routine 704 at 158,817 ms, routine 896 at 187,672 ms, routine 1,600 at 235,166 ms, routine 1,920 at 285,333 ms, and routine 1,984 at 295,075 ms; CPU negative/noise versus v47, no routine 2,048 or gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -491,6 +497,22 @@ set. Routine 1,920 is 10,122 ms earlier than v46 and 4,730 ms earlier than v45;
 routine 1,984 is 5,180 ms earlier than v45. This is measured CPU progress, but
 routine 2,048, `consumer:mir-to-ast:done`, and gen2 output remain absent.
 
+`8074d6c8` moves branch selection from the bundle accessor to the admitted
+routine fact index. The branch row stays in the existing bundle, while the new
+boundary checks routine/block identity, local/global range, scalar span, and
+final program-owned kind. The old accessor is deleted and all three consumers
+use the index owner. The full validation-loop lower bound removes 21,910 full
+admissions and at least 503,930 shape checks without adding a cache or
+aggregate.
+
+The exact-source v48 driver built in 51,479 ms below 3 GiB, preserved the
+414-byte bounded SHA, and rejected the wrong-ABI input without opening output.
+The fixed run reached routine 1,920 at 285,333 ms and routine 1,984 at 295,075
+ms before timing out at 300,615 ms with 206.3/208.3 MB peak private/working
+set. Those markers are 1,739 and 1,874 ms later than v47. This is an
+owner/fallback closure and CPU negative/noise result, not a speedup. Routine
+2,048, `consumer:mir-to-ast:done`, and gen2 output remain absent.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -517,7 +539,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `a05aaf06` plus the documented working measurements:
+Green on `8074d6c8` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -525,7 +547,7 @@ Green on `a05aaf06` plus the documented working measurements:
 - `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
   partitions, direct-field spans, malformed scalar tails, missing structure,
   corrupted counts, invalid row guards, explicit negative CFG successor
-  rejection, missing/unique/duplicate/forged branch-row facts, and
+  rejection, missing/unique/duplicate/forged/out-of-block branch-row facts, and
   leading/late/truncated phi-prefix facts);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
@@ -535,8 +557,8 @@ Green on `a05aaf06` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-phi-prefix-admission-v47-build`): exit 0, 51,436 ms,
-  2,535.7 MB peak private / 2,524.3 MB peak working set;
+  owner (`full-mir-consumer-branch-index-admission-v48-build`): exit 0, 51,479 ms,
+  2,567.8 MB peak private / 2,557.0 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -603,32 +625,35 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-cfg-backedge-batch-v44-300s.*`, and
 `full-mir-consumer-branch-row-bundle-v45-300s.*`, and
 `full-mir-consumer-phi-prefix-bundle-v46-300s.*`, and
-`full-mir-consumer-phi-prefix-admission-v47-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v47_phi_prefix_admission.exe`; its
+`full-mir-consumer-phi-prefix-admission-v47-300s.*`, and
+`full-mir-consumer-branch-index-admission-v48-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v47_bounded.c`. The latest current-source
-full consumer evidence reaches routine 1,984 at 293,201 ms. These files are
+`.tmp/self_hosted/driver_bootstrap/v48_bounded.c`. The latest current-source
+full consumer evidence reaches routine 1,984 at 295,075 ms. These files are
 diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Move branch selection admission to the already admitted
-   `MirRoutineFactIndex` boundary. Keep branch global-row ownership in the
-   routine-local bundle, but make an index-owned accessor validate local block
-   bounds, carried row range, start/end identity, and final `kind=branch`
-   without repeating program-row or complete bundle admission. The full
-   validation loop alone currently repeats at least 503,930 shape checks.
-2. Delete `MirRoutineInstructionFactBundleBranchAtBlock` after migrating
-   `BlockCond`, `BlockMatchBindingLine`, and `BlockHasLoopTransfer`. Missing or
-   invalid facts must not recover through the old helper, an instruction scan,
-   first-branch selection, JSON kind read, `new ? old`, a separate cache/global
-   aggregate, or backend-specific logic. Only the exact missing sentinel may
-   mean no branch; other negative values fail closed.
-3. Preserve the existing missing/valid/duplicate/forged-kind C/LLVM cases and
-   add an out-of-block or truncated branch-row carrier negative. Ratchet the
-   three consumers to the index owner and forbid complete bundle/program-row
-   re-admission inside the new accessor. Then rerun bounded/wrong-ABI/full
-   pressure; routine 2,048 remains the unchanged falsifier.
+1. Make `EmitBlockStmts` admit its block-local instruction slice once. Use
+   `MirRoutineFactIndex.block_instruction_starts/counts` as the local coordinate
+   owner, its nested bundle as scalar/span owner, and the program index only for
+   global kind/source/machine identity. The current three-accessor loop repeats
+   an estimated 1,202,928 shape checks across the full artifact.
+2. After one block-boundary check of index validity, block bounds, local
+   start/count, bundle/program slice end, and `global_start` relation, derive
+   `fact_row` and `global_row` inside the loop and compare carried/program spans
+   before use. Do not add a helper, struct, cache, copied local arrays, global
+   aggregate, or backend branch. Slice mismatch must fail closed; it may not
+   fall back to the checked accessors/JSON, clamp counts, or use unchecked
+   arithmetic.
+3. Preserve corrupted-count/truncated-ABI and wrong-ABI negatives, add one
+   cross-block local-start negative, and ratchet `EmitBlockStmts` to forbid
+   `MirProgramRoutineIndexBlockInstructionCountAt`,
+   `MirRoutineInstructionViewAt`, and
+   `MirRoutineInstructionFactBundleAtGlobal` while requiring block admission
+   and carried/program span equality. Rerun the fixed pressure ladder with
+   routine 2,048 unchanged as the falsifier.
 4. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
    observed. Post-loop markers for top-level completion, string join, and AST
    inventory must distinguish projected completion from an observed result.

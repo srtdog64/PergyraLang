@@ -8457,3 +8457,33 @@ Released/default replacement remains 0%.
   `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, and
   gen3 comparison remain absent. The next fixed-window falsifier is routine
   2,048 under the unchanged 300-second/3,072 MB gate.
+
+### 2026-07-26 -- Branch selection consumes admitted routine facts
+
+- `8074d6c8` keeps branch global-row ownership in the existing routine-local
+  bundle but moves selection to `MirRoutineFactIndexBranchAtBlock`. The new
+  boundary validates admitted index state, routine/block identity, local/global
+  instruction range, carried start/end span equality, and final program-owned
+  branch kind without repeating full program-row or bundle admission.
+- The old bundle accessor is deleted, and `BlockCond`,
+  `BlockMatchBindingLine`, and `BlockHasLoopTransfer` use only the index owner.
+  Missing uses the exact negative sentinel; other negative, out-of-block,
+  forged-kind, and inconsistent rows fail closed. No scan, JSON fallback,
+  cache/global aggregate, or backend split was added.
+- Existing missing/valid/duplicate/forged-kind C/LLVM cases remain green, and
+  an out-of-block carried row is rejected. The component ratchet forbids the
+  deleted helper and full re-admission in the new accessor. The index owner
+  remains at its 600-line cap.
+- The exact-source v48 driver built in 51,479 ms at 2,567.8 MB peak private /
+  2,557.0 MB working set. Its 1,513 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed run reached routine 1,920 at 285,333 ms and routine 1,984 at
+  295,075 ms. It timed out at 300,615 ms with 206.3 MB peak private / 208.3 MB
+  working set and no cap crossing. Those markers are 1,739 and 1,874 ms later
+  than v47, so the fixed-window result is CPU negative/noise.
+- The owner/fallback closure remains, but this is not a speedup or self-host
+  completion. Routine 2,048, MIR-to-AST completion, gen2 output and
+  compilation, and gen3 comparison remain absent. Do not rerun v48 for a
+  favorable sample or enlarge the 300-second/3,072 MB gate.

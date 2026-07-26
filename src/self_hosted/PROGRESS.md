@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-26 admitted routine-index branch selection (`8074d6c8`). Branch global
+row ownership remains in `MirRoutineInstructionFactBundle`, while selection now
+validates through `MirRoutineFactIndexBranchAtBlock`. The accessor requires an
+admitted index, exact routine/block identity, local/global instruction range,
+carried scalar span equality, and final program-owned `kind=branch`. The old
+bundle accessor and all three consumers are removed rather than retained as a
+fallback. A missing sentinel remains valid/not-found; other negative,
+out-of-block, forged-kind, or inconsistent rows fail closed. No instruction
+scan, JSON kind read, new cache/global aggregate, or backend split was added.
+
+The focused C/LLVM routine-index and component gates pass, including the new
+out-of-block carrier negative; the index owner remains at its 600-line cap. The
+exact-source v48 driver built in 51,479 ms at 2,567.8 MB peak private / 2,557.0
+MB working set. Its bounded run finished in 1,513 ms with the established
+414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+full run reached routine 704 at 158,817 ms, routine 896 at 187,672 ms, routine
+1,600 at 235,166 ms, routine 1,920 at 285,333 ms, and routine 1,984 at 295,075
+ms. It timed out at 300,615 ms with 206.3 MB peak private / 208.3 MB working
+set, no routine 2,048, `consumer:mir-to-ast:done`, or gen2 output. Routine
+1,920 and 1,984 are 1,739 and 1,874 ms later than v47. Record the exact owner
+and fallback closure, but treat the fixed-window result as CPU negative/noise,
+not a speedup. Routine 2,048 remains the next falsifier.
+
 2026-07-26 routine-boundary phi-prefix admission (`a05aaf06`). The v46 prefix
 consumer called a shape-validating accessor once per block, repeating routine
 row and bundle admission 20,022 times across 2,345 routines. The phi owner now

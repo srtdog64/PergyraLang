@@ -941,6 +941,37 @@ This both recovers the v46 regression and establishes measured executable CPU
 progress. Routine 2,048, `consumer:mir-to-ast:done`, and gen2 output remain
 absent, so keep routine 2,048 as the unchanged fixed falsifier.
 
+#### Moving admission to the right owner can still be wall-time neutral
+
+After v47, three branch consumers still called a bundle-owned accessor that
+repeated program-row and full bundle admission despite receiving an admitted
+`MirRoutineFactIndex`. The validation loop alone made 21,910 such calls across
+the full artifact, a lower bound of 503,930 repeated shape checks. Routines
+1,984 through 2,048 make at least 662 calls before region rendering adds more.
+
+Checkpoint `8074d6c8` leaves the branch row in the routine-local bundle but
+moves selection to `MirRoutineFactIndexBranchAtBlock`. The new boundary checks
+index admission, routine/block identity, local and global instruction range,
+carried span equality, and final program-owned `kind=branch`. The old bundle
+accessor is deleted and the three consumers use only the index owner. Missing
+is represented solely by the exact negative sentinel; other negative,
+out-of-block, forged-kind, and inconsistent rows fail closed. There is no old
+helper, block scan, JSON kind fallback, extra cache, or backend split.
+
+The exact-source v48 driver built in 51,479 ms at 2,567.8 MB peak private /
+2,557.0 MB working set. Its bounded output remained 414 bytes with the
+established SHA, and the wrong-ABI input exited 1 with the owned diagnostic and
+no output. The fixed run reached routine 704 at 158,817 ms, routine 896 at
+187,672 ms, routine 1,600 at 235,166 ms, routine 1,920 at 285,333 ms, and
+routine 1,984 at 295,075 ms. It timed out at 300,615 ms with 206.3 MB peak
+private / 208.3 MB working set and no cap crossing.
+
+At routines 1,920 and 1,984, v48 is 1,739 ms (0.61%) and 1,874 ms (0.64%) later
+than v47. Treat this as an owner/fallback closure and CPU negative/noise result,
+not a speedup. Do not rerun v48 for a favorable sample or keep shaving local
+guards without a measured owner seam. Routine 2,048 remains the unchanged
+falsifier; MIR-to-AST completion and gen2 output remain absent.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
