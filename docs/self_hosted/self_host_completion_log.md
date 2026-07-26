@@ -8230,3 +8230,32 @@ Released/default replacement remains 0%.
   `valid_array_builtins` emitted C lacks `<string.h>` and current runtime panic
   declarations. This is recorded separately from the focused phi result and
   is not relabeled green.
+
+### 2026-07-26 -- Required ABI-layout validation captures each row once
+
+- v29-v37 pressure instrumentation narrowed the current full-consumer stall to
+  required ABI layout rows. Array rows cost about 1.35 seconds and Option rows
+  about 1.09 seconds because the nested layout object and field array were
+  repeatedly rediscovered and rehashed.
+- The v38 outer-bound-only experiment preserved those costs and therefore
+  served as a falsifying result: routine 248 regressed from 290,268 ms to
+  293,877 ms. Moving validation between markers is not accepted as a speedup.
+- `a5d56f42` makes the routine scalar owner carry only raw ABI value spans. The
+  ABI owner interprets them, captures the nested row and field rows once, and
+  computes the canonical ID from that capture. The producer compatibility API
+  now uses the same identity implementation; the old repeated-scan hash path
+  is deleted rather than retained as a fallback.
+- The C/LLVM focused gate admits the known `Array<Int>` ID `599770891`, rejects
+  wrong-kind and duplicate outer tuples, and rejects truncated parallel bounds.
+  The component, ABI ownership, protocol registry, and Gate SoT checks pass.
+- The v39 full run stayed at 134.7 MB peak private / 140.8 MB working set and
+  moved routine 192 from v38's 233,517 ms to 102,775 ms. It reached routine 640
+  at 298,374 ms instead of ending near routine 248.
+- The exact final-source v40 driver built in 55,007 ms at 2,565.3 MB peak
+  private / 2,554.5 MB working set and preserved the 414-byte bounded SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  A bounded ABI-ID mutation exits 1 with the owned diagnostic.
+- This is executable replacement progress, not self-host completion. The run
+  still timed out before `consumer:mir-to-ast:done`; no complete
+  `driver_gen2.c`, gen2 binary, or gen3 comparison exists. The next falsifier
+  is routine 704 under the same 300-second/3072 MB gate.

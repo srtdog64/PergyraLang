@@ -659,6 +659,55 @@ missing its MIR ABI type fact`. The full MIR JSON parity expects enum variants
 without the current `param_types:[]` field. Preserve both as explicit red
 evidence rather than calling this consumer slice fully green.
 
+#### Required ABI rows: outer bounds were not the bottleneck
+
+The v29-v37 observation ladder separated routine-index construction from
+statement rendering and then split each focused instruction into ABI,
+resource, and render markers. The result falsified the first outer-scan
+hypothesis. In v37, required Array rows cost about 1.35 seconds each and
+required Option rows about 1.09 seconds each; optional rows cost about 9 ms.
+The repeated work was inside the nested layout owner:
+`JsonObjectFactTableFromBounds`, repeated `HasField`/value scans,
+`JsonArrayObjectFactAt` restarting from the first field, and a second complete
+walk in `MirAbiLayoutIdFromRow`.
+
+The v38 experiment captured the four outer ABI value spans in the existing
+instruction scalar pass but left nested validation unchanged. That was useful
+negative evidence, not a speedup. Its 300-second run used 92.1 MB peak private /
+100.0 MB working set and reached routine 248 at 293,877 ms, compared with
+v37's 290,268 ms. The focused required-row ABI total was effectively unchanged
+at 50.72 seconds. Do not report a renderer marker moving earlier when the same
+work merely moved into fact-index construction.
+
+Checkpoint `a5d56f42` keeps wire interpretation in
+`abi_layout_fact_owner.pgy` and replaces the nested repeated reads with one
+order-independent row capture plus one field-array walk. Canonical hash order
+is applied after capture, so JSON field order does not become authority. A
+maximum of eight layout fields matches the native contract. Missing,
+duplicate, wrong-kind, invalid identity, and truncated carried bounds fail
+closed. The old instruction-span validator and old repeated-scan hash owner are
+deleted; `MirAbiLayoutIdFromRow` now delegates to the same captured identity
+implementation used by the final consumer.
+
+The v39 full run timed out at 300,560 ms with 134.7 MB peak private / 140.8 MB
+working set, but progressed far further: routine 128 at 90,643 ms, routine 192
+at 102,775 ms, routine 248 at 115,450 ms, routine 448 at 231,271 ms, and routine
+640 at 298,374 ms. Against v38, routine 192 improved by 130,742 ms (56.0%) and
+routine 248 by 178,427 ms (60.7%). It still did not reach
+`consumer:mir-to-ast:done` and did not open gen2 output. The exact final-source
+v40 driver then built in 55,007 ms at 2,565.3 MB peak private / 2,554.5 MB
+working set. Its bounded output is still exactly 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`,
+and a bounded ABI-ID mutation exits 1 with the owned ABI diagnostic.
+
+Keep the memory and CPU verdicts separate. The historical whole-graph
+revalidation defect crossed 3 GiB; the current v39 consumer stayed around
+135/141 MB while doing too much repeated ABI work. The next fixed-window
+falsifier is routine 704 and then `consumer:mir-to-ast:done`. Any reuse added
+next must compare the exact raw/canonical ABI tuple; the 28-bit layout ID alone
+cannot authorize a cache hit because collisions or a mutated second payload
+must not bypass validation.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

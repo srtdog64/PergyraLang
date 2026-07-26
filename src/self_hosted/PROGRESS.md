@@ -1,5 +1,32 @@
 # Self-Host Progress
 
+2026-07-26 ABI-layout row capture progression (`a5d56f42`). Focused v29-v37
+instrumentation isolated the full-consumer stall inside required ABI-layout
+validation, not memory growth or the routine fact-index builder. The v38
+outer-bound migration deliberately preserved the old nested validator and was
+a negative result: routine 248 moved from 290,268 ms to 293,877 ms, while the
+required Array/Option rows still cost roughly 1.35/1.09 seconds each.
+
+`MirRoutineInstructionScalarCapture` now carries the four raw ABI value spans
+from its single instruction-object walk. The renderer passes those bounds to
+the ABI owner, which captures the nested layout row and its field rows once,
+then computes the canonical identity from that capture. The old
+`MirAbiLayoutHashRow` repeated-scan implementation is deleted, and the producer
+compatibility entrypoint delegates to the same captured identity owner.
+Missing, duplicate, wrong-kind, mismatched-identity, and truncated parallel
+bounds fail closed; C and LLVM execute a known required `Array<Int>` row.
+
+The v39 300-second run stayed below the fixed cap at 134.7 MB peak private /
+140.8 MB working set. Routine 192 moved from v38's 233,517 ms to 102,775 ms,
+routine 248 from 293,877 ms to 115,450 ms, and the run reached routine 640 at
+298,374 ms. This is a material CPU closure, but it still timed out before
+`consumer:mir-to-ast:done` and emitted no gen2 artifact. The exact final-source
+v40 driver built in 55,007 ms at 2,565.3 MB peak private / 2,554.5 MB working
+set and preserved the 414-byte bounded SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The next executable falsifier is the routine-704 marker, then
+`consumer:mir-to-ast:done`, under the unchanged 300-second/3072 MB gate.
+
 2026-07-26 routine-local instruction scalar progression (`dd68d6f3`).
 `MirRoutineInstructionFactBundle` now captures result/render/ABI/match scalars
 in one pass per routine fact-index construction from the admitted program

@@ -44,8 +44,9 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `dd68d6f3` (`reuse routine-local MIR scalar
-  facts`) on `main`. Its instruction-view predecessor is `06f6994d`, its
+- Implementation checkpoint: `a5d56f42` (`optimize self-hosted MIR ABI
+  validation`) on `main`. Its routine-scalar predecessor is `dd68d6f3`, its
+  instruction-view predecessor is `06f6994d`, its
   evidence predecessor is `84f68161`, its
   admitted-structure predecessor is `190d0dbf`, its document-index predecessor
   is `67502f50`, its
@@ -104,12 +105,18 @@ bounded-only parity as progress evidence.
   CFG-proven incoming backedge.
 - Each `MirRoutineInstructionFactBundle` construction now captures `result`,
   `expr0`, `expr1`, `arg0`, `arg1`, `slot_anchor`, `abi_type_name`, and
-  `match_variant` in one pass over a routine's program-owned spans. It remains
+  `match_variant` plus raw ABI value spans in one pass over a routine's
+  program-owned spans. It remains
   routine-local rather than turning the program index into a second
   global/local aggregate. Render,
   match, graph, assignment, and phi consumers use that bundle. A malformed
   count cannot cross into the next routine, and duplicate or non-string scalar
   fields fail closed.
+- Required ABI rows no longer rebuild a generic object table for every field
+  and then repeat the same work during identity hashing. The ABI owner captures
+  one nested row and its field rows, applies canonical hash order to that
+  capture, and owns both producer and final-consumer identity. The old
+  instruction-span validator and repeated-scan hash path are absent.
 
 ## Exact dirty state
 
@@ -194,6 +201,10 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-int-cfg-v14-300s` | 94.3 MB | 102.1 MB | Timed out at 300,324 ms; routine 192 at 235,898 ms; no gen2. |
 | `mir-routine-scalar-bundle-driver-build-v23` | 2509.8 MB | 2498.5 MB | Current-source integrated C driver compiled in 47,746 ms below the cap. |
 | `full-mir-consumer-routine-scalar-bundle-v23` | 87.0 MB | 95.3 MB | Timed out at 180,343 ms; routine 64 at 96,607 ms and routine 128 at 160,331 ms; no gen2. |
+| `full-mir-consumer-routine-instruction-detail-v37-300s` | 92.2 MB | 100.1 MB | Timed out at 300,186 ms; required ABI rows dominated and routine 248 completed at 290,268 ms. |
+| `full-mir-consumer-abi-bounds-v38-300s` | 92.1 MB | 100.0 MB | Outer-bound capture alone was a negative result; routine 248 regressed to 293,877 ms. |
+| `full-mir-consumer-abi-row-capture-v39-300s` | 134.7 MB | 140.8 MB | Timed out at 300,560 ms; routine 192 at 102,775 ms, routine 448 at 231,271 ms, and routine 640 at 298,374 ms; no gen2. |
+| `full-mir-consumer-abi-owner-v40-build` | 2565.3 MB | 2554.5 MB | Exact final-source integrated C driver compiled in 55,007 ms below the fixed cap. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -287,6 +298,23 @@ working set and moved routine 128 from the v14 300-second run's 165,019 ms to
 dominant remaining cost. `output_capture_complete=true`,
 `limit_exceeded=false`, and no gen2 output was opened.
 
+`a5d56f42` closes the required ABI-layout repeated-scan seam exposed by the
+v29-v37 observation ladder. The v38 outer-bound-only experiment did not improve
+the required row cost, proving the nested object/field validation and second
+identity walk were dominant. The ABI owner now captures the nested row once,
+validates at most eight fields, and hashes the captured values in canonical
+semantic order. Raw instruction value spans remain location evidence, not a
+second ABI authority. The producer compatibility entrypoint delegates to the
+same captured identity owner, and component/ABI gates reject the deleted path.
+
+The v39 300-second run used 134.7 MB peak private / 140.8 MB working set and
+moved routine 192 from v38's 233,517 ms to 102,775 ms. It reached routine 640 at
+298,374 ms, versus v38 ending near routine 248. The exact final-source v40
+driver built in 55,007 ms below 3 GiB and preserved the exact 414-byte bounded
+SHA. A bounded wrong-ID tuple exits 1 with the owned ABI diagnostic. This is
+material executable progress but remains RED for bootstrap completion: no
+`consumer:mir-to-ast:done` marker and no gen2 file exist.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -313,7 +341,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `dd68d6f3` plus the documented working measurements:
+Green on `a5d56f42` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -325,9 +353,12 @@ Green on `dd68d6f3` plus the documented working measurements:
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
+- `tests/abi_ownership_shape_smoke.sh`;
+- `tests/protocol_registry_smoke.sh`;
+- `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`mir-routine-scalar-bundle-driver-build-v23`): exit 0, 47,746 ms,
-  2,509.8 MB peak private / 2,498.5 MB peak working set;
+  owner (`full-mir-consumer-abi-owner-v40-build`): exit 0, 55,007 ms,
+  2,565.3 MB peak private / 2,554.5 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/build_pressure_contract_smoke.sh`;
@@ -383,21 +414,22 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-document-index.*`, and
 `full-mir-consumer-program-instruction-index-v3.*`,
 `full-mir-consumer-int-cfg-v14-300s.*`, and
-`full-mir-consumer-routine-scalar-bundle-v23.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_scalar_bundle_v23.exe`; its 414-byte
-bounded result is `.tmp/self_hosted/driver_bootstrap/` followed by
-`bounded_scalar_bundle_v23.c`. The latest full consumer evidence includes
-complete stage capture through the 128-routine marker. These files are
-diagnostic evidence only, not semantic authority or commit content.
+`full-mir-consumer-routine-scalar-bundle-v23.*`,
+`full-mir-consumer-abi-bounds-v38-300s.*`, and
+`full-mir-consumer-abi-row-capture-v39-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v40_abi_owner.exe`; its
+414-byte bounded result is
+`.tmp/self_hosted/driver_bootstrap/v40_bounded.c`. The latest full consumer
+evidence includes complete stage capture through the 640-routine marker. These
+files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile the accumulated routine range after marker 128 using the current
-   admitted instruction/CFG owners. The scalar bundle moved the marker only
-   modestly, so do not repeat that hypothesis. Close only the first newly
-   measured owner seam; do not introduce a second document parser, cache, or
-   backend-local graph.
-2. Re-run the current artifact until the next 64-routine marker and ultimately
+1. Profile the first range after marker 640 using the current ABI,
+   instruction, and CFG owners. The next falsifier is marker 704. If exact ABI
+   tuple reuse is introduced, compare the complete raw/canonical tuple; never
+   authorize a cache hit by the 28-bit layout ID alone.
+2. Re-run the current artifact until marker 704 and ultimately
    `consumer:mir-to-ast:done` are observed under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
