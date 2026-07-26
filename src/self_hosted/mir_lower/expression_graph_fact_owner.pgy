@@ -1,117 +1,36 @@
-// MIR JSON expression graph facts bound to reconstructed artifact NodeIds.
+// MIR graph facts bound to structured AST expression occurrence identity.
 
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
-import "expression_graph_sequence_owner.pgy";
-import "expression_graph_instruction_policy_owner.pgy";
-import "expression_graph_sequence_view_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "expression_graph_occurrence_owner.pgy";
 import "expression_graph_parser_bridge_owner.pgy";
-import "expression_graph_match_owner.pgy";
-import "destructure_expression_projection_owner.pgy";
-
-func MirExpressionGraphSequenceAppendRequired(
-    sequence: MirExpressionGraphSequence,
-    graph: JsonObjectFactTable,
-    required: Bool
-) -> MirExpressionGraphSequence {
-    if !required { return sequence; }
-    if !JsonObjectFactTableReady(graph) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    return MirExpressionGraphSequenceAppend(sequence, graph);
-}
-
-func MirExpressionGraphSequenceFromRoutineIndex(
-    ref routines: MirProgramRoutineIndex
-) -> MirExpressionGraphSequence {
-    let sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceEmpty();
-    let json: String = routines.source_json;
-    let instruction_count: Int = ArrayLength(routines.instruction_starts);
-    if !MirProgramRoutineIndexStructureReady(routines) ||
-        instruction_count != ArrayLength(routines.instruction_ends) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    let instruction_i: Int = 0;
-    while instruction_i < instruction_count {
-        let instruction: JsonObjectFactTable =
-            JsonObjectFactTableFromBounds(
-                json, routines.instruction_starts[instruction_i],
-                routines.instruction_ends[instruction_i]
-            );
-        let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
-            instruction, "expr0_graph"
-        );
-        let expr1_graph: JsonObjectFactTable =
-            JsonObjectFactObjectTable(instruction, "expr1_graph");
-        let kind: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction, "kind"
-        );
-        let source_type: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction, "source_type"
-        );
-        let expr0_required: Bool =
-            MirInstructionRequiresExpr0Graph(instruction);
-        let expr1_required: Bool =
-            MirInstructionRequiresExpr1Graph(instruction);
-        if IsSome(kind) && UnwrapOption(kind) == "destructure" {
-            sequence = MirExpressionGraphSequenceAppendDestructure(
-                sequence, instruction, graph
-            );
-        } else if IsSome(source_type) &&
-            UnwrapOption(source_type) == "AST_MATCH_CASE" {
-            sequence = MirExpressionGraphSequenceAppendMatchCondition(
-                sequence, instruction, graph
-            );
-        } else if IsSome(kind) && UnwrapOption(kind) == "assign" {
-            sequence = MirExpressionGraphSequenceAppendRequired(
-                sequence, graph, expr0_required
-            );
-            sequence = MirExpressionGraphSequenceAppendRequired(
-                sequence, expr1_graph, expr1_required
-            );
-        } else {
-            sequence = MirExpressionGraphSequenceAppendRequired(
-                sequence, expr1_graph, expr1_required
-            );
-            sequence = MirExpressionGraphSequenceAppendRequired(
-                sequence, graph, expr0_required
-            );
-        }
-        if !sequence.ok {
-            return MirExpressionGraphSequenceError(sequence);
-        }
-        instruction_i = instruction_i + 1;
-    }
-    if !SemanticExpressionGraphArenaReady(sequence.arena) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    return sequence;
-}
 
 func MirExpressionGraphFactsForArtifact(
     ref routines: MirProgramRoutineIndex,
-    artifact: AstTreeArtifact
+    artifact: AstTreeArtifact,
+    ref order: MirStructuredExpressionEmissionOrder
 ) -> SemanticExpressionGraphFacts {
     let surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
-    let persisted_sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceFromRoutineIndex(routines);
-    if !persisted_sequence.ok {
-        let invalid_roots: Array<Int> = [];
-        let invalid_has_roots: Array<Bool> = [];
-        return SemanticExpressionGraphFacts(
-            false, invalid_roots, invalid_has_roots, persisted_sequence.arena
-        );
-    }
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceEmpty();
     let roots: Array<Int> = [];
     let has_roots: Array<Bool> = [];
-    let sequence_i: Int = 0;
-    let persisted_root_count: Int = ArrayLength(persisted_sequence.roots);
-    let valid: Bool = true;
+    let valid: Bool = MirProgramRoutineIndexStructureReady(routines) &&
+        MirStructuredExpressionEmissionOrderReady(order);
+    let order_i: Int = 0;
+    let order_count: Int = ArrayLength(order.global_instruction_rows);
+    let instruction_count: Int = ArrayLength(routines.instruction_starts);
+    let expr0_seen: Array<Bool> = [];
+    let expr1_seen: Array<Bool> = [];
+    let seen_i: Int = 0;
+    while seen_i < instruction_count {
+        ArrayPush(expr0_seen, false);
+        ArrayPush(expr1_seen, false);
+        seen_i = seen_i + 1;
+    }
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[i];
@@ -136,65 +55,80 @@ func MirExpressionGraphFactsForArtifact(
                         artifact, node_id
                     );
                 expected_text = surfaces.normalized_values[i];
-            } else if lane == AstExpressionLaneAuxiliary() {
+            } else {
                 required = surfaces.has_auxiliary_values[i] &&
                     SemanticAstExpressionGraphAuxiliaryLaneRequired(
                         artifact, node_id
                     );
                 expected_text = surfaces.normalized_auxiliary_values[i];
             }
-            if producer_only {
-                sequence = MirExpressionGraphSequenceAppendParserBridge(
-                    sequence, expected_text
-                );
-                if !sequence.ok {
-                    valid = false;
-                    ArrayPush(roots, 0);
-                    ArrayPush(has_roots, false);
+            if required || producer_only {
+                let occurrence_valid: Bool = valid;
+                let root: Int = 0;
+                let has_root: Bool = false;
+                if order_i >= order_count {
+                    occurrence_valid = false;
                 } else {
-                    let parser_root: Int = sequence.roots[
-                        ArrayLength(sequence.roots) - 1
-                    ];
-                    if sequence.arena.node_texts[parser_root] != expected_text {
-                        valid = false;
-                    }
-                    ArrayPush(roots, parser_root);
-                    ArrayPush(has_roots, true);
-                }
-            } else if required {
-                if sequence_i >= persisted_root_count {
-                    valid = false;
-                    ArrayPush(roots, 0);
-                    ArrayPush(has_roots, false);
-                } else {
-                    let persisted_roots: Array<Int> = [];
-                    let persisted_has_roots: Array<Bool> = [];
-                    let persisted_facts: SemanticExpressionGraphFacts =
-                        SemanticExpressionGraphFacts(
-                            true, persisted_roots, persisted_has_roots,
-                            persisted_sequence.arena
-                        );
-                    let persisted_view: SemanticExpressionGraphView =
-                        SemanticExpressionGraphView(
-                            true, persisted_sequence.roots[sequence_i],
-                            persisted_facts
-                        );
-                    sequence = MirExpressionGraphSequenceAppendView(
-                        sequence, persisted_view
-                    );
-                    let root: Int = 0;
-                    if !sequence.ok {
-                        valid = false;
+                    let global_row: Int =
+                        order.global_instruction_rows[order_i];
+                    let ordinal: Int = order.derived_ordinals[order_i];
+                    if order.lanes[order_i] != lane || global_row < 0 ||
+                        global_row >= instruction_count {
+                        occurrence_valid = false;
                     } else {
-                        root = sequence.roots[ArrayLength(sequence.roots) - 1];
-                        if sequence.arena.node_texts[root] != expected_text {
-                            valid = false;
+                        let instruction: JsonObjectFactTable =
+                            JsonObjectFactTableFromBounds(
+                                routines.source_json,
+                                routines.instruction_starts[global_row],
+                                routines.instruction_ends[global_row]
+                            );
+                        let prior_root_count: Int =
+                            ArrayLength(sequence.roots);
+                        let graph_slot: Int = MirExpressionGraphSlotNone();
+                        if producer_only {
+                            if !MirExpressionGraphProducerOnlyOccurrenceAllowed(
+                                    instruction, lane, ordinal
+                                ) {
+                                occurrence_valid = false;
+                            } else {
+                                sequence =
+                                    MirExpressionGraphSequenceAppendParserBridge(
+                                        sequence, expected_text
+                                    );
+                            }
+                        } else {
+                            graph_slot = MirExpressionGraphOccurrenceGraphSlot(
+                                instruction, lane, ordinal
+                            );
+                            sequence = MirExpressionGraphSequenceAppendOccurrence(
+                                sequence, instruction, lane, ordinal
+                            );
+                        }
+                        if !sequence.ok ||
+                            ArrayLength(sequence.roots) != prior_root_count + 1 {
+                            occurrence_valid = false;
+                        } else {
+                            root = sequence.roots[prior_root_count];
+                            has_root = true;
+                            if graph_slot == MirExpressionGraphSlotExpr0() {
+                                ArraySet(expr0_seen, global_row, true);
+                            }
+                            if graph_slot == MirExpressionGraphSlotExpr1() {
+                                ArraySet(expr1_seen, global_row, true);
+                            }
+                            if sequence.arena.node_texts[root] != expected_text {
+                                occurrence_valid = false;
+                            }
                         }
                     }
-                    ArrayPush(roots, root);
-                    ArrayPush(has_roots, sequence.ok);
-                    sequence_i = sequence_i + 1;
+                    order_i = order_i + 1;
                 }
+                if !occurrence_valid {
+                    valid = false;
+                    has_root = false;
+                }
+                ArrayPush(roots, root);
+                ArrayPush(has_roots, has_root);
             } else {
                 ArrayPush(roots, 0);
                 ArrayPush(has_roots, false);
@@ -203,13 +137,45 @@ func MirExpressionGraphFactsForArtifact(
         }
         i = i + 1;
     }
-    if sequence_i != persisted_root_count {
+    if order_i != order_count || !sequence.ok ||
+        !SemanticExpressionGraphArenaReady(sequence.arena) {
         valid = false;
+    }
+    let coverage_i: Int = 0;
+    while coverage_i < instruction_count {
+        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            routines.source_json, routines.instruction_starts[coverage_i],
+            routines.instruction_ends[coverage_i]
+        );
+        let kind: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction, "kind"
+        );
+        let source: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction, "source_type"
+        );
+        let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction, "expr0"
+        );
+        let special_expr0_required: Bool =
+            (IsSome(source) &&
+                UnwrapOption(source) == "AST_MATCH_CASE") ||
+            (IsSome(kind) && UnwrapOption(kind) == "destructure" &&
+                IsSome(expr0) &&
+                MirDestructureNeedsTemp(UnwrapOption(expr0)));
+        if (MirInstructionRequiresExpr0Graph(instruction) ||
+                special_expr0_required) && !expr0_seen[coverage_i] {
+            valid = false;
+        }
+        if MirInstructionRequiresExpr1Graph(instruction) &&
+            !expr1_seen[coverage_i] {
+            valid = false;
+        }
+        coverage_i = coverage_i + 1;
     }
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         valid, roots, has_roots, sequence.arena
     );
-    if !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
+    if !valid || !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
         return SemanticExpressionGraphFacts(
             false, roots, has_roots, sequence.arena
         );

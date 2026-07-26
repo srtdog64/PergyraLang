@@ -1,4 +1,4 @@
-// Match-condition expression graphs derived from MIR match facts.
+// Match expression graphs selected by structured AST occurrence identity.
 
 import "expression_graph_sequence_owner.pgy";
 import "expression_graph_option_match_owner.pgy";
@@ -6,10 +6,12 @@ import "expression_graph_tagged_enum_match_owner.pgy";
 import "match_json_fact_owner.pgy";
 import "json_fact_read.pgy";
 
-func MirExpressionGraphSequenceAppendMatchCondition(
+func MirExpressionGraphSequenceAppendMatchOccurrence(
     sequence: MirExpressionGraphSequence,
     instruction: JsonObjectFactTable,
-    subject_graph: JsonObjectFactTable
+    subject_graph: JsonObjectFactTable,
+    lane: Int,
+    ordinal: Int
 ) -> MirExpressionGraphSequence {
     let source_type: Option<String> =
         JsonObjectFactStringFieldOpt(instruction, "source_type");
@@ -27,7 +29,6 @@ func MirExpressionGraphSequenceAppendMatchCondition(
         UnwrapOption(binding_type_count) != UnwrapOption(binding_count) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let match_value_text: String = UnwrapOption(match_value);
     let pattern_opt: Option<String> = MirMatchPatternAt(instruction, 0);
     if !IsSome(pattern_opt) {
         return MirExpressionGraphSequenceError(sequence);
@@ -39,51 +40,21 @@ func MirExpressionGraphSequenceAppendMatchCondition(
             UnwrapOption(variant_opt) == "Ok" ||
             UnwrapOption(variant_opt) == "Err") {
         let variant: String = UnwrapOption(variant_opt);
-        if (variant == "Some" &&
-                (UnwrapOption(binding_count) != 1 ||
-                    !IsSome(MirMatchBindingAt(instruction, 0)) ||
-                    !IsSome(MirMatchBindingTypeAt(instruction, 0)))) ||
-            (variant == "None" && UnwrapOption(binding_count) != 0) ||
-            ((variant == "Ok" || variant == "Err") &&
+        if (variant == "None" && UnwrapOption(binding_count) != 0) ||
+            (variant != "None" &&
                 (UnwrapOption(binding_count) != 1 ||
                     !IsSome(MirMatchBindingAt(instruction, 0)) ||
                     !IsSome(MirMatchBindingTypeAt(instruction, 0)))) {
             return MirExpressionGraphSequenceError(sequence);
         }
-        if variant == "Ok" || variant == "Err" {
-            let condition_name: String = "IsOk";
-            let unwrap_name: String = "Unwrap";
-            if variant == "Err" {
-                condition_name = "IsErr";
-                unwrap_name = "UnwrapErr";
-            }
-            let result_condition: MirExpressionGraphSequence =
-                MirExpressionGraphSequenceAppendUnaryCall(
-                    sequence, subject_graph, condition_name,
-                    match_value_text, false
-                );
-            if !result_condition.ok { return result_condition; }
-            return MirExpressionGraphSequenceAppendUnaryCall(
-                result_condition, subject_graph, unwrap_name,
-                match_value_text, false
-            );
-        }
-        let condition: MirExpressionGraphSequence =
-            MirExpressionGraphSequenceAppendUnaryCall(
-                sequence, subject_graph, "IsSome",
-                match_value_text,
-                variant == "None"
-            );
-        if !condition.ok || variant == "None" {
-            return condition;
-        }
-        return MirExpressionGraphSequenceAppendUnaryCall(
-            condition, subject_graph, "UnwrapOption",
-            match_value_text, false
+        return MirExpressionGraphSequenceAppendOptionMatchOccurrence(
+            sequence, subject_graph, variant, UnwrapOption(match_value),
+            lane, ordinal
         );
     }
-    return MirExpressionGraphSequenceAppendTaggedEnumMatch(
-        sequence, instruction, subject_graph, match_value_text,
-        UnwrapOption(pattern_opt), variant_opt, UnwrapOption(binding_count)
+    return MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
+        sequence, instruction, subject_graph, UnwrapOption(match_value),
+        UnwrapOption(pattern_opt), variant_opt, UnwrapOption(binding_count),
+        lane, ordinal
     );
 }

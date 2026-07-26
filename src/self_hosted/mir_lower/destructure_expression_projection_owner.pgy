@@ -68,53 +68,52 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     return MirExpressionGraphSequence(true, ArrayLength(kinds), roots, arena);
 }
 
-func MirExpressionGraphSequenceAppendDestructure(
+func MirExpressionGraphSequenceAppendDestructureOccurrence(
     sequence: MirExpressionGraphSequence,
     instruction: JsonObjectFactTable,
-    graph: JsonObjectFactTable
+    graph: JsonObjectFactTable,
+    ordinal: Int
 ) -> MirExpressionGraphSequence {
-    let expr0: Option<String> = JsonObjectFactStringFieldOpt(
-        instruction, "expr0"
-    );
-    let element_type: Option<String> = JsonObjectFactStringFieldOpt(
-        instruction, "destructure_element_type"
-    );
+    let expr0: Option<String> = JsonObjectFactStringFieldOpt(instruction, "expr0");
+    let element_type: Option<String> = JsonObjectFactStringFieldOpt(instruction, "destructure_element_type");
     let binding_bounds: Array<Int> = [0, 0];
-    if !IsSome(expr0) || UnwrapOption(expr0) == "" ||
+    if ordinal < 0 || !IsSome(expr0) || UnwrapOption(expr0) == "" ||
         !IsSome(element_type) || UnwrapOption(element_type) == "" ||
         !JsonObjectFactArrayBounds(
             instruction, "destructure_bindings", binding_bounds
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let binding_count: Int = JsonArrayStringCount(
-        instruction.json, binding_bounds[0], binding_bounds[1]
-    );
+    let binding_count: Int = JsonArrayStringCount(instruction.json, binding_bounds[0], binding_bounds[1]);
     if binding_count <= 0 { return MirExpressionGraphSequenceError(sequence); }
-    let first_binding: String = JsonArrayStringAt(
-        instruction.json, binding_bounds[0], binding_bounds[1], 0
-    );
+    let first_binding: String = JsonArrayStringAt(instruction.json, binding_bounds[0], binding_bounds[1], 0);
     if first_binding == "" { return MirExpressionGraphSequenceError(sequence); }
     let init: String = UnwrapOption(expr0);
-    let source: String = init;
-    if MirDestructureNeedsTemp(init) {
+    let needs_temp: Bool = MirDestructureNeedsTemp(init);
+    if (needs_temp && ordinal > binding_count) ||
+        (!needs_temp && ordinal >= binding_count) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    if needs_temp && ordinal == 0 {
         if !JsonObjectFactTableReady(graph) {
             return MirExpressionGraphSequenceError(sequence);
         }
-        sequence = MirExpressionGraphSequenceAppend(sequence, graph);
+        return MirExpressionGraphSequenceAppend(sequence, graph);
+    }
+    let binding_index: Int = ordinal;
+    let source: String = init;
+    if needs_temp {
+        binding_index = ordinal - 1;
         source = MirDestructureTempName(first_binding);
     }
-    let i: Int = 0;
-    while i < binding_count {
-        if JsonArrayStringAt(
-            instruction.json, binding_bounds[0], binding_bounds[1], i
+    if binding_index < 0 || binding_index >= binding_count ||
+        JsonArrayStringAt(
+            instruction.json, binding_bounds[0], binding_bounds[1],
+            binding_index
         ) == "" {
-            return MirExpressionGraphSequenceError(sequence);
-        }
-        sequence = MirExpressionGraphSequenceAppendIndexProjection(
-            sequence, source, i
-        );
-        i = i + 1;
+        return MirExpressionGraphSequenceError(sequence);
     }
-    return sequence;
+    return MirExpressionGraphSequenceAppendIndexProjection(
+        sequence, source, binding_index
+    );
 }

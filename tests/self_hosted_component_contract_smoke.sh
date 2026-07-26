@@ -576,7 +576,11 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirPro
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     'NewMirAbiLayoutValidationSession()'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
-    '"Program:\n", EmitStructDecls(routines, abi_validation)'
+    'routines, expression_order, abi_validation'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'MirStructuredExpressionEmissionOrderReady(expression_order)'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'MirProgramTreeEmission('
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
@@ -3735,7 +3739,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "EmitMirProgramTreeFromRoutineIndexObserved("
+    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
 reject_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(" \
     "MirMachineLayerFactsReady("
@@ -3787,22 +3791,20 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "ref routines: MirProgramRoutineIndex"
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    "if !SemanticExpressionGraphArenaReady(sequence.arena)"
-reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    "func MirExpressionGraphSequenceFromRoutineIndex(" \
-    "BuildMirProgramRoutineIndex("
-reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    "func MirExpressionGraphSequenceFromRoutineIndex(" \
-    "BuildMirRoutineFactIndex("
+    "!SemanticExpressionGraphArenaReady(sequence.arena)"
+reject_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphSequenceFromRoutineIndex("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "func MirExpressionGraphFactsForArtifact(" \
     "BuildMirProgramRoutineIndex("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "func MirExpressionGraphFactsForArtifact(" \
     "BuildMirRoutineFactIndex("
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_file "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" 200
+require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
     'JsonObjectFactObjectTable('
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
     'instruction, "expr0_graph"'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'node, "call_target_kind"'
@@ -3821,7 +3823,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "sequence.ready_node_count != offset"
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    "if !MirProgramRoutineIndexStructureReady(routines)"
+    "MirProgramRoutineIndexStructureReady(routines) &&"
 reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphSequenceAppend(" \
     "SemanticExpressionGraphArenaUnclassified("
@@ -3844,7 +3846,7 @@ reject_function_text "src/self_hosted/mir_lower/expression_graph_option_match_ow
     "func MirExpressionGraphSequenceAppendUnaryCall(" \
     "SemanticExpressionGraphArenaReady("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
-    "func MirExpressionGraphSequenceAppendTaggedEnumMatch(" \
+    "func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(" \
     "SemanticExpressionGraphArenaReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonTextToCVerified("
@@ -4098,8 +4100,8 @@ reject_regex "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
     'ArrayPush\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*\.'
 require_file "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" 120
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    "MirExpressionGraphSequenceAppendDestructure("
+require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
+    "MirExpressionGraphSequenceAppendDestructureOccurrence("
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "MirDestructureTempName(first_binding)"
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ToString(inst_start)"
@@ -5153,20 +5155,20 @@ reject_text "src/self_hosted/mir/match_fact_owner.pgy" \
 reject_text "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" \
     'tagged enum match binding requires exactly one payload'
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
-    'func MirExpressionGraphSequenceAppendMatchCondition('
+    'func MirExpressionGraphSequenceAppendMatchOccurrence('
 require_file "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy"
 require_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
     'func MirExpressionGraphSequenceAppendUnaryCall('
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
-    'MirExpressionGraphSequenceAppendTaggedEnumMatch('
+    'MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence('
 require_file "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy"
 require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
-    'while binding_index < binding_count'
+    'ordinal >= binding_count'
 require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
     'MirEnumOwnerForVariant('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'SemanticAstEnumFacts'
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
     'match enum variant declaration fact is missing'
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
@@ -5203,8 +5205,10 @@ require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "ArraySet"'
 reject_regex_under "src/self_hosted/mir" \
     "SelfMirRoutineAttachLastTargetExpressionGraph\\("
+require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
+    'func MirExpressionGraphSequenceAppendOccurrence('
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    'func MirExpressionGraphSequenceAppendRequired('
+    'expr0_seen: Array<Bool>'
 require_text "src/runtime/pgy_runtime_text_builder_inline.h" \
     "pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)"
 require_text "src/runtime/pgy_runtime_text_builder_inline.h" \
@@ -6832,14 +6836,15 @@ require_file "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy
 require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 80
 require_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
     'func MirExpressionGraphSequenceAppendParserBridge('
-require_file "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy"
-require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy" 120
-require_text "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy" \
-    'func MirExpressionGraphSequenceAppendView('
+reject_file "src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy"
+require_file "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" 220
+require_text "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" \
+    'global_instruction_rows: Array<Int>'
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     'func SemanticExpressionGraphSubtreeStart('
 require_file "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh"
-require_max_lines "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh" 90
+require_max_lines "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_use_owner.sh" 110
 reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" \
     "func SelfMirExpressionUses("
 reject_text "src/self_hosted/mir/expression_fact_owner.pgy" \
@@ -6988,7 +6993,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "struct_field_name" {'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    'if !sequence.ok {'
+    'if order_i != order_count || !sequence.ok ||'
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArguments("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -8024,7 +8029,7 @@ for exact_bool_owner in \
     require_text "src/self_hosted/mir_lower/$exact_bool_owner" "JsonObjectBoolFieldEqualsWithin("
 done
 for exact_render_owner in \
-    "routine_lower.pgy" \
+    "structured_condition_emission_owner.pgy" \
     "stmt_render.pgy" \
     "match_binding_render_owner.pgy"; do
     reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectStringFact("
@@ -8297,7 +8302,7 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, 
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json)"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
-    "EmitRoutineTreeAtRow("
+    "EmitRoutineTreeAtRowWithExpressionOrder("
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "MirProgramRoutineIndexCount(routines)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine("
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
@@ -10395,7 +10400,7 @@ reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return Some(row)"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return None"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    '"      ", false, false, abi_validation'
+    '"      ", false, false, expression_order, abi_validation'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:declarations:done"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -10453,7 +10458,7 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "total == 191 || total == 242)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "EmitMirProgramTreeFromRoutineIndexObserved("
+    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtRow("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "BuildMirRoutineFactIndex(routines, routine_row)"
@@ -10533,7 +10538,7 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldSt
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'MirObjectStringFactAtBounds(json, kp, inst_end, "source_type")'
-reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+reject_function_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
     "func BlockCond(" "MirObjectStringFactAtBounds("
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitBlockStmts(" "MirObjectStringFactAtBounds("
@@ -10588,8 +10593,8 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineInstructionFactBundleAtGlobal("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineFactIndexBranchAtBlock("
-require_text_count_at_least "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "MirRoutineFactIndexBranchAtBlock(" 3
+require_text_count_at_least "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
+    "MirRoutineFactIndexBranchAtBlock(" 2
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     "mir-program-routine-index-owner-invalid-branch-sentinel-failed"
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
@@ -10743,8 +10748,8 @@ require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "ru
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "bool_helper_while_slot"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "stray-consumer-runtime-row"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "class_helper_method_chain/main.pgy"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactsAtBounds("
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let pattern: String = patterns[0]"
+require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" "let pattern: String = patterns[0]"
 require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \
     'let binding: String = bindings[binding_index]'
 require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \

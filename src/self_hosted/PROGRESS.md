@@ -4797,6 +4797,21 @@ beyond the lexer:
   statement gate and the refreshed component contract reject the retired
   fallback in the graph-owned path.
 
+- **Structured expression occurrence identity** -- the hard MIR consumer no
+  longer pairs structured AST surfaces with flat raw graph position. Structured
+  emission owns `(global instruction row, AST lane, derived ordinal)` order;
+  repeated CFG visits repeat a key and receive distinct ranges in one final
+  graph arena. The intermediate persisted graph view is deleted, text is only
+  an assertion, and a producer-coverage pass fails closed if a required MIR
+  graph was never consumed. Native range-loop MIR now gives the branch graph
+  its stop expression while loop-init retains the start, with a focused
+  producer parity ratchet. The complete v60 run finished graph construction
+  at 1,673,958 ms and semantic analysis at 1,674,754 ms with 1,130.3 MB peak
+  private, then exhausted the fixed 30-minute budget in assignment body typing.
+  This closes the reached positional-identity seam and the earlier cumulative
+  memory amplifier; it does not yet produce `driver_gen2.c` or count as hard
+  self-host substitution.
+
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core
 design work is mixed AST-like tree ownership inside a Pergyra pass; current

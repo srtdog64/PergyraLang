@@ -606,9 +606,15 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy` --
   bounded parser-owned reconstruction of producer-only collection receiver
   roots during MIR graph reconsumption; it is not a codegen fallback authority.
-- `src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy` --
-  structural graph-view append into the MIR-lower sequence arena with copied
-  semantic topology and call-target facts.
+- `src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy` --
+  stable MIR instruction/lane/derived-ordinal occurrence order captured at the
+  structured AST emission boundary; repeated CFG visits remain distinct rows.
+- `src/self_hosted/mir_lower/structured_condition_emission_owner.pgy` --
+  CFG-owned branch conditions, `for` value/auxiliary lane identity, and derived
+  match-binding occurrence order recorded at their actual AST emission point.
+- `src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy` -- exact
+  occurrence-key to MIR graph-slot selection; it rejects positional and textual
+  lookup and appends directly into the one final sequence arena.
 - `src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy` --
   fail-closed MIR direct/member generic row decoder and final codegen-view
   projection; semantic rows are verifier evidence, not emitted-symbol input.

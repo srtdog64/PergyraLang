@@ -125,7 +125,10 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "MirExpressionGraphFactsForArtifact(admitted.routines, artifact)"
+    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved" \
+    "tree_emission.expression_order"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeTyped(artifact, true)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -216,7 +219,7 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeCompactBridge"
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
-    "MirExpressionGraphFactsForArtifact(routines, artifact)"
+    "emission.expression_order"
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
     "SemanticAstArtifactAnalyzeWithExpressionGraph("

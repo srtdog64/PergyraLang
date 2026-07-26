@@ -1,0 +1,177 @@
+// Selects one MIR graph slot by structured AST expression occurrence identity.
+
+import "expression_graph_sequence_owner.pgy";
+import "expression_graph_instruction_policy_owner.pgy";
+import "expression_graph_match_owner.pgy";
+import "destructure_expression_projection_owner.pgy";
+
+func MirExpressionGraphSlotNone() -> Int { return 0; }
+func MirExpressionGraphSlotExpr0() -> Int { return 1; }
+func MirExpressionGraphSlotExpr1() -> Int { return 2; }
+
+func MirExpressionGraphProducerOnlyOccurrenceAllowed(
+    instruction: JsonObjectFactTable,
+    lane: Int,
+    ordinal: Int
+) -> Bool {
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let source_type: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    let arg0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "arg0"
+    );
+    if lane != AstExpressionLaneAtom() || ordinal != 0 ||
+        !IsSome(kind) || UnwrapOption(kind) != "stmt" ||
+        !IsSome(source_type) || UnwrapOption(source_type) != "AST_CALL" ||
+        !IsSome(arg0) {
+        return false;
+    }
+    let operation: String = UnwrapOption(arg0);
+    return operation == "ArrayPop" || operation == "ArrayPush" ||
+        operation == "ArraySet";
+}
+
+func MirExpressionGraphOccurrenceGraphSlot(
+    instruction: JsonObjectFactTable,
+    lane: Int,
+    ordinal: Int
+) -> Int {
+    let kind_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let source_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    let arg0_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "arg0"
+    );
+    if !IsSome(kind_opt) || !IsSome(source_opt) || ordinal < 0 {
+        return MirExpressionGraphSlotNone();
+    }
+    let kind: String = UnwrapOption(kind_opt);
+    let source: String = UnwrapOption(source_opt);
+    if source == "AST_MATCH_CASE" {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if kind == "destructure" {
+        let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction, "expr0"
+        );
+        if lane == AstExpressionLaneValue() && ordinal == 0 &&
+            IsSome(expr0) && MirDestructureNeedsTemp(UnwrapOption(expr0)) {
+            return MirExpressionGraphSlotExpr0();
+        }
+        return MirExpressionGraphSlotNone();
+    }
+    if ordinal != 0 { return MirExpressionGraphSlotNone(); }
+    if source == "AST_FOR_LOOP" &&
+        ((kind == "loop-init" && lane == AstExpressionLaneValue()) ||
+         (kind == "branch" && lane == AstExpressionLaneAuxiliary())) {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if source == "AST_ASSIGNMENT" && kind == "assign" {
+        if lane == AstExpressionLaneAtom() {
+            return MirExpressionGraphSlotExpr0();
+        }
+        if lane == AstExpressionLaneValue() {
+            return MirExpressionGraphSlotExpr1();
+        }
+    }
+    if source == "AST_ASSIGNMENT" && kind == "def" {
+        if lane == AstExpressionLaneAtom() {
+            return MirExpressionGraphSlotExpr1();
+        }
+        if lane == AstExpressionLaneValue() {
+            return MirExpressionGraphSlotExpr0();
+        }
+    }
+    if source == "AST_LET_DECL" && kind == "def" &&
+        lane == AstExpressionLaneValue() {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if source == "AST_CALL" && kind == "stmt" {
+        if IsSome(arg0_opt) && UnwrapOption(arg0_opt) == "ArrayPush" &&
+            lane == AstExpressionLaneValue() {
+            return MirExpressionGraphSlotExpr0();
+        }
+        if IsSome(arg0_opt) && UnwrapOption(arg0_opt) == "ArraySet" {
+            if lane == AstExpressionLaneValue() {
+                return MirExpressionGraphSlotExpr1();
+            }
+            if lane == AstExpressionLaneAuxiliary() {
+                return MirExpressionGraphSlotExpr0();
+            }
+        }
+        if lane == AstExpressionLaneAtom() &&
+            (!IsSome(arg0_opt) || UnwrapOption(arg0_opt) == "" ||
+                UnwrapOption(arg0_opt) == "Log" ||
+                UnwrapOption(arg0_opt) == "Exit") {
+            return MirExpressionGraphSlotExpr0();
+        }
+    }
+    if source == "AST_DEFER_STMT" && lane == AstExpressionLaneAtom() {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if kind == "branch" && lane == AstExpressionLaneAtom() {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if kind == "return" && lane == AstExpressionLaneAtom() {
+        return MirExpressionGraphSlotExpr0();
+    }
+    return MirExpressionGraphSlotNone();
+}
+
+func MirExpressionGraphSequenceAppendOccurrence(
+    sequence: MirExpressionGraphSequence,
+    instruction: JsonObjectFactTable,
+    lane: Int,
+    ordinal: Int
+) -> MirExpressionGraphSequence {
+    if !sequence.ok || !JsonObjectFactTableReady(instruction) ||
+        lane < AstExpressionLaneAtom() ||
+        lane > AstExpressionLaneAuxiliary() || ordinal < 0 {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let source: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    if !IsSome(kind) || !IsSome(source) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let expr0_graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    if UnwrapOption(kind) == "destructure" {
+        if lane != AstExpressionLaneValue() {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        return MirExpressionGraphSequenceAppendDestructureOccurrence(
+            sequence, instruction, expr0_graph, ordinal
+        );
+    }
+    if UnwrapOption(source) == "AST_MATCH_CASE" {
+        return MirExpressionGraphSequenceAppendMatchOccurrence(
+            sequence, instruction, expr0_graph, lane, ordinal
+        );
+    }
+    let slot: Int = MirExpressionGraphOccurrenceGraphSlot(
+        instruction, lane, ordinal
+    );
+    if slot == MirExpressionGraphSlotExpr0() &&
+        MirInstructionRequiresExpr0Graph(instruction) {
+        return MirExpressionGraphSequenceAppend(sequence, expr0_graph);
+    }
+    if slot == MirExpressionGraphSlotExpr1() &&
+        MirInstructionRequiresExpr1Graph(instruction) {
+        return MirExpressionGraphSequenceAppend(
+            sequence, JsonObjectFactObjectTable(instruction, "expr1_graph")
+        );
+    }
+    return MirExpressionGraphSequenceError(sequence);
+}

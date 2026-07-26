@@ -1264,6 +1264,55 @@ identity carried by structured emission into one final graph. Do not reorder by
 text, relax the count check, deduplicate repeated CFG visits, rebuild a second
 graph, or raise the memory/time limits.
 
+#### v60 closes positional graph identity without reopening the memory defect
+
+v60 makes structured emission carry the exact occurrence key
+`(global instruction row, AST lane, derived ordinal)`. The occurrence array is
+the order authority: revisiting a CFG block repeats the same producer key and
+creates another range in the one final graph arena. It is not deduplicated.
+`MirExpressionGraphFactsForArtifact` consumes that order, checks source text
+only as an assertion, and records producer coverage so a missing required MIR
+graph cannot hide behind an omitted structured occurrence. The intermediate
+persisted sequence/view owner is deleted and statically forbidden.
+
+The exact-source C driver built in 69,368 ms at 2,480.3 MB peak private /
+2,473.7 MB working set. The observed bootstrap driver built in 65,293 ms at
+2,575.8/2,564.5 MB. The bounded MIR still emits 414 LF-normalized bytes with
+SHA-256 `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI still exits 1 with the owned diagnostic and no output. Option match,
+array destructure, and collection mutation graph fixtures pass direct hard
+consumption, and missing or invalid graphs fail closed.
+The same gate exposed and closed a native range-loop producer drift: the
+range branch now serializes its MIR-owned stop expression (`expr1`) as the
+branch graph, while loop-init retains the start expression. A focused
+`forloop` native/self MIR-to-C parity run proves stop `3` and rejects a
+regression to start `0`; the consumer does not repair this distinction.
+
+The complete fixed-artifact run no longer fails on the v59 `ParsePrimaryFact`
+positional mismatch. It completed expression-graph construction at
+1,673,958 ms and semantic analysis at 1,674,754 ms, then reached
+`semantic-body-type-stage assignment:start`. The 30-minute integration budget
+expired at 1,800,768 ms during that assignment stage, with 1,130.3 MB peak
+private / 1,041.1 MB working set and no output file. This is a time-budget
+failure at the next named consumer, not a graph error and not a memory-limit
+failure.
+
+Treat this sequence as the durable diagnosis:
+
+1. v58 proved repeated cumulative arena copies and whole-graph readiness could
+   cross 3,072 MB and imply tens of GiB of logical allocation;
+2. v59 made construction linear and exposed that raw document position is not
+   structured execution identity;
+3. v60 uses stable structured occurrence identity and one final arena, so the
+   full run stays near 1.1 GiB and advances into assignment body typing.
+
+Never validate the whole prefix after each append, never use the next raw graph
+position as identity, and never repair a mismatch by text lookup. Validate a
+new graph locally, validate the complete arena once at the owner boundary, and
+keep the negative producer-coverage gate. The next pressure investigation must
+start at assignment body-type admission under the same 1,800-second / 3,072 MB
+budget rather than raising either limit.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

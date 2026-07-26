@@ -1,0 +1,193 @@
+// Structured branch-condition and match-binding expression occurrence owner.
+//
+// This owner records occurrence identity at the same boundary that renders
+// each CFG-owned condition or derived match binding into the AST tree.
+
+import "error_owner.pgy";
+import "json_fact_read.pgy";
+import "match_binding_render_owner.pgy";
+import "routine_fact_index_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+
+func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
+    let json: String = routines.source_json;
+    let selection: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, routines, routine_row, block_row
+        );
+    if !selection.valid { MirLowerFailClosed("invalid branch instruction view"); }
+    if !selection.found { return ""; }
+    let instruction: MirRoutineInstructionView = selection.instruction;
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid { MirLowerFailClosed("invalid branch scalar facts"); }
+    let kp: Int = instruction.start;
+    let inst_end: Int = instruction.end;
+    let source_type: String = instruction.source_type;
+    if source_type == "AST_CONTINUE" || source_type == "AST_BREAK" {
+        return "";
+    }
+    if source_type == "AST_MATCH_CASE" {
+        let match_subject: String = scalar.expr0;
+        let patterns: Array<String> = MirObjectArrayStringFactsAtBounds(
+            json, kp, inst_end, "match_patterns"
+        );
+        let pattern_count: Int = ArrayLength(patterns);
+        if StringLength(match_subject) == 0 || pattern_count == 0 {
+            MirLowerFailClosed("match-case branch is missing MIR subject/pattern facts");
+        }
+        if pattern_count > 1 {
+            MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
+        }
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, instruction.global_row,
+            AstExpressionLaneAtom(), 0
+        ) {
+            MirLowerFailClosed("match condition occurrence is invalid");
+        }
+        let pattern: String = patterns[0];
+        let variant: String = scalar.match_variant;
+        if variant == "Some" {
+            return Concat("IsSome(", Concat(match_subject, ")"));
+        }
+        if variant == "None" {
+            return Concat("!IsSome(", Concat(match_subject, ")"));
+        }
+        if variant == "Ok" {
+            return Concat("IsOk(", Concat(match_subject, ")"));
+        }
+        if variant == "Err" {
+            return Concat("IsErr(", Concat(match_subject, ")"));
+        }
+        let variant_name: String = variant;
+        if variant_name == "" { variant_name = pattern; }
+        let enum_owner: String = MirEnumOwnerForVariant(json, variant_name);
+        if StringLength(enum_owner) > 0 {
+            return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
+        }
+        if ToString(ToInt(pattern)) != pattern {
+            MirLowerFailClosed(
+                "match enum variant declaration fact is missing"
+            );
+        }
+        return Concat(match_subject, Concat(" == ", pattern));
+    }
+    if source_type == "AST_FOR_LOOP" {
+        let binding: String = scalar.arg0;
+        let start: String = scalar.expr0;
+        let stop: String = scalar.expr1;
+        if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
+            let iter_type: String = MirRoutineFactIndexSourceLocalType(index, start);
+            let binding_type: String =
+                MirRoutineFactIndexSourceLocalType(index, binding);
+            let header: String = MirIterationHeaderTextFromFacts(
+                index.iteration_type_facts, binding, start, stop,
+                binding_type, iter_type
+            );
+            if header == "" {
+                MirLowerFailClosed("for-each iteration type fact is missing or invalid");
+            }
+            let loop_init: MirRoutineInstructionView =
+                MirStructuredForLoopInitInstruction(
+                    index, routines, routine_row, block_row,
+                    instruction, scalar
+                );
+            if !loop_init.valid ||
+                !MirStructuredExpressionEmissionOrderAppend(
+                    expression_order, loop_init.global_row,
+                    AstExpressionLaneValue(), 0
+                ) {
+                MirLowerFailClosed(
+                    "for iteration value occurrence has no loop-init owner"
+                );
+            }
+            if start != stop &&
+                !MirStructuredExpressionEmissionOrderAppend(
+                    expression_order, instruction.global_row,
+                    AstExpressionLaneAuxiliary(), 0
+                ) {
+                MirLowerFailClosed(
+                    "for iteration auxiliary occurrence is invalid"
+                );
+            }
+            return header;
+        }
+    }
+    let cond: String = scalar.expr0;
+    if StringLength(cond) > 0 {
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, instruction.global_row,
+            AstExpressionLaneAtom(), 0
+        ) {
+            MirLowerFailClosed("branch condition occurrence is invalid");
+        }
+        return cond;
+    }
+    return "";
+}
+
+func BlockCond(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return BlockCondWithExpressionOrder(
+        index, routines, routine_row, block_row, ignored_order
+    );
+}
+
+func BlockMatchBindingLineWithExpressionOrder(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int, indent: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
+    let json: String = routines.source_json;
+    let selection: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, routines, routine_row, block_row
+        );
+    if !selection.valid { MirLowerFailClosed("invalid match instruction view"); }
+    if !selection.found { return ""; }
+    let instruction: MirRoutineInstructionView = selection.instruction;
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid { MirLowerFailClosed("invalid match scalar facts"); }
+    let line: String = MirMatchBindingLineForInstruction(
+        json, instruction.start, instruction.end,
+        instruction.source_type, scalar.match_variant,
+        scalar.expr0, indent
+    );
+    if line == "" { return line; }
+    let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
+        json, instruction.start, instruction.end, "match_bindings"
+    );
+    let binding_index: Int = 0;
+    while binding_index < ArrayLength(bindings) {
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, instruction.global_row,
+            AstExpressionLaneValue(), binding_index
+        ) {
+            MirLowerFailClosed("match binding occurrence is invalid");
+        }
+        binding_index = binding_index + 1;
+    }
+    return line;
+}
+
+func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    block_row: Int, indent: String) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return BlockMatchBindingLineWithExpressionOrder(
+        index, routines, routine_row, block_row, indent, ignored_order
+    );
+}

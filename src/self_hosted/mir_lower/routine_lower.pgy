@@ -4,8 +4,6 @@
 // emission from MIR JSON facts. Routine inventory discovery belongs to
 // routine_inventory_owner.pgy.
 import "error_owner.pgy";
-import "json_fact_read.pgy";
-import "match_binding_render_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_cfg_projection_owner.pgy";
@@ -14,6 +12,8 @@ import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
 import "abi_layout_fact_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "structured_condition_emission_owner.pgy";
 func RoutineParamResourceMatchesType(
     resource_kind: String,
     type_name: String
@@ -40,132 +40,16 @@ func RoutineParamResourceMatchesType(
     }
     return false;
 }
-// ---------------------------------------------------------------------------
-// Control-flow reconstruction (CFG -> structured AST).
-//
-// The MIR-JSON carries per-block `succ_true`/`succ_false` edges. For non-loop
-// routines we follow those edges to rebuild `If: / Then: / Else:` structure
-// instead of flattening. Loop routines (while/for) still take the flat walk
-// (detected below) -- they need back-edge handling, a separate increment.
-// Block ids are sequential digit strings ("0".."n"); block lookup consumes the
-// MIR `blocks` row and verifies the row's `id` fact.
-// ---------------------------------------------------------------------------
-// Branch condition within [bs,be); "" if the block does not end in a branch or
-// the branch does not carry the required MIR fact.
-func BlockCond(ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex, routine_row: Int,
-    block_row: Int) -> String {
-    let json: String = routines.source_json;
-    let selection: MirRoutineInstructionSelection =
-        MirRoutineFactIndexBranchAtBlock(
-            index, routines, routine_row, block_row
-        );
-    if !selection.valid { MirLowerFailClosed("invalid branch instruction view"); }
-    if !selection.found { return ""; }
-    let instruction: MirRoutineInstructionView = selection.instruction;
-    let scalar: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, instruction.global_row
-        );
-    if !scalar.valid { MirLowerFailClosed("invalid branch scalar facts"); }
-    let kp: Int = instruction.start;
-    let inst_end: Int = instruction.end;
-    let source_type: String = instruction.source_type;
-    if source_type == "AST_CONTINUE" || source_type == "AST_BREAK" {
-        return "";
-    }
-    if source_type == "AST_MATCH_CASE" {
-        let match_subject: String = scalar.expr0;
-        let patterns: Array<String> = MirObjectArrayStringFactsAtBounds(
-            json, kp, inst_end, "match_patterns"
-        );
-        let pattern_count: Int = ArrayLength(patterns);
-        if StringLength(match_subject) == 0 || pattern_count == 0 {
-            MirLowerFailClosed("match-case branch is missing MIR subject/pattern facts");
-        }
-        if pattern_count > 1 {
-            MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
-        }
-        let pattern: String = patterns[0];
-        let variant: String = scalar.match_variant;
-        if variant == "Some" {
-            return Concat("IsSome(", Concat(match_subject, ")"));
-        }
-        if variant == "None" {
-            return Concat("!IsSome(", Concat(match_subject, ")"));
-        }
-        if variant == "Ok" {
-            return Concat("IsOk(", Concat(match_subject, ")"));
-        }
-        if variant == "Err" {
-            return Concat("IsErr(", Concat(match_subject, ")"));
-        }
-        let variant_name: String = variant;
-        if variant_name == "" { variant_name = pattern; }
-        let enum_owner: String = MirEnumOwnerForVariant(json, variant_name);
-        if StringLength(enum_owner) > 0 {
-            return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
-        }
-        if ToString(ToInt(pattern)) != pattern {
-            MirLowerFailClosed(
-                "match enum variant declaration fact is missing"
-            );
-        }
-        return Concat(match_subject, Concat(" == ", pattern));
-    }
-    if source_type == "AST_FOR_LOOP" {
-        let binding: String = scalar.arg0;
-        let start: String = scalar.expr0;
-        let stop: String = scalar.expr1;
-        if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
-            let iter_type: String = MirRoutineFactIndexSourceLocalType(index, start);
-            let binding_type: String =
-                MirRoutineFactIndexSourceLocalType(index, binding);
-            let header: String = MirIterationHeaderTextFromFacts(
-                index.iteration_type_facts, binding, start, stop,
-                binding_type, iter_type
-            );
-            if header == "" {
-                MirLowerFailClosed("for-each iteration type fact is missing or invalid");
-            }
-            return header;
-        }
-    }
-    let cond: String = scalar.expr0;
-    if StringLength(cond) > 0 {
-        return cond;
-    }
-    return "";
-}
-
-func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex, routine_row: Int,
-    block_row: Int, indent: String) -> String {
-    let json: String = routines.source_json;
-    let selection: MirRoutineInstructionSelection =
-        MirRoutineFactIndexBranchAtBlock(
-            index, routines, routine_row, block_row
-        );
-    if !selection.valid { MirLowerFailClosed("invalid match instruction view"); }
-    if !selection.found { return ""; }
-    let instruction: MirRoutineInstructionView = selection.instruction;
-    let scalar: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, instruction.global_row
-        );
-    if !scalar.valid { MirLowerFailClosed("invalid match scalar facts"); }
-    return MirMatchBindingLineForInstruction(
-        json, instruction.start, instruction.end,
-        instruction.source_type, scalar.match_variant,
-        scalar.expr0, indent
-    );
-}
 // Emit the non-branch statement lines of one admitted block row. `phi`
 // instructions carry no statement fact and are skipped by the string-value
 // guard.
-func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
+func EmitBlockStmtsWithExpressionOrder(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
     routine_row: Int, block_row: Int, indent: String, observe_instruction: Bool,
-    inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    inout expression_order: MirStructuredExpressionEmissionOrder,
+    inout abi_validation: MirAbiLayoutValidationSession
+) -> String {
     let json: String = routines.source_json;
     let chunks: Array<String> = [];
     let instruction_count: Int =
@@ -205,8 +89,9 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
-            ArrayPush(chunks, RenderDestructureFromFacts(
-                json, kp, inst_end, indent, scalar.expr0));
+            ArrayPush(chunks, RenderDestructureFromFactsWithExpressionOrder(
+                json, kp, inst_end, indent, scalar.expr0,
+                instruction.global_row, expression_order));
         }
         // Resource-op rows are MIR evidence for an already-owned executable
         // def/stmt row.  Re-emitting expr0 here would manufacture a second
@@ -241,13 +126,21 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
                     )
                 ));
             } else if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
-                ArrayPush(chunks, RenderDeferFromFacts(
-                    json, kp, inst_end, indent, arg0
+                ArrayPush(chunks, RenderDeferFromFactsWithExpressionOrder(
+                    json, kp, inst_end, indent, arg0,
+                    instruction.global_row, expression_order
                 ));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
                 (ikind != "destructure" && source_type == "AST_RETURN_VOID") {
                 ArrayPush(chunks, Concat(indent, "Return\n"));
             } else if ikind != "destructure" && StringLength(expr0) > 0 {
+                if !MirStructuredExpressionEmissionOrderAppendStatement(
+                    instruction, scalar, expression_order
+                ) {
+                    MirLowerFailClosed(
+                        "statement expression occurrence is invalid"
+                    );
+                }
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
@@ -255,6 +148,19 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
         row = row + 1;
     }
     return StringJoin(chunks, "");
+}
+
+func EmitBlockStmts(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, block_row: Int, indent: String,
+    observe_instruction: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return EmitBlockStmtsWithExpressionOrder(
+        index, routines, routine_row, block_row, indent,
+        observe_instruction, ignored_order, abi_validation
+    );
 }
 
 // Project only already-proven loop summaries; CFG shape locates their headers
@@ -352,10 +258,14 @@ func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
+func EmitRegionWithExpressionOrder(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
     routine_row: Int, start: String, stop: String, indent: String,
     loop_header: String, loop_exit: String, observe_first_block: Bool,
-    inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    inout expression_order: MirStructuredExpressionEmissionOrder,
+    inout abi_validation: MirAbiLayoutValidationSession
+) -> String {
     let chunks: Array<String> = [];
     let cur: String = start;
     let guard: Int = 0;
@@ -366,14 +276,14 @@ func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineI
             MirLowerFailClosed("CFG successor names an invalid block identity");
         }
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":bounds:done"))); }
-        let stmts: String = EmitBlockStmts(
+        let stmts: String = EmitBlockStmtsWithExpressionOrder(
             index, routines, routine_row, block_row, indent,
-            observe_first_block, abi_validation
+            observe_first_block, expression_order, abi_validation
         );
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":statements:done"))); }
         ArrayPush(chunks, stmts);
-        let cond: String = BlockCond(
-            index, routines, routine_row, block_row
+        let cond: String = BlockCondWithExpressionOrder(
+            index, routines, routine_row, block_row, expression_order
         );
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":condition:done"))); }
         if StringLength(cond) == 0 {
@@ -398,9 +308,10 @@ func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineI
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 ArrayPush(chunks, Concat(indent, "  Block:\n"));
-                ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                    index, routines, routine_row,
                     t, cur, Concat(indent, "    "), cur, f, observe_first_block,
-                    abi_validation));
+                    expression_order, abi_validation));
                 cur = f;
             } else {
                 let structural_merge: String =
@@ -431,17 +342,21 @@ func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineI
                 ArrayPush(chunks, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 ArrayPush(chunks, Concat(indent, "  Then:\n"));
                 ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                ArrayPush(chunks, BlockMatchBindingLine(index, routines,
-                    routine_row, block_row, Concat(indent, "      ")));
-                ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                ArrayPush(chunks, BlockMatchBindingLineWithExpressionOrder(
+                    index, routines, routine_row, block_row,
+                    Concat(indent, "      "), expression_order));
+                ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                    index, routines, routine_row,
                     t, merge, Concat(indent, "      "), loop_header, loop_exit,
-                    observe_first_block, abi_validation));
+                    observe_first_block, expression_order, abi_validation));
                 if hasElse {
                     ArrayPush(chunks, Concat(indent, "  Else:\n"));
                     ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                    ArrayPush(chunks, EmitRegion(index, routines, routine_row,
+                    ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                        index, routines, routine_row,
                         f, merge, Concat(indent, "      "), loop_header,
-                        loop_exit, observe_first_block, abi_validation));
+                        loop_exit, observe_first_block, expression_order,
+                        abi_validation));
                 }
                 cur = merge;
             }
@@ -449,10 +364,29 @@ func EmitRegion(ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineI
     }
     return StringJoin(chunks, "");
 }
-func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex,
+
+func EmitRegion(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, start: String, stop: String, indent: String,
+    loop_header: String, loop_exit: String, observe_first_block: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return EmitRegionWithExpressionOrder(
+        index, routines, routine_row, start, stop, indent,
+        loop_header, loop_exit, observe_first_block, ignored_order,
+        abi_validation
+    );
+}
+
+func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
+    ref routines: MirProgramRoutineIndex,
     routine_row: Int,
     routine_indent: String, self_type: String, observe_fact_index: Bool,
-    observe_focused_routine: Bool, inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    observe_focused_routine: Bool,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
+    inout abi_validation: MirAbiLayoutValidationSession
+) -> String {
     if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
     let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
@@ -580,8 +514,11 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex,
     ArrayPush(chunks, Concat(ppad, "Body:\n"));
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
-    let region: String = EmitRegion(index, routines, routine_row,
-        "0", "", Concat(item_pad, "  "), "", "", observe_focused_routine, abi_validation);
+    let region: String = EmitRegionWithExpressionOrder(
+        index, routines, routine_row,
+        "0", "", Concat(item_pad, "  "), "", "",
+        observe_focused_routine, expression_order, abi_validation
+    );
     if StringLength(region) == 0 {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
@@ -589,11 +526,45 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex,
     ArrayPush(chunks, region);
     return StringJoin(chunks, "");
 }
+
+func EmitRoutineTreeWithSelfTypeAtRow(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    routine_indent: String, self_type: String, observe_fact_index: Bool,
+    observe_focused_routine: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession
+) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
+        routines, routine_row, routine_indent, self_type,
+        observe_fact_index, observe_focused_routine, ignored_order,
+        abi_validation
+    );
+}
+
+func EmitRoutineTreeAtRowWithExpressionOrder(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, routine_indent: String, observe_fact_index: Bool,
+    observe_focused_routine: Bool,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
+    inout abi_validation: MirAbiLayoutValidationSession
+) -> String {
+    return EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
+        routines, routine_row, routine_indent, "",
+        observe_fact_index, observe_focused_routine, expression_order,
+        abi_validation
+    );
+}
+
 func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
     routine_row: Int, routine_indent: String, observe_fact_index: Bool,
-    observe_focused_routine: Bool, inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    return EmitRoutineTreeWithSelfTypeAtRow(
-        routines, routine_row, routine_indent, "",
-        observe_fact_index, observe_focused_routine, abi_validation
+    observe_focused_routine: Bool,
+    inout abi_validation: MirAbiLayoutValidationSession) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return EmitRoutineTreeAtRowWithExpressionOrder(
+        routines, routine_row, routine_indent, observe_fact_index,
+        observe_focused_routine, ignored_order, abi_validation
     );
 }

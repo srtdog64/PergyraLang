@@ -7,7 +7,14 @@ import "error_owner.pgy";
 import "decl_lower.pgy";
 import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
 import "routine_lower.pgy";
+
+struct MirProgramTreeEmission {
+    let ok: Bool;
+    let text: String;
+    let expression_order: MirStructuredExpressionEmissionOrder;
+}
 
 func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
     if enabled {
@@ -15,17 +22,21 @@ func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
     }
 }
 
-func EmitMirProgramTreeFromRoutineIndexObserved(
+func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
     ref routines: MirProgramRoutineIndex,
     observe_pressure: Bool
-) -> String {
+) -> MirProgramTreeEmission {
     if !routines.valid {
         MirLowerFailClosed("MIR routine inventory is missing");
     }
+    let expression_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
     let abi_validation: MirAbiLayoutValidationSession =
         NewMirAbiLayoutValidationSession();
     let chunks: Array<String> = [
-        "Program:\n", EmitStructDecls(routines, abi_validation)
+        "Program:\n", EmitStructDecls(
+            routines, expression_order, abi_validation
+        )
     ];
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:declarations:done"
@@ -50,10 +61,10 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
                     )
                 );
             }
-            ArrayPush(chunks, EmitRoutineTreeAtRow(
+            ArrayPush(chunks, EmitRoutineTreeAtRowWithExpressionOrder(
                 routines, row, "  ",
                 observe_pressure && total == 0,
-                observe_focused_routine, abi_validation
+                observe_focused_routine, expression_order, abi_validation
             ));
             if observe_pressure && total == 0 {
                 MirProgramLowerPressureStage(
@@ -105,13 +116,41 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
     if total == 0 {
         MirLowerFailClosed("no supported routines found in MIR-JSON document");
     }
-    if !MirAbiLayoutValidationSessionReady(abi_validation) {
+    let abi_ready: Bool =
+        MirAbiLayoutValidationSessionReady(abi_validation);
+    let expression_order_ready: Bool =
+        MirStructuredExpressionEmissionOrderReady(expression_order);
+    if !abi_ready {
         MirLowerFailClosed("MIR ABI validation session is inconsistent");
     }
+    if !expression_order_ready {
+        MirLowerFailClosed("MIR expression emission order is inconsistent");
+    }
+    let projection_ready: Bool =
+        routines.valid && abi_ready && expression_order_ready;
     MirProgramLowerPressureStage(
         observe_pressure, "consumer:mir-to-ast:top-level-routines:done"
     );
-    return StringJoin(chunks, "");
+    return MirProgramTreeEmission(
+        projection_ready, StringJoin(chunks, ""), expression_order
+    );
+}
+
+func EmitMirProgramTreeFromRoutineIndexObserved(
+    ref routines: MirProgramRoutineIndex,
+    observe_pressure: Bool
+) -> String {
+    return EmitMirProgramTreeProjectionFromRoutineIndexObserved(
+        routines, observe_pressure
+    ).text;
+}
+
+func EmitMirProgramTreeProjectionFromRoutineIndex(
+    ref routines: MirProgramRoutineIndex
+) -> MirProgramTreeEmission {
+    return EmitMirProgramTreeProjectionFromRoutineIndexObserved(
+        routines, false
+    );
 }
 
 func EmitMirProgramTreeFromRoutineIndex(

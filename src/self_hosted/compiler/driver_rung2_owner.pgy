@@ -255,11 +255,16 @@ func CanonicalizeMirJsonVerified(
     if !MirProgramRoutineIndexStructureReady(routines) {
         Die("MIR routine inventory is missing or invalid");
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTreeFromRoutineIndex(routines)
-    );
+    let emission: MirProgramTreeEmission =
+        EmitMirProgramTreeProjectionFromRoutineIndex(routines);
+    if !emission.ok {
+        Die("MIR program tree emission projection is invalid");
+    }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(emission.text);
     let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(routines, artifact);
+        MirExpressionGraphFactsForArtifact(
+            routines, artifact, emission.expression_order
+        );
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }
@@ -304,11 +309,14 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:start"
     );
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTreeFromRoutineIndexObserved(
+    let tree_emission: MirProgramTreeEmission =
+        EmitMirProgramTreeProjectionFromRoutineIndexObserved(
             admitted.routines, observe_pressure
-        )
-    );
+        );
+    if !tree_emission.ok {
+        Die("MIR program tree emission projection is invalid");
+    }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_emission.text);
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:done"
     );
@@ -316,7 +324,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:expression-graph:start"
     );
     let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(admitted.routines, artifact);
+        MirExpressionGraphFactsForArtifact(
+            admitted.routines, artifact, tree_emission.expression_order
+        );
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }

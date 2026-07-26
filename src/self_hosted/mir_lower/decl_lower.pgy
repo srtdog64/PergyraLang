@@ -9,6 +9,7 @@ import "error_owner.pgy";
 import "json_fact_read.pgy";
 import "program_declaration_index_owner.pgy";
 import "program_routine_index_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
 import "routine_lower.pgy";
 
 func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: String) -> String {
@@ -155,6 +156,7 @@ func EmitDeclGenericConstraints(
 }
 func EmitClassMethods(ref routines: MirProgramRoutineIndex, decl_start: Int,
     decl_end: Int, owner_name: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let out: String = "";
@@ -170,8 +172,8 @@ func EmitClassMethods(ref routines: MirProgramRoutineIndex, decl_start: Int,
             MirLowerFailClosed(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
         }
         let routine_index: Int = UnwrapOption(routine_row);
-        out = Concat(out, EmitRoutineTreeAtRow(routines, routine_index,
-            "      ", false, false, abi_validation));
+        out = Concat(out, EmitRoutineTreeAtRowWithExpressionOrder(routines,
+            routine_index, "      ", false, false, expression_order, abi_validation));
         row = row + 1;
     }
     if StringLength(out) > 0 {
@@ -247,6 +249,7 @@ func EmitAbilityDecl(json: String, decl_start: Int, decl_end: Int, ability_name:
 
 func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     decl_end: Int, role_name: String, for_type: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let impls_bounds: Array<Int> = [0, 0];
@@ -318,9 +321,9 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
                 ));
             }
             let routine_index: Int = UnwrapOption(routine_row);
-            out = Concat(out, EmitRoutineTreeWithSelfTypeAtRow(routines,
-                routine_index, "      ", for_type, false, false,
-                abi_validation));
+            out = Concat(out, EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
+                routines, routine_index, "      ", for_type, false, false,
+                expression_order, abi_validation));
             local_method_index = local_method_index + 1;
         }
         impl_index = impl_index + 1;
@@ -330,6 +333,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
 
 func EmitRoleDecl(ref routines: MirProgramRoutineIndex, decl_start: Int,
     decl_end: Int, role_name: String, for_type: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let out: String = Concat("  Role: ", Concat(role_name, Concat(" for ", Concat(for_type, "\n"))));
@@ -342,7 +346,7 @@ func EmitRoleDecl(ref routines: MirProgramRoutineIndex, decl_start: Int,
                     json, decl_start, decl_end, role_name
                 ),
                 EmitRoleImplBlocks(routines, decl_start, decl_end,
-                    role_name, for_type, abi_validation)
+                    role_name, for_type, expression_order, abi_validation)
             )
         )
     );
@@ -454,6 +458,7 @@ func MirCanonicalDeclarationPhase(kind: String) -> Int {
 func EmitCanonicalNominalDecl(
     ref routines: MirProgramRoutineIndex,
     decl_start: Int, decl_end: Int, kind: String, name: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     let json: String = routines.source_json;
@@ -493,22 +498,20 @@ func EmitCanonicalNominalDecl(
             json, decl_start, decl_end, name
         ));
     }
-    ArrayPush(chunks, EmitClassMethods(
-        routines, decl_start, decl_end, name, abi_validation
-    ));
+    ArrayPush(chunks, EmitClassMethods(routines, decl_start, decl_end, name, expression_order, abi_validation));
     return StringJoin(chunks, "");
 }
 
 func EmitCanonicalDeclRow(
     ref routines: MirProgramRoutineIndex,
     decl_start: Int, decl_end: Int, kind: String, name: String,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     let json: String = routines.source_json;
     if MirCanonicalDeclarationPhase(kind) == 0 {
-        return EmitCanonicalNominalDecl(
-            routines, decl_start, decl_end, kind, name, abi_validation
-        );
+        return EmitCanonicalNominalDecl(routines, decl_start, decl_end, kind,
+            name, expression_order, abi_validation);
     }
     if kind == "role" {
         let for_type: String = MirObjectStringFact(
@@ -520,7 +523,7 @@ func EmitCanonicalDeclRow(
             ));
         }
         return EmitRoleDecl(routines, decl_start, decl_end, name, for_type,
-            abi_validation);
+            expression_order, abi_validation);
     }
     if kind == "ability" {
         return EmitAbilityDecl(json, decl_start, decl_end, name);
@@ -537,6 +540,7 @@ func EmitCanonicalDeclRow(
 
 func EmitStructDecls(
     ref routines: MirProgramRoutineIndex,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     let json: String = routines.source_json;
@@ -585,7 +589,7 @@ func EmitStructDecls(
                 }
                 ArrayPush(chunks, EmitCanonicalDeclRow(
                     routines, decl_start, decl_end,
-                    kind, name, abi_validation
+                    kind, name, expression_order, abi_validation
                 ));
             }
             row = row + 1;

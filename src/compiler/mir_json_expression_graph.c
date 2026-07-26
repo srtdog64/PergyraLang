@@ -622,6 +622,10 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
 
     if (inst == NULL || lane < 0 || lane > 1)
         return NULL;
+    if (lane == 0 && inst->kind == MIR_INST_BRANCH
+        && inst->branch_shape == MIR_BRANCH_FOR_RANGE) {
+        return inst->expr1;
+    }
     if (lane == 0 && mir_instruction_source_is_defer_stmt(inst)) {
         if (inst->arg0 != NULL && strcmp(inst->arg0, "Log") == 0)
             return mir_defer_log_expression_fact(inst);

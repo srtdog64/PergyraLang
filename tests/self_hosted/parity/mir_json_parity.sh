@@ -40,6 +40,28 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-parity:mir-json] missing compiler binary: $PGY" >&2
     exit 1
 fi
+
+MIR_GRAPH_SOURCE="$ROOT_DIR/src/compiler/mir_json_expression_graph.c"
+if ! awk '
+    /mir_json_instruction_expression\(const MIRInstruction \*inst, int lane\)/ {
+        in_owner = 1
+    }
+    in_owner && /inst->branch_shape == MIR_BRANCH_FOR_RANGE/ {
+        has_range_owner = 1
+    }
+    in_owner && has_range_owner && /return inst->expr1;/ {
+        has_stop_projection = 1
+    }
+    in_owner && /^}/ {
+        exit !(has_range_owner && has_stop_projection)
+    }
+    END {
+        if (!in_owner || !has_range_owner || !has_stop_projection) exit 1
+    }
+' "$MIR_GRAPH_SOURCE"; then
+    echo "[self-host-parity:mir-json] native range branch graph must project the MIR-owned stop expression" >&2
+    exit 1
+fi
 CC="${PGY_SELFHOST_CC:-gcc}"
 if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-parity:mir-json] SKIP missing C compiler on PATH: $CC"
@@ -312,6 +334,14 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 exit 1
             fi
         done
+        if ! grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,"nodes":\[\{"kind":"integer_literal","text":"3"' "$mj"; then
+            echo "[self-host-parity:mir-json] forloop: native range branch graph lost the MIR-owned stop expression" >&2
+            exit 1
+        fi
+        if grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,"nodes":\[\{"kind":"integer_literal","text":"0"' "$mj"; then
+            echo "[self-host-parity:mir-json] forloop: native range branch graph regressed to the start expression" >&2
+            exit 1
+        fi
     fi
     if [[ "$base" == "struct_point" ]]; then
         for required in \

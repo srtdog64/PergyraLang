@@ -1,0 +1,187 @@
+// Structured AST expression occurrence order emitted from admitted MIR rows.
+//
+// The array index is the occurrence identity.  Repeated CFG visits therefore
+// append the same stable tuple again instead of deduplicating it.
+
+import "../hir/ast_expression_graph_owner.pgy";
+import "routine_fact_index_owner.pgy";
+
+struct MirStructuredExpressionEmissionOrder {
+    ok: Bool;
+    global_instruction_rows: Array<Int>;
+    lanes: Array<Int>;
+    derived_ordinals: Array<Int>;
+}
+
+func MirStructuredExpressionEmissionOrderEmpty(
+) -> MirStructuredExpressionEmissionOrder {
+    let rows: Array<Int> = [];
+    let lanes: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    return MirStructuredExpressionEmissionOrder(
+        true, rows, lanes, ordinals
+    );
+}
+
+func MirStructuredExpressionEmissionOrderReady(
+    ref order: MirStructuredExpressionEmissionOrder
+) -> Bool {
+    let count: Int = ArrayLength(order.global_instruction_rows);
+    if !order.ok || ArrayLength(order.lanes) != count ||
+        ArrayLength(order.derived_ordinals) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if order.global_instruction_rows[i] < 0 ||
+            order.lanes[i] < AstExpressionLaneAtom() ||
+            order.lanes[i] > AstExpressionLaneAuxiliary() ||
+            order.derived_ordinals[i] < 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func MirStructuredExpressionEmissionOrderAppend(
+    inout order: MirStructuredExpressionEmissionOrder,
+    global_row: Int,
+    lane: Int,
+    ordinal: Int
+) -> Bool {
+    let count: Int = ArrayLength(order.global_instruction_rows);
+    if !order.ok || ArrayLength(order.lanes) != count ||
+        ArrayLength(order.derived_ordinals) != count ||
+        global_row < 0 || lane < AstExpressionLaneAtom() ||
+        lane > AstExpressionLaneAuxiliary() || ordinal < 0 {
+        order.ok = false;
+        return false;
+    }
+    let rows: Array<Int> = order.global_instruction_rows;
+    let lanes: Array<Int> = order.lanes;
+    let ordinals: Array<Int> = order.derived_ordinals;
+    ArrayPush(rows, global_row);
+    ArrayPush(lanes, lane);
+    ArrayPush(ordinals, ordinal);
+    order.global_instruction_rows = rows;
+    order.lanes = lanes;
+    order.derived_ordinals = ordinals;
+    return true;
+}
+
+func MirStructuredForLoopInitInstruction(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    header_block_row: Int,
+    branch: MirRoutineInstructionView,
+    branch_scalar: MirRoutineInstructionScalarCapture
+) -> MirRoutineInstructionView {
+    let selected: MirRoutineInstructionView =
+        EmptyMirRoutineInstructionView();
+    if !index.valid || !branch.valid || !branch_scalar.valid ||
+        header_block_row < 0 ||
+        header_block_row >= ArrayLength(index.block_succ_true) ||
+        ArrayLength(index.block_succ_false) !=
+            ArrayLength(index.block_succ_true) {
+        return selected;
+    }
+    let block_row: Int = 0;
+    while block_row < ArrayLength(index.block_succ_true) {
+        if index.block_succ_true[block_row] == header_block_row &&
+            index.block_succ_false[block_row] < 0 {
+            let instruction_count: Int =
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    routines, routine_row, block_row
+                );
+            if instruction_count <= 0 { return selected; }
+            let candidate: MirRoutineInstructionView =
+                MirRoutineInstructionViewAt(
+                    routines, routine_row, block_row,
+                    instruction_count - 1
+                );
+            if candidate.valid && candidate.kind == "loop-init" &&
+                candidate.source_type == "AST_FOR_LOOP" {
+                let scalar: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        index.instruction_facts, candidate.global_row
+                    );
+                if scalar.valid && scalar.arg0 == branch_scalar.arg0 &&
+                    scalar.expr0 == branch_scalar.expr0 &&
+                    scalar.expr1 == branch_scalar.expr1 {
+                    if selected.valid {
+                        return EmptyMirRoutineInstructionView();
+                    }
+                    selected = candidate;
+                }
+            }
+        }
+        block_row = block_row + 1;
+    }
+    return selected;
+}
+
+func MirStructuredExpressionEmissionOrderAppendStatement(
+    instruction: MirRoutineInstructionView,
+    scalar: MirRoutineInstructionScalarCapture,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> Bool {
+    if !instruction.valid || !scalar.valid { return false; }
+    let row: Int = instruction.global_row;
+    let kind: String = instruction.kind;
+    let source_type: String = instruction.source_type;
+    if kind == "return" && source_type != "AST_RETURN_VOID" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        );
+    }
+    if kind == "def" && source_type == "AST_LET_DECL" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        );
+    }
+    if kind == "assign" && source_type == "AST_ASSIGNMENT" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        ) && MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        );
+    }
+    if kind == "def" && source_type == "AST_ASSIGNMENT" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        ) && MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        );
+    }
+    if kind != "stmt" || source_type != "AST_CALL" { return true; }
+    if scalar.arg0 == "ArrayPop" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        );
+    }
+    if scalar.arg0 == "ArrayPush" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        ) && MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        );
+    }
+    if scalar.arg0 == "ArraySet" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        ) && MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        ) && MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAuxiliary(), 0
+        );
+    }
+    if scalar.arg0 == "" || scalar.arg0 == "Log" ||
+        scalar.arg0 == "Exit" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneAtom(), 0
+        );
+    }
+    return true;
+}

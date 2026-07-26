@@ -93,3 +93,28 @@ func MirExpressionGraphSequenceAppendUnaryCall(
         true, ArrayLength(result_kinds), result_roots, final_arena
     );
 }
+
+func MirExpressionGraphSequenceAppendOptionMatchOccurrence(
+    sequence: MirExpressionGraphSequence, subject_graph: JsonObjectFactTable,
+    variant: String, subject_text: String, lane: Int, ordinal: Int
+) -> MirExpressionGraphSequence {
+    if ordinal != 0 || (variant != "Some" && variant != "None" &&
+            variant != "Ok" && variant != "Err") {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    if lane == AstExpressionLaneAtom() {
+        let condition_name: String = "IsSome";
+        let negate: Bool = variant == "None";
+        if variant == "Ok" { condition_name = "IsOk"; }
+        if variant == "Err" { condition_name = "IsErr"; }
+        return MirExpressionGraphSequenceAppendUnaryCall(sequence,
+            subject_graph, condition_name, subject_text, negate);
+    }
+    if lane != AstExpressionLaneValue() || variant == "None" {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let unwrap_name: String = "UnwrapOption";
+    if variant == "Ok" { unwrap_name = "Unwrap"; }
+    if variant == "Err" { unwrap_name = "UnwrapErr"; }
+    return MirExpressionGraphSequenceAppendUnaryCall(sequence, subject_graph, unwrap_name, subject_text, false);
+}

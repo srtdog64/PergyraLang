@@ -13,12 +13,14 @@ VALIDATION="$ROOT_DIR/src/self_hosted/mir/instruction_validation_owner.pgy"
 MIR_LOWER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
 MIR_SLOT_POLICY="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy"
 PARSER_BRIDGE="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy"
-SEQUENCE_VIEW="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy"
+OCCURRENCE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy"
+ORDER_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy"
 RUNTIME_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
 for file in "$PARSER_OWNER" "$PARSER_DISPATCH" "$SURFACE_OWNER" \
     "$LANE_POLICY" \
     "$USE_OWNER" "$EXPRESSION_FACT_OWNER" "$MIR_OWNER" "$DISPATCH" \
-    "$VALIDATION" "$MIR_LOWER" "$MIR_SLOT_POLICY" "$PARSER_BRIDGE" "$SEQUENCE_VIEW" \
+    "$VALIDATION" "$MIR_LOWER" "$MIR_SLOT_POLICY" "$PARSER_BRIDGE" \
+    "$OCCURRENCE_OWNER" "$ORDER_OWNER" \
     "$RUNTIME_PARITY"; do
     [[ -f "$file" ]] || {
         echo "[self-host-parity:collection-mutation-graph-use] owner is missing: $file" >&2
@@ -69,9 +71,18 @@ require_text "$DISPATCH" "target_graph, value_graph, auxiliary_graph"
 reject_text "$VALIDATION" 'rows.arg0s[i] == "ArrayPop"'
 reject_text "$MIR_SLOT_POLICY" 'UnwrapOption(arg0) == "ArrayPop"'
 require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendParserBridge("
-require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendView("
 require_text "$PARSER_BRIDGE" "SemanticExpressionGraphBuildCompactBridgeFromText("
-require_text "$SEQUENCE_VIEW" "SemanticExpressionGraphSubtreeStart("
+require_text "$OCCURRENCE_OWNER" "MirExpressionGraphProducerOnlyOccurrenceAllowed("
+require_text "$OCCURRENCE_OWNER" 'operation == "ArrayPop"'
+require_text "$OCCURRENCE_OWNER" 'operation == "ArrayPush"'
+require_text "$OCCURRENCE_OWNER" 'operation == "ArraySet"'
+require_text "$ORDER_OWNER" "global_instruction_rows: Array<Int>"
+reject_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendView("
+reject_text "$MIR_LOWER" "persisted_sequence"
+[[ ! -e "$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_view_owner.pgy" ]] || {
+    echo "[self-host-parity:collection-mutation-graph-use] forbidden copied sequence view owner reopened" >&2
+    exit 1
+}
 require_text "$RUNTIME_PARITY" "valid_array_builtins"
 require_text "$RUNTIME_PARITY" "receiver SSA use was lost"
 require_text "$RUNTIME_PARITY" "ArrayPop reopened a third persisted graph lane"

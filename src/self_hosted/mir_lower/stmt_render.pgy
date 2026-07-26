@@ -4,9 +4,17 @@ import "error_owner.pgy";
 import "json_fact_read.pgy";
 import "destructure_expression_projection_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
 
-func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
-                                indent: String, expr0: String) -> String {
+func RenderDestructureFromFactsWithExpressionOrder(
+    json: String,
+    inst_start: Int,
+    inst_end: Int,
+    indent: String,
+    expr0: String,
+    global_instruction_row: Int,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
     let init: String = StringTrim(expr0);
     let elem_type: String = MirObjectStringFactAtBounds(
         json, inst_start, inst_end, "destructure_element_type"
@@ -37,6 +45,14 @@ func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
         source = MirDestructureTempName(first_binding);
         out = Concat(out, Concat(indent, Concat("Let: ", Concat(source,
             Concat(" : Array<", Concat(elem_type, Concat("> = ", Concat(init, "\n"))))))));
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, global_instruction_row,
+            AstExpressionLaneValue(), 0
+        ) {
+            MirLowerFailClosed(
+                "destructure temporary expression occurrence is invalid"
+            );
+        }
     }
 
     let index: Int = 0;
@@ -46,12 +62,36 @@ func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
         out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
             Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
                 Concat("[", Concat(ToString(index), "]\n"))))))))));
+        let ordinal: Int = index;
+        if MirDestructureNeedsTemp(init) { ordinal = ordinal + 1; }
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, global_instruction_row,
+            AstExpressionLaneValue(), ordinal
+        ) {
+            MirLowerFailClosed(
+                "destructure binding expression occurrence is invalid"
+            );
+        }
         index = index + 1;
     }
     if index == 0 {
         MirLowerFailClosed("destructure instruction has no binding-name facts");
     }
     return out;
+}
+
+func RenderDestructureFromFacts(
+    json: String,
+    inst_start: Int,
+    inst_end: Int,
+    indent: String,
+    expr0: String
+) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return RenderDestructureFromFactsWithExpressionOrder(
+        json, inst_start, inst_end, indent, expr0, 0, ignored_order
+    );
 }
 
 // Convert one fact-rendered statement text to its AST-tree line. `Log(...)` and
@@ -134,8 +174,15 @@ func RenderDirectDeferCallFromGraph(
     return body;
 }
 
-func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
-                          indent: String, arg0: String) -> String {
+func RenderDeferFromFactsWithExpressionOrder(
+    json: String,
+    inst_start: Int,
+    inst_end: Int,
+    indent: String,
+    arg0: String,
+    global_instruction_row: Int,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
     if arg0 != "Log" && arg0 != "Call" {
         MirLowerFailClosed("defer instruction has no typed body kind");
     }
@@ -167,9 +214,29 @@ func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
     }
     let out: String = Concat(indent, "Defer:\n");
     out = Concat(out, Concat(indent, "  Block:\n"));
+    if !MirStructuredExpressionEmissionOrderAppend(
+        expression_order, global_instruction_row,
+        AstExpressionLaneAtom(), 0
+    ) {
+        MirLowerFailClosed("defer expression occurrence is invalid");
+    }
     return Concat(
         out,
         Concat(indent, Concat("    ", Concat(body, "\n")))
+    );
+}
+
+func RenderDeferFromFacts(
+    json: String,
+    inst_start: Int,
+    inst_end: Int,
+    indent: String,
+    arg0: String
+) -> String {
+    let ignored_order: MirStructuredExpressionEmissionOrder =
+        MirStructuredExpressionEmissionOrderEmpty();
+    return RenderDeferFromFactsWithExpressionOrder(
+        json, inst_start, inst_end, indent, arg0, 0, ignored_order
     );
 }
 

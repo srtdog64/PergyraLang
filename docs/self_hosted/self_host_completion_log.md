@@ -8808,3 +8808,42 @@ Released/default replacement remains 0%.
   then be removed and negative-gated. Hard substitution remains incomplete;
   there is still no complete gen2 C artifact, gen2 executable, or gen3 fixed
   point.
+
+### 2026-07-26 -- v60 binds one final graph to structured emission identity
+
+- Structured MIR-to-AST emission now records
+  `(global instruction row, AST lane, derived ordinal)` for every expression
+  occurrence. CFG revisits repeat the same key and append a fresh graph range;
+  they are never deduplicated. Assignment, `ArraySet`, `for`, match, and
+  destructure lane selection is explicit and owner-directed.
+- `MirExpressionGraphFactsForArtifact` builds the one final arena directly
+  from that occurrence order. Source text is an equality assertion, not an
+  identity lookup. Required `expr0`/`expr1` producer coverage is checked over
+  the admitted instruction inventory, so an emitter omission cannot make a
+  missing required graph disappear. The persisted intermediate sequence and
+  `expression_graph_sequence_view_owner.pgy` are deleted and negative-gated.
+- The exact-source driver built in 69,368 ms at 2,480.3/2,473.7 MB peak
+  private/working set; the observed bootstrap driver built in 65,293 ms at
+  2,575.8/2,564.5 MB. Bounded output remained 414 bytes with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  Wrong ABI and missing/invalid graph mutations failed closed with the owned
+  diagnostics and no output.
+- The complete 51,807,108-byte MIR run passed the v59 positional mismatch,
+  completed expression-graph construction at 1,673,958 ms and semantic
+  analysis at 1,674,754 ms, then reached
+  `semantic-body-type-stage assignment:start`. It timed out at the fixed
+  1,800,768 ms budget with 1,130.3/1,041.1 MB peak private/working set. This is
+  no longer a graph or memory failure; the next executable falsifier is the
+  assignment body-type stage on the same artifact.
+- Focused structured-order, program-graph-unification,
+  collection/match/destructure/iteration graph-use, MIR graph negative, and
+  component gates pass. The hard contract remains red only at the pre-existing
+  `device_slot_machine_layer` manifest assertion and was not weakened.
+- Native `MIR_BRANCH_FOR_RANGE` graph production now selects the MIR-owned
+  stop expression from `expr1`; loop-init continues to own the start. The
+  focused `forloop` MIR parity gate observes graph root `3` and explicitly
+  rejects the former start-root `0`, with no consumer repair or text lookup.
+- Hard substitution remains incomplete: no complete `driver_gen2.c`, gen2
+  executable, or gen3 fixed point exists. v60 closes the reached graph
+  identity seam and advances the active run; it does not count as gen2
+  takeover by itself.
