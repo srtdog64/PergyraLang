@@ -59,11 +59,19 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
             if i >= content_end {
                 return ParserExpressionStringLiteral(s);
             }
+            let value_source: String = Substring(
+                s, value_start, i - value_start
+            );
+            let value_cursor: Array<Int> = [0];
+            let value: ParserExpressionFact =
+                ParseExprFact(value_source, 0, value_cursor);
+            if !value.ok ||
+                value_cursor[0] != StringLength(value_source) {
+                return ParserExpressionStringLiteral(s);
+            }
             expression = ParserExpressionInterpolationAppend(
                 expression,
-                ParserExpressionInterpolationValue(ParserExpressionLeaf(
-                    Substring(s, value_start, i - value_start)
-                ))
+                ParserExpressionInterpolationValue(value)
             );
             i = i + 1;
             segment_start = i;
@@ -161,8 +169,21 @@ func ParserExpressionInterpolationGraphContractReady() -> Bool {
     }
     let left: Int = fact.arena.left_children[fact.root];
     let value_call: Int = fact.arena.right_children[left];
-    return fact.text == "((\"hello \" + ToString(lang)) + \"!\")" &&
-        fact.arena.node_kinds[left] == AstExpressionNodeAdd() &&
-        fact.arena.node_kinds[value_call] ==
-            AstExpressionNodeCallArgument();
+    if fact.text != "((\"hello \" + ToString(lang)) + \"!\")" ||
+        fact.arena.node_kinds[left] != AstExpressionNodeAdd() ||
+        fact.arena.node_kinds[value_call] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let call_fact: ParserExpressionFact = ParseStringInterpolationFact(
+        Concat("\"", Concat("$", "{Fact1(k1, v1)}\""))
+    );
+    let value: ParserExpressionFact =
+        ParserExpressionNamedSingleCallArgument(call_fact, "ToString");
+    let callee: Option<String> =
+        ParserExpressionDirectCallCalleeName(value);
+    return call_fact.ok && value.ok &&
+        value.arena.node_kinds[value.root] ==
+            AstExpressionNodeCallArgument() &&
+        IsSome(callee) && UnwrapOption(callee) == "Fact1";
 }

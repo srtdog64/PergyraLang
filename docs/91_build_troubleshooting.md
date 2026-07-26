@@ -1394,6 +1394,46 @@ private/working set and no output. The next investigation starts at the
 ToString argument-type producer/consumer boundary, not at assignment or graph
 construction.
 
+#### v63 preserves nested interpolation calls and reaches the full fixed point
+
+The first v62 C-emission failure was not a codegen type-inference gap. The
+full-source MIR contained 260 actual `ToString` calls. Their source types were
+244 `Int` plus 16 `String`; codegen resolved all 244 `Int` and only 12
+`String`, leaving exactly four calls in `SelfHostDiagnostic_Fact2`/`Fact3`.
+Those four normal `${...}` interpolation bodies had been flattened by the
+parser owner into text leaves such as `Fact1(k1, v1)`, so the consumer had no
+call graph from which to obtain the result type. Adding a codegen type guess,
+reparsing the leaf text, or accepting an unknown type would create a second
+authority and is forbidden.
+
+v63 fixes the producer. Normal interpolation now parses its body with
+`ParseExprFact`, requires complete cursor consumption, and connects the
+resulting expression graph as the `ToString` argument. Malformed or unmatched
+interpolation retains the established native string-literal fallback. The
+readiness contract proves that `${Fact1(k1, v1)}` reaches `ToString` as a
+call-argument graph whose direct callee is `Fact1`; static gates forbid the old
+`ParserExpressionLeaf` construction.
+
+The current C-oracle-built full-source producer emitted a 54,205,046-byte MIR artifact with
+SHA-256
+`3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`.
+Producing it took 767,407 ms at 844.3/762.8 MB peak private/working set. The
+seed consumed it in 1,774,216 ms at 1,714.8/1,590.9 MB and emitted complete
+3,378,704-byte gen2 C. Host GCC compiled gen2 in 4,721 ms. Gen2 consumed the
+same MIR in 800,248 ms at 2,033.2/1,867.9 MB and emitted byte-identical gen3 C;
+both have SHA-256
+`6aaf915d67fb129fce6a85bece93d9c814c66dadf94578c8ee160e7b9e1f7087`.
+Gen3 compiled in 4,942 ms, and both generated drivers reproduced the
+established 414-byte bounded artifact.
+
+This result also confirms the earlier memory diagnosis. The complete producer,
+consumer, and gen2 fixed-point legs all remained below 3,072 MB; the old
+20+ GiB/3 GiB symptom came from cumulative graph copying and repeated
+whole-arena readiness, not from the compiler's necessary live state. Keep the
+cap and root-process-tree measurement. The next rung is full-source Pergyra MIR
+production, followed by released/default selection, not another graph,
+assignment, or interpolation optimization.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

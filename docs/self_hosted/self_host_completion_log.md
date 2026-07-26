@@ -8904,3 +8904,32 @@ Released/default replacement remains 0%.
   binding stay closed.
 - Hard substitution remains incomplete: no complete `driver_gen2.c`, gen2
   executable, or gen3 fixed point exists.
+## 2026-07-26 - Full-source MIR driver reaches a gen2/gen3 fixed point (v63)
+
+- The full run exposed four missing `ToString` argument types in
+  `SelfHostDiagnostic_Fact2`/`Fact3`. The normal `${...}` parser had flattened
+  nested `Fact1(...)`/`Fact2(...)` bodies into text leaves. Codegen remained
+  fail closed; no type guess, text reparse, or consumer fallback was added.
+- `expr_string_owner.pgy` now parses normal interpolation bodies with
+  `ParseExprFact`, accepts only a fully consumed inner expression, and keeps
+  the established literal fallback for malformed or unmatched interpolation.
+  The executable readiness contract proves `${Fact1(k1, v1)}` reaches
+  `ToString` as a call-argument graph whose direct callee is `Fact1`. Static
+  gates reject the former leaf construction.
+- The current producer emitted a 54,205,046-byte full-source MIR artifact,
+  SHA-256
+  `3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`.
+  Peak private/working set was 844.3/762.8 MB during production.
+- The seed consumed that MIR in 1,774,216 ms and emitted 3,378,704-byte gen2 C,
+  SHA-256
+  `6aaf915d67fb129fce6a85bece93d9c814c66dadf94578c8ee160e7b9e1f7087`.
+  Peak private/working set was 1,714.8/1,590.9 MB. Host GCC compiled gen2 in
+  4,721 ms.
+- Gen2 consumed the same full-source MIR in 800,248 ms at
+  2,033.2/1,867.9 MB peak private/working set and emitted byte-identical gen3
+  C with the same size and SHA. Host GCC compiled gen3 in 4,942 ms; both gen2
+  and gen3 reproduced the established 414-byte bounded artifact.
+- This is the first current complete-MIR integrated-driver consumer fixed
+  point and satisfies the explicit bootstrap rung. The initial full-source MIR
+  is still C-oracle-owned, and this does not replace the released/default
+  `pgy`; full-source Pergyra MIR production and default selection remain open.

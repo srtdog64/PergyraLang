@@ -845,6 +845,16 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "../lib/path.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_string_owner.pgy";'
 require_text "src/self_hosted/parser/expr_string_owner.pgy" \
     "func ParserExpressionInterpolationGraphContractReady("
+require_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "ParseExprFact(value_source, 0, value_cursor)"
+require_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    'ParserExpressionNamedSingleCallArgument(call_fact, "ToString")'
+require_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "ParserExpressionDirectCallCalleeName(value)"
+reject_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "ParserExpressionInterpolationValue(ParserExpressionLeaf("
+reject_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "ParserExpressionLeaf(value_source)"
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" \
     "preserves_interpolation_graph"
 reject_text "src/self_hosted/parser/expr_string_owner.pgy" \
@@ -3316,6 +3326,10 @@ reject_text "src/self_hosted/parser/cursor_owner.pgy" \
 require_text "src/parser/ast_print_misc.c" \
     'ast_number_is_float(node) ? "%g" : "%.0f"'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'if !ParserExpressionInterpolationGraphContractReady() {'
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'return "parser_interpolation_graph";'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \

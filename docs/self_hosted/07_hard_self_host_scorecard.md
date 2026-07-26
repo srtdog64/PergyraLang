@@ -19,8 +19,12 @@ single full compiler rewrite. The infrastructure is mature: every one of the
 ten capabilities has a gate, and the tree carries a broad smoke gate set. The
 process-argument tooling gap is closed by `Args() -> Array<String>`, and
 allocator pass lanes now have explicit `AllocatorDestroy(namedAllocator)`
-cleanup that works through C and LLVM. The first post-substrate slice is the
-semantic typed `let` / return verdict parity rung.
+cleanup that works through C and LLVM. The explicit full-source bootstrap lane
+now reaches an integrated MIR-consumer fixed point: the C oracle emits one
+verified MIR artifact for the current driver source, the Pergyra-built seed
+consumes it to emit gen2 C, and gen2 consumes the unchanged MIR to emit
+byte-identical gen3 C. This closes the explicit consumer/fixed-point rung, not
+released/default replacement or full-source Pergyra MIR production.
 
 As a planning estimate, hard self-host substrate readiness is effectively
 complete for the first pass-rewrite stage, but capability 5 is not a blanket
@@ -256,12 +260,12 @@ domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
-The order that keeps each step verifiable is: keep capability 5's fact-only
-self-hosted MIR-lowering gate green, keep capabilities 2 and 4 green, expand
-the self-hosted tool set from validators toward the MIR dump diff
-and resolver helpers named in 05, then rewrite compiler passes against the C
-compiler as oracle. Starting broad parser/type-checker/backend rewrites without
-this gate staying green is explicitly out of order.
+The order that keeps each step verifiable is: keep capability 5 and the
+explicit full-source MIR-consumer fixed point green; close the full-source
+producer allocation-growth blocker so MIR production can move from the C
+oracle to the Pergyra producer; then promote the Pergyra-owned driver through
+the normal build/install/default path without a second MIR owner or
+compatibility read.
 
 ## Measured closures
 
@@ -409,8 +413,9 @@ distinct runtime kinds, `BoxArray(capacity, allocator)` consumes named allocator
 locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
-The honest summary is that deterministic collection, allocator substrate, and
-the measured CFG/MIR body SoT frontier are closed for hard-self-host planning.
-The remaining critical path is actual staged compiler-pass substitution:
-semantic breadth first, then MIR/HIR and codegen parity slices against the C
-compiler oracle.
+The honest summary is that deterministic collection, allocator substrate, the
+measured CFG/MIR body SoT frontier, and the explicit full-source MIR-consumer
+fixed point are closed. The remaining critical path is full-source
+Pergyra-owned MIR production, migration of any bounded/bridge stage owners, and
+released/default driver and backend promotion. The fixed point is not a
+default-compiler replacement claim.

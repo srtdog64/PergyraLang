@@ -16,6 +16,14 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-07-26 advances the integrated driver beyond this
+dated full-suite snapshot. One C-oracle-produced, verified MIR artifact for the
+current complete driver source was consumed by the Pergyra-built seed to emit
+gen2 C; gen2 built and consumed the unchanged MIR to emit byte-identical gen3
+C. This is an explicit MIR-consumer fixed point, not a claim that the full
+preparation matrix, full-source Pergyra MIR production, or released/default
+compiler replacement passed.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.
@@ -47,6 +55,11 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,
   the language compiles its own pass to the same result on both backends.
+- Integrated full-source MIR-consumer fixed point: the Pergyra-built seed
+  consumed one C-oracle-owned verified MIR artifact and emitted
+  `driver_gen2.c`; that artifact built and ran as gen2; gen2 consumed the same
+  immutable MIR and emitted byte-identical `driver_gen3.c`. No regenerated
+  second MIR participates in the generation comparison.
 
 Single source of truth (capability 5) is closed for the measured
 source_ast/source_decl frontier and the supported self-hosted MIR-lowering
@@ -359,46 +372,22 @@ Substrate progress.
 
 ## Not yet self-hosted
 
-The middle and back of the compiler are still mostly C:
-
-- semantic analysis beyond the typed let/return + operator/call verdict slice,
-- HIR/DIR/MIR lowering,
-- C and LLVM backend emission.
-
-These are the bulk of the remaining hard-self-host work. The front-end being
-done and parity-verified means the method is proven; the remaining passes
-follow the same recipe, write the pass in Pergyra, run it beside the C version,
-compare output, expand coverage.
+The explicit complete-source MIR-consumer/bootstrap fixed point is closed, but
+released/default replacement remains 0%. Full-source source-to-MIR production
+is still oracle-owned; the Pergyra MIR producer remains bounded until its
+allocation-growth blocker is closed. The normal `pgy` build/install/run path
+still selects the C-owned native driver. C emission is proven in the explicit
+bootstrap lane, while LLVM remains backend/oracle evidence rather than a
+released Pergyra-owned backend replacement.
 
 ## Recommended next pass
 
-Do not start a broad semantic rewrite yet. The deterministic collection gap is
-closed by the compiler-key policy: symbol/record-like identities are canonical
-strings, handle-like identities are stable integer/long IDs, and
-`stage4_determinism_smoke` verifies those shapes on C and LLVM. The allocator
-pass-lane gap is also closed at the language surface: lane-named `Allocator`
-constructors are present on C and LLVM, and pass authors pair them with
-`defer { AllocatorDestroy(lane); }` for explicit cleanup. Semantic analysis
-now runs in that shape at rung-2: expression operators, function-call return
-typing, positional call-argument typing, call-arity checking (in `let`/`return`
-and bare expression statements), branch condition (`if`/`while` must be `Bool`)
-typing, scoped `if`/`while` body typing, simple local assignment typing,
-binary- and logical-operand-agreement typing (same-type Int/Long/Float numeric
-arithmetic preserves its operand type; comparison operands must share a type;
-same-type Bool arithmetic and `String + String` follow the C oracle; `&&`/`||`
-operands must be Bool) in let, return, condition, and assignment
-positions, and simple/compound undefined-identifier diagnostics are covered,
-plus Option payload/concrete-Option builtin contracts, and verdicts stay
-byte-equal beside the C type checker on 107 committed fixtures across both
-backends. The checker now covers the common statement forms (let, return,
-assignment, if/while body, if/while condition, bare call), and the fixture
-  matrix exercises each diagnostic in every position where it can fire. The
-  source-bundle/import owner now gives the semantic checker a real program-input
-  fact for its own imported source. The next increments require deeper
-  machinery: broader real-source semantic stability over parser/codegen/linter
-  sources, a broader symbol table of builtins/types, and a stable
-  diagnostic-code catalog shared with the C oracle, before moving into
-  declaration-heavy semantic owners.
+Keep the complete-source consumer fixed point green while closing the exact
+full-source Pergyra MIR-producer allocation-growth boundary. Then replace the
+oracle-owned initial MIR with the Pergyra-owned artifact and promote the same
+fixed point through the normal build/install/default driver path. Do not reopen
+graph, assignment, or interpolation ownership, and do not introduce a second
+MIR artifact between generations.
 
 ## How to reproduce
 

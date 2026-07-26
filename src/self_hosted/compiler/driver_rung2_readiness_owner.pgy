@@ -36,6 +36,9 @@ func CompilerDriverRung2ReadinessError() -> String {
         );
     }
     if !ParserExpressionGraphContractReady() { return "parser_expression_graph"; }
+    if !ParserExpressionInterpolationGraphContractReady() {
+        return "parser_interpolation_graph";
+    }
     if !ParserExpressionPrecedenceGraphContractReady() { return "parser_precedence_graph"; }
     if !ParserExpressionCastGraphContractReady() { return "parser_cast_graph"; }
     if !ParserExpressionUnaryGraphContractReady() { return "parser_unary_graph"; }
