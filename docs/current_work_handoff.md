@@ -44,8 +44,10 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `dfc8e406` (`dispatch MIR scalar keys by raw
-  length`) on `main`. Its optional ABI scalar predecessor is `bf8a56b8`, its
+- Implementation checkpoint: `ec4b9eef` (`cover invalid CFG backedge batch
+  results`) on `main`, with owner implementation `73133678` (`batch MIR CFG
+  backedge facts per routine`). Its scalar-key predecessor is `dfc8e406`, its
+  optional ABI scalar predecessor is `bf8a56b8`, its
   exact ABI witness predecessor is `0da9c5c2`, its ABI
   row-capture predecessor is `a5d56f42`, its
   routine-scalar predecessor is `dd68d6f3`, its
@@ -133,6 +135,12 @@ bounded-only parity as progress evidence.
   to their raw-length comparison group. Escaped keys retain full semantic
   comparison and duplicate detection. No scalar carrier, helper, cache, or ABI
   semantic owner was added.
+- The existing CFG graph owner computes backedge headers once per routine from
+  one entry-reachability result and one avoiding traversal per reachable
+  distinct incoming target. The fact index consumes that result; the old
+  per-edge function is deleted. Invalid batch input is an empty typed result
+  and a nonempty consumer reports `cfg_backedge`. Structural merge and phi are
+  unchanged.
 
 ## Exact dirty state
 
@@ -227,6 +235,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-abi-optional-fast-v42-300s` | 214.4 MB | 216.6 MB | Timed out at 300,115 ms after routine 704 at 162,849 ms, routine 896 at 192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at 293,147 ms; no gen2. |
 | `full-mir-consumer-key-dispatch-v43-build` | 2523.0 MB | 2511.6 MB | Exact-source integrated C driver compiled in 52,451 ms below the fixed cap. |
 | `full-mir-consumer-key-dispatch-v43-300s` | 215.1 MB | 217.1 MB | Timed out at 300,268 ms after routine 704 at 162,255 ms, routine 896 at 190,875 ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms; no routine 1,984 or gen2. |
+| `full-mir-consumer-cfg-backedge-batch-v44-build` | 2433.5 MB | 2427.0 MB | Exact-source integrated C driver compiled in 52,316 ms below the fixed cap. |
+| `full-mir-consumer-cfg-backedge-batch-v44-300s` | 202.7 MB | 205.0 MB | Timed out at 300,682 ms after routine 704 at 162,403 ms, routine 896 at 191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at 291,308 ms; CPU negative/noise versus v43, no routine 1,984 or gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -397,6 +407,17 @@ graph owner: compute the routine backedge result once, migrate the fact-index
 consumer, and ratchet the per-edge dominator call. Keep structural merge and
 phi unchanged for this slice.
 
+`73133678` performs that owner migration and deletes the old edge-local
+function; `ec4b9eef` proves the malformed result reaches an explicit consumer
+failure. The static remaining-tail model reduces backedge BFS calls from 9,144
+to 4,128, but the fixed-window v44 result is a CPU negative/noise observation.
+The exact-source driver built in 52,316 ms below 3 GiB and preserved the bounded
+SHA and wrong-ABI rejection. It reached routine 1,920 at 291,308 ms, 1,254 ms
+(0.43%) later than v43, before timing out at 300,682 ms. Peak private/working
+set was 202.7/205.0 MB. No routine 1,984, `mir-to-ast:done`, or gen2 file exists.
+The single CFG owner and negative ratchet remain useful, but this evidence does
+not authorize structural-merge or phi caching as the next CPU track.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -423,7 +444,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `dfc8e406` plus the documented working measurements:
+Green on `ec4b9eef` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -440,8 +461,8 @@ Green on `dfc8e406` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-key-dispatch-v43-build`): exit 0, 52,451 ms,
-  2,523.0 MB peak private / 2,511.6 MB peak working set;
+  owner (`full-mir-consumer-cfg-backedge-batch-v44-build`): exit 0, 52,316 ms,
+  2,433.5 MB peak private / 2,427.0 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -504,29 +525,32 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-abi-row-capture-v39-300s.*`, and
 `full-mir-consumer-abi-exact-reuse-v41-300s.*`,
 `full-mir-consumer-abi-optional-fast-v42-300s.*`, and
-`full-mir-consumer-key-dispatch-v43-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v43_key_dispatch.exe`; its
+`full-mir-consumer-key-dispatch-v43-300s.*`, and
+`full-mir-consumer-cfg-backedge-batch-v44-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v44_cfg_backedge_batch.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v43_bounded.c`. The latest full consumer
+`.tmp/self_hosted/driver_bootstrap/v44_bounded.c`. The latest full consumer
 evidence includes complete stage capture through the 1,920-routine marker. These
 files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. In the existing `mir_cfg_graph_owner.pgy`, compute routine backedge headers
-   as one owner result: entry distances once, avoiding distances once per
-   distinct target, then target-major source checks. Migrate
-   `BuildMirRoutineFactIndex` and forbid its per-edge
-   `MirRoutineEdgeTargetsDominator` call. Do not add another file/cache or alter
-   structural merge and phi in this slice.
-2. Prove disconnected components cannot manufacture a backedge; preserve
-   self-loop, ordinary loop, earlier-merge non-backedge, duplicate-target edge,
-   diamond, tie, and fallback behavior through C/LLVM plus a static consumer
-   ratchet.
+1. Extend the existing routine-local `MirRoutineInstructionFactBundle` scalar
+   pass with one `block_branch_global_rows` projection. Each block owns either
+   the unique branch terminator's global row or the missing sentinel. The full
+   MIR has 20,022 blocks, 34,091 instructions, and 8,387 branch blocks; removing
+   three mandatory block searches eliminates at least 77,112 repeated typed
+   instruction-view reconstructions before optional match use.
+2. Migrate `BlockCond`, `BlockHasLoopTransfer`, and `BlockMatchBindingLine` to
+   that owner fact. Last consumers must fail closed when the carried row is
+   missing, duplicated, out of block, or no longer a branch. Re-searching the
+   block/JSON, accepting the first branch, adding a program-global scalar
+   aggregate, or keeping `MirRoutineInstructionViewOfKind(..., "branch")` as a
+   fallback is forbidden. Prove duplicate and kind-mismatch negatives through
+   C/LLVM plus a static zero-call ratchet in `routine_lower.pgy`.
 3. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. The executable
-   falsifier remains routine 1,984. If the CFG batch is not material, instrument
-   hot routine 1,955 before moving the broader instruction scalar capture into
-   the admitted program owner.
+   falsifier remains routine 1,984. Do not claim the estimated 77,112-call
+   reduction as a speedup until that fixed-window marker is observed.
 4. Re-run the current artifact until marker 1,984 and ultimately
    `consumer:mir-to-ast:done` are observed under the fixed pressure owner. Add
    post-loop markers for top-level completion, string join, and AST inventory

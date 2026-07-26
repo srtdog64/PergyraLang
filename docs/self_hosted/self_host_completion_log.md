@@ -8340,3 +8340,31 @@ Released/default replacement remains 0%.
   completion, gen2 output, compilation, and gen3 comparison remain absent. The
   next active seam is the existing CFG owner's per-edge backedge BFS, to be
   replaced by one routine-level result without adding another graph or cache.
+
+### 2026-07-26 -- Routine CFG owner batches backedge admission
+
+- `73133678` moves backedge-header classification behind one routine-level
+  result in the existing `mir_cfg_graph_owner.pgy`. Entry reachability is
+  computed once, avoiding reachability once per reachable distinct incoming
+  target, and source edges are checked target-major. The old per-edge function
+  is deleted and a component ratchet forbids its return.
+- Malformed successor arrays/targets return an empty typed result. The
+  fact-index consumer reports `cfg_backedge` on a nonempty routine instead of
+  treating the malformed graph as a valid all-zero backedge set. `ec4b9eef`
+  covers that consumer failure. C/LLVM fixtures preserve disconnected-cycle,
+  self-loop, ordinary-loop, duplicate-target, earlier-merge, diamond, tie, and
+  fallback behavior.
+- The exact-source v44 driver built in 52,316 ms at 2,433.5 MB peak private /
+  2,427.0 MB working set. Its 1,425 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed 300-second run reached routine 704 at 162,403 ms, routine 896 at
+  191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at 291,308 ms. It
+  timed out at 300,682 ms with 202.7 MB peak private / 205.0 MB working set and
+  no cap crossing.
+- Although the static tail backedge BFS count falls from 9,144 to 4,128, the
+  shared routine-1,920 marker is 1,254 ms (0.43%) later than v43. This is an
+  owner/fallback closure but a CPU negative/noise result. Routine 1,984,
+  MIR-to-AST completion, gen2 output, compilation, and gen3 comparison remain
+  absent; structural-merge/phi caching is not authorized by this result.

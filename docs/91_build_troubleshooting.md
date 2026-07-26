@@ -813,6 +813,36 @@ because `BuildMirRoutineFactIndex` asks once per edge. Replace that with one
 routine-level owner result, preserve structural-merge/phi behavior, and use the
 same routine-1,984 fixed-window falsifier.
 
+#### Fewer graph traversals still require fixed-window wall-time evidence
+
+Checkpoint `73133678` replaces the edge-local backedge loop with
+`MirRoutineBackedgeHeaders` in the existing CFG owner. Entry reachability is
+computed once, each reachable distinct incoming target gets at most one
+avoiding traversal, and target-major source checks classify the incoming edges.
+The old `MirRoutineEdgeTargetsDominator` definition is deleted, not retained as
+a second read path. `ec4b9eef` adds the consumer-level malformed successor
+negative. Invalid lengths/targets produce an empty typed owner result and the
+fact-index consumer reports `cfg_backedge`; it does not silently accept an
+all-zero loop view. Structural merge and phi are unchanged.
+
+The static tail model reduces backedge BFS calls from 9,144 to 4,128 (54.9%).
+That is a work-count proof, not a wall-time result. The exact-source v44 driver
+built in 52,316 ms at 2,433.5 MB peak private / 2,427.0 MB working set. Its
+bounded output remained 414 bytes with the established SHA; the wrong-ABI
+input exited 1 with no output. The full run reached routine 704 at 162,403 ms,
+routine 896 at 191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at
+291,308 ms. It timed out at 300,682 ms with 202.7 MB peak private / 205.0 MB
+working set, `limit_exceeded=false`, no routine 1,984, no `mir-to-ast:done`, and
+no gen2 file.
+
+At the shared routine-1,920 marker, v44 is 1,254 ms (0.43%) later than v43.
+Treat the difference as a negative/noise result: the batch is an owner and
+fallback closure, but this run does not prove it as the dominant CPU fix. Do
+not continue by caching structural-merge or phi traversals merely because their
+static counts are large, and do not rerun the same revision until a favorable
+sample appears. Select the next exact duplicate owner/consumer, add a negative
+gate, and keep the 300-second/3,072 MB falsifier unchanged.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

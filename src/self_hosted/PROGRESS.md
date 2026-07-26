@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-26 routine-level CFG backedge batch (`73133678`, negative fixture
+`ec4b9eef`). The existing CFG graph owner now computes entry reachability once
+and one avoiding traversal per reachable distinct incoming target, then marks
+backedge headers with target-major source checks. `BuildMirRoutineFactIndex`
+consumes that single routine result. The old per-edge
+`MirRoutineEdgeTargetsDominator` definition is deleted and statically rejected;
+structural merge and phi ownership are unchanged. Malformed array/target facts
+return an empty typed result and the consumer exposes `cfg_backedge` instead of
+guessing an all-zero header view. C/LLVM gates cover disconnected cycles,
+self-loops, ordinary loops, duplicate incoming targets, numeric earlier merges,
+and invalid inputs.
+
+The exact-source v44 driver built in 52,316 ms at 2,433.5 MB peak private /
+2,427.0 MB working set. Its bounded run finished in 1,425 ms and preserved the
+414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+300-second full consumer reached routine 704 at 162,403 ms, routine 896 at
+191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at 291,308 ms. It
+timed out at 300,682 ms with 202.7 MB peak private / 205.0 MB working set and no
+routine 1,984, `consumer:mir-to-ast:done`, or gen2 output. Routine 1,920 is
+1,254 ms (0.43%) later than v43, so the theoretical tail backedge-BFS reduction
+is a measured CPU negative/noise result, not a speedup claim. Do not widen into
+structural-merge or phi caching without a new hot-owner observation.
+
 2026-07-26 MIR scalar key length dispatch (`dfc8e406`). The routine-local
 scalar owner now scans a key once for an escape and, for a plain key, runs
 semantic equality only inside the matching raw-length group. Escaped spelling
