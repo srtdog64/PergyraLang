@@ -1,5 +1,27 @@
 # Self-Host Progress
 
+2026-07-26 v62 makes assignment binding consume the structured occurrence
+identity already owned by MIR-to-AST emission. The old checker rebuilt the
+51.8 MB program index, all 2,345 routine fact indexes, and all 34,091
+instruction objects, then tried to compare 4,382 unique raw assignments with
+structured semantic rows. The new single cursor consumes same-global-row
+atom/value ordinal-zero pairs and compares each exact instruction `arg1` with
+the next semantic binding mode. Repeated rows remain repeated. Malformed rows,
+pairs, kinds, modes, and counts fail closed; raw loops, text recovery, dedup
+caches, and second carriers are negative-gated.
+
+Component/structured-order contracts, the real bubble-sort invalid-mode
+mutation, C self-host driver build, and B,A,A repeated-occurrence synthetic
+positive/negative probe pass. The observed driver built in 57,282 ms at
+2,515.1/2,503.6 MB peak private/working set. The root-owned full run completed
+graph construction at 1,392,910 ms, body verification at 1,405,138 ms, and
+assignment binding at 1,420,016 ms. The binding slice fell from v61's 144,314
+ms to 14,878 ms. Generic-specialization and codegen-view admission then passed;
+C emission failed closed with `ToString argument type fact is missing` at
+1,478,323 ms. Peak private/working set was 1,432.9/1,322.5 MB and no output was
+created. The active executable seam is now the exact ToString argument-type
+fact; do not reopen graph or assignment ownership.
+
 2026-07-26 v61 removes the assignment-type CPU amplifier reached by v60. The
 fixed artifact has 4,382 raw assignment rows and 214,151 graph nodes; the old
 hot loop reproved complete expression readiness once per assignment, implying

@@ -1360,6 +1360,40 @@ and preserve CFG revisits. Consume the already admitted
 on a missing pair or mode. Do not add a second assignment sequence, fall back
 to raw order, or recover from AST text.
 
+#### v62 consumes assignment modes in structured occurrence order
+
+The v61 binding checker spent 144,314 ms after
+`consumer:assignment-binding:start`, rebuilt the already admitted 51.8 MB
+program index, rebuilt all 2,345 routine fact indexes, and reparsed all 34,091
+instruction objects. It also compared 4,382 unique raw assignment rows against
+semantic facts whose identity follows structured CFG emission, so it could not
+represent repeated occurrences.
+
+v62 keeps the existing semantic and MIR owners but changes the receiving seam.
+`MirAssignmentBindingModesMatchSemanticFacts` receives the prebuilt
+`MirProgramRoutineIndex` and `MirStructuredExpressionEmissionOrder`. A single
+cursor consumes each `AST_ASSIGNMENT` atom/value ordinal-zero pair with the
+same global instruction row, reads `arg1` from that exact instruction span,
+and compares it with the next semantic binding mode. Repeated global rows
+increment the semantic cursor again; no row is deduplicated. Bad rows, pair
+shape, ordinals, instruction kinds, missing modes, and final count mismatch all
+fail closed. Static gates reject index rebuilding, raw instruction loops,
+text recovery, and seen-row caches. A focused B,A,A synthetic order accepts all
+three occurrences and rejects a mode drift on the repeated A row, missing
+pairs, invalid rows, and invalid kinds.
+
+The v62 observed driver built in 57,282 ms at 2,515.1/2,503.6 MB peak
+private/working set. The same root-owned full run completed graph construction
+at 1,392,910 ms, assignment typing at 1,396,994 ms, body readiness and
+verification at 1,405,138 ms, then completed assignment-binding validation at
+1,420,016 ms. The binding slice took 14,878 ms, about 9.7 times less than v61.
+Generic-specialization and codegen-view admission completed in 214/107 ms.
+C emission then failed closed with `ToString argument type fact is missing`;
+the process exited 1 at 1,478,323 ms with 1,432.9/1,322.5 MB peak
+private/working set and no output. The next investigation starts at the
+ToString argument-type producer/consumer boundary, not at assignment or graph
+construction.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

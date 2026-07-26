@@ -5029,7 +5029,15 @@ require_text "src/self_hosted/semantic/assignment_binding_mode_owner.pgy" \
 require_file "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" 100
 require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
-    'UnwrapOption(mode) !='
+    'ref order: MirStructuredExpressionEmissionOrder'
+require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'order.global_instruction_rows[order_i]'
+require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'routines.instruction_kinds[global_row]'
+require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'scalar.arg1 != facts.target_binding_modes[assignment_i]'
+reject_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'BuildMirProgramRoutineIndex('
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'Die("MIR assignment binding-mode fact is missing or invalid");'
 require_file "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy"

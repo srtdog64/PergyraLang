@@ -1,47 +1,67 @@
 // MIR JSON assignment binding modes must match the semantic fact owner.
 
 import "program_routine_index_owner.pgy";
-import "routine_fact_index_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "routine_instruction_scalar_capture_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
 
 func MirAssignmentBindingModesMatchSemanticFacts(
-    json: String,
+    ref routines: MirProgramRoutineIndex,
+    ref order: MirStructuredExpressionEmissionOrder,
     facts: SemanticAstAssignmentTypeFacts
 ) -> Bool {
-    if !facts.ok { return false; }
-    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
-    if !MirProgramRoutineIndexStructureReady(routines) { return false; }
-    let assignment_i: Int = 0;
-    let routine_i: Int = 0;
-    while routine_i < MirProgramRoutineIndexCount(routines) {
-        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-            routines, routine_i
-        );
-        if !index.valid { return false; }
-        let instruction_i: Int = 0;
-        while instruction_i < ArrayLength(index.instruction_facts.starts) {
-            let instruction: JsonObjectFactTable =
-                JsonObjectFactTableFromBounds(
-                    json, index.instruction_facts.starts[instruction_i],
-                    index.instruction_facts.ends[instruction_i]
-                );
-            let source_type: Option<String> =
-                JsonObjectFactStringFieldOpt(instruction, "source_type");
-            if IsSome(source_type) &&
-                UnwrapOption(source_type) == "AST_ASSIGNMENT" {
-                let mode: Option<String> =
-                    JsonObjectFactStringFieldOpt(instruction, "arg1");
-                if assignment_i >= ArrayLength(facts.target_binding_modes) ||
-                    !IsSome(mode) ||
-                    UnwrapOption(mode) !=
-                        facts.target_binding_modes[assignment_i] {
-                    return false;
-                }
-                assignment_i = assignment_i + 1;
-            }
-            instruction_i = instruction_i + 1;
-        }
-        routine_i = routine_i + 1;
+    let semantic_count: Int = ArrayLength(facts.target_binding_modes);
+    if !facts.ok || semantic_count != ArrayLength(facts.node_ids) ||
+        !MirProgramRoutineIndexStructureReady(routines) ||
+        !MirStructuredExpressionEmissionOrderReady(order) {
+        return false;
     }
-    return assignment_i == ArrayLength(facts.target_binding_modes);
+    let assignment_i: Int = 0;
+    let order_i: Int = 0;
+    let order_count: Int = ArrayLength(order.global_instruction_rows);
+    let instruction_count: Int = ArrayLength(routines.instruction_starts);
+    while order_i < order_count {
+        let global_row: Int = order.global_instruction_rows[order_i];
+        if global_row < 0 || global_row >= instruction_count {
+            return false;
+        }
+        let instruction_kind: String =
+            routines.instruction_kinds[global_row];
+        let assignment_source: Bool =
+            routines.instruction_source_types[global_row] ==
+                "AST_ASSIGNMENT";
+        if instruction_kind == "assign" && !assignment_source {
+            return false;
+        }
+        if !assignment_source {
+            order_i = order_i + 1;
+            continue;
+        }
+        if instruction_kind != "assign" && instruction_kind != "def" {
+            return false;
+        }
+        let value_i: Int = order_i + 1;
+        if order.lanes[order_i] != AstExpressionLaneAtom() ||
+            order.derived_ordinals[order_i] != 0 || value_i >= order_count ||
+            order.global_instruction_rows[value_i] != global_row ||
+            order.lanes[value_i] != AstExpressionLaneValue() ||
+            order.derived_ordinals[value_i] != 0 ||
+            assignment_i >= semantic_count ||
+            facts.target_binding_modes[assignment_i] == "" {
+            return false;
+        }
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionScalarCaptureWithin(
+                routines.source_json,
+                routines.instruction_starts[global_row],
+                routines.instruction_ends[global_row]
+            );
+        if !scalar.valid || scalar.arg1 == "" ||
+            scalar.arg1 != facts.target_binding_modes[assignment_i] {
+            return false;
+        }
+        assignment_i = assignment_i + 1;
+        order_i = value_i + 1;
+    }
+    return assignment_i == semantic_count;
 }

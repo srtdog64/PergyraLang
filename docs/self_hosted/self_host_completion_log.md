@@ -8877,3 +8877,30 @@ Released/default replacement remains 0%.
   and reject missing/mutated modes without text or raw-order fallback.
 - Hard substitution remains incomplete: no `driver_gen2.c`, gen2 executable,
   or gen3 fixed point exists.
+
+### 2026-07-26 -- v62 aligns assignment binding with structured occurrences
+
+- The former binding verifier rebuilt the 51.8 MB program index, all 2,345
+  routine fact indexes, and all 34,091 instruction objects, then compared raw
+  unique assignment order with structured semantic rows. It took 144,314 ms
+  before failing the v61 full run.
+- The verifier now consumes the prebuilt program index and structured
+  expression occurrence order. Each same-row atom/value ordinal-zero pair owns
+  one assignment-mode comparison, including repeated CFG visits. Missing or
+  malformed pairs, rows, modes, kinds, and counts fail closed. No second
+  sequence/cache, deduplication, text lookup, or raw-order fallback exists.
+- Component and structured-order contracts, the real bubble-sort invalid-mode
+  mutation, a C self-host driver build, and a B,A,A repeated-row synthetic
+  positive/negative probe pass. The observed driver built in 57,282 ms at
+  2,515.1/2,503.6 MB peak private/working set.
+- The fixed full run completed graph construction at 1,392,910 ms, body-type
+  readiness and verification at 1,405,138 ms, assignment binding at 1,420,016
+  ms, generic-specialization at 1,420,230 ms, and codegen-view admission at
+  1,420,337 ms. Binding validation took 14,878 ms, about 9.7x less than v61.
+- C emission failed closed with `ToString argument type fact is missing` and
+  exited 1 at 1,478,323 ms. Peak private/working set was
+  1,432.9/1,322.5 MB and no output was created. The active rung moves to the
+  exact ToString argument-type fact; graph, assignment typing, and assignment
+  binding stay closed.
+- Hard substitution remains incomplete: no complete `driver_gen2.c`, gen2
+  executable, or gen3 fixed point exists.

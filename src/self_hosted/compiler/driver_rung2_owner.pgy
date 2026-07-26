@@ -273,7 +273,8 @@ func CanonicalizeMirJsonVerified(
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     if !MirAssignmentBindingModesMatchSemanticFacts(
-        json, verified.body_types.assignment_types
+        routines, emission.expression_order,
+        verified.body_types.assignment_types
     ) {
         Die("MIR assignment binding-mode fact is missing or invalid");
     }
@@ -357,7 +358,8 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:assignment-binding:start"
     );
     if !MirAssignmentBindingModesMatchSemanticFacts(
-        json, verified.body_types.assignment_types
+        admitted.routines, tree_emission.expression_order,
+        verified.body_types.assignment_types
     ) {
         Die("MIR assignment binding-mode fact is missing or invalid");
     }
