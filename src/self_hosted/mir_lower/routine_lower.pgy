@@ -168,21 +168,27 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let chunks: Array<String> = [];
-    let block_count: Int = ArrayLength(index.block_starts);
-    if !index.valid || !index.instruction_facts.valid || routine_row < 0 || routine_row >= ArrayLength(routines.starts) || routine_row >= ArrayLength(routines.ends) || routine_row >= ArrayLength(routines.routine_block_starts) || routine_row >= ArrayLength(routines.routine_block_counts) || index.routine_start != routines.starts[routine_row] || index.routine_end != routines.ends[routine_row] || routines.routine_block_counts[routine_row] != block_count || block_count != ArrayLength(index.block_ends) || block_count != ArrayLength(index.block_instruction_starts) || block_count != ArrayLength(index.block_instruction_counts) || block_row < 0 || block_row >= block_count { MirLowerFailClosed("invalid block instruction facts"); }
-    let global_block: Int = routines.routine_block_starts[routine_row] + block_row;
-    if global_block < 0 || global_block >= ArrayLength(routines.block_starts) || global_block >= ArrayLength(routines.block_ends) || global_block >= ArrayLength(routines.block_instruction_starts) || global_block >= ArrayLength(routines.block_instruction_counts) || index.block_starts[block_row] != routines.block_starts[global_block] || index.block_ends[block_row] != routines.block_ends[global_block] { MirLowerFailClosed("invalid block program identity"); }
-    let local_start: Int = index.block_instruction_starts[block_row]; let instruction_count: Int = index.block_instruction_counts[block_row]; let fact_end: Int = local_start + instruction_count;
-    let program_start: Int = routines.block_instruction_starts[global_block]; let program_end: Int = program_start + instruction_count;
-    if local_start < 0 || instruction_count < 0 || index.instruction_facts.global_start < 0 || program_start - index.instruction_facts.global_start != local_start || routines.block_instruction_counts[global_block] != instruction_count || fact_end > ArrayLength(index.instruction_facts.starts) || fact_end > ArrayLength(index.instruction_facts.ends) || fact_end > ArrayLength(index.instruction_facts.results) || fact_end > ArrayLength(index.instruction_facts.expr0s) || fact_end > ArrayLength(index.instruction_facts.expr1s) || fact_end > ArrayLength(index.instruction_facts.arg0s) || fact_end > ArrayLength(index.instruction_facts.arg1s) || fact_end > ArrayLength(index.instruction_facts.slot_anchors) || fact_end > ArrayLength(index.instruction_facts.abi_type_names) || fact_end > ArrayLength(index.instruction_facts.abi_type_values_ready) || fact_end > ArrayLength(index.instruction_facts.match_variants) || fact_end * 8 > ArrayLength(index.instruction_facts.abi_layout_bounds) || program_end > ArrayLength(routines.instruction_starts) || program_end > ArrayLength(routines.instruction_ends) || program_end > ArrayLength(routines.instruction_kinds) || program_end > ArrayLength(routines.instruction_source_types) || program_end > ArrayLength(routines.instruction_machine_contact_starts) || program_end > ArrayLength(routines.instruction_machine_contact_ends) || program_end > ArrayLength(routines.instruction_machine_layer_starts) || program_end > ArrayLength(routines.instruction_machine_layer_ends) { MirLowerFailClosed("invalid block instruction slice"); }
+    let instruction_count: Int =
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            routines, routine_row, block_row
+        );
+    if instruction_count < 0 { MirLowerFailClosed("invalid block instruction view"); }
     let row: Int = 0;
     while row < instruction_count {
-        let fact_row: Int = local_start + row; let global_row: Int = index.instruction_facts.global_start + fact_row;
-        if index.instruction_facts.starts[fact_row] != routines.instruction_starts[global_row] || index.instruction_facts.ends[fact_row] != routines.instruction_ends[global_row] { MirLowerFailClosed("instruction span identity mismatch"); }
-        let abi_row: Int = fact_row * 8;
-        let instruction: MirRoutineInstructionView = MirRoutineInstructionView(true, global_row, routines.instruction_starts[global_row], routines.instruction_ends[global_row], routines.instruction_kinds[global_row], routines.instruction_source_types[global_row], routines.instruction_machine_layer_starts[global_row], routines.instruction_machine_layer_ends[global_row]);
-        let scalar: MirRoutineInstructionScalarCapture = MirRoutineInstructionScalarCapture(true, index.instruction_facts.results[fact_row], index.instruction_facts.expr0s[fact_row], index.instruction_facts.expr1s[fact_row], index.instruction_facts.arg0s[fact_row], index.instruction_facts.arg1s[fact_row], index.instruction_facts.slot_anchors[fact_row], index.instruction_facts.abi_type_names[fact_row], index.instruction_facts.abi_type_values_ready[fact_row], index.instruction_facts.match_variants[fact_row], index.instruction_facts.abi_layout_bounds[abi_row], index.instruction_facts.abi_layout_bounds[abi_row + 1], index.instruction_facts.abi_layout_bounds[abi_row + 2], index.instruction_facts.abi_layout_bounds[abi_row + 3], index.instruction_facts.abi_layout_bounds[abi_row + 4], index.instruction_facts.abi_layout_bounds[abi_row + 5], index.instruction_facts.abi_layout_bounds[abi_row + 6], index.instruction_facts.abi_layout_bounds[abi_row + 7]);
-        let kp: Int = instruction.start; let inst_end: Int = instruction.end; let ikind: String = instruction.kind; let source_type: String = instruction.source_type;
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, block_row, row
+            );
+        if !instruction.valid { MirLowerFailClosed("invalid instruction view row"); }
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, instruction.global_row
+            );
+        if !scalar.valid { MirLowerFailClosed("invalid instruction scalar facts"); }
+        let kp: Int = instruction.start;
+        let inst_end: Int = instruction.end;
+        let ikind: String = instruction.kind;
+        let source_type: String = instruction.source_type;
         if !MirCapturedAbiLayoutFactReady(
             json, scalar.abi_type_name, scalar.abi_type_value_ready,
             scalar.abi_type_start, scalar.abi_type_end,
