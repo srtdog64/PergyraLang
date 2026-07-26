@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-26 rejected resource-runtime raw scalar carriage (`530682af`, reverted
+by `c5ee6e62`). The experiment captured instruction `name` plus exact unique
+`runtime_call_abi_required`, `runtime_call_abi`, and `runtime_call_abi_aux`
+bounds in the existing scalar pass and carried them through the routine-local
+bundle. Resource ABI meaning remained in its existing owner, and the old top
+instruction-span reads were removed. Focused routine-index C/LLVM, resource
+negative C/LLVM, component, bounded, and wrong-ABI gates passed. Independent
+review also found an existing fail-open for a stray wrong-kind runtime row on a
+non-resource instruction; that smaller correctness fix survives separately as
+`5e12cf43` with a C/LLVM negative ratchet.
+
+The exact-source v50 driver built in 62,385 ms at 2,445.2 MB peak private /
+2,438.9 MB working set, slower than v48's 51,479 ms build. Bounded output was
+still 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`
+and completed in 609 ms; wrong ABI exited 1 with the owned diagnostic and no
+output. The fixed full run reached routine 704 at 189,951 ms, routine 896 at
+222,884 ms, routine 1,600 at 279,085 ms, and routine 1,728 at 296,959 ms. It
+timed out at 300,680 ms with only 178.2 MB peak private / 182.3 MB working set.
+This is a material CPU/generated-code-shape regression, not memory pressure.
+No routine 1,792/2,048, `consumer:mir-to-ast:done`, or gen2 output exists.
+Current accepted performance evidence therefore remains v48 plus the isolated
+stray-row fail-closed correction; do not restore the expanded per-instruction
+runtime carrier merely from its repeated-byte estimate.
+
 2026-07-26 rejected block-local direct traversal (`80a54268`, reverted by
 `85cee4ff`). The experiment made `EmitBlockStmts` admit a complete block slice
 once and construct instruction/scalar views directly, with a focused C/LLVM

@@ -8512,3 +8512,33 @@ Released/default replacement remains 0%.
   `driver_gen2.c`, gen2 compilation, or gen3 comparison exists. The next seam
   must not repeat direct per-block aggregate construction or infer speed from
   static check removal alone.
+
+### 2026-07-26 -- Resource raw scalar carriage is rejected and reverted
+
+- `530682af` captured instruction `name` plus exact unique
+  `runtime_call_abi_required`, `runtime_call_abi`, and
+  `runtime_call_abi_aux` bounds in the existing scalar pass. The routine-local
+  bundle carried those facts to the unchanged resource semantic owner; no
+  cache, global aggregate, backend split, or old-read fallback remained.
+- Focused routine-index C/LLVM, resource ABI C/LLVM negatives, component,
+  bounded, and wrong-ABI gates passed. The exact-source driver built in 62,385
+  ms at 2,445.2 MB peak private / 2,438.9 MB working set. Its bounded result
+  completed in 609 ms and remained 414 bytes with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+  wrong ABI exited 1 with the owned diagnostic and no output.
+- The fixed run reached routine 704 at 189,951 ms, routine 896 at 222,884 ms,
+  routine 1,600 at 279,085 ms, and routine 1,728 at 296,959 ms. It timed out at
+  300,680 ms with 178.2 MB peak private / 182.3 MB working set and no routine
+  1,792/2,048, MIR-to-AST completion, or gen2 output. This materially regressed
+  v48 despite lower memory.
+- `c5ee6e62` reverts the expanded scalar/bundle carrier. The failed shape stays
+  in history as evidence that fewer repeated bytes do not guarantee cheaper
+  generated code. Accepted performance evidence remains v48.
+- Independent review exposed a separable fail-open: a non-resource instruction
+  could carry a wrong-kind runtime ABI value and have it treated as absence.
+  `5e12cf43` retains only the one-condition fail-closed correction plus a
+  current-source C/LLVM negative and component ratchet. Markerless canonical
+  native resource rows remain compatible.
+- Self-host completion remains absent. There is no routine 2,048 marker,
+  `consumer:mir-to-ast:done`, complete gen2 file, gen2 compilation, or gen3
+  comparison.

@@ -997,6 +997,38 @@ the experiment and restores the exact v48 source tree. Do not preserve a
 performance regression merely because its static check count is lower, and do
 not repeat the direct-construction shape under another name.
 
+#### A one-pass capture can regress when it expands every instruction carrier
+
+The next experiment estimated about 145.6 MB of repeated resource-runtime
+top-field scanning across the complete MIR. `530682af` captured `name` and the
+three runtime ABI value bounds during the existing scalar scan, carried them in
+the routine bundle, and removed the later top-span reads. Focused C/LLVM,
+component, bounded, and wrong-ABI gates were green. The bounded result even
+completed in 609 ms and preserved the established 414-byte SHA.
+
+That evidence did not predict full-artifact cost. The integrated driver build
+took 62,385 ms at 2,445.2 MB peak private / 2,438.9 MB working set, versus
+v48's 51,479 ms. In the fixed run the machine routine-index marker moved from
+67,567 to 80,353 ms, routine 704 moved from 158,817 to 189,951 ms, routine 896
+from 187,672 to 222,884 ms, and routine 1,600 from 235,166 to 279,085 ms. The
+last marker was routine 1,728 at 296,959 ms; timeout was 300,680 ms with only
+178.2 MB peak private / 182.3 MB working set and no gen2 output.
+
+This is not the old 3 GiB graph/readiness defect. The extra scalar fields,
+routine arrays, constructor traffic, and generated code changed costs outside
+the removed resource reader; the pre-MIR marker regression proves the effect
+is not attributable only to the late top-span scans. `c5ee6e62` reverts the
+whole carrier shape. Keep its measurements as negative evidence and do not
+reintroduce the same expanded per-instruction aggregate from a byte-scan model
+alone.
+
+Independent review found one separable correctness issue: an explicit
+wrong-kind `runtime_call_abi` on a non-resource instruction was treated like an
+absent row. `5e12cf43` changes only that early-return condition, adds a C/LLVM
+stray-row negative, and leaves documented markerless native resource rows
+compatible. Separate such fail-closed corrections from rejected performance
+carriers so reverting an optimization does not reopen a real semantic hole.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
