@@ -104,7 +104,7 @@ func MirResourceRuntimeRowFactReady(
     let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
         json, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
-        return !required && !has_aux;
+        return !required && !has_row && !has_aux;
     }
     if !has_row || row_bounds[0] >= row_bounds[1] ||
         JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) !=

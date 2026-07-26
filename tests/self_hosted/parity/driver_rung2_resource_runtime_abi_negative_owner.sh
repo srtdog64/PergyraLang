@@ -4,7 +4,7 @@
 pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     local machine_fixture="$1" backend="$2" base="$3" self_mir_json="$4"
     local driver_bin="$5" machine_declaration="$6"
-    local missing_row identity_row payload_row aux_identity_row aux_injected_row needle replacement
+    local missing_row identity_row payload_row stray_row aux_identity_row aux_injected_row needle replacement
     local -a consumer_command
 
     if [[ "$base" != "device_slot_routine" &&
@@ -90,6 +90,35 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
         "$payload_row.err" "$payload_row.out" || {
         echo "[self-host-parity:driver-rung2] $backend wrong consumer runtime-row payload diagnostic drifted: $base" >&2
         cat "$payload_row.out" "$payload_row.err" >&2
+        return 1
+    }
+
+    # A non-resource instruction may not carry an unowned runtime ABI value.
+    # Wrong-kind row data is invalid rather than equivalent to absence.
+    stray_row="$BUILD_DIR/${base}_${backend}.stray-consumer-runtime-row.mir.json"
+    needle='"kind":"return","name":"return"'
+    replacement='"kind":"return","name":"return","runtime_call_abi":null'
+    if ! pgy_replace_first_literal \
+        "$self_mir_json" "$stray_row" "$needle" "$replacement"; then
+        echo "[self-host-parity:driver-rung2] $backend stray consumer runtime-row mutation did not apply: $base" >&2
+        return 1
+    fi
+
+    consumer_command=("$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$stray_row")")
+    if [[ "$machine_fixture" -eq 1 ]]; then
+        consumer_command+=("$machine_declaration")
+    fi
+    if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
+        >"$stray_row.out" 2>"$stray_row.err"); then
+        echo "[self-host-parity:driver-rung2] $backend stray consumer runtime row was accepted: $base" >&2
+        return 1
+    fi
+    grep -Fq \
+        "resource instruction or consumer is missing its lowered runtime-call ABI row" \
+        "$stray_row.err" "$stray_row.out" || {
+        echo "[self-host-parity:driver-rung2] $backend stray consumer runtime-row diagnostic drifted: $base" >&2
+        cat "$stray_row.out" "$stray_row.err" >&2
         return 1
     }
 

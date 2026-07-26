@@ -10533,6 +10533,8 @@ require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "MirMachineLayerInstructionRuntimeOperationAtBounds("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     '"runtime_call_abi", row_bounds'
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "return !required && !has_row && !has_aux;"
 reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "func MirResourceRuntimeRowFactReady(" \
     "let instruction: JsonObjectFactTable"
@@ -10569,6 +10571,7 @@ require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pg
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "SelfMirJsonAppendRuntimeCallAbiFields"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi_required"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "bool_helper_while_slot"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "stray-consumer-runtime-row"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "class_helper_method_chain/main.pgy"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactsAtBounds("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let pattern: String = patterns[0]"
