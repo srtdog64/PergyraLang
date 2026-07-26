@@ -8085,6 +8085,69 @@ reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     "MirObjectArrayStringFactCount("
 reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     "MirObjectArrayStringFactAt("
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'import "program_routine_index_owner.pgy";'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "ref routines: MirProgramRoutineIndex"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "routine_row: Int"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "match_binding_source_local_count"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "!MirProgramRoutineIndexRowReady(routines, routine_row)"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "instruction_start != expected_instruction_start"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'routines.instruction_source_types[global_row] !='
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'routines.instruction_kinds[global_row] != "branch"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "match_binding_instruction_kind"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "    json: String,"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "instruction_starts: Array<Int>"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "instruction_ends: Array<Int>"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "instruction_facts"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "global_start"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "match_variant"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "MirProgramRoutineIndexStructureReady("
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "MirObjectStringFactAtBounds("
+[[ "$(grep -F -c -- 'MirProgramRoutineIndexRowReady(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" || true)" -eq 1 ]] ||
+    fail "match binding local facts must admit the routine row exactly once"
+[[ "$(grep -F -c -- 'while instruction_offset < instruction_count' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" || true)" -eq 1 ]] ||
+    fail "match binding local facts must use one direct instruction filter loop"
+[[ "$(grep -F -c -- 'global_block_start + block_count > ArrayLength(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" || true)" -eq 4 ]] ||
+    fail "match binding local facts must admit all four block owner arrays before iteration"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" \
+    "global_block >= ArrayLength(routines.block_"
+[[ "$(grep -F -c -- 'instruction_start + instruction_count > ArrayLength(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" || true)" -eq 4 ]] ||
+    fail "match binding local facts must bound all four instruction owner arrays per block"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "routines, routine_row, source_local_names, source_local_types"
+reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "json, instruction_facts.starts, instruction_facts.ends"
+for match_fixture_term in \
+    "mir-program-routine-index-owner-match-direct-filter-failed" \
+    "mir-program-routine-index-owner-forged-stmt-match-accepted" \
+    "mir-program-routine-index-owner-missing-match-type-accepted" \
+    "mir-program-routine-index-owner-invalid-match-owner-accepted" \
+    "mir-program-routine-index-owner-mismatched-locals-accepted" \
+    "mir-program-routine-index-owner-zero-block-parallel-gap-accepted"; do
+    require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+        "$match_fixture_term"
+done
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'if !MirRoutinePhiFactsReady(index, routines, routine_row)'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \

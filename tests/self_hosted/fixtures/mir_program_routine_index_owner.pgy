@@ -108,6 +108,152 @@ func Main() -> Void {
         MirRoutineInstructionViewAt(index, 0, 0, 2).valid {
         failures = failures + 1;
     }
+
+    // Match-local admission consumes the program routine index directly.  A
+    // non-match row may carry forged match arrays, but it must never be read as
+    // a binding source; only the canonical match branch contributes a local.
+    let nonmatch_binding_instruction: String =
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"match_bindings\":[\"ignored\"],\"match_binding_types\":[],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let match_binding_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"bound\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let match_binding_block: String = Concat(
+        "{\"id\":0,\"instructions\":[", Concat(
+            nonmatch_binding_instruction,
+            Concat(",", Concat(match_binding_instruction, "]}"))
+        )
+    );
+    let match_binding_routine_prefix: String =
+        "{\"kind\":\"function\",\"name\":\"MatchBindings\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[";
+    let match_binding_routine: String = Concat(
+        match_binding_routine_prefix, Concat(match_binding_block, "]}")
+    );
+    let match_binding_json: String = Concat(
+        prefix, Concat(match_binding_routine, "]}")
+    );
+    let match_binding_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(match_binding_json);
+    let match_binding_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(match_binding_program, 0);
+    if !match_binding_index.valid ||
+        MirRoutineFactIndexSourceLocalType(
+            match_binding_index, "bound"
+        ) != "Int" || MirRoutineFactIndexSourceLocalType(
+            match_binding_index, "ignored"
+        ) != "" {
+        Log("mir-program-routine-index-owner-match-direct-filter-failed");
+        failures = failures + 1;
+    }
+
+    let forged_stmt_match_instruction: String =
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"forged\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let forged_stmt_match_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(forged_stmt_match_instruction, "]}")
+    );
+    let forged_stmt_match_routine: String = Concat(
+        match_binding_routine_prefix, Concat(forged_stmt_match_block, "]}")
+    );
+    let forged_stmt_match_json: String = Concat(
+        prefix, Concat(forged_stmt_match_routine, "]}")
+    );
+    let forged_stmt_match_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(forged_stmt_match_json);
+    let forged_stmt_match_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(forged_stmt_match_program, 0);
+    if forged_stmt_match_index.valid ||
+        forged_stmt_match_index.validation_stage !=
+            "match_binding_instruction_kind" {
+        Log("mir-program-routine-index-owner-forged-stmt-match-accepted");
+        failures = failures + 1;
+    }
+
+    let missing_match_type_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"missing_type\"],\"match_binding_types\":[],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let missing_match_type_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(missing_match_type_instruction, "]}")
+    );
+    let missing_match_type_routine: String = Concat(
+        match_binding_routine_prefix, Concat(missing_match_type_block, "]}")
+    );
+    let missing_match_type_json: String = Concat(
+        prefix, Concat(missing_match_type_routine, "]}")
+    );
+    let missing_match_type_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(missing_match_type_json);
+    let missing_match_type_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(missing_match_type_program, 0);
+    if missing_match_type_index.valid ||
+        missing_match_type_index.validation_stage !=
+            "match_binding_type_count" {
+        Log("mir-program-routine-index-owner-missing-match-type-accepted");
+        failures = failures + 1;
+    }
+
+    let empty_match_names: Array<String> = [];
+    let empty_match_types: Array<String> = [];
+    let invalid_match_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex("{}");
+    let invalid_match_owner: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            invalid_match_program, 0, empty_match_names, empty_match_types
+        );
+    let invalid_match_row: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            match_binding_program, 1, empty_match_names, empty_match_types
+        );
+    if invalid_match_owner.valid || invalid_match_row.valid ||
+        invalid_match_owner.validation_stage !=
+            "match_binding_routine_owner" ||
+        invalid_match_row.validation_stage !=
+            "match_binding_routine_owner" {
+        Log("mir-program-routine-index-owner-invalid-match-owner-accepted");
+        failures = failures + 1;
+    }
+    let mismatched_match_names: Array<String> = ["existing"];
+    let mismatched_match_types: Array<String> = [];
+    let mismatched_match_locals: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            match_binding_program, 0,
+            mismatched_match_names, mismatched_match_types
+        );
+    if mismatched_match_locals.valid ||
+        mismatched_match_locals.validation_stage !=
+            "match_binding_source_local_count" {
+        Log("mir-program-routine-index-owner-mismatched-locals-accepted");
+        failures = failures + 1;
+    }
+    let zero_block_routine_counts: Array<Int> = [1, 0];
+    let missing_parallel_block_ends: Array<Int> = [];
+    let zero_block_parallel_gap: MirProgramRoutineIndex =
+        MirProgramRoutineIndex(
+            index.valid, index.source_json, index.source_length,
+            index.starts, index.ends, index.kinds, index.owners, index.names,
+            index.routine_block_starts, zero_block_routine_counts,
+            index.block_starts, missing_parallel_block_ends,
+            index.block_instruction_starts,
+            index.block_instruction_counts,
+            index.instruction_starts, index.instruction_ends,
+            index.instruction_kinds, index.instruction_source_types,
+            index.instruction_machine_contact_starts,
+            index.instruction_machine_contact_ends,
+            index.instruction_machine_layer_starts,
+            index.instruction_machine_layer_ends
+        );
+    let zero_block_gap_names: Array<String> = [];
+    let zero_block_gap_types: Array<String> = [];
+    let zero_block_gap_facts: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            zero_block_parallel_gap, 1,
+            zero_block_gap_names, zero_block_gap_types
+        );
+    if !MirProgramRoutineIndexRowReady(zero_block_parallel_gap, 1) ||
+        zero_block_gap_facts.valid ||
+        zero_block_gap_facts.validation_stage !=
+            "match_binding_block_alignment" {
+        Log("mir-program-routine-index-owner-zero-block-parallel-gap-accepted");
+        failures = failures + 1;
+    }
     if !MirCapturedAbiLayoutFactReady(
         json, first_scalar.abi_type_name,
         first_scalar.abi_type_value_ready,

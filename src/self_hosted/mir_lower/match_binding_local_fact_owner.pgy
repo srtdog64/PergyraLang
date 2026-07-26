@@ -5,6 +5,7 @@
 // nested lowering never infers a type from pattern spelling or source text.
 
 import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
 
 struct MirMatchBindingLocalFacts {
     valid: Bool;
@@ -14,58 +15,140 @@ struct MirMatchBindingLocalFacts {
 }
 
 func BuildMirMatchBindingLocalFacts(
-    json: String,
-    instruction_starts: Array<Int>,
-    instruction_ends: Array<Int>,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
     source_local_names: Array<String>,
     source_local_types: Array<String>
 ) -> MirMatchBindingLocalFacts {
     let names: Array<String> = source_local_names;
     let types: Array<String> = source_local_types;
+    if ArrayLength(names) != ArrayLength(types) {
+        return MirMatchBindingLocalFacts(
+            false, "match_binding_source_local_count", names, types
+        );
+    }
+    if !routines.valid ||
+        !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return MirMatchBindingLocalFacts(
+            false, "match_binding_routine_owner", names, types
+        );
+    }
     let valid: Bool = true;
     let validation_stage: String = "ok";
-    let instruction: Int = 0;
-    while instruction < ArrayLength(instruction_starts) {
-        let start: Int = instruction_starts[instruction];
-        let end: Int = instruction_ends[instruction];
-        let binding_names: Array<String> = MirObjectArrayStringFactsAtBounds(
-            json, start, end, "match_bindings"
+    let json: String = routines.source_json;
+    let routine_start: Int = routines.starts[routine_row];
+    let routine_end: Int = routines.ends[routine_row];
+    let global_block_start: Int =
+        routines.routine_block_starts[routine_row];
+    let block_count: Int = routines.routine_block_counts[routine_row];
+    if global_block_start < 0 || block_count < 0 ||
+        global_block_start + block_count > ArrayLength(
+            routines.block_starts
+        ) || global_block_start + block_count > ArrayLength(
+            routines.block_ends
+        ) || global_block_start + block_count > ArrayLength(
+            routines.block_instruction_starts
+        ) || global_block_start + block_count > ArrayLength(
+            routines.block_instruction_counts
+        ) {
+        return MirMatchBindingLocalFacts(
+            false, "match_binding_block_alignment", names, types
         );
-        let binding_types: Array<String> = MirObjectArrayStringFactsAtBounds(
-            json, start, end, "match_binding_types"
-        );
-        let binding_count: Int = ArrayLength(binding_names);
-        let type_count: Int = ArrayLength(binding_types);
-        if binding_count != type_count {
-            valid = false;
-            validation_stage = "match_binding_type_count";
-        } else {
-            let binding: Int = 0;
-            while binding < binding_count {
-                let name: String = binding_names[binding];
-                let type_name: String = binding_types[binding];
-                if name == "" || type_name == "" || type_name == "Unknown" {
-                    valid = false;
-                    validation_stage = "match_binding_type";
-                } else {
-                    let existing: String = "";
-                    let row: Int = 0;
-                    while row < ArrayLength(names) {
-                        if names[row] == name { existing = types[row]; }
-                        row = row + 1;
-                    }
-                    if existing == "" {
-                        ArrayPush(names, name);
-                        ArrayPush(types, type_name);
-                    } else if existing != type_name {
-                        valid = false;
-                        validation_stage = "match_binding_type_conflict";
-                    }
-                }
-                binding = binding + 1;
-            }
+    }
+    let expected_instruction_start: Int = 0;
+    let expected_instruction_start_ready: Bool = false;
+    let block_offset: Int = 0;
+    while block_offset < block_count {
+        let global_block: Int = global_block_start + block_offset;
+        let block_start: Int = routines.block_starts[global_block];
+        let block_end: Int = routines.block_ends[global_block];
+        let instruction_start: Int =
+            routines.block_instruction_starts[global_block];
+        let instruction_count: Int =
+            routines.block_instruction_counts[global_block];
+        if block_start < routine_start || block_end > routine_end ||
+            block_end <= block_start || instruction_start < 0 ||
+            instruction_count < 0 ||
+            instruction_start + instruction_count > ArrayLength(
+                routines.instruction_starts
+            ) || instruction_start + instruction_count > ArrayLength(
+                routines.instruction_ends
+            ) || instruction_start + instruction_count > ArrayLength(
+                routines.instruction_kinds
+            ) || instruction_start + instruction_count > ArrayLength(
+                routines.instruction_source_types
+            ) ||
+            (expected_instruction_start_ready &&
+                instruction_start != expected_instruction_start) {
+            return MirMatchBindingLocalFacts(
+                false, "match_binding_block_alignment", names, types
+            );
         }
-        instruction = instruction + 1;
+        expected_instruction_start = instruction_start + instruction_count;
+        expected_instruction_start_ready = true;
+        let instruction_offset: Int = 0;
+        while instruction_offset < instruction_count {
+            let global_row: Int = instruction_start + instruction_offset;
+            let start: Int = routines.instruction_starts[global_row];
+            let end: Int = routines.instruction_ends[global_row];
+            if start < block_start || end > block_end || end <= start {
+                return MirMatchBindingLocalFacts(
+                    false, "match_binding_instruction_alignment", names, types
+                );
+            }
+            if routines.instruction_source_types[global_row] !=
+                    "AST_MATCH_CASE" {
+                instruction_offset = instruction_offset + 1;
+                continue;
+            }
+            if routines.instruction_kinds[global_row] != "branch" {
+                return MirMatchBindingLocalFacts(
+                    false, "match_binding_instruction_kind", names, types
+                );
+            }
+            let binding_names: Array<String> =
+                MirObjectArrayStringFactsAtBounds(
+                    json, start, end, "match_bindings"
+                );
+            let binding_types: Array<String> =
+                MirObjectArrayStringFactsAtBounds(
+                    json, start, end, "match_binding_types"
+                );
+            let binding_count: Int = ArrayLength(binding_names);
+            let type_count: Int = ArrayLength(binding_types);
+            if binding_count != type_count {
+                valid = false;
+                validation_stage = "match_binding_type_count";
+            } else {
+                let binding: Int = 0;
+                while binding < binding_count {
+                    let name: String = binding_names[binding];
+                    let type_name: String = binding_types[binding];
+                    if name == "" || type_name == "" ||
+                        type_name == "Unknown" {
+                        valid = false;
+                        validation_stage = "match_binding_type";
+                    } else {
+                        let existing: String = "";
+                        let row: Int = 0;
+                        while row < ArrayLength(names) {
+                            if names[row] == name { existing = types[row]; }
+                            row = row + 1;
+                        }
+                        if existing == "" {
+                            ArrayPush(names, name);
+                            ArrayPush(types, type_name);
+                        } else if existing != type_name {
+                            valid = false;
+                            validation_stage = "match_binding_type_conflict";
+                        }
+                    }
+                    binding = binding + 1;
+                }
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
     }
     return MirMatchBindingLocalFacts(
         valid, validation_stage, names, types
