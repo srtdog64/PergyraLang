@@ -44,8 +44,9 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `0da9c5c2` (`reuse exact MIR ABI validation
-  tuples`) on `main`. Its ABI row-capture predecessor is `a5d56f42`, its
+- Implementation checkpoint: `bf8a56b8` (`reuse captured optional MIR ABI type
+  facts`) on `main`. Its exact ABI witness predecessor is `0da9c5c2`, its ABI
+  row-capture predecessor is `a5d56f42`, its
   routine-scalar predecessor is `dd68d6f3`, its
   instruction-view predecessor is `06f6994d`, its
   evidence predecessor is `84f68161`, its
@@ -122,6 +123,11 @@ bounded-only parity as progress evidence.
   witnesses. A required hit needs the raw type value, canonical decimal ID,
   required state, and complete raw layout payload. ID-only and cross-run reuse
   are forbidden; a changed payload is revalidated and fails closed.
+- The routine scalar pass carries whether the ABI type value was one valid
+  string or exact optional `null`. The ABI owner remains the semantic owner and
+  uses that observation only with exact optional `id=0`/`layout=null` tokens.
+  Required tuples still take the complete raw witness path; wrong-kind or
+  noncanonical values are not repaired or guessed.
 
 ## Exact dirty state
 
@@ -156,10 +162,10 @@ unmodified and excluded from task commits:
   stores, per-routine whole-program structure revalidation, `new ? old`
   authority, or raising the 3072 MB cap.
 - Focused falsifier: continue the same admitted artifact beyond the observed
-  `top-level-routines:128` marker and either reach the next 64-routine marker or
-  expose one named routine/owner failure. Do not open the later expression-
-  graph or assignment post-pass until `consumer:mir-to-ast:done` is observed.
-  Even 128 is only a progress sentinel, not gen2.
+  `top-level-routines:1920` marker and either reach routine 1,984 or expose one
+  named routine/owner failure. Do not open the later expression-graph or
+  assignment post-pass until `consumer:mir-to-ast:done` is observed. Even
+  1,920 of 2,345 top-level routines is only a progress sentinel, not gen2.
 - Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
   that artifact builds, and the resulting gen2 consumes the same complete
   compiler source to emit `driver_gen3.c`. The bounded preflight remains a
@@ -212,6 +218,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-abi-owner-v40-build` | 2565.3 MB | 2554.5 MB | Exact final-source integrated C driver compiled in 55,007 ms below the fixed cap. |
 | `full-mir-consumer-abi-exact-reuse-v41-build` | 2346.8 MB | 2336.6 MB | Exact-source integrated C driver compiled in 52,722 ms below the fixed cap. |
 | `full-mir-consumer-abi-exact-reuse-v41-300s` | 157.2 MB | 162.3 MB | Timed out at 300,227 ms after routine 640 at 228,455 ms, routine 704 at 238,884 ms, and routine 896 at 288,574 ms; no gen2. |
+| `full-mir-consumer-abi-optional-fast-v42-build` | 2515.0 MB | 2503.6 MB | Exact-source integrated C driver compiled in 53,265 ms below the fixed cap. |
+| `full-mir-consumer-abi-optional-fast-v42-300s` | 214.4 MB | 216.6 MB | Timed out at 300,115 ms after routine 704 at 162,849 ms, routine 896 at 192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at 293,147 ms; no gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -337,6 +345,39 @@ old routine-704 falsifier, and reached routine 896 at 288,574 ms. It timed out
 at 300,227 ms with 157.2/162.3 MB peak private/working set. This remains RED:
 there is still no `consumer:mir-to-ast:done` marker or gen2 file.
 
+`bf8a56b8` closes the duplicate optional ABI wire-read seam. The existing
+routine scalar scan now carries type-value readiness, while the ABI owner keeps
+the sole semantic decision and accepts the common optional case only with exact
+raw `0`/`null` tokens. The v42 driver built in 53,265 ms below 3 GiB, preserved
+the exact 414-byte bounded SHA, and rejected the wrong-ABI input in 551 ms with
+no output. Its fixed-window run reached routine 704 at 162,849 ms, routine 896
+at 192,157 ms, and routine 1,920 at 293,147 ms before timing out at 300,115 ms.
+Peak private/working set was 214.4/216.6 MB. This is 76,035 ms and 96,417 ms
+earlier at the shared 704/896 markers and 1,024 routines farther than v41, but
+still RED for bootstrap completion: no `consumer:mir-to-ast:done` or gen2 file.
+
+The v42 interval census covers all 29 completed 64-routine intervals. Interval
+time versus instruction count has R-squared 97.43%; the remaining 425 routines
+contain 7,873 instructions. The measured linear projection places
+`top-level-routines:done` near process timestamp 355.9 seconds, before the still
+unmeasured string join and AST inventory cost. That is a projection, not green
+evidence and not permission to enlarge the 300-second diagnostic window. The
+next measured CPU owner is `BuildMirRoutineFactIndex`: focused samples spend
+1,051 of 1,464 ms (71.8%) in fact-index construction. Inside its scalar scan,
+34,091 instruction objects expose 852,275 keys and currently trigger eleven
+semantic key comparisons per key (9,375,025 calls). Dispatching plain keys by
+their already-owned raw length reduces that to about 1,159,094 calls while an
+escaped-key fallback preserves JSON equivalence and duplicate rejection. This
+is the first minimal executable seam because it changes no fact owner, bundle,
+or ABI decision. If linear cost remains after that, the broader candidate is
+the second full instruction-object scan from
+`BuildMirRoutineInstructionFactBundle` into
+`MirRoutineInstructionScalarCaptureWithin`, after the admitted program index
+already scanned every instruction for identity. A separate CFG census found
+15,940 tail BFS calls but could not distinguish them from the strongly
+collinear instruction/block volume; do not introduce a CFG cache or move phi
+ownership on correlation alone.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -363,7 +404,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `0da9c5c2` plus the documented working measurements:
+Green on `bf8a56b8` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -380,12 +421,12 @@ Green on `0da9c5c2` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-abi-exact-reuse-v41-build`): exit 0, 52,722 ms,
-  2,346.8 MB peak private / 2,336.6 MB peak working set;
+  owner (`full-mir-consumer-abi-optional-fast-v42-build`): exit 0, 53,265 ms,
+  2,515.0 MB peak private / 2,503.6 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
-- bounded wrong-ID ABI mutation: exit 1 with the owned ABI diagnostic and no
-  output file;
+- bounded wrong-ABI mutation: exit 1 in 551 ms with the owned ABI diagnostic
+  and no output file;
 - `tests/build_pressure_contract_smoke.sh`;
 - focused current-driver `nested_if_in_loop` MIR production/consumption plus a
   forged one-predecessor header-phi rejection;
@@ -442,29 +483,43 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-routine-scalar-bundle-v23.*`,
 `full-mir-consumer-abi-bounds-v38-300s.*`, and
 `full-mir-consumer-abi-row-capture-v39-300s.*`, and
-`full-mir-consumer-abi-exact-reuse-v41-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v41_abi_exact_reuse.exe`; its
+`full-mir-consumer-abi-exact-reuse-v41-300s.*`, and
+`full-mir-consumer-abi-optional-fast-v42-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v42_abi_optional_fast.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v41_bounded.c`. The latest full consumer
-evidence includes complete stage capture through the 896-routine marker. These
+`.tmp/self_hosted/driver_bootstrap/v42_bounded.c`. The latest full consumer
+evidence includes complete stage capture through the 1,920-routine marker. These
 files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile the first range after marker 896 using the current instruction, CFG,
-   phi, and ABI owners. The next falsifier is marker 960. Do not widen the ABI
-   witness session unless a complete-tuple miss is measured as the next owner.
-2. Re-run the current artifact until marker 960 and ultimately
-   `consumer:mir-to-ast:done` are observed under the fixed pressure owner.
-3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
+1. Land the length-directed key dispatch inside the existing
+   `MirRoutineInstructionScalarCaptureWithin` owner. Preserve the full semantic
+   comparison fallback for escaped keys and prove all eleven keys, same-length
+   non-targets, escaped targets, and plain-plus-escaped duplicates. The static
+   gate must reject reintroduction of unconditional eleven-way comparison.
+2. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. If instruction
+   cost still dominates, instrument hot routine 1,955 to separate scalar
+   capture, flow facts, successor capture, backedge/merge queries, and
+   match-local work before committing an owner move.
+3. If that split confirms the second object scan, extend the existing program
+   instruction capture to own the
+   identity plus routine scalar/raw ABI span facts in one walk, migrate the
+   routine bundle to projections from that owner, delete the second full
+   instruction-object scan, and ratchet it with a negative component gate.
+4. Re-run the current artifact until marker 1,984 and ultimately
+   `consumer:mir-to-ast:done` are observed under the fixed pressure owner. Add
+   post-loop markers for top-level completion, string join, and AST inventory
+   so the projected 355.9-second lower bound cannot be mistaken for completion.
+5. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
-4. Make the generated gen2 driver consume the same complete compiler source
+6. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
-5. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+7. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-6. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+8. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

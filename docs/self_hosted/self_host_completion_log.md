@@ -8285,3 +8285,34 @@ Released/default replacement remains 0%.
   bootstrap. `consumer:mir-to-ast:done`, a complete `driver_gen2.c`, gen2
   compilation, and gen3 comparison are still absent. The next executable
   falsifier is routine 960 under the unchanged 300-second/3072 MB gate.
+
+### 2026-07-26 -- Optional ABI rows reuse the routine scalar observation
+
+- The v41 interval census showed elapsed time was explained by instruction
+  volume rather than required-ABI volume. The common optional ABI path was
+  still decoding a wire value that the routine scalar pass had already read.
+- `bf8a56b8` carries `abi_type_value_ready` with the decoded type name. The bit
+  records only a valid string or exact optional `null`; ABI semantics remain in
+  `abi_layout_fact_owner.pgy`. Optional rows require exact raw `id=0` and
+  `layout=null`, while required rows retain exact-tuple witness reuse and full
+  canonical validation.
+- The focused C/LLVM structure gate admits valid optional/required rows and
+  rejects wrong type kind, wrong ID, duplicate fields, changed required layout,
+  and truncated bounds with the existing ABI diagnostic. No backend split,
+  ID-only authority, or second cache was added.
+- The exact-source v42 driver built in 53,265 ms at 2,515.0 MB peak private /
+  2,503.6 MB working set. Its 1,433 ms bounded run remained exactly 414 bytes
+  with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI negative exited 1 in 551 ms with no output.
+- The fixed 300-second run reached routine 704 at 162,849 ms, routine 896 at
+  192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at 293,147 ms. It
+  timed out at 300,115 ms with 214.4 MB peak private / 216.6 MB working set and
+  no cap crossing. Routines 704 and 896 were 76,035 and 96,417 ms earlier than
+  v41, and the same window advanced 1,024 routines farther.
+- This is executable CPU progress, not bootstrap completion. The historic
+  3 GiB-class defect came from repeated whole-program graph/readiness
+  validation that admission should perform once; it is recorded separately
+  from the current low-memory timeout. There is still no
+  `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 binary, or gen3
+  comparison. The next fixed-window falsifier is routine 1,984.

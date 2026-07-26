@@ -743,6 +743,45 @@ file. Keep the next test window fixed; profile the first interval after routine
 896 and use routine 960 as the next falsifier rather than raising time or memory
 limits.
 
+#### Carry common ABI wire facts instead of validating the same row twice
+
+The v41 interval census showed that elapsed time tracked instruction count much
+more closely than the remaining required-ABI count. The next duplicate work was
+the common optional row: the routine scalar pass had already decoded
+`abi_type_name`, but the ABI owner reopened the same instruction value and
+decoded the optional type and ID again. This was a repeated read/validation
+cost, not evidence that the consumer needed more memory.
+
+Checkpoint `bf8a56b8` carries `abi_type_value_ready` alongside the already
+captured type name. Readiness means the scalar scan observed either one valid
+JSON string or the exact optional `null`; it does not authorize an ABI semantic
+decision. `abi_layout_fact_owner.pgy` remains the sole owner of the type, ID,
+required-state, and layout relationship. It accepts the common optional case
+only when the carried type is ready and the raw tokens are exactly
+`abi_layout_id:0` and `abi_layout:null`. Required rows still use the complete
+raw tuple witness and full canonical validation. Missing, duplicate,
+wrong-kind, noncanonical-ID, and changed-layout cases still fail with the owned
+ABI diagnostic. No C/LLVM split and no second cache were added.
+
+The exact-source v42 driver built in 53,265 ms at 2,515.0 MB peak private /
+2,503.6 MB working set. Its bounded result remained 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI run exited 1 in 551 ms and opened no output. The fixed-window full
+run reached routine 192 at 83,846 ms, routine 704 at 162,849 ms, routine 896 at
+192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at 293,147 ms. It
+timed out at 300,115 ms with only 214.4 MB peak private / 216.6 MB working set,
+`limit_exceeded=false`, no `mir-to-ast:done`, and no gen2 file. The v42 run was
+76,035 ms earlier at routine 704 and 96,417 ms earlier at routine 896 than v41,
+and reached 1,024 additional routines in the same window.
+
+This also explains the earlier multi-gigabyte symptom precisely. The historic
+3 GiB-class failure repeatedly validated whole-program graph/readiness state
+that admission needed to prove once. The current v42 runtime stays near
+214/217 MB; its remaining failure is CPU completion within the diagnostic
+window. Do not raise the memory cap, copy the graph, shard it by process, or
+turn a carried readiness bit into semantic authority. Continue from routine
+1,920, with routine 1,984 as the next fixed-window falsifier.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

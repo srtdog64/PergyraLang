@@ -1,5 +1,28 @@
 # Self-Host Progress
 
+2026-07-26 captured optional ABI scalar reuse (`bf8a56b8`). The existing
+routine-local scalar pass now carries whether `abi_type_name` was decoded as a
+valid string or observed as the exact optional `null`. The ABI owner still owns
+the type/layout relationship and all diagnostics; the scalar carrier supplies
+only the already-observed wire value and readiness bit. Optional rows prove the
+exact `id=0` and `layout=null` tokens without reparsing the same instruction
+object. Missing, duplicate, wrong-kind, noncanonical ID, and required-layout
+paths remain fail closed, and no backend-specific path or second ABI cache was
+introduced.
+
+The exact-source v42 integrated driver built in 53,265 ms at 2,515.0 MB peak
+private / 2,503.6 MB working set, below the fixed 3,072 MB cap. Its bounded run
+finished in 1,433 ms and preserved the 414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The wrong-ABI negative exited 1 in 551 ms with the owned diagnostic and no
+output. The fixed 300-second full consumer reached routine 704 at 162,849 ms,
+routine 896 at 192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at
+293,147 ms before timing out at 300,115 ms. Peak private/working-set memory was
+214.4/216.6 MB. Relative to v41, routines 704 and 896 moved earlier by 76,035
+and 96,417 ms, and the same window advanced 1,024 routines farther. It still
+did not reach `consumer:mir-to-ast:done` and did not create gen2 output. The
+next executable falsifier is routine 1,984 under the unchanged window and cap.
+
 2026-07-26 program-lifetime exact ABI validation reuse (`0da9c5c2`). The v39
 full-input census found 10,635 instructions but only 40 exact ABI tuples before
 routine 640. Required rows were more concentrated: 580 rows reduced to five
