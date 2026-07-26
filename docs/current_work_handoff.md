@@ -79,8 +79,11 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `40037e52` (revert rejected v52 block-successor
-  pair capture) on `main`. The rejected v52 implementation is `8c49f74f`.
+- Implementation checkpoint: `1f77b0bc` (revert rejected v55 JSON ASCII
+  literal conversion removal) on `main`. The rejected v55 implementation is
+  `2eeeec13`; focused gates and disassembly proved the local transformation,
+  but the fixed full run regressed materially. The rejected v52 implementation
+  is `8c49f74f`, reverted by `40037e52`.
   The successor-pair seam is abandoned after its first measured shape; do not
   re-express it as another pair struct, wrapper, or carrier. The rejected v51
   implementation is `e6abdeaa`; the rejected v50 carrier is `530682af`,
@@ -231,12 +234,6 @@ are synchronized and no task-owned implementation or documentation change is
 dirty. These unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
-- `docs/117_backend_strategy_positioning.md`;
-- `docs/20_compiler_pipeline_guide.md`;
-- `docs/51_c_backend_reference_policy.md`;
-- `docs/52_llvm_native_first_roadmap.md`;
-- `docs/self_hosted/13_compiler_substrate_architecture.md`;
-- `docs/semantics/16_language_contract_golden_spine.md`;
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
@@ -343,6 +340,10 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-block-successor-pair-v52-300s-observed` | 172.9 MB | 176.6 MB | Rejected experiment timed out at 300,560 ms after machine routine-index completion at 83,531 ms and routines 704/896/1,600/1,664 at 198,093/233,293/291,565/298,472 ms; no routine 1,728/2,048 or gen2. Reverted by `40037e52`. |
 | `full-mir-consumer-llvm-performance-v53-build` | 2399.0 MB | 2389.0 MB | Accepted-source LLVM projection compiled successfully in 139,295 ms below the cap and preserved focused C/LLVM semantics. |
 | `full-mir-consumer-llvm-performance-v53-300s-observed` | 214.0 MB | 210.8 MB | LLVM projection timed out at 300,518 ms after machine routine-index completion at 73,014 ms and routines 704/896/1,600/1,856 at 172,586/202,127/250,313/295,125 ms; it was slower than C v48 and produced no gen2. |
+| `full-mir-consumer-c-clang-v54-build` | 2557.6 MB | 2546.5 MB | Accepted-source C projection compiled with the explicit Windows clang host toolchain in 42,649 ms, 8,830 ms faster than GCC v48, with byte/failure parity preserved. |
+| `full-mir-consumer-c-clang-v54-300s-observed` | 206.0 MB | 208.0 MB | clang-built C projection timed out at 300,665 ms after routines 704/896/1,600/1,920/1,984 at 160,553/188,638/237,074/286,528/296,279 ms; build-time win but runtime negative/noise versus GCC v48, no gen2. |
+| `full-mir-consumer-json-ascii-constants-v55-build` | 2516.9 MB | 2505.4 MB | Rejected exact-source experiment compiled in 51,536 ms; focused C/LLVM, bounded SHA, and wrong-ABI behavior remained exact. |
+| `full-mir-consumer-json-ascii-constants-v55-300s-observed` | 202.9 MB | 205.3 MB | Rejected experiment timed out at 300,480 ms after routines 704/896/1,600/1,920 at 162,958/191,199/240,394/291,112 ms; 5,779 ms later than v48 at routine 1,920, no routine 1,984/gen2. Reverted by `1f77b0bc`. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -744,6 +745,10 @@ successor-pair evidence remains under
 only the `300s-observed` run has valid routine-marker evidence. The v53 LLVM
 projection evidence remains under
 `full-mir-consumer-llvm-performance-v53-{build,bounded,wrong-abi,300s-observed}.*`.
+The v54 explicit clang-via-C evidence remains under
+`full-mir-consumer-c-clang-v54-{build,bounded,wrong-abi,300s-observed}.*`.
+The rejected v55 local-call evidence remains under
+`full-mir-consumer-json-ascii-constants-v55-{build,bounded,wrong-abi,300s-observed}.*`.
 The current accepted
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
@@ -767,36 +772,38 @@ evidence only, not semantic authority or commit content.
    fixed window. Keep LLVM's general performance-primary direction, but do not
    use the current LLVM-built DRV-2 as the active bootstrap executable and do
    not change semantics to make that positioning claim pass.
-3. Run one host-toolchain projection experiment before another Pergyra parser
-   rewrite: compile the unchanged C backend output with `PGY_CC=clang`. The
-   objective is to test whether the same C projection reaches gen2 faster under
-   the available Windows clang optimizer. Priority is byte/failure parity,
-   thread/runtime link correctness, observed full progress, memory, then build
-   time.
-4. Pergyra semantic/canonical MIR and the C backend remain the owners; host C
-   compiler selection is only the final native projection. The last consumer
-   is the same integrated driver. Forbidden fallbacks are changing the default
-   toolchain, bypassing the known Windows thread/runtime link checks, accepting
-   a different MIR artifact, backend/toolchain-conditional facts, or weakening
-   the 300-second/3,072 MB gate. A link/runtime failure ends this experiment;
-   it is not authorization to patch semantics or the runtime contract.
-5. If the clang-via-C driver builds, require the same focused C/LLVM gates,
-   414-byte SHA, wrong-ABI diagnostic/no-output, and one observed full run. If
-   it fails or does not beat v48's shared markers, retain default GCC-built C
-   v48 and select a newly measured owner seam.
-6. Continue the winning same-artifact projection until
+3. The explicit clang-via-C v54 projection improves integrated driver build
+   time but is runtime negative/noise against GCC v48 and produces no gen2.
+   Keep the existing Windows GCC-first default and do not confuse host compile
+   speed with generated compiler progress.
+4. The v55 JSON ASCII experiment removed the expected generated calls, but
+   routine 1,920 regressed by 5,779 ms and routine 1,984 was lost. It is
+   reverted. Do not retry literal constants, a shared ASCII helper, backend
+   intrinsics, or unchecked character access; the static call-count hypothesis
+   did not identify an integrated dominant cost.
+5. Select the next executable seam from integrated MIR-to-AST profiling or a
+   named owned stage measurement. Priority is measured inclusive cost, one
+   current fact owner, exact C/LLVM and failure behavior, then patch size.
+   Forbidden fallbacks remain whole-program rescans, parallel semantic graphs,
+   backend-specific facts, a second cache/authority, and a raised time or
+   memory gate.
+6. Before another source rewrite, name the measured routine/path, its owner,
+   last legitimate consumer, and one falsifying fixture. Run the same
+   build/bounded/wrong-ABI/observed-full ladder and accept only a material
+   improvement over v48's shared markers or complete gen2 output.
+7. Continue the winning same-artifact projection until
    `consumer:mir-to-ast:done` is observed. Post-loop markers for top-level
    completion, string join, and AST inventory must distinguish projected
    completion from an observed result.
-7. If that projection emits a complete `driver_gen2.c`, compile that C as
+8. If that projection emits a complete `driver_gen2.c`, compile that C as
    the bootstrap object-code boundary; do not regenerate another oracle MIR.
-8. Make the generated gen2 driver consume the same complete compiler source
+9. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
-9. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+10. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-10. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+11. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

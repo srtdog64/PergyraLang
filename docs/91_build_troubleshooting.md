@@ -1109,6 +1109,46 @@ the LLVM-built DRV-2 is faster. Compare the same complete artifact and fixed
 markers. Do not change Pergyra semantics, owner facts, or the input artifact to
 make a backend positioning claim pass.
 
+#### A faster host compile does not imply a faster generated compiler
+
+The unchanged C projection was compiled once with the available Windows clang
+driver as v54. Build time improved from v48's 51,479 ms to 42,649 ms, with
+2,557.6 MB peak private / 2,546.5 MB working set. Bounded output and wrong-ABI
+failure remained identical. The full driver, however, reached routine 1,984 at
+296,279 ms, 1,204 ms later than GCC v48, and timed out at 300,665 ms without
+gen2. Peak private/working set was 206.0/208.0 MB.
+
+Treat compiler build time and generated-program run time as separate metrics.
+Do not change the Windows default compiler solely from v54: the repository's
+GCC-first selection also owns a known MinGW thread/runtime compatibility
+boundary, and clang did not improve the active full-run marker. An explicit
+toolchain experiment must preserve runtime linking, byte parity, failure
+behavior, and the same fixed artifact before it can influence default policy.
+
+Disassembly of the accepted GCC-built driver then provided a narrower v55
+hypothesis. `JsonSkipWhitespaceWithin` called `CharCode` once for the input byte
+and again for each immutable whitespace literal comparison, while
+`JsonIsDigitCode` converted both digit endpoints on every check. Commit
+`2eeeec13` replaced only those literal conversions inside the shared JSON
+scanner and added C/LLVM edge fixtures plus a negative source ratchet.
+
+The generated machine code did improve locally: whitespace scanning retained
+one checked input `CharCode` and compiled its four constants into a membership
+test, while digit classification became a direct `48..57` range check with no
+`CharCode` call. That local instruction-count win was not a whole-program win.
+The v55 driver built in 51,536 ms at 2,516.9 MB peak private / 2,505.4 MB
+working set, preserved the 414-byte bounded SHA and wrong-ABI failure, but its
+observed full run reached routines 704/896/1,600/1,920 at
+162,958/191,199/240,394/291,112 ms. Routine 1,920 was 5,779 ms later than v48;
+the run timed out at 300,480 ms with 202.9/205.3 MB private/working set and no
+routine 1,984 or gen2. `1f77b0bc` reverts the experiment.
+
+Troubleshooting rule: fewer instructions in a plausible hot helper are not
+evidence that the helper dominates the integrated compiler. Preserve the
+disassembly and fixed-marker measurements, reject the change when the complete
+artifact does not improve materially, and profile or instrument the admitted
+MIR-to-AST loop before choosing another source rewrite from static call counts.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

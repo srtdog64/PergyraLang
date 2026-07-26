@@ -8627,3 +8627,50 @@ Released/default replacement remains 0%.
   report it as realized for this driver. Accepted executable performance
   remains C v48 plus the isolated fail-closed correction. No source revert was
   needed because v53 was a projection-only measurement.
+
+### 2026-07-26 -- clang-via-C improves build time, not bootstrap progress
+
+- The unchanged accepted C projection was compiled with
+  `PGY_CC=clang --target=x86_64-w64-mingw32` as v54. This was a projection-only
+  experiment; the repository default, semantic facts, MIR artifact, and runtime
+  contract did not change.
+- The driver built in 42,649 ms at 2,557.6 MB peak private / 2,546.5 MB working
+  set, 8,830 ms faster than GCC v48. Its bounded result completed in 1,470 ms,
+  remained 414 bytes with the established SHA, and wrong ABI exited 1 in 1,486
+  ms with the same diagnostic and no output.
+- The observed full run completed machine routine-index admission at 68,635 ms
+  and reached routines 704/896/1,600/1,920/1,984 at
+  160,553/188,638/237,074/286,528/296,279 ms. It timed out at 300,665 ms with
+  206.0 MB peak private / 208.0 MB working set.
+- Routine 1,984 was 1,204 ms later than GCC v48. No routine 2,048, MIR-to-AST
+  completion, or gen2 output exists. Record v54 as a build-time improvement
+  only; do not change the default Windows toolchain from this result.
+- Accepted executable performance remains GCC-built C v48. The next measured
+  seam is backend-neutral: remove repeated runtime conversion of immutable
+  ASCII whitespace/digit literals inside the shared JSON scanner while keeping
+  actual input access checked and C/LLVM behavior identical.
+
+### 2026-07-26 -- JSON ASCII call elimination is locally real but globally rejected
+
+- `2eeeec13` replaced only immutable whitespace and digit literal conversions
+  inside `json_scan.pgy`. Actual input access remained checked, public
+  `JsonAsciiCode` and other string behavior did not change, and focused C/LLVM
+  plus component gates covered all four whitespace codes, bounded stop,
+  non-whitespace stop, digit endpoints, and slash/colon rejection.
+- Disassembly confirmed the intended generated-code change. The whitespace
+  path retained one input `CharCode` call and used a constant membership test;
+  `JsonIsDigitCode` became a call-free `48..57` range check.
+- The integrated v55 driver built in 51,536 ms at 2,516.9 MB peak private /
+  2,505.4 MB working set. Bounded MIR completed in 1,545 ms, remained 414 bytes
+  with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  Wrong ABI exited 1 in 1,529 ms with the owned diagnostic and no output.
+- The observed full run reached routines 704/896/1,600/1,728/1,792/1,856/1,920
+  at 162,958/191,199/240,394/256,094/270,606/285,090/291,112 ms. It timed out
+  at 300,480 ms with 202.9 MB peak private / 205.3 MB working set and no
+  routine 1,984, MIR-to-AST completion, or gen2 output.
+- Routine 1,920 was 5,779 ms later than accepted C v48. The eliminated calls
+  therefore do not dominate the integrated workload enough to justify this
+  source change. `1f77b0bc` reverts v55; keep both commits as negative evidence
+  and retain v48 plus the isolated fail-closed correction as the executable
+  baseline.

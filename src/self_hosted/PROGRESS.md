@@ -1,5 +1,39 @@
 # Self-Host Progress
 
+2026-07-26 measured the accepted C projection with the available Windows clang
+host compiler as v54 (`PGY_CC=clang --target=x86_64-w64-mingw32`). No Pergyra
+source, backend meaning, runtime contract, or default toolchain selection
+changed. The integrated driver built successfully in 42,649 ms at 2,557.6 MB
+peak private / 2,546.5 MB working set, 8,830 ms faster than the GCC-built v48.
+Its 1,470 ms bounded result remained 414 bytes with the established SHA;
+wrong ABI exited 1 in 1,486 ms with the owned diagnostic and no output.
+
+The observed full run did not improve executable progress. Machine routine-
+index admission completed at 68,635 ms and routines 704/896/1,600/1,920/1,984
+completed at 160,553/188,638/237,074/286,528/296,279 ms. It timed out at
+300,665 ms with 206.0 MB peak private / 208.0 MB working set and no routine
+2,048, `consumer:mir-to-ast:done`, or gen2 output. Routine 1,984 was 1,204 ms
+later than v48, so record v54 as a host build-time win and runtime negative/
+noise result. Keep GCC v48 as the accepted executable baseline and retain the
+documented Windows default compiler choice.
+
+The backend-neutral JSON ASCII hypothesis was implemented as `2eeeec13` and
+reverted by `1f77b0bc`. Focused C/LLVM and component gates passed. Disassembly
+confirmed that `JsonSkipWhitespaceWithin` went from up to five `CharCode` calls
+per examined byte to one checked input call plus a constant membership test,
+and `JsonIsDigitCode` became a call-free `48..57` range check.
+
+The local code-generation win did not improve the complete artifact. v55 built
+in 51,536 ms at 2,516.9 MB peak private / 2,505.4 MB working set. Its bounded
+result completed in 1,545 ms and preserved the established 414-byte SHA;
+wrong ABI exited 1 in 1,529 ms with the owned diagnostic and no output. The
+observed full run reached routines 704/896/1,600/1,728/1,792/1,856/1,920 at
+162,958/191,199/240,394/256,094/270,606/285,090/291,112 ms, then timed out at
+300,480 ms with 202.9/205.3 MB private/working set and no routine 1,984 or
+gen2. Routine 1,920 was 5,779 ms later than v48. Keep the accepted scanner and
+select the next executable seam from integrated profiling or owned stage
+evidence rather than static helper call counts.
+
 2026-07-26 measured the accepted source through the declared LLVM performance
 projection as v53. No source or semantic owner changed. The integrated LLVM
 driver built successfully in 139,295 ms at 2,399.0 MB peak private / 2,389.0
