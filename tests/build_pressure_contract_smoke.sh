@@ -8,7 +8,7 @@ DRIVER_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
 require() {
-    grep -Fq "$1" "$PROBE" || {
+    grep -Fq -- "$1" "$PROBE" || {
         echo "[build-pressure-contract] missing: $1" >&2
         exit 1
     }
@@ -47,7 +47,18 @@ require 'StartedAt $started'
 require 'cc1|cc1plus|lto1|lto-wrapper|collect2|ld'
 require 'pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+'
 require 'driver_(oracle|seed|gen[0-9]+|c|llvm)'
-require 'detached_compiler_worker_tracking = $true'
+require '[switch]$RootProcessTreeOnly'
+require '$trackDetachedCompilerWorkers = -not [bool]$RootProcessTreeOnly'
+require 'if ($IncludeDetachedCompilerWorkers) {'
+require '-IncludeDetachedCompilerWorkers $trackDetachedCompilerWorkers'
+require 'detached_compiler_worker_tracking = $trackDetachedCompilerWorkers'
+require '$ownedProcessIds = @($rows | ForEach-Object { [int]$_.ProcessId })'
+require 'foreach ($id in ($ownedProcessIds | Sort-Object -Descending))'
+if grep -Fq 'detached_compiler_worker_tracking = $true' "$PROBE" ||
+   grep -Fq 'Stop-Process -Id $toolPid' "$PROBE"; then
+    echo "[build-pressure-contract] root-only mode can still report or stop an unowned detached worker" >&2
+    exit 1
+fi
 require '$exitCode = if ($rootExitComplete) { [int]$process.ExitCode } else { -1 }'
 require 'New-Object System.Text.UTF8Encoding($false)'
 require '[switch]$StopOnLimit'

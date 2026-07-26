@@ -1313,6 +1313,53 @@ keep the negative producer-coverage gate. The next pressure investigation must
 start at assignment body-type admission under the same 1,800-second / 3,072 MB
 budget rather than raising either limit.
 
+#### v61 admits expression-graph readiness once for assignment typing
+
+The v60 timeout was a CPU defect in assignment admission, not residual graph
+construction cost. The frozen artifact contains 4,382 raw assignment rows and
+214,151 expression-graph nodes. `SemanticAstAssignmentTypeFactsFromArtifact`
+called the checked match-binding seed wrapper once per assignment; that wrapper
+reproved complete expression-surface and graph readiness. Even the two minimum
+whole-arena passes therefore implied at least
+`4,382 * 214,151 * 2 = 1,876,819,364` node-validation iterations.
+
+v61 proves `SemanticAstExpressionSurfaceBorrowReady` once at the assignment
+owner boundary and calls only
+`SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact` inside the
+row loop. It adds no graph, cache, text recovery, or backend-specific path.
+Static lifetime and component gates require exactly one readiness admission and
+reject restoration of the checked wrapper in the hot function. Focused C/LLVM
+assignment projection, negative cases, component contracts, and the full DRV-2
+parser pass.
+
+The observed v61 driver built in 66,670 ms at 2,630.3/2,620.0 MB peak
+private/working set, below the unchanged 3,072 MB cap. On the same
+51,807,108-byte MIR, expression graph construction completed at 1,513,956 ms.
+Assignment typing then completed in 796 ms, followed by statement typing in
+2,330 ms, generic typing in 6,591 ms, verdict construction in 124 ms, body-type
+readiness, and verification. The run failed closed at 1,671,316 ms after
+`consumer:assignment-binding:start` with
+`MIR assignment binding-mode fact is missing or invalid`. Peak private/working
+set was 1,319.9/1,216.3 MB; no output file was opened.
+
+The first v61 integration attempt is invalid memory evidence. The pressure
+probe attributed every compiler-named process created after probe start, so an
+unrelated concurrent `pgy-self-driver.exe` was counted and stopped when the
+aggregate crossed 3,072 MB. `-RootProcessTreeOnly` now limits direct-executable
+integration probes to the launched PID tree and records
+`detached_compiler_worker_tracking=false`; default MSYS detached-worker
+tracking remains available for isolated native build probes. Never report or
+terminate another Codex task's compiler as if it were owned by the current
+probe.
+
+The next owner seam is structured assignment occurrence identity. The old
+binding-mode checker rebuilds the program/routine indexes and walks unique raw
+MIR instructions, while semantic assignment facts follow the structured AST
+and preserve CFG revisits. Consume the already admitted
+`MirStructuredExpressionEmissionOrder` global-row/lane identity and fail closed
+on a missing pair or mode. Do not add a second assignment sequence, fall back
+to raw order, or recover from AST text.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

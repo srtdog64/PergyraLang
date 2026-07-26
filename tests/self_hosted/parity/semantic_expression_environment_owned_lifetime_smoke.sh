@@ -51,6 +51,26 @@ function_body() {
     sed -n "/func ${function_name}(/,/^}/p" "$path"
 }
 
+assignment_type_body="$(function_body \
+    "$ASSIGNMENT_FACTS" 'SemanticAstAssignmentTypeFactsFromArtifact')"
+borrow_ready_count="$(grep -Fc \
+    'SemanticAstExpressionSurfaceBorrowReady(' \
+    <<<"$assignment_type_body" || true)"
+if [[ "$borrow_ready_count" -ne 1 ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] assignment owner must prove the expression surface exactly once" >&2
+    exit 1
+fi
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+    <<<"$assignment_type_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] assignment hot loop lost the borrowed match-binding seam" >&2
+    exit 1
+}
+if grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindings(' \
+    <<<"$assignment_type_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] assignment hot loop repeats checked expression-graph readiness" >&2
+    exit 1
+fi
+
 require_borrowed_environment_push() {
     local path="$1"
     local function_name="$2"

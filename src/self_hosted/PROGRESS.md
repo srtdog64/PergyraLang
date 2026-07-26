@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-26 v61 removes the assignment-type CPU amplifier reached by v60. The
+fixed artifact has 4,382 raw assignment rows and 214,151 graph nodes; the old
+hot loop reproved complete expression readiness once per assignment, implying
+at least 1,876,819,364 node validations. The assignment owner now admits
+surface/graph readiness once and uses only the ready-artifact match-binding
+seam in the loop. Focused lifetime, component, C/LLVM assignment projection,
+negative, and full parser gates pass. The observed driver built in 66,670 ms at
+2,630.3/2,620.0 MB peak private/working set.
+
+The root-owned full run completed expression graph construction at 1,513,956
+ms and assignment typing in 796 ms. Statement/generic/verdict stages completed
+in 2,330/6,591/124 ms, then body-type readiness and verification passed. The
+run exited 1 at 1,671,316 ms with the owned diagnostic `MIR assignment
+binding-mode fact is missing or invalid`, peak private/working set
+1,319.9/1,216.3 MB, and no output. The next rung must compare semantic modes in
+the already admitted structured assignment occurrence order; the current
+unique raw-instruction scan cannot represent repeated CFG visits. No new
+assignment cache/graph, raw-order fallback, or AST-text recovery is allowed.
+
+The first v61 integration sample was invalid because the pressure probe
+name-matched a concurrent `pgy-self-driver.exe` from another Codex task and
+stopped it at the aggregate cap. Direct executable probes now use explicit
+root-process-tree ownership, while isolated native build probes retain
+detached-worker tracking. Concurrent foreign compiler processes must never be
+counted or terminated as current-probe evidence.
+
 2026-07-26 v59 (`19ecce41`, readiness-proof follow-up `7eef684b`) removes the
 measured expression-graph memory amplifier on the active complete-artifact
 rung. The frozen 51,807,108-byte MIR carries 34,962 persisted graphs and

@@ -7,6 +7,7 @@ param(
     [int]$TimeoutSec = 0,
     [int]$OutputDrainTimeoutMs = 5000,
     [switch]$StopOnLimit,
+    [switch]$RootProcessTreeOnly,
     [string]$OutDir = ".tmp/build-pressure"
 )
 
@@ -279,11 +280,13 @@ $phaseStats = @{
     compile = @{ Samples = 0; PeakWorkingSet = 0.0; PeakPrivate = 0.0 }
     link = @{ Samples = 0; PeakWorkingSet = 0.0; PeakPrivate = 0.0 }
 }
+$trackDetachedCompilerWorkers = -not [bool]$RootProcessTreeOnly
 
 function Get-ProcessTreeRows {
     param(
         [int]$RootPid,
-        [datetime]$StartedAt
+        [datetime]$StartedAt,
+        [bool]$IncludeDetachedCompilerWorkers
     )
 
     $all = Get-CimInstance Win32_Process |
@@ -317,33 +320,34 @@ function Get-ProcessTreeRows {
         }
     }
 
-    # MSYS2/Git Bash fork emulation can reparent native compiler workers in the
-    # Win32 process table. A strict descendant-only walk then misses the exact
-    # cc1/LTO/link processes whose pressure this probe exists to measure and
-    # cannot stop them at the ceiling. Attribute compiler workers created after
-    # this isolated probe started; concurrent broad builds are forbidden while
-    # a pressure probe owns the machine.
-    $detachedToolPattern = `
-        '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl|cc1|cc1plus|lto1|lto-wrapper|collect2|ld|lld|lld-link|pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+|driver_(oracle|seed|gen[0-9]+|c|llvm))(\.exe)?$'
-    foreach ($p in $all) {
-        if ([string]$p.Name -notmatch $detachedToolPattern) {
-            continue
-        }
-        $createdAt = [datetime]$p.CreationDate
-        if ($createdAt -lt $StartedAt.AddSeconds(-1)) {
-            continue
-        }
-        $toolPid = [int]$p.ProcessId
-        if ($resultIds.Add($toolPid)) {
-            $result.Add($p)
+    if ($IncludeDetachedCompilerWorkers) {
+        # MSYS2/Git Bash fork emulation can reparent native compiler workers in
+        # the Win32 process table. The default mode attributes compiler workers
+        # created after this isolated probe started. Root-only mode skips this
+        # name-based attribution so concurrent Codex tasks remain unowned.
+        $detachedToolPattern = `
+            '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl|cc1|cc1plus|lto1|lto-wrapper|collect2|ld|lld|lld-link|pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+|driver_(oracle|seed|gen[0-9]+|c|llvm))(\.exe)?$'
+        foreach ($p in $all) {
+            if ([string]$p.Name -notmatch $detachedToolPattern) {
+                continue
+            }
+            $createdAt = [datetime]$p.CreationDate
+            if ($createdAt -lt $StartedAt.AddSeconds(-1)) {
+                continue
+            }
+            $toolPid = [int]$p.ProcessId
+            if ($resultIds.Add($toolPid)) {
+                $result.Add($p)
+            }
         }
     }
     return $result
 }
 
 while (-not $process.HasExited) {
-    $rows = Get-ProcessTreeRows -RootPid $process.Id -StartedAt $started
-    $ids = @($rows | ForEach-Object { [int]$_.ProcessId })
+    $rows = Get-ProcessTreeRows -RootPid $process.Id -StartedAt $started `
+        -IncludeDetachedCompilerWorkers $trackDetachedCompilerWorkers
+    $ownedProcessIds = @($rows | ForEach-Object { [int]$_.ProcessId })
     $procs = @()
     $compileProcCount = 0
     $linkProcCount = 0
@@ -423,7 +427,7 @@ while (-not $process.HasExited) {
     if ($peakPrivate -gt $LimitMB -or $peakWorkingSet -gt $LimitMB) {
         $limitExceeded = $true
         if ($StopOnLimit) {
-            foreach ($id in ($ids | Sort-Object -Descending)) {
+            foreach ($id in ($ownedProcessIds | Sort-Object -Descending)) {
                 Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
             }
             break
@@ -432,7 +436,7 @@ while (-not $process.HasExited) {
 
     if ($TimeoutSec -gt 0 -and ((Get-Date) - $started).TotalSeconds -ge $TimeoutSec) {
         $timedOut = $true
-        foreach ($id in ($ids | Sort-Object -Descending)) {
+        foreach ($id in ($ownedProcessIds | Sort-Object -Descending)) {
             Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
         }
         break
@@ -487,7 +491,7 @@ $summary = [ordered]@{
     limit_mb = $LimitMB
     stop_on_limit = [bool]$StopOnLimit
     limit_exceeded = $limitExceeded
-    detached_compiler_worker_tracking = $true
+    detached_compiler_worker_tracking = $trackDetachedCompilerWorkers
     output_capture_complete = $outputCaptureComplete
     phases = [ordered]@{
         orchestrate = $phaseStats.orchestrate

@@ -8847,3 +8847,33 @@ Released/default replacement remains 0%.
   executable, or gen3 fixed point exists. v60 closes the reached graph
   identity seam and advances the active run; it does not count as gen2
   takeover by itself.
+
+### 2026-07-26 -- v61 admits assignment expression readiness once
+
+- The frozen artifact has 4,382 raw assignment rows and a 214,151-node graph
+  arena. Assignment typing previously re-entered checked expression readiness
+  once per row, implying a minimum 1,876,819,364 repeated node validations.
+  The assignment owner now proves surface/graph readiness once at entry and
+  uses the ready-artifact match-binding seam in its hot loop. Lifetime and
+  component ratchets reject a checked-wrapper regression.
+- Focused semantic-environment lifetime, component contract, C/LLVM assignment
+  projection positive/negative, and complete DRV-2 parser gates pass. The
+  observed driver built in 66,670 ms at 2,630.3/2,620.0 MB peak
+  private/working set under the fixed cap.
+- The root-owned full run completed graph construction at 1,513,956 ms.
+  Assignment typing completed in 796 ms; statement, generic, and verdict stages
+  completed in 2,330/6,591/124 ms, and body-type readiness plus verification
+  passed. It then failed closed at 1,671,316 ms in assignment-binding mode
+  validation, with 1,319.9/1,216.3 MB peak private/working set and no output.
+- A first attempt was invalidated when the pressure probe name-matched and
+  stopped another Codex task's concurrent `pgy-self-driver.exe`. Direct
+  integration now uses `-RootProcessTreeOnly`, which measures and stops only
+  the launched PID tree; isolated native-build probes retain the existing
+  detached-worker mode by default.
+- The next executable seam is not another readiness optimization. Semantic
+  assignment rows follow structured CFG emission, while the current binding
+  checker reconstructs indexes and compares unique raw instruction order.
+  Reuse the admitted structured occurrence identity, preserve repeated rows,
+  and reject missing/mutated modes without text or raw-order fallback.
+- Hard substitution remains incomplete: no `driver_gen2.c`, gen2 executable,
+  or gen3 fixed point exists.

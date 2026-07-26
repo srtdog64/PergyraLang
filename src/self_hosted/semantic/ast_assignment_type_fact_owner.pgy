@@ -130,6 +130,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, assignments
         ) || !SemanticAstEnumFactsMatchArtifact(
             artifact, enum_facts
+        ) || !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
         ) {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
@@ -176,7 +178,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, statements, iteration_types,
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types, modes
-        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
             artifact, expression_surfaces, signatures, constructors,
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types, modes, function_tables

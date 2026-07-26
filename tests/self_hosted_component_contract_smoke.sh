@@ -11181,6 +11181,13 @@ require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "target_type_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "index_type_names: Array<String>;"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticAstExpressionSurfaceBorrowReady("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact("
+reject_function_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "func SemanticAstAssignmentTypeFactsFromArtifact(" \
+    "SemanticAstExpressionSeedVisibleMatchBindings("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticAstExpressionVerdictFromPayload("
 require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" \
