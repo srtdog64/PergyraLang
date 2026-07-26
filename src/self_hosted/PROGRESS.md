@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-26 routine-local phi-prefix carriage (`99e76e76`). The existing
+`MirRoutineInstructionFactBundle` scalar pass now records the leading phi count
+for every block and records a negative sentinel when a phi appears after the
+first non-phi instruction. `MirRoutinePhiFactsReady` consumes only that prefix;
+the old whole-block instruction-count loop and its late-phi rescan state are
+statically rejected. Phi predecessor, arity, result, incoming-use, and backedge
+semantics remain in `phi_fact_owner.pgy`. No separate cache, program-global
+scalar aggregate, JSON kind fallback, or backend split was added.
+
+The focused routine-index C/LLVM parity and component contract gates pass. The
+exact-source v46 driver built in 52,507 ms at 2,556.9 MB peak private / 2,546.0
+MB working set. Its bounded run finished in 1,442 ms and preserved the 414-byte
+SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+300-second full consumer reached routine 704 at 163,937 ms, routine 896 at
+193,024 ms, routine 1,600 at 242,500 ms, and routine 1,920 at 293,716 ms. It
+timed out at 300,163 ms with 202.1 MB peak private / 204.3 MB working set, no
+routine 1,984 or 2,048, `consumer:mir-to-ast:done`, or gen2 output. Although the
+full artifact reduces phi view reconstruction from 34,091 rows to 3,532, the
+shared routine-1,920 marker is 5,392 ms (1.87%) later than v45. Record this as
+an owner/fallback closure and CPU negative/noise result, not a speedup. Keep the
+next fixed-window falsifier at routine 2,048 without rerunning v46 for a more
+favorable sample.
+
 2026-07-26 routine-local branch row carriage (`4ee29ce2`). The existing
 `MirRoutineInstructionFactBundle` scalar pass now records the unique branch
 global row for each block. `BlockCond`, `BlockHasLoopTransfer`, and

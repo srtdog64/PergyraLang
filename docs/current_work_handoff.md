@@ -44,11 +44,13 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `4ee29ce2` (`carry MIR branch rows in routine
-  facts`) on `main`. Its CFG negative predecessor is `ec4b9eef` (`cover invalid
-  CFG backedge batch results`), with CFG owner implementation `73133678`
-  (`batch MIR CFG backedge facts per routine`). Its scalar-key predecessor is
-  `dfc8e406`, its optional ABI scalar predecessor is `bf8a56b8`, its
+- Implementation checkpoint: `99e76e76` (`carry MIR phi prefixes in routine
+  facts`) on `main`. Its branch-row predecessor is `4ee29ce2` (`carry MIR
+  branch rows in routine facts`). Its CFG negative predecessor is `ec4b9eef`
+  (`cover invalid CFG backedge batch results`), with CFG owner implementation
+  `73133678` (`batch MIR CFG backedge facts per routine`). Its scalar-key
+  predecessor is `dfc8e406`, its optional ABI scalar predecessor is
+  `bf8a56b8`, its
   exact ABI witness predecessor is `0da9c5c2`, its ABI
   row-capture predecessor is `a5d56f42`, its
   routine-scalar predecessor is `dd68d6f3`, its
@@ -149,6 +151,11 @@ bounded-only parity as progress evidence.
   fail closed; the deleted routine-lowering search cannot return as a fallback.
   The program index remains structure/identity-only rather than becoming a
   second global/local scalar aggregate.
+- The same routine-local bundle carries each block's leading phi count. A phi
+  after the first non-phi is an invalid sentinel. The phi semantic owner scans
+  only that prefix while retaining predecessor, arity, result, incoming-use,
+  and backedge validation. Missing/invalid prefix facts cannot fall back to a
+  whole-block scan or JSON kind recovery.
 
 ## Exact dirty state
 
@@ -182,11 +189,12 @@ unmodified and excluded from task commits:
   backend-specific JSON reads, source-text fact recovery, process-sharded fact
   stores, per-routine whole-program structure revalidation, `new ? old`
   authority, or raising the 3072 MB cap.
-- Focused falsifier: continue the same admitted artifact beyond the observed
-  `top-level-routines:1984` marker and either reach routine 2,048 or expose one
-  named routine/owner failure. Do not open the later expression-graph or
-  assignment post-pass until `consumer:mir-to-ast:done` is observed. Even
-  1,984 of 2,345 top-level routines is only a progress sentinel, not gen2.
+- Focused falsifier: recover v45's observed `top-level-routines:1984` marker on
+  the current source and reach routine 2,048, or expose one named routine/owner
+  failure. v46 ended at routine 1,920, so the historical v45 marker is not
+  current-source completion evidence. Do not open the later expression-graph
+  or assignment post-pass until `consumer:mir-to-ast:done` is observed. Even
+  2,048 of 2,345 top-level routines would be only a sentinel, not gen2.
 - Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
   that artifact builds, and the resulting gen2 consumes the same complete
   compiler source to emit `driver_gen3.c`. The bounded preflight remains a
@@ -247,6 +255,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-cfg-backedge-batch-v44-300s` | 202.7 MB | 205.0 MB | Timed out at 300,682 ms after routine 704 at 162,403 ms, routine 896 at 191,236 ms, routine 1,600 at 240,535 ms, and routine 1,920 at 291,308 ms; CPU negative/noise versus v43, no routine 1,984 or gen2. |
 | `full-mir-consumer-branch-row-bundle-v45-build` | 2534.1 MB | 2522.6 MB | Exact-source integrated C driver compiled in 52,025 ms below the fixed cap. |
 | `full-mir-consumer-branch-row-bundle-v45-300s` | 204.8 MB | 206.9 MB | Timed out at 300,345 ms after routine 704 at 161,510 ms, routine 896 at 189,756 ms, routine 1,600 at 238,576 ms, routine 1,920 at 288,324 ms, and the first routine 1,984 marker at 298,381 ms; no routine 2,048 or gen2. |
+| `full-mir-consumer-phi-prefix-bundle-v46-build` | 2556.9 MB | 2546.0 MB | Exact-source integrated C driver compiled in 52,507 ms below the fixed cap. |
+| `full-mir-consumer-phi-prefix-bundle-v46-300s` | 202.1 MB | 204.3 MB | Timed out at 300,163 ms after routine 704 at 163,937 ms, routine 896 at 193,024 ms, routine 1,600 at 242,500 ms, and routine 1,920 at 293,716 ms; CPU negative/noise versus v45, no routine 1,984/2,048 or gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -445,6 +455,23 @@ private/working set was 204.8/206.9 MB. That shared 1,920 marker is 2,984 ms
 (1.02%) earlier than v44. This remains RED for bootstrap completion: no routine
 2,048, `consumer:mir-to-ast:done`, or gen2 file exists.
 
+`99e76e76` closes the remaining explicit whole-instruction phi scan. The
+existing routine-local bundle records the leading phi count per block and a
+late-phi invalid sentinel. The phi semantic owner reconstructs only those rows;
+program-owned kind, predecessor, arity, result, incoming-use, and backedge
+checks remain intact. The full artifact view count falls from 34,091 rows to
+3,532, and the active 1,984-through-2,048 interval falls from 1,161 rows to 104.
+The old all-instruction loop and fallback are statically rejected.
+
+The exact-source v46 driver built in 52,507 ms below 3 GiB, preserved the
+414-byte bounded SHA, and rejected the wrong-ABI input without opening output.
+The fixed-window run reached routine 1,920 at 293,716 ms before timing out at
+300,163 ms with 202.1/204.3 MB peak private/working set. That marker is 5,392
+ms (1.87%) later than v45, and v46 did not recover v45's routine-1,984 marker.
+This is a CPU negative/noise result rather than a speedup. The owner closure
+remains, but the same revision must not be rerun for a favorable sample and the
+window/cap must not be enlarged.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -471,7 +498,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `4ee29ce2` plus the documented working measurements:
+Green on `99e76e76` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -479,7 +506,8 @@ Green on `4ee29ce2` plus the documented working measurements:
 - `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
   partitions, direct-field spans, malformed scalar tails, missing structure,
   corrupted counts, invalid row guards, explicit negative CFG successor
-  rejection, and missing/unique/duplicate/forged branch-row facts);
+  rejection, missing/unique/duplicate/forged branch-row facts, and
+  leading/late phi-prefix facts);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
@@ -488,8 +516,8 @@ Green on `4ee29ce2` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-branch-row-bundle-v45-build`): exit 0, 52,025 ms,
-  2,534.1 MB peak private / 2,522.6 MB peak working set;
+  owner (`full-mir-consumer-phi-prefix-bundle-v46-build`): exit 0, 52,507 ms,
+  2,556.9 MB peak private / 2,546.0 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -554,26 +582,35 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-abi-optional-fast-v42-300s.*`, and
 `full-mir-consumer-key-dispatch-v43-300s.*`, and
 `full-mir-consumer-cfg-backedge-batch-v44-300s.*`, and
-`full-mir-consumer-branch-row-bundle-v45-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v45_branch_row_bundle.exe`; its
+`full-mir-consumer-branch-row-bundle-v45-300s.*`, and
+`full-mir-consumer-phi-prefix-bundle-v46-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v46_phi_prefix_bundle.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v45_bounded.c`. The latest full consumer
-evidence includes complete stage capture through the 1,984-routine marker. These
-files are diagnostic evidence only, not semantic authority or commit content.
+`.tmp/self_hosted/driver_bootstrap/v46_bounded.c`. The latest current-source
+full consumer evidence reaches routine 1,920; v45 remains the historical first
+routine-1,984 observation. These files are diagnostic evidence only, not
+semantic authority or commit content.
 
 ## Next executable work
 
-1. Use the v45 stage capture around routines 1,984 through 2,048 to identify
-   one exact repeated owner/consumer operation on the active MIR-to-AST path.
-   Before editing, record its fact owner, last legitimate consumer, forbidden
-   fallback, and one falsifying fixture. Static call counts alone do not
-   authorize a new cache, graph, aggregate, or backend-specific read path.
-2. Close only that measured seam behind its existing Pergyra owner, delete the
-   old read/search path, and add the narrow C/LLVM or component negative ratchet
-   that prevents dual authority. Keep C and LLVM as peer native backends.
-3. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. The next fixed
-   falsifier is routine 2,048 under the unchanged 300-second/3,072 MB owner; do
-   not describe the change as a speedup unless that window provides evidence.
+1. Hoist the v46 phi-prefix bundle admission from every block to one routine
+   boundary in `MirRoutinePhiFactsReady`. `BuildMirRoutineFactIndex` already
+   constructs and admits the routine-local bundle; the phi owner must verify
+   routine row, block count, and bundle shape once, then read
+   `block_phi_prefix_counts[block_id]` directly. The full artifact currently
+   repeats at least 406,571 shape checks through this new per-block seam.
+2. Delete the one-use
+   `MirRoutineInstructionFactBundlePhiPrefixCountAtBlock` helper if no
+   legitimate consumer remains. This avoids C-style helper fragmentation.
+   Missing, truncated, or negative prefix facts must fail closed; per-block
+   re-admission, full instruction scans, JSON kind recovery, `new ? old`, a new
+   cache/global aggregate, and C/LLVM-specific paths are forbidden.
+3. Keep the existing prefix/late-phi C/LLVM fixture, add a truncated
+   prefix-array negative at the routine-boundary admission, and ratchet the phi
+   owner to one `MirRoutineInstructionFactBundleReady` call outside the block
+   loop with direct carried-array reads. Then rerun the bounded/wrong-ABI/full
+   ladder. Current source must recover marker 1,984 before the unchanged
+   routine-2,048 falsifier can pass; do not rerun v46 or enlarge the window.
 4. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
    observed. Post-loop markers for top-level completion, string join, and AST
    inventory must distinguish projected completion from an observed result.

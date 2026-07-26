@@ -8397,3 +8397,32 @@ Released/default replacement remains 0%.
   `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, and
   gen3 comparison remain absent. The next fixed-window falsifier is routine
   2,048 under the unchanged 300-second/3,072 MB gate.
+
+### 2026-07-26 -- Routine facts carry each block's phi prefix
+
+- `99e76e76` makes the existing `MirRoutineInstructionFactBundle` scalar pass
+  record each block's leading phi count. A phi after the first non-phi records
+  a negative late-phi sentinel. Missing or invalid prefix facts fail closed;
+  they do not trigger a whole-block or JSON fallback.
+- `MirRoutinePhiFactsReady` now reconstructs only prefix rows and still checks
+  their program-owned `kind=phi`, predecessor count, arity, result identity,
+  incoming uses, and CFG-owned backedge evidence. The old instruction-count
+  loop and `seen_non_phi` consumer scan are statically rejected. No new cache,
+  program-global scalar aggregate, or C/LLVM split was added.
+- The C/LLVM routine-index fixture admits `[phi, phi, nonphi]` with prefix count
+  two and rejects `[nonphi, phi]`. The routine-index parity and self-host
+  component contract gates pass.
+- The exact-source v46 driver built in 52,507 ms at 2,556.9 MB peak private /
+  2,546.0 MB working set. Its 1,442 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed 300-second run reached routine 1,920 at 293,716 ms and timed out at
+  300,163 ms with 202.1 MB peak private / 204.3 MB working set. It did not
+  recover v45's routine-1,984 marker. The shared routine-1,920 marker is 5,392
+  ms (1.87%) later than v45 despite reducing full-artifact phi view
+  reconstruction from 34,091 rows to 3,532.
+- This is an owner/fallback closure and CPU negative/noise result, not a
+  speedup or self-host completion. Routine 2,048, MIR-to-AST completion, gen2
+  output and compilation, and gen3 comparison remain absent. Do not rerun v46
+  for a favorable sample or raise the fixed 300-second/3,072 MB gate.

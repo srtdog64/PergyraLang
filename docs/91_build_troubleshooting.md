@@ -875,6 +875,39 @@ completion. Routine 2,048, `consumer:mir-to-ast:done`, and gen2 output remain
 absent. Keep the 300-second/3,072 MB gate unchanged; routine 2,048 is the next
 fixed falsifier.
 
+#### Fewer instruction views do not prove the phi prefix is wall-time dominant
+
+The v45 tail census found that `MirRoutinePhiFactsReady` reconstructed every
+instruction view in each block even though only leading phi rows participate in
+phi semantics. The full artifact contains 34,091 instructions but 3,532 phi
+rows; routines 1,984 through 2,048 contain 1,161 instructions and 104 phi rows.
+That made a block-owned prefix a precise duplicate-read seam rather than a
+reason to add another cache or program-global aggregate.
+
+Checkpoint `99e76e76` makes the existing routine-local fact bundle record each
+block's leading phi count. A phi after the first non-phi records an invalid
+sentinel. The phi semantic owner iterates only the carried prefix and still
+checks program-owned `kind=phi`, predecessor count, arity, result identity,
+incoming values, and CFG-owned backedge evidence. Missing or invalid prefix
+facts fail closed; the old whole-block instruction-count loop, JSON kind
+recovery, and `new ? old` fallback are absent and statically rejected.
+
+The exact-source v46 driver built in 52,507 ms at 2,556.9 MB peak private /
+2,546.0 MB working set. Its bounded output remained 414 bytes with the
+established SHA, and the wrong-ABI input exited 1 with the owned diagnostic and
+no output. The fixed run reached routine 704 at 163,937 ms, routine 896 at
+193,024 ms, routine 1,600 at 242,500 ms, and routine 1,920 at 293,716 ms. It
+timed out at 300,163 ms with 202.1 MB peak private / 204.3 MB working set,
+`limit_exceeded=false`, no routine 1,984 or 2,048, no
+`consumer:mir-to-ast:done`, and no gen2 file.
+
+At the shared routine-1,920 marker, v46 is 5,392 ms (1.87%) later than v45.
+Treat this as CPU negative/noise: the phi owner/fallback closure is valid, but
+the static 30,559-view reduction is not the dominant wall-time fix. Do not
+rerun the same revision until a favorable sample appears, raise the window, or
+expand the prefix into another global/local authority. Keep routine 2,048 as
+the fixed falsifier and choose the next exact measured owner/consumer seam.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
