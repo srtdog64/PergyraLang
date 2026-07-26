@@ -3524,7 +3524,27 @@ require_max_lines \
 require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     "func MirRoutineInstructionScalarCaptureWithin("
 require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    'JsonObjectKeyEqualsWithin(json, i, key_end, "expr0")'
+    "let raw_key_length: Int = key_end - i - 2;"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 4) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 5) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 6) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 10) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 11) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 13) &&"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "(key_has_escape || raw_key_length == 19) &&"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "same_length_non_target_row"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "escaped_target_row"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "plain_escaped_duplicate_row"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "func BuildMirRoutineInstructionFactBundle("
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \

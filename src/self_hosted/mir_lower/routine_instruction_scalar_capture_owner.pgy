@@ -110,28 +110,45 @@ func MirRoutineInstructionScalarCaptureWithin(
             return InvalidMirRoutineInstructionScalarCapture();
         }
         let key_end: Int = UnwrapOption(key_end_opt);
-        let is_result: Bool =
+        let raw_key_length: Int = key_end - i - 2;
+        let key_has_escape: Bool = false;
+        let key_row: Int = i + 1;
+        while key_row < key_end - 1 {
+            if JsonCharCodeAt(json, key_end, key_row) ==
+                JsonAsciiCode("\\") {
+                key_has_escape = true;
+            }
+            key_row = key_row + 1;
+        }
+        let is_result: Bool = (key_has_escape || raw_key_length == 6) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "result");
-        let is_expr0: Bool =
+        let is_expr0: Bool = (key_has_escape || raw_key_length == 5) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "expr0");
-        let is_expr1: Bool =
+        let is_expr1: Bool = (key_has_escape || raw_key_length == 5) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "expr1");
-        let is_arg0: Bool =
+        let is_arg0: Bool = (key_has_escape || raw_key_length == 4) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "arg0");
-        let is_arg1: Bool =
+        let is_arg1: Bool = (key_has_escape || raw_key_length == 4) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "arg1");
         let is_slot_anchor: Bool =
+            (key_has_escape || raw_key_length == 11) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "slot_anchor");
         let is_abi_type: Bool =
+            (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "abi_type_name");
         let is_match_variant: Bool =
+            (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "match_variant");
         let is_abi_layout_id: Bool =
+            (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "abi_layout_id");
-        let is_abi_layout_required: Bool = JsonObjectKeyEqualsWithin(
-            json, i, key_end, "abi_layout_required"
-        );
+        let is_abi_layout_required: Bool =
+            (key_has_escape || raw_key_length == 19) &&
+            JsonObjectKeyEqualsWithin(
+                json, i, key_end, "abi_layout_required"
+            );
         let is_abi_layout: Bool =
+            (key_has_escape || raw_key_length == 10) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "abi_layout");
         i = JsonSkipWhitespaceWithin(json, key_end, end);
         if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {

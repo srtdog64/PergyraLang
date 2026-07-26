@@ -248,6 +248,33 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let same_length_non_target_row: String =
+        "{\"other\":{},\"expr0\":\"kept\"}";
+    let same_length_non_target: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            same_length_non_target_row, 0,
+            StringLength(same_length_non_target_row)
+        );
+    let escaped_target_row: String = "{\"\\expr0\":\"escaped\"}";
+    let escaped_target: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            escaped_target_row, 0, StringLength(escaped_target_row)
+        );
+    let plain_escaped_duplicate_row: String =
+        "{\"expr0\":\"plain\",\"\\expr0\":\"escaped\"}";
+    let plain_escaped_duplicate: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            plain_escaped_duplicate_row, 0,
+            StringLength(plain_escaped_duplicate_row)
+        );
+    if !same_length_non_target.valid ||
+        same_length_non_target.expr0 != "kept" ||
+        !escaped_target.valid || escaped_target.expr0 != "escaped" ||
+        plain_escaped_duplicate.valid {
+        Log("mir-program-routine-index-owner-key-dispatch-failed");
+        failures = failures + 1;
+    }
+
     let wrong_abi_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":\"0\",\"abi_layout_required\":false,\"abi_layout\":null}";
     let wrong_abi: MirRoutineInstructionScalarCapture =
