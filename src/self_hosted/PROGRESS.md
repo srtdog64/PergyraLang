@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+2026-07-26 MIR scalar key length dispatch (`dfc8e406`). The routine-local
+scalar owner now scans a key once for an escape and, for a plain key, runs
+semantic equality only inside the matching raw-length group. Escaped spelling
+still takes the complete semantic comparison path, so a plain/escaped duplicate
+remains invalid. Same-length non-target keys are ignored. This adds no helper,
+fact carrier, cache, ABI decision, or backend-specific path.
+
+The exact-source v43 driver built in 52,451 ms at 2,523.0 MB peak private /
+2,511.6 MB working set. Its bounded run finished in 1,454 ms and preserved the
+414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+300-second full consumer reached routine 704 at 162,255 ms, routine 896 at
+190,875 ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms. It
+timed out at 300,268 ms with 215.1 MB peak private / 217.1 MB working set,
+without routine 1,984, `consumer:mir-to-ast:done`, or gen2 output. The shared
+1,920 marker is 3,093 ms (1.06%) earlier than v42: safe progress, but evidence
+that key comparison dispatch is not the dominant remaining fact-index cost.
+The next executable seam is the existing CFG owner's routine-level backedge
+batch, replacing per-edge dominator BFS without adding a second graph/cache.
+
 2026-07-26 captured optional ABI scalar reuse (`bf8a56b8`). The existing
 routine-local scalar pass now carries whether `abi_type_name` was decoded as a
 valid string or observed as the exact optional `null`. The ABI owner still owns

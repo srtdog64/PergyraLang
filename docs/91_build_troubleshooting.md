@@ -782,6 +782,37 @@ window. Do not raise the memory cap, copy the graph, shard it by process, or
 turn a carried readiness bit into semantic authority. Continue from routine
 1,920, with routine 1,984 as the next fixed-window falsifier.
 
+#### Key-count reduction is not automatically a dominant wall-time reduction
+
+The v42 source contained eleven unconditional semantic key comparisons for
+every key visited by `MirRoutineInstructionScalarCaptureWithin`. Static census
+found 852,275 keys across 34,091 instructions: 9,375,025 comparison call sites
+at runtime. Checkpoint `dfc8e406` scans each raw key for an escape, dispatches a
+plain key to only its matching length group, and preserves the full semantic
+fallback for escaped spelling. The focused C/LLVM fixture proves all eleven
+target keys, a same-length non-target, an escaped target, and rejection of a
+plain-plus-escaped duplicate. No fact owner or ABI contract moved.
+
+The v43 integrated driver built in 52,451 ms at 2,523.0 MB peak private /
+2,511.6 MB working set. Its bounded output remained 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`,
+and the wrong-ABI input exited 1 with the owned diagnostic and no output. The
+full fixed-window run reached routine 704 at 162,255 ms, routine 896 at 190,875
+ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms. It timed out
+at 300,268 ms with 215.1 MB peak private / 217.1 MB working set and no cap
+crossing. It did not reach routine 1,984, `mir-to-ast:done`, or gen2 output.
+
+Against v42, the shared markers improved by 594 ms at routine 704, 1,282 ms at
+routine 896, 2,452 ms at routine 1,600, and 3,093 ms (1.06%) at routine 1,920.
+Record that as a real but minor result. A large static comparison-count
+reduction did not make scalar key dispatch the dominant wall-time owner. Do not
+stack more name-length micro-optimizations or raise the diagnostic window.
+The next active seam is the existing CFG graph owner's repeated backedge query:
+the remaining tail performs an estimated 9,144 entry/avoid-target BFS calls
+because `BuildMirRoutineFactIndex` asks once per edge. Replace that with one
+routine-level owner result, preserve structural-merge/phi behavior, and use the
+same routine-1,984 fixed-window falsifier.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

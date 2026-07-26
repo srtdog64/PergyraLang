@@ -8316,3 +8316,27 @@ Released/default replacement remains 0%.
   from the current low-memory timeout. There is still no
   `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 binary, or gen3
   comparison. The next fixed-window falsifier is routine 1,984.
+
+### 2026-07-26 -- Scalar key dispatch narrows comparisons without moving facts
+
+- `dfc8e406` keeps scalar capture in the existing routine-local owner. Plain
+  JSON keys are dispatched by raw length before semantic comparison; a key with
+  an escape still takes the complete comparison path. The focused C/LLVM gate
+  proves all eleven target keys, same-length non-target rejection, escaped-key
+  equivalence, and plain-plus-escaped duplicate failure.
+- This change adds no helper, carrier, cache, ABI decision, or C/LLVM-specific
+  path. The component ratchet requires the length guards and escaped fallback.
+- The exact-source v43 driver built in 52,451 ms at 2,523.0 MB peak private /
+  2,511.6 MB working set. Its 1,454 ms bounded run remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed 300-second run reached routine 704 at 162,255 ms, routine 896 at
+  190,875 ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms. It
+  timed out at 300,268 ms with 215.1 MB peak private / 217.1 MB working set and
+  no cap crossing.
+- Routine 1,920 is 3,093 ms (1.06%) earlier than v42. This is a safe minor
+  improvement, not the dominant CPU closure: routine 1,984, MIR-to-AST
+  completion, gen2 output, compilation, and gen3 comparison remain absent. The
+  next active seam is the existing CFG owner's per-edge backedge BFS, to be
+  replaced by one routine-level result without adding another graph or cache.

@@ -44,8 +44,9 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `bf8a56b8` (`reuse captured optional MIR ABI type
-  facts`) on `main`. Its exact ABI witness predecessor is `0da9c5c2`, its ABI
+- Implementation checkpoint: `dfc8e406` (`dispatch MIR scalar keys by raw
+  length`) on `main`. Its optional ABI scalar predecessor is `bf8a56b8`, its
+  exact ABI witness predecessor is `0da9c5c2`, its ABI
   row-capture predecessor is `a5d56f42`, its
   routine-scalar predecessor is `dd68d6f3`, its
   instruction-view predecessor is `06f6994d`, its
@@ -128,6 +129,10 @@ bounded-only parity as progress evidence.
   uses that observation only with exact optional `id=0`/`layout=null` tokens.
   Required tuples still take the complete raw witness path; wrong-kind or
   noncanonical values are not repaired or guessed.
+- The same scalar owner scans each key for an escape and dispatches plain keys
+  to their raw-length comparison group. Escaped keys retain full semantic
+  comparison and duplicate detection. No scalar carrier, helper, cache, or ABI
+  semantic owner was added.
 
 ## Exact dirty state
 
@@ -220,6 +225,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-abi-exact-reuse-v41-300s` | 157.2 MB | 162.3 MB | Timed out at 300,227 ms after routine 640 at 228,455 ms, routine 704 at 238,884 ms, and routine 896 at 288,574 ms; no gen2. |
 | `full-mir-consumer-abi-optional-fast-v42-build` | 2515.0 MB | 2503.6 MB | Exact-source integrated C driver compiled in 53,265 ms below the fixed cap. |
 | `full-mir-consumer-abi-optional-fast-v42-300s` | 214.4 MB | 216.6 MB | Timed out at 300,115 ms after routine 704 at 162,849 ms, routine 896 at 192,157 ms, routine 1,600 at 241,729 ms, and routine 1,920 at 293,147 ms; no gen2. |
+| `full-mir-consumer-key-dispatch-v43-build` | 2523.0 MB | 2511.6 MB | Exact-source integrated C driver compiled in 52,451 ms below the fixed cap. |
+| `full-mir-consumer-key-dispatch-v43-300s` | 215.1 MB | 217.1 MB | Timed out at 300,268 ms after routine 704 at 162,255 ms, routine 896 at 190,875 ms, routine 1,600 at 239,277 ms, and routine 1,920 at 290,054 ms; no routine 1,984 or gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -378,6 +385,18 @@ already scanned every instruction for identity. A separate CFG census found
 collinear instruction/block volume; do not introduce a CFG cache or move phi
 ownership on correlation alone.
 
+`dfc8e406` executed the smaller falsifier first. Plain scalar keys now run only
+their matching raw-length comparison group, while escaped keys retain the full
+semantic fallback. The exact-source v43 driver built in 52,451 ms below 3 GiB,
+preserved the 414-byte bounded SHA, and rejected the wrong-ABI input with no
+output. The fixed-window run reached routine 1,920 at 290,054 ms, 3,093 ms
+(1.06%) earlier than v42, then timed out at 300,268 ms without routine 1,984.
+Peak private/working set was 215.1/217.1 MB. The comparison-count reduction is
+real but not dominant. The next owner-directed move is inside the existing CFG
+graph owner: compute the routine backedge result once, migrate the fact-index
+consumer, and ratchet the per-edge dominator call. Keep structural merge and
+phi unchanged for this slice.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -404,7 +423,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `bf8a56b8` plus the documented working measurements:
+Green on `dfc8e406` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -421,12 +440,12 @@ Green on `bf8a56b8` plus the documented working measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-abi-optional-fast-v42-build`): exit 0, 53,265 ms,
-  2,515.0 MB peak private / 2,503.6 MB peak working set;
+  owner (`full-mir-consumer-key-dispatch-v43-build`): exit 0, 52,451 ms,
+  2,523.0 MB peak private / 2,511.6 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
-- bounded wrong-ABI mutation: exit 1 in 551 ms with the owned ABI diagnostic
-  and no output file;
+- bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
+  output file;
 - `tests/build_pressure_contract_smoke.sh`;
 - focused current-driver `nested_if_in_loop` MIR production/consumption plus a
   forged one-predecessor header-phi rejection;
@@ -483,30 +502,31 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-routine-scalar-bundle-v23.*`,
 `full-mir-consumer-abi-bounds-v38-300s.*`, and
 `full-mir-consumer-abi-row-capture-v39-300s.*`, and
-`full-mir-consumer-abi-exact-reuse-v41-300s.*`, and
-`full-mir-consumer-abi-optional-fast-v42-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v42_abi_optional_fast.exe`; its
+`full-mir-consumer-abi-exact-reuse-v41-300s.*`,
+`full-mir-consumer-abi-optional-fast-v42-300s.*`, and
+`full-mir-consumer-key-dispatch-v43-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v43_key_dispatch.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v42_bounded.c`. The latest full consumer
+`.tmp/self_hosted/driver_bootstrap/v43_bounded.c`. The latest full consumer
 evidence includes complete stage capture through the 1,920-routine marker. These
 files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Land the length-directed key dispatch inside the existing
-   `MirRoutineInstructionScalarCaptureWithin` owner. Preserve the full semantic
-   comparison fallback for escaped keys and prove all eleven keys, same-length
-   non-targets, escaped targets, and plain-plus-escaped duplicates. The static
-   gate must reject reintroduction of unconditional eleven-way comparison.
-2. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. If instruction
-   cost still dominates, instrument hot routine 1,955 to separate scalar
-   capture, flow facts, successor capture, backedge/merge queries, and
-   match-local work before committing an owner move.
-3. If that split confirms the second object scan, extend the existing program
-   instruction capture to own the
-   identity plus routine scalar/raw ABI span facts in one walk, migrate the
-   routine bundle to projections from that owner, delete the second full
-   instruction-object scan, and ratchet it with a negative component gate.
+1. In the existing `mir_cfg_graph_owner.pgy`, compute routine backedge headers
+   as one owner result: entry distances once, avoiding distances once per
+   distinct target, then target-major source checks. Migrate
+   `BuildMirRoutineFactIndex` and forbid its per-edge
+   `MirRoutineEdgeTargetsDominator` call. Do not add another file/cache or alter
+   structural merge and phi in this slice.
+2. Prove disconnected components cannot manufacture a backedge; preserve
+   self-loop, ordinary loop, earlier-merge non-backedge, duplicate-target edge,
+   diamond, tie, and fallback behavior through C/LLVM plus a static consumer
+   ratchet.
+3. Rebuild and rerun the bounded/wrong-ABI/full pressure ladder. The executable
+   falsifier remains routine 1,984. If the CFG batch is not material, instrument
+   hot routine 1,955 before moving the broader instruction scalar capture into
+   the admitted program owner.
 4. Re-run the current artifact until marker 1,984 and ultimately
    `consumer:mir-to-ast:done` are observed under the fixed pressure owner. Add
    post-loop markers for top-level completion, string join, and AST inventory
