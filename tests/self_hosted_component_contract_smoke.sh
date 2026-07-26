@@ -8468,10 +8468,12 @@ require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAir
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceSlotOwnershipFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceMaterializationReasonFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceLossBudgetFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceMirTerminatorFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceFactKnown"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(CompilerAirEvidenceFactCount()) == \"\""
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactKnown(CompilerAirEvidenceIntentGraphFact())"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact())"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactKnown(CompilerAirEvidenceMirTerminatorFact())"
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactCount() == 7"
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact()"
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact()"
@@ -11350,6 +11352,17 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
+require_file "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 300
+require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 420
+require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
+require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 380
+require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
@@ -11380,6 +11393,20 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
     'MirJsonReadMachineAdmittedInput('
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'import "direct_mir_scalar_graph_admission_owner.pgy";'
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'import "direct_mir_backend_emission_owner.pgy";'
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'DirectMirCfgPlanFromAdmitted(admitted)'
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'import "../air/mir_cfg_certificate_owner.pgy";'
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'func DirectMirCfgPlanMutationRejected('
+require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
+    'func DirectMirCfgCertificateMutationRejected('
+require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
+    'CompilerAirEvidenceMirTerminatorFact()'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'let block_reachable: Array<Bool>;'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'JsonObjectFactObjectTable(instruction, "expr0_graph")'

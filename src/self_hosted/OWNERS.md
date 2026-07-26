@@ -1067,7 +1067,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/compatibility_evolution_manifest.pgy` -- runnable
   compatibility-evolution artifact projection over the owner rows.
 - `src/self_hosted/compiler/air_evidence_owner.pgy` -- hard-rung AIR evidence
-  fact vocabulary for intent/effect/authority/coordination.
+  fact vocabulary for intent/effect/authority/coordination and MIR terminators.
+- `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
+  certificate issuer for the bounded direct CFG rung. It verifies the typed
+  block/terminator inventory once, binds MIR and CFG digests, and permits only
+  strict zero-fallback/zero-drift evidence with a self-digest mutation guard.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
@@ -1232,9 +1236,16 @@ inventory must not become a second fact-family owner registry.
   `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
-  graph and projects its bounded scalar facts to C or LLVM without rebuilding
-  AST/semantic artifacts or creating backend-specific MIR readers. Runtime
-  symbols/formats and the C `Int` spelling come from their existing ABI owners.
+  graph, selects the bounded scalar or verified-CFG path, and creates one C or
+  LLVM artifact without rebuilding AST/semantic artifacts or creating
+  backend-specific MIR readers.
+- `src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy` -- one text
+  emission responsibility containing both C and LLVM consumers. It consumes
+  scalar projections or `DirectMirCfgPlan`; it owns no MIR/AIR read path.
+- `src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy` -- target-neutral
+  verified four-block CFG plan. It derives entry/arm/merge roles from typed MIR
+  owners, binds the AIR certificate and target-capability fingerprint, and
+  self-digests every mechanical emission fact before either backend sees it.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. It owns neither target text

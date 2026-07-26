@@ -1,0 +1,362 @@
+// MIR-bound AIR certificate for the bounded direct CFG replacement rung.
+//
+// This owner verifies terminator evidence from the admitted typed MIR index.
+// It never reads a serialized AIR artifact and never reconstructs source syntax.
+
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../compiler/air_evidence_owner.pgy";
+
+struct DirectMirCfgCertificate {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let certificate_digest: Int;
+    let mir_digest: Int;
+    let source_length: Int;
+    let routine_start: Int;
+    let routine_end: Int;
+    let source_syntax_id: String;
+    let cfg_digest: Int;
+    let block_count: Int;
+    let instruction_count: Int;
+    let entry_block: Int;
+    let true_block: Int;
+    let false_block: Int;
+    let merge_block: Int;
+    let branch_global_row: Int;
+    let evidence_kind: String;
+    let evidence_fact_count: Int;
+    let fallback_count: Int;
+    let drift_count: Int;
+    let strict_evidence: Bool;
+    let mir_evidence_bound: Bool;
+    let no_phi: Bool;
+}
+
+func DirectMirCfgCertificateSchema() -> String {
+    return "pgy.selfhost.air.mir-cfg-certificate.v1";
+}
+
+func DirectMirCfgCertificateRevision() -> Int { return 1; }
+
+func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
+    return DirectMirCfgCertificate(
+        false, "", 0, 0, 0, 0, 0, 0, "", 0, 0, 0,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, "", 0, 0, 0,
+        false, false, false
+    );
+}
+
+func DirectMirCfgHashString(hash: Long, value: String) -> Long {
+    let modulus: Long = 268435456L;
+    let out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
+    let row: Int = 0;
+    while row < StringLength(value) {
+        out = (out * 131L +
+            (CharCode(value, StringLength(value), row) as Long)) % modulus;
+        row = row + 1;
+    }
+    return out;
+}
+
+func DirectMirCfgHashInt(hash: Long, value: Int) -> Long {
+    let modulus: Long = 268435456L;
+    return (hash * 131L + ((value + 2) as Long)) % modulus;
+}
+
+func DirectMirCfgBoundedDigest(hash: Long) -> Int {
+    return (1073741824L + hash) as Int;
+}
+
+func DirectMirCfgMirDigest(json: String) -> Int {
+    return DirectMirCfgBoundedDigest(
+        DirectMirCfgHashString(17L, json)
+    );
+}
+
+func DirectMirCfgDigestFromIndex(
+    ref index: MirRoutineFactIndex
+) -> Int {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || block_count != ArrayLength(index.block_ends) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.backedge_headers) ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_count != ArrayLength(index.block_has_conditional_branch) ||
+        block_count != ArrayLength(index.block_structural_merges) ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        block_count != ArrayLength(
+            index.instruction_facts.block_phi_prefix_counts
+        ) {
+        return 0;
+    }
+    let hash: Long = DirectMirCfgHashString(23L, index.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, block_count);
+    hash = DirectMirCfgHashInt(
+        hash, ArrayLength(index.instruction_facts.starts)
+    );
+    let block: Int = 0;
+    while block < block_count {
+        let reachable: Int = 0;
+        if index.block_reachable[block] { reachable = 1; }
+        hash = DirectMirCfgHashInt(hash, block);
+        hash = DirectMirCfgHashInt(hash, reachable);
+        hash = DirectMirCfgHashInt(hash, index.backedge_headers[block]);
+        hash = DirectMirCfgHashInt(hash, index.block_succ_true[block]);
+        hash = DirectMirCfgHashInt(hash, index.block_succ_false[block]);
+        hash = DirectMirCfgHashInt(
+            hash, index.block_has_conditional_branch[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_structural_merges[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_instruction_starts[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_instruction_counts[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.instruction_facts.block_phi_prefix_counts[block]
+        );
+        block = block + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCfgCertificateIdentityDigest(
+    ref certificate: DirectMirCfgCertificate
+) -> Int {
+    if !certificate.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(31L, certificate.schema);
+    hash = DirectMirCfgHashInt(hash, certificate.revision);
+    hash = DirectMirCfgHashInt(hash, certificate.mir_digest);
+    hash = DirectMirCfgHashInt(hash, certificate.source_length);
+    hash = DirectMirCfgHashInt(hash, certificate.routine_start);
+    hash = DirectMirCfgHashInt(hash, certificate.routine_end);
+    hash = DirectMirCfgHashString(hash, certificate.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, certificate.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, certificate.block_count);
+    hash = DirectMirCfgHashInt(hash, certificate.instruction_count);
+    hash = DirectMirCfgHashInt(hash, certificate.entry_block);
+    hash = DirectMirCfgHashInt(hash, certificate.true_block);
+    hash = DirectMirCfgHashInt(hash, certificate.false_block);
+    hash = DirectMirCfgHashInt(hash, certificate.merge_block);
+    hash = DirectMirCfgHashInt(hash, certificate.branch_global_row);
+    hash = DirectMirCfgHashString(hash, certificate.evidence_kind);
+    hash = DirectMirCfgHashInt(hash, certificate.evidence_fact_count);
+    hash = DirectMirCfgHashInt(hash, certificate.fallback_count);
+    hash = DirectMirCfgHashInt(hash, certificate.drift_count);
+    let flags: Int = 0;
+    if certificate.strict_evidence { flags = flags + 1; }
+    if certificate.mir_evidence_bound { flags = flags + 2; }
+    if certificate.no_phi { flags = flags + 4; }
+    hash = DirectMirCfgHashInt(hash, flags);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCfgCertificateWithDigest(
+    certificate: DirectMirCfgCertificate,
+    digest: Int
+) -> DirectMirCfgCertificate {
+    return DirectMirCfgCertificate(
+        certificate.valid, certificate.schema, certificate.revision, digest,
+        certificate.mir_digest, certificate.source_length,
+        certificate.routine_start, certificate.routine_end,
+        certificate.source_syntax_id, certificate.cfg_digest,
+        certificate.block_count, certificate.instruction_count,
+        certificate.entry_block, certificate.true_block,
+        certificate.false_block, certificate.merge_block,
+        certificate.branch_global_row, certificate.evidence_kind,
+        certificate.evidence_fact_count, certificate.fallback_count,
+        certificate.drift_count, certificate.strict_evidence,
+        certificate.mir_evidence_bound, certificate.no_phi
+    );
+}
+
+func DirectMirCfgCertificateWithEvidenceCounts(
+    certificate: DirectMirCfgCertificate,
+    fact_count: Int,
+    fallback_count: Int,
+    drift_count: Int
+) -> DirectMirCfgCertificate {
+    return DirectMirCfgCertificate(
+        certificate.valid, certificate.schema, certificate.revision,
+        certificate.certificate_digest, certificate.mir_digest,
+        certificate.source_length, certificate.routine_start,
+        certificate.routine_end, certificate.source_syntax_id,
+        certificate.cfg_digest, certificate.block_count,
+        certificate.instruction_count, certificate.entry_block,
+        certificate.true_block, certificate.false_block,
+        certificate.merge_block, certificate.branch_global_row,
+        certificate.evidence_kind, fact_count, fallback_count, drift_count,
+        certificate.strict_evidence, certificate.mir_evidence_bound,
+        certificate.no_phi
+    );
+}
+
+func DirectMirCfgCertificateFromIndex(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> DirectMirCfgCertificate {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !CompilerAirEvidenceEnvelopeReady() ||
+        !admitted.document.valid || !index.valid {
+        return DirectMirCfgCertificateEmpty();
+    }
+    if block_count != 4 ||
+        block_count != ArrayLength(index.block_ends) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.backedge_headers) ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_count != ArrayLength(index.block_has_conditional_branch) ||
+        block_count != ArrayLength(index.block_structural_merges) ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        block_count != ArrayLength(
+            index.instruction_facts.block_phi_prefix_counts
+        ) {
+        return DirectMirCfgCertificateEmpty();
+    }
+    if admitted.routines.source_json != admitted.document.root.json ||
+        admitted.routines.source_length != StringLength(
+            admitted.routines.source_json
+        ) || index.routine_start != admitted.routines.starts[0] ||
+        index.routine_end != admitted.routines.ends[0] ||
+        StringLength(index.source_syntax_id) == 0 {
+        return DirectMirCfgCertificateEmpty();
+    }
+
+    let entry: Int = 0;
+    let true_block: Int = index.block_succ_true[entry];
+    let false_block: Int = index.block_succ_false[entry];
+    let merge_block: Int = index.block_structural_merges[entry];
+    if true_block < 0 || true_block >= block_count ||
+        false_block < 0 || false_block >= block_count ||
+        merge_block < 0 || merge_block >= block_count ||
+        entry == true_block || entry == false_block ||
+        entry == merge_block || true_block == false_block ||
+        true_block == merge_block || false_block == merge_block {
+        return DirectMirCfgCertificateEmpty();
+    }
+    if index.block_succ_true[true_block] != merge_block ||
+        index.block_succ_false[true_block] >= 0 ||
+        index.block_succ_true[false_block] != merge_block ||
+        index.block_succ_false[false_block] >= 0 ||
+        index.block_succ_true[merge_block] >= 0 ||
+        index.block_succ_false[merge_block] >= 0 ||
+        index.block_structural_merges[entry] != merge_block {
+        return DirectMirCfgCertificateEmpty();
+    }
+
+    let block: Int = 0;
+    while block < block_count {
+        if (!index.block_reachable[block]) ||
+            index.backedge_headers[block] != 0 ||
+            index.instruction_facts.block_phi_prefix_counts[block] != 0 {
+            return DirectMirCfgCertificateEmpty();
+        }
+        let should_branch: Int = 0;
+        if block == entry { should_branch = 1; }
+        if index.block_has_conditional_branch[block] != should_branch {
+            return DirectMirCfgCertificateEmpty();
+        }
+        block = block + 1;
+    }
+    if index.block_instruction_counts[entry] != 2 ||
+        index.block_instruction_counts[true_block] != 1 ||
+        index.block_instruction_counts[false_block] != 1 ||
+        index.block_instruction_counts[merge_block] != 0 {
+        return DirectMirCfgCertificateEmpty();
+    }
+
+    let branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(index, admitted.routines, 0, entry);
+    let entry_global_block: Int =
+        admitted.routines.routine_block_starts[0] + entry;
+    if !branch.valid || !branch.found || !branch.instruction.valid ||
+        branch.instruction.source_type != "AST_BINARY" ||
+        branch.instruction.global_row !=
+            admitted.routines.block_instruction_starts[entry_global_block] +
+            index.block_instruction_counts[entry] - 1 {
+        return DirectMirCfgCertificateEmpty();
+    }
+
+    let cfg_digest: Int = DirectMirCfgDigestFromIndex(index);
+    if cfg_digest == 0 { return DirectMirCfgCertificateEmpty(); }
+    let certificate: DirectMirCfgCertificate = DirectMirCfgCertificate(
+        true, DirectMirCfgCertificateSchema(),
+        DirectMirCfgCertificateRevision(), 0,
+        DirectMirCfgMirDigest(admitted.routines.source_json),
+        admitted.routines.source_length, index.routine_start,
+        index.routine_end, index.source_syntax_id, cfg_digest,
+        block_count, ArrayLength(index.instruction_facts.starts),
+        entry, true_block, false_block, merge_block,
+        branch.instruction.global_row,
+        CompilerAirEvidenceMirTerminatorFact(), 1, 0, 0,
+        true, true, true
+    );
+    return DirectMirCfgCertificateWithDigest(
+        certificate, DirectMirCfgCertificateIdentityDigest(certificate)
+    );
+}
+
+func DirectMirCfgCertificateReady(
+    ref certificate: DirectMirCfgCertificate
+) -> Bool {
+    return certificate.valid &&
+        certificate.schema == DirectMirCfgCertificateSchema() &&
+        certificate.revision == DirectMirCfgCertificateRevision() &&
+        certificate.certificate_digest != 0 &&
+        certificate.certificate_digest ==
+            DirectMirCfgCertificateIdentityDigest(certificate) &&
+        certificate.mir_digest != 0 && certificate.source_length > 0 &&
+        certificate.routine_start >= 0 &&
+        certificate.routine_end > certificate.routine_start &&
+        StringLength(certificate.source_syntax_id) > 0 &&
+        certificate.cfg_digest != 0 && certificate.block_count == 4 &&
+        certificate.instruction_count == 4 &&
+        certificate.entry_block == 0 &&
+        certificate.true_block >= 0 && certificate.false_block >= 0 &&
+        certificate.merge_block >= 0 &&
+        certificate.evidence_kind ==
+            CompilerAirEvidenceMirTerminatorFact() &&
+        certificate.evidence_fact_count == 1 &&
+        certificate.fallback_count == 0 &&
+        certificate.drift_count == 0 && certificate.strict_evidence &&
+        certificate.mir_evidence_bound && certificate.no_phi;
+}
+
+func DirectMirCfgCertificateMutationRejected(
+    own certificate: DirectMirCfgCertificate
+) -> Bool {
+    if !DirectMirCfgCertificateReady(certificate) { return false; }
+    let bad_digest: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithDigest(
+            certificate, certificate.certificate_digest + 1
+        );
+    let missing_evidence: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(certificate, 0, 0, 0);
+    missing_evidence = DirectMirCfgCertificateWithDigest(
+        missing_evidence,
+        DirectMirCfgCertificateIdentityDigest(missing_evidence)
+    );
+    let fallback: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(certificate, 1, 1, 0);
+    fallback = DirectMirCfgCertificateWithDigest(
+        fallback, DirectMirCfgCertificateIdentityDigest(fallback)
+    );
+    let drift: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(certificate, 1, 0, 1);
+    drift = DirectMirCfgCertificateWithDigest(
+        drift, DirectMirCfgCertificateIdentityDigest(drift)
+    );
+    return !DirectMirCfgCertificateReady(bad_digest) &&
+        !DirectMirCfgCertificateReady(missing_evidence) &&
+        !DirectMirCfgCertificateReady(fallback) &&
+        !DirectMirCfgCertificateReady(drift);
+}

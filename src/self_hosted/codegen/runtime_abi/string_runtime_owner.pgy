@@ -32,6 +32,10 @@ func StringRuntimeCIntLineFormat() -> String {
     return "%lld\\n";
 }
 
+func StringRuntimeCStringLineFormat() -> String {
+    return "%s\\n";
+}
+
 func StringRuntimeCFloatLineFormat() -> String {
     return "%f\\n";
 }

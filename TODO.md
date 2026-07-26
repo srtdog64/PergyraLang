@@ -2,20 +2,20 @@
 
 English anchor for tooling/doc gates:
 
-- Active self-host backend rung: admit `ifelse.pgy` through one shared CFG/AIR
-  plan boundary. Its current 3,413-byte MIR has SHA-256
-  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
-  is a four-block diamond without phi, and has native output `pos`; current
-  direct C and LLVM both reject it without creating an artifact. Consume MIR
-  CFG facts into a MIR-bound AIR certificate, bind that certificate into one
-  verified plan, and make both backends consume the same plan. Do not add a
-  backend-specific CFG reader, rebuild AST/semantic facts, infer branch shape
-  from expression text, create a second MIR, or bypass AIR evidence. Keep the
-  hello/let_log/multilet direct gate green. The final r3 Pergyra-built bounded
-  bootstrap and the same C/LLVM positive/negative gate passed with the final
-  source. Gate:
-  `self-host-one-mir-dual-backend-projection-test-smoke` plus the focused
-  CFG/AIR certificate and verified-plan negatives. Released/default
+- Active self-host backend rung: extend the landed shared CFG/AIR plan to
+  `if_else_assign.pgy`. v68 now admits the unchanged 3,413-byte `ifelse.pgy`
+  MIR (SHA-256
+  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`)
+  through one MIR-bound AIR certificate and one target-neutral verified plan;
+  Pergyra-built C/LLVM both compile and match `pos`, while CFG/evidence/identity
+  mutations reject before output. The next 4,916-byte MIR has SHA-256
+  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`
+  and exactly one merge phi. Carry that phi's incoming SSA identities and
+  result into the same certificate/plan; do not add a fixture projector,
+  backend-specific CFG reader, second MIR/plan, AST/semantic reconstruction,
+  raw `expr0`/successor reads, or repeated graph validation. Gates:
+  `self-host-one-mir-dual-backend-projection-test-smoke` and
+  `self-host-one-mir-cfg-air-plan-projection-test-smoke`. Released/default
   replacement remains 0%.
 - Current beta progress: feature-surface feel is about 85%, and
   strict beta readiness is now about 83% after current CFG body-dataflow,

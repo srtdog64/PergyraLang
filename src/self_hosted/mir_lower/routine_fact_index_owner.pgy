@@ -20,6 +20,7 @@ struct MirRoutineFactIndex {
     let routine_end: Int;
     let block_starts: Array<Int>;
     let block_ends: Array<Int>;
+    let block_reachable: Array<Bool>;
     let backedge_headers: Array<Int>;
     let block_succ_true: Array<Int>;
     let block_succ_false: Array<Int>;
@@ -68,6 +69,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     if routine_row_ready { routine_start = routines.starts[routine_row]; routine_end = routines.ends[routine_row]; }
     let block_starts: Array<Int> = [];
     let block_ends: Array<Int> = [];
+    let block_reachable: Array<Bool> = [];
     let backedge_headers: Array<Int> = [];
     let block_succ_true: Array<Int> = [];
     let block_succ_false: Array<Int> = [];
@@ -193,6 +195,9 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
             let block_end: Int = routines.block_ends[global_block];
             ArrayPush(block_starts, block_start);
             ArrayPush(block_ends, block_end);
+            let reachable: Bool = JsonObjectBoolFieldEqualsWithin(json, block_start, block_end, "reachable", true);
+            if !reachable && !JsonObjectBoolFieldEqualsWithin(json, block_start, block_end, "reachable", false) { valid = false; validation_stage = "cfg_reachability"; }
+            ArrayPush(block_reachable, reachable);
             ArrayPush(backedge_headers, 0);
             let true_successor_fact: String = MirObjectNumberFactAtBounds(json, block_start, block_end, "succ_true");
             let true_successor: Int = 0 - 1;
@@ -228,9 +233,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
             block_offset = block_offset + 1;
         }
     }
-    // Successor rows are owner facts, not optional hints.  Reject an out of
-    // range target before any graph query so malformed input cannot turn a
-    // negative index into a fabricated loop/backedge fact.
+    // Reject invalid successor identities before graph queries.
     let successor_block_count: Int = ArrayLength(block_starts);
     let successor_row: Int = 0;
     while successor_row < successor_block_count {
@@ -247,9 +250,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         successor_row = successor_row + 1;
     }
 
-    // Backedge admission is one routine-level CFG owner query. It computes
-    // entry reachability once and reuses one avoiding traversal per distinct
-    // target instead of rediscovering the graph for every incoming edge.
+    // Compute the routine backedge inventory once for all consumers.
     backedge_headers = MirRoutineBackedgeHeaders(
         block_succ_true, block_succ_false
     );
@@ -298,7 +299,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
 
     return MirRoutineFactIndex(valid, validation_stage, loop_flow_facts_valid,
         routine_start, routine_end,
-        block_starts, block_ends, backedge_headers, block_succ_true,
+        block_starts, block_ends, block_reachable, backedge_headers, block_succ_true,
         block_succ_false, block_has_conditional_branch, block_structural_merges,
         block_instruction_starts,
         block_instruction_counts, instruction_facts,

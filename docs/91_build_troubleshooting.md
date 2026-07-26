@@ -1505,6 +1505,30 @@ both reject it without opening output. Diagnose that boundary by carrying MIR
 CFG facts into a MIR-bound AIR certificate and one verified plan; a backend-
 local CFG read would recreate the duplicated graph problem.
 
+#### v68 certificates must not revalidate the admitted graph
+
+The first v68 certificate draft recomputed the full MIR digest and normalized
+CFG digest in both issuance and `CertificateReady`. That is logically safe but
+reintroduces the same class of repeat work behind the historical 3 GiB/20+ GiB
+symptom: a proof boundary should not repeatedly traverse its input merely to
+prove that its already-issued proof object is unchanged.
+
+The accepted shape validates typed MIR/CFG facts once while issuing the AIR
+certificate. It stores MIR and CFG digests plus a separate certificate
+self-digest. The verified plan copies those identities and adds its own
+self-digest. After issuance, plan construction and both emitters inspect only
+the fixed-size certificate/plan; they do not hash MIR again, recompute
+structural merges, revisit expression graphs, or read a serialized AIR
+artifact. Evidence/fallback/drift and digest/target mutations are recomputed
+over the small proof objects and must reject before output.
+
+The fresh bounded Pergyra-built bootstrap passed. An in-flight `gen2` sample
+was 882.5 MB private / 782 MB working set; this is not a peak measurement, but
+it is evidence against a return to the cumulative graph-revalidation defect.
+If memory rises again, count MIR/CFG/graph owner traversals before adding a
+cache or raising the unchanged 3,072 MB cap. The valid count for this direct
+path is one admission traversal followed only by fixed-size identity checks.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

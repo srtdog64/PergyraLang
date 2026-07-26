@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+2026-07-27 v68 replaces the next real C-owned backend-consumption slice. The
+Pergyra-built integrated driver emitted `ifelse.pgy` once as a 3,413-byte
+`pgy.mir.v1` artifact with SHA-256
+`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`.
+The unchanged identity passed one MIR-bound AIR certificate and one
+target-neutral verified plan, then both C and LLVM artifacts compiled and
+matched native output `pos`. Hello, `let_log`, and `multilet` remain green.
+
+`MirRoutineFactIndex` now captures each block's `reachable` fact beside its
+existing successor, structural-merge, branch-row, phi-prefix, and instruction
+facts. The AIR certificate derives entry/true/false/merge roles rather than
+hardcoding arm numbers, requires branch-last/two-edge agreement, all-reachable
+acyclic blocks, no phi, one terminator evidence row, and zero fallback/drift.
+Issuance hashes MIR/CFG once; later checks rehash only the fixed-size
+certificate. The verified plan binds that certificate, the target capability
+fingerprint, typed local/result/use identity, the greater-than graph, and both
+literal arms. Certificate and plan mutation self-tests execute before output.
+
+The C and LLVM emitters remain together in one backend-emission owner and
+consume only the verified plan. Missing/out-of-range successors, block
+identity, reachability, condition SSA use, certificate evidence/fallback/drift,
+and plan digest/target mutations all reject before artifact creation. A fresh
+bounded Pergyra-built bootstrap passed; an in-flight gen2 emission sample was
+882.5 MB private / 782 MB working set, not a claimed peak. Released/default
+`pgy` replacement remains 0%. The next executable rung is
+`if_else_assign.pgy`: its current 4,916-byte MIR has SHA-256
+`da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`
+and one phi, so phi-backed merge-value carriage is the next falsifier.
+
 2026-07-27 v67 generalizes the backend-neutral direct scalar consumer from one
 fixed local/add statement to one typed scalar block. The current-source driver
 produced `multilet.pgy` once as a 4,135-byte `pgy.mir.v1` artifact with SHA-256

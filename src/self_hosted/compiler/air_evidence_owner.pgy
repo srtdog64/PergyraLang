@@ -8,7 +8,7 @@ func CompilerAirEvidenceSchema() -> String {
 }
 
 func CompilerAirEvidenceFactCount() -> Int {
-    return 7;
+    return 8;
 }
 
 func CompilerAirEvidenceIntentGraphFact() -> String {
@@ -39,6 +39,10 @@ func CompilerAirEvidenceLossBudgetFact() -> String {
     return "loss_budget";
 }
 
+func CompilerAirEvidenceMirTerminatorFact() -> String {
+    return "mir_terminator";
+}
+
 func CompilerAirEvidenceFactAt(index: Int) -> String {
     if index == 0 { return CompilerAirEvidenceIntentGraphFact(); }
     if index == 1 { return CompilerAirEvidenceEffectSetFact(); }
@@ -47,6 +51,7 @@ func CompilerAirEvidenceFactAt(index: Int) -> String {
     if index == 4 { return CompilerAirEvidenceSlotOwnershipFact(); }
     if index == 5 { return CompilerAirEvidenceMaterializationReasonFact(); }
     if index == 6 { return CompilerAirEvidenceLossBudgetFact(); }
+    if index == 7 { return CompilerAirEvidenceMirTerminatorFact(); }
     return "";
 }
 
@@ -70,5 +75,6 @@ func CompilerAirEvidenceEnvelopeReady() -> Bool {
         CompilerAirEvidenceFactKnown(CompilerAirEvidenceCoordinationFact()) &&
         CompilerAirEvidenceFactKnown(CompilerAirEvidenceSlotOwnershipFact()) &&
         CompilerAirEvidenceFactKnown(CompilerAirEvidenceMaterializationReasonFact()) &&
-        CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact());
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceMirTerminatorFact());
 }

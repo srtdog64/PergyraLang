@@ -1028,6 +1028,8 @@ Inductive SpineFact : Type :=
   | SFMirExecutionGraph
   | SFMirGenericSpecialization
   | SFAirEvidenceGraph
+  | SFDirectMirCfgCertificate
+  | SFDirectMirCfgProjectionPlan
   | SFAbiLayoutRows
   | SFAbiRuntimeCallRows
   | SFRegionAllocationPlan
@@ -1126,6 +1128,8 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFMirExecutionGraph => SOMir
   | SFMirGenericSpecialization => SOMir
   | SFAirEvidenceGraph => SOAir
+  | SFDirectMirCfgCertificate => SOAir
+  | SFDirectMirCfgProjectionPlan => SOProjectionPlanner
   | SFAbiLayoutRows => SOMirAbi
   | SFAbiRuntimeCallRows => SOMirAbi
   | SFRegionAllocationPlan => SORegionPlan

@@ -1,0 +1,397 @@
+// One backend-neutral verified plan for the direct MIR CFG replacement rung.
+//
+// Admission consumes typed MIR owners once. C and LLVM projection consume
+// only DirectMirCfgPlan and cannot reopen MIR, AIR, AST, or source facts.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../air/mir_cfg_certificate_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirCfgPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let plan_digest: Int;
+    let certificate: DirectMirCfgCertificate;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let entry_block: Int;
+    let true_block: Int;
+    let false_block: Int;
+    let merge_block: Int;
+    let local_name: String;
+    let result_name: String;
+    let integer_literal: String;
+    let condition_kind: Int;
+    let condition_right_literal: String;
+    let true_literal: String;
+    let true_content: String;
+    let false_literal: String;
+    let false_content: String;
+}
+
+func DirectMirCfgPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-cfg-plan.v1";
+}
+
+func DirectMirCfgPlanEmpty() -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        false, "", 0, 0, DirectMirCfgCertificateEmpty(), "", 0,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, "", "", "", 0, "",
+        "", "", "", ""
+    );
+}
+
+func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(43L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashInt(
+        hash, plan.certificate.certificate_digest
+    );
+    hash = DirectMirCfgHashInt(hash, plan.certificate.mir_digest);
+    hash = DirectMirCfgHashInt(hash, plan.certificate.cfg_digest);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.entry_block);
+    hash = DirectMirCfgHashInt(hash, plan.true_block);
+    hash = DirectMirCfgHashInt(hash, plan.false_block);
+    hash = DirectMirCfgHashInt(hash, plan.merge_block);
+    hash = DirectMirCfgHashString(hash, plan.local_name);
+    hash = DirectMirCfgHashString(hash, plan.result_name);
+    hash = DirectMirCfgHashString(hash, plan.integer_literal);
+    hash = DirectMirCfgHashInt(hash, plan.condition_kind);
+    hash = DirectMirCfgHashString(hash, plan.condition_right_literal);
+    hash = DirectMirCfgHashString(hash, plan.true_literal);
+    hash = DirectMirCfgHashString(hash, plan.true_content);
+    hash = DirectMirCfgHashString(hash, plan.false_literal);
+    hash = DirectMirCfgHashString(hash, plan.false_content);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCfgPlanWithDigest(
+    plan: DirectMirCfgPlan,
+    digest: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, digest, plan.certificate,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.local_name, plan.result_name,
+        plan.integer_literal, plan.condition_kind,
+        plan.condition_right_literal, plan.true_literal,
+        plan.true_content, plan.false_literal, plan.false_content
+    );
+}
+
+func DirectMirCfgPlanWithTargetFingerprint(
+    plan: DirectMirCfgPlan,
+    fingerprint: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate, plan.target_capability_schema, fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.local_name, plan.result_name,
+        plan.integer_literal, plan.condition_kind,
+        plan.condition_right_literal, plan.true_literal,
+        plan.true_content, plan.false_literal, plan.false_content
+    );
+}
+
+func DirectMirCfgCanonicalInstructionId(
+    ref instruction: JsonObjectFactTable
+) -> String {
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        instruction, "id"
+    );
+    if !IsSome(id_opt) { return ""; }
+    let id: String = UnwrapOption(id_opt);
+    if StringLength(id) == 0 || ToInt(id) < 0 || ToString(ToInt(id)) != id {
+        return "";
+    }
+    return id;
+}
+
+func DirectMirCfgLiteralArmProjection(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    block_id: Int
+) -> DirectMirHelloProjection {
+    let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, block_id, 0
+    );
+    if global_row < 0 ||
+        admitted.routines.instruction_kinds[global_row] != "stmt" ||
+        admitted.routines.instruction_source_types[global_row] != "AST_CALL" ||
+        MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 0 {
+        Die("direct MIR CFG literal arm Log instruction is invalid");
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    let instruction_id: String =
+        DirectMirCfgCanonicalInstructionId(instruction);
+    if StringLength(instruction_id) == 0 ||
+        !DirectMirLogInstructionEnvelopeReady(instruction, instruction_id) {
+        Die("direct MIR CFG literal arm Log envelope is invalid");
+    }
+    let projection: DirectMirHelloProjection =
+        DirectMirHelloGraphProjection(instruction);
+    if !projection.valid {
+        Die("direct MIR CFG literal arm Log graph is invalid");
+    }
+    return projection;
+}
+
+func DirectMirCfgConditionFromBranch(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref certificate: DirectMirCfgCertificate,
+    local_name: String,
+    result_name: String,
+    inout condition_facts: Array<String>
+) -> Int {
+    let global_row: Int = certificate.branch_global_row;
+    if global_row < 0 ||
+        admitted.routines.instruction_kinds[global_row] != "branch" ||
+        admitted.routines.instruction_source_types[global_row] !=
+            "AST_BINARY" ||
+        !MirRoutineFactIndexResultExists(index, result_name) ||
+        MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 1 {
+        Die("direct MIR CFG branch terminator and edge facts disagree");
+    }
+    let branch_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, global_row, 0
+    );
+    if !IsSome(branch_use) || UnwrapOption(branch_use) != result_name {
+        Die("direct MIR CFG condition SSA use edge is invalid");
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    if StringLength(DirectMirCfgCanonicalInstructionId(instruction)) == 0 ||
+        !JsonObjectFactStringFieldEquals(instruction, "kind", "branch") ||
+        !JsonObjectFactStringFieldEquals(instruction, "name", "branch") ||
+        !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_BINARY"
+        ) || !DirectMirObjectFieldKindEquals(instruction, "result", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "arg0", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "arg1", "null") {
+        Die("direct MIR CFG branch instruction envelope is invalid");
+    }
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 3 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 3 ||
+        ArrayLength(sequence.arena.topology.left_children) != 3 ||
+        ArrayLength(sequence.arena.topology.right_children) != 3 ||
+        ArrayLength(sequence.arena.node_texts) != 3 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 3 ||
+        ArrayLength(sequence.arena.call_target_names) != 3 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != local_name ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeGreater() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 {
+        Die("direct MIR CFG condition graph topology is invalid");
+    }
+    let node: Int = 0;
+    while node < 3 {
+        if sequence.arena.call_target_kinds[node] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[node] != "" {
+            Die("direct MIR CFG condition graph call target is invalid");
+        }
+        node = node + 1;
+    }
+    let right_literal: String = sequence.arena.node_texts[1];
+    if StringLength(right_literal) == 0 ||
+        ToString(ToInt(right_literal)) != right_literal {
+        Die("direct MIR CFG condition integer literal is not canonical");
+    }
+    ArrayPush(condition_facts, right_literal);
+    return sequence.arena.topology.node_kinds[2];
+}
+
+func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
+    let true_content: Option<String> =
+        DirectMirAsciiLiteralContent(plan.true_literal);
+    let false_content: Option<String> =
+        DirectMirAsciiLiteralContent(plan.false_literal);
+    return plan.valid && plan.schema == DirectMirCfgPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() &&
+        plan.plan_digest != 0 &&
+        plan.plan_digest == DirectMirCfgPlanIdentityDigest(plan) &&
+        DirectMirCfgCertificateReady(plan.certificate) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        plan.entry_block == plan.certificate.entry_block &&
+        plan.true_block == plan.certificate.true_block &&
+        plan.false_block == plan.certificate.false_block &&
+        plan.merge_block == plan.certificate.merge_block &&
+        StringLength(plan.local_name) > 0 &&
+        MirSsaNameMatches(plan.result_name, plan.local_name, false) &&
+        StringLength(plan.integer_literal) > 0 &&
+        ToString(ToInt(plan.integer_literal)) == plan.integer_literal &&
+        plan.condition_kind == AstExpressionNodeGreater() &&
+        StringLength(plan.condition_right_literal) > 0 &&
+        ToString(ToInt(plan.condition_right_literal)) ==
+            plan.condition_right_literal &&
+        IsSome(true_content) && UnwrapOption(true_content) == plan.true_content &&
+        IsSome(false_content) &&
+            UnwrapOption(false_content) == plan.false_content &&
+        CompilerArtifactIdentityReady(
+            CompilerEmittedCArtifactKind(), plan.revision, plan.plan_digest
+        ) && CompilerArtifactIdentityReady(
+            CompilerEmittedLlvmArtifactKind(), plan.revision, plan.plan_digest
+        );
+}
+
+func DirectMirCfgPlanMutationRejected(
+    own plan: DirectMirCfgPlan
+) -> Bool {
+    if !DirectMirCfgPlanReady(plan) { return false; }
+    let bad_digest: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
+        plan, plan.plan_digest + 1
+    );
+    let bad_target: DirectMirCfgPlan =
+        DirectMirCfgPlanWithTargetFingerprint(
+            plan, plan.target_capability_fingerprint + 1
+        );
+    bad_target = DirectMirCfgPlanWithDigest(
+        bad_target, DirectMirCfgPlanIdentityDigest(bad_target)
+    );
+    return !DirectMirCfgPlanReady(bad_digest) &&
+        !DirectMirCfgPlanReady(bad_target);
+}
+
+func DirectMirCfgPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCfgPlan {
+    if !DirectMirProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] != 4 {
+        Die("direct MIR CFG block inventory or program structure is invalid");
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    if !index.valid {
+        if index.validation_stage == "cfg_successor" {
+            Die("direct MIR CFG successor is missing or out of range");
+        }
+        Die("direct MIR CFG typed owner admission is invalid");
+    }
+    let block: Int = 0;
+    while block < ArrayLength(index.block_reachable) {
+        if !index.block_reachable[block] {
+            Die("direct MIR CFG reachability fact disagrees with graph");
+        }
+        block = block + 1;
+    }
+    let certificate: DirectMirCfgCertificate =
+        DirectMirCfgCertificateFromIndex(admitted, index);
+    let certificate_negative: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithDigest(
+            certificate, certificate.certificate_digest
+        );
+    if !DirectMirCfgCertificateReady(certificate) ||
+        !DirectMirCfgCertificateMutationRejected(certificate_negative) {
+        Die("direct MIR CFG AIR certificate binding or successor topology is invalid");
+    }
+    let use_facts: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    if !MirRoutineInstructionUseFactsReady(
+        use_facts, certificate.instruction_count
+    ) {
+        Die("direct MIR CFG instruction use owner is invalid");
+    }
+    if ArrayLength(index.source_local_names) != 1 ||
+        ArrayLength(index.source_local_types) != 1 ||
+        index.source_local_types[0] != "Int" ||
+        StringLength(index.source_local_names[0]) == 0 {
+        Die("direct MIR CFG typed local inventory is invalid");
+    }
+    let local_name: String = index.source_local_names[0];
+    let definition_global_row: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, 0, certificate.entry_block, 0
+        );
+    if definition_global_row < 0 ||
+        admitted.routines.instruction_kinds[definition_global_row] != "def" ||
+        admitted.routines.instruction_source_types[definition_global_row] !=
+            "AST_LET_DECL" ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, definition_global_row
+        ) != 0 {
+        Die("direct MIR CFG typed definition instruction is invalid");
+    }
+    let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[definition_global_row],
+        admitted.routines.instruction_ends[definition_global_row]
+    );
+    let result_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(definition, "result");
+    let definition_id: String = DirectMirCfgCanonicalInstructionId(definition);
+    if !IsSome(result_opt) || StringLength(definition_id) == 0 {
+        Die("direct MIR CFG typed definition identity is invalid");
+    }
+    let result_name: String = UnwrapOption(result_opt);
+    let integer_literal: String = DirectMirScalarDefinitionLiteral(
+        definition, definition_id, local_name, result_name
+    );
+    let condition_facts: Array<String> = [];
+    let condition_kind: Int = DirectMirCfgConditionFromBranch(
+        admitted, index, use_facts, certificate,
+        local_name, result_name, condition_facts
+    );
+    if ArrayLength(condition_facts) != 1 {
+        Die("direct MIR CFG condition facts are incomplete");
+    }
+    let true_projection: DirectMirHelloProjection =
+        DirectMirCfgLiteralArmProjection(
+            admitted, use_facts, certificate.true_block
+        );
+    let false_projection: DirectMirHelloProjection =
+        DirectMirCfgLiteralArmProjection(
+            admitted, use_facts, certificate.false_block
+        );
+    let plan: DirectMirCfgPlan = DirectMirCfgPlan(
+        true, DirectMirCfgPlanSchema(), CompilerArtifactPlanRevision(), 0,
+        certificate, CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), certificate.entry_block,
+        certificate.true_block, certificate.false_block,
+        certificate.merge_block, local_name, result_name, integer_literal,
+        condition_kind, condition_facts[0], true_projection.literal,
+        true_projection.content, false_projection.literal,
+        false_projection.content
+    );
+    let verified: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
+        plan, DirectMirCfgPlanIdentityDigest(plan)
+    );
+    let verified_negative: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
+        verified, verified.plan_digest
+    );
+    if !DirectMirCfgPlanReady(verified) ||
+        !DirectMirCfgPlanMutationRejected(verified_negative) {
+        Die("direct MIR CFG verified plan identity is invalid");
+    }
+    return verified;
+}

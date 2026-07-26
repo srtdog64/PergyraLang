@@ -6,6 +6,38 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - MIR-bound AIR plan directly drives if/else on both backends
+
+- The Pergyra-built integrated driver emitted the 3,413-byte `ifelse.pgy` MIR
+  once, SHA-256
+  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`.
+  The same file and digest drove C and LLVM; both compiled and produced the
+  native-oracle output `pos`.
+- Added typed `block_reachable` capture to `MirRoutineFactIndex`. Existing
+  successor, structural-merge, branch-row, phi-prefix, instruction, and use
+  owners remain authoritative; no backend opens block or instruction JSON.
+- Added a Pergyra-written MIR CFG AIR certificate. It derives entry/arm/merge
+  roles, proves branch-last/two-edge agreement, requires all four roles to be
+  reachable and acyclic with no phi, and issues exactly one strict
+  `mir_terminator` evidence fact with no fallback or drift.
+- Added one target-neutral verified plan carrying certificate/MIR/CFG digests,
+  the global target-capability fingerprint, local/result/use identity,
+  comparison facts, and both literal arms. C and LLVM emitters consume only
+  this plan and live together in one emission owner rather than separate
+  backend compiler graphs.
+- Certificate issuance hashes MIR/CFG once. Later checks validate only the
+  fixed-size certificate and plan self-digests. Runtime mutation checks reject
+  missing evidence, fallback, drift, digest changes, and target fingerprint
+  changes before output.
+- The focused gate also rejects missing/out-of-range successors, block
+  identity/order, reachable drift, and condition SSA-use drift on both targets.
+  Hello, `let_log`, and `multilet` remain green. The fresh bounded Pergyra-built
+  bootstrap passed; the observed in-flight gen2 sample was 882.5/782 MB
+  private/working set, not a peak claim.
+- Next: admit the one-phi `if_else_assign.pgy` MIR (4,916 bytes, SHA-256
+  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`)
+  by extending the same certificate/plan, not by adding a fixture projector.
+
 ## 2026-07-27 - One typed scalar block directly drives both backends
 
 - The current-source driver emitted `multilet.pgy` once as a 4,135-byte MIR

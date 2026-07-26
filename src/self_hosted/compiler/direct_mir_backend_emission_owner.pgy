@@ -1,0 +1,299 @@
+// Backend text emission from one backend-neutral admitted MIR projection or plan.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_cfg_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n    puts(";
+    output = Concat(output, projection.literal);
+    output = Concat(output, ");\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirHelloEmitLlvm(projection: DirectMirHelloProjection) -> String {
+    let constant_length: Int = StringLength(projection.content) + 1;
+    let output: String = "@.pgy.hello = private unnamed_addr constant [";
+    output = Concat(output, ToString(constant_length));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, projection.content);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @puts(ptr)\n\n");
+    output = Concat(output, "define i32 @main() {\nentry:\n");
+    output = Concat(output, "  %ignored = call i32 @puts(ptr @.pgy.hello)\n");
+    output = Concat(output, "  ret i32 0\n}\n");
+    return output;
+}
+
+func DirectMirScalarProjectionArraysReady(projection: DirectMirScalarBlockProjection) -> Bool {
+    let local_count: Int = ArrayLength(projection.local_names);
+    let log_count: Int = ArrayLength(projection.log_binary_kinds);
+    return projection.valid && local_count > 0 &&
+        local_count == ArrayLength(projection.result_names) &&
+        local_count == ArrayLength(projection.integer_literals) &&
+        log_count > 0 &&
+        log_count == ArrayLength(projection.log_left_local_rows) &&
+        log_count == ArrayLength(projection.log_right_local_rows);
+}
+
+func DirectMirScalarEmitC(
+    projection: DirectMirScalarBlockProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirScalarProjectionArraysReady(projection) ||
+        !formatted_print.ok || StringLength(formatted_print.symbol) == 0 ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
+        Die("direct MIR scalar C runtime ABI facts are invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
+    let row: Int = 0;
+    while row < ArrayLength(projection.local_names) {
+        output = Concat(output, "    ");
+        output = Concat(output, int_c_type);
+        output = Concat(output, " pgy_local_");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = ");
+        output = Concat(output, projection.integer_literals[row]);
+        output = Concat(output, ";\n");
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(projection.log_binary_kinds) {
+        let operator_text: String = " + ";
+        if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
+            operator_text = " * ";
+        } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
+            Die("direct MIR scalar C operator fact is invalid");
+        }
+        output = Concat(output, "    ");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(\"");
+        output = Concat(output, line_format);
+        output = Concat(output, "\", (");
+        output = Concat(output, int_c_type);
+        output = Concat(output, ")(pgy_local_");
+        output = Concat(output, ToString(projection.log_left_local_rows[row]));
+        output = Concat(output, operator_text);
+        output = Concat(output, "pgy_local_");
+        output = Concat(output, ToString(projection.log_right_local_rows[row]));
+        output = Concat(output, "));\n");
+        row = row + 1;
+    }
+    output = Concat(output, "    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
+    let payload: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        let code: Int = CharCode(line_format, n, i);
+        if code == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format escape is invalid");
+            }
+            payload = Concat(payload, "\\0A");
+            i = i + 2;
+        } else {
+            if code < 32 || code > 126 || code == 34 {
+                Die("direct MIR scalar LLVM format byte is invalid");
+            }
+            payload = Concat(payload, CharAtN(line_format, n, i));
+            i = i + 1;
+        }
+    }
+    return payload;
+}
+
+func DirectMirScalarLlvmFormatByteCount(line_format: String) -> Int {
+    let count: Int = 1;
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        if CharCode(line_format, n, i) == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format length is invalid");
+            }
+            count = count + 1;
+            i = i + 2;
+        } else {
+            count = count + 1;
+            i = i + 1;
+        }
+    }
+    return count;
+}
+
+func DirectMirScalarEmitLlvm(
+    projection: DirectMirScalarBlockProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirScalarProjectionArraysReady(projection) ||
+        !formatted_print.ok || StringLength(formatted_print.symbol) == 0 ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") {
+        Die("direct MIR scalar LLVM runtime ABI facts are invalid");
+    }
+    let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\n");
+    output = Concat(output, "declare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\n");
+    output = Concat(output, "define i32 @main() {\nentry:\n");
+    let row: Int = 0;
+    while row < ArrayLength(projection.result_names) {
+        output = Concat(output, "  %pgy.local.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = add i64 0, ");
+        output = Concat(output, projection.integer_literals[row]);
+        output = Concat(output, "\n");
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(projection.log_binary_kinds) {
+        let instruction: String = "add";
+        if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
+            instruction = "mul";
+        } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
+            Die("direct MIR scalar LLVM operator fact is invalid");
+        }
+        output = Concat(output, "  %pgy.binary.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = ");
+        output = Concat(output, instruction);
+        output = Concat(output, " i64 %pgy.local.");
+        output = Concat(output, ToString(projection.log_left_local_rows[row]));
+        output = Concat(output, ", %pgy.local.");
+        output = Concat(output, ToString(projection.log_right_local_rows[row]));
+        output = Concat(output, "\n  %pgy.logged.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(
+            output, "(ptr @.pgy.int.line.format, i64 %pgy.binary."
+        );
+        output = Concat(output, ToString(row));
+        output = Concat(output, ")\n");
+        row = row + 1;
+    }
+    output = Concat(output, "  ret i32 0\n}\n");
+    return output;
+}
+
+func DirectMirCfgEmitC(
+    ref plan: DirectMirCfgPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirCfgPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        StringLength(formatted_print.symbol) == 0 ||
+        StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
+        Die("direct MIR CFG C projection plan or runtime ABI is invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+    output = Concat(output, int_c_type);
+    output = Concat(output, " pgy_local_0 = ");
+    output = Concat(output, plan.integer_literal);
+    output = Concat(output, ";\n    if (pgy_local_0 > ");
+    output = Concat(output, plan.condition_right_literal);
+    output = Concat(output, ") {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", ");
+    output = Concat(output, plan.true_literal);
+    output = Concat(output, ");\n    } else {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", ");
+    output = Concat(output, plan.false_literal);
+    output = Concat(output, ");\n    }\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirCfgLlvmStringConstant(name: String, content: String) -> String {
+    let output: String = "@";
+    output = Concat(output, name);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(content) + 1));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, content);
+    output = Concat(output, "\\00\", align 1\n");
+    return output;
+}
+
+func DirectMirCfgEmitLlvm(
+    ref plan: DirectMirCfgPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirCfgPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        StringLength(formatted_print.symbol) == 0 ||
+        StringLength(line_format) == 0 {
+        Die("direct MIR CFG LLVM projection plan or runtime ABI is invalid");
+    }
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.string.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));
+    output = Concat(output, "\\00\", align 1\n");
+    output = Concat(
+        output, DirectMirCfgLlvmStringConstant(".pgy.cfg.true", plan.true_content)
+    );
+    output = Concat(
+        output,
+        DirectMirCfgLlvmStringConstant(
+            ".pgy.cfg.false", plan.false_content
+        )
+    );
+    output = Concat(output, "\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output, "  %pgy.local.0 = add i64 0, ");
+    output = Concat(output, plan.integer_literal);
+    output = Concat(output, "\n  %pgy.condition.0 = icmp sgt i64 %pgy.local.0, ");
+    output = Concat(output, plan.condition_right_literal);
+    output = Concat(output, "\n  br i1 %pgy.condition.0, label %pgy.block.");
+    output = Concat(output, ToString(plan.true_block));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(plan.false_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(plan.true_block));
+    output = Concat(output, ":\n  %pgy.logged.true = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output,
+        "(ptr @.pgy.string.line.format, ptr @.pgy.cfg.true)\n  br label %pgy.block."
+    );
+    output = Concat(output, ToString(plan.merge_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(plan.false_block));
+    output = Concat(output, ":\n  %pgy.logged.false = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output,
+        "(ptr @.pgy.string.line.format, ptr @.pgy.cfg.false)\n  br label %pgy.block."
+    );
+    output = Concat(output, ToString(plan.merge_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(plan.merge_block));
+    output = Concat(output, ":\n  ret i32 0\n}\n");
+    return output;
+}

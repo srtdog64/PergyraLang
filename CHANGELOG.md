@@ -6,6 +6,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Self-Hosted CFG/AIR Projection Rung (2026-07-27)
+
+- **self-host/compiler**: Add a MIR-bound AIR certificate and one
+  target-neutral verified CFG plan for the four-block `if/else` diamond. Both
+  C and LLVM emitters consume the same plan; neither backend reads MIR, AIR,
+  AST, or semantic state.
+- **self-host/mir**: Carry block reachability beside the existing successor,
+  merge, branch, phi-prefix, and instruction facts. Branch-last, edge arity,
+  structural merge, reachability, and no-phi conditions fail closed.
+- **self-host/verification**: Bind MIR/CFG/certificate/plan identities with
+  bounded self-digests and executable mutation rejection. MIR/CFG validation
+  happens once at certificate issuance; emitters recheck only fixed-size proof
+  objects.
+- **tests**: Add one-MIR C/LLVM/native parity for `ifelse.pgy` plus
+  missing/out-of-range successor, block identity, reachability, condition-use,
+  AIR evidence/fallback/drift, and certificate/plan mutation negatives.
+
 ### LLVM ABI Mapping Fixes (2026-04-11)
 - **codegen/llvm**: Fix MIR method parameter binding so explicit parameters no
   longer shift by one after hidden `self` handling. This closes the backend

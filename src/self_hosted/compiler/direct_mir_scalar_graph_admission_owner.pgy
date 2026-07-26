@@ -120,7 +120,7 @@ func DirectMirProgramEnvelopeReady(
         admitted.routines.kinds[0] != "function" ||
         admitted.routines.owners[0] != "" ||
         admitted.routines.names[0] != "Main" ||
-        admitted.routines.routine_block_counts[0] != 1 {
+        admitted.routines.routine_block_counts[0] < 1 {
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -192,6 +192,7 @@ func DirectMirHelloProjectionFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirHelloProjection {
     let json: String = admitted.routines.source_json;
     if !DirectMirProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, 0, 0
         ) != 1 {
@@ -419,7 +420,8 @@ func DirectMirScalarLogGraphAppend(
 func DirectMirScalarBlockProjectionFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirScalarBlockProjection {
     let json: String = admitted.routines.source_json;
-    if !DirectMirProgramEnvelopeReady(admitted) {
+    if !DirectMirProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] != 1 {
         return DirectMirScalarBlockProjectionEmpty();
     }
     let instruction_count: Int =
