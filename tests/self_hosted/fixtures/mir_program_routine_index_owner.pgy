@@ -424,6 +424,48 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let duplicate_runtime_row: String =
+        "{\"name\":\"Read\",\"runtime_call_abi\":null,\"runtime_call_abi\":null}";
+    let duplicate_runtime: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            duplicate_runtime_row, 0, StringLength(duplicate_runtime_row)
+        );
+    if !duplicate_runtime.valid ||
+        duplicate_runtime.runtime_operation_name != "Read" ||
+        !duplicate_runtime.runtime_name_value_ready ||
+        duplicate_runtime.runtime_call_abi_values_unique ||
+        duplicate_runtime.runtime_call_abi_start >= 0 ||
+        duplicate_runtime.runtime_call_abi_end >= 0 {
+        Log("mir-program-routine-index-owner-duplicate-runtime-row-failed");
+        failures = failures + 1;
+    }
+
+    let duplicate_runtime_program_json: String = Concat(
+        prefix,
+        "{\"kind\":\"function\",\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[{\"kind\":\"def\",\"source_type\":\"AST_CALL\",\"name\":\"Read\",\"runtime_call_abi\":null,\"runtime_call_abi\":null}]}]}]}"
+    );
+    let duplicate_runtime_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(duplicate_runtime_program_json);
+    let duplicate_runtime_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            duplicate_runtime_document.routines
+        );
+    let duplicate_runtime_bundle: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(duplicate_runtime_program, 0);
+    let duplicate_runtime_carried: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            duplicate_runtime_bundle, duplicate_runtime_bundle.global_start
+        );
+    if !duplicate_runtime_bundle.valid || !duplicate_runtime_carried.valid ||
+        duplicate_runtime_carried.runtime_operation_name != "Read" ||
+        !duplicate_runtime_carried.runtime_name_value_ready ||
+        duplicate_runtime_carried.runtime_call_abi_values_unique ||
+        duplicate_runtime_carried.runtime_call_abi_start >= 0 ||
+        duplicate_runtime_carried.runtime_call_abi_end >= 0 {
+        Log("mir-program-routine-index-owner-runtime-bundle-roundtrip-failed");
+        failures = failures + 1;
+    }
+
     let wrong_abi_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":\"0\",\"abi_layout_required\":false,\"abi_layout\":null}";
     let wrong_abi: MirRoutineInstructionScalarCapture =
@@ -557,6 +599,10 @@ func Main() -> Void {
             phi_admission_index.instruction_facts.arg0s,
             phi_admission_index.instruction_facts.arg1s,
             phi_admission_index.instruction_facts.slot_anchors,
+            phi_admission_index.instruction_facts.runtime_operation_names,
+            phi_admission_index.instruction_facts.runtime_name_values_ready,
+            phi_admission_index.instruction_facts.runtime_call_abi_values_unique,
+            phi_admission_index.instruction_facts.runtime_call_abi_bounds,
             phi_admission_index.instruction_facts.abi_type_names,
             phi_admission_index.instruction_facts.abi_type_values_ready,
             phi_admission_index.instruction_facts.abi_layout_bounds,
@@ -595,6 +641,10 @@ func Main() -> Void {
             first_facts.instruction_facts.arg0s,
             first_facts.instruction_facts.arg1s,
             first_facts.instruction_facts.slot_anchors,
+            first_facts.instruction_facts.runtime_operation_names,
+            first_facts.instruction_facts.runtime_name_values_ready,
+            first_facts.instruction_facts.runtime_call_abi_values_unique,
+            first_facts.instruction_facts.runtime_call_abi_bounds,
             first_facts.instruction_facts.abi_type_names,
             first_facts.instruction_facts.abi_type_values_ready,
             truncated_abi_bounds,

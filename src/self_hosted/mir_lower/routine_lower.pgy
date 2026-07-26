@@ -198,7 +198,7 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
             MirLowerFailClosed("instruction is missing or carries an invalid MIR ABI layout fact");
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":abi:done"))))); }
-        if !MirResourceRuntimeRowFactReady(routines, instruction) {
+        if !MirResourceRuntimeRowFactReady(routines, instruction, scalar) {
             MirLowerFailClosed(
                 "resource instruction or consumer is missing its lowered runtime-call ABI row"
             );

@@ -19,6 +19,10 @@ struct MirRoutineInstructionFactBundle {
     let arg0s: Array<String>;
     let arg1s: Array<String>;
     let slot_anchors: Array<String>;
+    let runtime_operation_names: Array<String>;
+    let runtime_name_values_ready: Array<Bool>;
+    let runtime_call_abi_values_unique: Array<Bool>;
+    let runtime_call_abi_bounds: Array<Int>;
     let abi_type_names: Array<String>;
     let abi_type_values_ready: Array<Bool>;
     let abi_layout_bounds: Array<Int>;
@@ -40,6 +44,10 @@ func BuildMirRoutineInstructionFactBundle(
     let arg0s: Array<String> = [];
     let arg1s: Array<String> = [];
     let slot_anchors: Array<String> = [];
+    let runtime_operation_names: Array<String> = [];
+    let runtime_name_values_ready: Array<Bool> = [];
+    let runtime_call_abi_values_unique: Array<Bool> = [];
+    let runtime_call_abi_bounds: Array<Int> = [];
     let abi_type_names: Array<String> = [];
     let abi_type_values_ready: Array<Bool> = [];
     let abi_layout_bounds: Array<Int> = [];
@@ -116,6 +124,32 @@ func BuildMirRoutineInstructionFactBundle(
             ArrayPush(arg0s, scalar.arg0);
             ArrayPush(arg1s, scalar.arg1);
             ArrayPush(slot_anchors, scalar.slot_anchor);
+            ArrayPush(runtime_operation_names, scalar.runtime_operation_name);
+            ArrayPush(
+                runtime_name_values_ready, scalar.runtime_name_value_ready
+            );
+            ArrayPush(
+                runtime_call_abi_values_unique,
+                scalar.runtime_call_abi_values_unique
+            );
+            ArrayPush(
+                runtime_call_abi_bounds,
+                scalar.runtime_call_abi_required_start
+            );
+            ArrayPush(
+                runtime_call_abi_bounds,
+                scalar.runtime_call_abi_required_end
+            );
+            ArrayPush(
+                runtime_call_abi_bounds, scalar.runtime_call_abi_start
+            );
+            ArrayPush(runtime_call_abi_bounds, scalar.runtime_call_abi_end);
+            ArrayPush(
+                runtime_call_abi_bounds, scalar.runtime_call_abi_aux_start
+            );
+            ArrayPush(
+                runtime_call_abi_bounds, scalar.runtime_call_abi_aux_end
+            );
             ArrayPush(abi_type_names, scalar.abi_type_name);
             ArrayPush(
                 abi_type_values_ready, scalar.abi_type_value_ready
@@ -162,7 +196,9 @@ func BuildMirRoutineInstructionFactBundle(
     }
     return MirRoutineInstructionFactBundle(
         valid, global_start, starts, ends, results, expr0s, expr1s,
-        arg0s, arg1s, slot_anchors, abi_type_names,
+        arg0s, arg1s, slot_anchors, runtime_operation_names,
+        runtime_name_values_ready, runtime_call_abi_values_unique,
+        runtime_call_abi_bounds, abi_type_names,
         abi_type_values_ready,
         abi_layout_bounds, match_variants, block_phi_prefix_counts,
         block_branch_global_rows,
@@ -190,6 +226,10 @@ func MirRoutineInstructionFactBundleReady(
         count == ArrayLength(facts.arg0s) &&
         count == ArrayLength(facts.arg1s) &&
         count == ArrayLength(facts.slot_anchors) &&
+        count == ArrayLength(facts.runtime_operation_names) &&
+        count == ArrayLength(facts.runtime_name_values_ready) &&
+        count == ArrayLength(facts.runtime_call_abi_values_unique) &&
+        count * 6 == ArrayLength(facts.runtime_call_abi_bounds) &&
         count == ArrayLength(facts.abi_type_names) &&
         count == ArrayLength(facts.abi_type_values_ready) &&
         count * 8 == ArrayLength(facts.abi_layout_bounds) &&
@@ -210,18 +250,32 @@ func MirRoutineInstructionFactBundleAtGlobal(
         count != ArrayLength(facts.arg0s) ||
         count != ArrayLength(facts.arg1s) ||
         count != ArrayLength(facts.slot_anchors) ||
+        count != ArrayLength(facts.runtime_operation_names) ||
+        count != ArrayLength(facts.runtime_name_values_ready) ||
+        count != ArrayLength(facts.runtime_call_abi_values_unique) ||
+        count * 6 != ArrayLength(facts.runtime_call_abi_bounds) ||
         count != ArrayLength(facts.abi_type_names) ||
         count != ArrayLength(facts.abi_type_values_ready) ||
         count * 8 != ArrayLength(facts.abi_layout_bounds) ||
         count != ArrayLength(facts.match_variants) {
         return InvalidMirRoutineInstructionScalarCapture();
     }
+    let runtime_row: Int = row * 6;
     let abi_row: Int = row * 8;
     return MirRoutineInstructionScalarCapture(
         true, facts.results[row], facts.expr0s[row], facts.expr1s[row],
         facts.arg0s[row], facts.arg1s[row], facts.slot_anchors[row],
+        facts.runtime_operation_names[row],
+        facts.runtime_name_values_ready[row],
+        facts.runtime_call_abi_values_unique[row],
         facts.abi_type_names[row], facts.abi_type_values_ready[row],
         facts.match_variants[row],
+        facts.runtime_call_abi_bounds[runtime_row],
+        facts.runtime_call_abi_bounds[runtime_row + 1],
+        facts.runtime_call_abi_bounds[runtime_row + 2],
+        facts.runtime_call_abi_bounds[runtime_row + 3],
+        facts.runtime_call_abi_bounds[runtime_row + 4],
+        facts.runtime_call_abi_bounds[runtime_row + 5],
         facts.abi_layout_bounds[abi_row],
         facts.abi_layout_bounds[abi_row + 1],
         facts.abi_layout_bounds[abi_row + 2],
