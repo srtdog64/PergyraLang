@@ -89,165 +89,374 @@ func MirAbiLayoutHashU32(hash: Long, value: Long) -> Long {
     return out;
 }
 
-func MirAbiLayoutStringField(
-    ref row: JsonObjectFactTable, field: String
-) -> String {
-    let value: Option<String> = JsonObjectFactStringFieldOpt(row, field);
-    if !IsSome(value) {
-        return "";
-    }
-    return UnwrapOption(value);
+struct MirAbiLayoutRowCapture {
+    let valid: Bool;
+    let type_name: String;
+    let size_text: String;
+    let align_text: String;
+    let field_names: Array<String>;
+    let field_offsets: Array<String>;
+    let field_sizes: Array<String>;
+    let field_aligns: Array<String>;
+    let runtime_fn: String;
+    let inner_c_type: String;
+    let representation_text: String;
+    let discriminant: String;
+    let primary_tag_text: String;
+    let secondary_tag_text: String;
+    let niche_none_pattern: String;
 }
 
-func MirAbiLayoutRequiredStringFields(
-    ref row: JsonObjectFactTable
+func InvalidMirAbiLayoutRowCapture() -> MirAbiLayoutRowCapture {
+    let field_names: Array<String> = [];
+    let field_offsets: Array<String> = [];
+    let field_sizes: Array<String> = [];
+    let field_aligns: Array<String> = [];
+    return MirAbiLayoutRowCapture(
+        false, "", "", "", field_names, field_offsets, field_sizes,
+        field_aligns, "", "", "", "", "", "", ""
+    );
+}
+
+// Capture only the selected value spans while walking an object once. Unknown
+// fields remain forward-compatible; duplicate selected fields fail closed.
+func MirAbiSelectedObjectBoundsWithin(
+    json: String, start: Int, end: Int,
+    keys: Array<String>, inout starts: Array<Int>, inout ends: Array<Int>
 ) -> Bool {
-    return JsonObjectFactHasField(row, "type") &&
-        JsonObjectFactHasField(row, "runtime_fn") &&
-        JsonObjectFactHasField(row, "inner_c_type") &&
-        JsonObjectFactHasField(row, "discriminant") &&
-        JsonObjectFactHasField(row, "niche_none_pattern");
-}
-
-func MirAbiLayoutHashRow(ref row: JsonObjectFactTable) -> Long {
-    let hash: Long = 60621699L; // FNV offset basis modulo 2^28
-    let fields: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(row, "fields");
-    let field_count: Int = JsonArrayObjectFactCount(fields);
-    hash = MirAbiLayoutHashString(
-        hash, MirAbiLayoutStringField(row, "type"));
-    hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFactAtBounds(
-            row.json, row.start, row.end, "size")) as Long);
-    hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFactAtBounds(
-            row.json, row.start, row.end, "align")) as Long);
-    hash = MirAbiLayoutHashU32(hash, field_count as Long);
-
-    let i: Int = 0;
-    while i < field_count {
-        let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, i);
-        hash = MirAbiLayoutHashString(
-            hash, MirAbiLayoutStringField(field, "name"));
-        hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "offset")) as Long);
-        hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "size")) as Long);
-        hash = MirAbiLayoutHashU32(
-            hash, ToInt(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "align")) as Long);
-        i = i + 1;
-    }
-
-    hash = MirAbiLayoutHashString(
-        hash, MirAbiLayoutStringField(row, "runtime_fn"));
-    hash = MirAbiLayoutHashString(
-        hash, MirAbiLayoutStringField(row, "inner_c_type"));
-    hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFactAtBounds(
-            row.json, row.start, row.end, "representation")) as Long);
-    hash = MirAbiLayoutHashString(
-        hash, MirAbiLayoutStringField(row, "discriminant"));
-    hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFactAtBounds(
-            row.json, row.start, row.end, "primary_tag")) as Long);
-    hash = MirAbiLayoutHashU32(
-        hash, ToInt(MirObjectNumberFactAtBounds(
-            row.json, row.start, row.end, "secondary_tag")) as Long);
-    return MirAbiLayoutHashString(
-        hash, MirAbiLayoutStringField(row, "niche_none_pattern"));
-}
-
-func MirAbiLayoutIdFromRow(ref row: JsonObjectFactTable) -> Int {
-    return (536870912L +
-        (MirAbiLayoutHashRow(row) % MirAbiLayoutModulus())) as Int;
-}
-
-func MirInstructionAbiLayoutFactReady(
-    json: String, inst_start: Int, inst_end: Int
-) -> Bool {
-    let type_bounds: Array<Int> = [0, 0];
-    let id_bounds: Array<Int> = [0, 0];
-    let required_bounds: Array<Int> = [0, 0];
-    let layout_bounds: Array<Int> = [0, 0];
-    if !MirObjectFieldValueBoundsAtBounds(
-        json, inst_start, inst_end, "abi_type_name", type_bounds) ||
-        !MirObjectFieldValueBoundsAtBounds(
-            json, inst_start, inst_end, "abi_layout_id", id_bounds) ||
-        !MirObjectFieldValueBoundsAtBounds(
-            json, inst_start, inst_end,
-            "abi_layout_required", required_bounds) ||
-        !MirObjectFieldValueBoundsAtBounds(
-            json, inst_start, inst_end, "abi_layout", layout_bounds) {
+    if start < 0 || end <= start || ArrayLength(keys) == 0 ||
+        ArrayLength(keys) != ArrayLength(starts) ||
+        ArrayLength(keys) != ArrayLength(ends) ||
+        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
         return false;
     }
-    let id_text: String = MirObjectNumberFactAtBounds(
-        json, inst_start, inst_end, "abi_layout_id");
-    if StringLength(id_text) == 0 {
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return false; }
+        let c: Int = JsonCharCodeAt(json, end, i);
+        if c == JsonAsciiCode("}") { return i + 1 == end; }
+        if c == JsonAsciiCode(",") { i = i + 1; continue; }
+        if c != JsonAsciiCode("\"") { return false; }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) { return false; }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let selected: Int = 0 - 1;
+        let key_row: Int = 0;
+        while key_row < ArrayLength(keys) {
+            if JsonObjectKeyEqualsWithin(
+                json, i, key_end, keys[key_row]
+            ) {
+                selected = key_row;
+                key_row = ArrayLength(keys);
+            } else {
+                key_row = key_row + 1;
+            }
+        }
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
+        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            return false;
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) { return false; }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if selected >= 0 {
+            if starts[selected] >= 0 { return false; }
+            ArraySet(starts, selected, i);
+            ArraySet(ends, selected, value_end);
+        }
+        i = value_end;
+    }
+    return false;
+}
+
+func MirAbiAllBoundsPresent(
+    starts: Array<Int>, ends: Array<Int>
+) -> Bool {
+    if ArrayLength(starts) == 0 ||
+        ArrayLength(starts) != ArrayLength(ends) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(starts) {
+        if starts[row] < 0 || ends[row] <= starts[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func MirAbiStringValueAtBounds(
+    json: String, start: Int, end: Int, nullable: Bool
+) -> Option<String> {
+    let kind: String = JsonValueKindAt(json, start, end);
+    if kind == "null" {
+        if nullable && start + 4 == end &&
+            SubEqualsWithLen(json, end, start, 4, "null") {
+            return Some("");
+        }
+        return None;
+    }
+    if kind != "string" { return None; }
+    let decoded_end: Array<Int> = [0];
+    let value: String = ReadJsonStringBounded(
+        json, start, end, decoded_end
+    );
+    if decoded_end[0] != end { return None; }
+    return Some(value);
+}
+
+func MirAbiIntegerValueAtBounds(
+    json: String, start: Int, end: Int
+) -> Option<String> {
+    if start < 0 || end <= start { return None; }
+    let i: Int = start;
+    if JsonCharCodeAt(json, end, i) == JsonAsciiCode("-") {
+        i = i + 1;
+        if i >= end { return None; }
+    }
+    while i < end {
+        if !JsonIsDigitCode(JsonCharCodeAt(json, end, i)) { return None; }
+        i = i + 1;
+    }
+    return Some(Substring(json, start, end - start));
+}
+
+func MirAbiLayoutFieldsCaptureWithin(
+    json: String, start: Int, end: Int,
+    inout names: Array<String>, inout offsets: Array<String>,
+    inout sizes: Array<String>, inout aligns: Array<String>
+) -> Bool {
+    if start < 0 || end <= start ||
+        JsonCharCodeAt(json, end, start) != JsonAsciiCode("[") {
+        return false;
+    }
+    let close_opt: Option<Int> = JsonArrayEndWithin(json, start, end);
+    if !IsSome(close_opt) || UnwrapOption(close_opt) + 1 != end {
+        return false;
+    }
+    let cursor: Int = start + 1;
+    let row_bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(json, cursor, end, row_bounds) {
+        if ArrayLength(names) >= 8 { return false; }
+        let keys: Array<String> = ["name", "offset", "size", "align"];
+        let starts: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
+        let ends: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
+        if !MirAbiSelectedObjectBoundsWithin(
+            json, row_bounds[0], row_bounds[1], keys, starts, ends
+        ) || !MirAbiAllBoundsPresent(starts, ends) {
+            return false;
+        }
+        let name: Option<String> = MirAbiStringValueAtBounds(
+            json, starts[0], ends[0], false
+        );
+        let offset: Option<String> = MirAbiIntegerValueAtBounds(
+            json, starts[1], ends[1]
+        );
+        let size: Option<String> = MirAbiIntegerValueAtBounds(
+            json, starts[2], ends[2]
+        );
+        let align: Option<String> = MirAbiIntegerValueAtBounds(
+            json, starts[3], ends[3]
+        );
+        if !IsSome(name) || StringLength(UnwrapOption(name)) == 0 ||
+            !IsSome(offset) || !IsSome(size) || !IsSome(align) {
+            return false;
+        }
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(offsets, UnwrapOption(offset));
+        ArrayPush(sizes, UnwrapOption(size));
+        ArrayPush(aligns, UnwrapOption(align));
+        cursor = row_bounds[1];
+    }
+    cursor = JsonSkipWhitespaceWithin(json, cursor, end);
+    if cursor < end && JsonCharCodeAt(json, end, cursor) == JsonAsciiCode(",") {
+        cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
+    }
+    return cursor + 1 == end &&
+        JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("]");
+}
+
+func MirAbiLayoutRowCaptureWithin(
+    json: String, start: Int, end: Int
+) -> MirAbiLayoutRowCapture {
+    let keys: Array<String> = [
+        "type", "size", "align", "fields", "runtime_fn", "inner_c_type",
+        "representation", "discriminant", "primary_tag", "secondary_tag",
+        "niche_none_pattern"
+    ];
+    let starts: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    let ends: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    if !MirAbiSelectedObjectBoundsWithin(
+        json, start, end, keys, starts, ends
+    ) || !MirAbiAllBoundsPresent(starts, ends) {
+        return InvalidMirAbiLayoutRowCapture();
+    }
+    let type_name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[0], ends[0], false
+    );
+    let size: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[1], ends[1]
+    );
+    let align: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[2], ends[2]
+    );
+    let runtime_fn: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[4], ends[4], true
+    );
+    let inner_c_type: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[5], ends[5], true
+    );
+    let representation: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[6], ends[6]
+    );
+    let discriminant: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[7], ends[7], true
+    );
+    let primary_tag: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[8], ends[8]
+    );
+    let secondary_tag: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[9], ends[9]
+    );
+    let niche: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[10], ends[10], true
+    );
+    if !IsSome(type_name) || StringLength(UnwrapOption(type_name)) == 0 ||
+        !IsSome(size) || !IsSome(align) || !IsSome(runtime_fn) ||
+        !IsSome(inner_c_type) || !IsSome(representation) ||
+        !IsSome(discriminant) || !IsSome(primary_tag) ||
+        !IsSome(secondary_tag) || !IsSome(niche) {
+        return InvalidMirAbiLayoutRowCapture();
+    }
+    let field_names: Array<String> = [];
+    let field_offsets: Array<String> = [];
+    let field_sizes: Array<String> = [];
+    let field_aligns: Array<String> = [];
+    if !MirAbiLayoutFieldsCaptureWithin(
+        json, starts[3], ends[3], field_names, field_offsets,
+        field_sizes, field_aligns
+    ) {
+        return InvalidMirAbiLayoutRowCapture();
+    }
+    return MirAbiLayoutRowCapture(
+        true, UnwrapOption(type_name), UnwrapOption(size),
+        UnwrapOption(align), field_names, field_offsets, field_sizes,
+        field_aligns, UnwrapOption(runtime_fn), UnwrapOption(inner_c_type),
+        UnwrapOption(representation), UnwrapOption(discriminant),
+        UnwrapOption(primary_tag), UnwrapOption(secondary_tag),
+        UnwrapOption(niche)
+    );
+}
+
+func MirAbiLayoutIdFromCapture(ref row: MirAbiLayoutRowCapture) -> Int {
+    if !row.valid { return 0; }
+    let hash: Long = 60621699L;
+    hash = MirAbiLayoutHashString(hash, row.type_name);
+    hash = MirAbiLayoutHashU32(hash, ToInt(row.size_text) as Long);
+    hash = MirAbiLayoutHashU32(hash, ToInt(row.align_text) as Long);
+    hash = MirAbiLayoutHashU32(hash, ArrayLength(row.field_names) as Long);
+    let field_row: Int = 0;
+    while field_row < ArrayLength(row.field_names) {
+        hash = MirAbiLayoutHashString(hash, row.field_names[field_row]);
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(row.field_offsets[field_row]) as Long
+        );
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(row.field_sizes[field_row]) as Long
+        );
+        hash = MirAbiLayoutHashU32(
+            hash, ToInt(row.field_aligns[field_row]) as Long
+        );
+        field_row = field_row + 1;
+    }
+    hash = MirAbiLayoutHashString(hash, row.runtime_fn);
+    hash = MirAbiLayoutHashString(hash, row.inner_c_type);
+    hash = MirAbiLayoutHashU32(hash, ToInt(row.representation_text) as Long);
+    hash = MirAbiLayoutHashString(hash, row.discriminant);
+    hash = MirAbiLayoutHashU32(hash, ToInt(row.primary_tag_text) as Long);
+    hash = MirAbiLayoutHashU32(hash, ToInt(row.secondary_tag_text) as Long);
+    hash = MirAbiLayoutHashString(hash, row.niche_none_pattern);
+    return (536870912L + (hash % MirAbiLayoutModulus())) as Int;
+}
+
+// Producer compatibility entrypoint; identity still comes from the same
+// captured semantic row used by the final consumer.
+func MirAbiLayoutIdFromRow(ref row: JsonObjectFactTable) -> Int {
+    let capture: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
+        row.json, row.start, row.end
+    );
+    return MirAbiLayoutIdFromCapture(capture);
+}
+
+// The instruction scalar owner captures these four value spans during its
+// single object walk.  This ABI owner alone interprets their JSON kinds and
+// semantic relationship; callers do not create a second id/bool authority.
+func MirCapturedAbiLayoutFactReady(
+    json: String,
+    type_start: Int,
+    type_end: Int,
+    id_start: Int,
+    id_end: Int,
+    required_start: Int,
+    required_end: Int,
+    layout_start: Int,
+    layout_end: Int
+) -> Bool {
+    if type_start < 0 || type_end <= type_start ||
+        id_start < 0 || id_end <= id_start ||
+        required_start < 0 || required_end <= required_start ||
+        layout_start < 0 || layout_end <= layout_start {
+        return false;
+    }
+    let type_name: String = "";
+    let type_kind: String = JsonValueKindAt(json, type_start, type_end);
+    if type_kind == "string" {
+        let decoded_end: Array<Int> = [0];
+        type_name = ReadJsonStringBounded(
+            json, type_start, type_end, decoded_end
+        );
+        if decoded_end[0] != type_end {
+            return false;
+        }
+    } else if type_kind != "null" {
+        return false;
+    }
+    let id_text: String = Substring(json, id_start, id_end - id_start);
+    if id_text == "" || ToString(ToInt(id_text)) != id_text {
         return false;
     }
     let id: Int = ToInt(id_text);
-    let required: Bool = JsonObjectBoolFieldEqualsWithin(
-        json, inst_start, inst_end,
-        "abi_layout_required", true);
-    let optional: Bool = JsonObjectBoolFieldEqualsWithin(
-        json, inst_start, inst_end,
-        "abi_layout_required", false);
-    if optional {
-        return id == 0 &&
-            JsonValueKindAt(
-                json, layout_bounds[0], layout_bounds[1]) == "null";
-    }
-    if !required ||
-        JsonValueKindAt(
-            json, layout_bounds[0], layout_bounds[1]) != "object" {
+    let required: Bool = false;
+    if required_start + 4 == required_end && SubEqualsWithLen(
+        json, required_end, required_start, 4, "true"
+    ) {
+        required = true;
+    } else if !(required_start + 5 == required_end && SubEqualsWithLen(
+        json, required_end, required_start, 5, "false"
+    )) {
         return false;
     }
-    let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, layout_bounds[0], layout_bounds[1]);
-
-    if id <= 0 || !JsonObjectFactTableReady(row) ||
-        !MirAbiLayoutRequiredStringFields(row) ||
-        !JsonObjectFactHasField(row, "size") ||
-        !JsonObjectFactHasField(row, "align") ||
-        !JsonObjectFactHasField(row, "fields") ||
-        !JsonObjectFactHasField(row, "representation") ||
-        !JsonObjectFactHasField(row, "primary_tag") ||
-        !JsonObjectFactHasField(row, "secondary_tag") {
-        return false;
-    }
-    let type_name: String = MirObjectStringFactAtBounds(
-        json, inst_start, inst_end, "abi_type_name");
-    if StringLength(type_name) == 0 ||
-        type_name != MirAbiLayoutStringField(row, "type") {
-        return false;
-    }
-    let fields: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(row, "fields");
-    if !JsonArrayObjectFactTableReady(fields) {
-        return false;
-    }
-    let field_i: Int = 0;
-    while field_i < JsonArrayObjectFactCount(fields) {
-        let field: JsonObjectFactTable =
-            JsonArrayObjectFactAt(fields, field_i);
-        if !JsonObjectFactTableReady(field) ||
-            !JsonObjectFactHasField(field, "name") ||
-            !JsonObjectFactHasField(field, "offset") ||
-            !JsonObjectFactHasField(field, "size") ||
-            !JsonObjectFactHasField(field, "align") ||
-            StringLength(MirAbiLayoutStringField(field, "name")) == 0 ||
-            StringLength(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "offset")) == 0 ||
-            StringLength(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "size")) == 0 ||
-            StringLength(MirObjectNumberFactAtBounds(
-                field.json, field.start, field.end, "align")) == 0 {
-            return false;
+    if !required {
+        if id == 0 &&
+            JsonValueKindAt(json, layout_start, layout_end) == "null" {
+            return true;
         }
-        field_i = field_i + 1;
+        return false;
     }
-    return id == MirAbiLayoutIdFromRow(row);
+    if id <= 0 ||
+        JsonValueKindAt(json, layout_start, layout_end) != "object" {
+        return false;
+    }
+    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
+        json, layout_start, layout_end
+    );
+    return row.valid && type_name == row.type_name &&
+        id == MirAbiLayoutIdFromCapture(row);
 }

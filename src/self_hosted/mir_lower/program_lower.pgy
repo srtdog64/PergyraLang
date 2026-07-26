@@ -35,10 +35,21 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
         let kind: String = routines.kinds[row];
         let owner: String = routines.owners[row];
         if kind == "function" || StringLength(owner) == 0 {
+            let observe_focused_routine: Bool = observe_pressure &&
+                (total == 16 || total == 184 || total == 185 ||
+                 total == 191 || total == 242);
+            if observe_focused_routine {
+                MirProgramLowerPressureStage(
+                    true, Concat(
+                        "consumer:mir-to-ast:focused-routine:start:",
+                        ToString(total)
+                    )
+                );
+            }
             ArrayPush(chunks, EmitRoutineTreeAtRow(
                 routines, row, "  ",
                 observe_pressure && total == 0,
-                observe_pressure && total == 16
+                observe_focused_routine
             ));
             if observe_pressure && total == 0 {
                 MirProgramLowerPressureStage(
@@ -55,6 +66,30 @@ func EmitMirProgramTreeFromRoutineIndexObserved(
                 MirProgramLowerPressureStage(
                     true, Concat(
                         "consumer:mir-to-ast:top-level-routines:",
+                        ToString(total)
+                    )
+                );
+            }
+            // The full-driver pressure rung currently accumulates its first
+            // unresolved CPU interval between 128 and 256. Keep the detailed
+            // cursor with the document-order assembly owner, and expose it
+            // only in the explicit observation lane.
+            if observe_pressure && total >= 128 && total <= 256 &&
+                total % 8 == 0 && total % 64 != 0 {
+                MirProgramLowerPressureStage(
+                    true, Concat(
+                        "consumer:mir-to-ast:top-level-routines-detail:",
+                        ToString(total)
+                    )
+                );
+            }
+            if observe_pressure &&
+                ((total >= 184 && total <= 192) ||
+                 (total >= 240 && total <= 248)) &&
+                total % 8 != 0 {
+                MirProgramLowerPressureStage(
+                    true, Concat(
+                        "consumer:mir-to-ast:top-level-routine-hot:",
                         ToString(total)
                     )
                 );

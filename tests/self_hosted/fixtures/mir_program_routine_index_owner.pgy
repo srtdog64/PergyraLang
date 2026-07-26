@@ -3,6 +3,7 @@
 import "../../../src/self_hosted/mir_lower/program_routine_index_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_instruction_view_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
+import "../../../src/self_hosted/mir_lower/abi_layout_fact_owner.pgy";
 
 func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
@@ -15,11 +16,11 @@ func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
 func Main() -> Void {
     let failures: Int = 0;
     let first_instruction: String =
-        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"result\":\"%0\",\"expr0\":\"1\",\"expr1\":null,\"arg0\":\"x\",\"arg1\":\"\",\"slot_anchor\":\"slot\",\"abi_type_name\":\"Int\",\"match_variant\":\"Some\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"expr0\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"result\":\"%0\",\"expr0\":\"1\",\"expr1\":null,\"arg0\":\"x\",\"arg1\":\"\",\"slot_anchor\":\"slot\",\"abi_type_name\":\"Int\",\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"match_variant\":\"Some\",\"payload\":{\"kind\":\"wrong\",\"source_type\":\"wrong\",\"expr0\":\"wrong\",\"machine_layer\":{}},\"machine_contact_kind\":\"\",\"machine_layer\":null}";
     let second_instruction: String =
-        "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"machine_layer\":{\"operation\":\"x\"},\"machine_contact_kind\":\"x\"}";
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_layer\":{\"operation\":\"x\"},\"machine_contact_kind\":\"x\"}";
     let third_instruction: String =
-        "{\"kind\":\"phi\",\"source_type\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+        "{\"kind\":\"phi\",\"source_type\":null,\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let first_block: String = Concat(
         "{\"id\":0,\"instructions\":[",
         Concat(first_instruction, Concat(",", Concat(second_instruction, "]}")))
@@ -97,6 +98,16 @@ func Main() -> Void {
         MirRoutineInstructionViewAt(index, 0 - 1, 0, 0).valid ||
         MirRoutineInstructionViewAt(index, 0, 1, 0).valid ||
         MirRoutineInstructionViewAt(index, 0, 0, 2).valid {
+        failures = failures + 1;
+    }
+    if !MirCapturedAbiLayoutFactReady(
+        json, first_scalar.abi_type_start, first_scalar.abi_type_end,
+        first_scalar.abi_layout_id_start, first_scalar.abi_layout_id_end,
+        first_scalar.abi_layout_required_start,
+        first_scalar.abi_layout_required_end,
+        first_scalar.abi_layout_start, first_scalar.abi_layout_end
+    ) {
+        Log("mir-program-routine-index-owner-positive-abi-failed");
         failures = failures + 1;
     }
     let method_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
@@ -231,6 +242,58 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let wrong_abi_row: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":\"0\",\"abi_layout_required\":false,\"abi_layout\":null}";
+    let wrong_abi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            wrong_abi_row, 0, StringLength(wrong_abi_row)
+        );
+    let duplicate_abi_row: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null}";
+    let duplicate_abi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            duplicate_abi_row, 0, StringLength(duplicate_abi_row)
+        );
+    let required_abi_row: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":\"Array<Int>\",\"abi_layout_id\":599770891,\"abi_layout_required\":true,\"abi_layout\":{\"type\":\"Array<Int>\",\"size\":32,\"align\":8,\"fields\":[{\"name\":\"data\",\"offset\":0,\"size\":8,\"align\":8},{\"name\":\"length\",\"offset\":8,\"size\":8,\"align\":8},{\"name\":\"capacity\",\"offset\":16,\"size\":8,\"align\":8},{\"name\":\"allocator\",\"offset\":24,\"size\":8,\"align\":8}],\"runtime_fn\":\"pgy_array_new_Int\",\"inner_c_type\":\"int32_t\",\"representation\":0,\"discriminant\":null,\"primary_tag\":0,\"secondary_tag\":0,\"niche_none_pattern\":null}}";
+    let required_abi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            required_abi_row, 0, StringLength(required_abi_row)
+        );
+    let required_abi_layout: JsonObjectFactTable =
+        JsonObjectFactTableFromBounds(
+            required_abi_row, required_abi.abi_layout_start,
+            required_abi.abi_layout_end
+        );
+    if !wrong_abi.valid || !duplicate_abi.valid || !required_abi.valid ||
+        MirAbiLayoutIdFromRow(required_abi_layout) != 599770891 ||
+        !MirCapturedAbiLayoutFactReady(
+            required_abi_row, required_abi.abi_type_start,
+            required_abi.abi_type_end, required_abi.abi_layout_id_start,
+            required_abi.abi_layout_id_end,
+            required_abi.abi_layout_required_start,
+            required_abi.abi_layout_required_end,
+            required_abi.abi_layout_start, required_abi.abi_layout_end
+        ) ||
+        MirCapturedAbiLayoutFactReady(
+            wrong_abi_row, wrong_abi.abi_type_start,
+            wrong_abi.abi_type_end, wrong_abi.abi_layout_id_start,
+            wrong_abi.abi_layout_id_end,
+            wrong_abi.abi_layout_required_start,
+            wrong_abi.abi_layout_required_end,
+            wrong_abi.abi_layout_start, wrong_abi.abi_layout_end
+        ) || MirCapturedAbiLayoutFactReady(
+            duplicate_abi_row, duplicate_abi.abi_type_start,
+            duplicate_abi.abi_type_end, duplicate_abi.abi_layout_id_start,
+            duplicate_abi.abi_layout_id_end,
+            duplicate_abi.abi_layout_required_start,
+            duplicate_abi.abi_layout_required_end,
+            duplicate_abi.abi_layout_start, duplicate_abi.abi_layout_end
+        ) {
+        Log("mir-program-routine-index-owner-negative-abi-failed");
+        failures = failures + 1;
+    }
+
     let corrupted_counts: Array<Int> = index.block_instruction_counts;
     ArraySet(corrupted_counts, 0, 3);
     let corrupted_instruction_facts: MirRoutineInstructionFactBundle =
@@ -239,6 +302,34 @@ func Main() -> Void {
         MirProgramRoutineIndexStructureReady(index) ||
         MirProgramRoutineIndexRowReady(index, 0 - 1) ||
         MirProgramRoutineIndexRowReady(index, 2) {
+        failures = failures + 1;
+    }
+    let truncated_abi_bounds: Array<Int> =
+        first_facts.instruction_facts.abi_layout_bounds;
+    ArrayPop(truncated_abi_bounds);
+    let truncated_abi_facts: MirRoutineInstructionFactBundle =
+        MirRoutineInstructionFactBundle(
+            first_facts.instruction_facts.valid,
+            first_facts.instruction_facts.global_start,
+            first_facts.instruction_facts.starts,
+            first_facts.instruction_facts.ends,
+            first_facts.instruction_facts.results,
+            first_facts.instruction_facts.expr0s,
+            first_facts.instruction_facts.expr1s,
+            first_facts.instruction_facts.arg0s,
+            first_facts.instruction_facts.arg1s,
+            first_facts.instruction_facts.slot_anchors,
+            first_facts.instruction_facts.abi_type_names,
+            truncated_abi_bounds,
+            first_facts.instruction_facts.match_variants,
+            first_facts.instruction_facts.block_has_conditional_branch
+        );
+    if MirRoutineInstructionFactBundleReady(
+            truncated_abi_facts, 1
+        ) || MirRoutineInstructionFactBundleAtGlobal(
+            truncated_abi_facts, first_view.global_row
+        ).valid {
+        Log("mir-program-routine-index-owner-truncated-abi-bounds-failed");
         failures = failures + 1;
     }
     if failures == 0 {

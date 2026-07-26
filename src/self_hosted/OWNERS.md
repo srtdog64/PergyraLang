@@ -672,7 +672,12 @@ inventory must not become a second fact-family owner registry.
   declaration lookup, and routine reconstruction.
 - `src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy` -- one
   routine-local pass over admitted instruction spans that captures result and
-  render scalars without mixing local facts into the program-global index.
+  render scalars plus raw ABI value bounds without mixing local facts into the
+  program-global index.
+- `src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy` --
+  one bounded instruction-object walk that captures routine-local render
+  strings and ABI value spans; ABI syntax and semantic validation remain with
+  `abi_layout_fact_owner.pgy`.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
 - `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine

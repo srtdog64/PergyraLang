@@ -3518,9 +3518,9 @@ require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
 require_file "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" 320
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     "func MirRoutineInstructionScalarCaptureWithin("
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     'JsonObjectKeyEqualsWithin(json, i, key_end, "expr0")'
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "func BuildMirRoutineInstructionFactBundle("
@@ -7963,9 +7963,16 @@ for exact_render_owner in \
     reject_text "src/self_hosted/mir_lower/$exact_render_owner" "MirObjectArrayStringFactAt("
     require_text "src/self_hosted/mir_lower/$exact_render_owner" "AtBounds("
 done
-for exact_abi_owner in \
-    "abi_layout_fact_owner.pgy" \
-    "resource_runtime_abi_fact_owner.pgy"; do
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirObjectStringFact("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirObjectNumberFact("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "JsonObjectBoolFieldEquals("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirFactObjectStart("
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "AtBounds("
+for exact_abi_owner in "resource_runtime_abi_fact_owner.pgy"; do
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirObjectStringFact("
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirObjectNumberFact("
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEquals("
@@ -10243,28 +10250,50 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     '"consumer:mir-to-ast:top-level-routines:",'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "observe_pressure && total % 64 == 0"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    '"consumer:mir-to-ast:top-level-routines-detail:",'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "observe_pressure && total >= 128 && total <= 256"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "total % 8 == 0 && total % 64 != 0"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    '"consumer:mir-to-ast:top-level-routine-hot:",'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "((total >= 184 && total <= 192) ||"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "(total >= 240 && total <= 248)) &&"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:first-top-level-routine-fact-index:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:first-top-level-routine-validation:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:fact-index:done"
+    "consumer:mir-to-ast:focused-routine:fact-index:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:fact-index:start"
+    "consumer:mir-to-ast:focused-routine:fact-index:start"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:validation:done"
+    "consumer:mir-to-ast:focused-routine:validation:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:header:done"
+    "consumer:mir-to-ast:focused-routine:header:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:region:done"
+    "consumer:mir-to-ast:focused-routine:region:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:instruction:abi:done"
+    "consumer:mir-to-ast:focused-routine:instruction:"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:instruction:resource:done"
+    '":abi:done"'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:instruction:render:done"
+    '":resource:done"'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "consumer:mir-to-ast:after-16:region:condition:done"
+    '":render:done"'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:region:block:"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    '":condition:done"'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    '"consumer:mir-to-ast:focused-routine:start:",'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "(total == 16 || total == 184 || total == 185 ||"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "total == 191 || total == 242)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "EmitMirProgramTreeFromRoutineIndexObserved("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtRow("
@@ -10280,6 +10309,18 @@ reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "func BuildMirRoutineFactIndex(" '"instructions"'
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     'routines.instruction_kinds[global_row] == "branch"'
+require_file "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    'import "routine_instruction_scalar_capture_owner.pgy";'
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "let abi_layout_bounds: Array<Int>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "count * 8 == ArrayLength(facts.abi_layout_bounds)"
+reject_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    'import "abi_layout_fact_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "BuildMirRoutineInstructionFactBundle(routines, routine_row)"
 reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
@@ -10312,14 +10353,44 @@ reject_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "func MirDeclaredLocalTypeFact(" "MirObjectStringFactAtBounds("
 reject_function_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \
     "func MirMatchBindingLineForInstruction(" "MirObjectStringFactAtBounds("
-require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirInstructionAbiLayoutFactReady"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirCapturedAbiLayoutFactReady"
+require_max_lines "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" 600
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirAbiLayoutRowCaptureWithin("
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirAbiLayoutIdFromCapture("
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutIdFromRow"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" "MirAbiLayoutHashU32"
-require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
-    '"abi_layout", layout_bounds'
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirAbiLayoutHashRow("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "JsonObjectFactHasField("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "JsonObjectFactArrayObjectTable("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "JsonArrayObjectFactAt("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "MirObjectNumberFactAtBounds("
+reject_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirInstructionAbiLayoutFactReady("
 reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
-    "func MirInstructionAbiLayoutFactReady(" \
-    "let instruction: JsonObjectFactTable"
+    "func MirCapturedAbiLayoutFactReady(" \
+    "MirObjectFieldValueBoundsAtBounds("
+reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirCapturedAbiLayoutFactReady(" \
+    "JsonObjectBoolFieldEqualsWithin("
+reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirCapturedAbiLayoutFactReady(" '"abi_layout_id"'
+reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirCapturedAbiLayoutFactReady(" \
+    "JsonObjectFactTableFromBounds("
+reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirCapturedAbiLayoutFactReady(" \
+    "MirAbiLayoutIdFromRow("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirCapturedAbiLayoutFactReady("
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirInstructionAbiLayoutFactReady("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "instruction is missing or carries an invalid MIR ABI layout fact"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "use_count < 2 || use_count > predecessor_count"

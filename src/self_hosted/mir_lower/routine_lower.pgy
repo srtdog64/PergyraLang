@@ -190,18 +190,18 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
         let inst_end: Int = instruction.end;
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
-        if !MirInstructionAbiLayoutFactReady(json, kp, inst_end) {
-            MirLowerFailClosed(
-                "instruction is missing or carries an invalid MIR ABI layout fact"
-            );
+        if !MirCapturedAbiLayoutFactReady(
+            json, scalar.abi_type_start, scalar.abi_type_end, scalar.abi_layout_id_start, scalar.abi_layout_id_end,
+            scalar.abi_layout_required_start, scalar.abi_layout_required_end, scalar.abi_layout_start, scalar.abi_layout_end) {
+            MirLowerFailClosed("instruction is missing or carries an invalid MIR ABI layout fact");
         }
-        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:abi:done"); }
+        if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":abi:done"))))); }
         if !MirResourceRuntimeRowFactReady(routines, instruction) {
             MirLowerFailClosed(
                 "resource instruction or consumer is missing its lowered runtime-call ABI row"
             );
         }
-        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:resource:done"); }
+        if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
             ArrayPush(chunks, RenderDestructureFromFacts(
                 json, kp, inst_end, indent, scalar.expr0));
@@ -249,7 +249,7 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex,
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
-        if observe_instruction && row == 0 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:instruction:render:done"); }
+        if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":render:done"))))); }
         row = row + 1;
     }
     return StringJoin(chunks, "");
@@ -366,17 +366,17 @@ func EmitRegion(ref index: MirRoutineFactIndex,
         if block_row < 0 {
             MirLowerFailClosed("CFG successor names an invalid block identity");
         }
-        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:block-bounds:done"); }
+        if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":bounds:done"))); }
         let stmts: String = EmitBlockStmts(
             index, routines, routine_row, block_row, indent,
-            observe_first_block && guard == 1
+            observe_first_block
         );
-        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:statements:done"); }
+        if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":statements:done"))); }
         ArrayPush(chunks, stmts);
         let cond: String = BlockCond(
             index, routines, routine_row, block_row
         );
-        if observe_first_block && guard == 1 { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:condition:done"); }
+        if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":condition:done"))); }
         if StringLength(cond) == 0 {
             let next: String = ReadSucc(index, cur, false);
             if StringLength(loop_header) > 0 && next == loop_header {
@@ -400,7 +400,7 @@ func EmitRegion(ref index: MirRoutineFactIndex,
                 ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 ArrayPush(chunks, Concat(indent, "  Block:\n"));
                 ArrayPush(chunks, EmitRegion(index, routines, routine_row,
-                    t, cur, Concat(indent, "    "), cur, f, false));
+                    t, cur, Concat(indent, "    "), cur, f, observe_first_block));
                 cur = f;
             } else {
                 let structural_merge: String =
@@ -435,13 +435,13 @@ func EmitRegion(ref index: MirRoutineFactIndex,
                     routine_row, block_row, Concat(indent, "      ")));
                 ArrayPush(chunks, EmitRegion(index, routines, routine_row,
                     t, merge, Concat(indent, "      "), loop_header, loop_exit,
-                    false));
+                    observe_first_block));
                 if hasElse {
                     ArrayPush(chunks, Concat(indent, "  Else:\n"));
                     ArrayPush(chunks, Concat(indent, "    Block:\n"));
                     ArrayPush(chunks, EmitRegion(index, routines, routine_row,
                         f, merge, Concat(indent, "      "), loop_header,
-                        loop_exit, false));
+                        loop_exit, observe_first_block));
                 }
                 cur = merge;
             }
@@ -452,7 +452,7 @@ func EmitRegion(ref index: MirRoutineFactIndex,
 
 func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, routine_row: Int,
     routine_indent: String, self_type: String,
-    observe_fact_index: Bool, observe_after_sixteen: Bool) -> String {
+    observe_fact_index: Bool, observe_focused_routine: Bool) -> String {
     if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
     let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
@@ -461,7 +461,7 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     if routine_end <= routine_start || routine == "" {
         MirLowerFailClosed("malformed routine name");
     }
-    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:fact-index:start"); }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:fact-index:start"); }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine_row);
     if !index.valid {
         MirLowerFailClosed(Concat(
@@ -470,7 +470,7 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
         ));
     }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-fact-index:done"); }
-    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:fact-index:done"); }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:fact-index:done"); }
     if !MirRoutinePhiFactsReady(index, routines, routine_row) {
         MirLowerFailClosed(Concat(
             "MIR phi facts are missing or inconsistent: ", routine
@@ -501,11 +501,11 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
         ));
     }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-validation:done"); }
-    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:validation:done"); }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:done"); }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end
     );
-    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:header:done"); }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:header:done"); }
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
@@ -581,20 +581,20 @@ func EmitRoutineTreeWithSelfTypeAtRow(ref routines: MirProgramRoutineIndex, rout
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
     let region: String = EmitRegion(index, routines, routine_row,
-        "0", "", Concat(item_pad, "  "), "", "", observe_after_sixteen);
+        "0", "", Concat(item_pad, "  "), "", "", observe_focused_routine);
     if StringLength(region) == 0 {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
-    if observe_after_sixteen { Log("[driver-pressure-stage] consumer:mir-to-ast:after-16:region:done"); }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:done"); }
     ArrayPush(chunks, region);
     return StringJoin(chunks, "");
 }
 
 func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
     routine_row: Int, routine_indent: String,
-    observe_fact_index: Bool, observe_after_sixteen: Bool) -> String {
+    observe_fact_index: Bool, observe_focused_routine: Bool) -> String {
     return EmitRoutineTreeWithSelfTypeAtRow(
         routines, routine_row, routine_indent, "",
-        observe_fact_index, observe_after_sixteen
+        observe_fact_index, observe_focused_routine
     );
 }
