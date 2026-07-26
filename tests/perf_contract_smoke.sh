@@ -617,12 +617,14 @@ grep -Fq "lexer_keywords.c" "$ROOT_DIR/Makefile"
 grep -Fq "lexer_lookup_keyword" "$ROOT_DIR/src/lexer/lexer.c"
 grep -Fq "keyword_compare_slice" "$ROOT_DIR/src/lexer/lexer_keywords.c"
 lexer_keyword_names="$(
-    sed -n '/static const KeywordEntry kKeywords\[\]/,/^};/p' \
-        "$ROOT_DIR/src/lexer/lexer_keywords.c" \
-        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
-        | grep -o '"[A-Za-z0-9_]*"' \
-        | tr -d '"'
+    grep -E '^[[:space:]]*"[A-Za-z0-9_]+",[[:space:]]+PGY_KEYWORD_CLASS_RESERVED,' \
+        "$ROOT_DIR/src/lexer/language_keyword_registry.def" \
+        | sed -E 's/^[[:space:]]*"([A-Za-z0-9_]+)".*/\1/'
 )"
+if [[ -z "$lexer_keyword_names" ]]; then
+    echo "lexer keyword registry must own at least one reserved row" >&2
+    exit 1
+fi
 lexer_keyword_names_sorted="$(
     printf '%s\n' "$lexer_keyword_names" | sort
 )"
@@ -630,6 +632,14 @@ if [[ "$lexer_keyword_names" != "$lexer_keyword_names_sorted" ]]; then
     echo "lexer keyword names must stay sorted for binary lookup" >&2
     diff -u <(printf '%s\n' "$lexer_keyword_names_sorted") \
         <(printf '%s\n' "$lexer_keyword_names") >&2 || true
+    exit 1
+fi
+lexer_keyword_name_duplicates="$(
+    printf '%s\n' "$lexer_keyword_names" | uniq -d
+)"
+if [[ -n "$lexer_keyword_name_duplicates" ]]; then
+    echo "lexer keyword registry must not contain duplicate spellings" >&2
+    printf '%s\n' "$lexer_keyword_name_duplicates" >&2
     exit 1
 fi
 grep -Fq "kEffectWordSpecs" "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"

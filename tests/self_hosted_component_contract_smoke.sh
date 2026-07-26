@@ -697,6 +697,7 @@ require_owner_surface lexer \
 require_file "src/self_hosted/lexer/char_owner.pgy"
 require_file "src/self_hosted/lexer/source_input_owner.pgy"
 require_file "src/self_hosted/lexer/token_owner.pgy"
+require_file "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
 require_file "src/self_hosted/lexer/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "scan_owner.pgy";'
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "source_input_owner.pgy";'
@@ -707,6 +708,10 @@ require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadCont
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadSchema"
 require_text "src/self_hosted/lexer/token_owner.pgy" "pgy.selfhost.lexer-token-stream.v1"
 require_text "src/self_hosted/lexer/token_owner.pgy" 'import "fixture_manifest_owner.pgy";'
+require_text "src/self_hosted/lexer/token_owner.pgy" 'import "language_keyword_registry_projection_owner.pgy";'
+require_text "src/self_hosted/lexer/token_owner.pgy" "return LanguageKeywordDebugIdentity(text);"
+require_text "src/self_hosted/lexer/token_owner.pgy" "return LanguageKeywordRegistryProjectionReady();"
+reject_text "src/self_hosted/lexer/token_owner.pgy" "if text =="
 require_text "src/self_hosted/lexer/token_owner.pgy" "return LexerFixtureManifestCount();"
 require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != LexerFixtureManifestCount()"
 reject_text "src/self_hosted/lexer/token_owner.pgy" "return 8;"

@@ -33,6 +33,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lexer/char_owner.pgy` -- character/codepoint predicates.
 - `src/self_hosted/lexer/fixture_manifest_owner.pgy` -- lexer parity
   source/fixture manifest rows.
+- `src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy` --
+  generated spelling-to-debug-identity projection consumed by the self-host
+  lexer; `src/lexer/language_keyword_registry.def` remains the language-word
+  authority.
 - `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
   selection.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.

@@ -98,8 +98,8 @@ read_lexer_fixture_manifest() {
         SOURCE_PAIRS+=("$line")
     done <"$LEXER_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#SOURCE_PAIRS[@]}" -ne 8 ]]; then
-        echo "[self-host-parity:lexer] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 8" >&2
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 9 ]]; then
+        echo "[self-host-parity:lexer] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 9" >&2
         exit 1
     fi
 }
@@ -186,7 +186,7 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>"$c_err" \
         | tr -d '\r' \
         | sed '/^pgy: compiled /d' \
-        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$c_out")
+        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 } END { if (NR > 0) printf "\n" }' >"$c_out")
     P_RC=$?
     set -e
     if [[ "$P_RC" -ne 0 ]]; then
@@ -204,7 +204,7 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" "$src" 2>"$llvm_err" \
             | tr -d '\r' \
             | sed '/^pgy: compiled /d' \
-            | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$llvm_out")
+            | awk 'NR > 1 { printf "\n" } { printf "%s", $0 } END { if (NR > 0) printf "\n" }' >"$llvm_out")
         LLVM_LEX_RC=$?
         set -e
         if [[ "$LLVM_LEX_RC" -ne 0 ]]; then
@@ -221,7 +221,7 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     set +e
     (cd "$ROOT_DIR" && "$PGY" --tokens "$src" 2>"$live_err" \
         | tr -d '\r' \
-        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$live_out")
+        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 } END { if (NR > 0) printf "\n" }' >"$live_out")
     LIVE_RC=$?
     set -e
     if [[ "$LIVE_RC" -eq 0 && -s "$live_out" ]]; then

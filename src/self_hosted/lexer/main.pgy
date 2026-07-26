@@ -1,7 +1,7 @@
 // src/self_hosted/lexer/main.pgy
 //
 // Status: rung-1 parity (2026-06-18). Pergyra-written lexer that substitutes
-// a bounded subset of src/lexer/lexer.c. Current gate: 8 committed source
+// a bounded subset of src/lexer/lexer.c. Current gate: 9 committed source
 // fixtures byte-equal to `pgy --tokens` on both C and LLVM-generated binaries,
 // with a live oracle drift guard.
 //

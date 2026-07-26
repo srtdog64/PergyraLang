@@ -5,79 +5,17 @@
  * Lexer token string/debug helpers.
  */
 
-#include "lexer.h"
+#include "lexer_keywords.h"
 
 #include <stdio.h>
 
 const char* token_type_to_string(PgyTokenType type) {
+    const char *keyword_identity = lexer_keyword_debug_name(type);
+    if (keyword_identity != NULL) {
+        return keyword_identity;
+    }
+
     switch (type) {
-        case TOKEN_LET: return "LET";
-        case TOKEN_FUNC: return "FUNC";
-        case TOKEN_SUBJECT: return "SUBJECT";
-        case TOKEN_CLASS: return "CLASS";
-        case TOKEN_STRUCT: return "STRUCT";
-        case TOKEN_OBJECT: return "OBJECT";
-        case TOKEN_TOBJECT: return "TOBJECT";
-        case TOKEN_VESSEL: return "VESSEL";
-        case TOKEN_INTENT: return "INTENT";
-        case TOKEN_EXTERN: return "EXTERN";
-        case TOKEN_WITH: return "WITH";
-        case TOKEN_AS: return "AS";
-        case TOKEN_PARALLEL: return "PARALLEL";
-        case TOKEN_SLOT: return "SLOT";
-        case TOKEN_FOR: return "FOR";
-        case TOKEN_IN: return "IN";
-        case TOKEN_IF: return "IF";
-        case TOKEN_ELSE: return "ELSE";
-        case TOKEN_WHILE: return "WHILE";
-        case TOKEN_RETURN: return "RETURN";
-        case TOKEN_BREAK: return "BREAK";
-        case TOKEN_CONTINUE: return "CONTINUE";
-        case TOKEN_ENUM: return "ENUM";
-        case TOKEN_EXPORT: return "EXPORT";
-        case TOKEN_NAMESPACE: return "NAMESPACE";
-        case TOKEN_TRUE: return "TRUE";
-        case TOKEN_FALSE: return "FALSE";
-        case TOKEN_PUBLIC: return "PUBLIC";
-        case TOKEN_PRIVATE: return "PRIVATE";
-        case TOKEN_REFLECT: return "REFLECT";
-        case TOKEN_INNATE: return "INNATE";
-        case TOKEN_WHERE: return "WHERE";
-        case TOKEN_ASYNC: return "ASYNC";
-        case TOKEN_AWAIT: return "AWAIT";
-        case TOKEN_CHANNEL: return "CHANNEL";
-        case TOKEN_SELECT: return "SELECT";
-        case TOKEN_CASE: return "CASE";
-        case TOKEN_DEFAULT: return "DEFAULT";
-        case TOKEN_SPAWN: return "SPAWN";
-        case TOKEN_EVENT: return "EVENT";
-        case TOKEN_IMPORT: return "IMPORT";
-        case TOKEN_USE: return "USE";
-        case TOKEN_UNSAFE: return "UNSAFE";
-        case TOKEN_TRANSACTION: return "TRANSACTION";
-        case TOKEN_COMPENSATE: return "COMPENSATE";
-        case TOKEN_FAIL: return "FAIL";
-        case TOKEN_DEFER: return "DEFER";
-        case TOKEN_BIND: return "BIND";
-        case TOKEN_ABILITY: return "ABILITY";
-        case TOKEN_ROLE: return "ROLE";
-        case TOKEN_PARTY: return "PARTY";
-        case TOKEN_SHARED: return "SHARED";
-        case TOKEN_EXTENDS: return "EXTENDS";
-        case TOKEN_ROSTER: return "ROSTER";
-        case TOKEN_WORLD: return "WORLD";
-        case TOKEN_RELATION: return "RELATION";
-        case TOKEN_EFFECT: return "EFFECT";
-        case TOKEN_ZONE: return "ZONE";
-        case TOKEN_INCLUDE: return "INCLUDE";
-        case TOKEN_OVERRIDE: return "OVERRIDE";
-        case TOKEN_SECURE: return "SECURE";
-        case TOKEN_REMOTE: return "REMOTE";
-        case TOKEN_NONDETERMINISTIC: return "NONDETERMINISTIC";
-        case TOKEN_COLLAPSE: return "COLLAPSE";
-        case TOKEN_LOCAL: return "LOCAL";
-        case TOKEN_MATCH: return "MATCH";
-        case TOKEN_DYN: return "DYN";
         case TOKEN_SUBSCRIBE: return "+=";
         case TOKEN_UNSUBSCRIBE: return "-=";
         case TOKEN_LAMBDA: return "=>";
@@ -121,7 +59,12 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_STRING: return "STRING";
         case TOKEN_MULTILINE_STRING: return "MULTILINE_STRING";
         case TOKEN_INTERPOLATED_STRING: return "INTERPOLATED_STRING";
+        case TOKEN_NEWLINE: return "NEWLINE";
         case TOKEN_DOC_COMMENT: return "DOC_COMMENT";
+        case TOKEN_DOC_TAG_WHAT: return "DOC_TAG_WHAT";
+        case TOKEN_DOC_TAG_WHY: return "DOC_TAG_WHY";
+        case TOKEN_DOC_TAG_ALT: return "DOC_TAG_ALT";
+        case TOKEN_DOC_TAG_NEXT: return "DOC_TAG_NEXT";
         case TOKEN_EOF: return "EOF";
         case TOKEN_ERROR: return "ERROR";
         default: return "UNKNOWN";

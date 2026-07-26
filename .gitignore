@@ -36,6 +36,11 @@
 *.pdb
 *.ilk
 
+# Host-side registry/render tools may create interpreter caches. These are
+# disposable machine-local products, never compiler or projection authority.
+__pycache__/
+*.py[cod]
+
 # Generated C files from transpiler
 examples/*.c
 examples/**/*.c
@@ -135,6 +140,10 @@ tests/cases/backend_compare/**/main.c
 .idea/
 .DS_Store
 Thumbs.db
+
+# VS Code extension packages are release artifacts. Historical packages stay
+# tracked, but local/package-version rebuilds must not create new source facts.
+*.vsix
 
 # Review notes (private folder + README tracked, contents ignored)
 review/*

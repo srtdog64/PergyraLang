@@ -2748,6 +2748,7 @@ self-host-preparation-test-smoke: self-host-preparation-contract-test-smoke self
 self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-platform-parity-test-smoke
 
 self-host-preparation-contract-test-smoke: $(PGY)
+	"$(BASH)" tests/language_keyword_registry_smoke.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
@@ -3293,6 +3294,10 @@ site: $(PGY)
 
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
+
+.PHONY: language-keyword-registry-test-smoke
+language-keyword-registry-test-smoke:
+	"$(BASH)" tests/language_keyword_registry_smoke.sh
 
 self-host-compiler-world-perf-probe:
 	"$(BASH)" tests/self_host_compiler_world_perf_probe.sh

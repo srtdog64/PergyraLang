@@ -98,6 +98,7 @@ require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
 require_file "docs/self_hosted/14_target_compiler_world.md"
 require_file "docs/self_hosted/15_pre_self_host_expansion_ledger.md"
 require_file "tests/self_host_compiler_world_contract_smoke.sh"
+require_file "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_file "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_file "tests/self_hosted/parity/driver_rung1_parity.sh"
@@ -593,16 +594,20 @@ for term in \
     "pgy.selfhost.lexer-token-stream.v1" \
     "func LexerTokenPayloadFixtureCount" \
     'import "fixture_manifest_owner.pgy";' \
+    'import "language_keyword_registry_projection_owner.pgy";' \
     "return LexerFixtureManifestCount();" \
     "LexerTokenPayloadFixtureCount() != LexerFixtureManifestCount()" \
     "func LexerTokenPayloadKeywordReady" \
     "func LexerTokenPayloadFormatReady" \
     "func LexerTokenPayloadContractReady" \
-    "KeywordType(\"projection\") != \"IDENTIFIER\"" \
-    "KeywordType(\"impl\") != \"UNKNOWN\"" \
+    "return LanguageKeywordDebugIdentity(text);" \
+    "return LanguageKeywordRegistryProjectionReady();" \
     "TokenLine(1, \"FUNC\", \"func\", 7, 1)"; do
     require_text "src/self_hosted/lexer/token_owner.pgy" "$term"
 done
+
+forbid_text "src/self_hosted/lexer/token_owner.pgy" 'if text == "impl"'
+forbid_text "src/self_hosted/lexer/token_owner.pgy" 'return "UNKNOWN";'
 
 for term in \
     "func ParserAstTreePayloadSchema" \

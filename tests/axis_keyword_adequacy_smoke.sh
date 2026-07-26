@@ -13,7 +13,7 @@
 #   (1) Coq    keyword_axis   (AxisOwnership.v section 8, mirrored below)
 #   (2) Design docs/42 section 0 axis -> surface keyword table
 #   (3) Impl   the keywords the compiler actually recognizes
-#              (reserved in src/lexer/lexer_keywords.c, or contextual in
+#              (reserved in src/lexer/language_keyword_registry.def, or contextual in
 #               src/parser/**)
 #
 # Checks:
@@ -27,11 +27,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOC42="$ROOT_DIR/docs/42_keyword_orthogonality.md"
-KEYWORDS_C="$ROOT_DIR/src/lexer/lexer_keywords.c"
+KEYWORD_REGISTRY="$ROOT_DIR/src/lexer/language_keyword_registry.def"
 PARSER_DIR="$ROOT_DIR/src/parser"
 AXIS_COQ="$ROOT_DIR/docs/semantics/proofs/AxisOwnership.v"
 
-for f in "$DOC42" "$KEYWORDS_C" "$AXIS_COQ"; do
+for f in "$DOC42" "$KEYWORD_REGISTRY" "$AXIS_COQ"; do
     [[ -e "$f" ]] || { echo "missing required file: $f" >&2; exit 1; }
 done
 
@@ -39,7 +39,8 @@ fail=0
 
 # --- layer 3a: reserved keywords from the lexer table ------------------------
 reserved_has() {
-    grep -qE "\{\"$1\"," "$KEYWORDS_C"
+    grep -qE "^[[:space:]]*\"$1\",[[:space:]]+PGY_KEYWORD_CLASS_RESERVED," \
+        "$KEYWORD_REGISTRY"
 }
 
 # --- layer 3b: contextual keywords recognized in the parser ------------------
