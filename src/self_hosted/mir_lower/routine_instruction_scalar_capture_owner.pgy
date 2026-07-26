@@ -15,6 +15,7 @@ struct MirRoutineInstructionScalarCapture {
     let arg1: String;
     let slot_anchor: String;
     let abi_type_name: String;
+    let abi_type_value_ready: Bool;
     let match_variant: String;
     let abi_type_start: Int;
     let abi_type_end: Int;
@@ -29,7 +30,7 @@ struct MirRoutineInstructionScalarCapture {
 func InvalidMirRoutineInstructionScalarCapture(
 ) -> MirRoutineInstructionScalarCapture {
     return MirRoutineInstructionScalarCapture(
-        false, "", "", "", "", "", "", "", "",
+        false, "", "", "", "", "", "", "", false, "",
         0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1
     );
@@ -49,6 +50,7 @@ func MirRoutineInstructionScalarCaptureWithin(
     let arg1: String = "";
     let slot_anchor: String = "";
     let abi_type_name: String = "";
+    let abi_type_value_ready: Bool = false;
     let match_variant: String = "";
     let result_seen: Bool = false;
     let expr0_seen: Bool = false;
@@ -85,10 +87,12 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_layout_required_end = 0 - 1;
                 abi_layout_start = 0 - 1;
                 abi_layout_end = 0 - 1;
+                abi_type_value_ready = false;
             }
             return MirRoutineInstructionScalarCapture(
                 true, result, expr0, expr1, arg0, arg1, slot_anchor,
-                abi_type_name, match_variant, abi_type_start, abi_type_end,
+                abi_type_name, abi_type_value_ready, match_variant,
+                abi_type_start, abi_type_end,
                 abi_layout_id_start, abi_layout_id_end,
                 abi_layout_required_start, abi_layout_required_end,
                 abi_layout_start, abi_layout_end
@@ -182,7 +186,12 @@ func MirRoutineInstructionScalarCaptureWithin(
                     abi_type_name = ReadJsonStringBounded(
                         json, i, value_end, decoded_end
                     );
-                    if decoded_end[0] != value_end { abi_type_name = ""; }
+                    abi_type_value_ready = decoded_end[0] == value_end;
+                    if !abi_type_value_ready { abi_type_name = ""; }
+                } else if i + 4 == value_end && SubEqualsWithLen(
+                    json, value_end, i, 4, "null"
+                ) {
+                    abi_type_value_ready = true;
                 }
             }
         } else if is_abi_layout_id {

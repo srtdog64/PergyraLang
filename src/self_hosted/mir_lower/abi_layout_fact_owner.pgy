@@ -399,58 +399,27 @@ func MirAbiLayoutIdFromRow(ref row: JsonObjectFactTable) -> Int {
 // reuse never depends on the 28-bit layout id or on source-buffer identity.
 // Only a tuple which already passed the complete capture/hash check is stored.
 struct MirAbiLayoutValidationSession {
-    let mut valid_type_keys: Array<String>;
-    let mut valid_type_names: Array<String>;
     let mut required_type_keys: Array<String>;
     let mut required_ids: Array<Int>;
     let mut required_layout_keys: Array<String>;
 }
 
 func NewMirAbiLayoutValidationSession() -> MirAbiLayoutValidationSession {
-    let valid_type_keys: Array<String> = [];
-    let valid_type_names: Array<String> = [];
     let required_type_keys: Array<String> = [];
     let required_ids: Array<Int> = [];
     let required_layout_keys: Array<String> = [];
     return MirAbiLayoutValidationSession(
-        valid_type_keys, valid_type_names, required_type_keys, required_ids,
-        required_layout_keys
+        required_type_keys, required_ids, required_layout_keys
     );
 }
 
 func MirAbiLayoutValidationSessionReady(
     ref session: MirAbiLayoutValidationSession
 ) -> Bool {
-    return ArrayLength(session.valid_type_keys) ==
-            ArrayLength(session.valid_type_names) &&
-        ArrayLength(session.required_type_keys) ==
+    return ArrayLength(session.required_type_keys) ==
             ArrayLength(session.required_ids) &&
         ArrayLength(session.required_ids) ==
             ArrayLength(session.required_layout_keys);
-}
-
-func MirAbiTypeKeyReady(
-    json: String, start: Int, end: Int, key: String,
-    inout session: MirAbiLayoutValidationSession
-) -> Option<String> {
-    let row: Int = 0;
-    while row < ArrayLength(session.valid_type_keys) {
-        if session.valid_type_keys[row] == key {
-            return Some(session.valid_type_names[row]);
-        }
-        row = row + 1;
-    }
-    let type_name: Option<String> = MirAbiStringValueAtBounds(
-        json, start, end, true
-    );
-    if !IsSome(type_name) { return None; }
-    let valid_type_keys: Array<String> = session.valid_type_keys;
-    let valid_type_names: Array<String> = session.valid_type_names;
-    ArrayPush(valid_type_keys, key);
-    ArrayPush(valid_type_names, UnwrapOption(type_name));
-    session.valid_type_keys = valid_type_keys;
-    session.valid_type_names = valid_type_names;
-    return type_name;
 }
 
 func MirAbiRequiredTupleSeen(
@@ -492,6 +461,8 @@ func MirAbiRememberRequiredTuple(
 // semantic relationship; callers do not create a second id/bool authority.
 func MirCapturedAbiLayoutFactReady(
     json: String,
+    captured_type_name: String,
+    captured_type_value_ready: Bool,
     type_start: Int,
     type_end: Int,
     id_start: Int,
@@ -509,18 +480,6 @@ func MirCapturedAbiLayoutFactReady(
         return false;
     }
     if !MirAbiLayoutValidationSessionReady(session) { return false; }
-    let type_key: String = Substring(
-        json, type_start, type_end - type_start
-    );
-    let type_name: Option<String> = MirAbiTypeKeyReady(
-        json, type_start, type_end, type_key, session
-    );
-    if !IsSome(type_name) { return false; }
-    let id_text: String = Substring(json, id_start, id_end - id_start);
-    if id_text == "" || ToString(ToInt(id_text)) != id_text {
-        return false;
-    }
-    let id: Int = ToInt(id_text);
     let required: Bool = false;
     if required_start + 4 == required_end && SubEqualsWithLen(
         json, required_end, required_start, 4, "true"
@@ -531,17 +490,29 @@ func MirCapturedAbiLayoutFactReady(
     )) {
         return false;
     }
+    if !captured_type_value_ready { return false; }
     if !required {
-        return id == 0 && layout_start + 4 == layout_end &&
+        return id_start + 1 == id_end && JsonCharCodeAt(
+                json, id_end, id_start
+            ) == JsonAsciiCode("0") &&
+            layout_start + 4 == layout_end &&
             SubEqualsWithLen(
                 json, layout_end, layout_start, 4, "null"
             );
     }
+    let id_text: String = Substring(json, id_start, id_end - id_start);
+    if id_text == "" || ToString(ToInt(id_text)) != id_text {
+        return false;
+    }
+    let id: Int = ToInt(id_text);
     if id <= 0 || JsonCharCodeAt(
         json, layout_end, layout_start
     ) != JsonAsciiCode("{") {
         return false;
     }
+    let type_key: String = Substring(
+        json, type_start, type_end - type_start
+    );
     let layout_key: String = Substring(
         json, layout_start, layout_end - layout_start
     );
@@ -551,7 +522,7 @@ func MirCapturedAbiLayoutFactReady(
     let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
         json, layout_start, layout_end
     );
-    if !row.valid || UnwrapOption(type_name) != row.type_name ||
+    if !row.valid || captured_type_name != row.type_name ||
         id != MirAbiLayoutIdFromCapture(row) {
         return false;
     }

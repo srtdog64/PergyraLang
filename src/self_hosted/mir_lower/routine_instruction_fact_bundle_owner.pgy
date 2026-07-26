@@ -20,6 +20,7 @@ struct MirRoutineInstructionFactBundle {
     let arg1s: Array<String>;
     let slot_anchors: Array<String>;
     let abi_type_names: Array<String>;
+    let abi_type_values_ready: Array<Bool>;
     let abi_layout_bounds: Array<Int>;
     let match_variants: Array<String>;
     let block_has_conditional_branch: Array<Int>;
@@ -38,6 +39,7 @@ func BuildMirRoutineInstructionFactBundle(
     let arg1s: Array<String> = [];
     let slot_anchors: Array<String> = [];
     let abi_type_names: Array<String> = [];
+    let abi_type_values_ready: Array<Bool> = [];
     let abi_layout_bounds: Array<Int> = [];
     let match_variants: Array<String> = [];
     let block_has_conditional_branch: Array<Int> = [];
@@ -108,6 +110,9 @@ func BuildMirRoutineInstructionFactBundle(
             ArrayPush(arg1s, scalar.arg1);
             ArrayPush(slot_anchors, scalar.slot_anchor);
             ArrayPush(abi_type_names, scalar.abi_type_name);
+            ArrayPush(
+                abi_type_values_ready, scalar.abi_type_value_ready
+            );
             ArrayPush(abi_layout_bounds, scalar.abi_type_start);
             ArrayPush(abi_layout_bounds, scalar.abi_type_end);
             ArrayPush(abi_layout_bounds, scalar.abi_layout_id_start);
@@ -133,6 +138,7 @@ func BuildMirRoutineInstructionFactBundle(
     return MirRoutineInstructionFactBundle(
         valid, global_start, starts, ends, results, expr0s, expr1s,
         arg0s, arg1s, slot_anchors, abi_type_names,
+        abi_type_values_ready,
         abi_layout_bounds, match_variants, block_has_conditional_branch
     );
 }
@@ -154,6 +160,7 @@ func MirRoutineInstructionFactBundleReady(
         count == ArrayLength(facts.arg1s) &&
         count == ArrayLength(facts.slot_anchors) &&
         count == ArrayLength(facts.abi_type_names) &&
+        count == ArrayLength(facts.abi_type_values_ready) &&
         count * 8 == ArrayLength(facts.abi_layout_bounds) &&
         count == ArrayLength(facts.match_variants);
 }
@@ -173,6 +180,7 @@ func MirRoutineInstructionFactBundleAtGlobal(
         count != ArrayLength(facts.arg1s) ||
         count != ArrayLength(facts.slot_anchors) ||
         count != ArrayLength(facts.abi_type_names) ||
+        count != ArrayLength(facts.abi_type_values_ready) ||
         count * 8 != ArrayLength(facts.abi_layout_bounds) ||
         count != ArrayLength(facts.match_variants) {
         return InvalidMirRoutineInstructionScalarCapture();
@@ -181,7 +189,8 @@ func MirRoutineInstructionFactBundleAtGlobal(
     return MirRoutineInstructionScalarCapture(
         true, facts.results[row], facts.expr0s[row], facts.expr1s[row],
         facts.arg0s[row], facts.arg1s[row], facts.slot_anchors[row],
-        facts.abi_type_names[row], facts.match_variants[row],
+        facts.abi_type_names[row], facts.abi_type_values_ready[row],
+        facts.match_variants[row],
         facts.abi_layout_bounds[abi_row],
         facts.abi_layout_bounds[abi_row + 1],
         facts.abi_layout_bounds[abi_row + 2],

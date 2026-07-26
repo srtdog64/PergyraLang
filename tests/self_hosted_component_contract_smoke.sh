@@ -10320,6 +10320,10 @@ require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pg
     'import "routine_instruction_scalar_capture_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_layout_bounds: Array<Int>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "let abi_type_value_ready: Bool;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "let abi_type_values_ready: Array<Bool>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "count * 8 == ArrayLength(facts.abi_layout_bounds)"
 reject_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
@@ -10361,7 +10365,9 @@ require_max_lines "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" 600
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "struct MirAbiLayoutValidationSession"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
-    "session.valid_type_names[row]"
+    "captured_type_value_ready"
+require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "id_start + 1 == id_end"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "session.required_type_keys[row] == type_key"
 require_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
@@ -10403,6 +10409,8 @@ reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "MirAbiLayoutIdFromRow("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirCapturedAbiLayoutFactReady("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "scalar.abi_type_value_ready"
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     "mutated_required_abi_row"
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \

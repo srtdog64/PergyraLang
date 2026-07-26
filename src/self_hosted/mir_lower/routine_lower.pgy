@@ -160,7 +160,6 @@ func BlockMatchBindingLine(ref index: MirRoutineFactIndex,
         scalar.expr0, indent
     );
 }
-
 // Emit the non-branch statement lines of one admitted block row. `phi`
 // instructions carry no statement fact and are skipped by the string-value
 // guard.
@@ -191,7 +190,8 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
         if !MirCapturedAbiLayoutFactReady(
-            json, scalar.abi_type_start, scalar.abi_type_end,
+            json, scalar.abi_type_name, scalar.abi_type_value_ready,
+            scalar.abi_type_start, scalar.abi_type_end,
             scalar.abi_layout_id_start, scalar.abi_layout_id_end,
             scalar.abi_layout_required_start, scalar.abi_layout_required_end,
             scalar.abi_layout_start, scalar.abi_layout_end, abi_validation) {

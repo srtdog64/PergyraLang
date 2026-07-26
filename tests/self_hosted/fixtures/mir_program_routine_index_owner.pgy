@@ -92,6 +92,7 @@ func Main() -> Void {
         first_scalar.result != "%0" || first_scalar.expr0 != "1" ||
         first_scalar.arg0 != "x" || first_scalar.slot_anchor != "slot" ||
         first_scalar.abi_type_name != "Int" ||
+        !first_scalar.abi_type_value_ready ||
         first_scalar.match_variant != "Some" ||
         !phi_selection.valid || !phi_selection.found ||
         phi_selection.instruction.global_row != 2 ||
@@ -103,7 +104,9 @@ func Main() -> Void {
         failures = failures + 1;
     }
     if !MirCapturedAbiLayoutFactReady(
-        json, first_scalar.abi_type_start, first_scalar.abi_type_end,
+        json, first_scalar.abi_type_name,
+        first_scalar.abi_type_value_ready,
+        first_scalar.abi_type_start, first_scalar.abi_type_end,
         first_scalar.abi_layout_id_start, first_scalar.abi_layout_id_end,
         first_scalar.abi_layout_required_start,
         first_scalar.abi_layout_required_end,
@@ -257,6 +260,12 @@ func Main() -> Void {
         MirRoutineInstructionScalarCaptureWithin(
             duplicate_abi_row, 0, StringLength(duplicate_abi_row)
         );
+    let wrong_abi_type_row: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":{},\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null}";
+    let wrong_abi_type: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionScalarCaptureWithin(
+            wrong_abi_type_row, 0, StringLength(wrong_abi_type_row)
+        );
     let required_abi_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":\"Array<Int>\",\"abi_layout_id\":599770891,\"abi_layout_required\":true,\"abi_layout\":{\"type\":\"Array<Int>\",\"size\":32,\"align\":8,\"fields\":[{\"name\":\"data\",\"offset\":0,\"size\":8,\"align\":8},{\"name\":\"length\",\"offset\":8,\"size\":8,\"align\":8},{\"name\":\"capacity\",\"offset\":16,\"size\":8,\"align\":8},{\"name\":\"allocator\",\"offset\":24,\"size\":8,\"align\":8}],\"runtime_fn\":\"pgy_array_new_Int\",\"inner_c_type\":\"int32_t\",\"representation\":0,\"discriminant\":null,\"primary_tag\":0,\"secondary_tag\":0,\"niche_none_pattern\":null}}";
     let required_abi: MirRoutineInstructionScalarCapture =
@@ -286,11 +295,13 @@ func Main() -> Void {
             required_abi_row, required_abi.abi_layout_start,
             required_abi.abi_layout_end
         );
-    if !wrong_abi.valid || !duplicate_abi.valid || !required_abi.valid ||
+    if !wrong_abi.valid || !duplicate_abi.valid || !wrong_abi_type.valid ||
+        wrong_abi_type.abi_type_value_ready || !required_abi.valid ||
         !mutated_required_abi.valid || !reordered_required_abi.valid ||
         MirAbiLayoutIdFromRow(required_abi_layout) != 599770891 ||
         !MirCapturedAbiLayoutFactReady(
-            required_abi_row, required_abi.abi_type_start,
+            required_abi_row, required_abi.abi_type_name,
+            required_abi.abi_type_value_ready, required_abi.abi_type_start,
             required_abi.abi_type_end, required_abi.abi_layout_id_start,
             required_abi.abi_layout_id_end,
             required_abi.abi_layout_required_start,
@@ -298,7 +309,8 @@ func Main() -> Void {
             required_abi.abi_layout_start, required_abi.abi_layout_end,
             abi_validation
         ) || !MirCapturedAbiLayoutFactReady(
-            reordered_required_abi_row,
+            reordered_required_abi_row, reordered_required_abi.abi_type_name,
+            reordered_required_abi.abi_type_value_ready,
             reordered_required_abi.abi_type_start,
             reordered_required_abi.abi_type_end,
             reordered_required_abi.abi_layout_id_start,
@@ -310,7 +322,8 @@ func Main() -> Void {
             abi_validation
         ) ||
         MirCapturedAbiLayoutFactReady(
-            wrong_abi_row, wrong_abi.abi_type_start,
+            wrong_abi_row, wrong_abi.abi_type_name,
+            wrong_abi.abi_type_value_ready, wrong_abi.abi_type_start,
             wrong_abi.abi_type_end, wrong_abi.abi_layout_id_start,
             wrong_abi.abi_layout_id_end,
             wrong_abi.abi_layout_required_start,
@@ -318,7 +331,8 @@ func Main() -> Void {
             wrong_abi.abi_layout_start, wrong_abi.abi_layout_end,
             abi_validation
         ) || MirCapturedAbiLayoutFactReady(
-            duplicate_abi_row, duplicate_abi.abi_type_start,
+            duplicate_abi_row, duplicate_abi.abi_type_name,
+            duplicate_abi.abi_type_value_ready, duplicate_abi.abi_type_start,
             duplicate_abi.abi_type_end, duplicate_abi.abi_layout_id_start,
             duplicate_abi.abi_layout_id_end,
             duplicate_abi.abi_layout_required_start,
@@ -326,7 +340,18 @@ func Main() -> Void {
             duplicate_abi.abi_layout_start, duplicate_abi.abi_layout_end,
             abi_validation
         ) || MirCapturedAbiLayoutFactReady(
-            mutated_required_abi_row,
+            wrong_abi_type_row, wrong_abi_type.abi_type_name,
+            wrong_abi_type.abi_type_value_ready,
+            wrong_abi_type.abi_type_start, wrong_abi_type.abi_type_end,
+            wrong_abi_type.abi_layout_id_start,
+            wrong_abi_type.abi_layout_id_end,
+            wrong_abi_type.abi_layout_required_start,
+            wrong_abi_type.abi_layout_required_end,
+            wrong_abi_type.abi_layout_start,
+            wrong_abi_type.abi_layout_end, abi_validation
+        ) || MirCapturedAbiLayoutFactReady(
+            mutated_required_abi_row, mutated_required_abi.abi_type_name,
+            mutated_required_abi.abi_type_value_ready,
             mutated_required_abi.abi_type_start,
             mutated_required_abi.abi_type_end,
             mutated_required_abi.abi_layout_id_start,
@@ -367,6 +392,7 @@ func Main() -> Void {
             first_facts.instruction_facts.arg1s,
             first_facts.instruction_facts.slot_anchors,
             first_facts.instruction_facts.abi_type_names,
+            first_facts.instruction_facts.abi_type_values_ready,
             truncated_abi_bounds,
             first_facts.instruction_facts.match_variants,
             first_facts.instruction_facts.block_has_conditional_branch
