@@ -353,9 +353,9 @@ for these phrases and substitute the honest version.
 | "Bare-metal capable" | "Bare-metal trajectory marked 🔴 in `docs/19` §0.3" |
 | "Zero-runtime" | "Runtime optional 🟡; fiber/arena are default" (§2 row 3) |
 | "Fully deterministic codegen" | "Compile-time determinism baseline; verification pending" (§2 row 4) |
-| "Self-hosted compiler" | "Self-host is post-1.0 aspiration; current implementation is C + LLVM dual-emit" (§4.4) |
-| "Pergyra is written in Pergyra" | "Compiler implementation in C with LLVM C API; partial self-host is post-1.0 ambition per §4.4" |
-| "Self-hosting language" | "Post-1.0 trajectory; current state is C + LLVM dual-emit per `docs/117`" |
+| "Self-hosted compiler" | "Hard self-hosting is active, but the integrated gen2 driver has not yet taken over the complete compiler-source build." |
+| "Pergyra is written in Pergyra" | "Pergyra-written compiler stages and bounded fixed points exist; the released/default compiler remains C-owned until integrated gen2 emits gen3 from the same complete source." |
+| "Self-hosting language" | "Active hard-self-host trajectory with declared C/LLVM oracle comparison; not complete until the integrated gen2 takeover gate passes." |
 
 ## 7. How To Use This Doc
 

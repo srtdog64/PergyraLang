@@ -1,6 +1,6 @@
 # Backend Strategy Positioning — Abstraction Portability
 
-Last updated: 2026-04-26
+Last updated: 2026-07-26
 
 Related documents:
 
@@ -21,6 +21,19 @@ This document positions Pergyra's backend strategy. It is a **positioning /
 rationale** doc, not a contract. Concrete ABI freezes live in
 `docs/38` / `docs/39` / `docs/40` and the `pgy_abi_spec.h` static_assert
 table.
+
+## Current Self-Host Update
+
+The backend strategy below remains active: LLVM/native is the performance
+primary where available, and C remains the reference/bootstrap/debug and
+compatibility path. Pergyra semantic and canonical MIR facts own language
+meaning; both backends are projections over those facts, not semantic owners.
+
+What changed on 2026-07-26 is the self-host schedule, not backend selection.
+Hard self-hosting is active. The integrated gen2 driver must consume the same
+complete compiler source and produce gen3, with the existing C/LLVM results
+used according to the declared comparison class. This supersedes only section
+6's former decision to defer hard self-hosting through 1.0.
 
 ## 1. The Problem Pergyra Solves — Abstraction Portability
 
@@ -265,7 +278,15 @@ regression evidence behind it.
 
 ## 6. Self-Host Decision
 
-### 6.1 Decision
+The active decision is hard self-hosting with existing C/LLVM oracle
+comparison. The current C-owned seed produces the integrated gen2 driver, and
+gen2 must consume the same complete compiler source to produce gen3. This does
+not change the backend roles above. The Pergyra compiler remains one compiler
+world with named fact owners; it must not reproduce the fragmented C source
+tree. The rest of section 6 records the superseded 2026-04-26 self-host
+schedule for history and is not an active plan.
+
+### 6.1 Superseded 2026-04-26 Decision (Historical)
 
 **Pergyra does not self-host through 1.0.** The core compiler stays in
 C, with LLVM IR and a dedicated C source backend as the two emit
@@ -526,8 +547,10 @@ not "trust LLVM" (Rust, Crystal, Swift). It is:
 > **Make the abstractions backend-invariant by emitting two backends
 > and gating every release on parity.**
 
-LLVM is the performance primary. C is the compatibility floor. The
-parity gate is the executable proof that `intent`, `world`, `zone`,
+Pergyra semantic and canonical MIR facts are the SoT. LLVM is the performance
+primary, and C is the reference/bootstrap/debug compatibility floor. Both are
+projections over the same facts. The parity gate is regression evidence that
+`intent`, `world`, `zone`,
 `pin`, `effect`, `Channel`, and `parallel` mean the same thing on
 both. The user promise — "your code does not behave differently on
 different platforms" — is regression-tested, not aspirational.

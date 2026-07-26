@@ -44,16 +44,22 @@ bounded-only parity as progress evidence.
 
 ## Deferred Coq gap audit (after gen2 takeover)
 
-Do not start a broad proof expansion before the gen2 takeover above. The
-2026-07-26 source audit found 38 registered `.v` files, no `Admitted` or Coq
-`Axiom`, and only the two declared `SlotCalculus` interface parameters
-(`MaxSlotId` and `verify_token`). The dedicated CI kernel gate is designed to
-compile all 38 files and reject any larger axiom budget. No local Coq/Rocq
-binary was available during this audit, so the kernel gate was not rerun here.
+Do not start a broad proof expansion before the gen2 takeover above. Commits
+`ae638458` and `58b3830d` establish the first vertical spine: 41 registered
+`.v` files now include shared root `PergyraCore.v`, importers
+`PergyraCoreComposition.v`, `UnifiedCore.v`, and
+`PergyraCoreZoneBridge.v`, plus foundation-first/load-path wiring in the kernel
+gate. The source audit found no `Admitted` or Coq `Axiom`, and only the two
+declared `SlotCalculus` interface parameters (`MaxSlotId` and `verify_token`).
+`tests/formal_semantics_smoke.sh` now registers all 41 files and compiles them
+from the same sibling-module load path. No local Coq/Rocq binary was available,
+so both new proofs and the migrated capstone remain pending the dedicated Rocq
+9 kernel CI; the local structural run was an explicit prover skip, not proof
+success.
 
 The important proof gaps are refinement gaps, not unfinished `Qed` blocks:
 
-1. existing small models are not comprehensively bound to the live
+1. the new shared core is not yet comprehensively bound to the live
    parser/semantic/AIR/MIR owner facts used by the integrated compiler;
 2. the parser-to-AST boundary is still outside the machine-readable pass/loss
    manifest;
@@ -119,12 +125,13 @@ not turn whole-language soundness into the next global-closure project.
   once, lexical locals are appended/popped in source order, destructure rows
   publish atomically, and the two per-row full-function local scans are absent
   from the production loop.
-- Pergyra semantic and canonical MIR facts remain the SoT. C is the primary
-  execution/bootstrap projection; LLVM is the independent differential and
-  optional performance projection over the same facts. The Pergyra-built
-  DRV-2 is still a bounded self-host replacement lane; this checkpoint does
-  not claim a fully self-hosted driver or a Pergyra-owned LLVM emitter. It does
-  establish the first complete current full-driver MIR artifact below 3072 MB.
+- Pergyra semantic and canonical MIR facts remain the SoT. C and LLVM remain
+  peer native compiler projections with their existing execution/reference
+  roles; self-hosted artifacts must be compared against the declared C/LLVM
+  oracle class. The Pergyra-built DRV-2 is still a bounded self-host replacement
+  lane; this checkpoint does not claim a fully self-hosted driver or a
+  Pergyra-owned LLVM emitter. It does establish the first complete current
+  full-driver MIR artifact below 3072 MB.
 - The MIR consumer now creates one typed machine admission and carries the
   exact declaration and routine index used by that proof. Exact-bound JSON
   readers accept only structure-owner spans; declaration phases and the first
