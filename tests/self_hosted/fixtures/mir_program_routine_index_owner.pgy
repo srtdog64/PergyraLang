@@ -148,9 +148,25 @@ func Main() -> Void {
         BuildMirProgramRoutineIndexFromTable(negative_successor_document.routines);
     let negative_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(negative_successor_program, 0);
+    let out_of_range_successor_routine: String =
+        "{\"kind\":\"function\",\"name\":\"O\",\"source_syntax_id\":1,\"blocks\":[{\"id\":0,\"succ_true\":1,\"instructions\":[]}]}";
+    let out_of_range_successor_json: String = Concat(
+        prefix, Concat(out_of_range_successor_routine, "]}")
+    );
+    let out_of_range_successor_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(out_of_range_successor_json);
+    let out_of_range_successor_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            out_of_range_successor_document.routines
+        );
+    let out_of_range_successor_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(out_of_range_successor_program, 0);
     if missing_successor_index.block_succ_true[0] != (0 - 1) ||
         negative_successor_index.valid ||
-        negative_successor_index.validation_stage != "cfg_successor" {
+        negative_successor_index.validation_stage != "cfg_successor" ||
+        out_of_range_successor_index.valid ||
+        out_of_range_successor_index.validation_stage != "cfg_backedge" ||
+        ArrayLength(out_of_range_successor_index.backedge_headers) != 0 {
         failures = failures + 1;
     }
 
