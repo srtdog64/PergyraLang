@@ -8001,7 +8001,7 @@ for exact_abi_owner in "resource_runtime_abi_fact_owner.pgy"; do
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEquals("
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirFactObjectStart("
     require_text "src/self_hosted/mir_lower/$exact_abi_owner" "AtBounds("
-    require_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEqualsWithin("
+    require_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectKeyEqualsWithin("
 done
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "loop_flow_fact_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "mir_cfg_graph_owner.pgy";'
@@ -10532,12 +10532,65 @@ reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "MirMachineLayerInstructionRuntimeOperationAtBounds("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    '"runtime_call_abi", row_bounds'
+    "while i < inst_end {"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "let is_name: Bool = (key_has_escape || raw_key_length == 4)"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "(key_has_escape || raw_key_length == 25)"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "let is_row: Bool = (key_has_escape || raw_key_length == 16)"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "let is_aux: Bool = (key_has_escape || raw_key_length == 20)"
+require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "ReadJsonStringBounded("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "return !required && !has_row && !has_aux;"
 reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "func MirResourceRuntimeRowFactReady(" \
     "let instruction: JsonObjectFactTable"
+reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "func MirResourceRuntimeRowFactReady(" \
+    "MirObjectFieldValueBoundsAtBounds("
+reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "func MirResourceRuntimeRowFactReady(" \
+    "JsonObjectBoolFieldEqualsWithin("
+reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "func MirResourceRuntimeRowFactReady(" \
+    'inst_start, inst_end, "name"'
+reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "func MirResourceRuntimeRowFactReady(" "StringIndexOf("
+reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
+    "func MirResourceRuntimeRowFactReady(" "Substring("
+resource_runtime_body="$(awk '
+    index($0, "func MirResourceRuntimeRowFactReady(") == 1 {
+        in_function = 1
+    }
+    in_function { print }
+' "$ROOT_DIR/src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy")"
+[[ "$(grep -F -c -- 'while i < inst_end {' \
+    <<<"$resource_runtime_body" || true)" -eq 1 ]] ||
+    fail "resource runtime ABI owner must scan the instruction top object once"
+[[ "$(grep -F -c -- 'JsonObjectKeyEqualsWithin(' \
+    <<<"$resource_runtime_body" || true)" -eq 4 ]] ||
+    fail "resource runtime ABI owner must compare exactly four selected top keys"
+for resource_runtime_key in \
+    '"name"' \
+    '"runtime_call_abi_required"' \
+    '"runtime_call_abi"' \
+    '"runtime_call_abi_aux"'; do
+    [[ "$resource_runtime_body" == *"$resource_runtime_key"* ]] ||
+        fail "resource runtime ABI owner missing selected key: $resource_runtime_key"
+done
+for resource_runtime_carrier in \
+    "routine_instruction_scalar_capture_owner.pgy" \
+    "routine_instruction_fact_bundle_owner.pgy"; do
+    reject_text "src/self_hosted/mir_lower/$resource_runtime_carrier" \
+        "runtime_call_abi"
+    reject_text "src/self_hosted/mir_lower/$resource_runtime_carrier" \
+        "runtime_operation_name"
+    reject_text "src/self_hosted/mir_lower/$resource_runtime_carrier" \
+        "runtime_name_value_ready"
+done
 reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerInstructionRuntimeOperationAtBounds(" \
     '"machine_layer"'
@@ -10572,6 +10625,13 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" "SelfMirJsonAppendR
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "runtime_call_abi_required"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "bool_helper_while_slot"
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "stray-consumer-runtime-row"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "markerless-consumer-runtime-row"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "exact true consumer runtime marker"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "escaped-consumer-runtime-row"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "escaped-duplicate-consumer-runtime-row"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "duplicate-consumer-runtime-row"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "false-consumer-runtime-marker"
+require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "wrong-kind-consumer-runtime-marker"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "class_helper_method_chain/main.pgy"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactsAtBounds("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let pattern: String = patterns[0]"
