@@ -1149,6 +1149,43 @@ disassembly and fixed-marker measurements, reject the change when the complete
 artifact does not improve materially, and profile or instrument the admitted
 MIR-to-AST loop before choosing another source rewrite from static call counts.
 
+### Compare generated-driver changes against an adjacent control
+
+The v56 match-local experiment (`6f5c373d`) demonstrated why historical
+absolute markers are insufficient when host load changes. It filtered local
+facts by instruction identity but also performed a separate per-instruction
+span-alignment pass. The exact-source driver built in 69,158 ms at 2,587.0 MB
+peak private / 2,576.3 MB working set. Bounded and wrong-ABI gates remained
+exact, while the full run timed out at 300,772 ms with only 166.2/170.5 MB
+private/working set and reached routine 1,408 at 296,916 ms.
+
+That run initially appeared much slower than historical v48, but an adjacent
+unchanged v48 control also entered MIR-to-AST late: 83,190 ms instead of the
+historical 67,580 ms. That control reached routines 256/704/896/1,600/1,664 at
+108,489/198,926/233,149/290,131/296,995 ms and timed out at 300,625 ms with
+174.2/177.9 MB private/working set. It was an adjacent current-session control,
+not a simultaneous run. Compare the code under test and control relative to
+their own `consumer:mir-to-ast:start` marker. On that basis v56 was still
+slower by 2,420 ms at routine 256, 2,929 ms at routine 704, and 5,767 ms at
+routine 896. `c9e8011a` therefore reverts v56. The conclusion is specifically
+a generated-code CPU regression after load normalization, not a 3 GiB/20 GiB
+memory failure and not the whole raw wall-time gap attributed to the patch.
+
+The final v57 shape (`ab3f9066`) removed that redundant pass and consumed the
+existing `MirProgramRoutineIndex` row directly. Focused C/LLVM, component,
+bounded, and wrong-ABI gates passed. The v57 driver built in 56,640 ms at
+2,588.3/2,577.6 MB peak private/working set. Its observed run entered MIR-to-
+AST at 74,173 ms, reached routines 256/704/896/1,600/1,664/1,728/1,792/1,856
+at 97,495/172,807/202,276/251,736/258,128/267,628/281,858/296,651 ms, and
+timed out at 300,609 ms with 197.5/200.4 MB private/working set.
+
+Against the adjacent v48 control, relative MIR-to-AST elapsed time improved by
+1,977 ms at routine 256, 17,102 ms at routine 704, 21,856 ms at routine 896,
+29,378 ms at routine 1,600, and 29,850 ms at routine 1,664. Accept v57 as a CPU
+improvement. It still emitted no gen2 file, so faster progress is not bootstrap
+completion. Keep the 300-second and 3,072 MB bounds fixed, retain both raw and
+start-normalized marker evidence, and do not add a third match-local shape.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

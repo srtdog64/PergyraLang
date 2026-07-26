@@ -1,5 +1,43 @@
 # Self-Host Progress
 
+2026-07-26 accepted the second and final match-local read shape as v57
+(`ab3f9066`). `BuildMirMatchBindingLocalFacts` now consumes the
+already-owned `MirProgramRoutineIndex` row directly. It validates the routine
+row and its parallel block/instruction bounds once, then reads local names and
+types only for canonical `AST_MATCH_CASE` branch instructions. It adds no
+second graph, carrier, cache, helper file, backend split, or old-read fallback.
+The focused routine-index gate passed through both C and LLVM, the component
+ratchet passed, and malformed owner rows, parallel-array misalignment,
+wrong-kind match rows, name/type count mismatch, and forged non-match local
+arrays fail closed or remain ignored as owned by the contract.
+
+The exact-source v57 C driver built in 56,640 ms at 2,588.3 MB peak private /
+2,577.6 MB working set. Bounded MIR completed in 1,398 ms and preserved the
+established 414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI exited 1 in 1,418 ms with the owned diagnostic and no output. The
+observed full run completed machine routine-index admission at 74,160 ms and
+reached routines 256/704/896/1,600/1,664/1,728/1,792/1,856 at
+97,495/172,807/202,276/251,736/258,128/267,628/281,858/296,651 ms. It timed
+out at 300,609 ms with only 197.5 MB peak private / 200.4 MB working set.
+
+Machine load had shifted, so acceptance used the adjacent v48 control rather
+than the historical absolute markers alone. The control entered MIR-to-AST at
+83,190 ms and reached only routine 1,664 at 296,995 ms. Relative to each run's
+MIR-to-AST start, v57 improved routines 256/704/896/1,600/1,664 by
+1,977/17,102/21,856/29,378/29,850 ms. This is an accepted generated-driver CPU
+improvement, not a memory result. It still did not reach routine 1,920/2,048,
+`consumer:mir-to-ast:done`, or gen2 output; self-host completion remains open.
+
+The preceding v56 shape (`6f5c373d`, reverted by `c9e8011a`) filtered the same
+facts but added a separate instruction-span alignment pass. Its focused gates
+and 414-byte/failure behavior passed, yet the full run reached only routine
+1,408 at 296,916 ms. Against the adjacent v48 control after normalizing at
+MIR-to-AST start, v56 was 2,420/2,929/5,767 ms slower at routines
+256/704/896. The shape is rejected. Do not restore the extra whole-instruction
+alignment pass or add a third match-local read shape; continue from accepted
+v57 using the next integrated owned-stage measurement.
+
 2026-07-26 measured the accepted C projection with the available Windows clang
 host compiler as v54 (`PGY_CC=clang --target=x86_64-w64-mingw32`). No Pergyra
 source, backend meaning, runtime contract, or default toolchain selection

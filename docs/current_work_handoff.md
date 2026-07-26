@@ -79,10 +79,16 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `1f77b0bc` (revert rejected v55 JSON ASCII
-  literal conversion removal) on `main`. The rejected v55 implementation is
-  `2eeeec13`; focused gates and disassembly proved the local transformation,
-  but the fixed full run regressed materially. The rejected v52 implementation
+- Implementation checkpoint: `ab3f9066` (accepted v57 direct match-local
+  routine-index consumption) on `main`. The preceding v56 implementation is
+  `6f5c373d`, reverted by `c9e8011a`; its separate instruction-alignment pass
+  remained slower than the adjacent v48 control after MIR-start normalization.
+  v57 removes that redundant pass, retains one routine-index owner and one
+  instruction loop, and materially improves the shared normalized markers.
+  Do not add a third match-local read shape. The rejected v55 implementation
+  is `2eeeec13`, reverted by `1f77b0bc`; focused gates and disassembly proved
+  the local transformation, but the fixed full run regressed materially. The
+  rejected v52 implementation
   is `8c49f74f`, reverted by `40037e52`.
   The successor-pair seam is abandoned after its first measured shape; do not
   re-express it as another pair struct, wrapper, or carrier. The rejected v51
@@ -208,6 +214,14 @@ not turn whole-language soundness into the next global-closure project.
   rows fail closed; the old bundle accessor and routine-lowering search cannot
   return as fallbacks. The program index remains structure/identity-only rather
   than becoming a second global/local scalar aggregate.
+- `BuildMirMatchBindingLocalFacts` now consumes the already-admitted
+  `MirProgramRoutineIndex` row directly. One row-readiness proof and bounded
+  block/instruction ownership checks precede one instruction loop; only
+  canonical `AST_MATCH_CASE` branch rows contribute match local names/types.
+  Invalid owners, zero-block parallel-array gaps, wrong-kind match rows, and
+  name/type count mismatches fail closed, while forged non-match local arrays
+  are ignored. No second graph, carrier, cache, backend split, or old-read
+  fallback was introduced.
 - The same routine-local bundle carries each block's leading phi count. A phi
   after the first non-phi is an invalid sentinel. The phi semantic owner scans
   only that prefix while retaining predecessor, arity, result, incoming-use,
@@ -217,8 +231,9 @@ not turn whole-language soundness into the next global-closure project.
   to a whole-block scan or JSON kind recovery.
 - A direct `EmitBlockStmts` block-slice experiment passed its fail-closed gates
   but regressed the fixed run by 8,169 ms at routine 1,920 and lost routine
-  1,984. It is explicitly reverted. Current source uses the accepted v48
-  accessor path; the failed v49 shape is evidence, not an active fallback.
+  1,984. It is explicitly reverted. Current source retains the accepted v48
+  block-accessor shape; the failed v49 shape is evidence, not an active
+  fallback.
 - A later resource-runtime experiment captured four top-level fact families in
   every instruction scalar and expanded the routine bundle. It removed about
   145.6 MB of repeated resource top-span reading by static estimate but built
@@ -259,11 +274,12 @@ unmodified and excluded from task commits:
   backend-specific JSON reads, source-text fact recovery, process-sharded fact
   stores, per-routine whole-program structure revalidation, `new ? old`
   authority, or raising the 3072 MB cap.
-- Focused falsifier: continue the current source beyond its observed
-  `top-level-routines:1984` marker and reach routine 2,048, or expose one named
-  routine/owner failure. Do not open the later expression-graph or assignment
-  post-pass until `consumer:mir-to-ast:done` is observed. Even 2,048 of 2,345
-  top-level routines would be only a sentinel, not gen2.
+- Focused falsifier: continue accepted v57 beyond its currently observed
+  `top-level-routines:1856` marker, recover routine 1,920 under current load,
+  and reach routine 2,048, or expose one named routine/owner failure. Do not
+  open the later expression-graph or assignment post-pass until
+  `consumer:mir-to-ast:done` is observed. Even 2,048 of 2,345 top-level
+  routines would be only a sentinel, not gen2.
 - Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
   that artifact builds, and the resulting gen2 consumes the same complete
   compiler source to emit `driver_gen3.c`. The bounded preflight remains a
@@ -344,6 +360,11 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-c-clang-v54-300s-observed` | 206.0 MB | 208.0 MB | clang-built C projection timed out at 300,665 ms after routines 704/896/1,600/1,920/1,984 at 160,553/188,638/237,074/286,528/296,279 ms; build-time win but runtime negative/noise versus GCC v48, no gen2. |
 | `full-mir-consumer-json-ascii-constants-v55-build` | 2516.9 MB | 2505.4 MB | Rejected exact-source experiment compiled in 51,536 ms; focused C/LLVM, bounded SHA, and wrong-ABI behavior remained exact. |
 | `full-mir-consumer-json-ascii-constants-v55-300s-observed` | 202.9 MB | 205.3 MB | Rejected experiment timed out at 300,480 ms after routines 704/896/1,600/1,920 at 162,958/191,199/240,394/291,112 ms; 5,779 ms later than v48 at routine 1,920, no routine 1,984/gen2. Reverted by `1f77b0bc`. |
+| `full-mir-consumer-match-owner-filter-v56-build` | 2587.0 MB | 2576.3 MB | Rejected exact-source experiment compiled in 69,158 ms; focused C/LLVM, component, bounded SHA, and wrong-ABI behavior remained exact. |
+| `full-mir-consumer-match-owner-filter-v56-300s-observed` | 166.2 MB | 170.5 MB | Timed out at 300,772 ms after routine 1,408 at 296,916 ms. After adjacent-v48 MIR-start normalization it was 2,420/2,929/5,767 ms slower at routines 256/704/896; reverted by `c9e8011a`. |
+| `full-mir-consumer-v48-current-control-300s-observed` | 174.2 MB | 177.9 MB | Adjacent unchanged-source control under the current load: MIR-to-AST start at 83,190 ms, routines 704/896/1,600/1,664 at 198,926/233,149/290,131/296,995 ms; no gen2. |
+| `full-mir-consumer-match-routine-owner-v57-build` | 2588.3 MB | 2577.6 MB | Accepted exact-source C driver compiled in 56,640 ms; focused C/LLVM, component, bounded SHA, and wrong-ABI behavior passed. |
+| `full-mir-consumer-match-routine-owner-v57-300s-observed` | 197.5 MB | 200.4 MB | Timed out at 300,609 ms after routines 704/896/1,600/1,664/1,728/1,792/1,856 at 172,807/202,276/251,736/258,128/267,628/281,858/296,651 ms. Normalized gains over adjacent v48 are 17,102/21,856/29,378/29,850 ms at 704/896/1,600/1,664; accepted, no gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -643,7 +664,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on current checkpoint `40037e52` plus the accepted v48 measurements:
+Green on current checkpoint `ab3f9066` plus the accepted v57 measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -652,7 +673,9 @@ Green on current checkpoint `40037e52` plus the accepted v48 measurements:
   partitions, direct-field spans, malformed scalar tails, missing structure,
   corrupted counts, invalid row guards, explicit negative CFG successor
   rejection, missing/unique/duplicate/forged/out-of-block branch-row facts, and
-  leading/late/truncated phi-prefix facts);
+  leading/late/truncated phi-prefix facts, plus invalid match owners,
+  zero-block parallel-array misalignment, wrong-kind match rows, match
+  name/type count mismatch, and forged non-match local arrays);
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
@@ -661,8 +684,8 @@ Green on current checkpoint `40037e52` plus the accepted v48 measurements:
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-branch-index-admission-v48-build`): exit 0, 51,479 ms,
-  2,567.8 MB peak private / 2,557.0 MB peak working set;
+  owner (`full-mir-consumer-match-routine-owner-v57-build`): exit 0, 56,640 ms,
+  2,588.3 MB peak private / 2,577.6 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -749,12 +772,22 @@ The v54 explicit clang-via-C evidence remains under
 `full-mir-consumer-c-clang-v54-{build,bounded,wrong-abi,300s-observed}.*`.
 The rejected v55 local-call evidence remains under
 `full-mir-consumer-json-ascii-constants-v55-{build,bounded,wrong-abi,300s-observed}.*`.
+The rejected v56 evidence remains under
+`full-mir-consumer-match-owner-filter-v56-{build,bounded,wrong-abi,300s-observed}.*`;
+its adjacent unchanged-source control is
+`full-mir-consumer-v48-current-control-300s-observed.*`. The accepted v57
+evidence remains under
+`full-mir-consumer-match-routine-owner-v57-{build,bounded,wrong-abi,300s-observed}.*`.
 The current accepted
 executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v57_match_routine_owner.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v48_bounded.c`. The latest accepted-source
-full consumer evidence reaches routine 1,984 at 295,075 ms. The rejected v50
+`.tmp/self_hosted/driver_bootstrap/v57_bounded.c`. The latest accepted-source
+full consumer evidence reaches routine 1,856 at 296,651 ms under current load
+and is materially faster than the adjacent v48 control after MIR-start
+normalization. Historical v48 still reached routine 1,984 at 295,075 ms under
+the earlier lighter run, so absolute last-marker counts across those loads are
+not interchangeable. The rejected v50
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v50_resource_raw_capture.exe`;
 its 414-byte bounded result is
@@ -781,29 +814,36 @@ evidence only, not semantic authority or commit content.
    reverted. Do not retry literal constants, a shared ASCII helper, backend
    intrinsics, or unchecked character access; the static call-count hypothesis
    did not identify an integrated dominant cost.
-5. Select the next executable seam from integrated MIR-to-AST profiling or a
+5. The v56 match-local filter is reverted because its extra alignment pass
+   regressed adjacent-v48 normalized markers. Accepted v57 directly consumes
+   the routine-index owner and improves every shared normalized marker through
+   routine 1,664. Keep v57; do not add a third match-local shape. It still
+   produces no gen2, so count it as an owner closure and generated-driver CPU
+   improvement, not hard substitution progress or completion.
+6. Select the next executable seam from integrated MIR-to-AST profiling or a
    named owned stage measurement. Priority is measured inclusive cost, one
    current fact owner, exact C/LLVM and failure behavior, then patch size.
    Forbidden fallbacks remain whole-program rescans, parallel semantic graphs,
    backend-specific facts, a second cache/authority, and a raised time or
    memory gate.
-6. Before another source rewrite, name the measured routine/path, its owner,
+7. Before another source rewrite, name the measured routine/path, its owner,
    last legitimate consumer, and one falsifying fixture. Run the same
    build/bounded/wrong-ABI/observed-full ladder and accept only a material
-   improvement over v48's shared markers or complete gen2 output.
-7. Continue the winning same-artifact projection until
+   improvement over accepted v57's normalized shared markers or complete gen2
+   output. Use an adjacent unchanged-source control when host load has shifted.
+8. Continue the winning same-artifact projection until
    `consumer:mir-to-ast:done` is observed. Post-loop markers for top-level
    completion, string join, and AST inventory must distinguish projected
    completion from an observed result.
-8. If that projection emits a complete `driver_gen2.c`, compile that C as
+9. If that projection emits a complete `driver_gen2.c`, compile that C as
    the bootstrap object-code boundary; do not regenerate another oracle MIR.
-9. Make the generated gen2 driver consume the same complete compiler source
+10. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
-10. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+11. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-11. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+12. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

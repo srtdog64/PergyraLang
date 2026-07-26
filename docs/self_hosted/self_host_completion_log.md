@@ -8674,3 +8674,49 @@ Released/default replacement remains 0%.
   source change. `1f77b0bc` reverts v55; keep both commits as negative evidence
   and retain v48 plus the isolated fail-closed correction as the executable
   baseline.
+
+### 2026-07-26 -- Match local facts use the routine-index owner directly
+
+- The first v56 shape (`6f5c373d`) filtered match local facts by canonical
+  instruction identity but also introduced a separate instruction-span
+  alignment pass. Focused C/LLVM, component, bounded, and wrong-ABI gates
+  passed. Its driver built in 69,158 ms at 2,587.0/2,576.3 MB peak
+  private/working set; bounded completed in 2,019 ms with the established
+  414-byte SHA, and wrong ABI exited 1 in 2,025 ms with no output.
+- The v56 full run entered MIR-to-AST at 90,047 ms, reached routines
+  256/704/896/1,408 at 117,766/208,712/245,773/296,916 ms, and timed out at
+  300,772 ms with only 166.2/170.5 MB private/working set. An adjacent
+  unchanged v48 control showed the host was also slower than its historical
+  run. After normalizing both runs at `consumer:mir-to-ast:start`, v56 remained
+  slower by 2,420/2,929/5,767 ms at routines 256/704/896. `c9e8011a` reverts
+  v56; do not restore its redundant alignment pass.
+- The accepted v57 implementation (`ab3f9066`) makes
+  `BuildMirMatchBindingLocalFacts` consume the existing
+  `MirProgramRoutineIndex` row directly. One row-readiness proof and bounded
+  block/instruction alignment checks precede one instruction loop; only
+  canonical `AST_MATCH_CASE` branch rows contribute match names/types. No
+  second graph, global carrier, cache, helper file, backend split, or fallback
+  authority was introduced.
+- Current-source C and LLVM routine-index gates passed. Negative cases reject
+  invalid owners, a zero-block parallel-array break, non-branch match rows,
+  and match name/type count mismatch; forged non-match arrays remain ignored.
+  The component ratchet and `git diff --check` passed.
+- The exact-source v57 C driver built in 56,640 ms at 2,588.3 MB peak private /
+  2,577.6 MB working set. Bounded MIR completed in 1,398 ms, remained 414 bytes
+  with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+  wrong ABI exited 1 in 1,418 ms with the owned diagnostic and no output.
+- Its observed full run completed machine routine-index admission at 74,160
+  ms and reached routines 256/704/896/1,600/1,664/1,728/1,792/1,856 at
+  97,495/172,807/202,276/251,736/258,128/267,628/281,858/296,651 ms. It timed
+  out at 300,609 ms with 197.5 MB peak private / 200.4 MB working set.
+- The adjacent v48 control entered MIR-to-AST at 83,190 ms and reached routine
+  1,664 at 296,995 ms. Relative to each run's MIR start, v57 improved shared
+  routines 256/704/896/1,600/1,664 by
+  1,977/17,102/21,856/29,378/29,850 ms. v57 is therefore the accepted active
+  executable source. The match-local read seam is closed at this shape; do not
+  add a third representation.
+- Self-host completion remains absent. There is no routine 1,920/2,048 marker,
+  `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, or
+  gen3 comparison. The next change must come from another measured integrated
+  MIR-to-AST owner seam, not global SoT expansion or a raised resource bound.
