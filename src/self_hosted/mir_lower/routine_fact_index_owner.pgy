@@ -290,8 +290,8 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     }
 
     let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(
-        json, instruction_facts.starts, instruction_facts.ends,
-        source_local_names, source_local_types
+        routines, instruction_facts.global_start, instruction_facts.starts,
+        instruction_facts.ends, source_local_names, source_local_types
     );
     source_local_names = match_locals.names;
     source_local_types = match_locals.types;

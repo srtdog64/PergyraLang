@@ -8081,10 +8081,55 @@ reject_function_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
     "func MirObjectArrayStringFactsAtBounds" "StringLength(json)"
 require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'import "program_routine_index_owner.pgy";'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "ref routines: MirProgramRoutineIndex"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'routines.instruction_source_types[global_row] != "AST_MATCH_CASE"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'routines.instruction_kinds[global_row] != "branch"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    '"match_binding_instruction_alignment"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    '"match_binding_instruction_kind"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "if !routines.valid ||"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "instruction_starts[alignment_row] !="
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "instruction_ends[alignment_row] !="
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "routines, instruction_facts.global_start, instruction_facts.starts,"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "    json: String,"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "MirObjectStringFactAtBounds("
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" "match_variant"
+reject_function_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func BuildMirMatchBindingLocalFacts(" \
+    "instruction_source_types: Array<String>"
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'validation_stage = "match_binding_type_count"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'validation_stage = "match_binding_type"'
 reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     "MirObjectArrayStringFactCount("
 reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     "MirObjectArrayStringFactAt("
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-match-alignment-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    'MirRoutineFactIndexSourceLocalType(match_index, "bound")'
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    'MirRoutineFactIndexSourceLocalType(match_index, "ignored")'
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-match-kind-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-match-type-count-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-invalid-match-owner-failed"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'if !MirRoutinePhiFactsReady(index, routines, routine_row)'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \

@@ -108,6 +108,106 @@ func Main() -> Void {
         MirRoutineInstructionViewAt(index, 0, 0, 2).valid {
         failures = failures + 1;
     }
+    let misaligned_match_locals: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            index, first_facts.instruction_facts.global_start + 1,
+            first_facts.instruction_facts.starts,
+            first_facts.instruction_facts.ends,
+            first_facts.source_local_names, first_facts.source_local_types
+        );
+    if misaligned_match_locals.valid ||
+        misaligned_match_locals.validation_stage !=
+            "match_binding_instruction_alignment" {
+        Log("mir-program-routine-index-owner-match-alignment-failed");
+        failures = failures + 1;
+    }
+    let nonmatch_binding_instruction: String =
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_CALL\",\"match_bindings\":[\"ignored\"],\"match_binding_types\":[],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let match_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"bound\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let match_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"MatchLocal\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        Concat(nonmatch_binding_instruction, Concat(",", Concat(
+            match_instruction, "]}]}")))
+    );
+    let match_json: String = Concat(prefix, Concat(match_routine, "]}"));
+    let match_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(match_json);
+    let match_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(match_document.routines);
+    let match_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(match_program, 0);
+    if !match_index.valid ||
+        MirRoutineFactIndexSourceLocalType(match_index, "bound") != "Int" ||
+        MirRoutineFactIndexSourceLocalType(match_index, "ignored") != "" {
+        Log("mir-program-routine-index-owner-match-local-filter-failed");
+        failures = failures + 1;
+    }
+    let invalid_kind_instruction: String =
+        "{\"kind\":\"stmt\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"forged\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let invalid_kind_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"InvalidMatchKind\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        Concat(invalid_kind_instruction, "]}]}")
+    );
+    let invalid_kind_json: String = Concat(
+        prefix, Concat(invalid_kind_routine, "]}")
+    );
+    let invalid_kind_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(invalid_kind_json);
+    let invalid_kind_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(invalid_kind_document.routines);
+    let invalid_kind_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(invalid_kind_program, 0);
+    if invalid_kind_index.valid || invalid_kind_index.validation_stage !=
+            "match_binding_instruction_kind" {
+        Log("mir-program-routine-index-owner-match-kind-failed");
+        failures = failures + 1;
+    }
+    let missing_type_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"missing\"],\"match_binding_types\":[],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let missing_type_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"MissingMatchType\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        Concat(missing_type_instruction, "]}]}")
+    );
+    let missing_type_json: String = Concat(
+        prefix, Concat(missing_type_routine, "]}")
+    );
+    let missing_type_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(missing_type_json);
+    let missing_type_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(missing_type_document.routines);
+    let missing_type_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(missing_type_program, 0);
+    if missing_type_index.valid || missing_type_index.validation_stage !=
+            "match_binding_type_count" {
+        Log("mir-program-routine-index-owner-match-type-count-failed");
+        failures = failures + 1;
+    }
+    let invalid_program_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        Concat(match_instruction, "]}]}")
+    );
+    let invalid_program_json: String = Concat(
+        prefix, Concat(invalid_program_routine, "]}")
+    );
+    let invalid_program_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(invalid_program_json);
+    let invalid_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(invalid_program_document.routines);
+    let invalid_program_source_names: Array<String> = [];
+    let invalid_program_source_types: Array<String> = [];
+    let invalid_program_match_locals: MirMatchBindingLocalFacts =
+        BuildMirMatchBindingLocalFacts(
+            invalid_program, 0, invalid_program.instruction_starts,
+            invalid_program.instruction_ends, invalid_program_source_names,
+            invalid_program_source_types
+        );
+    if invalid_program.valid || invalid_program_match_locals.valid ||
+        invalid_program_match_locals.validation_stage !=
+            "match_binding_instruction_alignment" {
+        Log("mir-program-routine-index-owner-invalid-match-owner-failed");
+        failures = failures + 1;
+    }
     if !MirCapturedAbiLayoutFactReady(
         json, first_scalar.abi_type_name,
         first_scalar.abi_type_value_ready,
