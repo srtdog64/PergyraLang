@@ -1186,6 +1186,42 @@ improvement. It still emitted no gen2 file, so faster progress is not bootstrap
 completion. Keep the 300-second and 3,072 MB bounds fixed, retain both raw and
 start-normalized marker evidence, and do not add a third match-local shape.
 
+### Repeated graph/fact validation can look like a memory defect
+
+The original 20+ GiB observation was not a normal compiler working-set
+requirement. The active oracle path repeatedly rebuilt or revalidated graph and
+readiness facts that were already owned. Those repeated passes multiplied
+temporary allocation and CPU work; a single validation at the owner boundary
+was sufficient. Keep the pressure runner's process-tree accounting,
+`-StopOnLimit`, 3,072 MB cap, and stage markers enabled so a detached worker or
+overlapping run cannot be mistaken for one compiler process.
+
+The current measurements put the distinction on executable evidence. The v58
+integrated C driver build completed at 2,587.9 MB peak private / 2,577.0 MB
+working set, and the focused LLVM `mir_lower` build completed at 315.5/318.3
+MB. The 300-second generated-driver run used only 197.3/200.0 MB. Therefore a
+fresh 20 GiB observation is a regression, overlapping process, or measurement
+scope problem until proven otherwise; it is not an accepted cost of the
+oracle or self-host lane.
+
+v58 (`195d9b64`) closes one concrete repetition. Loop-summary projection used
+to call branch selection twice for every block and scalar capture twice for
+every branch-bearing block. On the fixed artifact that meant 40,044 branch
+selections and 16,774 scalar reads. It now consumes the owned branch row once,
+performs one branch/scalar validation only on 8,387 branch blocks, and removes
+31,657 selections plus 8,387 scalar reads. Do not replace this with another
+cache or graph: the existing routine bundle is the owner.
+
+Compare against an adjacent accepted executable because host load still moves
+the absolute markers. The v57 control entered MIR-to-AST at 80,208 ms; v58
+entered at 75,535 ms. After normalizing each run to that start, v58 improved
+routines 256/704/896/1,600/1,664/1,728 by
+2,442/13,115/17,413/23,866/24,729/25,971 ms and reached routine 1,856 at
+297,340 ms, while the control ended at routine 1,728. This is material CPU
+progress with stable memory, but no `driver_gen2.c` was emitted. Keep the
+fixed limits and continue the same artifact; a higher timeout or memory cap is
+not a substitute for closing the next owned repeated validation.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

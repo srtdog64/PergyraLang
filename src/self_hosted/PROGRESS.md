@@ -1,5 +1,39 @@
 # Self-Host Progress
 
+2026-07-26 accepted v58 (`195d9b64`) as the next measured MIR-consumer CPU
+closure. `LoopFlowSummaryProjectionReady` now reads the routine bundle's
+`block_branch_global_rows` owner once per block and calls branch/scalar
+validation only for the 8,387 blocks that actually carry a branch. The former
+shape performed 40,044 branch selections and 16,774 scalar reads on the fixed
+artifact; v58 performs 8,387 of each, removing 31,657 selections and 8,387
+scalar reads without a second graph, cache, helper, backend split, rendered-
+text test, or fallback read. Routine/block/span identity is admitted before
+the loop, exact `-1` remains the only no-branch sentinel, malformed rows fail
+closed, and FOR range/foreach renderability matches the existing iteration
+fact owner. C/LLVM parity directly covers missing FOR fields, the invalid
+sentinel, same-endpoint scalar range, and a mutated no-branch span.
+
+The exact-source v58 C driver built in 60,952 ms at 2,587.9 MB peak private /
+2,577.0 MB working set. Bounded MIR completed in 1,688 ms, remained 414 bytes,
+and preserved SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI exited 1 in 1,672 ms with the owned diagnostic and no output. The
+focused LLVM `mir_lower` build completed in 4,104 ms at 315.5/318.3 MB peak
+private/working set, and its valid output and invalid-ABI exit/diagnostic were
+byte-equal to the C projection.
+
+The adjacent v57 control entered MIR-to-AST at 80,208 ms and reached routines
+256/704/896/1,600/1,664/1,728 at
+104,993/191,418/224,809/280,783/287,747/298,614 ms. v58 entered at 75,535 ms
+and reached 256/704/896/1,600/1,664/1,728/1,792/1,856 at
+97,878/173,630/202,723/252,244/258,345/267,970/282,271/297,340 ms. Relative
+to each run's MIR-to-AST start, v58 improved the shared markers by
+2,442/13,115/17,413/23,866/24,729/25,971 ms. It timed out at 300,470 ms with
+197.3/200.0 MB peak private/working set and no gen2. This is accepted
+executable CPU progress, not hard substitution or self-host completion. The
+next falsifier is routine 1,920 under the same 300-second/3,072 MB gate, then
+`consumer:mir-to-ast:done` and complete `driver_gen2.c`.
+
 2026-07-26 accepted the second and final match-local read shape as v57
 (`ab3f9066`). `BuildMirMatchBindingLocalFacts` now consumes the
 already-owned `MirProgramRoutineIndex` row directly. It validates the routine

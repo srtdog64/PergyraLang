@@ -8720,3 +8720,47 @@ Released/default replacement remains 0%.
   `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, or
   gen3 comparison. The next change must come from another measured integrated
   MIR-to-AST owner seam, not global SoT expansion or a raised resource bound.
+
+### 2026-07-26 -- Loop projection consumes each owned branch row once
+
+- v58 (`195d9b64`) removes the one-use `BlockHasLoopTransfer` pass and the
+  rendered `BlockCond`/`"for "` prefix decision from
+  `LoopFlowSummaryProjectionReady`. The projection reads
+  `block_branch_global_rows` once per block, validates a positive row through
+  `MirRoutineFactIndexBranchAtBlock`, and reads the scalar bundle once for that
+  same global row. On the fixed artifact this changes branch selections from
+  40,044 to 8,387 and scalar reads from 16,774 to 8,387.
+- The projection admits exact routine/block/instruction-span identity before
+  consuming rows. `-1` is the only no-branch sentinel; `< -1`, out-of-range,
+  cross-block, malformed scalar, and incomplete FOR rows fail closed. Equal
+  range endpoints remain a scalar range unless the source-local type is an
+  `Array`/`List`; real foreach rows use the existing iteration-type fact owner.
+  There is no second graph, cache, carrier, helper, backend split, rendered-
+  text fallback, or whole-program rescan.
+- Focused C/LLVM routine-index parity, loop-flow identity/fail-closed, the
+  component contract, and `git diff --check` passed. Direct execution covers
+  missing FOR `arg0`/`expr0`/`expr1`, invalid branch sentinel, same-endpoint
+  range, and a mutated no-branch block span. Independent reviews found no
+  remaining blocker.
+- The exact-source v58 driver built in 60,952 ms at 2,587.9 MB peak private /
+  2,577.0 MB working set. Bounded MIR completed in 1,688 ms with the established
+  414-byte SHA; wrong ABI exited 1 in 1,672 ms with the owned diagnostic and no
+  output. A focused LLVM `mir_lower` build completed in 4,104 ms at
+  315.5/318.3 MB peak private/working set; C/LLVM valid output and invalid-ABI
+  failure were byte-equal.
+- The adjacent v57 control completed machine routine-index admission at
+  80,192 ms, entered MIR-to-AST at 80,208 ms, and reached routines
+  256/704/896/1,600/1,664/1,728 at
+  104,993/191,418/224,809/280,783/287,747/298,614 ms. It timed out at
+  300,250 ms with 177.5/181.1 MB peak private/working set.
+- v58 completed admission at 75,521 ms, entered MIR-to-AST at 75,535 ms, and
+  reached routines 256/704/896/1,600/1,664/1,728/1,792/1,856 at
+  97,878/173,630/202,723/252,244/258,345/267,970/282,271/297,340 ms. Relative
+  to each run's MIR-to-AST start, the shared-marker gains are
+  2,442/13,115/17,413/23,866/24,729/25,971 ms. The run timed out at
+  300,470 ms with 197.3/200.0 MB peak private/working set and no gen2.
+- Accept v58 as a material generated-driver CPU improvement. This remains
+  owner closure supporting the active executable rung, not C-path substitution:
+  there is still no `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2
+  compilation, or gen3 comparison. Keep the 300-second and 3,072 MB limits;
+  the next falsifier is routine 1,920 on this same artifact.
