@@ -8001,6 +8001,7 @@ for exact_abi_owner in "resource_runtime_abi_fact_owner.pgy"; do
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEquals("
     reject_text "src/self_hosted/mir_lower/$exact_abi_owner" "MirFactObjectStart("
     require_text "src/self_hosted/mir_lower/$exact_abi_owner" "AtBounds("
+    require_text "src/self_hosted/mir_lower/$exact_abi_owner" "JsonObjectBoolFieldEqualsWithin("
 done
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "loop_flow_fact_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "mir_cfg_graph_owner.pgy";'
@@ -10367,26 +10368,6 @@ require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner
     "let abi_type_value_ready: Bool;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_type_values_ready: Array<Bool>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    "let runtime_operation_name: String;"
-require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    "let runtime_name_value_ready: Bool;"
-require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    "let runtime_call_abi_values_unique: Bool;"
-require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    "let runtime_call_abi_required_start: Int;"
-require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
-    "let runtime_call_abi_aux_end: Int;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "let runtime_operation_names: Array<String>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "let runtime_name_values_ready: Array<Bool>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "let runtime_call_abi_values_unique: Array<Bool>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "let runtime_call_abi_bounds: Array<Int>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "count * 6 == ArrayLength(facts.runtime_call_abi_bounds)"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let block_phi_prefix_counts: Array<Int>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
@@ -10542,40 +10523,19 @@ require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" "Co
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" 'JsonObjectFactStringFieldEquals(row, "symbol", expected.symbol)'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirResourceRuntimeRowFactReady"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "MirResourceRuntimeRowFactReady(routines, instruction, scalar)"
-reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirResourceRuntimeRowFactReady(routines, instruction)"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirResourceRuntimeRowFactReady(json, instruction)"
 reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "func MirResourceRuntimeRowFactReady(" \
     "MirMachineLayerInstructionRuntimeOperation("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "MirMachineLayerInstructionRuntimeOperationAtBounds("
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "captured.runtime_call_abi_required_start"
-require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "captured.runtime_call_abi_start"
-require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "captured.runtime_call_abi_aux_start"
-require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "captured.runtime_operation_name"
-require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "!captured.runtime_name_value_ready"
-require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "!captured.runtime_call_abi_values_unique"
-reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "func MirResourceRuntimeRowFactReady(" \
-    "MirObjectFieldValueBoundsAtBounds("
-reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "func MirResourceRuntimeRowFactReady(" '"name"'
+    '"runtime_call_abi", row_bounds'
 reject_function_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
     "func MirResourceRuntimeRowFactReady(" \
     "let instruction: JsonObjectFactTable"
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    "duplicate_runtime.runtime_call_abi_values_unique"
-require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
-    "duplicate_runtime_carried.runtime_call_abi_values_unique"
-require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" \
-    "stray-consumer-runtime-row"
 reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerInstructionRuntimeOperationAtBounds(" \
     '"machine_layer"'

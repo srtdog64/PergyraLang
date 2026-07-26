@@ -14,18 +14,9 @@ struct MirRoutineInstructionScalarCapture {
     let arg0: String;
     let arg1: String;
     let slot_anchor: String;
-    let runtime_operation_name: String;
-    let runtime_name_value_ready: Bool;
-    let runtime_call_abi_values_unique: Bool;
     let abi_type_name: String;
     let abi_type_value_ready: Bool;
     let match_variant: String;
-    let runtime_call_abi_required_start: Int;
-    let runtime_call_abi_required_end: Int;
-    let runtime_call_abi_start: Int;
-    let runtime_call_abi_end: Int;
-    let runtime_call_abi_aux_start: Int;
-    let runtime_call_abi_aux_end: Int;
     let abi_type_start: Int;
     let abi_type_end: Int;
     let abi_layout_id_start: Int;
@@ -39,9 +30,7 @@ struct MirRoutineInstructionScalarCapture {
 func InvalidMirRoutineInstructionScalarCapture(
 ) -> MirRoutineInstructionScalarCapture {
     return MirRoutineInstructionScalarCapture(
-        false, "", "", "", "", "", "", "", false, false,
-        "", false, "",
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        false, "", "", "", "", "", "", "", false, "",
         0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1
     );
@@ -60,19 +49,6 @@ func MirRoutineInstructionScalarCaptureWithin(
     let arg0: String = "";
     let arg1: String = "";
     let slot_anchor: String = "";
-    let runtime_operation_name: String = "";
-    let runtime_name_value_ready: Bool = true;
-    let runtime_name_seen: Bool = false;
-    let runtime_call_abi_values_unique: Bool = true;
-    let runtime_call_abi_required_start: Int = 0 - 1;
-    let runtime_call_abi_required_end: Int = 0 - 1;
-    let runtime_call_abi_required_seen: Bool = false;
-    let runtime_call_abi_start: Int = 0 - 1;
-    let runtime_call_abi_end: Int = 0 - 1;
-    let runtime_call_abi_seen: Bool = false;
-    let runtime_call_abi_aux_start: Int = 0 - 1;
-    let runtime_call_abi_aux_end: Int = 0 - 1;
-    let runtime_call_abi_aux_seen: Bool = false;
     let abi_type_name: String = "";
     let abi_type_value_ready: Bool = false;
     let match_variant: String = "";
@@ -113,23 +89,9 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_layout_end = 0 - 1;
                 abi_type_value_ready = false;
             }
-            if !runtime_call_abi_values_unique {
-                runtime_call_abi_required_start = 0 - 1;
-                runtime_call_abi_required_end = 0 - 1;
-                runtime_call_abi_start = 0 - 1;
-                runtime_call_abi_end = 0 - 1;
-                runtime_call_abi_aux_start = 0 - 1;
-                runtime_call_abi_aux_end = 0 - 1;
-            }
             return MirRoutineInstructionScalarCapture(
                 true, result, expr0, expr1, arg0, arg1, slot_anchor,
-                runtime_operation_name, runtime_name_value_ready,
-                runtime_call_abi_values_unique,
                 abi_type_name, abi_type_value_ready, match_variant,
-                runtime_call_abi_required_start,
-                runtime_call_abi_required_end,
-                runtime_call_abi_start, runtime_call_abi_end,
-                runtime_call_abi_aux_start, runtime_call_abi_aux_end,
                 abi_type_start, abi_type_end,
                 abi_layout_id_start, abi_layout_id_end,
                 abi_layout_required_start, abi_layout_required_end,
@@ -171,24 +133,6 @@ func MirRoutineInstructionScalarCaptureWithin(
         let is_slot_anchor: Bool =
             (key_has_escape || raw_key_length == 11) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "slot_anchor");
-        let is_runtime_name: Bool =
-            (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "name");
-        let is_runtime_call_abi_required: Bool =
-            (key_has_escape || raw_key_length == 25) &&
-            JsonObjectKeyEqualsWithin(
-                json, i, key_end, "runtime_call_abi_required"
-            );
-        let is_runtime_call_abi: Bool =
-            (key_has_escape || raw_key_length == 16) &&
-            JsonObjectKeyEqualsWithin(
-                json, i, key_end, "runtime_call_abi"
-            );
-        let is_runtime_call_abi_aux: Bool =
-            (key_has_escape || raw_key_length == 20) &&
-            JsonObjectKeyEqualsWithin(
-                json, i, key_end, "runtime_call_abi_aux"
-            );
         let is_abi_type: Bool =
             (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "abi_type_name");
@@ -246,51 +190,6 @@ func MirRoutineInstructionScalarCaptureWithin(
             if is_match_variant {
                 match_variant = value;
                 match_variant_seen = true;
-            }
-        } else if is_runtime_name {
-            if runtime_name_seen {
-                runtime_operation_name = "";
-                runtime_name_value_ready = false;
-            } else {
-                runtime_name_seen = true;
-                if JsonCharCodeAt(json, value_end, i) == JsonAsciiCode("\"") {
-                    let decoded_end: Array<Int> = [0];
-                    runtime_operation_name = ReadJsonStringBounded(
-                        json, i, value_end, decoded_end
-                    );
-                    runtime_name_value_ready = decoded_end[0] == value_end;
-                    if !runtime_name_value_ready {
-                        runtime_operation_name = "";
-                    }
-                } else if !(i + 4 == value_end && SubEqualsWithLen(
-                    json, value_end, i, 4, "null"
-                )) {
-                    runtime_name_value_ready = false;
-                }
-            }
-        } else if is_runtime_call_abi_required {
-            if runtime_call_abi_required_seen {
-                runtime_call_abi_values_unique = false;
-            } else {
-                runtime_call_abi_required_start = i;
-                runtime_call_abi_required_end = value_end;
-                runtime_call_abi_required_seen = true;
-            }
-        } else if is_runtime_call_abi {
-            if runtime_call_abi_seen {
-                runtime_call_abi_values_unique = false;
-            } else {
-                runtime_call_abi_start = i;
-                runtime_call_abi_end = value_end;
-                runtime_call_abi_seen = true;
-            }
-        } else if is_runtime_call_abi_aux {
-            if runtime_call_abi_aux_seen {
-                runtime_call_abi_values_unique = false;
-            } else {
-                runtime_call_abi_aux_start = i;
-                runtime_call_abi_aux_end = value_end;
-                runtime_call_abi_aux_seen = true;
             }
         } else if is_abi_type {
             if abi_type_seen {

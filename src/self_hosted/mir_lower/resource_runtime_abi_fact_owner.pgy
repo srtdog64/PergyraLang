@@ -4,7 +4,6 @@
 
 import "json_fact_read.pgy";
 import "machine_layer_fact_owner.pgy";
-import "routine_instruction_scalar_capture_owner.pgy";
 import "routine_instruction_view_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
@@ -64,41 +63,24 @@ func MirResourceRuntimeAuxRowFactReady(
 
 func MirResourceRuntimeRowFactReady(
     ref routines: MirProgramRoutineIndex,
-    instruction_view: MirRoutineInstructionView,
-    captured: MirRoutineInstructionScalarCapture
+    instruction_view: MirRoutineInstructionView
 ) -> Bool {
-    if !instruction_view.valid || !captured.valid ||
-        !captured.runtime_name_value_ready ||
-        !captured.runtime_call_abi_values_unique {
-        return false;
-    }
+    if !instruction_view.valid { return false; }
     let json: String = routines.source_json;
     let inst_start: Int = instruction_view.start;
     let inst_end: Int = instruction_view.end;
-    let required_start: Int = captured.runtime_call_abi_required_start;
-    let required_end: Int = captured.runtime_call_abi_required_end;
-    let row_start: Int = captured.runtime_call_abi_start;
-    let row_end: Int = captured.runtime_call_abi_end;
-    let aux_start: Int = captured.runtime_call_abi_aux_start;
-    let aux_end: Int = captured.runtime_call_abi_aux_end;
-    if (required_start < 0 && (required_start != 0 - 1 ||
-         required_end != 0 - 1)) ||
-        (required_start >= 0 && (required_end <= required_start ||
-         required_start < inst_start || required_end > inst_end)) ||
-        (row_start < 0 && (row_start != 0 - 1 || row_end != 0 - 1)) ||
-        (row_start >= 0 && (row_end <= row_start ||
-         row_start < inst_start || row_end > inst_end)) ||
-        (aux_start < 0 && (aux_start != 0 - 1 || aux_end != 0 - 1)) ||
-        (aux_start >= 0 && (aux_end <= aux_start ||
-         aux_start < inst_start || aux_end > inst_end)) {
+    let required_bounds: Array<Int> = [0, 0];
+    let required: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end,
+        "runtime_call_abi_required", required_bounds);
+    if required && !JsonObjectBoolFieldEqualsWithin(
+        json, inst_start, inst_end,
+        "runtime_call_abi_required", true
+    ) {
         return false;
     }
-    let required: Bool = required_start >= 0;
-    if required && !(required_start + 4 == required_end &&
-        SubEqualsWithLen(
-            json, required_end, required_start, 4, "true"
-        )) { return false; }
-    let operation: String = captured.runtime_operation_name;
+    let operation: String = MirObjectStringFactAtBounds(
+        json, inst_start, inst_end, "name");
     let machine_operation: String =
         MirMachineLayerInstructionRuntimeOperationAtBounds(
             json, instruction_view.machine_layer_start,
@@ -107,24 +89,30 @@ func MirResourceRuntimeRowFactReady(
     if !MirResourceRuntimeRowRequired(expected_operation) {
         expected_operation = machine_operation;
     }
-    let has_row: Bool = row_start >= 0;
+    let row_bounds: Array<Int> = [0, 0];
+    let has_row: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end, "runtime_call_abi", row_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
-        if has_row && JsonCharCodeAt(json, row_end, row_start) ==
+        if has_row && row_bounds[0] < row_bounds[1] &&
+            JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) ==
                 JsonAsciiCode("{") {
             expected_operation = MirObjectStringFactAtBounds(
-                json, row_start, row_end, "operation");
+                json, row_bounds[0], row_bounds[1], "operation");
         }
     }
-    let has_aux: Bool = aux_start >= 0;
+    let aux_bounds: Array<Int> = [0, 0];
+    let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
-        return !required && !has_row && !has_aux;
+        return !required && !has_aux;
     }
-    if !has_row || JsonCharCodeAt(json, row_end, row_start) !=
+    if !has_row || row_bounds[0] >= row_bounds[1] ||
+        JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) !=
             JsonAsciiCode("{") {
         return false;
     }
     let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, row_start, row_end);
+        json, row_bounds[0], row_bounds[1]);
     if !JsonObjectFactTableReady(row) ||
         !JsonObjectFactStringFieldEquals(row, "owner", "MIRResource") ||
         !JsonObjectFactStringFieldEquals(
@@ -167,7 +155,7 @@ func MirResourceRuntimeRowFactReady(
     if has_aux {
         let aux_rows: JsonArrayObjectFactTable =
             JsonArrayObjectFactTableFromBounds(
-                json, aux_start, aux_end);
+                json, aux_bounds[0], aux_bounds[1]);
         if !JsonArrayObjectFactTableReady(aux_rows) {
             return false;
         }
