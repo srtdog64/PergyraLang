@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+2026-07-26 rejected block-local direct traversal (`80a54268`, reverted by
+`85cee4ff`). The experiment made `EmitBlockStmts` admit a complete block slice
+once and construct instruction/scalar views directly, with a focused C/LLVM
+cross-block negative and no fallback. Although this removed an estimated
+1,202,928 repeated shape checks, it expanded the block-boundary guard and
+direct generated-code construction enough to regress both build and full-run
+wall time. The exact-source v49 driver built in 60,860 ms at 2,587.7 MB peak
+private / 2,578.1 MB working set. Bounded output remained 414 bytes with the
+established SHA; wrong ABI still exited 1 with no output.
+
+The fixed full run reached routine 704 at 166,252 ms, routine 896 at 194,769
+ms, routine 1,600 at 243,264 ms, and routine 1,920 at 293,502 ms. It timed out
+at 300,269 ms with 202.3 MB peak private / 205.0 MB working set, no routine
+1,984 or 2,048, `consumer:mir-to-ast:done`, or gen2 output. Routine 1,920 was
+8,169 ms (2.86%) later than v48 and the current 1,984 marker was lost. This is
+larger than fixed-window noise, so `85cee4ff` explicitly restores the v48
+source instead of retaining a structurally plausible performance regression.
+Do not repeat this direct-construction shape or count static `ArrayLength`
+removal as a speedup. Current accepted evidence remains v48 and routine 2,048
+remains the next falsifier.
+
 2026-07-26 admitted routine-index branch selection (`8074d6c8`). Branch global
 row ownership remains in `MirRoutineInstructionFactBundle`, while selection now
 validates through `MirRoutineFactIndexBranchAtBlock`. The accessor requires an

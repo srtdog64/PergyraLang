@@ -972,6 +972,31 @@ not a speedup. Do not rerun v48 for a favorable sample or keep shaving local
 guards without a measured owner seam. Routine 2,048 remains the unchanged
 falsifier; MIR-to-AST completion and gen2 output remain absent.
 
+#### Revert a structurally valid optimization when generated-code cost wins
+
+The next experiment replaced `EmitBlockStmts`' three checked accessors with a
+single block-boundary admission and direct instruction/scalar construction.
+Its static model removed about 1,202,928 repeated shape checks across the full
+artifact, and a focused C/LLVM cross-block negative proved the new slice
+boundary failed closed. Those facts established correctness of the proposed
+owner path; they did not establish a cheaper generated program.
+
+Checkpoint `80a54268` built in 60,860 ms at 2,587.7 MB peak private / 2,578.1
+MB working set, compared with v48's 51,479 ms. Its bounded output remained 414
+bytes with the established SHA, and wrong ABI exited 1 with no output. The
+fixed full run reached routine 704 at 166,252 ms, routine 896 at 194,769 ms,
+routine 1,600 at 243,264 ms, and routine 1,920 at 293,502 ms. It timed out at
+300,269 ms with 202.3 MB peak private / 205.0 MB working set, no routine 1,984
+or 2,048, no `consumer:mir-to-ast:done`, and no gen2 file.
+
+The shared routine-1,920 marker was 8,169 ms (2.86%) later than v48, and v49
+lost the routine-1,984 marker. This is a material regression, not noise. The
+likely cost is the large generated block guard and direct aggregate
+construction replacing smaller called accessors. `85cee4ff` therefore reverts
+the experiment and restores the exact v48 source tree. Do not preserve a
+performance regression merely because its static check count is lower, and do
+not repeat the direct-construction shape under another name.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

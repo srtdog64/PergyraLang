@@ -8487,3 +8487,28 @@ Released/default replacement remains 0%.
   completion. Routine 2,048, MIR-to-AST completion, gen2 output and
   compilation, and gen3 comparison remain absent. Do not rerun v48 for a
   favorable sample or enlarge the 300-second/3,072 MB gate.
+
+### 2026-07-26 -- Direct block traversal is rejected and reverted
+
+- `80a54268` made `EmitBlockStmts` admit one block-local slice and directly
+  construct instruction/scalar values. The focused C/LLVM cross-block negative
+  and component ratchet passed, and the static model removed about 1,202,928
+  repeated shape checks. No fallback or backend split was introduced.
+- The exact-source v49 driver built in 60,860 ms at 2,587.7 MB peak private /
+  2,578.1 MB working set, materially slower than v48's 51,479 ms build. Its
+  1,463 ms bounded result remained 414 bytes with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed run reached routine 1,920 at 293,502 ms and timed out at 300,269 ms
+  with 202.3 MB peak private / 205.0 MB working set. It was 8,169 ms (2.86%)
+  later than v48 and did not reach routine 1,984, 2,048, MIR-to-AST completion,
+  or gen2 output.
+- Because the regression is material and attributable to the changed generated
+  path rather than memory pressure, `85cee4ff` explicitly reverts v49. The
+  accepted source and executable evidence return to v48. This preserves the
+  failed experiment in history without making a structurally plausible but
+  slower path the compiler default.
+- Self-host completion remains absent: no routine 2,048 marker, complete
+  `driver_gen2.c`, gen2 compilation, or gen3 comparison exists. The next seam
+  must not repeat direct per-block aggregate construction or infer speed from
+  static check removal alone.
