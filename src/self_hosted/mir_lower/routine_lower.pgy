@@ -8,6 +8,7 @@ import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_cfg_projection_owner.pgy";
 import "routine_instruction_view_owner.pgy";
+import "routine_instruction_use_fact_owner.pgy";
 import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
@@ -405,7 +406,18 @@ func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
     }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-fact-index:done"); }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:fact-index:done"); }
-    if !MirRoutinePhiFactsReady(index, routines, routine_row) {
+    let use_facts: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(routines, routine_row);
+    if !MirRoutineInstructionUseFactsReady(
+        use_facts, ArrayLength(index.instruction_facts.starts)
+    ) {
+        MirLowerFailClosed(Concat(
+            "MIR instruction use facts are missing or inconsistent: ", routine
+        ));
+    }
+    if !MirRoutinePhiFactsReady(
+        index, routines, use_facts, routine_row
+    ) {
         MirLowerFailClosed(Concat(
             "MIR phi facts are missing or inconsistent: ", routine
         ));

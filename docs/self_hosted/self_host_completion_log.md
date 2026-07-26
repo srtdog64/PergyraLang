@@ -6,6 +6,43 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - One predecessor-resolved phi plan drives both backends
+
+- The Pergyra-built integrated driver emitted the 4,916-byte
+  `if_else_assign.pgy` MIR once, SHA-256
+  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`.
+  The same identity drove C and LLVM, which compiled and matched native output
+  `2`; all earlier direct scalar and no-phi CFG rungs remained green.
+- Instruction scalar/bundle admission now captures `name`, the existing use
+  owner supplies phi inputs once, and a new unique-result definition fact maps
+  each SSA identity to global/block/instruction coordinates. The old raw
+  `uses` reread was deleted from the phi owner.
+- Phi input order is not treated as predecessor order. Certificate issuance
+  resolves each input by its definition block and binds exactly one true-arm
+  and one false-arm incoming value. This preserves legal loop cases where
+  multiple predecessors carry the same upstream SSA while rejecting duplicate
+  arm coverage in the direct diamond.
+- The existing AIR certificate now binds a fixed phi digest in addition to
+  MIR/CFG identity. The single target-neutral plan copies fixed digest bindings
+  and normalized shape facts; it no longer embeds or repeatedly validates the
+  full certificate. Plan readiness recomputes the phi binding from normalized
+  SSA fields, and a re-digested stale binding rejects. Both emitters still live
+  in one Pergyra-responsibility owner, consume only that plan, and only the
+  selected backend emitter runs per invocation.
+- Missing phi, wrong incoming count, duplicate predecessor coverage, stale or
+  conflicting SSA identities, and merge-edge drift all reject before output.
+  The fresh bounded Pergyra-built r2 bootstrap passed. A separate
+  detached-worker-aware repeat measured the heavy gen2 emission at a real
+  1022.1/937.2 MB private/working-set peak under the 3,072 MB cap, and its
+  3,366,105-byte C output was byte-identical to the bounded seed.
+- Next: close the language-keyword SoT defect exposed by `impl/ref/own/type`:
+  native reserved tokens currently render as `UNKNOWN`, and self-host copies
+  that debug defect. Keep contextual validity parser-owned. Then widen the
+  same certificate/plan to `reassign_block.pgy` (4,062 bytes,
+  SHA-256
+  `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`),
+  whose false edge carries the entry SSA directly into a three-block merge.
+
 ## 2026-07-27 - MIR-bound AIR plan directly drives if/else on both backends
 
 - The Pergyra-built integrated driver emitted the 3,413-byte `ifelse.pgy` MIR

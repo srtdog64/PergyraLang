@@ -2,18 +2,34 @@
 
 English anchor for tooling/doc gates:
 
-- Active self-host backend rung: extend the landed shared CFG/AIR plan to
-  `if_else_assign.pgy`. v68 now admits the unchanged 3,413-byte `ifelse.pgy`
-  MIR (SHA-256
-  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`)
-  through one MIR-bound AIR certificate and one target-neutral verified plan;
-  Pergyra-built C/LLVM both compile and match `pos`, while CFG/evidence/identity
-  mutations reject before output. The next 4,916-byte MIR has SHA-256
-  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`
-  and exactly one merge phi. Carry that phi's incoming SSA identities and
-  result into the same certificate/plan; do not add a fixture projector,
-  backend-specific CFG reader, second MIR/plan, AST/semantic reconstruction,
-  raw `expr0`/successor reads, or repeated graph validation. Gates:
+- Active SoT closure: add one language-keyword registry after the landed v69
+  executable rung. Native lexical classification already gives `impl`, `ref`,
+  `own`, and `type` dedicated reserved tokens, while token debug omits their
+  cases and self-host classification copies the resulting `UNKNOWN`. The
+  registry must own spelling, lexical class, token identity, language axis,
+  and native/self-host/tool exposure; parser-owned context remains separate,
+  so `authority`, `authorized`, `using`, `within`, and other contextual words
+  must not become reserved merely to simplify the registry. First falsifier:
+  every native reserved token has a non-UNKNOWN debug identity and matching
+  self-host identity. Negative gates must reject duplicate spelling/token,
+  reserved/contextual dual classification, independent consumer keyword
+  tables, and LSP/docs claims absent from the registry.
+- Queued self-host backend rung: extend the landed shared CFG/AIR plan to
+  `reassign_block.pgy`. v69 now admits the unchanged 4,916-byte
+  `if_else_assign.pgy` MIR (SHA-256
+  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`)
+  through the existing MIR-bound certificate and target-neutral plan;
+  predecessor blocks, not phi `uses` order, bind the two incoming SSA values.
+  Pergyra-built C/LLVM both compile and match `2`, while missing/duplicate/
+  stale phi identities reject before output. The next 4,062-byte MIR has
+  SHA-256
+  `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`,
+  three blocks with instruction counts `[2,1,2]`, one merge phi, and native
+  output `10`. Generalize the same certificate/plan to a false edge that
+  directly carries the entry SSA into the merge; do not add a fixture
+  projector, backend-specific CFG reader, second MIR/plan, AST/semantic
+  reconstruction, phi-order assumption, raw `expr0`/successor/use reads, or
+  repeated graph/certificate validation. Gates:
   `self-host-one-mir-dual-backend-projection-test-smoke` and
   `self-host-one-mir-cfg-air-plan-projection-test-smoke`. Released/default
   replacement remains 0%.

@@ -1529,6 +1529,55 @@ If memory rises again, count MIR/CFG/graph owner traversals before adding a
 cache or raising the unchanged 3,072 MB cap. The valid count for this direct
 path is one admission traversal followed only by fixed-size identity checks.
 
+#### v69 phi admission preserves the same one-pass boundary
+
+The four-block `if_else_assign.pgy` rung produces a 4,916-byte MIR artifact,
+SHA-256
+`da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`,
+with one merge phi and native output `2`. Phi admission now consumes the typed
+instruction-use facts already built for the routine. It does not reopen the
+raw `uses` arrays or validate the complete routine graph for each incoming
+edge. Each incoming SSA result is mapped to its unique definition block, so
+predecessor coverage is independent of the serialized `uses` order.
+
+The normalized CFG shape is issued from the one AIR certificate, and the
+target-neutral plan copies only the certificate/MIR/CFG/phi identities plus
+the closed shape fact. It does not retain the full certificate or call
+certificate readiness again. Plan readiness recomputes the small phi binding
+digest from the normalized local/result/true/false SSA fields; changing either
+the digest or those fields and then repairing the plan self-digest still
+rejects. Each invocation selects exactly one C or LLVM emitter, so an LLVM
+request no longer constructs and discards a C payload first. After plan
+issuance neither path performs a second MIR, CFG, expression-graph, phi, or
+certificate traversal.
+
+The final bounded Pergyra-built r2 bootstrap exited 0 with seed/oracle MIR and
+consumer parity. Its heavy `gen2` seed-emission step was then repeated under
+detached-worker-aware pressure measurement: 355,226 ms, 1,022.1 MB peak
+private / 937.2 MB peak working set, with `gen2.exe` owning 1,005.8 MB private.
+The 3,366,105-byte output was byte-identical to the bounded bootstrap seed
+(SHA-256
+`ef8f0be361e9df7e0835c32c30fb4a38d8c33aeaccbe0776912fe309ec06637`),
+and the unchanged 3,072 MB fail-closed cap was not exceeded.
+
+Do not use the same runner's `RootProcessTreeOnly` summary as gen2 memory
+evidence under Git Bash. The native worker can be reparented after an MSYS
+pipeline parent exits; the root-only run then reported only 27.7/9.8 MB for
+bash while the real gen2 process was near 1 GB. Use the default detached
+compiler-worker attribution for an isolated probe, or label a manual sample as
+non-peak. The old 3 GiB/20+ GiB symptom was caused by cumulative graph copying
+and repeated whole-graph validation; do not classify a later high-water mark
+as the same defect until owner traversal counts show that those ratchets
+regressed.
+
+One v69 LLVM failure was a separate owned-`String` correctness defect. The
+emitter reused a local `format_name` after the first `Concat` had consumed its
+storage, so a later interpolation emitted an empty global reference (`ptr @`).
+`DirectMirCfgLlvmFormatName` now returns a fresh owned string for every use.
+If an LLVM projection contains an empty symbol while C projection is valid,
+audit consumed string reuse first; raising the memory cap or revalidating the
+graph cannot repair it.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

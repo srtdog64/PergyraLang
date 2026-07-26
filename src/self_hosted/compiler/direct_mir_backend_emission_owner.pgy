@@ -203,25 +203,49 @@ func DirectMirCfgEmitC(
         StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
         Die("direct MIR CFG C projection plan or runtime ABI is invalid");
     }
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+    let output: String = "#include <stdio.h>\n";
+    if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+        output = Concat(output, "#include <stdbool.h>\n");
+    }
+    output = Concat(output, "\nint main(void) {\n    ");
     output = Concat(output, int_c_type);
     output = Concat(output, " pgy_local_0 = ");
-    output = Concat(output, plan.integer_literal);
-    output = Concat(output, ";\n    if (pgy_local_0 > ");
-    output = Concat(output, plan.condition_right_literal);
+    output = Concat(output, plan.shape.entry_integer_literal);
+    output = Concat(output, ";\n    if (");
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(output, "pgy_local_0 > ");
+    } else if plan.shape.kind != DirectMirCfgPhiMergeShapeKind() {
+        Die("direct MIR CFG C projection shape is unsupported");
+    }
+    output = Concat(output, plan.shape.condition_literal);
     output = Concat(output, ") {\n        ");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(output, "(\"");
-    output = Concat(output, line_format);
-    output = Concat(output, "\", ");
-    output = Concat(output, plan.true_literal);
-    output = Concat(output, ");\n    } else {\n        ");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(output, "(\"");
-    output = Concat(output, line_format);
-    output = Concat(output, "\", ");
-    output = Concat(output, plan.false_literal);
-    output = Concat(output, ");\n    }\n    return 0;\n}\n");
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(\"");
+        output = Concat(output, line_format);
+        output = Concat(output, "\", ");
+        output = Concat(output, plan.shape.true_literal);
+        output = Concat(output, ");\n    } else {\n        ");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(\"");
+        output = Concat(output, line_format);
+        output = Concat(output, "\", ");
+        output = Concat(output, plan.shape.false_literal);
+        output = Concat(output, ");\n    }\n");
+    } else {
+        output = Concat(output, "pgy_local_0 = ");
+        output = Concat(output, plan.shape.true_literal);
+        output = Concat(output, ";\n    } else {\n        pgy_local_0 = ");
+        output = Concat(output, plan.shape.false_literal);
+        output = Concat(output, ";\n    }\n    ");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(\"");
+        output = Concat(output, line_format);
+        output = Concat(output, "\", (");
+        output = Concat(output, int_c_type);
+        output = Concat(output, ")pgy_local_0);\n");
+    }
+    output = Concat(output, "    return 0;\n}\n");
     return output;
 }
 
@@ -234,6 +258,17 @@ func DirectMirCfgLlvmStringConstant(name: String, content: String) -> String {
     output = Concat(output, content);
     output = Concat(output, "\\00\", align 1\n");
     return output;
+}
+
+func DirectMirCfgLlvmFormatName(shape_kind: Int) -> String {
+    if shape_kind == DirectMirCfgLiteralArmShapeKind() {
+        return ".pgy.string.line.format";
+    }
+    if shape_kind == DirectMirCfgPhiMergeShapeKind() {
+        return ".pgy.int.line.format";
+    }
+    Die("direct MIR CFG LLVM projection shape is unsupported");
+    return "";
 }
 
 func DirectMirCfgEmitLlvm(
@@ -249,51 +284,84 @@ func DirectMirCfgEmitLlvm(
         Die("direct MIR CFG LLVM projection plan or runtime ABI is invalid");
     }
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    let output: String = "@.pgy.string.line.format = private unnamed_addr constant [";
+    let output: String = "@";
+    output = Concat(output, DirectMirCfgLlvmFormatName(plan.shape.kind));
+    output = Concat(output, " = private unnamed_addr constant [");
     output = Concat(output, ToString(format_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));
     output = Concat(output, "\\00\", align 1\n");
-    output = Concat(
-        output, DirectMirCfgLlvmStringConstant(".pgy.cfg.true", plan.true_content)
-    );
-    output = Concat(
-        output,
-        DirectMirCfgLlvmStringConstant(
-            ".pgy.cfg.false", plan.false_content
-        )
-    );
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(output, DirectMirCfgLlvmStringConstant(
+            ".pgy.cfg.true", plan.shape.true_content
+        ));
+        output = Concat(output, DirectMirCfgLlvmStringConstant(
+            ".pgy.cfg.false", plan.shape.false_content
+        ));
+    }
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
-    output = Concat(output, "  %pgy.local.0 = add i64 0, ");
-    output = Concat(output, plan.integer_literal);
-    output = Concat(output, "\n  %pgy.condition.0 = icmp sgt i64 %pgy.local.0, ");
-    output = Concat(output, plan.condition_right_literal);
-    output = Concat(output, "\n  br i1 %pgy.condition.0, label %pgy.block.");
+    output = Concat(output, "  %pgy.local.entry = add i64 0, ");
+    output = Concat(output, plan.shape.entry_integer_literal);
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(
+            output, "\n  %pgy.condition.0 = icmp sgt i64 %pgy.local.entry, "
+        );
+        output = Concat(output, plan.shape.condition_literal);
+        output = Concat(output, "\n  br i1 %pgy.condition.0, label %pgy.block.");
+    } else {
+        output = Concat(output, "\n  br i1 ");
+        output = Concat(output, plan.shape.condition_literal);
+        output = Concat(output, ", label %pgy.block.");
+    }
     output = Concat(output, ToString(plan.true_block));
     output = Concat(output, ", label %pgy.block.");
     output = Concat(output, ToString(plan.false_block));
     output = Concat(output, "\n\npgy.block.");
     output = Concat(output, ToString(plan.true_block));
-    output = Concat(output, ":\n  %pgy.logged.true = call i32 (ptr, ...) @");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(
-        output,
-        "(ptr @.pgy.string.line.format, ptr @.pgy.cfg.true)\n  br label %pgy.block."
-    );
+    output = Concat(output, ":\n  ");
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(output, "%pgy.logged.true = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(ptr @");
+        output = Concat(output, DirectMirCfgLlvmFormatName(plan.shape.kind));
+        output = Concat(output, ", ptr @.pgy.cfg.true)\n  br label %pgy.block.");
+    } else {
+        output = Concat(output, "%pgy.local.true = add i64 0, ");
+        output = Concat(output, plan.shape.true_literal);
+        output = Concat(output, "\n  br label %pgy.block.");
+    }
     output = Concat(output, ToString(plan.merge_block));
     output = Concat(output, "\n\npgy.block.");
     output = Concat(output, ToString(plan.false_block));
-    output = Concat(output, ":\n  %pgy.logged.false = call i32 (ptr, ...) @");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(
-        output,
-        "(ptr @.pgy.string.line.format, ptr @.pgy.cfg.false)\n  br label %pgy.block."
-    );
+    output = Concat(output, ":\n  ");
+    if plan.shape.kind == DirectMirCfgLiteralArmShapeKind() {
+        output = Concat(output, "%pgy.logged.false = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(ptr @");
+        output = Concat(output, DirectMirCfgLlvmFormatName(plan.shape.kind));
+        output = Concat(output, ", ptr @.pgy.cfg.false)\n  br label %pgy.block.");
+    } else {
+        output = Concat(output, "%pgy.local.false = add i64 0, ");
+        output = Concat(output, plan.shape.false_literal);
+        output = Concat(output, "\n  br label %pgy.block.");
+    }
     output = Concat(output, ToString(plan.merge_block));
     output = Concat(output, "\n\npgy.block.");
     output = Concat(output, ToString(plan.merge_block));
-    output = Concat(output, ":\n  ret i32 0\n}\n");
+    output = Concat(output, ":\n");
+    if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+        output = Concat(output, "  %pgy.local.merge = phi i64 [ %pgy.local.true, %pgy.block.");
+        output = Concat(output, ToString(plan.true_block));
+        output = Concat(output, " ], [ %pgy.local.false, %pgy.block.");
+        output = Concat(output, ToString(plan.false_block));
+        output = Concat(output, " ]\n  %pgy.logged.merge = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(ptr @");
+        output = Concat(output, DirectMirCfgLlvmFormatName(plan.shape.kind));
+        output = Concat(output, ", i64 %pgy.local.merge)\n");
+    }
+    output = Concat(output, "  ret i32 0\n}\n");
     return output;
 }

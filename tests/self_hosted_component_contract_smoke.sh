@@ -8104,29 +8104,36 @@ require_text "src/self_hosted/mir_lower/ssa_identity_owner.pgy" \
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     'import "ssa_identity_owner.pgy";'
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "MirSsaNameMatches(result, name, false)"
+    "MirSsaNameMatches(scalar.result, scalar.name, false)"
 reject_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirPhiSsaNameMatches("
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    'use_count < 2 || use_count > predecessor_count'
+    'use_count < 2 ||'
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    'func MirPhiResultExists('
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'use_count > predecessor_count'
+require_file "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" 140
+require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
     'func MirPhiParameterEntryExists('
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'struct MirRoutinePhiFact'
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'func MirRoutinePhiFactAt('
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'MirRoutineInstructionUseAtGlobal('
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'MirRoutineFactIndexUniqueResultDefinition('
+require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
+    'struct MirRoutineResultDefinitionFact'
+require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
+    'func MirRoutineFactIndexUniqueResultDefinition('
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'let instruction_facts: MirRoutineInstructionFactBundle;'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'block_instruction_counts, instruction_facts,'
 reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     'instruction_results'
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    'func MirRoutineFactIndexResultExists('
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    'return MirRoutineFactIndexResultExists(index, wanted);'
-reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "func MirPhiResultExists" "json"
-reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "func MirPhiResultExists" "MirRoutineFactIndexInstructionBounds("
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" '"result"'
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
@@ -8136,12 +8143,7 @@ require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "index.instruction_facts.block_phi_prefix_counts[block_id]"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "result_row >= ArrayLength(index.instruction_facts.results)"
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "while instruction_row < phi_prefix_count"
-[[ "$(grep -F -c -- 'MirRoutineInstructionFactBundleReady(' \
-    "$ROOT_DIR/src/self_hosted/mir_lower/phi_fact_owner.pgy" || true)" -eq 1 ]] ||
-    fail "phi fact owner must admit the routine instruction bundle exactly once"
 reject_regex_under "src/self_hosted" \
     "MirRoutineInstructionFactBundlePhiPrefixCountAtBlock"
 reject_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
@@ -8154,9 +8156,7 @@ reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" \
     "while instruction_row < instruction_count"
-reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "func MirPhiResultExists" "MirObjectStringFact("
-reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+reject_function_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
     "func MirPhiParameterEntryExists" "MirObjectArrayObjectBoundsAt("
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" "MirObjectStringFact("
@@ -8166,11 +8166,9 @@ reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" "MirObjectArrayStringFactCount("
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" "MirObjectArrayStringFactAt("
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "MirObjectStringFactAtBounds("
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+reject_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "MirObjectArrayStringFactsAtBounds("
-require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
     "JsonArrayNextObjectBounds("
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "MirRoutineInstructionViewAt("
@@ -8248,7 +8246,11 @@ for match_fixture_term in \
         "$match_fixture_term"
 done
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    'if !MirRoutinePhiFactsReady(index, routines, routine_row)'
+    'if !MirRoutinePhiFactsReady('
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'index, routines, use_facts, routine_row'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'BuildMirRoutineInstructionUseFacts(routines, routine_row)'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "routine_row: Int, json: String"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -10529,6 +10531,10 @@ require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pg
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_layout_bounds: Array<Int>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "let name: String;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "let names: Array<String>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     "let abi_type_value_ready: Bool;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_type_values_ready: Array<Bool>;"
@@ -10724,7 +10730,9 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirInstructionAbiLayoutFactReady("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "instruction is missing or carries an invalid MIR ABI layout fact"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "use_count < 2 || use_count > predecessor_count"
+    "use_count < 2 ||"
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "use_count > predecessor_count"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirPhiPredecessorCount("
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
@@ -11354,12 +11362,15 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
 require_file "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 380
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 420
+    "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
+require_file "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
 require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
-require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 380
+require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
@@ -11401,10 +11412,24 @@ require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "../air/mir_cfg_certificate_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'func DirectMirCfgPlanMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'let shape: DirectMirCfgShapeFacts;'
+require_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
+    'func DirectMirCfgPhiMergeShapeKind()'
+require_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
+    'func DirectMirCfgShapeFactsFromOwners('
+reject_function_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'func DirectMirCfgPlanReady(' 'DirectMirCfgCertificateReady('
+reject_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'let certificate: DirectMirCfgCertificate;'
+reject_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
+    'MirObjectArrayStringFactsAtBounds('
 require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'func DirectMirCfgCertificateMutationRejected('
 require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'CompilerAirEvidenceMirTerminatorFact()'
+require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
+    'let phi_digest: Int;'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'let block_reachable: Array<Bool>;'
 require_text \

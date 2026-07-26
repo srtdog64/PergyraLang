@@ -640,8 +640,9 @@ inventory must not become a second fact-family owner registry.
   only when binding, iterable, and element types agree.
 - `src/self_hosted/mir_lower/match_binding_render_owner.pgy` -- reconstructs
   typed match binding statements and the oracle-only inferred legacy form.
-- `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
-  predecessor arity and canonical SSA local-identity validation.
+- `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer typed phi
+  predecessor arity, canonical SSA local/result identity, flattened incoming
+  use, and unique definition-block validation without reopening raw `uses`.
 - `src/self_hosted/mir_lower/ssa_identity_owner.pgy` -- consumer-side
   canonical `<source-local>.<version>` validation shared by phi and direct
   backend admission without importing producer version assignment internals.
@@ -689,10 +690,13 @@ inventory must not become a second fact-family owner registry.
   routine-local flattened view of admitted instruction `uses` arrays. It keeps
   use identity shared across backend consumers and rejects missing arrays or
   empty use identities instead of allowing backend-local raw JSON reads.
+- `src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy` --
+  unique routine-local SSA result definition identity and its global/block/
+  instruction coordinates, derived from the admitted instruction bundle.
 - `src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy` --
-  one bounded instruction-object walk that captures routine-local render
-  strings and ABI value spans; ABI syntax and semantic validation remain with
-  `abi_layout_fact_owner.pgy`.
+  one bounded instruction-object walk that captures instruction name,
+  routine-local render strings, and ABI value spans; ABI syntax and semantic
+  validation remain with `abi_layout_fact_owner.pgy`.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
 - `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine
@@ -1070,8 +1074,9 @@ inventory must not become a second fact-family owner registry.
   fact vocabulary for intent/effect/authority/coordination and MIR terminators.
 - `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
   certificate issuer for the bounded direct CFG rung. It verifies the typed
-  block/terminator inventory once, binds MIR and CFG digests, and permits only
-  strict zero-fallback/zero-drift evidence with a self-digest mutation guard.
+  block/terminator/merge-phi inventory once, binds MIR, CFG, and predecessor-
+  resolved phi digests, and permits only strict zero-fallback/zero-drift
+  evidence with a fixed-size self-digest mutation guard.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
@@ -1244,8 +1249,13 @@ inventory must not become a second fact-family owner registry.
   scalar projections or `DirectMirCfgPlan`; it owns no MIR/AIR read path.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy` -- target-neutral
   verified four-block CFG plan. It derives entry/arm/merge roles from typed MIR
-  owners, binds the AIR certificate and target-capability fingerprint, and
-  self-digests every mechanical emission fact before either backend sees it.
+  owners, copies only fixed AIR/MIR/CFG/phi digest bindings and the target-
+  capability fingerprint, and self-digests every mechanical emission fact
+  before either backend sees it; the full certificate is not retained.
+- `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
+  closed action facts for the same single CFG plan: literal-log arms or typed
+  Int assignment arms with a predecessor-resolved merge phi and Log use. It is
+  a derived plan payload, not a second plan or backend reader.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. It owns neither target text

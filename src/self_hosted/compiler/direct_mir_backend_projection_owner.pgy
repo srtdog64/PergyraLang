@@ -36,8 +36,11 @@ func CompileAdmittedDirectMirForTarget(
         if !hello.valid {
             Die("direct MIR backend projection rejected unsupported or mutated hello facts");
         }
-        payload = DirectMirHelloEmitC(hello);
-        if is_llvm { payload = DirectMirHelloEmitLlvm(hello); }
+        if is_llvm {
+            payload = DirectMirHelloEmitLlvm(hello);
+        } else {
+            payload = DirectMirHelloEmitC(hello);
+        }
     } else if block_count == 1 {
         let formatted_print: CompilerRuntimeCallAbiFact =
             CompilerRuntimeCallAbiFormattedPrintFact();
@@ -51,12 +54,13 @@ func CompileAdmittedDirectMirForTarget(
         if !scalar.valid || !formatted_print.ok {
             Die("direct MIR backend projection rejected unsupported scalar facts");
         }
-        payload = DirectMirScalarEmitC(
-            scalar, formatted_print, line_format, int_c_type
-        );
         if is_llvm {
             payload = DirectMirScalarEmitLlvm(
                 scalar, formatted_print, line_format
+            );
+        } else {
+            payload = DirectMirScalarEmitC(
+                scalar, formatted_print, line_format, int_c_type
             );
         }
     } else if block_count == 4 {
@@ -71,13 +75,19 @@ func CompileAdmittedDirectMirForTarget(
             Die("direct MIR CFG verified plan identity is invalid before emission");
         }
         let line_format: String = StringRuntimeCStringLineFormat();
-        payload = DirectMirCfgEmitC(
-            plan, formatted_print, line_format,
-            CompilerAbiLayoutIntCValueType()
-        );
+        if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+            line_format = StringRuntimeCIntLineFormat();
+        } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() {
+            Die("direct MIR CFG projection shape has no runtime ABI format");
+        }
         if is_llvm {
             payload = DirectMirCfgEmitLlvm(
                 plan, formatted_print, line_format
+            );
+        } else {
+            payload = DirectMirCfgEmitC(
+                plan, formatted_print, line_format,
+                CompilerAbiLayoutIntCValueType()
             );
         }
     } else {

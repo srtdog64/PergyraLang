@@ -6,6 +6,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Self-Hosted Phi Merge Projection Rung (2026-07-27)
+
+- **self-host/mir**: Capture instruction names and flattened use facts once,
+  add unique SSA definition coordinates, and migrate phi validation away from
+  raw `uses` rereads. Phi incoming order is explicitly non-semantic; defining
+  predecessor blocks own true/false mapping.
+- **self-host/verification**: Extend the existing CFG certificate with one
+  predecessor-resolved phi digest. The verified plan now carries only fixed
+  certificate/MIR/CFG/phi digest bindings and normalized shape facts instead
+  of retaining and revalidating the full certificate at each emission. Plan
+  readiness also binds that phi digest back to the normalized SSA fields, so a
+  re-digested stale binding fails closed.
+- **self-host/compiler**: Extend the same combined C/LLVM emission owner to
+  typed assignment arms, LLVM phi emission, and merge-value formatted output.
+  No backend-specific CFG reader or second projection plan is introduced, and
+  an LLVM request no longer builds and discards the C payload first.
+- **tests**: Add Pergyra-built C/LLVM/native parity for
+  `if_else_assign.pgy`, including missing/count/coverage/stale/result/merge
+  negatives. Existing scalar and no-phi CFG rungs remain green.
+- **build/memory**: Rebuild the Pergyra-built bounded r2 driver and measure its
+  heavy gen2 emission with detached-worker attribution: 1,022.1 MB peak
+  private / 937.2 MB working set under the unchanged 3,072 MB cap, with
+  byte-identical generated C.
+
 ### Self-Hosted CFG/AIR Projection Rung (2026-07-27)
 
 - **self-host/compiler**: Add a MIR-bound AIR certificate and one

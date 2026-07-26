@@ -1,0 +1,123 @@
+// Unique routine-local MIR result definition lookup.
+//
+// Result identity and instruction/block coordinates are projected from the
+// admitted routine fact index. Consumers do not reopen MIR JSON or accept the
+// first of several definitions carrying the same SSA identity.
+
+import "routine_fact_index_owner.pgy";
+import "json_fact_read.pgy";
+
+struct MirRoutineResultDefinitionFact {
+    let valid: Bool;
+    let found: Bool;
+    let unique: Bool;
+    let global_row: Int;
+    let block_id: Int;
+    let block_instruction_row: Int;
+}
+
+func MirRoutineResultDefinitionFactMissing(
+    valid: Bool,
+    found: Bool
+) -> MirRoutineResultDefinitionFact {
+    return MirRoutineResultDefinitionFact(
+        valid, found, false, 0 - 1, 0 - 1, 0 - 1
+    );
+}
+
+func MirRoutineFactIndexUniqueResultDefinition(
+    ref index: MirRoutineFactIndex,
+    wanted: String
+) -> MirRoutineResultDefinitionFact {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if StringLength(wanted) == 0 || !index.valid ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        !MirRoutineInstructionFactBundleReady(
+            index.instruction_facts, block_count
+        ) {
+        return MirRoutineResultDefinitionFactMissing(false, false);
+    }
+
+    let result_row: Int = 0 - 1;
+    let match_count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.results) {
+        if index.instruction_facts.results[row] == wanted {
+            if match_count == 0 { result_row = row; }
+            match_count = match_count + 1;
+        }
+        row = row + 1;
+    }
+    if match_count == 0 {
+        return MirRoutineResultDefinitionFactMissing(true, false);
+    }
+    if match_count != 1 {
+        return MirRoutineResultDefinitionFactMissing(true, true);
+    }
+
+    let definition_block: Int = 0 - 1;
+    let block_instruction_row: Int = 0 - 1;
+    let block: Int = 0;
+    while block < block_count {
+        let start: Int = index.block_instruction_starts[block];
+        let count: Int = index.block_instruction_counts[block];
+        if start < 0 || count < 0 ||
+            start + count > ArrayLength(index.instruction_facts.results) {
+            return MirRoutineResultDefinitionFactMissing(false, true);
+        }
+        if result_row >= start && result_row < start + count {
+            if definition_block >= 0 {
+                return MirRoutineResultDefinitionFactMissing(false, true);
+            }
+            definition_block = block;
+            block_instruction_row = result_row - start;
+        }
+        block = block + 1;
+    }
+    let global_row: Int = index.instruction_facts.global_start + result_row;
+    if definition_block < 0 || block_instruction_row < 0 || global_row < 0 {
+        return MirRoutineResultDefinitionFactMissing(false, true);
+    }
+    return MirRoutineResultDefinitionFact(
+        true, true, true, global_row,
+        definition_block, block_instruction_row
+    );
+}
+
+func MirRoutineResultDefinitionFactReady(
+    ref fact: MirRoutineResultDefinitionFact
+) -> Bool {
+    return fact.valid && fact.found && fact.unique &&
+        fact.global_row >= 0 && fact.block_id >= 0 &&
+        fact.block_instruction_row >= 0;
+}
+
+// A parameter's canonical `.0` identity is an entry definition without an
+// instruction row. Keep that existing phi rule separate from result lookup.
+func MirPhiParameterEntryExists(
+    ref index: MirRoutineFactIndex,
+    json: String,
+    local_name: String,
+    wanted: String
+) -> Bool {
+    if wanted != Concat(local_name, ".0") { return false; }
+    let params_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+        json, index.routine_start, index.routine_end,
+        "params", params_bounds
+    ) { return false; }
+    let cursor: Int = params_bounds[0] + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(
+        json, cursor, params_bounds[1], bounds
+    ) {
+        if MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "name"
+        ) == local_name {
+            return true;
+        }
+        cursor = bounds[1];
+    }
+    return false;
+}

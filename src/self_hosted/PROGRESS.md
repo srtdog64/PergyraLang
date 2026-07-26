@@ -1,5 +1,54 @@
 # Self-Host Progress
 
+2026-07-27 v69 replaces the next bounded C-owned CFG/dataflow slice. The
+Pergyra-built integrated driver emitted `if_else_assign.pgy` once as a
+4,916-byte `pgy.mir.v1` artifact with SHA-256
+`da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`.
+One MIR-bound certificate and one target-neutral plan drove both direct C and
+LLVM artifacts; both compiled and matched native output `2`. The unchanged
+hello, `let_log`, `multilet`, and no-phi `ifelse` rungs remain green.
+
+Instruction scalar/bundle admission now captures instruction `name` once,
+the typed use owner supplies phi incoming identities without a second raw
+`uses` read, and a unique-result definition fact resolves every incoming SSA
+to its actual defining block. Phi array order is not predecessor order: the
+certificate binds one incoming definition from the true block and one from the
+false block, while retaining legal loop cases where multiple predecessors
+carry the same upstream value. Missing phi, wrong incoming count, duplicate
+arm coverage, stale/non-unique SSA, conflicting phi result, and merge-edge
+mutations reject before either artifact opens.
+
+The v2 certificate adds one predecessor-resolved phi digest while retaining
+one `mir_terminator` AIR evidence row and zero fallback/drift. Certificate
+issuance performs the MIR/CFG/phi validation once. The v2 plan copies only the
+certificate, MIR, CFG, and phi digests plus fixed normalized shape facts; it no
+longer retains or revalidates the full certificate during C/LLVM emission.
+Plan readiness binds the phi digest back to the normalized SSA fields, and a
+re-digested stale binding rejects. Both backends remain in the same
+Pergyra-responsibility emission owner, while one invocation executes only the
+selected emitter rather than constructing C before LLVM.
+
+The native-current and fresh Pergyra-built bounded r2 drivers passed the
+combined scalar/CFG gate and all mutations. A detached-worker-aware isolated
+repeat of the heavy gen2 seed emission completed in 355,226 ms at a measured
+peak of 1,022.1 MB private / 937.2 MB working set; its 3,366,105-byte output
+was byte-identical to the bounded seed. The 3,072 MB cap was unchanged and not
+exceeded. Released/default `pgy` replacement remains 0%.
+
+The next SoT closure is the language-keyword registry. Native lexical
+classification already gives `impl`, `ref`, `own`, and `type` dedicated
+reserved tokens, but the debug renderer omits them and the self-host lexer
+copies that `UNKNOWN` presentation defect as classification. Close
+spelling/class/token/debug parity first without promoting contextual words to
+reserved tokens; parser context remains parser-owned. The next queued
+executable backend rung remains `reassign_block.pgy`: its current 4,062-byte
+MIR has SHA-256
+`c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`,
+three blocks with instruction counts `[2,1,2]`, one merge phi, and native
+output `10`. The missing fact is a false edge that carries the entry SSA
+directly into the merge; after the keyword closure, extend the same
+certificate/plan rather than adding a second graph or fixture path.
+
 2026-07-27 v68 replaces the next real C-owned backend-consumption slice. The
 Pergyra-built integrated driver emitted `ifelse.pgy` once as a 3,413-byte
 `pgy.mir.v1` artifact with SHA-256

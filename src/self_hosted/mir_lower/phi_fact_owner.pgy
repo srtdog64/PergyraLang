@@ -1,10 +1,10 @@
 // MIR phi arity and local-identity verifier.
 
-import "json_fact_read.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_instruction_view_owner.pgy";
+import "routine_instruction_use_fact_owner.pgy";
+import "routine_result_definition_fact_owner.pgy";
 import "ssa_identity_owner.pgy";
-
 func MirPhiPredecessorCount(
     ref index: MirRoutineFactIndex, block_id: Int
 ) -> Int {
@@ -24,44 +24,143 @@ func MirPhiPredecessorCount(
     }
     return count;
 }
-
-func MirPhiResultExists(ref index: MirRoutineFactIndex, wanted: String) -> Bool {
-    return MirRoutineFactIndexResultExists(index, wanted);
+struct MirRoutinePhiFact {
+    let valid: Bool;
+    let block_id: Int;
+    let global_row: Int;
+    let block_instruction_row: Int;
+    let local_name: String;
+    let result_name: String;
+    let predecessor_count: Int;
+    let incoming_results: Array<String>;
+    let incoming_definition_blocks: Array<Int>;
 }
 
-func MirPhiParameterEntryExists(
+func MirRoutinePhiFactEmpty() -> MirRoutinePhiFact {
+    let incoming_results: Array<String> = [];
+    let incoming_definition_blocks: Array<Int> = [];
+    return MirRoutinePhiFact(
+        false, 0 - 1, 0 - 1, 0 - 1, "", "", 0,
+        incoming_results, incoming_definition_blocks
+    );
+}
+func MirRoutinePhiFactAt(
     ref index: MirRoutineFactIndex,
-    json: String,
-    local_name: String,
-    wanted: String
-) -> Bool {
-    if wanted != Concat(local_name, ".0") { return false; }
-    let params_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(
-        json, index.routine_start, index.routine_end,
-        "params", params_bounds
-    ) { return false; }
-    let cursor: Int = params_bounds[0] + 1;
-    let bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(
-        json, cursor, params_bounds[1], bounds
-    ) {
-        if MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "name"
-        ) == local_name {
-            return true;
-        }
-        cursor = bounds[1];
+    ref routines: MirProgramRoutineIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    routine_row: Int,
+    block_id: Int,
+    block_instruction_row: Int
+) -> MirRoutinePhiFact {
+    let block_count: Int = ArrayLength(index.block_starts);
+    let instruction_count: Int = ArrayLength(index.instruction_facts.starts);
+    if !index.valid ||
+        !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        block_count != routines.routine_block_counts[routine_row] ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        !MirRoutineInstructionFactBundleReady(
+            index.instruction_facts, block_count
+        ) || !MirRoutineInstructionUseFactsReady(
+            use_facts, instruction_count
+        ) || block_id < 0 || block_id >= block_count ||
+        block_instruction_row < 0 ||
+        block_instruction_row >=
+            index.instruction_facts.block_phi_prefix_counts[block_id] {
+        return MirRoutinePhiFactEmpty();
     }
-    return false;
+
+    let instruction: MirRoutineInstructionView =
+        MirRoutineInstructionViewAt(
+            routines, routine_row, block_id, block_instruction_row
+        );
+    if !instruction.valid || instruction.kind != "phi" ||
+        instruction.source_type != "" {
+        return MirRoutinePhiFactEmpty();
+    }
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, instruction.global_row
+        );
+    if !scalar.valid || StringLength(scalar.name) == 0 ||
+        scalar.arg0 != "phi" || scalar.arg1 != "" ||
+        !MirSsaNameMatches(scalar.result, scalar.name, false) {
+        return MirRoutinePhiFactEmpty();
+    }
+    let result_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(index, scalar.result);
+    if !MirRoutineResultDefinitionFactReady(result_definition) ||
+        result_definition.global_row != instruction.global_row ||
+        result_definition.block_id != block_id ||
+        result_definition.block_instruction_row != block_instruction_row {
+        return MirRoutinePhiFactEmpty();
+    }
+
+    let predecessor_count: Int = MirPhiPredecessorCount(index, block_id);
+    let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
+        use_facts, instruction.global_row
+    );
+    if predecessor_count < 2 || use_count < 2 ||
+        use_count > predecessor_count {
+        return MirRoutinePhiFactEmpty();
+    }
+    let has_backedge: Bool = MirRoutineFactIndexHasIncomingBackedge(
+        index, block_id
+    );
+    let incoming_results: Array<String> = [];
+    let incoming_definition_blocks: Array<Int> = [];
+    let use_i: Int = 0;
+    while use_i < use_count {
+        let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+            use_facts, instruction.global_row, use_i
+        );
+        if !IsSome(use_opt) {
+            return MirRoutinePhiFactEmpty();
+        }
+        let use_name: String = UnwrapOption(use_opt);
+        if !MirSsaNameMatches(use_name, scalar.name, true) {
+            return MirRoutinePhiFactEmpty();
+        }
+
+        let self_backedge: Bool = use_name == scalar.result;
+        if self_backedge && !has_backedge {
+            return MirRoutinePhiFactEmpty();
+        }
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(index, use_name);
+        let definition_block: Int = 0 - 1;
+        if MirRoutineResultDefinitionFactReady(definition) {
+            if self_backedge &&
+                (definition.global_row != instruction.global_row ||
+                 definition.block_id != block_id) {
+                return MirRoutinePhiFactEmpty();
+            }
+            definition_block = definition.block_id;
+        } else {
+            if self_backedge || !definition.valid || definition.found ||
+                !MirPhiParameterEntryExists(
+                    index, routines.source_json, scalar.name, use_name
+                ) {
+                return MirRoutinePhiFactEmpty();
+            }
+        }
+        ArrayPush(incoming_results, use_name);
+        ArrayPush(incoming_definition_blocks, definition_block);
+        use_i = use_i + 1;
+    }
+    return MirRoutinePhiFact(
+        true, block_id, instruction.global_row, block_instruction_row,
+        scalar.name, scalar.result, predecessor_count,
+        incoming_results, incoming_definition_blocks
+    );
 }
 
 func MirRoutinePhiFactsReady(
     ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
     routine_row: Int
 ) -> Bool {
-    let json: String = routines.source_json;
     if !index.valid ||
         !MirProgramRoutineIndexRowReady(routines, routine_row) {
         return false;
@@ -72,6 +171,8 @@ func MirRoutinePhiFactsReady(
         block_count != ArrayLength(index.block_instruction_counts) ||
         !MirRoutineInstructionFactBundleReady(
             index.instruction_facts, block_count
+        ) || !MirRoutineInstructionUseFactsReady(
+            use_facts, ArrayLength(index.instruction_facts.starts)
         ) { return false; }
     let block_id: Int = 0;
     while block_id < block_count {
@@ -81,66 +182,16 @@ func MirRoutinePhiFactsReady(
             index.block_instruction_counts[block_id] {
             return false;
         }
-        let predecessor_count: Int = 0;
-        let has_backedge: Bool = false;
         if phi_prefix_count > 0 {
-            predecessor_count = MirPhiPredecessorCount(index, block_id);
-            has_backedge = MirRoutineFactIndexHasIncomingBackedge(
-                index, block_id
-            );
-            if predecessor_count < 2 { return false; }
+            if MirPhiPredecessorCount(index, block_id) < 2 { return false; }
         }
         let instruction_row: Int = 0;
         while instruction_row < phi_prefix_count {
-            let instruction: MirRoutineInstructionView =
-                MirRoutineInstructionViewAt(
-                    routines, routine_row, block_id, instruction_row
-                );
-            if !instruction.valid || instruction.kind != "phi" {
-                return false;
-            }
-            let name: String = MirObjectStringFactAtBounds(
-                json, instruction.start, instruction.end, "name"
+            let fact: MirRoutinePhiFact = MirRoutinePhiFactAt(
+                index, routines, use_facts, routine_row,
+                block_id, instruction_row
             );
-            let result_row: Int =
-                index.block_instruction_starts[block_id] + instruction_row;
-            if result_row < 0 ||
-                result_row >= ArrayLength(index.instruction_facts.results) {
-                return false;
-            }
-            let result: String = index.instruction_facts.results[result_row];
-            let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
-                json, instruction.start, instruction.end, "uses"
-            );
-            let use_count: Int = ArrayLength(uses);
-            // The self-host MIR wire owns an incoming value inventory,
-            // not a predecessor-indexed machine phi table. Several
-            // continue edges can therefore carry the same loop value.
-            // Require at least the entry/backedge pair and never accept
-            // more values than the CFG has predecessor edges.
-            if use_count < 2 || use_count > predecessor_count ||
-                !MirSsaNameMatches(result, name, false) {
-                return false;
-            }
-            let use_i: Int = 0;
-            while use_i < use_count {
-                let use_name: String = uses[use_i];
-                // A loop-carried phi may name its own result on the
-                // incoming back-edge.  This is the canonical SSA
-                // representation of the value preserved by a continue
-                // path; accept it only when the CFG owner proved that
-                // this block is a loop header with a back-edge.
-                let self_backedge: Bool = use_name == result && has_backedge;
-                if (!self_backedge && use_name == result) ||
-                    !MirSsaNameMatches(use_name, name, true) ||
-                    (!self_backedge && !MirPhiResultExists(index, use_name) &&
-                        !MirPhiParameterEntryExists(
-                            index, json, name, use_name
-                        )) {
-                    return false;
-                }
-                use_i = use_i + 1;
-            }
+            if !fact.valid { return false; }
             instruction_row = instruction_row + 1;
         }
         block_id = block_id + 1;

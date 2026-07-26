@@ -1,10 +1,13 @@
 // MIR-bound AIR certificate for the bounded direct CFG replacement rung.
 //
-// This owner verifies terminator evidence from the admitted typed MIR index.
-// It never reads a serialized AIR artifact and never reconstructs source syntax.
+// Issuance validates typed MIR/CFG/phi owners once. Ready checks use only the
+// certificate's fixed-size fields and self-digests; no serialized AIR, MIR,
+// AST, source syntax, or expression graph is reopened after issuance.
 
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/phi_fact_owner.pgy";
 import "../compiler/air_evidence_owner.pgy";
 
 struct DirectMirCfgCertificate {
@@ -31,20 +34,25 @@ struct DirectMirCfgCertificate {
     let drift_count: Int;
     let strict_evidence: Bool;
     let mir_evidence_bound: Bool;
-    let no_phi: Bool;
+    let phi_count: Int;
+    let phi_digest: Int;
+    let phi_local_name: String;
+    let phi_result_name: String;
+    let phi_true_incoming: String;
+    let phi_false_incoming: String;
 }
 
 func DirectMirCfgCertificateSchema() -> String {
-    return "pgy.selfhost.air.mir-cfg-certificate.v1";
+    return "pgy.selfhost.air.mir-cfg-certificate.v2";
 }
 
-func DirectMirCfgCertificateRevision() -> Int { return 1; }
+func DirectMirCfgCertificateRevision() -> Int { return 2; }
 
 func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
     return DirectMirCfgCertificate(
         false, "", 0, 0, 0, 0, 0, 0, "", 0, 0, 0,
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, "", 0, 0, 0,
-        false, false, false
+        false, false, 0, 0, "", "", "", ""
     );
 }
 
@@ -127,6 +135,30 @@ func DirectMirCfgDigestFromIndex(
     return DirectMirCfgBoundedDigest(hash);
 }
 
+func DirectMirCfgPhiBindingDigest(
+    phi_count: Int,
+    local_name: String,
+    result_name: String,
+    true_incoming: String,
+    false_incoming: String
+) -> Int {
+    if phi_count == 0 && local_name == "" && result_name == "" &&
+        true_incoming == "" && false_incoming == "" {
+        return 0;
+    }
+    if phi_count != 1 || StringLength(local_name) == 0 ||
+        StringLength(result_name) == 0 || StringLength(true_incoming) == 0 ||
+        StringLength(false_incoming) == 0 {
+        return 0;
+    }
+    let hash: Long = DirectMirCfgHashInt(29L, phi_count);
+    hash = DirectMirCfgHashString(hash, local_name);
+    hash = DirectMirCfgHashString(hash, result_name);
+    hash = DirectMirCfgHashString(hash, true_incoming);
+    hash = DirectMirCfgHashString(hash, false_incoming);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
 func DirectMirCfgCertificateIdentityDigest(
     ref certificate: DirectMirCfgCertificate
 ) -> Int {
@@ -153,8 +185,13 @@ func DirectMirCfgCertificateIdentityDigest(
     let flags: Int = 0;
     if certificate.strict_evidence { flags = flags + 1; }
     if certificate.mir_evidence_bound { flags = flags + 2; }
-    if certificate.no_phi { flags = flags + 4; }
     hash = DirectMirCfgHashInt(hash, flags);
+    hash = DirectMirCfgHashInt(hash, certificate.phi_count);
+    hash = DirectMirCfgHashInt(hash, certificate.phi_digest);
+    hash = DirectMirCfgHashString(hash, certificate.phi_local_name);
+    hash = DirectMirCfgHashString(hash, certificate.phi_result_name);
+    hash = DirectMirCfgHashString(hash, certificate.phi_true_incoming);
+    hash = DirectMirCfgHashString(hash, certificate.phi_false_incoming);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -173,7 +210,10 @@ func DirectMirCfgCertificateWithDigest(
         certificate.branch_global_row, certificate.evidence_kind,
         certificate.evidence_fact_count, certificate.fallback_count,
         certificate.drift_count, certificate.strict_evidence,
-        certificate.mir_evidence_bound, certificate.no_phi
+        certificate.mir_evidence_bound, certificate.phi_count,
+        certificate.phi_digest, certificate.phi_local_name,
+        certificate.phi_result_name, certificate.phi_true_incoming,
+        certificate.phi_false_incoming
     );
 }
 
@@ -194,17 +234,23 @@ func DirectMirCfgCertificateWithEvidenceCounts(
         certificate.merge_block, certificate.branch_global_row,
         certificate.evidence_kind, fact_count, fallback_count, drift_count,
         certificate.strict_evidence, certificate.mir_evidence_bound,
-        certificate.no_phi
+        certificate.phi_count, certificate.phi_digest,
+        certificate.phi_local_name, certificate.phi_result_name,
+        certificate.phi_true_incoming, certificate.phi_false_incoming
     );
 }
 
 func DirectMirCfgCertificateFromIndex(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref index: MirRoutineFactIndex
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts
 ) -> DirectMirCfgCertificate {
     let block_count: Int = ArrayLength(index.block_starts);
     if !CompilerAirEvidenceEnvelopeReady() ||
-        !admitted.document.valid || !index.valid {
+        !admitted.document.valid || !index.valid ||
+        !MirRoutineInstructionUseFactsReady(
+            use_facts, ArrayLength(index.instruction_facts.starts)
+        ) {
         return DirectMirCfgCertificateEmpty();
     }
     if block_count != 4 ||
@@ -248,16 +294,25 @@ func DirectMirCfgCertificateFromIndex(
         index.block_succ_true[false_block] != merge_block ||
         index.block_succ_false[false_block] >= 0 ||
         index.block_succ_true[merge_block] >= 0 ||
-        index.block_succ_false[merge_block] >= 0 ||
-        index.block_structural_merges[entry] != merge_block {
+        index.block_succ_false[merge_block] >= 0 {
         return DirectMirCfgCertificateEmpty();
     }
 
+    let phi_count: Int = 0;
     let block: Int = 0;
     while block < block_count {
-        if (!index.block_reachable[block]) ||
-            index.backedge_headers[block] != 0 ||
-            index.instruction_facts.block_phi_prefix_counts[block] != 0 {
+        let block_phi_count: Int =
+            index.instruction_facts.block_phi_prefix_counts[block];
+        if !index.block_reachable[block] ||
+            index.backedge_headers[block] != 0 || block_phi_count < 0 {
+            return DirectMirCfgCertificateEmpty();
+        }
+        if block == merge_block {
+            if block_phi_count > 1 {
+                return DirectMirCfgCertificateEmpty();
+            }
+            phi_count = block_phi_count;
+        } else if block_phi_count != 0 {
             return DirectMirCfgCertificateEmpty();
         }
         let should_branch: Int = 0;
@@ -267,19 +322,59 @@ func DirectMirCfgCertificateFromIndex(
         }
         block = block + 1;
     }
+    let expected_merge_instructions: Int = 0;
+    if phi_count == 1 { expected_merge_instructions = 2; }
     if index.block_instruction_counts[entry] != 2 ||
         index.block_instruction_counts[true_block] != 1 ||
         index.block_instruction_counts[false_block] != 1 ||
-        index.block_instruction_counts[merge_block] != 0 {
+        index.block_instruction_counts[merge_block] !=
+            expected_merge_instructions {
         return DirectMirCfgCertificateEmpty();
+    }
+
+    let phi_local_name: String = "";
+    let phi_result_name: String = "";
+    let phi_true_incoming: String = "";
+    let phi_false_incoming: String = "";
+    if phi_count == 1 {
+        let phi_fact: MirRoutinePhiFact = MirRoutinePhiFactAt(
+            index, admitted.routines, use_facts, 0, merge_block, 0
+        );
+        if !phi_fact.valid || phi_fact.predecessor_count != 2 ||
+            ArrayLength(phi_fact.incoming_results) != 2 ||
+            ArrayLength(phi_fact.incoming_definition_blocks) != 2 {
+            return DirectMirCfgCertificateEmpty();
+        }
+        phi_local_name = phi_fact.local_name;
+        phi_result_name = phi_fact.result_name;
+        let incoming_row: Int = 0;
+        while incoming_row < 2 {
+            let definition_block: Int =
+                phi_fact.incoming_definition_blocks[incoming_row];
+            if definition_block == true_block && phi_true_incoming == "" {
+                phi_true_incoming = phi_fact.incoming_results[incoming_row];
+            } else if definition_block == false_block &&
+                    phi_false_incoming == "" {
+                phi_false_incoming = phi_fact.incoming_results[incoming_row];
+            } else {
+                return DirectMirCfgCertificateEmpty();
+            }
+            incoming_row = incoming_row + 1;
+        }
+        if StringLength(phi_true_incoming) == 0 ||
+            StringLength(phi_false_incoming) == 0 {
+            return DirectMirCfgCertificateEmpty();
+        }
     }
 
     let branch: MirRoutineInstructionSelection =
         MirRoutineFactIndexBranchAtBlock(index, admitted.routines, 0, entry);
     let entry_global_block: Int =
         admitted.routines.routine_block_starts[0] + entry;
+    let expected_branch_source: String = "AST_BINARY";
+    if phi_count == 1 { expected_branch_source = "AST_IDENTIFIER"; }
     if !branch.valid || !branch.found || !branch.instruction.valid ||
-        branch.instruction.source_type != "AST_BINARY" ||
+        branch.instruction.source_type != expected_branch_source ||
         branch.instruction.global_row !=
             admitted.routines.block_instruction_starts[entry_global_block] +
             index.block_instruction_counts[entry] - 1 {
@@ -287,7 +382,13 @@ func DirectMirCfgCertificateFromIndex(
     }
 
     let cfg_digest: Int = DirectMirCfgDigestFromIndex(index);
-    if cfg_digest == 0 { return DirectMirCfgCertificateEmpty(); }
+    let phi_digest: Int = DirectMirCfgPhiBindingDigest(
+        phi_count, phi_local_name, phi_result_name,
+        phi_true_incoming, phi_false_incoming
+    );
+    if cfg_digest == 0 || (phi_count == 1 && phi_digest == 0) {
+        return DirectMirCfgCertificateEmpty();
+    }
     let certificate: DirectMirCfgCertificate = DirectMirCfgCertificate(
         true, DirectMirCfgCertificateSchema(),
         DirectMirCfgCertificateRevision(), 0,
@@ -298,7 +399,8 @@ func DirectMirCfgCertificateFromIndex(
         entry, true_block, false_block, merge_block,
         branch.instruction.global_row,
         CompilerAirEvidenceMirTerminatorFact(), 1, 0, 0,
-        true, true, true
+        true, true, phi_count, phi_digest, phi_local_name,
+        phi_result_name, phi_true_incoming, phi_false_incoming
     );
     return DirectMirCfgCertificateWithDigest(
         certificate, DirectMirCfgCertificateIdentityDigest(certificate)
@@ -308,6 +410,36 @@ func DirectMirCfgCertificateFromIndex(
 func DirectMirCfgCertificateReady(
     ref certificate: DirectMirCfgCertificate
 ) -> Bool {
+    let expected_instruction_count: Int = 4;
+    if certificate.phi_count == 1 { expected_instruction_count = 6; }
+    let expected_phi_digest: Int = DirectMirCfgPhiBindingDigest(
+        certificate.phi_count, certificate.phi_local_name,
+        certificate.phi_result_name, certificate.phi_true_incoming,
+        certificate.phi_false_incoming
+    );
+    let phi_fields_ready: Bool = certificate.phi_count == 0 &&
+        certificate.phi_digest == 0 && certificate.phi_local_name == "" &&
+        certificate.phi_result_name == "" &&
+        certificate.phi_true_incoming == "" &&
+        certificate.phi_false_incoming == "";
+    if certificate.phi_count == 1 {
+        phi_fields_ready = expected_phi_digest != 0 &&
+            MirSsaNameMatches(
+                certificate.phi_result_name,
+                certificate.phi_local_name, false
+            ) && MirSsaNameMatches(
+                certificate.phi_true_incoming,
+                certificate.phi_local_name, false
+            ) && MirSsaNameMatches(
+                certificate.phi_false_incoming,
+                certificate.phi_local_name, false
+            ) && certificate.phi_result_name !=
+                certificate.phi_true_incoming &&
+            certificate.phi_result_name !=
+                certificate.phi_false_incoming &&
+            certificate.phi_true_incoming !=
+                certificate.phi_false_incoming;
+    }
     return certificate.valid &&
         certificate.schema == DirectMirCfgCertificateSchema() &&
         certificate.revision == DirectMirCfgCertificateRevision() &&
@@ -319,22 +451,29 @@ func DirectMirCfgCertificateReady(
         certificate.routine_end > certificate.routine_start &&
         StringLength(certificate.source_syntax_id) > 0 &&
         certificate.cfg_digest != 0 && certificate.block_count == 4 &&
-        certificate.instruction_count == 4 &&
+        (certificate.phi_count == 0 || certificate.phi_count == 1) &&
+        certificate.instruction_count == expected_instruction_count &&
+        certificate.phi_digest == expected_phi_digest && phi_fields_ready &&
         certificate.entry_block == 0 &&
         certificate.true_block >= 0 && certificate.false_block >= 0 &&
         certificate.merge_block >= 0 &&
+        certificate.entry_block != certificate.true_block &&
+        certificate.entry_block != certificate.false_block &&
+        certificate.entry_block != certificate.merge_block &&
+        certificate.true_block != certificate.false_block &&
+        certificate.true_block != certificate.merge_block &&
+        certificate.false_block != certificate.merge_block &&
         certificate.evidence_kind ==
             CompilerAirEvidenceMirTerminatorFact() &&
         certificate.evidence_fact_count == 1 &&
         certificate.fallback_count == 0 &&
         certificate.drift_count == 0 && certificate.strict_evidence &&
-        certificate.mir_evidence_bound && certificate.no_phi;
+        certificate.mir_evidence_bound;
 }
 
 func DirectMirCfgCertificateMutationRejected(
     own certificate: DirectMirCfgCertificate
 ) -> Bool {
-    if !DirectMirCfgCertificateReady(certificate) { return false; }
     let bad_digest: DirectMirCfgCertificate =
         DirectMirCfgCertificateWithDigest(
             certificate, certificate.certificate_digest + 1

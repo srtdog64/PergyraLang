@@ -8,6 +8,7 @@ import "json_fact_read.pgy";
 
 struct MirRoutineInstructionScalarCapture {
     let valid: Bool;
+    let name: String;
     let result: String;
     let expr0: String;
     let expr1: String;
@@ -30,7 +31,7 @@ struct MirRoutineInstructionScalarCapture {
 func InvalidMirRoutineInstructionScalarCapture(
 ) -> MirRoutineInstructionScalarCapture {
     return MirRoutineInstructionScalarCapture(
-        false, "", "", "", "", "", "", "", false, "",
+        false, "", "", "", "", "", "", "", "", false, "",
         0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1
     );
@@ -43,6 +44,7 @@ func MirRoutineInstructionScalarCaptureWithin(
         JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
         return InvalidMirRoutineInstructionScalarCapture();
     }
+    let name: String = "";
     let result: String = "";
     let expr0: String = "";
     let expr1: String = "";
@@ -52,6 +54,7 @@ func MirRoutineInstructionScalarCaptureWithin(
     let abi_type_name: String = "";
     let abi_type_value_ready: Bool = false;
     let match_variant: String = "";
+    let name_seen: Bool = false;
     let result_seen: Bool = false;
     let expr0_seen: Bool = false;
     let expr1_seen: Bool = false;
@@ -90,7 +93,7 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_type_value_ready = false;
             }
             return MirRoutineInstructionScalarCapture(
-                true, result, expr0, expr1, arg0, arg1, slot_anchor,
+                true, name, result, expr0, expr1, arg0, arg1, slot_anchor,
                 abi_type_name, abi_type_value_ready, match_variant,
                 abi_type_start, abi_type_end,
                 abi_layout_id_start, abi_layout_id_end,
@@ -120,6 +123,8 @@ func MirRoutineInstructionScalarCaptureWithin(
             }
             key_row = key_row + 1;
         }
+        let is_name: Bool = (key_has_escape || raw_key_length == 4) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "name");
         let is_result: Bool = (key_has_escape || raw_key_length == 6) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "result");
         let is_expr0: Bool = (key_has_escape || raw_key_length == 5) &&
@@ -160,10 +165,12 @@ func MirRoutineInstructionScalarCaptureWithin(
             return InvalidMirRoutineInstructionScalarCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
-        let selected_string: Bool = is_result || is_expr0 || is_expr1 ||
-            is_arg0 || is_arg1 || is_slot_anchor || is_match_variant;
+        let selected_string: Bool = is_name || is_result || is_expr0 ||
+            is_expr1 || is_arg0 || is_arg1 || is_slot_anchor ||
+            is_match_variant;
         if selected_string {
-            if (is_result && result_seen) || (is_expr0 && expr0_seen) ||
+            if (is_name && name_seen) || (is_result && result_seen) ||
+                (is_expr0 && expr0_seen) ||
                 (is_expr1 && expr1_seen) || (is_arg0 && arg0_seen) ||
                 (is_arg1 && arg1_seen) ||
                 (is_slot_anchor && slot_anchor_seen) ||
@@ -181,6 +188,7 @@ func MirRoutineInstructionScalarCaptureWithin(
                 SubEqualsWithLen(json, value_end, i, 4, "null")) {
                 return InvalidMirRoutineInstructionScalarCapture();
             }
+            if is_name { name = value; name_seen = true; }
             if is_result { result = value; result_seen = true; }
             if is_expr0 { expr0 = value; expr0_seen = true; }
             if is_expr1 { expr1 = value; expr1_seen = true; }
