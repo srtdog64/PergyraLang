@@ -38,6 +38,28 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let whitespace: String = " \n\r\tX";
+    if JsonSkipWhitespaceWithin(
+        whitespace, 0, StringLength(whitespace)
+    ) != 4 || JsonSkipWhitespace(
+        whitespace, 0, StringLength(whitespace)
+    ) != 4 {
+        failures = failures + 1;
+    }
+    if JsonSkipWhitespaceWithin(whitespace, 0, 3) != 3 ||
+        JsonSkipWhitespace(whitespace, 0, 3) != 3 ||
+        JsonSkipWhitespaceWithin(
+            whitespace, 4, StringLength(whitespace)
+        ) != 4 || JsonSkipWhitespace("X ", 0, 2) != 0 {
+        failures = failures + 1;
+    }
+    if !JsonIsDigitCode(JsonAsciiCode("0")) ||
+        !JsonIsDigitCode(JsonAsciiCode("9")) ||
+        JsonIsDigitCode(JsonAsciiCode("/")) ||
+        JsonIsDigitCode(JsonAsciiCode(":")) {
+        failures = failures + 1;
+    }
+
     if failures == 0 {
         Log("json-bounded-string-owner-ok");
     } else {

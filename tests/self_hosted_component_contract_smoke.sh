@@ -10152,6 +10152,24 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonObjectStringFieldOpt"
 require_text "src/self_hosted/lib/json_scan.pgy" "let n: Int = end;"
 reject_function_text "src/self_hosted/lib/json_scan.pgy" \
     "func JsonSkipWhitespaceWithin(" "StringLength(json)"
+for json_whitespace_function in \
+    "func JsonSkipWhitespaceWithin(" \
+    "func JsonSkipWhitespace("; do
+    reject_function_text "src/self_hosted/lib/json_scan.pgy" \
+        "$json_whitespace_function" "JsonAsciiCode("
+done
+reject_function_text "src/self_hosted/lib/json_scan.pgy" \
+    "func JsonIsDigitCode(" "JsonAsciiCode("
+require_text_count_at_least "src/self_hosted/lib/json_scan.pgy" \
+    "let space_code: Int = 32;" 2
+require_text_count_at_least "src/self_hosted/lib/json_scan.pgy" \
+    "let line_feed_code: Int = 10;" 2
+require_text_count_at_least "src/self_hosted/lib/json_scan.pgy" \
+    "let carriage_return_code: Int = 13;" 2
+require_text_count_at_least "src/self_hosted/lib/json_scan.pgy" \
+    "let tab_code: Int = 9;" 2
+require_text "src/self_hosted/lib/json_scan.pgy" \
+    "return c >= 48 && c <= 57;"
 require_text "src/self_hosted/lib/json.pgy" "let n: Int = limit;"
 require_text "src/self_hosted/lib/json.pgy" "let n: Int = array_end;"
 reject_function_text "src/self_hosted/lib/json.pgy" \
@@ -10180,6 +10198,18 @@ require_text "src/self_hosted/lib/json.pgy" \
     "ArrayPush(chunks, CharAtN("
 require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"
 require_file "tests/self_hosted/parity/json_bounded_string_owner_smoke.sh"
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "JsonSkipWhitespaceWithin("
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "JsonSkipWhitespace("
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    'JsonIsDigitCode(JsonAsciiCode("0"))'
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    'JsonIsDigitCode(JsonAsciiCode("9"))'
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    'JsonIsDigitCode(JsonAsciiCode("/"))'
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    'JsonIsDigitCode(JsonAsciiCode(":"))'
 require_text "Makefile" "self-host-json-bounded-string-test-smoke:"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "StringLength(json)"
