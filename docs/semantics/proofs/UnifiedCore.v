@@ -1,7 +1,18 @@
 (*
   Pergyra Formal Semantics -- Unified Core Machine (capstone of the four corners)
   Target: docs/semantics/19 "Pergyra Abstract Machine Obligation"
-  Status: machine-verified (coqc, 0 admits / 0 axioms). All theorems close with Qed.
+  Status: theorems machine-verified previously (0 admits / 0 axioms, all Qed);
+  now REBUILT on the shared PergyraCore root -- pending re-kernel-check in rocq9
+  CI after the migration (no local prover on the authoring machine).
+
+  Change: the abstract-machine model (principal/zone/cap/slot, config, the with_*
+  constructors, cmap/smap, `step`, `steps`, has_cap, in_circulation, slot_in,
+  restore_targets, slot_in_true, cmap_circulation) NO LONGER lives here as a
+  private copy. It is `Require Import`ed from PergyraCore.v -- the corpus's shared
+  foundation. This file now holds only the SYNTHESIS THEOREMS, proved over the
+  imported machine. This is the first migration of the vertical-spine program
+  (docs/semantics/proofs/VerticalSpineMigration.md): the capstone composes from
+  the one shared machine instead of re-declaring it.
 
   Scope: unifies the four corner fragments (ZoneCrossingCore, EffectAuthorityCore,
   SlotLifecycleCore, AuthorityDelegationCore) and the Compensation/Rollback facet
@@ -9,23 +20,6 @@
   carrying all Step forms. This is the synthesis claim docs/19 names: the capability/
   authority disciplines and rollback/compensation coexist on one state without
   interfering.
-
-  Configuration:
-    actor    : the principal currently acting
-    holdings : authority distribution (principal -> capabilities)
-    here     : zone residence
-    elog     : effect log; each entry carries the pre-effect store snapshot
-    store    : slot typestate map
-  has_cap c k := the acting principal holds k.
-
-  Step forms (all capability/typestate gated, fail-closed by construction):
-    Cross z' | Emit e | Acquire s | Use s | Release s | Delegate b k | Rollback
-
-  Rollback is capability-gated too: restoring effect e's coupled slots
-  (ct e : list slot) requires the acting principal to hold every target slot's
-  acquire-capability. Rollback is backend-visible (compensation emits code), so
-  leaving it ungated would contradict capability_soundness; SRollback carries
-  the multi-slot gate.
 
   Unified theorems:
     - capability_soundness: every backend-visible gated action -- zone crossing,
@@ -45,138 +39,14 @@
 
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.PeanoNat.
+Require Import PergyraCore.
 Import ListNotations.
 
-Section UnifiedCore.
-
-Definition principal := nat.
-Definition zone := nat.
-Definition cap  := nat.
-Definition eff  := nat.
-Definition slot := nat.
-
-Inductive lcstate := Empty | Filled | Released.
-
-Definition slot_store := slot -> lcstate.
-
-Definition slot_in (s : slot) (ss : list slot) : bool :=
-  existsb (fun x => Nat.eqb s x) ss.
-
-Definition restore_targets
-  (current : slot_store) (before : slot_store) (targets : list slot) : slot_store :=
-  fun x => if slot_in x targets then before x else current x.
-
-Lemma slot_in_true : forall s targets,
-  In s targets -> slot_in s targets = true.
-Proof.
-  intros s targets Hin. unfold slot_in.
-  induction targets as [| x xs IH]; simpl in *.
-  - contradiction.
-  - destruct Hin as [Heq | Hin].
-    + subst x. rewrite Nat.eqb_refl. reflexivity.
-    + destruct (Nat.eqb s x) eqn:E.
-      * reflexivity.
-      * apply IH. exact Hin.
-Qed.
-
-Definition zone_graph    := zone -> cap.
-Definition effect_graph  := eff  -> cap.
-Definition acquire_graph := slot -> cap.
-Definition comp_target   := eff -> list slot.
-
-Record effect_log_entry := mkLog {
-  logged_eff : eff;
-  before_store : slot_store
-}.
-
-Inductive action :=
-  | ActCross (z' : zone)
-  | ActEmit (e : eff)
-  | ActAcquire (s : slot)
-  | ActUse (s : slot)
-  | ActRelease (s : slot)
-  | ActDelegate (b : principal) (k : cap)
-  | ActRollback.
-
-Definition cmap (h : principal -> list cap) (p : principal) (cs : list cap)
-  : principal -> list cap :=
-  fun x => if Nat.eqb x p then cs else h x.
-Definition smap (s0 : slot_store) (s : slot) (v : lcstate)
-  : slot_store :=
-  fun x => if Nat.eqb x s then v else s0 x.
-
-Record config := mkConfig {
-  actor    : principal;
-  holdings : principal -> list cap;
-  here     : zone;
-  elog     : list effect_log_entry;
-  store    : slot_store
-}.
-
-Definition has_cap (c : config) (k : cap) : Prop := In k (holdings c (actor c)).
-Definition in_circulation (c : config) (k : cap) : Prop :=
-  exists p, In k (holdings c p).
-
-Definition with_zone  (c : config) (z : zone) : config :=
-  mkConfig (actor c) (holdings c) z (elog c) (store c).
-Definition with_emit  (c : config) (e : eff) : config :=
-  mkConfig (actor c) (holdings c) (here c)
-           (mkLog e (store c) :: elog c) (store c).
-Definition with_store (c : config) (s : slot) (v : lcstate) : config :=
-  mkConfig (actor c) (holdings c) (here c) (elog c) (smap (store c) s v).
-Definition with_deleg (c : config) (b : principal) (k : cap) : config :=
-  mkConfig (actor c) (cmap (holdings c) b (k :: holdings c b))
-           (here c) (elog c) (store c).
-Definition with_target_deleg
-  (c : config) (b : principal) (ga : acquire_graph) (targets : list slot)
-  : config :=
-  mkConfig (actor c)
-           (cmap (holdings c) b (map ga targets ++ holdings c b))
-           (here c) (elog c) (store c).
-Definition with_rollback
-  (c : config) (targets : list slot) (before : slot_store)
-  (rest : list effect_log_entry) : config :=
-  mkConfig (actor c) (holdings c) (here c) rest
-           (restore_targets (store c) before targets).
-
-Inductive step (gz : zone_graph) (ge : effect_graph) (ga : acquire_graph) (ct : comp_target)
-  : action -> config -> config -> Prop :=
-| SCross   : forall c z', has_cap c (gz z') ->
-               step gz ge ga ct (ActCross z') c (with_zone c z')
-| SEmit    : forall c e,  has_cap c (ge e) ->
-               step gz ge ga ct (ActEmit e) c (with_emit c e)
-| SAcquire : forall c s,  has_cap c (ga s) -> store c s = Empty ->
-               step gz ge ga ct (ActAcquire s) c (with_store c s Filled)
-| SUse     : forall c s,  store c s = Filled ->
-               step gz ge ga ct (ActUse s) c c
-| SRelease : forall c s,  store c s = Filled ->
-               step gz ge ga ct (ActRelease s) c (with_store c s Released)
-| SDelegate: forall c b k, has_cap c k ->
-               step gz ge ga ct (ActDelegate b k) c (with_deleg c b k)
-| SRollback: forall c e before rest,
-               elog c = mkLog e before :: rest ->
-               Forall (fun s => has_cap c (ga s)) (ct e) ->
-               step gz ge ga ct ActRollback c
-                    (with_rollback c (ct e) before rest).
-
-(* Inductive multi-step relation. *)
-Inductive steps (gz : zone_graph) (ge : effect_graph) (ga : acquire_graph) (ct : comp_target)
-  : config -> config -> Prop :=
-| SRefl : forall c, steps gz ge ga ct c c
-| SStep : forall act a b c,
-    step gz ge ga ct act a b -> steps gz ge ga ct b c -> steps gz ge ga ct a c.
+(* The abstract machine (config, step, steps, with_* constructors, cmap/smap,
+   has_cap, in_circulation, slot_in_true, cmap_circulation) is imported from
+   PergyraCore. Everything below is the synthesis proved over it. *)
 
 (* ---- authority conservation: no step creates a new capability ---- *)
-
-Lemma cmap_circulation : forall h b cs k,
-  (exists p, In k (cmap h b cs p)) ->
-  In k cs \/ (exists p, In k (h p)).
-Proof.
-  intros h b cs k [p Hp]. unfold cmap in Hp.
-  destruct (Nat.eqb p b) eqn:E.
-  - left. exact Hp.
-  - right. exists p. exact Hp.
-Qed.
 
 Theorem authority_conservation : forall gz ge ga ct act c c' k,
   step gz ge ga ct act c c' -> in_circulation c' k -> in_circulation c k.
@@ -418,5 +288,3 @@ Proof.
     rewrite Nat.eqb_refl.
     apply in_or_app. left. apply in_map. exact Hin.
 Qed.
-
-End UnifiedCore.

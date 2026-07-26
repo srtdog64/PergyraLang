@@ -40,16 +40,26 @@
   해소)가 CI에서 조정 필요할 수 있음.
 - → **rocq9 CI가 첫 실검증**. red면 tactic 한두 줄 조정 예상.
 
-## 로드맵 (다음 단계, prover 루프 필요)
+## 2단계에 착지한 것 (UnifiedCore 이관 + zone corner 엣지)
 
-1. **`UnifiedCore.v` 이관**: 로컬 모델 복제를 삭제하고 `Require Import PergyraCore`.
-   기존 synthesis 정리(capability_soundness, authority_conservation, rollback_*)는
-   그대로 유지 — 이제 공용 뿌리 위에서. (검증 없이 green capstone 리팩터는 금지라
-   이번엔 보류.)
-2. **네 corner 이관**: `ZoneCrossingCore`/`EffectAuthorityCore`/`SlotLifecycleCore`/
-   `AuthorityDelegationCore`를 PergyraCore의 `step`의 부분관계로 재정의하고,
-   corner 정리를 공용 관계로 다시 진술 → UnifiedCore가 corner 정리를 **합성**하도록
-   (현재는 재증명).
+- **`UnifiedCore.v` 이관 완료**: 사설 모델 복제(원래 46-179줄)를 삭제하고
+  `Require Import PergyraCore`. synthesis 정리(capability_soundness,
+  authority_conservation, rollback_restores, delegate_*_sound,
+  delegation_furnishes_gated_rollback 등)는 **verbatim 보존** — 이제 공용 뿌리
+  위에서 합성. capstone이 재정의가 아니라 import로 선다. **CI 검증 대기**
+  (verbatim 정리 + 검증된 모델이라 컴파일 확률 높음).
+- **`PergyraCoreZoneBridge.v` 추가**(zone corner → 뿌리 엣지, additive):
+  `ZoneCrossingCore`의 세 보장(무앰비언트 권한·capability soundness·fail-closed)을
+  PergyraCore `step`의 `ActCross` 제한에서 재유도. green corner 파일은 안 건드림
+  (그 모델은 2필드 config라 rename이 아니라 refinement). corner→뿌리 연결을
+  지금 세우고, corner 파일 자체의 rewrite는 prover 루프에서.
+
+## 로드맵 (남은 단계, prover 루프 필요)
+
+1. **네 corner 파일 rewrite**: `ZoneCrossingCore`(→ ZoneBridge 정리가 실내용이 됨)/
+   `EffectAuthorityCore`/`SlotLifecycleCore`/`AuthorityDelegationCore`를 PergyraCore
+   `step`의 부분관계로 재정의 → UnifiedCore가 corner 정리를 **합성**(현재는 재증명).
+   나머지 세 corner의 bridge(effect/slot/delegation)도 zone과 같은 패턴으로 추가.
 2. **refinement bridge**: gen2가 소비하는 live semantic/AIR/MIR owner fact와
    PergyraCore 모델을 잇는 refinement 의무. (`AIRBinding.v`가 "gate가 특정 fact만
    읽는다"는 모형을 넘어, 실제 AIR/MIR 구현이 그 모형을 구현한다는 연결.)
