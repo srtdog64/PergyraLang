@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+2026-07-27 v65 closes the first backend-neutral direct-consumption slice. A
+single Pergyra-produced `pgy.mir.v1` artifact now enters the machine-admitted
+MIR owner once and, without MIR-to-AST or semantic reconstruction, drives both
+the C and LLVM textual projections. The deliberately bounded executable shape
+is one `Main() -> Void` routine with one reachable block and one graph-owned
+ASCII string-literal `Log` instruction. Unsupported declarations, CFG shapes,
+instructions, expression graphs, or targets fail before an output artifact is
+written.
+
+The Pergyra-built integrated driver produced the hello MIR once with SHA-256
+`1c31e768cecf6650710d6a77745a4b0aae34d1fe0ee71acf96fd23d9c76e0c34`.
+The same path and digest drove C and LLVM projection; both artifacts compiled,
+ran, and matched the native C runtime oracle. Negative fixtures remove
+`expr0_graph`, mutate the instruction kind, and select an invalid backend. The
+focused gate also rejects parser, semantic, source-compile, and canonicalizer
+bridges in the direct owner. This is a real hard-substitution delta, not full
+backend admission: general expressions, declarations, CFG, ABI/runtime rows,
+and AIR-certified projection/spawn/parallel/region plans remain open. Ordinary
+`pgy` still selects the C-owned driver, so released/default replacement remains
+0%.
+
 2026-07-27 v64 closes the complete-source MIR producer boundary. The
 Pergyra-built gen2 driver ran `--emit-mir-json-verified` over the current
 complete compiler source in 1,210,574 ms at 1,091.0/963.4 MB peak

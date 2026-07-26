@@ -11289,7 +11289,61 @@ require_make_target_text \
     "self-host-driver-bootstrap-test-smoke" \
     "tests/self_hosted/parity/driver_bootstrap.sh"
 require_text "Makefile" \
-    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke"
+    'SELFHOST_ONE_MIR_DUAL_BACKEND_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-dual-backend-projection-test-smoke)'
+require_text "Makefile" \
+    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE)'
+require_file "tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" 300
+require_text "Makefile" \
+    "self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap-test-smoke"
+require_make_target_text \
+    "self-host-one-mir-dual-backend-projection-test-smoke" \
+    "tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"--mir-json-backend=$target"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"--mir-json-backend=invalid"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'assert_mir_identity "$mir_digest"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"expr0_graph_removed"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"kind":"invalid-one-mir-gate"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'GenerateCFromVerifiedSemanticArtifact'
+require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'import "direct_mir_backend_projection_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'args[0] == "--mir-json-backend=c"'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'args[0] == "--mir-json-backend=llvm"'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'CompileMirJsonToDirectBackendVerified('
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'func CompileMirJsonToDirectBackendVerified('
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'MirJsonReadMachineAdmittedInput('
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'JsonObjectFactObjectTable(instruction, "expr0_graph")'
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'CompilerTargetProjectionFactReadyFor('
+for forbidden_one_mir_bridge_term in \
+    '../parser/' \
+    '../semantic/' \
+    'EmitMirProgramTree' \
+    'AstTreeArtifactFromText' \
+    'SemanticAstArtifactAnalyze' \
+    'CompileSourceTo' \
+    'CompileMirJsonToCVerified' \
+    'CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved' \
+    'GenerateCFromVerifiedSemanticArtifact' \
+    '--canonicalize-mir-json' \
+    '--canonicalize-oracle-mir-json'; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+        "$forbidden_one_mir_bridge_term"
+done
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'

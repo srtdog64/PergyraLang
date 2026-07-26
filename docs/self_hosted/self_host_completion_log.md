@@ -6,6 +6,27 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - One admitted MIR directly drives C and LLVM
+
+- Added `direct_mir_backend_projection_owner.pgy` as one backend-neutral owner,
+  not separate C/LLVM compiler graphs. It consumes machine-admitted
+  `pgy.mir.v1` and does not reconstruct an AST or semantic artifact.
+- The first executable shape is intentionally narrow: one `Main() -> Void`,
+  one reachable block, and one graph-owned ASCII string-literal `Log`.
+  Unsupported facts and targets fail before artifact creation.
+- The Pergyra-built integrated driver produced the MIR exactly once. The same
+  artifact and SHA-256
+  `1c31e768cecf6650710d6a77745a4b0aae34d1fe0ee71acf96fd23d9c76e0c34`
+  drove direct C and LLVM projection; both compiled and matched the native C
+  runtime oracle.
+- `one_mir_dual_backend_projection.sh` removes the expression graph, mutates
+  the instruction kind, and supplies an invalid backend. It also statically
+  forbids parser/semantic/source/canonicalizer bridges in the direct owner.
+- This replaces one real C-owned backend-consumption path for the bounded
+  fixture. General graph projection, declarations, CFG, runtime/ABI facts, and
+  AIR-certified shared backend admission remain open, and ordinary `pgy`
+  remains C-owned.
+
 ## 2026-07-19 - Scalar match enters the hard MIR producer frontier
 
 - Added sparse instruction-keyed `SelfMirMatchFactRows` for pattern, variant,

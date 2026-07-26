@@ -4,6 +4,7 @@
 // gives the bootstrap runner deterministic source/MIR/output-file surfaces.
 
 import "driver_rung2_owner.pgy";
+import "direct_mir_backend_projection_owner.pgy";
 
 func DriverBootstrapPathEndsWith(path: String, suffix: String) -> Bool {
     let path_length: Int = StringLength(path);
@@ -54,6 +55,27 @@ func Main() -> Void with caps env, io_read, io_write {
             );
         }
         return;
+    }
+    if ArrayLength(args) == 3 &&
+        (args[0] == "--mir-json-backend=c" ||
+         args[0] == "--mir-json-backend=llvm") {
+        let projection_name: String = CompilerTargetCpuCProjection();
+        if args[0] == "--mir-json-backend=llvm" {
+            projection_name = CompilerTargetCpuLlvmProjection();
+        }
+        let target_projection: CompilerTargetProjectionFact =
+            CompilerTargetProjectionFactFromOwner(projection_name);
+        WriteFile(
+            args[2],
+            CompileMirJsonToDirectBackendVerified(
+                args[1], machine_declaration, target_projection
+            ).payload
+        );
+        return;
+    }
+    if ArrayLength(args) > 0 && StringLength(args[0]) >= 19 &&
+        Substring(args[0], 0, 19) == "--mir-json-backend=" {
+        Die("unknown direct MIR backend target; expected c or llvm");
     }
     if (ArrayLength(args) == 3 || ArrayLength(args) == 4) &&
         args[0] == "--mir-json" {

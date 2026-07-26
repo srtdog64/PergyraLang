@@ -1,0 +1,339 @@
+// Backend-neutral direct projection for the first bounded MIR replacement rung.
+//
+// This owner consumes only admitted pgy.mir.v1 facts.  It deliberately does
+// not reconstruct an AST, invoke semantic analysis, consume the legacy expr0
+// surface as semantic input, or fall back to the source driver. The admitted
+// shape is one Main/Void routine, one reachable block, and one Log statement
+// whose expr0_graph is one printable ASCII string literal without escapes.
+
+import "driver_pipeline_owner.pgy";
+import "target_projection_fact_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/expression_graph_sequence_owner.pgy";
+
+struct DirectMirHelloProjection {
+    let valid: Bool;
+    let literal: String;
+    let content: String;
+}
+
+func DirectMirHelloProjectionEmpty() -> DirectMirHelloProjection {
+    return DirectMirHelloProjection(false, "", "");
+}
+
+func DirectMirObjectFieldKindEquals(
+    ref fact_table: JsonObjectFactTable,
+    field: String,
+    expected: String
+) -> Bool {
+    let kind_opt: Option<String> =
+        JsonObjectFactValueKind(fact_table, field);
+    return IsSome(kind_opt) && UnwrapOption(kind_opt) == expected;
+}
+
+func DirectMirObjectArrayEmpty(
+    ref fact_table: JsonObjectFactTable,
+    field: String
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(fact_table, field, bounds) {
+        return false;
+    }
+    let cursor: Int = JsonSkipWhitespaceWithin(
+        fact_table.json, bounds[0] + 1, bounds[1]
+    );
+    return cursor < bounds[1] &&
+        JsonCharCodeAt(fact_table.json, bounds[1], cursor) ==
+            JsonAsciiCode("]");
+}
+
+func DirectMirObjectNumberEquals(
+    ref fact_table: JsonObjectFactTable,
+    field: String,
+    expected: String
+) -> Bool {
+    let value_opt: Option<String> =
+        JsonObjectFactNumberFieldOpt(fact_table, field);
+    return IsSome(value_opt) && UnwrapOption(value_opt) == expected;
+}
+
+func DirectMirRoutineHasNoUnsupportedFacts(
+    ref routine: JsonObjectFactTable
+) -> Bool {
+    return DirectMirObjectArrayEmpty(routine, "generics") &&
+        DirectMirObjectArrayEmpty(routine, "params") &&
+        !JsonObjectFactHasField(
+            routine, "function_param_flow_summary_count"
+        ) &&
+        !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
+        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "source_locals") &&
+        DirectMirObjectNumberEquals(
+            routine, "resource_flow_symbol_count", "0"
+        ) &&
+        DirectMirObjectNumberEquals(
+            routine, "loop_flow_summary_count", "0"
+        ) &&
+        DirectMirObjectNumberEquals(
+            routine, "loop_flow_state_count", "0"
+        ) &&
+        DirectMirObjectNumberEquals(
+            routine, "iteration_type_fact_count", "0"
+        ) &&
+        DirectMirObjectNumberEquals(
+            routine, "destructure_type_fact_count", "0"
+        );
+}
+
+func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
+    let length: Int = StringLength(literal);
+    if length < 2 || CharCode(literal, length, 0) != 34 ||
+        CharCode(literal, length, length - 1) != 34 {
+        return None;
+    }
+    let i: Int = 1;
+    while i < length - 1 {
+        let code: Int = CharCode(literal, length, i);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            return None;
+        }
+        i = i + 1;
+    }
+    return Some(Substring(literal, 1, length - 2));
+}
+
+func DirectMirHelloGraphProjection(
+    ref instruction: JsonObjectFactTable
+) -> DirectMirHelloProjection {
+    let graph: JsonObjectFactTable =
+        JsonObjectFactObjectTable(instruction, "expr0_graph");
+    if !JsonObjectFactTableReady(graph) ||
+        JsonObjectFactCount(graph) != 2 {
+        Die("direct MIR backend projection expression graph is missing or invalid");
+    }
+    let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(graph, "root");
+    let nodes: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(graph, "nodes");
+    if !IsSome(root_opt) || UnwrapOption(root_opt) != "0" ||
+        !JsonArrayObjectFactTableReady(nodes) ||
+        JsonArrayObjectFactCount(nodes) != 1 {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let node: JsonObjectFactTable = JsonArrayObjectFactAt(nodes, 0);
+    if !JsonObjectFactTableReady(node) ||
+        JsonObjectFactCount(node) != 6 ||
+        !JsonObjectFactStringFieldEquals(node, "kind", "string_literal") ||
+        !JsonObjectFactStringFieldEquals(node, "call_target_kind", "none") ||
+        !JsonObjectFactStringFieldEquals(node, "call_target_name", "") ||
+        !DirectMirObjectFieldKindEquals(node, "left", "null") ||
+        !DirectMirObjectFieldKindEquals(node, "right", "null") {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 1 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 0 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 1 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeStringLiteral() ||
+        ArrayLength(sequence.arena.node_texts) != 1 {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let literal: String = sequence.arena.node_texts[0];
+    let content_opt: Option<String> = DirectMirAsciiLiteralContent(literal);
+    if !IsSome(content_opt) {
+        return DirectMirHelloProjectionEmpty();
+    }
+    return DirectMirHelloProjection(
+        true, literal, UnwrapOption(content_opt)
+    );
+}
+
+func DirectMirHelloProjectionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirHelloProjection {
+    let json: String = admitted.routines.source_json;
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
+    let generic_specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            document.root, "generic_method_specializations"
+        );
+    if !document.valid || JsonObjectFactCount(document.root) != 5 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !JsonArrayObjectFactTableReady(document.declarations) ||
+        JsonArrayObjectFactCount(document.declarations) != 0 ||
+        !JsonArrayObjectFactTableReady(
+            document.parallel_capture_boundaries
+        ) ||
+        JsonArrayObjectFactCount(document.parallel_capture_boundaries) != 0 ||
+        !JsonArrayObjectFactTableReady(generic_specializations) ||
+        JsonArrayObjectFactCount(generic_specializations) != 0 ||
+        JsonArrayObjectFactCount(document.routines) != 1 ||
+        MirProgramRoutineIndexCount(admitted.routines) != 1 ||
+        admitted.routines.kinds[0] != "function" ||
+        admitted.routines.owners[0] != "" ||
+        admitted.routines.names[0] != "Main" ||
+        admitted.routines.routine_block_counts[0] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, 0, 0
+        ) != 1 {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, admitted.routines.starts[0], admitted.routines.ends[0]
+    );
+    if !JsonObjectFactTableReady(routine) ||
+        !JsonObjectFactStringFieldEquals(routine, "name", "Main") ||
+        !JsonObjectFactStringFieldEquals(routine, "kind", "function") ||
+        !JsonObjectFactStringFieldEquals(routine, "return", "Void") ||
+        !DirectMirRoutineHasNoUnsupportedFacts(routine) {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let block_row: Int = admitted.routines.routine_block_starts[0];
+    let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json,
+        admitted.routines.block_starts[block_row],
+        admitted.routines.block_ends[block_row]
+    );
+    if !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
+        !DirectMirObjectNumberEquals(block, "id", "0") ||
+        !JsonObjectBoolFieldEqualsWithin(
+            json, block.start, block.end, "reachable", true
+        ) {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let instruction_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 0
+    );
+    if instruction_row < 0 {
+        return DirectMirHelloProjectionEmpty();
+    }
+    if admitted.routines.instruction_kinds[instruction_row] != "stmt" {
+        Die("direct MIR backend projection rejected invalid instruction kind");
+    }
+    if
+        admitted.routines.instruction_source_types[instruction_row] !=
+            "AST_CALL" {
+        return DirectMirHelloProjectionEmpty();
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json,
+        admitted.routines.instruction_starts[instruction_row],
+        admitted.routines.instruction_ends[instruction_row]
+    );
+    if !JsonObjectFactTableReady(instruction) ||
+        !DirectMirObjectNumberEquals(instruction, "id", "0") ||
+        !JsonObjectFactStringFieldEquals(instruction, "kind", "stmt") ||
+        !JsonObjectFactStringFieldEquals(instruction, "name", "stmt") ||
+        !JsonObjectFactStringFieldEquals(instruction, "arg0", "Log") ||
+        !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_CALL"
+        ) ||
+        !DirectMirObjectFieldKindEquals(instruction, "result", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "arg1", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "slot_anchor", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "abi_type_name", "null") ||
+        !DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") ||
+        !JsonObjectBoolFieldEqualsWithin(
+            json, instruction.start, instruction.end,
+            "abi_layout_required", false
+        ) ||
+        !DirectMirObjectFieldKindEquals(instruction, "abi_layout", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr0", "string") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr1", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") ||
+        !JsonObjectFactStringFieldEquals(
+            instruction, "machine_contact_kind", ""
+        ) ||
+        !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
+        !DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_bindings") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_binding_types") ||
+        !DirectMirObjectFieldKindEquals(
+            instruction, "destructure_element_type", "null"
+        ) ||
+        !DirectMirObjectArrayEmpty(instruction, "destructure_bindings") ||
+        !DirectMirObjectArrayEmpty(instruction, "uses") {
+        return DirectMirHelloProjectionEmpty();
+    }
+    return DirectMirHelloGraphProjection(instruction);
+}
+
+func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n    puts(";
+    output = Concat(output, projection.literal);
+    output = Concat(output, ");\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirHelloEmitLlvm(projection: DirectMirHelloProjection) -> String {
+    let constant_length: Int = StringLength(projection.content) + 1;
+    let output: String =
+        "@.pgy.hello = private unnamed_addr constant [";
+    output = Concat(output, ToString(constant_length));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, projection.content);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @puts(ptr)\n\n");
+    output = Concat(output, "define i32 @main() {\nentry:\n");
+    output = Concat(output, "  %ignored = call i32 @puts(ptr @.pgy.hello)\n");
+    output = Concat(output, "  ret i32 0\n}\n");
+    return output;
+}
+
+func CompileAdmittedDirectMirHelloForTarget(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact
+) -> CompilerEmissionArtifact {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuLlvmProjection()
+    );
+    if !is_c && !is_llvm {
+        Die("direct MIR backend projection rejected the target fact");
+    }
+    let projection: DirectMirHelloProjection =
+        DirectMirHelloProjectionFromAdmitted(admitted);
+    if !projection.valid {
+        Die("direct MIR backend projection rejected unsupported or mutated hello facts");
+    }
+    let kind: String = "emitted-c";
+    let payload: String = DirectMirHelloEmitC(projection);
+    if is_llvm {
+        kind = "emitted_llvm";
+        payload = DirectMirHelloEmitLlvm(projection);
+    }
+    let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact(
+        kind,
+        payload,
+        target_projection.schema,
+        target_projection.projection,
+        target_projection.target_capability_fingerprint
+    );
+    if !CompilerEmissionArtifactReady(artifact) {
+        Die("direct MIR backend emission artifact fingerprint is missing or invalid");
+    }
+    return artifact;
+}
+
+func CompileMirJsonToDirectBackendVerified(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact
+) -> CompilerEmissionArtifact with caps io_read {
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            mir_json_path, machine_declaration
+        );
+    return CompileAdmittedDirectMirHelloForTarget(
+        admitted, target_projection
+    );
+}

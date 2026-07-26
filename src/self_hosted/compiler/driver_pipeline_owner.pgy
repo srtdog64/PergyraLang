@@ -21,10 +21,14 @@ struct CompilerEmissionArtifact {
 }
 
 func CompilerEmissionArtifactReady(artifact: CompilerEmissionArtifact) -> Bool {
-    return artifact.kind == "emitted-c" &&
+    let projection_matches_kind: Bool =
+        (artifact.kind == "emitted-c" &&
+         artifact.target_projection == CompilerTargetCpuCProjection()) ||
+        (artifact.kind == "emitted_llvm" &&
+         artifact.target_projection == CompilerTargetCpuLlvmProjection());
+    return projection_matches_kind &&
         StringLength(artifact.payload) > 0 &&
         artifact.target_capability_schema == CompilerTargetCapabilitySchema() &&
-        artifact.target_projection == CompilerTargetCpuCProjection() &&
         artifact.target_capability_fingerprint != 0 &&
         artifact.target_capability_fingerprint ==
             CompilerTargetCapabilityFingerprint();
