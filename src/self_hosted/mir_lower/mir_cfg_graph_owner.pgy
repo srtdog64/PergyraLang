@@ -146,28 +146,61 @@ func MirRoutineGraphStructuralMerge(
     return merge;
 }
 
-func MirRoutineEdgeTargetsDominator(
+func MirRoutineBackedgeHeaders(
     block_succ_true: Array<Int>,
-    block_succ_false: Array<Int>,
-    source: Int,
-    target: Int
-) -> Bool {
-    if source < 0 || source >= ArrayLength(block_succ_true) ||
-        target < 0 || target >= ArrayLength(block_succ_true) {
-        return false;
+    block_succ_false: Array<Int>
+) -> Array<Int> {
+    let block_count: Int = ArrayLength(block_succ_true);
+    let invalid: Array<Int> = [];
+    let headers: Array<Int> = [];
+    let targeted: Array<Int> = [];
+    let row: Int = 0;
+    while row < block_count {
+        ArrayPush(headers, 0);
+        ArrayPush(targeted, 0);
+        row = row + 1;
     }
-    // An unreachable component must not manufacture a loop header merely
-    // because the entry cannot reach its source while avoiding the target.
-    // Back-edge classification is only meaningful for the reachable CFG.
+    if ArrayLength(block_succ_false) != block_count { return invalid; }
+
+    // Validate every owner-directed edge before indexing the target set. A
+    // malformed graph fails closed instead of returning a partial loop view.
+    row = 0;
+    while row < block_count {
+        let true_target: Int = block_succ_true[row];
+        let false_target: Int = block_succ_false[row];
+        if true_target < (0 - 1) || true_target >= block_count ||
+            false_target < (0 - 1) || false_target >= block_count {
+            return invalid;
+        }
+        if true_target >= 0 { ArraySet(targeted, true_target, 1); }
+        if false_target >= 0 { ArraySet(targeted, false_target, 1); }
+        row = row + 1;
+    }
+
+    // Entry reachability is routine-owned and invariant across every edge.
+    // For a distinct target, one avoiding traversal answers all incoming
+    // source queries; target-major inspection prevents duplicate work.
     let reachable: Array<Int> = MirRoutineGraphDistances(
         block_succ_true, block_succ_false, 0
     );
-    if reachable[source] < 0 || reachable[target] < 0 {
-        return false;
+    let target: Int = 0;
+    while target < block_count {
+        if targeted[target] == 1 && reachable[target] >= 0 {
+            let avoiding_target: Array<Int> = MirRoutineGraphDistancesAvoiding(
+                block_succ_true, block_succ_false, 0, target
+            );
+            let source: Int = 0;
+            while source < block_count && headers[target] == 0 {
+                if reachable[source] >= 0 &&
+                    (block_succ_true[source] == target ||
+                        block_succ_false[source] == target) &&
+                    (source == target || avoiding_target[source] < 0) {
+                    ArraySet(headers, target, 1);
+                }
+                source = source + 1;
+            }
+        }
+        target = target + 1;
     }
-    if source == target { return true; }
-    let avoiding_target: Array<Int> = MirRoutineGraphDistancesAvoiding(
-        block_succ_true, block_succ_false, 0, target
-    );
-    return avoiding_target[source] < 0;
+    return headers;
 }

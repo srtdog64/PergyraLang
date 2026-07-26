@@ -246,31 +246,15 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         successor_row = successor_row + 1;
     }
 
-    // A numerically backward edge is not necessarily a CFG backedge: an
-    // if/else arm can legitimately flow to an earlier merge block.  Mark an
-    // edge as a loop backedge only when the target can actually reach the
-    // source, i.e. the edge closes a cycle in the owner-directed CFG.
-    let block_row: Int = 0;
-    while block_row < ArrayLength(block_starts) {
-        let true_succ: Int = block_succ_true[block_row];
-        if true_succ >= 0 {
-            let target: Int = true_succ;
-            if target < ArrayLength(backedge_headers) &&
-                MirRoutineEdgeTargetsDominator(
-                    block_succ_true, block_succ_false, block_row, target) {
-                ArraySet(backedge_headers, target, 1);
-            }
-        }
-        let false_succ: Int = block_succ_false[block_row];
-        if false_succ >= 0 {
-            let target: Int = false_succ;
-            if target < ArrayLength(backedge_headers) &&
-                MirRoutineEdgeTargetsDominator(
-                    block_succ_true, block_succ_false, block_row, target) {
-                ArraySet(backedge_headers, target, 1);
-            }
-        }
-        block_row = block_row + 1;
+    // Backedge admission is one routine-level CFG owner query. It computes
+    // entry reachability once and reuses one avoiding traversal per distinct
+    // target instead of rediscovering the graph for every incoming edge.
+    backedge_headers = MirRoutineBackedgeHeaders(
+        block_succ_true, block_succ_false
+    );
+    if ArrayLength(backedge_headers) != successor_block_count {
+        valid = false;
+        validation_stage = "cfg_backedge";
     }
 
     let block_count: Int = ArrayLength(block_starts);

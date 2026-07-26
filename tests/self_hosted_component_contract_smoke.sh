@@ -8100,7 +8100,8 @@ require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirR
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockRow("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockIsTerminal("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockIsTerminal(index, then_row)"
-require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutineEdgeTargetsDominator("
+require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutineBackedgeHeaders("
+reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" "func MirRoutineEdgeTargetsDominator("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "MirRoutineGraphCanReachAvoiding("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
@@ -8121,17 +8122,21 @@ require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'if true_successor < 0 { valid = false; validation_stage = "cfg_successor"; }'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     'succ_true\":-1'
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    'validation_stage != "cfg_backedge"'
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "Array<String>"
-reject_function_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
-    "func MirRoutineEdgeTargetsDominator(" \
-    "MirRoutineGraphCanReachAvoiding("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "merge = MirRoutineGraphStructuralMerge("
 reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirRoutineGraphDistances("
 reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirRoutineGraphDistancesAvoiding("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "backedge_headers = MirRoutineBackedgeHeaders("
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" \
+    "MirRoutineEdgeTargetsDominator("
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "func MirRoutineGraphIsSameIterationMerge("
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
