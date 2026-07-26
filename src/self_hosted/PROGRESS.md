@@ -1,5 +1,40 @@
 # Self-Host Progress
 
+2026-07-26 v59 (`19ecce41`, readiness-proof follow-up `7eef684b`) removes the
+measured expression-graph memory amplifier on the active complete-artifact
+rung. The frozen 51,807,108-byte MIR carries 34,962 persisted graphs and
+214,151 nodes. The former append path rebuilt cumulative `place_kinds` and
+revalidated the complete cumulative arena for every graph, implying 18.895 GiB
+of retained backing in the first pass, 38.99 GiB across two passes, and at
+least 14.47 billion readiness node visits. v59 reuses the owned place rows,
+appends only new unknown-place facts, retains graph-local shape/reachability,
+validates full arenas only at owner boundaries, and consumes the admitted
+global instruction bounds. `ready_node_count` is the O(1) proof that a prefix
+was already admitted; the routine index is still fully checked at its receiving
+boundary.
+
+The current driver built in 66,274 ms at 2,590.1/2,579.1 MB peak
+private/working set. Bounded MIR completed in 1,336 ms, remained 414 bytes, and
+preserved SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI exited 1 in 486 ms with the owned diagnostic and no output. The full
+run reached `consumer:mir-to-ast:done` at 429,211 ms, passed v58's former
+1,059-second 3 GiB failure point at only 547 MB private, and failed closed at
+1,645,538 ms with 801.8/749.4 MB peak private/working set. This is executable
+memory progress, not hard substitution: no gen2 file exists.
+
+The failure exposes the next exact SoT seam. All raw graphs are valid, but
+structured AST emission requires 35,638 persisted lanes while flat MIR order
+contains 34,962 roots. Twenty routines revisit CFG blocks, adding 676 surface
+occurrences. The first mismatch is routine 289 `ParsePrimaryFact`, ordinal
+2,875: expected `tuple_probe`, actual `tuple_ch == "\\\""`. The active v60
+rung must carry stable `(routine row, global instruction row, lane, derived
+ordinal)` occurrences from structured emission and build one final arena in
+that order. It must preserve repeated occurrences, use text only as an
+assertion, delete the intermediate persisted sequence/`AppendView`, and reach
+`consumer:expression-graph:done` under the unchanged 3,072 MB cap before any
+gen2 claim.
+
 2026-07-26 accepted v58 (`195d9b64`) as the next measured MIR-consumer CPU
 closure. `LoopFlowSummaryProjectionReady` now reads the routine bundle's
 `block_branch_global_rows` owner once per block and calls branch/scalar

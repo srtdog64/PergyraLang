@@ -8764,3 +8764,47 @@ Released/default replacement remains 0%.
   there is still no `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2
   compilation, or gen3 comparison. Keep the 300-second and 3,072 MB limits;
   the next falsifier is routine 1,920 on this same artifact.
+
+### 2026-07-26 -- v59 linearizes expression graph assembly and exposes the identity blocker
+
+- The first v58 integration-completion run reached
+  `consumer:mir-to-ast:done` at 387,029 ms, then crossed the 3,072 MB cap in
+  expression graph construction at 1,059,616 ms. No output file existed.
+- Static accounting over the frozen MIR found 34,962 persisted graphs and
+  214,151 nodes. Recreating cumulative `place_kinds` on every append retained
+  an estimated 18.895 GiB in the first pass and 38.99 GiB across the persisted
+  plus final-copy passes. Repeated whole-arena readiness implied at least 14.47
+  billion node visits.
+- v59 (`19ecce41`) reuses the owned place array, appends only new unknown-place
+  rows, keeps graph-local validation, and moves whole-arena readiness to the
+  sequence/final boundaries. It consumes the admitted global instruction
+  bounds rather than rebuilding program and routine indexes. Follow-up
+  `7eef684b` restores complete index-boundary readiness and adds an O(1)
+  `ready_node_count` proof for every accepted sequence prefix.
+- Component, program-graph-unification, collection/match/destructure graph-use,
+  MIR graph negative, routine-index C/LLVM, expression-graph projection, and
+  `git diff --check` gates passed. The hard self-host contract remains red only
+  at its pre-existing `device_slot_machine_layer` manifest assertion. A
+  focused body-parity run reached generated-C compilation but hit the already
+  separated runtime-header classifier defect for `valid_array_builtins`.
+- The current driver built in 66,274 ms at 2,590.1/2,579.1 MB peak
+  private/working set. Bounded consumption completed in 1,336 ms, remained 414
+  bytes with the established SHA, and wrong ABI failed in 486 ms with the
+  owned diagnostic and no output.
+- The complete v59 run reached MIR-to-AST completion at 429,211 ms, passed the
+  old failure time at only 547 MB private, and failed closed at 1,645,538 ms
+  with 801.8/749.4 MB peak private/working set. This closes the cumulative
+  memory amplifier but does not produce gen2.
+- Independent raw validation found zero invalid graphs. A surface-count probe
+  found 35,638 persisted-required AST lanes versus 34,962 flat raw roots
+  (`+676`) because structured CFG emission revisits blocks in 20 routines.
+  The first mismatch is `ParsePrimaryFact`, ordinal 2,875: expected
+  `tuple_probe`, actual `tuple_ch == "\\\""`.
+- The next executable rung is owner-directed graph identity, not another
+  cleanup pass: structured emission must carry stable `(routine row, global
+  instruction row, lane, derived ordinal)` occurrences and build one final
+  arena in surface order. Text remains a consistency assertion, never an
+  identity lookup. The intermediate persisted sequence and `AppendView` must
+  then be removed and negative-gated. Hard substitution remains incomplete;
+  there is still no complete gen2 C artifact, gen2 executable, or gen3 fixed
+  point.

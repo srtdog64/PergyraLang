@@ -1222,6 +1222,48 @@ progress with stable memory, but no `driver_gen2.c` was emitted. Keep the
 fixed limits and continue the same artifact; a higher timeout or memory cap is
 not a substitute for closing the next owned repeated validation.
 
+#### Rebuilding cumulative expression arenas explains the 20 GiB observation
+
+The first full v58 completion run reached `consumer:mir-to-ast:done` at
+387,029 ms, entered `consumer:expression-graph:start`, and then crossed the
+3,072 MB cap at 1,059,616 ms without opening a gen2 output. Static accounting
+identified the exact amplifier. The frozen artifact contains 34,962 persisted
+graphs and 214,151 graph nodes. Every append rebuilt a fresh cumulative
+`place_kinds` array and revalidated the complete cumulative arena. The first
+persisted pass alone retained an estimated 18.895 GiB of array backing; the
+second `AppendView`/parser-bridge assembly raised the two-pass lower bound to
+38.99 GiB and implied at least 14.47 billion cumulative readiness node visits.
+
+v59 (`19ecce41`, prefix-proof follow-up `7eef684b`) reuses the existing place
+array, appends one `Unknown` row per new node, validates raw graph-local shape
+and reachability, and performs full arena readiness only at sequence/final
+owner boundaries. It also consumes the admitted `MirProgramRoutineIndex`
+instruction bounds instead of rebuilding the program and per-routine indexes.
+The sequence now carries an O(1) `ready_node_count` proof, and the index-taking
+boundary rechecks the complete routine-index structure. Static gates reject
+restoring per-append `ArenaUnclassified`, whole-arena readiness, or index
+reconstruction.
+
+The exact-source driver built in 66,274 ms at 2,590.1/2,579.1 MB peak
+private/working set. Its bounded result remained 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI failed with the owned diagnostic and no output. On the same complete
+MIR, v59 passed v58's 1,059-second/3,072 MB failure point at 547 MB private and
+finally failed closed at 1,645,538 ms with only 801.8/749.4 MB peak
+private/working set. This is executable proof that repeated cumulative graph
+materialization—not normal oracle size—caused the 3 GiB/20 GiB symptom.
+
+Do not mistake the later v59 failure for a memory regression. All 34,962 raw
+graphs and 214,151 nodes validate. The reconstructed structured AST has 35,638
+persisted-required lanes, 676 more than the raw document-order roots because
+20 routines revisit CFG blocks. The first mismatch is routine 289
+`ParsePrimaryFact`, root ordinal 2,875: the structured surface expects
+`tuple_probe`, while positional raw order supplies `tuple_ch == "\\\""`.
+The fix is stable `(routine row, global instruction row, lane, derived ordinal)`
+identity carried by structured emission into one final graph. Do not reorder by
+text, relax the count check, deduplicate repeated CFG visits, rebuild a second
+graph, or raise the memory/time limits.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

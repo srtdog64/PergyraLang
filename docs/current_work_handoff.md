@@ -79,8 +79,18 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `195d9b64` (accepted v58 single-consumption loop
-  branch projection) on `main`. It removes the second per-block branch
+- Implementation checkpoint: `7eef684b` (v59 expression-sequence prefix
+  readiness proof) on `main`, following `19ecce41` (linear expression arena
+  assembly). v59 removes cumulative `place_kinds` rebuilding, per-append
+  whole-arena readiness, and program/routine-index reconstruction from the
+  expression-graph path. It retains graph-local validation, checks the admitted
+  routine index at the receiving boundary, and carries `ready_node_count` as
+  the O(1) proof for an already-admitted prefix. The complete run stayed below
+  802 MB private but failed closed on the separately measured positional
+  graph/surface identity seam; it is executable memory progress, not gen2 or
+  hard substitution.
+- The accepted predecessor is `195d9b64` (v58 single-consumption loop branch
+  projection) on `main`. It removes the second per-block branch
   selection and second per-branch scalar read from loop-summary readiness,
   preserves exact routine/block/span identity and FOR range/foreach semantics,
   and materially improves the adjacent v57 normalized markers through routine
@@ -383,6 +393,12 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-loop-branch-owner-v58-wrong-abi` | 0.0 MB sampled | 0.0 MB sampled | Exit 1 in 1,672 ms with the owned ABI diagnostic and no output; the process finished between samples. |
 | `full-mir-consumer-loop-branch-owner-v58-300s-observed` | 197.3 MB | 200.0 MB | Timed out at 300,470 ms after routines 704/896/1,600/1,664/1,728/1,792/1,856 at 173,630/202,723/252,244/258,345/267,970/282,271/297,340 ms. Normalized gains over adjacent v57 are 13,115/17,413/23,866/24,729/25,971 ms through 1,728; accepted, no gen2. |
 | `mir-lower-loop-branch-owner-v58-llvm-build` | 315.5 MB | 318.3 MB | Focused LLVM `mir_lower` compiled in 4,104 ms; C/LLVM valid output and invalid-ABI failure were byte-equal. |
+| `full-mir-consumer-loop-branch-owner-v58-integration-completion` | 3072.1 MB | 2459.3 MB | Reached MIR-to-AST completion at 387,029 ms, then stopped on the unchanged memory limit at 1,059,616 ms inside expression graph construction; no output. |
+| `full-mir-consumer-expression-arena-linear-v59-ready-proof-build` | 2590.1 MB | 2579.1 MB | Exact-source v59 driver compiled in 66,274 ms below the fixed cap. |
+| `full-mir-consumer-expression-arena-linear-v59-ready-proof-bounded` | 0.0 MB sampled | 0.0 MB sampled | Exit 0 in 1,336 ms; 414 bytes with the established SHA. |
+| `full-mir-consumer-expression-arena-linear-v59-ready-proof-wrong-abi` | 0.0 MB sampled | 0.0 MB sampled | Exit 1 in 486 ms with the owned ABI diagnostic and no output. |
+| `full-mir-consumer-expression-arena-linear-v59-integration-completion` | 801.8 MB | 749.4 MB | Reached MIR-to-AST completion at 429,211 ms and failed closed at 1,645,538 ms on the positional graph/surface identity mismatch; no output and no memory-limit crossing. |
+| `v59-expression-surface-count-probe-full` | 230.4 MB | 233.2 MB | Completed in 498,952 ms: 41,299 surfaces, 35,638 persisted-required lanes, and 1,758 parser-only lanes. Flat MIR contains only 34,962 roots. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -706,6 +722,15 @@ Green on current checkpoint `195d9b64` plus the accepted v58 measurements:
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
   owner (`full-mir-consumer-loop-branch-owner-v58-build`): exit 0, 60,952 ms,
   2,587.9 MB peak private / 2,577.0 MB peak working set;
+- v59 readiness-proof integrated C build: exit 0, 66,274 ms, 2,590.1 MB peak
+  private / 2,579.1 MB peak working set;
+- v59 bounded MIR consumer: exit 0 in 1,336 ms, 414 bytes, established SHA;
+- v59 wrong-ABI mutation: exit 1 in 486 ms with the owned diagnostic and no
+  output;
+- v59 full completion attempt: MIR-to-AST done at 429,211 ms, fail-closed at
+  1,645,538 ms, 801.8/749.4 MB peak private/working set, no gen2;
+- v59 surface-count probe: 41,299 surfaces, 35,638 persisted-required lanes,
+  1,758 parser-only lanes, proving the flat-root count mismatch;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - bounded wrong-ABI mutation: exit 1 with the owned ABI diagnostic and no
@@ -804,16 +829,20 @@ The accepted v58 evidence is
 `full-mir-consumer-loop-branch-owner-v58-{build,bounded,wrong-abi,300s-observed}.*`;
 its focused LLVM build is
 `mir-lower-loop-branch-owner-v58-llvm-build.*`.
-The current accepted
-executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v58_loop_branch_owner.exe`; its
-414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v58_bounded.c`. The latest accepted-source
-full consumer evidence reaches routine 1,856 at 297,340 ms under current load
-and is materially faster than the adjacent v57 control after MIR-start
-normalization. Historical v48 still reached routine 1,984 at 295,075 ms under
-an earlier lighter run, so absolute last-marker counts across those loads are
-not interchangeable. The rejected v50
+The first completion continuation is
+`full-mir-consumer-loop-branch-owner-v58-integration-completion.*`; it reached
+expression graph construction and stopped at the 3,072 MB cap. v59 evidence is
+`full-mir-consumer-expression-arena-linear-v59-{integration-completion}.*` and
+`full-mir-consumer-expression-arena-linear-v59-ready-proof-{build,bounded,wrong-abi}.*`.
+The current diagnostic executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v59_expression_arena_linear.exe`;
+its 414-byte bounded result is
+`.tmp/self_hosted/driver_bootstrap/v59_ready_bounded.c`. The temporary count
+probe source/executable were deleted after their result was recorded; its
+pressure evidence remains under `v59-expression-surface-count-probe-full.*`.
+The latest full consumer evidence reaches MIR-to-AST completion, remains below
+802 MB private through expression construction, and fails closed on the known
+35,638-vs-34,962 positional identity mismatch. The rejected v50
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v50_resource_raw_capture.exe`;
 its 414-byte bounded result is
@@ -848,21 +877,21 @@ evidence only, not semantic authority or commit content.
    a second branch pass, or rendered-condition fallback. v58 still produces no
    gen2, so count it as owner closure and generated-driver CPU improvement, not
    hard substitution progress or completion.
-6. Select the next executable seam from integrated MIR-to-AST profiling or a
-   named owned stage measurement. Priority is measured inclusive cost, one
-   current fact owner, exact C/LLVM and failure behavior, then patch size.
-   Forbidden fallbacks remain whole-program rescans, parallel semantic graphs,
-   backend-specific facts, a second cache/authority, and a raised time or
-   memory gate.
-7. Before another source rewrite, name the measured routine/path, its owner,
-   last legitimate consumer, and one falsifying fixture. Run the same
-   build/bounded/wrong-ABI/observed-full ladder and accept only a material
-   improvement over accepted v58's normalized shared markers or complete gen2
-   output. Use an adjacent unchanged-source control when host load has shifted.
-8. Continue the winning same-artifact projection until
-   `consumer:mir-to-ast:done` is observed. Post-loop markers for top-level
-   completion, string join, and AST inventory must distinguish projected
-   completion from an observed result.
+6. The active seam is now exact and must not be replaced by another profiling
+   guess. Structured AST emission requires 35,638 persisted graph occurrences,
+   while flat MIR document order contains 34,962 roots. The first mismatch is
+   routine 289 `ParsePrimaryFact`, ordinal 2,875: expected `tuple_probe`, actual
+   `tuple_ch == "\\\""`. Twenty routines revisit CFG blocks and add 676 real
+   surface occurrences.
+7. Make structured emission own stable `(routine row, global instruction row,
+   lane, derived ordinal)` occurrence order. Repeated CFG visits must repeat
+   the same key and append a fresh range; they must not be deduplicated. Text is
+   only a consistency assertion, never identity or lookup fallback.
+8. Build parser bridges and keyed MIR graphs directly into one final sequence
+   in artifact surface order. Delete the intermediate persisted sequence and
+   `MirExpressionGraphSequenceAppendView`, then add a negative ratchet against
+   both. Do not add a parallel graph, cache, backend-specific identity, raw
+   reorder pass, or count relaxation.
 9. If that projection emits a complete `driver_gen2.c`, compile that C as
    the bootstrap object-code boundary; do not regenerate another oracle MIR.
 10. Make the generated gen2 driver consume the same complete compiler source
