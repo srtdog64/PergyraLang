@@ -251,11 +251,15 @@ func CanonicalizeMirJsonVerified(
     let json: String = MirJsonReadInput(
         mir_json_path, machine_declaration
     );
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    if !MirProgramRoutineIndexStructureReady(routines) {
+        Die("MIR routine inventory is missing or invalid");
+    }
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTree(json)
+        EmitMirProgramTreeFromRoutineIndex(routines)
     );
     let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(json, artifact);
+        MirExpressionGraphFactsForArtifact(routines, artifact);
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }
@@ -312,7 +316,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:expression-graph:start"
     );
     let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(json, artifact);
+        MirExpressionGraphFactsForArtifact(admitted.routines, artifact);
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");
     }

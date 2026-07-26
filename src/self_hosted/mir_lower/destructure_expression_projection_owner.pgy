@@ -27,33 +27,42 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     let rights: Array<Int> = sequence.arena.topology.right_children;
     let target_kinds: Array<Int> = sequence.arena.call_target_kinds;
     let target_names: Array<String> = sequence.arena.call_target_names;
+    let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
+    if ArrayLength(texts) != offset || ArrayLength(lefts) != offset ||
+        ArrayLength(rights) != offset ||
+        ArrayLength(target_kinds) != offset ||
+        ArrayLength(target_names) != offset ||
+        ArrayLength(place_kinds) != offset {
+        return MirExpressionGraphSequenceError(sequence); }
     let index_text: String = ToString(index);
     ArrayPush(kinds, AstExpressionNodeLeaf());
     ArrayPush(texts, source);
-    ArrayPush(lefts, 0);
-    ArrayPush(rights, 0);
+    ArrayPush(lefts, 0); ArrayPush(rights, 0);
     ArrayPush(target_kinds, SemanticCallTargetNone());
     ArrayPush(target_names, "");
+    ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
     ArrayPush(kinds, AstExpressionNodeIntegerLiteral());
     ArrayPush(texts, index_text);
-    ArrayPush(lefts, 0);
-    ArrayPush(rights, 0);
+    ArrayPush(lefts, 0); ArrayPush(rights, 0);
     ArrayPush(target_kinds, SemanticCallTargetNone());
     ArrayPush(target_names, "");
+    ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
     ArrayPush(kinds, AstExpressionNodeIndex());
     ArrayPush(texts, Concat(source, Concat("[", Concat(index_text, "]"))));
     ArrayPush(lefts, offset);
     ArrayPush(rights, offset + 1);
     ArrayPush(target_kinds, SemanticCallTargetNone());
     ArrayPush(target_names, "");
+    ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + 2);
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaUnclassified(
-            kinds, texts, lefts, rights, target_kinds, target_names
+        SemanticExpressionGraphArenaFromRows(
+            kinds, texts, lefts, rights, target_kinds, target_names,
+            place_kinds
         );
-    if !SemanticExpressionGraphArenaReady(arena) {
+    if !MirExpressionGraphRangeReachable(arena, offset, 3, offset + 2) {
         return MirExpressionGraphSequenceError(sequence);
     }
     return MirExpressionGraphSequence(true, roots, arena);

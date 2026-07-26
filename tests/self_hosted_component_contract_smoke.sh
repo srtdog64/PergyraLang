@@ -3785,6 +3785,22 @@ require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 60
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "func MirExpressionGraphFactsForArtifact("
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "ref routines: MirProgramRoutineIndex"
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "if !SemanticExpressionGraphArenaReady(sequence.arena)"
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphSequenceFromRoutineIndex(" \
+    "BuildMirProgramRoutineIndex("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphSequenceFromRoutineIndex(" \
+    "BuildMirRoutineFactIndex("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphFactsForArtifact(" \
+    "BuildMirProgramRoutineIndex("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphFactsForArtifact(" \
+    "BuildMirRoutineFactIndex("
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'JsonObjectFactObjectTable('
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'instruction, "expr0_graph"'
@@ -3798,6 +3814,32 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "SemanticExpressionGraphCarriedCallTargetsReady(facts)"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "SemanticExpressionGraphArenaFromRows("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "SemanticExpressionGraphArenaUnclassified("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendParserBridge(" \
+    "SemanticExpressionGraphArenaUnclassified("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendParserBridge(" \
+    "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendIndexProjection(" \
+    "SemanticExpressionGraphArenaUnclassified("
+reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendIndexProjection(" \
+    "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendUnaryCall(" \
+    "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendTaggedEnumMatch(" \
+    "SemanticExpressionGraphArenaReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonTextToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

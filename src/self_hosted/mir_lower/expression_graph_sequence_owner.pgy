@@ -24,96 +24,46 @@ func MirExpressionGraphSequenceError(
 
 func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "leaf" { return Some(AstExpressionNodeLeaf()); }
-    if kind == "logical_or" {
-        return Some(AstExpressionNodeLogicalOr());
-    }
-    if kind == "logical_and" {
-        return Some(AstExpressionNodeLogicalAnd());
-    }
-    if kind == "equality" {
-        return Some(AstExpressionNodeEquality());
-    }
-    if kind == "inequality" {
-        return Some(AstExpressionNodeInequality());
-    }
+    if kind == "logical_or" { return Some(AstExpressionNodeLogicalOr()); }
+    if kind == "logical_and" { return Some(AstExpressionNodeLogicalAnd()); }
+    if kind == "equality" { return Some(AstExpressionNodeEquality()); }
+    if kind == "inequality" { return Some(AstExpressionNodeInequality()); }
     if kind == "less" { return Some(AstExpressionNodeLess()); }
-    if kind == "less_equal" {
-        return Some(AstExpressionNodeLessEqual());
-    }
+    if kind == "less_equal" { return Some(AstExpressionNodeLessEqual()); }
     if kind == "greater" { return Some(AstExpressionNodeGreater()); }
-    if kind == "greater_equal" {
-        return Some(AstExpressionNodeGreaterEqual());
-    }
+    if kind == "greater_equal" { return Some(AstExpressionNodeGreaterEqual()); }
     if kind == "add" { return Some(AstExpressionNodeAdd()); }
     if kind == "subtract" { return Some(AstExpressionNodeSubtract()); }
     if kind == "multiply" { return Some(AstExpressionNodeMultiply()); }
     if kind == "divide" { return Some(AstExpressionNodeDivide()); }
     if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
     if kind == "index" { return Some(AstExpressionNodeIndex()); }
-    if kind == "logical_not" {
-        return Some(AstExpressionNodeLogicalNot());
-    }
+    if kind == "logical_not" { return Some(AstExpressionNodeLogicalNot()); }
     if kind == "negate" { return Some(AstExpressionNodeNegate()); }
-    if kind == "float_literal" {
-        return Some(AstExpressionNodeFloatLiteral());
-    }
-    if kind == "integer_literal" {
-        return Some(AstExpressionNodeIntegerLiteral());
-    }
-    if kind == "long_literal" {
-        return Some(AstExpressionNodeLongLiteral());
-    }
-    if kind == "bool_literal" {
-        return Some(AstExpressionNodeBoolLiteral());
-    }
-    if kind == "string_literal" {
-        return Some(AstExpressionNodeStringLiteral());
-    }
+    if kind == "float_literal" { return Some(AstExpressionNodeFloatLiteral()); }
+    if kind == "integer_literal" { return Some(AstExpressionNodeIntegerLiteral()); }
+    if kind == "long_literal" { return Some(AstExpressionNodeLongLiteral()); }
+    if kind == "bool_literal" { return Some(AstExpressionNodeBoolLiteral()); }
+    if kind == "string_literal" { return Some(AstExpressionNodeStringLiteral()); }
     if kind == "call" { return Some(AstExpressionNodeCall()); }
-    if kind == "call_argument" {
-        return Some(AstExpressionNodeCallArgument());
-    }
-    if kind == "member_access" {
-        return Some(AstExpressionNodeMemberAccess());
-    }
+    if kind == "call_argument" { return Some(AstExpressionNodeCallArgument()); }
+    if kind == "member_access" { return Some(AstExpressionNodeMemberAccess()); }
     if kind == "try" { return Some(AstExpressionNodeTry()); }
-    if kind == "array_literal" {
-        return Some(AstExpressionNodeArrayLiteral());
-    }
-    if kind == "array_element" {
-        return Some(AstExpressionNodeArrayElement());
-    }
-    if kind == "struct_literal" {
-        return Some(AstExpressionNodeStructLiteral());
-    }
-    if kind == "struct_field_binding" {
-        return Some(AstExpressionNodeStructFieldBinding());
-    }
-    if kind == "struct_field" {
-        return Some(AstExpressionNodeStructField());
-    }
-    if kind == "struct_field_name" {
-        return Some(AstExpressionNodeStructFieldName());
-    }
-    if kind == "generic_type_actual" {
-        return Some(AstExpressionNodeGenericTypeActual());
-    }
-    if kind == "generic_callee" {
-        return Some(AstExpressionNodeGenericCallee());
-    }
-    if kind == "type_name" {
-        return Some(AstExpressionNodeTypeName());
-    }
+    if kind == "array_literal" { return Some(AstExpressionNodeArrayLiteral()); }
+    if kind == "array_element" { return Some(AstExpressionNodeArrayElement()); }
+    if kind == "struct_literal" { return Some(AstExpressionNodeStructLiteral()); }
+    if kind == "struct_field_binding" { return Some(AstExpressionNodeStructFieldBinding()); }
+    if kind == "struct_field" { return Some(AstExpressionNodeStructField()); }
+    if kind == "struct_field_name" { return Some(AstExpressionNodeStructFieldName()); }
+    if kind == "generic_type_actual" { return Some(AstExpressionNodeGenericTypeActual()); }
+    if kind == "generic_callee" { return Some(AstExpressionNodeGenericCallee()); }
+    if kind == "type_name" { return Some(AstExpressionNodeTypeName()); }
     if kind == "cast" { return Some(AstExpressionNodeCast()); }
     if kind == "await" { return Some(AstExpressionNodeAwait()); }
     if kind == "coalesce" { return Some(AstExpressionNodeCoalesce()); }
     if kind == "spawn" { return Some(AstExpressionNodeSpawn()); }
-    if kind == "set_literal" {
-        return Some(AstExpressionNodeSetLiteral());
-    }
-    if kind == "set_element" {
-        return Some(AstExpressionNodeSetElement());
-    }
+    if kind == "set_literal" { return Some(AstExpressionNodeSetLiteral()); }
+    if kind == "set_element" { return Some(AstExpressionNodeSetElement()); }
     return None;
 }
 
@@ -196,7 +146,15 @@ func MirExpressionGraphSequenceAppend(
     let call_target_kinds: Array<Int> =
         sequence.arena.call_target_kinds;
     let call_target_names: Array<String> = sequence.arena.call_target_names;
+    let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
+    if ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
+        ArrayLength(right_children) != offset ||
+        ArrayLength(call_target_kinds) != offset ||
+        ArrayLength(call_target_names) != offset ||
+        ArrayLength(place_kinds) != offset {
+        return MirExpressionGraphSequenceError(sequence);
+    }
     let i: Int = 0;
     let cursor: Int = nodes.start + 1;
     let node_bounds: Array<Int> = [0, 0];
@@ -234,10 +192,20 @@ func MirExpressionGraphSequenceAppend(
             ((target_kind == SemanticCallTargetDirect() ||
                 target_kind == SemanticCallTargetNamespace() ||
                 target_kind == SemanticCallTargetMember()) &&
-                UnwrapOption(target_name) == "") {
+                (UnwrapOption(target_name) == "" ||
+                    UnwrapOption(kind_opt) != AstExpressionNodeCall())) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind: Int = UnwrapOption(kind_opt);
+        let node_text: String = UnwrapOption(text);
+        if (kind == AstExpressionNodeLongLiteral() &&
+                !AstExpressionLongLiteralPayloadReady(node_text)) ||
+            (kind == AstExpressionNodeBoolLiteral() &&
+                !AstExpressionBoolLiteralPayloadReady(node_text)) ||
+            (kind == AstExpressionNodeStringLiteral() &&
+                !AstExpressionStringLiteralPayloadReady(node_text)) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
         let left: Int = 0;
         let right: Int = 0;
         let left_opt: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -274,24 +242,48 @@ func MirExpressionGraphSequenceAppend(
             left = offset + local_left;
             right = offset + local_right;
         }
+        if (kind == AstExpressionNodeCall() &&
+                !AstExpressionNodeIsCallableCallee(kinds[left])) ||
+            (kind == AstExpressionNodeCallArgument() &&
+                !AstExpressionNodeIsCallSpine(kinds[left])) ||
+            (kind == AstExpressionNodeMemberAccess() &&
+                kinds[right] != AstExpressionNodeLeaf()) ||
+            (kind == AstExpressionNodeGenericCallee() &&
+                (!AstExpressionNodeIsCallableCallee(kinds[left]) ||
+                    kinds[right] != AstExpressionNodeGenericTypeActual())) ||
+            (kind == AstExpressionNodeCast() &&
+                kinds[right] != AstExpressionNodeTypeName()) ||
+            (kind == AstExpressionNodeArrayElement() &&
+                !AstExpressionNodeIsArrayLiteralSpine(kinds[left])) ||
+            (kind == AstExpressionNodeSetElement() &&
+                !AstExpressionNodeIsSetLiteralSpine(kinds[left])) ||
+            (kind == AstExpressionNodeStructLiteral() &&
+                kinds[left] != AstExpressionNodeLeaf()) ||
+            (kind == AstExpressionNodeStructFieldBinding() &&
+                kinds[left] != AstExpressionNodeStructFieldName()) ||
+            (kind == AstExpressionNodeStructField() &&
+                (!AstExpressionNodeIsStructLiteralSpine(kinds[left]) ||
+                    kinds[right] != AstExpressionNodeStructFieldBinding())) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
         ArrayPush(kinds, kind);
-        ArrayPush(texts, UnwrapOption(text));
+        ArrayPush(texts, node_text);
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
         ArrayPush(call_target_kinds, target_kind);
         ArrayPush(call_target_names, UnwrapOption(target_name));
+        ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
         cursor = node_bounds[1];
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaUnclassified(
+        SemanticExpressionGraphArenaFromRows(
         kinds, texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        call_target_kinds, call_target_names, place_kinds
     );
-    if !SemanticExpressionGraphArenaReady(arena) ||
-        !MirExpressionGraphRangeReachable(
+    if !MirExpressionGraphRangeReachable(
             arena, offset, count, offset + local_root
         ) {
         return MirExpressionGraphSequenceError(sequence);

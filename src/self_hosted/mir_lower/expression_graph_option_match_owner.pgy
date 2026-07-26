@@ -41,9 +41,6 @@ func MirExpressionGraphSequenceAppendUnaryCall(
         SemanticExpressionGraphArenaFromRows(
             kinds, texts, left, right, target_kinds, target_names, places
         );
-    if !SemanticExpressionGraphArenaReady(prefix_arena) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
     let with_subject: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
             MirExpressionGraphSequence(true, roots, prefix_arena),
@@ -90,8 +87,5 @@ func MirExpressionGraphSequenceAppendUnaryCall(
             result_kinds, result_texts, result_left, result_right,
             result_target_kinds, result_target_names, result_places
         );
-    if !SemanticExpressionGraphArenaReady(final_arena) {
-        return MirExpressionGraphSequenceError(with_subject);
-    }
     return MirExpressionGraphSequence(true, result_roots, final_arena);
 }

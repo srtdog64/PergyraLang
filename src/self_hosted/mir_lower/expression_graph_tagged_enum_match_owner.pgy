@@ -85,9 +85,6 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
         SemanticExpressionGraphArenaFromRows(
             kinds, texts, left, right, target_kinds, target_names, places
         );
-    if !SemanticExpressionGraphArenaReady(final_arena) {
-        return MirExpressionGraphSequenceError(appended);
-    }
     let result: MirExpressionGraphSequence =
         MirExpressionGraphSequence(true, roots, final_arena);
     if !IsSome(variant_opt) { return result; }
@@ -158,9 +155,6 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
                 payload_kinds, payload_texts, payload_left, payload_right,
                 payload_target_kinds, payload_target_names, payload_places
             );
-        if !SemanticExpressionGraphArenaReady(completed_arena) {
-            return MirExpressionGraphSequenceError(result);
-        }
         result = MirExpressionGraphSequence(
             true, payload_roots, completed_arena
         );
