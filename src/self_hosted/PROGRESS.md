@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-26 program-lifetime exact ABI validation reuse (`0da9c5c2`). The v39
+full-input census found 10,635 instructions but only 40 exact ABI tuples before
+routine 640. Required rows were more concentrated: 580 rows reduced to five
+complete tuples. The ABI owner now retains only successful validation witnesses
+for one MIR-to-AST execution. A hit requires the exact raw type value, canonical
+decimal ID, required state, and complete raw layout payload; the 28-bit ID alone
+cannot authorize reuse. Optional rows still prove `id=0` plus `layout=null`, and
+the type-key witness keeps the decoded type name in a parallel owned array.
+
+The C/LLVM fixture first admits `Array<Int>`, then proves that a semantically
+equal row with different JSON key order takes the full validation path and that
+the same ID with a changed nested offset is rejected. Missing, duplicate,
+wrong-kind, and wrong-ID paths retain the owned ABI diagnostic. The validation
+session is backend-neutral, program-lifetime only, and never becomes a semantic
+layout table or a cross-run cache.
+
+The exact-source v41 integrated driver built in 52,722 ms at 2,346.8 MB peak
+private / 2,336.6 MB working set, below the fixed 3,072 MB cap. Its bounded run
+finished in 1,251 ms and preserved the 414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+The 300-second full consumer reached routine 640 at 228,455 ms, routine 704 at
+238,884 ms, and routine 896 at 288,574 ms before timing out at 300,227 ms.
+Peak private/working-set memory was 157.2/162.3 MB. It still did not reach
+`consumer:mir-to-ast:done` and did not create gen2 output. The next executable
+falsifier is routine 960 under the same 300-second/3,072 MB gate.
+
 2026-07-26 ABI-layout row capture progression (`a5d56f42`). Focused v29-v37
 instrumentation isolated the full-consumer stall inside required ABI-layout
 validation, not memory growth or the routine fact-index builder. The v38

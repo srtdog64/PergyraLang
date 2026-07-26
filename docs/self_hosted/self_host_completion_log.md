@@ -8259,3 +8259,29 @@ Released/default replacement remains 0%.
   still timed out before `consumer:mir-to-ast:done`; no complete
   `driver_gen2.c`, gen2 binary, or gen3 comparison exists. The next falsifier
   is routine 704 under the same 300-second/3072 MB gate.
+
+### 2026-07-26 -- Exact ABI validation witnesses survive one program run
+
+- The v39 full-input census found 580 required ABI rows before routine 640 but
+  only five exact tuples. The complete input contains 2,504 required rows and
+  seven tuples. The repeated work was successful validation of identical facts,
+  not missing semantic evidence.
+- `0da9c5c2` adds a program-lifetime validation session inside the existing ABI
+  owner. A required hit needs the exact raw type, canonical decimal ID,
+  required state, and full raw layout payload. Only a fully captured and hashed
+  row is remembered; ID-only hits and cross-run reuse remain forbidden.
+- The focused C/LLVM gate admits a reordered but semantically equal layout by a
+  full cache-miss validation and rejects the same ID after a nested offset
+  mutation. Existing wrong-kind, duplicate, wrong-ID, and truncated-bounds
+  failures remain closed under the same ABI diagnostic.
+- The exact-source v41 driver built in 52,722 ms at 2,346.8 MB peak private /
+  2,336.6 MB working set. Its 1,251 ms bounded run remained exactly 414 bytes
+  with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+- The fixed 300-second full run reached routine 640 at 228,455 ms, routine 704
+  at 238,884 ms, and routine 896 at 288,574 ms. It timed out at 300,227 ms with
+  157.2 MB peak private / 162.3 MB working set and no cap crossing.
+- This clears the previous routine-704 falsifier but does not complete
+  bootstrap. `consumer:mir-to-ast:done`, a complete `driver_gen2.c`, gen2
+  compilation, and gen3 comparison are still absent. The next executable
+  falsifier is routine 960 under the unchanged 300-second/3072 MB gate.

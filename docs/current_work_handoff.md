@@ -44,8 +44,9 @@ bounded-only parity as progress evidence.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `a5d56f42` (`optimize self-hosted MIR ABI
-  validation`) on `main`. Its routine-scalar predecessor is `dd68d6f3`, its
+- Implementation checkpoint: `0da9c5c2` (`reuse exact MIR ABI validation
+  tuples`) on `main`. Its ABI row-capture predecessor is `a5d56f42`, its
+  routine-scalar predecessor is `dd68d6f3`, its
   instruction-view predecessor is `06f6994d`, its
   evidence predecessor is `84f68161`, its
   admitted-structure predecessor is `190d0dbf`, its document-index predecessor
@@ -117,6 +118,10 @@ bounded-only parity as progress evidence.
   one nested row and its field rows, applies canonical hash order to that
   capture, and owns both producer and final-consumer identity. The old
   instruction-span validator and repeated-scan hash path are absent.
+- One MIR-to-AST execution retains only successful exact ABI validation
+  witnesses. A required hit needs the raw type value, canonical decimal ID,
+  required state, and complete raw layout payload. ID-only and cross-run reuse
+  are forbidden; a changed payload is revalidated and fails closed.
 
 ## Exact dirty state
 
@@ -205,6 +210,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-abi-bounds-v38-300s` | 92.1 MB | 100.0 MB | Outer-bound capture alone was a negative result; routine 248 regressed to 293,877 ms. |
 | `full-mir-consumer-abi-row-capture-v39-300s` | 134.7 MB | 140.8 MB | Timed out at 300,560 ms; routine 192 at 102,775 ms, routine 448 at 231,271 ms, and routine 640 at 298,374 ms; no gen2. |
 | `full-mir-consumer-abi-owner-v40-build` | 2565.3 MB | 2554.5 MB | Exact final-source integrated C driver compiled in 55,007 ms below the fixed cap. |
+| `full-mir-consumer-abi-exact-reuse-v41-build` | 2346.8 MB | 2336.6 MB | Exact-source integrated C driver compiled in 52,722 ms below the fixed cap. |
+| `full-mir-consumer-abi-exact-reuse-v41-300s` | 157.2 MB | 162.3 MB | Timed out at 300,227 ms after routine 640 at 228,455 ms, routine 704 at 238,884 ms, and routine 896 at 288,574 ms; no gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -315,6 +322,21 @@ SHA. A bounded wrong-ID tuple exits 1 with the owned ABI diagnostic. This is
 material executable progress but remains RED for bootstrap completion: no
 `consumer:mir-to-ast:done` marker and no gen2 file exist.
 
+`0da9c5c2` closes the identical-required-row revalidation seam without making
+the 28-bit layout ID a cache authority. Before routine 640, 580 required rows
+reduce to five complete tuples. The ABI owner remembers a tuple only after the
+full order-independent capture and canonical hash succeed. Reordered JSON is a
+safe miss and full revalidation; the same ID with a changed nested offset is a
+miss and rejection. The focused C/LLVM fixture locks down both cases.
+
+The exact-source v41 driver built in 52,722 ms at 2,346.8 MB peak private /
+2,336.6 MB working set. Its 1,251 ms bounded result remains exactly 414 bytes,
+and the wrong-ID input exits 1 without opening output. The full fixed-window
+run moved routine 640 earlier by 69,919 ms (23.4%) relative to v39, passed the
+old routine-704 falsifier, and reached routine 896 at 288,574 ms. It timed out
+at 300,227 ms with 157.2/162.3 MB peak private/working set. This remains RED:
+there is still no `consumer:mir-to-ast:done` marker or gen2 file.
+
 The focused instruction-writer gate now compares raw, unnormalized
 String/file bytes for five small, graph-heavy, match, destructure, and
 ABI/optional fixtures through both C and LLVM, then compares C/LLVM file bytes.
@@ -341,7 +363,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on `a5d56f42` plus the documented working measurements:
+Green on `0da9c5c2` plus the documented working measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -353,14 +375,17 @@ Green on `a5d56f42` plus the documented working measurements:
 - `tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh` (C/LLVM,
   diamond, re-entry, unrestricted-ranking, self-loop, tie, fallback, and
   detached-component witnesses);
+- `tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh`;
 - `tests/abi_ownership_shape_smoke.sh`;
 - `tests/protocol_registry_smoke.sh`;
 - `tests/gate_sot_single_owner_smoke.sh`;
 - integrated `driver_bootstrap_main.pgy` C build under the 3072 MB pressure
-  owner (`full-mir-consumer-abi-owner-v40-build`): exit 0, 55,007 ms,
-  2,565.3 MB peak private / 2,554.5 MB peak working set;
+  owner (`full-mir-consumer-abi-exact-reuse-v41-build`): exit 0, 52,722 ms,
+  2,346.8 MB peak private / 2,336.6 MB peak working set;
 - bounded MIR consumer byte check: 414 bytes, SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+- bounded wrong-ID ABI mutation: exit 1 with the owned ABI diagnostic and no
+  output file;
 - `tests/build_pressure_contract_smoke.sh`;
 - focused current-driver `nested_if_in_loop` MIR production/consumption plus a
   forged one-predecessor header-phi rejection;
@@ -416,20 +441,20 @@ captured by `full-mir-consumer-admitted.*`,
 `full-mir-consumer-int-cfg-v14-300s.*`, and
 `full-mir-consumer-routine-scalar-bundle-v23.*`,
 `full-mir-consumer-abi-bounds-v38-300s.*`, and
-`full-mir-consumer-abi-row-capture-v39-300s.*`. The current executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v40_abi_owner.exe`; its
+`full-mir-consumer-abi-row-capture-v39-300s.*`, and
+`full-mir-consumer-abi-exact-reuse-v41-300s.*`. The current executable is
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v41_abi_exact_reuse.exe`; its
 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v40_bounded.c`. The latest full consumer
-evidence includes complete stage capture through the 640-routine marker. These
+`.tmp/self_hosted/driver_bootstrap/v41_bounded.c`. The latest full consumer
+evidence includes complete stage capture through the 896-routine marker. These
 files are diagnostic evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Profile the first range after marker 640 using the current ABI,
-   instruction, and CFG owners. The next falsifier is marker 704. If exact ABI
-   tuple reuse is introduced, compare the complete raw/canonical tuple; never
-   authorize a cache hit by the 28-bit layout ID alone.
-2. Re-run the current artifact until marker 704 and ultimately
+1. Profile the first range after marker 896 using the current instruction, CFG,
+   phi, and ABI owners. The next falsifier is marker 960. Do not widen the ABI
+   witness session unless a complete-tuple miss is measured as the next owner.
+2. Re-run the current artifact until marker 960 and ultimately
    `consumer:mir-to-ast:done` are observed under the fixed pressure owner.
 3. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.

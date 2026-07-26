@@ -708,6 +708,41 @@ next must compare the exact raw/canonical ABI tuple; the 28-bit layout ID alone
 cannot authorize a cache hit because collisions or a mutated second payload
 must not bypass validation.
 
+#### Exact ABI reuse must retain the complete validated tuple
+
+The v39 census explained why the one-pass row capture still left material CPU
+work. Before routine 640, 10,635 instructions carried only 40 complete ABI
+tuples. The 580 required rows represented five tuples, so 575 successful nested
+capture/hash operations repeated facts already validated during the same
+MIR-to-AST execution. Across the complete input, 2,504 required rows represent
+seven tuples. This is validation witness reuse, not a new ABI layout authority.
+
+Checkpoint `0da9c5c2` gives `abi_layout_fact_owner.pgy` one program-lifetime
+validation session. Required hits compare the raw type value, canonical decimal
+ID, required state, and complete raw layout payload. The ID is only one part of
+the key. Optional rows still prove their exact `id=0`/`layout=null` contract.
+Only rows which passed the full order-independent capture and canonical hash are
+remembered. Different JSON property order is a safe miss and full revalidation;
+the same ID with a changed nested payload is also a miss and fails closed.
+Store both the raw type key and decoded type name: returning the quoted raw key
+as a decoded name makes a later safe miss fail incorrectly.
+
+The v41 integrated driver built in 52,722 ms at 2,346.8 MB peak private /
+2,336.6 MB working set, below the unchanged 3,072 MB cap. Its bounded output
+remains byte-equal at 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+A wrong-ID bounded input exits 1 with the existing ABI diagnostic and creates
+no output.
+
+The v41 full run reached routine 192 at 93,030 ms, routine 320 at 139,456 ms,
+routine 512 at 200,634 ms, routine 640 at 228,455 ms, routine 704 at 238,884 ms,
+and routine 896 at 288,574 ms. Compared with v39, routine 640 moved earlier by
+69,919 ms (23.4%). The run timed out at 300,227 ms with 157.2 MB peak private /
+162.3 MB working set, `limit_exceeded=false`, no `mir-to-ast:done`, and no gen2
+file. Keep the next test window fixed; profile the first interval after routine
+896 and use routine 960 as the next falsifier rather than raising time or memory
+limits.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
