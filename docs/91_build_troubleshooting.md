@@ -1086,6 +1086,29 @@ marker evidence. The separately labeled `v52-300s-observed` run above is the
 only v52 marker comparison. Always pass the observation token when a fixed
 MIR-consumer run is intended to compare routine progress.
 
+#### LLVM strategy does not substitute for measuring the generated driver
+
+The accepted source was built through `--backend=llvm` as v53 without changing
+any semantic fact, MIR artifact, or bootstrap owner. The integrated LLVM driver
+built successfully below the cap in 139,295 ms at 2,399.0 MB peak private /
+2,389.0 MB working set. Its bounded result was byte-equal at 414 bytes with the
+established SHA, and wrong ABI failed with the same diagnostic and no output.
+This is positive connectivity and parity evidence for the LLVM projection.
+
+It is not current self-host performance evidence. The observed full run reached
+machine routine-index completion at 73,014 ms, routine 704 at 172,586 ms,
+routine 896 at 202,127 ms, routine 1,600 at 250,313 ms, and routine 1,856 at
+295,125 ms. It timed out at 300,518 ms with 214.0 MB peak private / 210.8 MB
+working set, no routine 1,920/1,984/2,048, and no gen2 file. C v48 reached
+routine 1,984 at 295,075 ms on the same artifact.
+
+Troubleshooting rule: keep the project-level LLVM performance-primary strategy
+separate from the performance of a particular generated compiler. Backend
+connectivity, `-O3`, smaller build RSS, or bounded byte parity does not prove
+the LLVM-built DRV-2 is faster. Compare the same complete artifact and fixed
+markers. Do not change Pergyra semantics, owner facts, or the input artifact to
+make a backend positioning claim pass.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+2026-07-26 measured the accepted source through the declared LLVM performance
+projection as v53. No source or semantic owner changed. The integrated LLVM
+driver built successfully in 139,295 ms at 2,399.0 MB peak private / 2,389.0
+MB working set. Its bounded MIR result completed in 2,625 ms, remained 414
+bytes, and preserved SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+Wrong ABI exited 1 with the same owned diagnostic and no output. This proves
+the current LLVM projection is connected to the integrated DRV-2 path and
+preserves the focused contract.
+
+The observed full run was not a performance replacement. Machine routine-index
+admission completed at 73,014 ms and routines 704/896/1,600/1,728/1,792/1,856
+completed at 172,586/202,127/250,313/267,008/280,841/295,125 ms. It timed out
+at 300,518 ms with 214.0 MB peak private / 210.8 MB working set and no routine
+1,920/1,984/2,048, `consumer:mir-to-ast:done`, or gen2 output. The same accepted
+source therefore runs this workload more slowly through the current LLVM
+projection than through C v48. This does not change the general LLVM
+performance-primary strategy, but it forbids claiming the present self-host
+driver as its realized performance path. Keep C v48 as the accepted executable
+baseline and do not change semantic owners to make the LLVM sample win.
+
 2026-07-26 rejected block-successor pair capture (`8c49f74f`, reverted by
 `40037e52`). The experiment replaced the two direct `succ_true`/`succ_false`
 block reads with one order-independent capture in the existing MIR JSON fact

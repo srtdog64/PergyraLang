@@ -341,6 +341,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-resource-local-scan-v51-300s` | 192.6 MB | 195.6 MB | Rejected experiment timed out at 300,614 ms after routine 704 at 173,196 ms, routine 896 at 204,052 ms, routine 1,600 at 255,976 ms, routine 1,728 at 272,517 ms, and routine 1,792 at 287,519 ms; it lost v48's routine-1,984 marker and produced no gen2. Reverted by `6879f0c0`. |
 | `full-mir-consumer-block-successor-pair-v52-build` | 2591.5 MB | 2580.9 MB | Rejected exact-source experiment compiled in 67,265 ms below the cap, 15,786 ms slower than v48. |
 | `full-mir-consumer-block-successor-pair-v52-300s-observed` | 172.9 MB | 176.6 MB | Rejected experiment timed out at 300,560 ms after machine routine-index completion at 83,531 ms and routines 704/896/1,600/1,664 at 198,093/233,293/291,565/298,472 ms; no routine 1,728/2,048 or gen2. Reverted by `40037e52`. |
+| `full-mir-consumer-llvm-performance-v53-build` | 2399.0 MB | 2389.0 MB | Accepted-source LLVM projection compiled successfully in 139,295 ms below the cap and preserved focused C/LLVM semantics. |
+| `full-mir-consumer-llvm-performance-v53-300s-observed` | 214.0 MB | 210.8 MB | LLVM projection timed out at 300,518 ms after machine routine-index completion at 73,014 ms and routines 704/896/1,600/1,856 at 172,586/202,127/250,313/295,125 ms; it was slower than C v48 and produced no gen2. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -739,7 +741,10 @@ evidence remains under
 `full-mir-consumer-resource-local-scan-v51-300s.*`. The rejected/reverted v52
 successor-pair evidence remains under
 `full-mir-consumer-block-successor-pair-v52-{build,bounded,wrong-abi,300s,300s-observed}.*`;
-only the `300s-observed` run has valid routine-marker evidence. The current accepted
+only the `300s-observed` run has valid routine-marker evidence. The v53 LLVM
+projection evidence remains under
+`full-mir-consumer-llvm-performance-v53-{build,bounded,wrong-abi,300s-observed}.*`.
+The current accepted
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
 414-byte bounded result is
@@ -757,38 +762,41 @@ evidence only, not semantic authority or commit content.
    focused correctness gates passed, but their carrier/local-scan/pair shapes
    materially regressed generated-driver CPU. Do not try another representation
    of either read consolidation.
-2. Execute the accepted source through the already-declared LLVM performance
-   projection before adding another C-generated parser shape. Objective:
-   determine whether the LLVM-built integrated DRV-2 can take the same complete
-   MIR artifact to gen2 within the unchanged window. Priority is semantic byte
-   parity, then observed bootstrap progress, memory, and build/run time.
-3. Pergyra semantic and canonical MIR facts remain the fact owner. The LLVM
-   backend owns only native projection; the last legitimate consumer is the
-   same integrated driver executable. Forbidden fallbacks are LLVM-specific
-   semantics, a different MIR artifact, C-only regenerated input, backend-
-   conditional owner facts, an unobserved full run, or a raised time/memory
-   budget.
-4. Build `driver_bootstrap_main.pgy` with `--backend=llvm` under the 3,072 MB
-   pressure owner. Require the existing focused C/LLVM gates, the same 414-byte
-   bounded SHA, the same wrong-ABI diagnostic with no output, and one observed
-   300-second full run over the exact 51,807,108-byte admitted artifact. Compare
-   both behavior and marker timing with the accepted C v48 evidence; do not
-   infer a win from backend positioning alone.
-5. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
-   observed. Post-loop markers for top-level completion, string join, and AST
-   inventory must distinguish projected completion from an observed result.
-   If LLVM regresses or fails projection, record the exact backend failure and
-   return to a newly measured owner seam; do not mutate semantics merely to
-   make LLVM pass.
-6. If the LLVM projection emits a complete `driver_gen2.c`, compile that C as
+2. The accepted-source LLVM v53 projection is connected and semantically
+   byte-equal, but it is slower than C v48 and reaches only routine 1,856 in the
+   fixed window. Keep LLVM's general performance-primary direction, but do not
+   use the current LLVM-built DRV-2 as the active bootstrap executable and do
+   not change semantics to make that positioning claim pass.
+3. Run one host-toolchain projection experiment before another Pergyra parser
+   rewrite: compile the unchanged C backend output with `PGY_CC=clang`. The
+   objective is to test whether the same C projection reaches gen2 faster under
+   the available Windows clang optimizer. Priority is byte/failure parity,
+   thread/runtime link correctness, observed full progress, memory, then build
+   time.
+4. Pergyra semantic/canonical MIR and the C backend remain the owners; host C
+   compiler selection is only the final native projection. The last consumer
+   is the same integrated driver. Forbidden fallbacks are changing the default
+   toolchain, bypassing the known Windows thread/runtime link checks, accepting
+   a different MIR artifact, backend/toolchain-conditional facts, or weakening
+   the 300-second/3,072 MB gate. A link/runtime failure ends this experiment;
+   it is not authorization to patch semantics or the runtime contract.
+5. If the clang-via-C driver builds, require the same focused C/LLVM gates,
+   414-byte SHA, wrong-ABI diagnostic/no-output, and one observed full run. If
+   it fails or does not beat v48's shared markers, retain default GCC-built C
+   v48 and select a newly measured owner seam.
+6. Continue the winning same-artifact projection until
+   `consumer:mir-to-ast:done` is observed. Post-loop markers for top-level
+   completion, string join, and AST inventory must distinguish projected
+   completion from an observed result.
+7. If that projection emits a complete `driver_gen2.c`, compile that C as
    the bootstrap object-code boundary; do not regenerate another oracle MIR.
-7. Make the generated gen2 driver consume the same complete compiler source
+8. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
-8. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+9. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-9. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+10. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

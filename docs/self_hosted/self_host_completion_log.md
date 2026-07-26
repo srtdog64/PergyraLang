@@ -8605,3 +8605,25 @@ Released/default replacement remains 0%.
 - Accepted performance evidence returns to v48 plus the isolated stray-row
   fail-closed correction. Self-host completion remains absent: no complete
   `driver_gen2.c`, gen2 compilation, or gen3 comparison exists.
+
+### 2026-07-26 -- LLVM integrated projection is connected but not faster
+
+- The accepted compiler source was built with `--backend=llvm` as v53. No
+  semantic owner, MIR fact, input artifact, or C/LLVM comparison class changed.
+- The integrated LLVM driver built in 139,295 ms at 2,399.0 MB peak private /
+  2,389.0 MB working set. Bounded MIR completed in 2,625 ms and remained exactly
+  414 bytes with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  Wrong ABI exited 1 with the same owned diagnostic and no output.
+- The observed full run completed machine routine-index admission at 73,014 ms
+  and reached routines 704/896/1,600/1,728/1,792/1,856 at
+  172,586/202,127/250,313/267,008/280,841/295,125 ms. It timed out at 300,518
+  ms with 214.0 MB peak private / 210.8 MB working set.
+- The run did not reach routine 1,920/1,984/2,048,
+  `consumer:mir-to-ast:done`, or gen2 output. C v48 reached routine 1,984 at
+  295,075 ms, so the current LLVM projection is semantically connected but is
+  not the faster integrated self-host executable.
+- Keep the repository's general LLVM performance-primary direction, but do not
+  report it as realized for this driver. Accepted executable performance
+  remains C v48 plus the isolated fail-closed correction. No source revert was
+  needed because v53 was a projection-only measurement.
