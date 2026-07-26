@@ -33,14 +33,9 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
 func JsonSkipWhitespaceWithin(json: String, index: Int, end: Int) -> Int {
     let i: Int = index;
     let n: Int = end;
-    let space_code: Int = 32;
-    let line_feed_code: Int = 10;
-    let carriage_return_code: Int = 13;
-    let tab_code: Int = 9;
     while i < end {
         let c: Int = JsonCharCodeAt(json, n, i);
-        if c != space_code && c != line_feed_code &&
-            c != carriage_return_code && c != tab_code {
+        if c != JsonAsciiCode(" ") && c != JsonAsciiCode("\n") && c != JsonAsciiCode("\r") && c != JsonAsciiCode("\t") {
             return i;
         }
         i = i + 1;
@@ -51,14 +46,10 @@ func JsonSkipWhitespaceWithin(json: String, index: Int, end: Int) -> Int {
 func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
     let i: Int = index;
     let n: Int = StringLength(json);
-    let space_code: Int = 32;
-    let line_feed_code: Int = 10;
-    let carriage_return_code: Int = 13;
-    let tab_code: Int = 9;
     while i < end {
         let c: Int = JsonCharCodeAt(json, n, i);
-        if c != space_code && c != line_feed_code &&
-            c != carriage_return_code && c != tab_code {
+        if c != JsonAsciiCode(" ") && c != JsonAsciiCode("\n") &&
+            c != JsonAsciiCode("\r") && c != JsonAsciiCode("\t") {
             return i;
         }
         i = i + 1;
@@ -72,5 +63,5 @@ func JsonIsDigitChar(c: String) -> Bool {
 }
 
 func JsonIsDigitCode(c: Int) -> Bool {
-    return c >= 48 && c <= 57;
+    return c >= JsonAsciiCode("0") && c <= JsonAsciiCode("9");
 }
