@@ -73,11 +73,14 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `5e12cf43` (reject stray runtime ABI rows) on
-  `main`, on top of `c5ee6e62` (revert rejected v50 resource raw scalar
-  carriage). The rejected v50 implementation is `530682af`. Its accepted
-  performance baseline remains `8074d6c8` branch-selection plus the isolated
-  fail-closed correction. The earlier rejected v49 implementation is
+- Implementation checkpoint: `6879f0c0` (revert rejected v51 resource local
+  scan) on `main`. The rejected v51 implementation is `e6abdeaa`; the rejected
+  v50 carrier is `530682af`, reverted by `c5ee6e62`. Accepted compiler source
+  retains `5e12cf43`'s isolated stray runtime-row fail-closed correction. Its
+  accepted performance baseline remains `8074d6c8` branch selection plus that
+  correction. The resource ABI performance seam is now abandoned after both
+  carrier and local-scan shapes regressed materially. The earlier rejected v49
+  implementation is
   `80a54268`, reverted by `85cee4ff`. Its phi-prefix
   admission predecessor is
   `a05aaf06` (`admit MIR phi prefixes once per routine`). Its phi-prefix carrier
@@ -324,6 +327,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-block-slice-admission-v49-300s` | 202.3 MB | 205.0 MB | Rejected experiment timed out at 300,269 ms after routine 704 at 166,252 ms, routine 896 at 194,769 ms, routine 1,600 at 243,264 ms, and routine 1,920 at 293,502 ms; 8,169 ms later than v48 and no routine 1,984/gen2. Reverted by `85cee4ff`. |
 | `full-mir-consumer-resource-raw-capture-v50-build` | 2445.2 MB | 2438.9 MB | Rejected exact-source experiment compiled in 62,385 ms below the cap but 10,906 ms slower than v48. |
 | `full-mir-consumer-resource-raw-capture-v50-300s` | 178.2 MB | 182.3 MB | Rejected experiment timed out at 300,680 ms after routine 704 at 189,951 ms, routine 896 at 222,884 ms, routine 1,600 at 279,085 ms, and routine 1,728 at 296,959 ms; no routine 1,792/2,048 or gen2. Reverted by `c5ee6e62`. |
+| `full-mir-consumer-resource-local-scan-v51-build` | 2576.8 MB | 2565.8 MB | Rejected exact-source experiment compiled in 56,417 ms below the cap but 4,938 ms slower than v48. |
+| `full-mir-consumer-resource-local-scan-v51-300s` | 192.6 MB | 195.6 MB | Rejected experiment timed out at 300,614 ms after routine 704 at 173,196 ms, routine 896 at 204,052 ms, routine 1,600 at 255,976 ms, routine 1,728 at 272,517 ms, and routine 1,792 at 287,519 ms; it lost v48's routine-1,984 marker and produced no gen2. Reverted by `6879f0c0`. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -717,7 +722,9 @@ captured by `full-mir-consumer-admitted.*`,
 v49 evidence remains under
 `full-mir-consumer-block-slice-admission-v49-300s.*`. The rejected/reverted v50
 evidence remains under
-`full-mir-consumer-resource-raw-capture-v50-300s.*`. The current accepted
+`full-mir-consumer-resource-raw-capture-v50-300s.*`. The rejected/reverted v51
+evidence remains under
+`full-mir-consumer-resource-local-scan-v51-300s.*`. The current accepted
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
 414-byte bounded result is
@@ -731,44 +738,39 @@ evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. Run exactly one replacement experiment for the rejected v50 resource seam:
-   combine the four top instruction lookups inside
-   `MirResourceRuntimeRowFactReady` into one ephemeral local object scan. Keep
-   the public signature and caller unchanged. Do not add a struct/helper,
-   scalar or bundle field, constructor argument, array, push, cache, global
-   aggregate, or backend branch. This replaces at least about 97.1 MB of full
-   negative walk traffic plus the separate name lookup without paying v50's
-   306,819 carrier pushes.
-2. The resource owner remains the only meaning owner. Its one local scan must
-   preserve escaped-key equivalence, exact duplicate rejection, `name`
-   string/null readiness, absent `-1/-1` spans, present required marker exactly
-   `true`, markerless canonical native rows, self marker rows, nested primary
-   and auxiliary table validation, and `5e12cf43`'s stray-row rejection. Raw
-   substring search, instruction-kind/machine-layer skip, and old/new dual reads
-   are forbidden.
-3. Preserve the complete resource-runtime ABI C/LLVM gate and add focused
-   duplicate ABI key, wrong-kind/false required, markerless native, and escaped
-   key cases. The static ratchet must forbid the four old top-level lookup paths
-   inside the function and forbid resource fields from returning to the scalar
-   or routine bundle. Run the same bounded/wrong-ABI/full ladder once. If v48's
-   routine 1,984 marker at 295,075 ms is lost or earlier shared markers regress
-   materially, revert immediately and mark the resource scan seam abandoned;
-   do not try a third carrier/guard shape. The quantified fallback after that
-   abandonment is the block successor pair: combine its two direct block scans
-   without a program-global carrier, removing about 49.5 million character
-   visits overall and 1.8 million in routines 1,984 through 2,048.
-4. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
+1. The resource ABI read seam is abandoned. Both v50's expanded carrier and
+   v51's ephemeral local scan passed correctness gates but materially regressed
+   fixed-window CPU progress. Do not add a third resource carrier, guard, or
+   scan shape.
+2. Combine the two direct block-object reads for `succ_true` and `succ_false`
+   into one exact, order-independent pair capture in the existing JSON fact
+   transport owner. `MirRoutineFactIndex.block_succ_true/block_succ_false`
+   remain the semantic owner and last consumers remain graph/backedge/merge/
+   phi. Do not add a program-global carrier, second graph, backend branch,
+   field-order dependency, missing-to-zero guess, or old two-read fallback.
+3. Preserve missing-edge `-1` only for absence. Duplicate, malformed, explicit
+   negative, and out-of-range successor values must fail at `cfg_successor`.
+   Focused current-source C/LLVM gates must cover reordered fields, missing one
+   or both fields, string-valued numbers, duplicate keys, explicit negative,
+   and out-of-range targets. A static ratchet must reject the old two lookups.
+   The quantified full input has 20,022 blocks: one pass removes 20,022 object
+   scans and about 49.5 million character visits overall, including about 1.8
+   million visits in routines 1,984 through 2,048.
+4. Run the same bounded/wrong-ABI/full ladder once. Accept only if semantics
+   remain byte-equal and shared markers do not materially regress from v48;
+   otherwise revert before choosing another measured owner seam.
+5. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
    observed. Post-loop markers for top-level completion, string join, and AST
    inventory must distinguish projected completion from an observed result.
-5. Continue that same run to emit `driver_gen2.c`, then compile that C as the
+6. Continue that same run to emit `driver_gen2.c`, then compile that C as the
    bootstrap object-code boundary; do not regenerate another oracle MIR.
-6. Make the generated gen2 driver consume the same complete compiler source
+7. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
-7. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
+8. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-8. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
+9. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
    failures separate from this active CPU seam; do not raise either the
    300-second diagnostic window or 3072 MB memory cap as a substitute for
    closing the owner path.

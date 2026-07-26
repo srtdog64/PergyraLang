@@ -1029,6 +1029,31 @@ stray-row negative, and leaves documented markerless native resource rows
 compatible. Separate such fail-closed corrections from rejected performance
 carriers so reverting an optimization does not reopen a real semantic hole.
 
+#### A local one-pass scan can still lose to the established generated shape
+
+The second and final resource experiment (`e6abdeaa`) kept meaning in
+`MirResourceRuntimeRowFactReady` and replaced its four independent top-level
+field lookups with one ephemeral object scan. It added no carrier, array,
+cache, helper file, global aggregate, or backend branch. Expanded C/LLVM gates
+covered markerless and explicit-`true` rows, escaped and duplicate semantic
+keys, wrong-kind/`false` required markers, name edge cases, stray rows, and
+auxiliary-table failures. Focused gates, the component ratchet, bounded output,
+and the wrong-ABI negative all passed.
+
+The v51 driver built in 56,417 ms at 2,576.8 MB peak private / 2,565.8 MB
+working set. Its 1,408 ms bounded result remained 414 bytes with the established
+SHA. The fixed full run reached routine 704 at 173,196 ms, routine 896 at
+204,052 ms, routine 1,600 at 255,976 ms, routine 1,728 at 272,517 ms, and
+routine 1,792 at 287,519 ms. It timed out at 300,614 ms with only 192.6 MB
+peak private / 195.6 MB working set and lost v48's routine-1,984 marker.
+
+This is generated-code/CPU regression, not memory exhaustion. `6879f0c0`
+reverts v51. After both the v50 carrier and v51 local scan regressed, the
+resource read seam is abandoned: do not try a third carrier, guard, or scan
+shape. A lower static lookup count remains only a hypothesis until the fixed
+wall-time markers improve. Keep the 300-second/3,072 MB gate fixed and move to
+the separately quantified block-successor pair.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

@@ -8542,3 +8542,32 @@ Released/default replacement remains 0%.
 - Self-host completion remains absent. There is no routine 2,048 marker,
   `consumer:mir-to-ast:done`, complete gen2 file, gen2 compilation, or gen3
   comparison.
+
+### 2026-07-26 -- Resource local scan is rejected; the seam is abandoned
+
+- `e6abdeaa` kept resource ABI meaning in
+  `MirResourceRuntimeRowFactReady` and replaced four independent top-level
+  reads with one ephemeral local scan. It added no carrier, cache, helper file,
+  global aggregate, backend split, or compatibility fallback.
+- Expanded current-source C/LLVM gates covered markerless and explicit-`true`
+  rows, escaped and duplicate semantic keys, wrong-kind/`false` required
+  markers, name edge cases, stray wrong-kind rows, and auxiliary-table
+  failures. The component, bounded, and wrong-ABI gates passed.
+- The exact-source v51 driver built in 56,417 ms at 2,576.8 MB peak private /
+  2,565.8 MB working set. Its 1,408 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  Wrong ABI exited 1 with the owned diagnostic and no output.
+- The fixed run reached routine 704 at 173,196 ms, routine 896 at 204,052 ms,
+  routine 1,600 at 255,976 ms, routine 1,728 at 272,517 ms, and routine 1,792
+  at 287,519 ms. It timed out at 300,614 ms with 192.6 MB peak private / 195.6
+  MB working set and no routine 1,856/1,984/2,048, MIR-to-AST completion, or
+  gen2 output.
+- `6879f0c0` reverts v51. Together with rejected carrier v50, this is enough
+  falsifying evidence to abandon the resource read seam. Do not attempt a
+  third resource shape. Accepted performance evidence remains v48 plus the
+  isolated stray-row fail-closed correction.
+- The next executable seam is the two direct `succ_true`/`succ_false` block
+  reads in `BuildMirRoutineFactIndex`. It must preserve the existing fact-index
+  owner and fail-closed `cfg_successor` contract rather than introducing a
+  program-global graph or backend-specific path.

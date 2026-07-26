@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-26 rejected the second and final resource-runtime read-shape
+experiment (`e6abdeaa`, reverted by `6879f0c0`).
+`MirResourceRuntimeRowFactReady` replaced four independent top-level object
+lookups with one ephemeral local scan while keeping ABI meaning in the same
+owner. No carrier, array, cache, helper file, program-global aggregate, or
+backend branch was added. Expanded current-source C/LLVM gates covered
+markerless and explicit-`true` rows, escaped keys, duplicate semantic keys,
+wrong-kind/`false` required markers, null/non-string/duplicate names, stray
+rows, and auxiliary-table failures. Focused gates, the component ratchet,
+bounded output, and the wrong-ABI negative all passed.
+
+The v51 driver built in 56,417 ms at 2,576.8 MB peak private / 2,565.8 MB
+working set. Its 1,408 ms bounded result remained 414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI exited 1 with the owned diagnostic and no output. The fixed full run
+reached routine 704 at 173,196 ms, 896 at 204,052 ms, 1,600 at 255,976 ms,
+1,728 at 272,517 ms, and 1,792 at 287,519 ms. It timed out at 300,614 ms with
+192.6 MB peak private / 195.6 MB working set and did not reach routine 1,856,
+1,984, 2,048, `consumer:mir-to-ast:done`, or gen2 output. This again materially
+regressed v48's CPU markers without memory pressure. The resource read seam is
+therefore abandoned after its carrier and local-scan shapes; do not attempt a
+third variant. Accepted performance evidence remains v48 plus the isolated
+stray-row fail-closed correction. The next executable seam is the two block
+successor reads already owned by `MirRoutineFactIndex`.
+
 2026-07-26 rejected resource-runtime raw scalar carriage (`530682af`, reverted
 by `c5ee6e62`). The experiment captured instruction `name` plus exact unique
 `runtime_call_abi_required`, `runtime_call_abi`, and `runtime_call_abi_aux`
