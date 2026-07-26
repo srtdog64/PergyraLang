@@ -680,6 +680,10 @@ inventory must not become a second fact-family owner registry.
   routine-local pass over admitted instruction spans that captures result and
   render scalars plus raw ABI value bounds without mixing local facts into the
   program-global index.
+- `src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy` -- one
+  routine-local flattened view of admitted instruction `uses` arrays. It keeps
+  use identity shared across backend consumers and rejects missing arrays or
+  empty use identities instead of allowing backend-local raw JSON reads.
 - `src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy` --
   one bounded instruction-object walk that captures routine-local render
   strings and ABI value spans; ABI syntax and semantic validation remain with
@@ -1220,6 +1224,14 @@ inventory must not become a second fact-family owner registry.
   integrated seed/oracle parity proof. The full stage2/stage3 consumer fixed
   point is an explicit gate; pipeline ownership remains in
   `driver_rung2_owner.pgy`.
+- `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
+  backend-neutral hard-substitution boundary that receives one admitted MIR
+  graph and projects its bounded scalar facts to C or LLVM without rebuilding
+  AST/semantic artifacts or creating backend-specific MIR readers.
+- `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
+  backend-neutral validation of the bounded literal/local/arithmetic/direct-
+  call graph facts consumed by direct projection. It owns neither target text
+  emission nor a second program graph.
 - `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
   assembly owner that composes self-parser AST text and self-codegen C emission
   after consuming compiler-world readiness facts.

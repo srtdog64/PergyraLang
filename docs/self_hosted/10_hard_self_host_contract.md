@@ -129,18 +129,26 @@ The active hard rungs are:
   comparison must pass before the Pergyra seed and gen2 consume the one
   Pergyra-produced MIR to emit byte-identical gen2/gen3 C. Regenerating,
   reparsing, or substituting a second MIR between generations is forbidden.
-- `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy`: the first
-  backend-neutral direct MIR consumer. Its bounded one-routine/one-block/
-  graph-owned literal-`Log` shape projects the same machine-admitted
-  `pgy.mir.v1` artifact to C and LLVM without rebuilding AST or semantic facts.
-  Every unsupported fact or target fails before emission.
+- `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` and
+  `direct_mir_backend_projection_owner.pgy`: one backend-neutral direct MIR
+  consumer split by admission versus target projection responsibility. Its
+  bounded one-routine/one-block shapes include graph-owned literal `Log` and
+  `let x:Int=21; Log(ToString(x+x))`. Typed local/result/use, arithmetic, and
+  direct-call facts project the same machine-admitted `pgy.mir.v1` artifact to
+  C and LLVM without rebuilding AST or semantic facts. Every unsupported fact
+  or target fails before emission.
+- `src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy`: one
+  routine-local typed view over instruction `uses`. It is captured once from
+  admitted instruction spans and prevents direct backends from reopening raw
+  JSON arrays or treating missing uses as empty facts.
 - `tests/self_hosted/parity/one_mir_dual_backend_projection.sh`: produces MIR
   once with the Pergyra-built driver, pins its identity across both backend
   projections, compiles and runs both, compares them with the native runtime
-  oracle, and rejects missing graph, invalid instruction-kind, invalid target,
-  and forbidden bridge regressions. This is the active bounded direct-backend
-  rung; it is not evidence that general backend admission or default-driver
-  promotion is complete.
+  oracle, and rejects missing graph/use facts, invalid instruction/result/use,
+  a structurally valid non-add operator, an alternate call target, invalid
+  target, and forbidden bridge regressions. This is the active bounded direct-
+  backend rung; it is not evidence that general backend admission or default-
+  driver promotion is complete.
 
 Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler

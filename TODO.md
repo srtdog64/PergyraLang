@@ -2,14 +2,16 @@
 
 English anchor for tooling/doc gates:
 
-- Active self-host backend rung: widen the direct backend-neutral
-  `pgy.mir.v1` consumer beyond the current one-block ASCII literal-`Log`
-  fixture, while preserving one MIR identity for both C and LLVM. The next
-  admission boundary must carry AIR-certified projection, spawn, parallel, and
-  region plans plus required ABI/runtime rows; it must not reopen the current
-  MIR-to-AST-to-semantic bridge or create backend-specific MIR readers. Only
-  after that shared admission and its negative gates are complete may ordinary
-  `pgy` default selection move. Gate:
+- Active self-host backend rung: generalize the direct backend-neutral scalar
+  block from fixed `let_log.pgy` to `multilet.pgy`. One unchanged MIR must
+  carry multiple typed locals/results/uses, repeated `Log` statements, and
+  multiply/add graph nodes into both C and LLVM. Add a consumer-owned SSA-base
+  identity predicate and consume the runtime-call ABI row rather than
+  duplicating target symbol/format policy. Do not switch to a fixture-specific
+  projector, raw `expr0`, AST/semantic reconstruction, or backend-specific MIR
+  reader. CFG and AIR-certified projection/spawn/parallel/region plans remain
+  the following admission boundary; ordinary `pgy` cannot move before the
+  shared backend spine is complete. Gate:
   `self-host-one-mir-dual-backend-projection-test-smoke`.
 - Current beta progress: feature-surface feel is about 85%, and
   strict beta readiness is now about 83% after current CFG body-dataflow,

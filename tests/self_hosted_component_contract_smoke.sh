@@ -11310,8 +11310,36 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     '"kind":"invalid-one-mir-gate"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'src/self_hosted/mir_lower/fixture/let_log.pgy'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"kind":"subtract"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"uses":["x.2"]'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"uses_removed":["x.1"]'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    '"call_target_name":"NoSuchTarget"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'GenerateCFromVerifiedSemanticArtifact'
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" 600
+require_file "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" 240
+require_text \
+    "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "struct MirRoutineInstructionUseFacts"
+require_text \
+    "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "func BuildMirRoutineInstructionUseFacts("
+require_text \
+    "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "func MirRoutineInstructionUseAtGlobal("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'import "direct_mir_backend_projection_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
@@ -11325,9 +11353,27 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'MirJsonReadMachineAdmittedInput('
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'import "direct_mir_scalar_graph_admission_owner.pgy";'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'JsonObjectFactObjectTable(instruction, "expr0_graph")'
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'CompilerTargetProjectionFactReadyFor('
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    'import "../mir_lower/routine_instruction_use_fact_owner.pgy";'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    'BuildMirRoutineInstructionUseFacts('
+for direct_mir_owner in \
+    src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy; do
+    reject_text "$direct_mir_owner" 'JsonArrayStringAt('
+    reject_text "$direct_mir_owner" 'MirObjectArrayStringFactsAtBounds('
+done
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    'JsonObjectFactStringFieldEquals(instruction, "expr0"'
 for forbidden_one_mir_bridge_term in \
     '../parser/' \
     '../semantic/' \
@@ -11342,6 +11388,9 @@ for forbidden_one_mir_bridge_term in \
     '--canonicalize-oracle-mir-json'; do
     reject_text \
         "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+        "$forbidden_one_mir_bridge_term"
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
         "$forbidden_one_mir_bridge_term"
 done
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'

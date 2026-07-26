@@ -23,6 +23,15 @@ evidence. The Pergyra seed/gen2 consume only that Pergyra artifact and emit
 byte-identical gen2/gen3 C. This is an explicit producer/fixed point, not a
 claim that the full preparation matrix or released/default replacement passed.
 
+The same dated focused lane now includes a direct backend-neutral consumer.
+One Pergyra-produced hello MIR and one `let_log` MIR each drive both C and LLVM
+without MIR-to-AST/semantic reconstruction. The `let_log` artifact is 2,341
+bytes with SHA-256
+`0ad63b8802e964f238807aabf3f2c73e59a1f795dc7fa73e078a59aff998ecee`;
+both target artifacts compile and match native output `42`. This proves only
+the bounded literal/local/add/direct-call shapes, not general backend
+admission or released/default replacement.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

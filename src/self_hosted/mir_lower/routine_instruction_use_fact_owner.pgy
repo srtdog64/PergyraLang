@@ -1,0 +1,157 @@
+// Routine-local MIR instruction-use facts captured once from admitted spans.
+//
+// The program routine index owns instruction identity and JSON lifetime. This
+// view flattens each instruction's `uses` array once so downstream consumers
+// do not reopen raw arrays independently or create backend-local use readers.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+
+struct MirRoutineInstructionUseFacts {
+    let valid: Bool;
+    let global_start: Int;
+    let instruction_starts: Array<Int>;
+    let instruction_counts: Array<Int>;
+    let values: Array<String>;
+}
+
+func BuildMirRoutineInstructionUseFacts(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int
+) -> MirRoutineInstructionUseFacts {
+    let instruction_starts: Array<Int> = [];
+    let instruction_counts: Array<Int> = [];
+    let values: Array<String> = [];
+    let valid: Bool = MirProgramRoutineIndexRowReady(
+        routines, routine_row
+    );
+    let global_start: Int = 0 - 1;
+    let block_start: Int = 0;
+    let block_count: Int = 0;
+    if valid {
+        block_start = routines.routine_block_starts[routine_row];
+        block_count = routines.routine_block_counts[routine_row];
+    }
+    let block_offset: Int = 0;
+    while valid && block_offset < block_count {
+        let global_block: Int = block_start + block_offset;
+        if global_block < 0 || global_block >= ArrayLength(
+                routines.block_instruction_starts
+            ) || global_block >= ArrayLength(
+                routines.block_instruction_counts
+            ) {
+            valid = false;
+            continue;
+        }
+        let instruction_start: Int =
+            routines.block_instruction_starts[global_block];
+        let instruction_count: Int =
+            routines.block_instruction_counts[global_block];
+        if instruction_start < 0 || instruction_count < 0 ||
+            instruction_start + instruction_count > ArrayLength(
+                routines.instruction_starts
+            ) || instruction_start + instruction_count > ArrayLength(
+                routines.instruction_ends
+            ) {
+            valid = false;
+            continue;
+        }
+        if global_start < 0 { global_start = instruction_start; }
+        let instruction_offset: Int = 0;
+        while instruction_offset < instruction_count {
+            let global_row: Int = instruction_start + instruction_offset;
+            let array_bounds: Array<Int> = [0, 0];
+            ArrayPush(instruction_starts, ArrayLength(values));
+            if !MirObjectArrayBoundsAtBounds(
+                routines.source_json,
+                routines.instruction_starts[global_row],
+                routines.instruction_ends[global_row],
+                "uses", array_bounds
+            ) {
+                valid = false;
+                ArrayPush(instruction_counts, 0);
+                instruction_offset = instruction_offset + 1;
+                continue;
+            }
+            let use_count: Int = JsonArrayStringCount(
+                routines.source_json, array_bounds[0], array_bounds[1]
+            );
+            let use_row: Int = 0;
+            while use_row < use_count {
+                let use_name: String = JsonArrayStringAt(
+                    routines.source_json,
+                    array_bounds[0], array_bounds[1], use_row
+                );
+                if StringLength(use_name) == 0 {
+                    valid = false;
+                }
+                ArrayPush(values, use_name);
+                use_row = use_row + 1;
+            }
+            ArrayPush(instruction_counts, use_count);
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return MirRoutineInstructionUseFacts(
+        valid, global_start, instruction_starts,
+        instruction_counts, values
+    );
+}
+
+func MirRoutineInstructionUseFactsReady(
+    ref facts: MirRoutineInstructionUseFacts,
+    expected_instruction_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(facts.instruction_starts);
+    if !facts.valid || expected_instruction_count < 0 ||
+        expected_instruction_count != count ||
+        count != ArrayLength(facts.instruction_counts) ||
+        (count > 0 && facts.global_start < 0) {
+        return false;
+    }
+    let expected_start: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        let use_count: Int = facts.instruction_counts[row];
+        if use_count < 0 || facts.instruction_starts[row] != expected_start ||
+            expected_start + use_count > ArrayLength(facts.values) {
+            return false;
+        }
+        expected_start = expected_start + use_count;
+        row = row + 1;
+    }
+    return expected_start == ArrayLength(facts.values);
+}
+
+func MirRoutineInstructionUseCountAtGlobal(
+    ref facts: MirRoutineInstructionUseFacts,
+    global_row: Int
+) -> Int {
+    let row: Int = global_row - facts.global_start;
+    if !facts.valid || facts.global_start < 0 || row < 0 ||
+        row >= ArrayLength(facts.instruction_counts) ||
+        row >= ArrayLength(facts.instruction_starts) {
+        return 0 - 1;
+    }
+    return facts.instruction_counts[row];
+}
+
+func MirRoutineInstructionUseAtGlobal(
+    ref facts: MirRoutineInstructionUseFacts,
+    global_row: Int,
+    use_row: Int
+) -> Option<String> {
+    let row: Int = global_row - facts.global_start;
+    if !facts.valid || facts.global_start < 0 || row < 0 ||
+        row >= ArrayLength(facts.instruction_counts) ||
+        row >= ArrayLength(facts.instruction_starts) || use_row < 0 ||
+        use_row >= facts.instruction_counts[row] {
+        return None;
+    }
+    let value_row: Int = facts.instruction_starts[row] + use_row;
+    if value_row < 0 || value_row >= ArrayLength(facts.values) {
+        return None;
+    }
+    return Some(facts.values[value_row]);
+}

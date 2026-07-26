@@ -1460,6 +1460,23 @@ gen2/gen3 C equality all passed. On a host without `mingw32-make`, invoke the
 same runner body directly under `measure_build_pressure.ps1`; record that the
 wrapper was unavailable instead of claiming its target ran.
 
+#### v66 direct dual-backend widening remains below the fixed cap
+
+The bounded integrated driver was rebuilt after adding typed instruction-use
+admission and the direct `let_log` C/LLVM projection. During full-driver C
+generation, an observed process sample was 2,108.9 MB private / 2,096.3 MB
+working set. This was an in-flight sample, not a claimed peak, but it remained
+below the unchanged 3,072 MB fail-closed cap and the bounded bootstrap exited
+successfully.
+
+The follow-up gate produced the 2,341-byte `let_log` MIR once, kept SHA-256
+`0ad63b8802e964f238807aabf3f2c73e59a1f795dc7fa73e078a59aff998ecee`
+unchanged across C and LLVM projection, and completed in about 17.4 seconds.
+The old 20+ GiB diagnosis therefore remains unchanged: do not answer later
+growth by raising the cap. First check for cumulative graph copying, repeated
+whole-arena readiness, or a consumer reopening raw instruction arrays instead
+of extending the typed routine-local view.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

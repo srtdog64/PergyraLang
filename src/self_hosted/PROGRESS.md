@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-27 v66 widens the backend-neutral direct MIR consumer from a literal
+`Log` to the first local/use/arithmetic/call graph. The Pergyra-built integrated
+driver produced `let_log.pgy` as one 2,341-byte `pgy.mir.v1` artifact with
+SHA-256
+`0ad63b8802e964f238807aabf3f2c73e59a1f795dc7fa73e078a59aff998ecee`.
+That unchanged artifact drove both direct C and LLVM projection; both compiled,
+ran, and matched the native oracle output `42`.
+
+The reached SoT gap was general instruction-use admission. The new
+`routine_instruction_use_fact_owner.pgy` flattens every instruction `uses`
+array once into one typed routine-local view. The backend-neutral scalar graph
+admission consumes that view plus the routine fact index for `x:Int`, result
+`x.1`, two identifier leaves, `add`, and the direct `ToString` call; it never
+reparses raw `expr0`. Projection is a separate 140-line target boundary, while
+the shared admission owner remains 508 lines. C `Int` uses the existing
+`long long/%lld` ABI fact and LLVM uses `i64`.
+
+The focused gate preserves the hello rung and independently mutates result
+identity, use identity, the existence of the `uses` fact, a structurally valid
+`add` to `subtract`, and the direct call target. Both backends reject each
+mutation before output. A fresh bounded integrated-driver rebuild passed; an
+observed in-flight full-driver generation sample was 2,108.9 MB private /
+2,096.3 MB working set, below the unchanged 3,072 MB cap. This does not admit
+multiple locals/statements generally, CFG, declarations, or AIR/backend plans,
+and ordinary `pgy` remains C-owned; released/default replacement remains 0%.
+
 2026-07-27 v65 closes the first backend-neutral direct-consumption slice. A
 single Pergyra-produced `pgy.mir.v1` artifact now enters the machine-admitted
 MIR owner once and, without MIR-to-AST or semantic reconstruction, drives both

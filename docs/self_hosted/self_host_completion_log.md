@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Direct backends consume local, use, add, and call facts
+
+- The Pergyra-built integrated driver emitted `let_log.pgy` once as a
+  2,341-byte MIR artifact, SHA-256
+  `0ad63b8802e964f238807aabf3f2c73e59a1f795dc7fa73e078a59aff998ecee`.
+  The same path and digest drove C and LLVM; both compiled and produced the
+  native-oracle output `42`.
+- Added a typed routine instruction-use owner. It flattens admitted `uses`
+  arrays once, so the two backend projections cannot create raw JSON use
+  readers or disagree about `x.1` identity.
+- Backend-neutral admission now verifies typed `x:Int`, result `x.1`, the
+  integer initializer graph, two `x` leaves, the exact `add` edges, and the
+  direct `ToString` target. Raw instruction `expr0` remains non-authoritative.
+- Split scalar graph admission from target text projection by responsibility,
+  not by C/LLVM or fixture folder. C `Int` remains `long long/%lld`; LLVM uses
+  the corresponding `i64` value lane.
+- The executable gate rejects result/use/missing-use, structurally valid
+  `subtract`, and alternate call-target mutations for both targets before
+  output. The fresh bounded integrated bootstrap and component/preparation
+  contracts pass. General scalar blocks, CFG, runtime ABI admission, and
+  released/default selection remain open.
+
 ## 2026-07-27 - One admitted MIR directly drives C and LLVM
 
 - Added `direct_mir_backend_projection_owner.pgy` as one backend-neutral owner,
