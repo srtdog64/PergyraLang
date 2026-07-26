@@ -226,10 +226,7 @@ func Main() -> Void {
         BuildMirRoutineInstructionFactBundle(phi_prefix_program, 0);
     if !phi_prefix_facts.valid ||
         ArrayLength(phi_prefix_facts.block_phi_prefix_counts) != 1 ||
-        phi_prefix_facts.block_phi_prefix_counts[0] != 2 ||
-        MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
-            phi_prefix_facts, phi_prefix_program, 0, 0
-        ) != 2 {
+        phi_prefix_facts.block_phi_prefix_counts[0] != 2 {
         Log("mir-program-routine-index-owner-phi-prefix-failed");
         failures = failures + 1;
     }
@@ -252,9 +249,8 @@ func Main() -> Void {
         BuildMirRoutineInstructionFactBundle(late_phi_program, 0);
     if !MirProgramRoutineIndexStructureReady(late_phi_program) ||
         !late_phi_facts.valid ||
-        MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
-            late_phi_facts, late_phi_program, 0, 0
-        ) >= 0 {
+        ArrayLength(late_phi_facts.block_phi_prefix_counts) != 1 ||
+        late_phi_facts.block_phi_prefix_counts[0] >= 0 {
         Log("mir-program-routine-index-owner-late-phi-failed");
         failures = failures + 1;
     }
@@ -530,6 +526,34 @@ func Main() -> Void {
             abi_validation
         ) {
         Log("mir-program-routine-index-owner-negative-abi-failed");
+        failures = failures + 1;
+    }
+
+    let phi_admission_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(index, 0);
+    let truncated_phi_prefix_counts: Array<Int> = [];
+    let truncated_phi_facts: MirRoutineInstructionFactBundle =
+        MirRoutineInstructionFactBundle(
+            phi_admission_index.instruction_facts.valid,
+            phi_admission_index.instruction_facts.global_start,
+            phi_admission_index.instruction_facts.starts,
+            phi_admission_index.instruction_facts.ends,
+            phi_admission_index.instruction_facts.results,
+            phi_admission_index.instruction_facts.expr0s,
+            phi_admission_index.instruction_facts.expr1s,
+            phi_admission_index.instruction_facts.arg0s,
+            phi_admission_index.instruction_facts.arg1s,
+            phi_admission_index.instruction_facts.slot_anchors,
+            phi_admission_index.instruction_facts.abi_type_names,
+            phi_admission_index.instruction_facts.abi_type_values_ready,
+            phi_admission_index.instruction_facts.abi_layout_bounds,
+            phi_admission_index.instruction_facts.match_variants,
+            truncated_phi_prefix_counts,
+            phi_admission_index.instruction_facts.block_branch_global_rows,
+            phi_admission_index.instruction_facts.block_has_conditional_branch
+        );
+    if MirRoutineInstructionFactBundleReady(truncated_phi_facts, 1) {
+        Log("mir-program-routine-index-owner-truncated-phi-prefix-failed");
         failures = failures + 1;
     }
 

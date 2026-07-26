@@ -197,35 +197,6 @@ func MirRoutineInstructionFactBundleReady(
         count == ArrayLength(facts.match_variants);
 }
 
-func MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
-    ref facts: MirRoutineInstructionFactBundle,
-    ref routines: MirProgramRoutineIndex,
-    routine_row: Int,
-    block_row: Int
-) -> Int {
-    if !MirProgramRoutineIndexRowReady(routines, routine_row) {
-        return 0 - 1;
-    }
-    let block_count: Int = routines.routine_block_counts[routine_row];
-    if !MirRoutineInstructionFactBundleReady(facts, block_count) ||
-        block_row < 0 || block_row >= block_count {
-        return 0 - 1;
-    }
-    let global_block: Int =
-        routines.routine_block_starts[routine_row] + block_row;
-    if global_block < 0 || global_block >= ArrayLength(
-            routines.block_instruction_counts
-        ) {
-        return 0 - 1;
-    }
-    let prefix_count: Int = facts.block_phi_prefix_counts[block_row];
-    if prefix_count < 0 || prefix_count >
-        routines.block_instruction_counts[global_block] {
-        return 0 - 1;
-    }
-    return prefix_count;
-}
-
 func MirRoutineInstructionFactBundleBranchAtBlock(
     ref facts: MirRoutineInstructionFactBundle,
     ref routines: MirProgramRoutineIndex,

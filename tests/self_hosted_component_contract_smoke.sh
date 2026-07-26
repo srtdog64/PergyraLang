@@ -8031,13 +8031,22 @@ reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" '"result"'
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    'ArrayLength(index.instruction_facts.results) !='
+    "MirProgramRoutineIndexRowReady(routines, routine_row)"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "MirRoutineInstructionFactBundlePhiPrefixCountAtBlock("
+    "MirRoutineInstructionFactBundleReady("
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "index.instruction_facts.block_phi_prefix_counts[block_id]"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "result_row >= ArrayLength(index.instruction_facts.results)"
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "while instruction_row < phi_prefix_count"
+[[ "$(grep -F -c -- 'MirRoutineInstructionFactBundleReady(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/phi_fact_owner.pgy" || true)" -eq 1 ]] ||
+    fail "phi fact owner must admit the routine instruction bundle exactly once"
+reject_regex_under "src/self_hosted" \
+    "MirRoutineInstructionFactBundlePhiPrefixCountAtBlock"
+reject_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "MirRoutineInstructionFactBundlePhiPrefixCountAtBlock"
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirRoutinePhiFactsReady" \
     "MirProgramRoutineIndexBlockInstructionCountAt("
@@ -10361,8 +10370,6 @@ require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pg
     "let abi_type_values_ready: Array<Bool>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let block_phi_prefix_counts: Array<Int>;"
-require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
-    "func MirRoutineInstructionFactBundlePhiPrefixCountAtBlock("
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "if seen_non_phi"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \

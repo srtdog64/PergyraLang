@@ -79,25 +79,20 @@ func MirRoutinePhiFactsReady(
 ) -> Bool {
     let json: String = routines.source_json;
     if !index.valid ||
-        ArrayLength(index.instruction_facts.results) !=
-            ArrayLength(index.instruction_facts.starts) ||
-        ArrayLength(index.instruction_facts.results) !=
-            ArrayLength(index.instruction_facts.ends) {
+        !MirProgramRoutineIndexRowReady(routines, routine_row) {
         return false;
     }
+    let block_count: Int = routines.routine_block_counts[routine_row];
+    if block_count != ArrayLength(index.block_starts) ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        !MirRoutineInstructionFactBundleReady(
+            index.instruction_facts, block_count
+        ) { return false; }
     let block_id: Int = 0;
-    while block_id < ArrayLength(index.block_starts) {
-        if block_id >= ArrayLength(index.block_instruction_starts) ||
-            block_id >= ArrayLength(index.block_instruction_counts) ||
-            block_id >= ArrayLength(
-                index.instruction_facts.block_phi_prefix_counts
-            ) {
-            return false;
-        }
+    while block_id < block_count {
         let phi_prefix_count: Int =
-            MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
-                index.instruction_facts, routines, routine_row, block_id
-            );
+            index.instruction_facts.block_phi_prefix_counts[block_id];
         if phi_prefix_count < 0 || phi_prefix_count >
             index.block_instruction_counts[block_id] {
             return false;
