@@ -7,6 +7,7 @@
 
 import "program_routine_index_owner.pgy";
 import "routine_instruction_scalar_capture_owner.pgy";
+import "routine_instruction_view_owner.pgy";
 
 struct MirRoutineInstructionFactBundle {
     let valid: Bool;
@@ -23,6 +24,7 @@ struct MirRoutineInstructionFactBundle {
     let abi_type_values_ready: Array<Bool>;
     let abi_layout_bounds: Array<Int>;
     let match_variants: Array<String>;
+    let block_branch_global_rows: Array<Int>;
     let block_has_conditional_branch: Array<Int>;
 }
 
@@ -42,6 +44,7 @@ func BuildMirRoutineInstructionFactBundle(
     let abi_type_values_ready: Array<Bool> = [];
     let abi_layout_bounds: Array<Int> = [];
     let match_variants: Array<String> = [];
+    let block_branch_global_rows: Array<Int> = [];
     let block_has_conditional_branch: Array<Int> = [];
     let valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
     let global_start: Int = 0 - 1;
@@ -90,6 +93,7 @@ func BuildMirRoutineInstructionFactBundle(
             continue;
         }
         if global_start < 0 { global_start = instruction_start; }
+        let branch_global_row: Int = 0 - 1;
         let has_conditional_branch: Int = 0;
         let instruction_offset: Int = 0;
         while instruction_offset < instruction_count {
@@ -122,14 +126,22 @@ func BuildMirRoutineInstructionFactBundle(
             ArrayPush(abi_layout_bounds, scalar.abi_layout_start);
             ArrayPush(abi_layout_bounds, scalar.abi_layout_end);
             ArrayPush(match_variants, scalar.match_variant);
-            if routines.instruction_kinds[global_row] == "branch" &&
-                routines.instruction_source_types[global_row] !=
-                    "AST_CONTINUE" &&
-                routines.instruction_source_types[global_row] != "AST_BREAK" {
-                has_conditional_branch = 1;
+            if routines.instruction_kinds[global_row] == "branch" {
+                if branch_global_row >= 0 {
+                    valid = false;
+                } else {
+                    branch_global_row = global_row;
+                }
+                if routines.instruction_source_types[global_row] !=
+                        "AST_CONTINUE" &&
+                    routines.instruction_source_types[global_row] !=
+                        "AST_BREAK" {
+                    has_conditional_branch = 1;
+                }
             }
             instruction_offset = instruction_offset + 1;
         }
+        ArrayPush(block_branch_global_rows, branch_global_row);
         ArrayPush(
             block_has_conditional_branch, has_conditional_branch
         );
@@ -139,7 +151,8 @@ func BuildMirRoutineInstructionFactBundle(
         valid, global_start, starts, ends, results, expr0s, expr1s,
         arg0s, arg1s, slot_anchors, abi_type_names,
         abi_type_values_ready,
-        abi_layout_bounds, match_variants, block_has_conditional_branch
+        abi_layout_bounds, match_variants, block_branch_global_rows,
+        block_has_conditional_branch
     );
 }
 
@@ -152,6 +165,8 @@ func MirRoutineInstructionFactBundleReady(
         (count == 0 || facts.global_start >= 0) &&
         expected_block_count == ArrayLength(
             facts.block_has_conditional_branch
+        ) && expected_block_count == ArrayLength(
+            facts.block_branch_global_rows
         ) && count == ArrayLength(facts.ends) &&
         count == ArrayLength(facts.results) &&
         count == ArrayLength(facts.expr0s) &&
@@ -163,6 +178,62 @@ func MirRoutineInstructionFactBundleReady(
         count == ArrayLength(facts.abi_type_values_ready) &&
         count * 8 == ArrayLength(facts.abi_layout_bounds) &&
         count == ArrayLength(facts.match_variants);
+}
+
+func MirRoutineInstructionFactBundleBranchAtBlock(
+    ref facts: MirRoutineInstructionFactBundle,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    block_row: Int
+) -> MirRoutineInstructionSelection {
+    let empty: MirRoutineInstructionView = EmptyMirRoutineInstructionView();
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let block_count: Int = routines.routine_block_counts[routine_row];
+    if !MirRoutineInstructionFactBundleReady(facts, block_count) ||
+        block_row < 0 || block_row >= block_count {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let branch_global_row: Int = facts.block_branch_global_rows[block_row];
+    if branch_global_row < 0 {
+        return MirRoutineInstructionSelection(
+            branch_global_row == 0 - 1, false, empty
+        );
+    }
+    let global_block: Int =
+        routines.routine_block_starts[routine_row] + block_row;
+    if global_block < 0 || global_block >= ArrayLength(
+            routines.block_instruction_starts
+        ) || global_block >= ArrayLength(routines.block_instruction_counts) {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let instruction_start: Int =
+        routines.block_instruction_starts[global_block];
+    let instruction_count: Int =
+        routines.block_instruction_counts[global_block];
+    if branch_global_row < instruction_start ||
+        branch_global_row >= instruction_start + instruction_count {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let fact_row: Int = branch_global_row - facts.global_start;
+    if fact_row < 0 || fact_row >= ArrayLength(facts.starts) ||
+        facts.starts[fact_row] != routines.instruction_starts[
+            branch_global_row
+        ] || facts.ends[fact_row] != routines.instruction_ends[
+            branch_global_row
+        ] {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    let instruction: MirRoutineInstructionView = MirRoutineInstructionViewAt(
+        routines, routine_row, block_row,
+        branch_global_row - instruction_start
+    );
+    if !instruction.valid || instruction.global_row != branch_global_row ||
+        instruction.kind != "branch" {
+        return MirRoutineInstructionSelection(false, false, empty);
+    }
+    return MirRoutineInstructionSelection(true, true, instruction);
 }
 
 func MirRoutineInstructionFactBundleAtGlobal(

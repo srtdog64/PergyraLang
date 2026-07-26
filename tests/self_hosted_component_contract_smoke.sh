@@ -10350,6 +10350,12 @@ require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_type_values_ready: Array<Bool>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "let block_branch_global_rows: Array<Int>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "func MirRoutineInstructionFactBundleBranchAtBlock("
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "if branch_global_row >= 0"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "count * 8 == ArrayLength(facts.abi_layout_bounds)"
 reject_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     'import "abi_layout_fact_owner.pgy";'
@@ -10381,6 +10387,10 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "let expr0: String = scalar.expr0;"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineInstructionFactBundleAtGlobal("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirRoutineInstructionFactBundleBranchAtBlock("
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirRoutineInstructionViewOfKind("
 reject_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "func MirDeclaredLocalTypeFact(" "MirObjectStringFactAtBounds("
 reject_function_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \

@@ -85,6 +85,10 @@ func Main() -> Void {
         MirRoutineInstructionFactBundleAtGlobal(
             first_facts.instruction_facts, first_view.global_row
         );
+    let missing_branch: MirRoutineInstructionSelection =
+        MirRoutineInstructionFactBundleBranchAtBlock(
+            first_facts.instruction_facts, index, 0, 0
+        );
     if !first_view.valid || first_view.global_row != 0 ||
         first_view.kind != "def" ||
         first_view.source_type != "AST_LET_DECL" ||
@@ -98,6 +102,7 @@ func Main() -> Void {
         phi_selection.instruction.global_row != 2 ||
         phi_selection.instruction.source_type != "" ||
         !empty_selection.valid || empty_selection.found ||
+        !missing_branch.valid || missing_branch.found ||
         MirRoutineInstructionViewAt(index, 0 - 1, 0, 0).valid ||
         MirRoutineInstructionViewAt(index, 0, 1, 0).valid ||
         MirRoutineInstructionViewAt(index, 0, 0, 2).valid {
@@ -132,6 +137,71 @@ func Main() -> Void {
         json, index.instruction_machine_contact_ends[1],
         index.instruction_machine_contact_starts[1]
     ) != JsonAsciiCode("\"") {
+        failures = failures + 1;
+    }
+
+    let branch_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_IF_STMT\",\"expr0\":\"%0\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let branch_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(first_instruction, Concat(",", Concat(branch_instruction, "]}")))
+    );
+    let branch_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"Branch\",\"blocks\":[",
+        Concat(branch_block, "]}")
+    );
+    let branch_json: String = Concat(
+        prefix, Concat(branch_routine, "]}")
+    );
+    let branch_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(branch_json);
+    let branch_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(branch_document.routines);
+    let branch_facts: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(branch_program, 0);
+    let branch_selection: MirRoutineInstructionSelection =
+        MirRoutineInstructionFactBundleBranchAtBlock(
+            branch_facts, branch_program, 0, 0
+        );
+    if !branch_selection.valid || !branch_selection.found ||
+        branch_selection.instruction.global_row != 1 ||
+        branch_selection.instruction.kind != "branch" ||
+        ArrayLength(branch_facts.block_branch_global_rows) != 1 ||
+        branch_facts.block_branch_global_rows[0] != 1 {
+        Log("mir-program-routine-index-owner-branch-row-failed");
+        failures = failures + 1;
+    }
+    let forged_branch_rows: Array<Int> =
+        branch_facts.block_branch_global_rows;
+    ArraySet(forged_branch_rows, 0, 0);
+    if MirRoutineInstructionFactBundleBranchAtBlock(
+        branch_facts, branch_program, 0, 0
+    ).valid {
+        Log("mir-program-routine-index-owner-forged-branch-kind-failed");
+        failures = failures + 1;
+    }
+    let duplicate_branch_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(branch_instruction, Concat(",", Concat(branch_instruction, "]}")))
+    );
+    let duplicate_branch_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"DuplicateBranch\",\"blocks\":[",
+        Concat(duplicate_branch_block, "]}")
+    );
+    let duplicate_branch_json: String = Concat(
+        prefix, Concat(duplicate_branch_routine, "]}")
+    );
+    let duplicate_branch_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(duplicate_branch_json);
+    let duplicate_branch_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            duplicate_branch_document.routines
+        );
+    if !MirProgramRoutineIndexStructureReady(duplicate_branch_program) ||
+        BuildMirRoutineInstructionFactBundle(
+            duplicate_branch_program, 0
+        ).valid {
+        Log("mir-program-routine-index-owner-duplicate-branch-failed");
         failures = failures + 1;
     }
 
@@ -438,6 +508,7 @@ func Main() -> Void {
             first_facts.instruction_facts.abi_type_values_ready,
             truncated_abi_bounds,
             first_facts.instruction_facts.match_variants,
+            first_facts.instruction_facts.block_branch_global_rows,
             first_facts.instruction_facts.block_has_conditional_branch
         );
     if MirRoutineInstructionFactBundleReady(
