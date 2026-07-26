@@ -87,85 +87,80 @@ func MirRoutinePhiFactsReady(
     }
     let block_id: Int = 0;
     while block_id < ArrayLength(index.block_starts) {
-        let predecessor_count: Int = 0;
-        let has_backedge: Bool = false;
-        let phi_context_ready: Bool = false;
-        let seen_non_phi: Bool = false;
-        let instruction_row: Int = 0;
-        let instruction_count: Int =
-            MirProgramRoutineIndexBlockInstructionCountAt(
-                routines, routine_row, block_id
-            );
-        if instruction_count < 0 ||
-            block_id >= ArrayLength(index.block_instruction_starts) ||
+        if block_id >= ArrayLength(index.block_instruction_starts) ||
             block_id >= ArrayLength(index.block_instruction_counts) ||
-            instruction_count != index.block_instruction_counts[block_id] {
+            block_id >= ArrayLength(
+                index.instruction_facts.block_phi_prefix_counts
+            ) {
             return false;
         }
-        while instruction_row < instruction_count {
+        let phi_prefix_count: Int =
+            MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
+                index.instruction_facts, routines, routine_row, block_id
+            );
+        if phi_prefix_count < 0 || phi_prefix_count >
+            index.block_instruction_counts[block_id] {
+            return false;
+        }
+        let predecessor_count: Int = 0;
+        let has_backedge: Bool = false;
+        if phi_prefix_count > 0 {
+            predecessor_count = MirPhiPredecessorCount(index, block_id);
+            has_backedge = MirRoutineFactIndexHasIncomingBackedge(
+                index, block_id
+            );
+            if predecessor_count < 2 { return false; }
+        }
+        let instruction_row: Int = 0;
+        while instruction_row < phi_prefix_count {
             let instruction: MirRoutineInstructionView =
                 MirRoutineInstructionViewAt(
                     routines, routine_row, block_id, instruction_row
                 );
-            if !instruction.valid { return false; }
-            let kind: String = instruction.kind;
-            if kind == "phi" {
-                if !phi_context_ready {
-                    predecessor_count = MirPhiPredecessorCount(index, block_id);
-                    has_backedge = MirRoutineFactIndexHasIncomingBackedge(
-                        index, block_id
-                    );
-                    phi_context_ready = true;
-                }
-                if seen_non_phi || predecessor_count < 2 {
+            if !instruction.valid || instruction.kind != "phi" {
+                return false;
+            }
+            let name: String = MirObjectStringFactAtBounds(
+                json, instruction.start, instruction.end, "name"
+            );
+            let result_row: Int =
+                index.block_instruction_starts[block_id] + instruction_row;
+            if result_row < 0 ||
+                result_row >= ArrayLength(index.instruction_facts.results) {
+                return false;
+            }
+            let result: String = index.instruction_facts.results[result_row];
+            let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
+                json, instruction.start, instruction.end, "uses"
+            );
+            let use_count: Int = ArrayLength(uses);
+            // The self-host MIR wire owns an incoming value inventory,
+            // not a predecessor-indexed machine phi table. Several
+            // continue edges can therefore carry the same loop value.
+            // Require at least the entry/backedge pair and never accept
+            // more values than the CFG has predecessor edges.
+            if use_count < 2 || use_count > predecessor_count ||
+                !MirPhiSsaNameMatches(result, name, false) {
+                return false;
+            }
+            let use_i: Int = 0;
+            while use_i < use_count {
+                let use_name: String = uses[use_i];
+                // A loop-carried phi may name its own result on the
+                // incoming back-edge.  This is the canonical SSA
+                // representation of the value preserved by a continue
+                // path; accept it only when the CFG owner proved that
+                // this block is a loop header with a back-edge.
+                let self_backedge: Bool = use_name == result && has_backedge;
+                if (!self_backedge && use_name == result) ||
+                    !MirPhiSsaNameMatches(use_name, name, true) ||
+                    (!self_backedge && !MirPhiResultExists(index, use_name) &&
+                        !MirPhiParameterEntryExists(
+                            index, json, name, use_name
+                        )) {
                     return false;
                 }
-                let name: String = MirObjectStringFactAtBounds(
-                    json, instruction.start, instruction.end, "name"
-                );
-                let result_row: Int =
-                    index.block_instruction_starts[block_id] + instruction_row;
-                if result_row < 0 ||
-                    result_row >= ArrayLength(index.instruction_facts.results) {
-                    return false;
-                }
-                let result: String =
-                    index.instruction_facts.results[result_row];
-                let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
-                    json, instruction.start, instruction.end, "uses"
-                );
-                let use_count: Int = ArrayLength(uses);
-                // The self-host MIR wire owns an incoming value inventory,
-                // not a predecessor-indexed machine phi table. Several
-                // continue edges can therefore carry the same loop value.
-                // Require at least the entry/backedge pair and never accept
-                // more values than the CFG has predecessor edges.
-                if use_count < 2 || use_count > predecessor_count ||
-                    !MirPhiSsaNameMatches(result, name, false) {
-                    return false;
-                }
-                let use_i: Int = 0;
-                while use_i < use_count {
-                    let use_name: String = uses[use_i];
-                    // A loop-carried phi may name its own result on the
-                    // incoming back-edge.  This is the canonical SSA
-                    // representation of the value preserved by a continue
-                    // path; accept it only when the CFG owner proved that
-                    // this block is a loop header with a back-edge.
-                    let self_backedge: Bool = use_name == result &&
-                        has_backedge;
-                    if (!self_backedge && use_name == result) ||
-                        !MirPhiSsaNameMatches(use_name, name, true) ||
-                        (!self_backedge && !MirPhiResultExists(index, use_name) &&
-                            !MirPhiParameterEntryExists(
-                                index, json, name, use_name
-                            )) {
-                        return false;
-                    }
-                    use_i = use_i + 1;
-                }
-            } else {
-                seen_non_phi = true;
+                use_i = use_i + 1;
             }
             instruction_row = instruction_row + 1;
         }

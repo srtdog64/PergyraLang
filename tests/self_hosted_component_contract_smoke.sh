@@ -8033,9 +8033,19 @@ reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     'ArrayLength(index.instruction_facts.results) !='
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
-    "instruction_count != index.block_instruction_counts[block_id]"
+    "MirRoutineInstructionFactBundlePhiPrefixCountAtBlock("
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "result_row >= ArrayLength(index.instruction_facts.results)"
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "while instruction_row < phi_prefix_count"
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" \
+    "MirProgramRoutineIndexBlockInstructionCountAt("
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" "seen_non_phi"
+reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirRoutinePhiFactsReady" \
+    "while instruction_row < instruction_count"
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     "func MirPhiResultExists" "MirObjectStringFact("
 reject_function_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
@@ -10349,6 +10359,12 @@ require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner
     "let abi_type_value_ready: Bool;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let abi_type_values_ready: Array<Bool>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "let block_phi_prefix_counts: Array<Int>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "func MirRoutineInstructionFactBundlePhiPrefixCountAtBlock("
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "if seen_non_phi"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "let block_branch_global_rows: Array<Int>;"
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \

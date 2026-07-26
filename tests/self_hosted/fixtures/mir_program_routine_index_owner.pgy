@@ -205,6 +205,60 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let phi_prefix_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(third_instruction, Concat(",", Concat(
+            third_instruction, Concat(",", Concat(second_instruction, "]}"))
+        )))
+    );
+    let phi_prefix_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"PhiPrefix\",\"blocks\":[",
+        Concat(phi_prefix_block, "]}")
+    );
+    let phi_prefix_json: String = Concat(
+        prefix, Concat(phi_prefix_routine, "]}")
+    );
+    let phi_prefix_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(phi_prefix_json);
+    let phi_prefix_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(phi_prefix_document.routines);
+    let phi_prefix_facts: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(phi_prefix_program, 0);
+    if !phi_prefix_facts.valid ||
+        ArrayLength(phi_prefix_facts.block_phi_prefix_counts) != 1 ||
+        phi_prefix_facts.block_phi_prefix_counts[0] != 2 ||
+        MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
+            phi_prefix_facts, phi_prefix_program, 0, 0
+        ) != 2 {
+        Log("mir-program-routine-index-owner-phi-prefix-failed");
+        failures = failures + 1;
+    }
+    let late_phi_block: String = Concat(
+        "{\"id\":0,\"instructions\":[",
+        Concat(second_instruction, Concat(",", Concat(third_instruction, "]}")))
+    );
+    let late_phi_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"LatePhi\",\"blocks\":[",
+        Concat(late_phi_block, "]}")
+    );
+    let late_phi_json: String = Concat(
+        prefix, Concat(late_phi_routine, "]}")
+    );
+    let late_phi_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(late_phi_json);
+    let late_phi_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(late_phi_document.routines);
+    let late_phi_facts: MirRoutineInstructionFactBundle =
+        BuildMirRoutineInstructionFactBundle(late_phi_program, 0);
+    if !MirProgramRoutineIndexStructureReady(late_phi_program) ||
+        !late_phi_facts.valid ||
+        MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
+            late_phi_facts, late_phi_program, 0, 0
+        ) >= 0 {
+        Log("mir-program-routine-index-owner-late-phi-failed");
+        failures = failures + 1;
+    }
+
     let missing_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(index, 0);
     let negative_successor_routine: String =
@@ -508,6 +562,7 @@ func Main() -> Void {
             first_facts.instruction_facts.abi_type_values_ready,
             truncated_abi_bounds,
             first_facts.instruction_facts.match_variants,
+            first_facts.instruction_facts.block_phi_prefix_counts,
             first_facts.instruction_facts.block_branch_global_rows,
             first_facts.instruction_facts.block_has_conditional_branch
         );

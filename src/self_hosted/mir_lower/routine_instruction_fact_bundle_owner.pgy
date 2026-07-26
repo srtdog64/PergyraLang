@@ -24,6 +24,7 @@ struct MirRoutineInstructionFactBundle {
     let abi_type_values_ready: Array<Bool>;
     let abi_layout_bounds: Array<Int>;
     let match_variants: Array<String>;
+    let block_phi_prefix_counts: Array<Int>;
     let block_branch_global_rows: Array<Int>;
     let block_has_conditional_branch: Array<Int>;
 }
@@ -44,6 +45,7 @@ func BuildMirRoutineInstructionFactBundle(
     let abi_type_values_ready: Array<Bool> = [];
     let abi_layout_bounds: Array<Int> = [];
     let match_variants: Array<String> = [];
+    let block_phi_prefix_counts: Array<Int> = [];
     let block_branch_global_rows: Array<Int> = [];
     let block_has_conditional_branch: Array<Int> = [];
     let valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
@@ -93,6 +95,8 @@ func BuildMirRoutineInstructionFactBundle(
             continue;
         }
         if global_start < 0 { global_start = instruction_start; }
+        let phi_prefix_count: Int = 0;
+        let seen_non_phi: Bool = false;
         let branch_global_row: Int = 0 - 1;
         let has_conditional_branch: Int = 0;
         let instruction_offset: Int = 0;
@@ -126,6 +130,15 @@ func BuildMirRoutineInstructionFactBundle(
             ArrayPush(abi_layout_bounds, scalar.abi_layout_start);
             ArrayPush(abi_layout_bounds, scalar.abi_layout_end);
             ArrayPush(match_variants, scalar.match_variant);
+            if routines.instruction_kinds[global_row] == "phi" {
+                if seen_non_phi {
+                    phi_prefix_count = 0 - 1;
+                } else {
+                    phi_prefix_count = phi_prefix_count + 1;
+                }
+            } else {
+                seen_non_phi = true;
+            }
             if routines.instruction_kinds[global_row] == "branch" {
                 if branch_global_row >= 0 {
                     valid = false;
@@ -141,6 +154,7 @@ func BuildMirRoutineInstructionFactBundle(
             }
             instruction_offset = instruction_offset + 1;
         }
+        ArrayPush(block_phi_prefix_counts, phi_prefix_count);
         ArrayPush(block_branch_global_rows, branch_global_row);
         ArrayPush(
             block_has_conditional_branch, has_conditional_branch
@@ -151,7 +165,8 @@ func BuildMirRoutineInstructionFactBundle(
         valid, global_start, starts, ends, results, expr0s, expr1s,
         arg0s, arg1s, slot_anchors, abi_type_names,
         abi_type_values_ready,
-        abi_layout_bounds, match_variants, block_branch_global_rows,
+        abi_layout_bounds, match_variants, block_phi_prefix_counts,
+        block_branch_global_rows,
         block_has_conditional_branch
     );
 }
@@ -166,6 +181,8 @@ func MirRoutineInstructionFactBundleReady(
         expected_block_count == ArrayLength(
             facts.block_has_conditional_branch
         ) && expected_block_count == ArrayLength(
+            facts.block_phi_prefix_counts
+        ) && expected_block_count == ArrayLength(
             facts.block_branch_global_rows
         ) && count == ArrayLength(facts.ends) &&
         count == ArrayLength(facts.results) &&
@@ -178,6 +195,35 @@ func MirRoutineInstructionFactBundleReady(
         count == ArrayLength(facts.abi_type_values_ready) &&
         count * 8 == ArrayLength(facts.abi_layout_bounds) &&
         count == ArrayLength(facts.match_variants);
+}
+
+func MirRoutineInstructionFactBundlePhiPrefixCountAtBlock(
+    ref facts: MirRoutineInstructionFactBundle,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    block_row: Int
+) -> Int {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return 0 - 1;
+    }
+    let block_count: Int = routines.routine_block_counts[routine_row];
+    if !MirRoutineInstructionFactBundleReady(facts, block_count) ||
+        block_row < 0 || block_row >= block_count {
+        return 0 - 1;
+    }
+    let global_block: Int =
+        routines.routine_block_starts[routine_row] + block_row;
+    if global_block < 0 || global_block >= ArrayLength(
+            routines.block_instruction_counts
+        ) {
+        return 0 - 1;
+    }
+    let prefix_count: Int = facts.block_phi_prefix_counts[block_row];
+    if prefix_count < 0 || prefix_count >
+        routines.block_instruction_counts[global_block] {
+        return 0 - 1;
+    }
+    return prefix_count;
 }
 
 func MirRoutineInstructionFactBundleBranchAtBlock(
