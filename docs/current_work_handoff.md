@@ -79,16 +79,22 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `7eef684b` (v59 expression-sequence prefix
-  readiness proof) on `main`, following `19ecce41` (linear expression arena
-  assembly). v59 removes cumulative `place_kinds` rebuilding, per-append
-  whole-arena readiness, and program/routine-index reconstruction from the
-  expression-graph path. It retains graph-local validation, checks the admitted
-  routine index at the receiving boundary, and carries `ready_node_count` as
-  the O(1) proof for an already-admitted prefix. The complete run stayed below
-  802 MB private but failed closed on the separately measured positional
-  graph/surface identity seam; it is executable memory progress, not gen2 or
+- Implementation checkpoint: `3418b0f3` (v60 structured expression occurrence
+  identity) on `main`. Structured MIR-to-AST emission carries
+  `(global instruction row, AST lane, derived ordinal)` occurrences into one
+  final graph arena. Repeated CFG visits repeat the producer key and receive a
+  fresh range; source text is only an assertion. Required MIR producer coverage
+  fails closed, the intermediate persisted sequence view is deleted, and the
+  native range branch now projects its stop expression while loop-init retains
+  the start. The complete run passed the v59 positional mismatch, completed
+  graph construction and semantic analysis, and reached assignment body typing
+  below 1,131 MB private. It advances the executable rung but is not gen2 or
   hard substitution.
+- The v60 predecessor is `a4738c25`, following `7eef684b` (v59 prefix
+  readiness) and `19ecce41` (linear expression arena assembly). v59 removed
+  cumulative `place_kinds` rebuilding, per-append whole-arena readiness, and
+  program/routine-index reconstruction, then exposed the positional identity
+  mismatch at `ParsePrimaryFact` instead of crossing the 3 GiB cap.
 - The accepted predecessor is `195d9b64` (v58 single-consumption loop branch
   projection) on `main`. It removes the second per-block branch
   selection and second per-branch scalar read from loop-summary readiness,
@@ -266,10 +272,11 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Exact dirty state
 
-At the handoff checkpoint represented by this file, `main` and `origin/main`
-are synchronized and no task-owned implementation or documentation change is
-dirty. These unstaged files are concurrent user work and must remain
-unmodified and excluded from task commits:
+The semantic implementation checkpoint is `3418b0f3`; its handoff-only
+successor carries no semantic change. After that checkpoint is pushed,
+`main` and `origin/main` are synchronized and no task-owned implementation or
+documentation change is dirty. These unstaged files are concurrent user work
+and must remain unmodified and excluded from task commits:
 
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
@@ -285,23 +292,22 @@ unmodified and excluded from task commits:
   complete the gen2 takeover, then establish the fixed point. Do not widen SoT
   or fixtures before that takeover.
 - Fact owner: the verified `SelfMirProgramFacts` producer and its completed
-  `pgy.mir.v1` artifact. `MirMachineLayerAdmittedJsonInput` carries the one
-  machine proof, declaration, and routine span inventory; consumers may not
-  reconstruct a second producer or machine authority. `MirProgramRoutineIndex`
-  remains a derived structural view, not another semantic owner.
+  `pgy.mir.v1` artifact. At the current boundary,
+  `SemanticAstAssignmentTypeFactsFromArtifact` owns assignment body-type
+  derivation and `SemanticAstBodyTypeBundle` is its receiving boundary. The
+  structured occurrence order and final expression arena are already admitted
+  inputs; they must not be rebuilt inside assignment typing.
 - Last legitimate consumer: current `driver_oracle.exe --mir-json` emitting
   `driver_gen2.c`, followed by the native C compiler only as the bootstrap
   object-code boundary.
 - Forbidden fallback: regenerating a native oracle MIR per generation,
-  backend-specific JSON reads, source-text fact recovery, process-sharded fact
-  stores, per-routine whole-program structure revalidation, `new ? old`
-  authority, or raising the 3072 MB cap.
-- Focused falsifier: continue accepted v58 beyond its currently observed
-  `top-level-routines:1856` marker, recover routine 1,920 under current load,
-  and reach routine 2,048, or expose one named routine/owner failure. Do not
-  open the later expression-graph or assignment post-pass until
-  `consumer:mir-to-ast:done` is observed. Even 2,048 of 2,345 top-level
-  routines would be only a sentinel, not gen2.
+  backend-specific JSON reads, source-text or graph-text recovery, a second
+  expression graph/order/cache, per-assignment whole-program reconstruction,
+  `new ? old` authority, or raising the 3,072 MB / 1,800-second bounds.
+- Focused falsifier: on the same 51,807,108-byte MIR artifact, progress from
+  `semantic-body-type-stage assignment:start` to `assignment:done` under the
+  fixed limits, or expose the exact assignment row and repeated owned read that
+  prevents completion. Do not reopen graph identity or broaden fixtures.
 - Acceptance gate: pressure-owned full MIR consumption emits `driver_gen2.c`,
   that artifact builds, and the resulting gen2 consumes the same complete
   compiler source to emit `driver_gen3.c`. The bounded preflight remains a
@@ -399,6 +405,9 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-expression-arena-linear-v59-ready-proof-wrong-abi` | 0.0 MB sampled | 0.0 MB sampled | Exit 1 in 486 ms with the owned ABI diagnostic and no output. |
 | `full-mir-consumer-expression-arena-linear-v59-integration-completion` | 801.8 MB | 749.4 MB | Reached MIR-to-AST completion at 429,211 ms and failed closed at 1,645,538 ms on the positional graph/surface identity mismatch; no output and no memory-limit crossing. |
 | `v59-expression-surface-count-probe-full` | 230.4 MB | 233.2 MB | Completed in 498,952 ms: 41,299 surfaces, 35,638 persisted-required lanes, and 1,758 parser-only lanes. Flat MIR contains only 34,962 roots. |
+| `full-mir-consumer-structured-occurrence-v60-build` | 2480.3 MB | 2473.7 MB | Exact-source v60 C driver compiled in 69,368 ms below the fixed cap. |
+| `full-mir-consumer-structured-occurrence-v60-observed-build` | 2575.8 MB | 2564.5 MB | Observed bootstrap driver compiled in 65,293 ms below the fixed cap. |
+| `full-mir-consumer-structured-occurrence-v60-integration` | 1130.3 MB | 1041.1 MB | Expression graph done at 1,673,958 ms, semantic analysis done at 1,674,754 ms, then timed out at 1,800,768 ms during assignment body typing; no graph error, cap crossing, or gen2 output. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -698,9 +707,24 @@ body gate green.
 
 ## Last observed gates
 
-Green on current checkpoint `195d9b64` plus the accepted v58 measurements:
+Green on implementation checkpoint `3418b0f3` plus the retained predecessor
+measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
+- `tests/self_hosted/parity/driver_rung2_structured_expression_order_owner.sh`;
+- `tests/self_host_program_graph_unification_smoke.sh` with
+  `phase=unified structural_owners=1`;
+- focused native/self `forloop` `mir_json_parity.sh`: range loop-init graph is
+  start `0`, range branch graph is stop `3`, and a start-graph regression is
+  rejected;
+- v60 exact-source and observed driver builds: exit 0 in 69,368/65,293 ms at
+  2,480.3/2,575.8 MB peak private;
+- v60 bounded consumer: exit 0, 414 LF-normalized bytes, established SHA;
+- v60 wrong-ABI and missing/invalid graph mutations: exit 1 with owned
+  diagnostics and no output;
+- v60 full integration: graph and semantic completion observed before the
+  1,800-second timeout in assignment body typing, with 1,130.3/1,041.1 MB peak
+  private/working set and no memory-limit crossing;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
   plain, escaped, empty, and truncated exact-bound strings);
 - `tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh` (C/LLVM,
@@ -834,15 +858,20 @@ The first completion continuation is
 expression graph construction and stopped at the 3,072 MB cap. v59 evidence is
 `full-mir-consumer-expression-arena-linear-v59-{integration-completion}.*` and
 `full-mir-consumer-expression-arena-linear-v59-ready-proof-{build,bounded,wrong-abi}.*`.
-The current diagnostic executable is
-`.tmp/self_hosted/driver_bootstrap/driver_rung2_v59_expression_arena_linear.exe`;
-its 414-byte bounded result is
-`.tmp/self_hosted/driver_bootstrap/v59_ready_bounded.c`. The temporary count
+v60 evidence is
+`full-mir-consumer-structured-occurrence-v60-{build,observed-build,integration}.*`.
+The current diagnostic executables are
+`.tmp/self_hosted/driver_bootstrap/driver_rung2_v60_structured_occurrence.exe`
+and
+`.tmp/self_hosted/driver_bootstrap/driver_bootstrap_v60_structured_occurrence.exe`.
+The temporary count
 probe source/executable were deleted after their result was recorded; its
 pressure evidence remains under `v59-expression-surface-count-probe-full.*`.
-The latest full consumer evidence reaches MIR-to-AST completion, remains below
-802 MB private through expression construction, and fails closed on the known
-35,638-vs-34,962 positional identity mismatch. The rejected v50
+The latest full consumer evidence passes the former 35,638-vs-34,962
+positional mismatch, completes graph construction and semantic analysis below
+1,131 MB private, and times out at assignment body typing. The requested
+`v60_full.c` does not exist because output is committed only after verified
+completion. The rejected v50
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v50_resource_raw_capture.exe`;
 its 414-byte bounded result is
@@ -877,32 +906,29 @@ evidence only, not semantic authority or commit content.
    a second branch pass, or rendered-condition fallback. v58 still produces no
    gen2, so count it as owner closure and generated-driver CPU improvement, not
    hard substitution progress or completion.
-6. The active seam is now exact and must not be replaced by another profiling
-   guess. Structured AST emission requires 35,638 persisted graph occurrences,
-   while flat MIR document order contains 34,962 roots. The first mismatch is
-   routine 289 `ParsePrimaryFact`, ordinal 2,875: expected `tuple_probe`, actual
-   `tuple_ch == "\\\""`. Twenty routines revisit CFG blocks and add 676 real
-   surface occurrences.
-7. Make structured emission own stable `(routine row, global instruction row,
-   lane, derived ordinal)` occurrence order. Repeated CFG visits must repeat
-   the same key and append a fresh range; they must not be deduplicated. Text is
-   only a consistency assertion, never identity or lookup fallback.
-8. Build parser bridges and keyed MIR graphs directly into one final sequence
-   in artifact surface order. Delete the intermediate persisted sequence and
-   `MirExpressionGraphSequenceAppendView`, then add a negative ratchet against
-   both. Do not add a parallel graph, cache, backend-specific identity, raw
-   reorder pass, or count relaxation.
-9. If that projection emits a complete `driver_gen2.c`, compile that C as
-   the bootstrap object-code boundary; do not regenerate another oracle MIR.
+6. v60 closes the structured graph occurrence seam. Keep its repeated-key
+   semantics, one final arena, producer coverage, deleted sequence view, and
+   native range-stop producer ratchet. Do not reopen raw positional pairing,
+   text lookup, deduplication, or a second graph/order.
+7. The active seam is `SemanticAstAssignmentTypeFactsFromArtifact`, entered at
+   `semantic-body-type-stage assignment:start` after graph and semantic
+   completion. Add narrow stage/row evidence only as needed to locate repeated
+   owned work; do not start a broad assignment fixture campaign.
+8. Rerun the same complete artifact under the unchanged 1,800-second / 3,072 MB
+   pressure gate. Acceptance for this slice is `assignment:done`, or one exact
+   assignment row, owner read, and falsifying case if it still cannot finish.
+9. Continue the same run through statement/body verification. If it emits a
+   complete `driver_gen2.c`, compile that C as the bootstrap object-code
+   boundary; do not regenerate another oracle MIR.
 10. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.
 11. Compare complete gen2/gen3 artifacts and behavior. Use the existing bounded
    MIR fixture only as a focused falsifier when diagnosing a failure on this
    path, not as an independent breadth campaign.
-12. Keep the ABI-type, stale enum-parity, and reconstructed-runtime-header
-   failures separate from this active CPU seam; do not raise either the
-   300-second diagnostic window or 3072 MB memory cap as a substitute for
+12. Keep the separate foreach assignment-binding, ABI-type, stale enum-parity,
+   and reconstructed-runtime-header failures out of this active CPU seam. Do
+   not raise the fixed integration time or memory limits as a substitute for
    closing the owner path.
 
 ## Resume sequence
@@ -912,10 +938,14 @@ evidence only, not semantic authority or commit content.
    `docs/semantics/sot_owner_spine_registry.md`.
 2. Verify HEAD/origin, `git status --short --branch`, and the three protected
    dirty files above.
-3. Re-run the component and raw instruction-writer byte gates through Git Bash
-   before a broad build.
+3. Re-run the component, structured-expression-order, program-graph, and
+   focused native `forloop` MIR parity gates through Git Bash before a broad
+   build.
 4. Confirm no unrelated `pgy`, `genN`, `driver_oracle`, `gcc`, `cc1`, or
    `clang` process is active before the pressure gate; concurrent broad builds
    invalidate attribution.
-5. Treat current source, registries, and executable gates as authoritative if
+5. Continue the v60 executable on the same frozen MIR and fixed
+   1,800-second/3,072 MB pressure gate; the first required marker is
+   `semantic-body-type-stage assignment:done`.
+6. Treat current source, registries, and executable gates as authoritative if
    this snapshot disagrees with them.
