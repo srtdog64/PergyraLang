@@ -10427,6 +10427,30 @@ reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitBlockStmts(" "MirObjectStringFactAtBounds("
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func EmitBlockStmts(" \
+    "MirProgramRoutineIndexBlockInstructionCountAt("
+reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func EmitBlockStmts(" "MirRoutineInstructionViewAt("
+reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func EmitBlockStmts(" "MirRoutineInstructionFactBundleAtGlobal("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let local_start: Int = index.block_instruction_starts[block_row]"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "program_start - index.instruction_facts.global_start != local_start"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let fact_row: Int = local_start + row"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let global_row: Int = index.instruction_facts.global_start + fact_row"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.instruction_facts.starts[fact_row] != routines.instruction_starts[global_row]"
+require_file "tests/self_hosted/fixtures/mir_routine_block_local_admission_negative.pgy"
+require_text "tests/self_hosted/fixtures/mir_routine_block_local_admission_negative.pgy" \
+    "ArraySet(forged_starts, 1, 0)"
+require_text "tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh" \
+    "run_cross_block_negative c"
+require_text "tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh" \
+    "run_cross_block_negative llvm"
+reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func BlockHasLoopTransfer(" "MirObjectStringFactAtBounds("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "let expr0: String = scalar.expr0;"
