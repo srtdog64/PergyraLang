@@ -16,6 +16,7 @@ import "../compiler/machine_layer_declaration_consumer.pgy";
 // JSON instead of validating the JSON and then accepting a separate declaration.
 struct MirMachineLayerAdmittedJsonInput {
     let machine_declaration: SelfHostMachineLayerDeclaration;
+    let document: MirDocumentFactIndex;
     let routines: MirProgramRoutineIndex;
 }
 
@@ -244,7 +245,7 @@ func MirMachineLayerAdmitDocumentObserved(
         observe_pressure, "consumer:input:machine-layer:instruction-scan:done"
     );
     return Some(MirMachineLayerAdmittedJsonInput(
-        machine_declaration, routines
+        machine_declaration, document, routines
     ));
 }
 

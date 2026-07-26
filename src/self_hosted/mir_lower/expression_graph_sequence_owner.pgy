@@ -120,7 +120,8 @@ func MirExpressionGraphSequenceAppend(
     sequence: MirExpressionGraphSequence,
     graph: JsonObjectFactTable
 ) -> MirExpressionGraphSequence {
-    if !sequence.ok || !JsonObjectFactTableReady(graph) {
+    if !sequence.ok || !JsonObjectFactTableReady(graph) ||
+        JsonObjectFactCount(graph) != 2 {
         return MirExpressionGraphSequenceError(sequence);
     }
     let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(
@@ -131,15 +132,8 @@ func MirExpressionGraphSequenceAppend(
     if !IsSome(root_opt) || !JsonArrayObjectFactTableReady(nodes) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let count: Int = 0;
-    let count_cursor: Int = nodes.start + 1;
-    let count_bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(nodes.json, count_cursor, nodes.end, count_bounds) {
-        count = count + 1;
-        count_cursor = count_bounds[1];
-    }
     let local_root: Int = ToInt(UnwrapOption(root_opt));
-    if count == 0 || local_root < 0 || local_root >= count {
+    if local_root < 0 || ToString(local_root) != UnwrapOption(root_opt) {
         return MirExpressionGraphSequenceError(sequence);
     }
     let kinds: Array<Int> = sequence.arena.topology.node_kinds;
@@ -164,6 +158,10 @@ func MirExpressionGraphSequenceAppend(
     let node_bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(nodes.json, cursor, nodes.end, node_bounds) {
         let node: JsonObjectFactTable = JsonObjectFactTableFromBounds(nodes.json, node_bounds[0], node_bounds[1]);
+        if !JsonObjectFactTableReady(node) ||
+            JsonObjectFactCount(node) != 6 {
+            return MirExpressionGraphSequenceError(sequence);
+        }
         let kind_text: Option<String> = JsonObjectFactStringFieldOpt(
             node, "kind"
         );
@@ -279,6 +277,10 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
         cursor = node_bounds[1];
+    }
+    let count: Int = i;
+    if count == 0 || local_root >= count {
+        return MirExpressionGraphSequenceError(sequence);
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);

@@ -1,5 +1,39 @@
 # Self-Host Progress
 
+2026-07-27 v67 generalizes the backend-neutral direct scalar consumer from one
+fixed local/add statement to one typed scalar block. The current-source driver
+produced `multilet.pgy` once as a 4,135-byte `pgy.mir.v1` artifact with SHA-256
+`31fb7b7300674c1483a5c54370d90a66c1ab1d4cddc3998d2eafbc03931f4efd`.
+That unchanged identity drove direct C and LLVM projection; both compiled and
+matched the native oracle output `35` then `12`. The same focused gate keeps
+the hello and `let_log` rungs green.
+
+The scalar admission now accepts N typed `Int` definitions followed by N
+graph-owned `Log(ToString(binary))` statements, with exact instruction order,
+typed result/use identity, and `add`/`multiply` topology. One shared
+`ssa_identity_owner.pgy` owns canonical local/version matching for both phi and
+direct admission. The expression-graph sequence owner validates the exact
+graph/node schema while collecting each node in the same pass, and direct
+admission reuses the machine-admitted document index instead of rebuilding the
+whole JSON index.
+
+Projection consumes a typed formatted-print runtime ABI fact, the string
+runtime line format, and the C `Int` ABI type owner. Neither backend hardcodes
+the formatted-print symbol or reconstructs raw `expr0`, AST, or semantic facts.
+The focused gate rejects second-local/result/use drift, a valid-but-unsupported
+`divide` graph, and statement-order drift before output on both targets. The
+final r3 Pergyra-built bounded bootstrap and its hello/let_log/multilet direct
+C/LLVM gate are green. An in-flight r3 seed-emission sample was 764.8 MB
+private / 673.3 MB working set; this is not claimed as a peak.
+
+The next active executable rung is `ifelse.pgy`: its 3,413-byte MIR has SHA-256
+`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
+contains a four-block diamond without phi, and produces `pos`. Both current
+direct backends reject it without creating an artifact. The next owner chain is
+MIR CFG facts to a MIR-bound AIR certificate to one verified plan consumed by
+both backends. Ordinary `pgy` remains C-owned; released/default replacement
+remains 0%.
+
 2026-07-27 v66 widens the backend-neutral direct MIR consumer from a literal
 `Log` to the first local/use/arithmetic/call graph. The Pergyra-built integrated
 driver produced `let_log.pgy` as one 2,341-byte `pgy.mir.v1` artifact with

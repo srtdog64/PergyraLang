@@ -6,6 +6,39 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - One typed scalar block directly drives both backends
+
+- The current-source driver emitted `multilet.pgy` once as a 4,135-byte MIR
+  artifact, SHA-256
+  `31fb7b7300674c1483a5c54370d90a66c1ab1d4cddc3998d2eafbc03931f4efd`.
+  The unchanged artifact drove direct C and LLVM; both compiled and produced
+  the native-oracle output `35` then `12`. Hello and `let_log` remain green in
+  the same focused gate.
+- Generalized the shared admission to N typed `Int` definitions followed by N
+  graph-owned `Log(ToString(binary))` statements. The admitted block consumes
+  typed locals/results/uses, exact instruction order, and `add`/`multiply`
+  graph edges without a fixture-specific projector.
+- Moved canonical local/version matching to `ssa_identity_owner.pgy`, shared by
+  phi and direct scalar consumers. The expression-graph sequence owner now
+  validates exact graph/node schemas and counts while performing the one node
+  pass.
+- Reused the document index already carried by machine admission. Direct
+  admission no longer rebuilds `MirDocumentFactIndex`, and neither backend
+  opens raw `expr0` or reconstructs AST/semantic facts.
+- Direct projection consumes the typed formatted-print runtime-call ABI fact,
+  the line-format owner, and the C `Int` ABI owner. The target-library symbol,
+  format, and C scalar spelling are no longer local backend policy.
+- Second-local/result/use, multiply-to-divide, and statement-order mutations
+  reject both targets before output. The final r3 Pergyra-built bounded
+  bootstrap and its hello/let_log/multilet C/LLVM gate passed with the final
+  source.
+- Next: admit `ifelse.pgy` through MIR CFG facts, a MIR-bound AIR certificate,
+  and one verified plan shared by C and LLVM. Its current 3,413-byte MIR has
+  SHA-256
+  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
+  is a four-block diamond with no phi, and produces `pos`; both direct backends
+  currently reject it without creating an artifact.
+
 ## 2026-07-27 - Direct backends consume local, use, add, and call facts
 
 - The Pergyra-built integrated driver emitted `let_log.pgy` once as a

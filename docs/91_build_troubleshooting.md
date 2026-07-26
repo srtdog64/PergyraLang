@@ -1477,6 +1477,34 @@ growth by raising the cap. First check for cumulative graph copying, repeated
 whole-arena readiness, or a consumer reopening raw instruction arrays instead
 of extending the typed routine-local view.
 
+#### v67 scalar widening removes two more repeat-work seams
+
+The current-source focused gate produced `multilet.pgy` once as 4,135 bytes,
+SHA-256
+`31fb7b7300674c1483a5c54370d90a66c1ab1d4cddc3998d2eafbc03931f4efd`,
+then compiled and ran the unchanged artifact through direct C and LLVM with
+native-equal output `35` / `12`. Hello and `let_log` stayed green. The final r3
+Pergyra-built bounded bootstrap and the same direct positive/negative gate
+passed. An in-flight r3 seed-emission sample was 764.8 MB private / 673.3 MB
+working set; it is useful evidence below the 3,072 MB cap, not a claimed peak.
+
+Two repeat-work ratchets matter for later memory diagnosis. Machine admission
+now carries its `MirDocumentFactIndex` into the admitted input, and direct
+admission consumes that carrier instead of calling `BuildMirDocumentFactIndex`
+again. `MirExpressionGraphSequenceAppend` validates exact graph/node schemas
+and derives the node count during the same node walk instead of first scanning
+the array only to count it. If direct-backend memory grows again, first verify
+these carrier and one-pass contracts remain intact; do not add a cache, raise
+3,072 MB, or create one document/graph reader per backend.
+
+The next active falsifier is `ifelse.pgy`, not another scalar fixture. Its
+3,413-byte MIR has SHA-256
+`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
+is a four-block diamond without phi, and prints `pos`. Current direct C and LLVM
+both reject it without opening output. Diagnose that boundary by carrying MIR
+CFG facts into a MIR-bound AIR certificate and one verified plan; a backend-
+local CFG read would recreate the duplicated graph problem.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

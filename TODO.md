@@ -2,17 +2,21 @@
 
 English anchor for tooling/doc gates:
 
-- Active self-host backend rung: generalize the direct backend-neutral scalar
-  block from fixed `let_log.pgy` to `multilet.pgy`. One unchanged MIR must
-  carry multiple typed locals/results/uses, repeated `Log` statements, and
-  multiply/add graph nodes into both C and LLVM. Add a consumer-owned SSA-base
-  identity predicate and consume the runtime-call ABI row rather than
-  duplicating target symbol/format policy. Do not switch to a fixture-specific
-  projector, raw `expr0`, AST/semantic reconstruction, or backend-specific MIR
-  reader. CFG and AIR-certified projection/spawn/parallel/region plans remain
-  the following admission boundary; ordinary `pgy` cannot move before the
-  shared backend spine is complete. Gate:
-  `self-host-one-mir-dual-backend-projection-test-smoke`.
+- Active self-host backend rung: admit `ifelse.pgy` through one shared CFG/AIR
+  plan boundary. Its current 3,413-byte MIR has SHA-256
+  `09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
+  is a four-block diamond without phi, and has native output `pos`; current
+  direct C and LLVM both reject it without creating an artifact. Consume MIR
+  CFG facts into a MIR-bound AIR certificate, bind that certificate into one
+  verified plan, and make both backends consume the same plan. Do not add a
+  backend-specific CFG reader, rebuild AST/semantic facts, infer branch shape
+  from expression text, create a second MIR, or bypass AIR evidence. Keep the
+  hello/let_log/multilet direct gate green. The final r3 Pergyra-built bounded
+  bootstrap and the same C/LLVM positive/negative gate passed with the final
+  source. Gate:
+  `self-host-one-mir-dual-backend-projection-test-smoke` plus the focused
+  CFG/AIR certificate and verified-plan negatives. Released/default
+  replacement remains 0%.
 - Current beta progress: feature-surface feel is about 85%, and
   strict beta readiness is now about 83% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,

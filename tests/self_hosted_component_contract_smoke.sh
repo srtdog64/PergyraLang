@@ -2009,6 +2009,10 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "pgy.selfhost.runtime-call-abi-row.v2"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "struct CompilerRuntimeCallAbiRowInput"
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" \
+    "func CompilerRuntimeCallAbiStringFormattedPrintRowInput("
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" \
+    "CompilerRuntimeCallAbiStringFormattedPrintRowInput()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiRowCallShapeFact"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiCallShape"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "func CompilerRuntimeCallAbiRowIndex"
@@ -2032,6 +2036,12 @@ require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pg
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "runtime_call_abi_id: Int"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "func CompilerRuntimeCallAbiRowId"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "func CompilerRuntimeCallAbiFactForNativeResource"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "func CompilerRuntimeCallAbiFactFromRowInput("
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "func CompilerRuntimeCallAbiFormattedPrintFact("
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "func CompilerRuntimeCallAbiFlatFactOwnerReady("
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 'import "runtime_call_abi_row_owner.pgy";'
 reject_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "Split("
 reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiConcreteRowCount() == 237"
@@ -3740,6 +3750,8 @@ require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerAdmitJsonInput("
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "Some(MirMachineLayerAdmittedJsonInput("
+require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "document: MirDocumentFactIndex;"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "routines: MirProgramRoutineIndex;"
 reject_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
@@ -8083,6 +8095,18 @@ require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "m
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "resource_flow_fact_owner.pgy";'
 require_file "src/self_hosted/mir_lower/phi_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/phi_fact_owner.pgy" 200
+require_file "src/self_hosted/mir_lower/ssa_identity_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/ssa_identity_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/ssa_identity_owner.pgy"
+require_text "src/self_hosted/mir_lower/ssa_identity_owner.pgy" \
+    "func MirSsaNameMatches("
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'import "ssa_identity_owner.pgy";'
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "MirSsaNameMatches(result, name, false)"
+reject_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    "func MirPhiSsaNameMatches("
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
     'use_count < 2 || use_count > predecessor_count'
 require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
@@ -11321,6 +11345,8 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     '"call_target_name":"NoSuchTarget"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'GenerateCFromVerifiedSemanticArtifact'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'src/self_hosted/mir_lower/fixture/multilet.pgy'
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
@@ -11359,6 +11385,14 @@ require_text \
     'JsonObjectFactObjectTable(instruction, "expr0_graph")'
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'CompilerTargetProjectionFactReadyFor('
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print)'
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'CompilerAbiLayoutIntCValueType()'
+reject_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'long long'
+reject_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'snprintf'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'import "../mir_lower/routine_instruction_use_fact_owner.pgy";'
@@ -11374,6 +11408,13 @@ done
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'JsonObjectFactStringFieldEquals(instruction, "expr0"'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    'BuildMirDocumentFactIndex('
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'JsonObjectFactCount(graph) != 2'
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'JsonObjectFactCount(node) != 6'
 for forbidden_one_mir_bridge_term in \
     '../parser/' \
     '../semantic/' \

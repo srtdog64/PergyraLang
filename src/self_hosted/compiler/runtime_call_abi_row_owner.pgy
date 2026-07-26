@@ -71,6 +71,16 @@ struct CompilerRuntimeCallAbiRowInput {
     let materialization: String;
 }
 
+func CompilerRuntimeCallAbiStringFormattedPrintRowInput(
+) -> CompilerRuntimeCallAbiRowInput {
+    return CompilerRuntimeCallAbiRowInput(
+        "string",
+        "formatted-print",
+        StringRuntimeCFormattedPrintFn(),
+        CompilerRuntimeCallAbiMaterialTargetLibrary()
+    );
+}
+
 func CompilerRuntimeCallAbiNativeResourceCallShape(operation: String) -> String {
     let is_secure_resource: Bool = StringContains(operation, "SecureSlot<");
     if StringContains(operation, ".SubmitRead") {
@@ -428,7 +438,7 @@ func CompilerRuntimeCallAbiStringRowAt(index: Int) -> String {
     if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "log", StringRuntimeCLogFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "print", StringRuntimeCPrintFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "formatted-print", StringRuntimeCFormattedPrintFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiStringFormattedPrintRowInput()); }
     if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "compare", StringRuntimeCStringCompareFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "length", StringRuntimeCStringLengthFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "contains", StringRuntimeCStringContainsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }

@@ -3,6 +3,8 @@
 import "driver_pipeline_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 
 func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
@@ -26,48 +28,183 @@ func DirectMirHelloEmitLlvm(projection: DirectMirHelloProjection) -> String {
     return output;
 }
 
-func DirectMirLetLogEmitC(projection: DirectMirLetLogProjection) -> String {
-    let output: String =
-        "#include <stdio.h>\n\nint main(void) {\n    long long ";
-    output = Concat(output, projection.local_name);
-    output = Concat(output, " = ");
-    output = Concat(output, projection.integer_literal);
-    output = Concat(output, ";\n    char pgy_text[32];\n");
-    output = Concat(
-        output, "    snprintf(pgy_text, sizeof(pgy_text), \"%lld\", (long long)("
-    );
-    output = Concat(output, projection.local_name);
-    output = Concat(output, " + ");
-    output = Concat(output, projection.local_name);
-    output = Concat(output, "));\n    puts(pgy_text);\n    return 0;\n}\n");
+func DirectMirScalarProjectionArraysReady(
+    projection: DirectMirScalarBlockProjection
+) -> Bool {
+    let local_count: Int = ArrayLength(projection.local_names);
+    let log_count: Int = ArrayLength(projection.log_binary_kinds);
+    return projection.valid && local_count > 0 &&
+        local_count == ArrayLength(projection.result_names) &&
+        local_count == ArrayLength(projection.integer_literals) &&
+        log_count > 0 &&
+        log_count == ArrayLength(projection.log_left_local_rows) &&
+        log_count == ArrayLength(projection.log_right_local_rows);
+}
+
+func DirectMirScalarEmitC(
+    projection: DirectMirScalarBlockProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirScalarProjectionArraysReady(projection) ||
+        !formatted_print.ok || StringLength(formatted_print.symbol) == 0 ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
+        Die("direct MIR scalar C runtime ABI facts are invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
+    let row: Int = 0;
+    while row < ArrayLength(projection.local_names) {
+        output = Concat(output, "    ");
+        output = Concat(output, int_c_type);
+        output = Concat(output, " pgy_local_");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = ");
+        output = Concat(output, projection.integer_literals[row]);
+        output = Concat(output, ";\n");
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(projection.log_binary_kinds) {
+        let operator_text: String = " + ";
+        if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
+            operator_text = " * ";
+        } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
+            Die("direct MIR scalar C operator fact is invalid");
+        }
+        output = Concat(output, "    ");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, "(\"");
+        output = Concat(output, line_format);
+        output = Concat(output, "\", (");
+        output = Concat(output, int_c_type);
+        output = Concat(output, ")(pgy_local_");
+        output = Concat(
+            output, ToString(projection.log_left_local_rows[row])
+        );
+        output = Concat(output, operator_text);
+        output = Concat(output, "pgy_local_");
+        output = Concat(
+            output, ToString(projection.log_right_local_rows[row])
+        );
+        output = Concat(output, "));\n");
+        row = row + 1;
+    }
+    output = Concat(output, "    return 0;\n}\n");
     return output;
 }
 
-func DirectMirLetLogEmitLlvm(
-    projection: DirectMirLetLogProjection
+func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
+    let payload: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        let code: Int = CharCode(line_format, n, i);
+        if code == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format escape is invalid");
+            }
+            payload = Concat(payload, "\\0A");
+            i = i + 2;
+        } else {
+            if code < 32 || code > 126 || code == 34 {
+                Die("direct MIR scalar LLVM format byte is invalid");
+            }
+            payload = Concat(payload, CharAtN(line_format, n, i));
+            i = i + 1;
+        }
+    }
+    return payload;
+}
+
+func DirectMirScalarLlvmFormatByteCount(line_format: String) -> Int {
+    let count: Int = 1;
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        if CharCode(line_format, n, i) == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format length is invalid");
+            }
+            count = count + 1;
+            i = i + 2;
+        } else {
+            count = count + 1;
+            i = i + 1;
+        }
+    }
+    return count;
+}
+
+func DirectMirScalarEmitLlvm(
+    projection: DirectMirScalarBlockProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
 ) -> String {
+    if !DirectMirScalarProjectionArraysReady(projection) ||
+        !formatted_print.ok || StringLength(formatted_print.symbol) == 0 ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") {
+        Die("direct MIR scalar LLVM runtime ABI facts are invalid");
+    }
+    let format_payload: String =
+        DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int =
+        DirectMirScalarLlvmFormatByteCount(line_format);
     let output: String =
-        "@.pgy.int.format = private unnamed_addr constant [5 x i8] c\"%lld\\00\", align 1\n\n";
-    output = Concat(
-        output, "declare i32 @snprintf(ptr, i64, ptr, ...)\ndeclare i32 @puts(ptr)\n\n"
-    );
+        "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\n");
+    output = Concat(output, "declare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\n");
     output = Concat(output, "define i32 @main() {\nentry:\n");
-    output = Concat(output, "  %pgy.text = alloca [32 x i8], align 16\n  %");
-    output = Concat(output, projection.result_name);
-    output = Concat(output, " = add i64 0, ");
-    output = Concat(output, projection.integer_literal);
-    output = Concat(output, "\n  %pgy.sum = add i64 %");
-    output = Concat(output, projection.result_name);
-    output = Concat(output, ", %");
-    output = Concat(output, projection.result_name);
-    output = Concat(
-        output,
-        "\n  %pgy.formatted = call i32 (ptr, i64, ptr, ...) @snprintf(ptr %pgy.text, i64 32, ptr @.pgy.int.format, i64 %pgy.sum)\n"
-    );
-    output = Concat(
-        output,
-        "  %pgy.logged = call i32 @puts(ptr %pgy.text)\n  ret i32 0\n}\n"
-    );
+    let row: Int = 0;
+    while row < ArrayLength(projection.result_names) {
+        output = Concat(output, "  %pgy.local.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = add i64 0, ");
+        output = Concat(output, projection.integer_literals[row]);
+        output = Concat(output, "\n");
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(projection.log_binary_kinds) {
+        let instruction: String = "add";
+        if projection.log_binary_kinds[row] == AstExpressionNodeMultiply() {
+            instruction = "mul";
+        } else if projection.log_binary_kinds[row] != AstExpressionNodeAdd() {
+            Die("direct MIR scalar LLVM operator fact is invalid");
+        }
+        output = Concat(output, "  %pgy.binary.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = ");
+        output = Concat(output, instruction);
+        output = Concat(output, " i64 %pgy.local.");
+        output = Concat(
+            output, ToString(projection.log_left_local_rows[row])
+        );
+        output = Concat(output, ", %pgy.local.");
+        output = Concat(
+            output, ToString(projection.log_right_local_rows[row])
+        );
+        output = Concat(output, "\n  %pgy.logged.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(
+            output,
+            "(ptr @.pgy.int.line.format, i64 %pgy.binary."
+        );
+        output = Concat(output, ToString(row));
+        output = Concat(output, ")\n");
+        row = row + 1;
+    }
+    output = Concat(output, "  ret i32 0\n}\n");
     return output;
 }
 
@@ -89,9 +226,7 @@ func CompileAdmittedDirectMirForTarget(
             admitted.routines, 0, 0
         );
     let kind: String = "emitted-c";
-    if is_llvm {
-        kind = "emitted_llvm";
-    }
+    if is_llvm { kind = "emitted_llvm"; }
     let payload: String = "";
     if instruction_count == 1 {
         let hello: DirectMirHelloProjection =
@@ -101,16 +236,27 @@ func CompileAdmittedDirectMirForTarget(
         }
         payload = DirectMirHelloEmitC(hello);
         if is_llvm { payload = DirectMirHelloEmitLlvm(hello); }
-    } else if instruction_count == 2 {
-        let let_log: DirectMirLetLogProjection =
-            DirectMirLetLogProjectionFromAdmitted(admitted);
-        if !let_log.valid {
-            Die("direct MIR backend projection rejected unsupported let_log facts");
-        }
-        payload = DirectMirLetLogEmitC(let_log);
-        if is_llvm { payload = DirectMirLetLogEmitLlvm(let_log); }
     } else {
-        Die("direct MIR backend projection rejected unsupported instruction shape");
+        let formatted_print: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiFormattedPrintFact();
+        if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+            Die("direct MIR scalar runtime ABI owner is incomplete");
+        }
+        let line_format: String = StringRuntimeCIntLineFormat();
+        let int_c_type: String = CompilerAbiLayoutIntCValueType();
+        let scalar: DirectMirScalarBlockProjection =
+            DirectMirScalarBlockProjectionFromAdmitted(admitted);
+        if !scalar.valid || !formatted_print.ok {
+            Die("direct MIR backend projection rejected unsupported scalar facts");
+        }
+        payload = DirectMirScalarEmitC(
+            scalar, formatted_print, line_format, int_c_type
+        );
+        if is_llvm {
+            payload = DirectMirScalarEmitLlvm(
+                scalar, formatted_print, line_format
+            );
+        }
     }
     let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact(
         kind,

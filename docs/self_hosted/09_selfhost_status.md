@@ -32,6 +32,19 @@ both target artifacts compile and match native output `42`. This proves only
 the bounded literal/local/add/direct-call shapes, not general backend
 admission or released/default replacement.
 
+The current-source direct lane now also admits `multilet.pgy` as one typed
+scalar block. Its single 4,135-byte MIR artifact has SHA-256
+`31fb7b7300674c1483a5c54370d90a66c1ab1d4cddc3998d2eafbc03931f4efd`;
+the unchanged identity produces `35` then `12` through both compiling C and
+LLVM projections. Admission consumes multiple typed local/result/use facts,
+exact graph sequence, and add/multiply topology. Projection consumes the typed
+formatted-print runtime ABI fact, line format, and C `Int` ABI owner. Machine
+admission carries the document index forward, so the direct consumer does not
+reindex the MIR or reopen raw `expr0`/AST/semantic facts. The focused
+hello/let_log/multilet gate is green. The final r3 Pergyra-built bounded
+bootstrap and the same direct C/LLVM positive/negative gate passed with the
+final source.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.
@@ -390,10 +403,15 @@ evidence rather than a released Pergyra-owned backend replacement.
 
 ## Recommended next pass
 
-Keep the complete-source Pergyra producer/gen2/gen3 fixed point green and
-promote it through the normal build/install/default driver path. Do not reopen
-graph, assignment, or interpolation ownership, and do not introduce a second
-MIR artifact between generations.
+Keep the complete-source Pergyra producer/gen2/gen3 fixed point and the direct
+scalar gate green, then advance `ifelse.pgy` through MIR CFG facts, a MIR-bound
+AIR certificate, and one verified plan consumed by C and LLVM. Its current
+3,413-byte MIR is
+`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
+a four-block no-phi diamond that prints `pos`; both direct backends currently
+reject it without opening output. Do not add a backend-local CFG reader or a
+second MIR. Default-driver promotion follows the shared backend spine rather
+than bypassing this plan boundary.
 
 ## How to reproduce
 

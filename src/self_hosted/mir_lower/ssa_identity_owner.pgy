@@ -1,0 +1,25 @@
+// Consumer-side MIR SSA identity validation.
+//
+// Producers own version assignment. Consumers use this predicate to verify
+// `<source-local>.<canonical-version>` without importing producer internals or
+// inventing fixture-specific result names.
+
+func MirSsaNameMatches(
+    value: String,
+    local_name: String,
+    allow_zero: Bool
+) -> Bool {
+    let prefix: String = Concat(local_name, ".");
+    if StringLength(local_name) == 0 ||
+        StringLength(value) <= StringLength(prefix) ||
+        Substring(value, 0, StringLength(prefix)) != prefix {
+        return false;
+    }
+    let version: String = Substring(
+        value,
+        StringLength(prefix),
+        StringLength(value) - StringLength(prefix)
+    );
+    return (ToInt(version) > 0 || (allow_zero && version == "0")) &&
+        ToString(ToInt(version)) == version;
+}

@@ -48,6 +48,72 @@ func CompilerRuntimeCallAbiRowId(
     return (1073741824L + hash) as Int;
 }
 
+// Convert the row owner's structured input directly. Serialized manifest text
+// stays an output artifact and is never parsed back into compiler facts.
+func CompilerRuntimeCallAbiFactFromRowInput(
+    input: CompilerRuntimeCallAbiRowInput
+) -> CompilerRuntimeCallAbiFact {
+    let projected_row: String = CompilerRuntimeCallAbiRow(input);
+    if StringLength(input.domain) == 0 ||
+        StringLength(input.operation) == 0 ||
+        StringLength(input.symbol) == 0 ||
+        StringLength(input.materialization) == 0 ||
+        CompilerRuntimeCallAbiRowFor(
+            input.domain, input.operation
+        ) != projected_row {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    let call_shape: String = CompilerRuntimeCallAbiCallShape(
+        input.domain, input.operation, input.materialization
+    );
+    if StringLength(call_shape) == 0 {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    return CompilerRuntimeCallAbiFact(
+        true,
+        input.domain,
+        input.operation,
+        input.symbol,
+        "function",
+        input.materialization,
+        call_shape,
+        CompilerRuntimeCallAbiRowId(
+            input.domain, "", input.operation
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiFormattedPrintFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiStringFormattedPrintRowInput()
+    );
+}
+
+func CompilerRuntimeCallAbiFlatFactOwnerReady(
+    formatted: CompilerRuntimeCallAbiFact
+) -> Bool {
+    let missing: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "string",
+                "missing-direct-backend",
+                StringRuntimeCFormattedPrintFn(),
+                CompilerRuntimeCallAbiMaterialTargetLibrary()
+            )
+        );
+    return formatted.ok && formatted.domain == "string" &&
+        formatted.operation == "formatted-print" &&
+        formatted.symbol_kind == "function" &&
+        formatted.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        formatted.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") &&
+        formatted.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "string", "", "formatted-print"
+        ) && !missing.ok;
+}
+
 // This is the self-host projection of the native constructed-resource spelling
 // rule.  The native MIR owner remains authoritative; keeping the same bounded
 // character walk here makes a self-host-produced row comparable without

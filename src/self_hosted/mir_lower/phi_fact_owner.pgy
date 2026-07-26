@@ -3,6 +3,7 @@
 import "json_fact_read.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_instruction_view_owner.pgy";
+import "ssa_identity_owner.pgy";
 
 func MirPhiPredecessorCount(
     ref index: MirRoutineFactIndex, block_id: Int
@@ -22,23 +23,6 @@ func MirPhiPredecessorCount(
         row = row + 1;
     }
     return count;
-}
-
-func MirPhiSsaNameMatches(
-    value: String, local_name: String, allow_zero: Bool
-) -> Bool {
-    let prefix: String = Concat(local_name, ".");
-    if StringLength(local_name) == 0 ||
-        StringLength(value) <= StringLength(prefix) ||
-        Substring(value, 0, StringLength(prefix)) != prefix {
-        return false;
-    }
-    let version: String = Substring(
-        value, StringLength(prefix),
-        StringLength(value) - StringLength(prefix)
-    );
-    return (ToInt(version) > 0 || (allow_zero && version == "0")) &&
-        ToString(ToInt(version)) == version;
 }
 
 func MirPhiResultExists(ref index: MirRoutineFactIndex, wanted: String) -> Bool {
@@ -135,7 +119,7 @@ func MirRoutinePhiFactsReady(
             // Require at least the entry/backedge pair and never accept
             // more values than the CFG has predecessor edges.
             if use_count < 2 || use_count > predecessor_count ||
-                !MirPhiSsaNameMatches(result, name, false) {
+                !MirSsaNameMatches(result, name, false) {
                 return false;
             }
             let use_i: Int = 0;
@@ -148,7 +132,7 @@ func MirRoutinePhiFactsReady(
                 // this block is a loop header with a back-edge.
                 let self_backedge: Bool = use_name == result && has_backedge;
                 if (!self_backedge && use_name == result) ||
-                    !MirPhiSsaNameMatches(use_name, name, true) ||
+                    !MirSsaNameMatches(use_name, name, true) ||
                     (!self_backedge && !MirPhiResultExists(index, use_name) &&
                         !MirPhiParameterEntryExists(
                             index, json, name, use_name

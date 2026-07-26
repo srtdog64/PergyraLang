@@ -3,13 +3,14 @@
 // This owner consumes only admitted pgy.mir.v1 facts.  It deliberately does
 // not reconstruct an AST, invoke semantic analysis, consume the legacy expr0
 // surface as semantic input, or fall back to the source driver. The admitted
-// shapes are the literal-Log hello rung and the let/add/ToString/Log
-// rung. Both are admitted from the same routine and expression-graph owners.
+// shapes are literal-Log hello and one-block typed Int definitions followed
+// by graph-owned binary ToString/Log statements.
 
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
 
 struct DirectMirHelloProjection {
     let valid: Bool;
@@ -17,53 +18,58 @@ struct DirectMirHelloProjection {
     let content: String;
 }
 
-struct DirectMirLetLogProjection {
+struct DirectMirScalarBlockProjection {
     let valid: Bool;
-    let local_name: String;
-    let result_name: String;
-    let integer_literal: String;
+    let local_names: Array<String>;
+    let result_names: Array<String>;
+    let integer_literals: Array<String>;
+    let log_left_local_rows: Array<Int>;
+    let log_right_local_rows: Array<Int>;
+    let log_binary_kinds: Array<Int>;
 }
 
 func DirectMirHelloProjectionEmpty() -> DirectMirHelloProjection {
     return DirectMirHelloProjection(false, "", "");
 }
 
-func DirectMirLetLogProjectionEmpty() -> DirectMirLetLogProjection {
-    return DirectMirLetLogProjection(false, "", "", "");
+func DirectMirScalarBlockProjectionEmpty() -> DirectMirScalarBlockProjection {
+    let local_names: Array<String> = [];
+    let result_names: Array<String> = [];
+    let integer_literals: Array<String> = [];
+    let left_rows: Array<Int> = [];
+    let right_rows: Array<Int> = [];
+    let binary_kinds: Array<Int> = [];
+    return DirectMirScalarBlockProjection(
+        false, local_names, result_names, integer_literals,
+        left_rows, right_rows, binary_kinds);
 }
 
 func DirectMirObjectFieldKindEquals(
-    ref fact_table: JsonObjectFactTable, field: String, expected: String
-) -> Bool {
+    ref fact_table: JsonObjectFactTable, field: String, expected: String) -> Bool {
     let kind_opt: Option<String> = JsonObjectFactValueKind(fact_table, field);
     return IsSome(kind_opt) && UnwrapOption(kind_opt) == expected;
 }
 
 func DirectMirObjectArrayEmpty(
-    ref fact_table: JsonObjectFactTable, field: String
-) -> Bool {
+    ref fact_table: JsonObjectFactTable, field: String) -> Bool {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(fact_table, field, bounds) { return false; }
     let cursor: Int = JsonSkipWhitespaceWithin(
-        fact_table.json, bounds[0] + 1, bounds[1]
-    );
+        fact_table.json, bounds[0] + 1, bounds[1]);
     return cursor < bounds[1] &&
         JsonCharCodeAt(fact_table.json, bounds[1], cursor) ==
             JsonAsciiCode("]");
 }
 
 func DirectMirObjectNumberEquals(
-    ref fact_table: JsonObjectFactTable, field: String, expected: String
-) -> Bool {
+    ref fact_table: JsonObjectFactTable, field: String, expected: String) -> Bool {
     let value_opt: Option<String> = JsonObjectFactNumberFieldOpt(
-        fact_table, field
-    );
+        fact_table, field);
     return IsSome(value_opt) && UnwrapOption(value_opt) == expected;
 }
 
 func DirectMirRoutineHasNoUnsupportedFacts(
-    ref routine: JsonObjectFactTable
-) -> Bool {
+    ref routine: JsonObjectFactTable) -> Bool {
     return DirectMirObjectArrayEmpty(routine, "generics") &&
         DirectMirObjectArrayEmpty(routine, "params") &&
         !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
@@ -94,21 +100,22 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
 }
 
 func DirectMirProgramEnvelopeReady(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> Bool {
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
     let json: String = admitted.routines.source_json;
-    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
-    let generic_specializations: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(document.root, "generic_method_specializations");
-    if !document.valid || JsonObjectFactCount(document.root) != 5 ||
+    let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        admitted.document.root, "generic_method_specializations");
+    if !admitted.document.valid || admitted.document.routines.json != json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
         !MirProgramRoutineIndexStructureReady(admitted.routines) ||
-        !JsonArrayObjectFactTableReady(document.declarations) ||
-        JsonArrayObjectFactCount(document.declarations) != 0 ||
-        !JsonArrayObjectFactTableReady(document.parallel_capture_boundaries) ||
-        JsonArrayObjectFactCount(document.parallel_capture_boundaries) != 0 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries) ||
+        JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries) != 0 ||
         !JsonArrayObjectFactTableReady(generic_specializations) ||
         JsonArrayObjectFactCount(generic_specializations) != 0 ||
-        JsonArrayObjectFactCount(document.routines) != 1 ||
+        JsonArrayObjectFactCount(admitted.document.routines) != 1 ||
         MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         admitted.routines.kinds[0] != "function" ||
         admitted.routines.owners[0] != "" ||
@@ -126,9 +133,7 @@ func DirectMirProgramEnvelopeReady(
 }
 
 func DirectMirLogInstructionEnvelopeReady(
-    ref instruction: JsonObjectFactTable,
-    expected_id: String
-) -> Bool {
+    ref instruction: JsonObjectFactTable, expected_id: String) -> Bool {
     return JsonObjectFactTableReady(instruction) &&
         DirectMirObjectNumberEquals(instruction, "id", expected_id) &&
         JsonObjectFactStringFieldEquals(instruction, "kind", "stmt") &&
@@ -159,37 +164,15 @@ func DirectMirLogInstructionEnvelopeReady(
 }
 
 func DirectMirHelloGraphProjection(
-    ref instruction: JsonObjectFactTable
-) -> DirectMirHelloProjection {
-    let graph: JsonObjectFactTable =
-        JsonObjectFactObjectTable(instruction, "expr0_graph");
-    if !JsonObjectFactTableReady(graph) ||
-        JsonObjectFactCount(graph) != 2 {
+    ref instruction: JsonObjectFactTable) -> DirectMirHelloProjection {
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph");
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), graph);
+    if !sequence.ok {
         Die("direct MIR backend projection expression graph is missing or invalid");
     }
-    let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(graph, "root");
-    let nodes: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(graph, "nodes");
-    if !IsSome(root_opt) || UnwrapOption(root_opt) != "0" ||
-        !JsonArrayObjectFactTableReady(nodes) ||
-        JsonArrayObjectFactCount(nodes) != 1 {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let node: JsonObjectFactTable = JsonArrayObjectFactAt(nodes, 0);
-    if !JsonObjectFactTableReady(node) ||
-        JsonObjectFactCount(node) != 6 ||
-        !JsonObjectFactStringFieldEquals(node, "kind", "string_literal") ||
-        !JsonObjectFactStringFieldEquals(node, "call_target_kind", "none") ||
-        !JsonObjectFactStringFieldEquals(node, "call_target_name", "") ||
-        !DirectMirObjectFieldKindEquals(node, "left", "null") ||
-        !DirectMirObjectFieldKindEquals(node, "right", "null") {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceAppend(
-            MirExpressionGraphSequenceEmpty(), graph
-        );
-    if !sequence.ok || sequence.ready_node_count != 1 ||
+    if sequence.ready_node_count != 1 ||
         ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 0 ||
         ArrayLength(sequence.arena.topology.node_kinds) != 1 ||
         sequence.arena.topology.node_kinds[0] !=
@@ -202,14 +185,11 @@ func DirectMirHelloGraphProjection(
     if !IsSome(content_opt) {
         return DirectMirHelloProjectionEmpty();
     }
-    return DirectMirHelloProjection(
-        true, literal, UnwrapOption(content_opt)
-    );
+    return DirectMirHelloProjection(true, literal, UnwrapOption(content_opt));
 }
 
 func DirectMirHelloProjectionFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> DirectMirHelloProjection {
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirHelloProjection {
     let json: String = admitted.routines.source_json;
     if !DirectMirProgramEnvelopeReady(admitted) ||
         MirProgramRoutineIndexBlockInstructionCountAt(
@@ -217,8 +197,8 @@ func DirectMirHelloProjectionFromAdmitted(
         ) != 1 {
         return DirectMirHelloProjectionEmpty();
     }
-    let routine_index: MirRoutineFactIndex =
-        BuildMirRoutineFactIndex(admitted.routines, 0);
+    let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0);
     if !routine_index.valid ||
         ArrayLength(routine_index.source_local_names) != 0 ||
         ArrayLength(routine_index.source_local_types) != 0 {
@@ -226,10 +206,8 @@ func DirectMirHelloProjectionFromAdmitted(
     }
     let block_row: Int = admitted.routines.routine_block_starts[0];
     let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json,
-        admitted.routines.block_starts[block_row],
-        admitted.routines.block_ends[block_row]
-    );
+        json, admitted.routines.block_starts[block_row],
+        admitted.routines.block_ends[block_row]);
     if !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
         !DirectMirObjectNumberEquals(block, "id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
@@ -238,52 +216,54 @@ func DirectMirHelloProjectionFromAdmitted(
         return DirectMirHelloProjectionEmpty();
     }
     let instruction_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
-        admitted.routines, 0, 0, 0
-    );
+        admitted.routines, 0, 0, 0);
     if instruction_row < 0 {
         return DirectMirHelloProjectionEmpty();
     }
     if admitted.routines.instruction_kinds[instruction_row] != "stmt" {
         Die("direct MIR backend projection rejected invalid instruction kind");
     }
-    if
-        admitted.routines.instruction_source_types[instruction_row] !=
+    if admitted.routines.instruction_source_types[instruction_row] !=
             "AST_CALL" {
         return DirectMirHelloProjectionEmpty();
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json,
-        admitted.routines.instruction_starts[instruction_row],
-        admitted.routines.instruction_ends[instruction_row]
-    );
+        json, admitted.routines.instruction_starts[instruction_row],
+        admitted.routines.instruction_ends[instruction_row]);
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
     if !MirRoutineInstructionUseFactsReady(use_facts, 1) ||
-        MirRoutineInstructionUseCountAtGlobal(
-            use_facts, instruction_row
-        ) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(use_facts, instruction_row) != 0 ||
         !DirectMirLogInstructionEnvelopeReady(instruction, "0") {
         return DirectMirHelloProjectionEmpty();
     }
     return DirectMirHelloGraphProjection(instruction);
 }
 
-func DirectMirLetDefinitionLiteral(
-    ref instruction: JsonObjectFactTable
+func DirectMirScalarLocalRow(
+    local_names: Array<String>, wanted: String) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(local_names) {
+        if local_names[row] == wanted { return row; }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+func DirectMirScalarDefinitionLiteral(
+    ref instruction: JsonObjectFactTable,
+    expected_id: String, local_name: String, result_name: String
 ) -> String {
     if !JsonObjectFactTableReady(instruction) ||
-        !DirectMirObjectNumberEquals(instruction, "id", "0") ||
+        !DirectMirObjectNumberEquals(instruction, "id", expected_id) ||
         !JsonObjectFactStringFieldEquals(instruction, "kind", "def") ||
-        !JsonObjectFactStringFieldEquals(
-            instruction, "name", "ssa-def"
-        ) ||
-        !JsonObjectFactStringFieldEquals(instruction, "result", "x.1") ||
-        !JsonObjectFactStringFieldEquals(instruction, "arg0", "x") ||
+        !JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") ||
+        !MirSsaNameMatches(result_name, local_name, false) ||
+        !JsonObjectFactStringFieldEquals(instruction, "result", result_name) ||
+        !JsonObjectFactStringFieldEquals(instruction, "arg0", local_name) ||
         !DirectMirObjectFieldKindEquals(instruction, "arg1", "null") ||
         !DirectMirObjectFieldKindEquals(instruction, "slot_anchor", "null") ||
-        !JsonObjectFactStringFieldEquals(
-            instruction, "abi_type_name", "Int"
-        ) ||
+        !JsonObjectFactStringFieldEquals(instruction, "abi_type_name", "Int") ||
         !DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
             instruction.json, instruction.start, instruction.end,
@@ -294,81 +274,79 @@ func DirectMirLetDefinitionLiteral(
         !JsonObjectFactStringFieldEquals(instruction, "expr1", "Int") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") ||
         !JsonObjectFactStringFieldEquals(
-            instruction, "source_type", "AST_LET_DECL"
-        ) ||
-        !JsonObjectFactStringFieldEquals(
-            instruction, "machine_contact_kind", ""
-        ) ||
+            instruction, "source_type", "AST_LET_DECL") ||
+        !JsonObjectFactStringFieldEquals(instruction, "machine_contact_kind", "") ||
         !DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") ||
         !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
-        !DirectMirObjectFieldKindEquals(
-            instruction, "match_variant", "null"
-        ) ||
+        !DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") ||
         !DirectMirObjectArrayEmpty(instruction, "match_bindings") ||
         !DirectMirObjectArrayEmpty(instruction, "match_binding_types") ||
         !DirectMirObjectFieldKindEquals(
-            instruction, "destructure_element_type", "null"
-        ) ||
+            instruction, "destructure_element_type", "null") ||
         !DirectMirObjectArrayEmpty(instruction, "destructure_bindings") {
-        Die("direct MIR let_log local result identity is missing or invalid");
+        Die("direct MIR scalar local result identity is missing or invalid");
     }
-    let graph: JsonObjectFactTable =
-        JsonObjectFactObjectTable(instruction, "expr0_graph");
-    let nodes: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(graph, "nodes");
-    let initializer_node: JsonObjectFactTable =
-        JsonArrayObjectFactAt(nodes, 0);
-    if !JsonObjectFactTableReady(graph) || JsonObjectFactCount(graph) != 2 ||
-        !DirectMirObjectNumberEquals(graph, "root", "0") ||
-        !JsonArrayObjectFactTableReady(nodes) ||
-        JsonArrayObjectFactCount(nodes) != 1 ||
-        !JsonObjectFactTableReady(initializer_node) ||
-        JsonObjectFactCount(initializer_node) != 6 {
-        Die("direct MIR let_log initializer expression graph is missing or invalid");
-    }
-    let sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceAppend(
-            MirExpressionGraphSequenceEmpty(), graph
-        );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph");
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), graph);
     if !sequence.ok || sequence.ready_node_count != 1 ||
         ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 0 ||
         ArrayLength(sequence.arena.topology.node_kinds) != 1 ||
         sequence.arena.topology.node_kinds[0] !=
             AstExpressionNodeIntegerLiteral() ||
         ArrayLength(sequence.arena.node_texts) != 1 ||
-        sequence.arena.node_texts[0] != "21" ||
         ArrayLength(sequence.arena.call_target_kinds) != 1 ||
         sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
         ArrayLength(sequence.arena.call_target_names) != 1 ||
         sequence.arena.call_target_names[0] != "" {
-        Die("direct MIR let_log initializer integer fact is missing or invalid");
+        Die("direct MIR scalar initializer integer fact is missing or invalid");
     }
-    return sequence.arena.node_texts[0];
+    let literal: String = sequence.arena.node_texts[0];
+    if StringLength(literal) == 0 || ToString(ToInt(literal)) != literal {
+        Die("direct MIR scalar initializer integer is not canonical");
+    }
+    return literal;
 }
 
-func DirectMirLetLogGraphReady(
-    ref instruction: JsonObjectFactTable
+func DirectMirScalarUsesMatch(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int, left_result: String, right_result: String
+) -> Bool {
+    let expected_count: Int = 2;
+    if left_result == right_result { expected_count = 1; }
+    if MirRoutineInstructionUseCountAtGlobal(
+        use_facts, global_row) != expected_count {
+        return false;
+    }
+    let left_seen: Bool = false;
+    let right_seen: Bool = false;
+    let use_row: Int = 0;
+    while use_row < expected_count {
+        let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+            use_facts, global_row, use_row);
+        if !IsSome(use_opt) { return false; }
+        let value: String = UnwrapOption(use_opt);
+        if value != left_result && value != right_result {
+            return false;
+        }
+        if value == left_result { left_seen = true; }
+        if value == right_result { right_seen = true; }
+        use_row = use_row + 1;
+    }
+    return left_seen && right_seen;
+}
+
+func DirectMirScalarLogGraphAppend(
+    ref instruction: JsonObjectFactTable,
+    local_names: Array<String>, result_names: Array<String>,
+    ref use_facts: MirRoutineInstructionUseFacts, global_row: Int,
+    inout left_rows: Array<Int>,
+    inout right_rows: Array<Int>,
+    inout binary_kinds: Array<Int>
 ) -> Bool {
     let graph: JsonObjectFactTable =
         JsonObjectFactObjectTable(instruction, "expr0_graph");
-    let nodes: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(graph, "nodes");
-    if !JsonObjectFactTableReady(graph) || JsonObjectFactCount(graph) != 2 ||
-        !DirectMirObjectNumberEquals(graph, "root", "5") ||
-        !JsonArrayObjectFactTableReady(nodes) ||
-        JsonArrayObjectFactCount(nodes) != 6 {
-        Die("direct MIR let_log expression graph is missing or invalid");
-    }
-    let node_i: Int = 0;
-    while node_i < 6 {
-        let node: JsonObjectFactTable =
-            JsonArrayObjectFactAt(nodes, node_i);
-        if !JsonObjectFactTableReady(node) ||
-            JsonObjectFactCount(node) != 6 {
-            Die("direct MIR let_log expression graph node is invalid");
-        }
-        node_i = node_i + 1;
-    }
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
             MirExpressionGraphSequenceEmpty(), graph
@@ -381,57 +359,97 @@ func DirectMirLetLogGraphReady(
         ArrayLength(sequence.arena.node_texts) != 6 ||
         ArrayLength(sequence.arena.call_target_kinds) != 6 ||
         ArrayLength(sequence.arena.call_target_names) != 6 {
-        Die("direct MIR let_log expression graph topology is invalid");
-    }
-    if sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
-        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
-        sequence.arena.call_target_names[1] != "ToString" {
-        Die("direct MIR let_log ToString call target is missing or invalid");
-    }
-    if sequence.arena.topology.node_kinds[4] != AstExpressionNodeAdd() ||
-        sequence.arena.topology.left_children[4] != 2 ||
-        sequence.arena.topology.right_children[4] != 3 {
-        Die("direct MIR let_log arithmetic add node or edge is missing or invalid");
+        Die("direct MIR scalar Log expression graph topology is invalid");
     }
     if sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
         sequence.arena.node_texts[0] != "ToString" ||
         sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
         sequence.arena.call_target_names[0] != "" ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
         sequence.arena.topology.left_children[1] != 0 ||
-        sequence.arena.node_texts[1] != "ToString()" ||
-        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
-        sequence.arena.node_texts[2] != "x" ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != "ToString" {
+        Die("direct MIR scalar ToString call target is missing or invalid");
+    }
+    let binary_kind: Int = sequence.arena.topology.node_kinds[4];
+    if sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
         sequence.arena.topology.node_kinds[3] != AstExpressionNodeLeaf() ||
-        sequence.arena.node_texts[3] != "x" ||
-        sequence.arena.node_texts[4] != "x + x" ||
+        (binary_kind != AstExpressionNodeAdd() &&
+            binary_kind != AstExpressionNodeMultiply()) ||
+        sequence.arena.topology.left_children[4] != 2 ||
+        sequence.arena.topology.right_children[4] != 3 ||
         sequence.arena.topology.node_kinds[5] !=
             AstExpressionNodeCallArgument() ||
         sequence.arena.topology.left_children[5] != 1 ||
-        sequence.arena.topology.right_children[5] != 4 ||
-        sequence.arena.node_texts[5] != "ToString((x + x))" {
-        Die("direct MIR let_log expression graph identity is invalid");
+        sequence.arena.topology.right_children[5] != 4 {
+        Die("direct MIR scalar arithmetic add node or multiply operator node or edge is missing or invalid");
     }
+    let target_row: Int = 2;
+    while target_row < 6 {
+        if sequence.arena.call_target_kinds[target_row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[target_row] != "" {
+            Die("direct MIR scalar non-call node has an invalid call target");
+        }
+        target_row = target_row + 1;
+    }
+    let left_row: Int = DirectMirScalarLocalRow(
+        local_names, sequence.arena.node_texts[2]
+    );
+    let right_row: Int = DirectMirScalarLocalRow(
+        local_names, sequence.arena.node_texts[3]
+    );
+    if left_row < 0 || right_row < 0 ||
+        left_row >= ArrayLength(result_names) ||
+        right_row >= ArrayLength(result_names) {
+        Die("direct MIR scalar binary operand local identity is missing or invalid");
+    }
+    if !DirectMirScalarUsesMatch(
+        use_facts, global_row,
+        result_names[left_row], result_names[right_row]
+    ) {
+        Die("direct MIR scalar local result identity or graph use edge is missing or invalid");
+    }
+    ArrayPush(left_rows, left_row);
+    ArrayPush(right_rows, right_row);
+    ArrayPush(binary_kinds, binary_kind);
     return true;
 }
 
-func DirectMirLetLogProjectionFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> DirectMirLetLogProjection {
+func DirectMirScalarBlockProjectionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirScalarBlockProjection {
     let json: String = admitted.routines.source_json;
-    if !DirectMirProgramEnvelopeReady(admitted) ||
+    if !DirectMirProgramEnvelopeReady(admitted) {
+        return DirectMirScalarBlockProjectionEmpty();
+    }
+    let instruction_count: Int =
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, 0, 0
-        ) != 2 {
-        return DirectMirLetLogProjectionEmpty();
-    }
+        );
     let routine_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(admitted.routines, 0);
-    if !routine_index.valid ||
-        ArrayLength(routine_index.source_local_names) != 1 ||
-        ArrayLength(routine_index.source_local_types) != 1 ||
-        routine_index.source_local_names[0] != "x" ||
-        routine_index.source_local_types[0] != "Int" {
-        Die("direct MIR let_log local inventory is missing or invalid");
+    let local_count: Int =
+        ArrayLength(routine_index.source_local_names);
+    if !routine_index.valid || local_count < 1 ||
+        local_count != ArrayLength(routine_index.source_local_types) ||
+        instruction_count <= local_count {
+        Die("direct MIR scalar local inventory or instruction order is invalid");
+    }
+    let local_row: Int = 0;
+    while local_row < local_count {
+        if routine_index.source_local_types[local_row] != "Int" ||
+            StringLength(routine_index.source_local_names[local_row]) == 0 {
+            Die("direct MIR scalar local type inventory is missing or invalid");
+        }
+        let prior_row: Int = 0;
+        while prior_row < local_row {
+            if routine_index.source_local_names[prior_row] ==
+                    routine_index.source_local_names[local_row] {
+                Die("direct MIR scalar local identity is duplicated");
+            }
+            prior_row = prior_row + 1;
+        }
+        local_row = local_row + 1;
     }
     let block_row: Int = admitted.routines.routine_block_starts[0];
     let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -444,65 +462,88 @@ func DirectMirLetLogProjectionFromAdmitted(
         !JsonObjectBoolFieldEqualsWithin(
             json, block.start, block.end, "reachable", true
         ) {
-        Die("direct MIR let_log reachable block is missing or invalid");
+        Die("direct MIR scalar reachable block is missing or invalid");
     }
-    let definition_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
-        admitted.routines, 0, 0, 0
-    );
-    let statement_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
-        admitted.routines, 0, 0, 1
-    );
-    if definition_row < 0 || statement_row < 0 {
-        Die("direct MIR let_log instruction identity is missing");
-    }
-    if admitted.routines.instruction_kinds[definition_row] != "def" ||
-        admitted.routines.instruction_source_types[definition_row] !=
-            "AST_LET_DECL" {
-        Die("direct MIR let_log definition instruction kind is invalid");
-    }
-    if admitted.routines.instruction_kinds[statement_row] != "stmt" ||
-        admitted.routines.instruction_source_types[statement_row] !=
-            "AST_CALL" {
-        Die("direct MIR let_log Log instruction kind is invalid");
-    }
-    let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json,
-        admitted.routines.instruction_starts[definition_row],
-        admitted.routines.instruction_ends[definition_row]
-    );
-    let statement: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json,
-        admitted.routines.instruction_starts[statement_row],
-        admitted.routines.instruction_ends[statement_row]
-    );
-    let literal: String = DirectMirLetDefinitionLiteral(definition);
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
-    if !MirRoutineInstructionUseFactsReady(use_facts, 2) ||
-        MirRoutineInstructionUseCountAtGlobal(
-            use_facts, definition_row
+    if !MirRoutineInstructionUseFactsReady(
+        use_facts, instruction_count
+    ) {
+        Die("direct MIR scalar instruction use facts are invalid");
+    }
+    let local_names: Array<String> =
+        routine_index.source_local_names;
+    let result_names: Array<String> = [];
+    let integer_literals: Array<String> = [];
+    let definition_row: Int = 0;
+    while definition_row < local_count {
+        let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, 0, 0, definition_row
+        );
+        if global_row < 0 ||
+            admitted.routines.instruction_kinds[global_row] != "def" ||
+            admitted.routines.instruction_source_types[global_row] !=
+                "AST_LET_DECL" {
+            Die("direct MIR scalar definition instruction order is invalid");
+        }
+        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json,
+            admitted.routines.instruction_starts[global_row],
+            admitted.routines.instruction_ends[global_row]
+        );
+        let result_opt: Option<String> =
+            JsonObjectFactStringFieldOpt(instruction, "result");
+        if !IsSome(result_opt) {
+            Die("direct MIR scalar local result identity is missing or invalid");
+        }
+        let result_name: String = UnwrapOption(result_opt);
+        let literal: String = DirectMirScalarDefinitionLiteral(
+            instruction, ToString(definition_row),
+            local_names[definition_row], result_name
+        );
+        if MirRoutineInstructionUseCountAtGlobal(
+            use_facts, global_row
         ) != 0 {
-        Die("direct MIR let_log definition use facts are invalid");
+            Die("direct MIR scalar definition use facts are invalid");
+        }
+        ArrayPush(result_names, result_name);
+        ArrayPush(integer_literals, literal);
+        definition_row = definition_row + 1;
     }
-    if !DirectMirLogInstructionEnvelopeReady(statement, "1") {
-        Die("direct MIR let_log Log instruction facts are invalid");
+    let left_rows: Array<Int> = [];
+    let right_rows: Array<Int> = [];
+    let binary_kinds: Array<Int> = [];
+    let statement_row: Int = local_count;
+    while statement_row < instruction_count {
+        let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, 0, 0, statement_row
+        );
+        if global_row < 0 ||
+            admitted.routines.instruction_kinds[global_row] != "stmt" ||
+            admitted.routines.instruction_source_types[global_row] !=
+                "AST_CALL" {
+            Die("direct MIR scalar repeated Log instruction order is invalid");
+        }
+        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json,
+            admitted.routines.instruction_starts[global_row],
+            admitted.routines.instruction_ends[global_row]
+        );
+        if !DirectMirLogInstructionEnvelopeReady(
+            instruction, ToString(statement_row)
+        ) {
+            Die("direct MIR scalar Log instruction id/order facts are invalid");
+        }
+        if !DirectMirScalarLogGraphAppend(
+            instruction, local_names, result_names, use_facts, global_row,
+            left_rows, right_rows, binary_kinds
+        ) {
+            Die("direct MIR scalar Log graph projection is invalid");
+        }
+        statement_row = statement_row + 1;
     }
-    let statement_use: Option<String> =
-        MirRoutineInstructionUseAtGlobal(use_facts, statement_row, 0);
-    if MirRoutineInstructionUseCountAtGlobal(
-            use_facts, statement_row
-        ) != 1 || !IsSome(statement_use) ||
-        UnwrapOption(statement_use) != "x.1" {
-        Die("direct MIR let_log graph use edge is missing or invalid");
-    }
-    if !DirectMirLetLogGraphReady(statement) {
-        Die("direct MIR let_log graph projection is invalid");
-    }
-    let local_name: String = routine_index.source_local_names[0];
-    let result_name: String = UnwrapOption(
-        JsonObjectFactStringFieldOpt(definition, "result")
-    );
-    return DirectMirLetLogProjection(
-        true, local_name, result_name, literal
+    return DirectMirScalarBlockProjection(
+        true, local_names, result_names, integer_literals,
+        left_rows, right_rows, binary_kinds
     );
 }

@@ -619,7 +619,8 @@ inventory must not become a second fact-family owner registry.
   fail-closed MIR direct/member generic row decoder and final codegen-view
   projection; semantic rows are verifier evidence, not emitted-symbol input.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
-  MIR JSON graph decoding and ordered graph-sequence construction.
+  one-pass MIR JSON graph decoding, exact graph/node schema validation, and
+  ordered graph-sequence construction.
 - `src/self_hosted/mir_lower/expression_graph_match_owner.pgy` -- derived
   match-kind dispatch from carried MIR facts.
 - `src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy` --
@@ -641,6 +642,9 @@ inventory must not become a second fact-family owner registry.
   typed match binding statements and the oracle-only inferred legacy form.
 - `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
   predecessor arity and canonical SSA local-identity validation.
+- `src/self_hosted/mir_lower/ssa_identity_owner.pgy` -- consumer-side
+  canonical `<source-local>.<version>` validation shared by phi and direct
+  backend admission without importing producer version assignment internals.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
@@ -653,7 +657,8 @@ inventory must not become a second fact-family owner registry.
   blocked-reachability, structural-merge, and dominator-edge queries used by
   the routine fact index.
 - `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
-  machine-contact projection validation for MIR JSON rows.
+  machine-contact projection validation for MIR JSON rows; its admitted
+  carrier preserves the already-built document index for final consumers.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
   capture boundary/kind/writer fact validation for MIR JSON input.
 - `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one
@@ -1167,8 +1172,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy` -- runtime helper
   and target-library call ABI row projection over the runtime ABI owners.
 - `src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy` --
-  typed native-resource projection consumed by the self-host MIR producer;
-  it does not parse the serialized row artifact back into facts.
+  typed native-resource and named target-library row-input projection consumed
+  by self-host compiler paths; it does not parse the serialized row artifact
+  back into facts.
 - `src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy` --
   checked abstract machine-layer contact/runtime projection; physical
   declaration literals are forbidden here.
@@ -1227,7 +1233,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
   graph and projects its bounded scalar facts to C or LLVM without rebuilding
-  AST/semantic artifacts or creating backend-specific MIR readers.
+  AST/semantic artifacts or creating backend-specific MIR readers. Runtime
+  symbols/formats and the C `Int` spelling come from their existing ABI owners.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. It owns neither target text

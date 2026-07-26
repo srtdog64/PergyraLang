@@ -132,11 +132,21 @@ The active hard rungs are:
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` and
   `direct_mir_backend_projection_owner.pgy`: one backend-neutral direct MIR
   consumer split by admission versus target projection responsibility. Its
-  bounded one-routine/one-block shapes include graph-owned literal `Log` and
-  `let x:Int=21; Log(ToString(x+x))`. Typed local/result/use, arithmetic, and
-  direct-call facts project the same machine-admitted `pgy.mir.v1` artifact to
-  C and LLVM without rebuilding AST or semantic facts. Every unsupported fact
-  or target fails before emission.
+  bounded one-routine/one-block shapes include graph-owned literal `Log` and a
+  scalar block of N typed `Int` definitions followed by N graph-owned
+  `Log(ToString(binary))` statements. Typed local/result/use, exact instruction
+  order, add/multiply, and direct-call facts project the same machine-admitted
+  `pgy.mir.v1` artifact to C and LLVM without rebuilding AST or semantic facts.
+  Admission reuses the document index carried by machine admission and the
+  exact-schema expression sequence owner; it does not reopen raw `expr0`.
+- `src/self_hosted/mir_lower/ssa_identity_owner.pgy`: canonical local/version
+  identity is shared by phi and direct scalar admission. A consumer may not
+  introduce a fixture-specific spelling or treat a missing/malformed version
+  as the same local.
+- `runtime_call_abi_structured_fact_owner.pgy`, the string runtime format
+  owner, and `abi_layout_row_owner.pgy` own the direct scalar output ABI. C and
+  LLVM projection consume the typed formatted-print symbol/call shape, line
+  format, and C `Int` type rather than hardcoding backend-local policy.
 - `src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy`: one
   routine-local typed view over instruction `uses`. It is captured once from
   admitted instruction spans and prevents direct backends from reopening raw
@@ -145,10 +155,20 @@ The active hard rungs are:
   once with the Pergyra-built driver, pins its identity across both backend
   projections, compiles and runs both, compares them with the native runtime
   oracle, and rejects missing graph/use facts, invalid instruction/result/use,
-  a structurally valid non-add operator, an alternate call target, invalid
-  target, and forbidden bridge regressions. This is the active bounded direct-
-  backend rung; it is not evidence that general backend admission or default-
-  driver promotion is complete.
+  structurally valid unsupported operators, an alternate call target, second-
+  local/result/use drift, statement-order drift, invalid target, ABI-owner
+  bypass, document reindexing, and forbidden bridge regressions. Hello,
+  `let_log`, and `multilet` are the current positive set. The final r3
+  Pergyra-built bounded bootstrap and direct C/LLVM gate passed with the final
+  source. This is not evidence that CFG admission, AIR-certified planning, or
+  default-driver promotion is complete.
+
+The next active direct-backend falsifier is `ifelse.pgy`, a four-block diamond
+without phi. Its current 3,413-byte MIR has SHA-256
+`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`
+and native output `pos`; both direct backends must continue rejecting it without
+an artifact until MIR CFG facts bind an AIR certificate and one verified plan
+for both projections.
 
 Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler
