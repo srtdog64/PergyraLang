@@ -5,7 +5,6 @@
 // nested lowering never infers a type from pattern spelling or source text.
 
 import "json_fact_read.pgy";
-import "program_routine_index_owner.pgy";
 
 struct MirMatchBindingLocalFacts {
     valid: Bool;
@@ -15,8 +14,7 @@ struct MirMatchBindingLocalFacts {
 }
 
 func BuildMirMatchBindingLocalFacts(
-    ref routines: MirProgramRoutineIndex,
-    global_instruction_start: Int,
+    json: String,
     instruction_starts: Array<Int>,
     instruction_ends: Array<Int>,
     source_local_names: Array<String>,
@@ -26,50 +24,8 @@ func BuildMirMatchBindingLocalFacts(
     let types: Array<String> = source_local_types;
     let valid: Bool = true;
     let validation_stage: String = "ok";
-    let instruction_count: Int = ArrayLength(instruction_starts);
-    if !routines.valid ||
-        instruction_count != ArrayLength(instruction_ends) ||
-        global_instruction_start < 0 - 1 ||
-        (instruction_count > 0 && global_instruction_start < 0) ||
-        global_instruction_start + instruction_count > ArrayLength(
-            routines.instruction_starts
-        ) || global_instruction_start + instruction_count > ArrayLength(
-            routines.instruction_ends
-        ) || global_instruction_start + instruction_count > ArrayLength(
-            routines.instruction_kinds
-        ) || global_instruction_start + instruction_count > ArrayLength(
-            routines.instruction_source_types
-        ) {
-        return MirMatchBindingLocalFacts(
-            false, "match_binding_instruction_alignment", names, types
-        );
-    }
-    let alignment_row: Int = 0;
-    while alignment_row < instruction_count {
-        let global_row: Int = global_instruction_start + alignment_row;
-        if instruction_starts[alignment_row] !=
-                routines.instruction_starts[global_row] ||
-            instruction_ends[alignment_row] !=
-                routines.instruction_ends[global_row] {
-            return MirMatchBindingLocalFacts(
-                false, "match_binding_instruction_alignment", names, types
-            );
-        }
-        alignment_row = alignment_row + 1;
-    }
-    let json: String = routines.source_json;
     let instruction: Int = 0;
-    while instruction < instruction_count {
-        let global_row: Int = global_instruction_start + instruction;
-        if routines.instruction_source_types[global_row] != "AST_MATCH_CASE" {
-            instruction = instruction + 1;
-            continue;
-        }
-        if routines.instruction_kinds[global_row] != "branch" {
-            return MirMatchBindingLocalFacts(
-                false, "match_binding_instruction_kind", names, types
-            );
-        }
+    while instruction < ArrayLength(instruction_starts) {
         let start: Int = instruction_starts[instruction];
         let end: Int = instruction_ends[instruction];
         let binding_names: Array<String> = MirObjectArrayStringFactsAtBounds(
