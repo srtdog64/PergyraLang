@@ -1434,6 +1434,23 @@ cap and root-process-tree measurement. The next rung is full-source Pergyra MIR
 production, followed by released/default selection, not another graph,
 assignment, or interpolation optimization.
 
+#### v64 moves complete-source MIR production to Pergyra gen2
+
+The direct falsifier used the v63 Pergyra-built gen2 executable, not the
+C-oracle-built driver. It ran `--emit-mir-json-verified` on the current complete
+compiler source in 1,210,574 ms at 1,091.0/963.4 MB peak private/working set.
+The resulting 54,205,046-byte artifact has SHA-256
+`3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`
+and is byte-identical to the C-oracle artifact. The output remained unopened
+until the verified JSON-write boundary.
+
+The formal full gate must therefore start from the Pergyra producer. Generate a
+separate native artifact once as oracle evidence, compare it through the owned
+artifact comparator, and let gen2/gen3 consume only the Pergyra-produced MIR.
+Do not regenerate MIR between generations or relabel the native artifact as the
+fixed-point input. The next memory investigation, if needed, starts from this
+1,091 MB baseline; a return to multi-GiB growth is a regression.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

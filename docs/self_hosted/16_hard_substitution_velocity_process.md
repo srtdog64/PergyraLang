@@ -890,10 +890,11 @@ parallel Linux jobs prove repository-wide parity and bootstrap closure.
 `self_host_ci_profile_smoke.sh` rejects routing drift in either direction.
 The integrated driver fixed-point runner emits a 60-second heartbeat because a
 single real-source MIR consumption phase can exceed the CI no-output interval.
-Until full-source self-host MIR production has bounded allocation, the native
-oracle produces the fixed-point MIR once and gen2/gen3 consume the same fact.
-Bounded DRV-2 producer parity remains blocking. Repeating whole-source analysis
-inside the fixed-point leg is a gate design regression, not evidence strength.
+Full-source Pergyra MIR production is now bounded below 3,072 MB. The
+Pergyra-built seed produces the fixed-point MIR once; the native driver produces
+one separate oracle artifact for owner comparison, and gen2/gen3 consume only
+the Pergyra fact. Regenerating MIR between generations remains a gate design
+regression, not evidence strength.
 The first Windows local platform-profile run completed in 21m49s; the previous
 GitHub Windows full-preparation step took about 75 minutes. The first GitHub
 platform-profile run completed in 27m32s on Windows and 7m09s on macOS.

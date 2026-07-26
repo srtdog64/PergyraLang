@@ -3,7 +3,8 @@
 #
 # The codegen bootstrap is the seed producer and must run first. This runner
 # consumes its Pergyra-built gen2 codegen and self-parser artifacts, builds the
-# shared driver pipeline, then proves gen2 and gen3 consume one oracle MIR fact.
+# shared driver pipeline, then proves the Pergyra producer matches the C oracle
+# and gen2/gen3 consume that one Pergyra-owned MIR fact.
 
 set -euo pipefail
 
@@ -254,47 +255,44 @@ if [[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]]; then
     exit 0
 fi
 
-# Full-source self-host MIR production is covered by bounded DRV-2 producer
-# parity until its allocation growth is closed. The explicit fixed point
-# consumes one oracle-owned MIR fact so generation drift stays isolated.
+# The complete-source MIR starts from the Pergyra-built seed. The native driver
+# emits oracle evidence only; both artifacts must match before gen2 consumes it.
 run_driver_mode_to_file \
-    "driver_mir_oracle" \
-    "$BUILD_DIR/driver_oracle.exe" \
+    "full_mir_seed" "$BUILD_DIR/driver_seed.exe" \
     "--emit-mir-json-verified" \
     "$DRIVER_SOURCE" \
     "$BUILD_DIR/driver_source.mir.json" "--pressure-owned-full-fixpoint"
 run_driver_mode_to_file \
-    "gen2_emit" \
-    "$BUILD_DIR/driver_seed.exe" \
-    "--mir-json" \
+    "full_mir_oracle" "$BUILD_DIR/driver_oracle.exe" \
+    "--emit-mir-json-verified" \
+    "$DRIVER_SOURCE" \
+    "$BUILD_DIR/driver_source.oracle.mir.json" "--pressure-owned-full-fixpoint"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-driver-bootstrap:full-mir-producer" "$BUILD_DIR" \
+    "$BUILD_DIR/driver_source.oracle.mir.json" \
+    "$BUILD_DIR/driver_source.mir.json" "mir_json"
+run_driver_mode_to_file \
+    "gen2_emit" "$BUILD_DIR/driver_seed.exe" "--mir-json" \
     "$BUILD_DIR/driver_source.mir.json" \
     "$BUILD_DIR/driver_gen2.c"
 compile_c "driver_gen2" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen2.exe"
 run_driver_mode_to_file \
-    "bounded_gen2" \
-    "$BUILD_DIR/driver_gen2.exe" \
-    "--mir-json" \
+    "bounded_gen2" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
     "$BUILD_DIR/bounded_seed.mir.json" \
     "$BUILD_DIR/bounded_gen2.c"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:generated-bounded-preflight" \
-    "$BUILD_DIR" \
+    "self-host-driver-bootstrap:generated-bounded-preflight" "$BUILD_DIR" \
     "$BUILD_DIR/bounded_seed.c" \
-    "$BUILD_DIR/bounded_gen2.c" \
-    "emitted_c"
+    "$BUILD_DIR/bounded_gen2.c" "emitted_c"
 echo "[self-host-driver-bootstrap] generated driver bounded MIR preflight ok"
 
 run_driver_mode_to_file \
-    "gen3_emit" \
-    "$BUILD_DIR/driver_gen2.exe" \
-    "--mir-json" \
+    "gen3_emit" "$BUILD_DIR/driver_gen2.exe" "--mir-json" \
     "$BUILD_DIR/driver_source.mir.json" \
     "$BUILD_DIR/driver_gen3.c"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:fixpoint" \
-    "$BUILD_DIR" \
+    "self-host-driver-bootstrap:fixpoint" "$BUILD_DIR" \
     "$BUILD_DIR/driver_gen2.c" \
-    "$BUILD_DIR/driver_gen3.c" \
-    "emitted_c"
+    "$BUILD_DIR/driver_gen3.c" "emitted_c"
 
 echo "[self-host-driver-bootstrap] integrated MIR-consumer fixpoint ok: gen2 == gen3 ($(wc -l < "$BUILD_DIR/driver_gen2.c") lines)"

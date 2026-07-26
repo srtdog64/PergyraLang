@@ -8933,3 +8933,22 @@ Released/default replacement remains 0%.
   point and satisfies the explicit bootstrap rung. The initial full-source MIR
   is still C-oracle-owned, and this does not replace the released/default
   `pgy`; full-source Pergyra MIR production and default selection remain open.
+## 2026-07-27 - Pergyra gen2 owns complete-source MIR production (v64)
+
+- `driver_gen2_v63.exe --emit-mir-json-verified` consumed the current complete
+  compiler source under root-process-tree pressure ownership. It exited 0 in
+  1,210,574 ms at 1,091.0/963.4 MB peak private/working set, below 3,072 MB.
+- The Pergyra-produced artifact is 54,205,046 bytes with SHA-256
+  `3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`.
+  It is byte-identical to the v63 C-oracle artifact. No output was opened before
+  verified JSON writing.
+- The full-bootstrap runner now starts from the Pergyra-built seed producer.
+  The native driver writes `driver_source.oracle.mir.json` as comparison
+  evidence, and the artifact owner requires byte/schema parity before gen2 and
+  gen3 consume the one Pergyra-produced `driver_source.mir.json`.
+- Component ratchets require the Pergyra producer label and oracle comparison,
+  reject the old oracle-start label/comment, and keep the runner below its
+  300-line cap.
+- This closes complete-source Pergyra MIR production and connects it to the
+  v63 complete gen2/gen3 C fixed point. The native C object-code boundary and
+  released/default `pgy` promotion remain open.

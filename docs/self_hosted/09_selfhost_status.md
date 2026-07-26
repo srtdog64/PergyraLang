@@ -16,13 +16,12 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
-Focused evidence on 2026-07-26 advances the integrated driver beyond this
-dated full-suite snapshot. One C-oracle-produced, verified MIR artifact for the
-current complete driver source was consumed by the Pergyra-built seed to emit
-gen2 C; gen2 built and consumed the unchanged MIR to emit byte-identical gen3
-C. This is an explicit MIR-consumer fixed point, not a claim that the full
-preparation matrix, full-source Pergyra MIR production, or released/default
-compiler replacement passed.
+Focused evidence on 2026-07-27 advances the integrated driver beyond this
+dated full-suite snapshot. The Pergyra-built gen2 driver emitted verified MIR
+for the current complete driver source, byte-identical to separate C-oracle
+evidence. The Pergyra seed/gen2 consume only that Pergyra artifact and emit
+byte-identical gen2/gen3 C. This is an explicit producer/fixed point, not a
+claim that the full preparation matrix or released/default replacement passed.
 
 ## Verified
 
@@ -55,11 +54,11 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,
   the language compiles its own pass to the same result on both backends.
-- Integrated full-source MIR-consumer fixed point: the Pergyra-built seed
-  consumed one C-oracle-owned verified MIR artifact and emitted
-  `driver_gen2.c`; that artifact built and ran as gen2; gen2 consumed the same
-  immutable MIR and emitted byte-identical `driver_gen3.c`. No regenerated
-  second MIR participates in the generation comparison.
+- Integrated complete-source producer/fixed point: the Pergyra-built gen2
+  driver emits verified MIR byte-identical to C-oracle evidence. The
+  Pergyra-built seed consumes it to emit `driver_gen2.c`; that artifact builds
+  and runs as gen2; gen2 consumes the same immutable Pergyra MIR and emits
+  byte-identical `driver_gen3.c`. No regenerated second MIR participates.
 
 Single source of truth (capability 5) is closed for the measured
 source_ast/source_decl frontier and the supported self-hosted MIR-lowering
@@ -372,20 +371,16 @@ Substrate progress.
 
 ## Not yet self-hosted
 
-The explicit complete-source MIR-consumer/bootstrap fixed point is closed, but
-released/default replacement remains 0%. Full-source source-to-MIR production
-is still oracle-owned; the Pergyra MIR producer remains bounded until its
-allocation-growth blocker is closed. The normal `pgy` build/install/run path
-still selects the C-owned native driver. C emission is proven in the explicit
-bootstrap lane, while LLVM remains backend/oracle evidence rather than a
-released Pergyra-owned backend replacement.
+The explicit complete-source Pergyra MIR-producer/bootstrap fixed point is
+closed, but released/default replacement remains 0%. The normal `pgy`
+build/install/run path still selects the C-owned native driver. C emission is
+proven in the explicit bootstrap lane, while LLVM remains backend/oracle
+evidence rather than a released Pergyra-owned backend replacement.
 
 ## Recommended next pass
 
-Keep the complete-source consumer fixed point green while closing the exact
-full-source Pergyra MIR-producer allocation-growth boundary. Then replace the
-oracle-owned initial MIR with the Pergyra-owned artifact and promote the same
-fixed point through the normal build/install/default driver path. Do not reopen
+Keep the complete-source Pergyra producer/gen2/gen3 fixed point green and
+promote it through the normal build/install/default driver path. Do not reopen
 graph, assignment, or interpolation ownership, and do not introduce a second
 MIR artifact between generations.
 

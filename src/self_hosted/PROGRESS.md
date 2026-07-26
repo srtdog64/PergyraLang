@@ -1,5 +1,23 @@
 # Self-Host Progress
 
+2026-07-27 v64 closes the complete-source MIR producer boundary. The
+Pergyra-built gen2 driver ran `--emit-mir-json-verified` over the current
+complete compiler source in 1,210,574 ms at 1,091.0/963.4 MB peak
+private/working set, below the unchanged 3,072 MB cap. It emitted
+54,205,046 bytes with SHA-256
+`3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`,
+byte-identical to the current C-oracle artifact. No partial output existed
+before verified JSON writing.
+
+The formal full-bootstrap runner now makes the Pergyra-built seed produce
+`driver_source.mir.json`. The native driver emits a separate oracle artifact;
+the artifact owner compares them before gen2 consumption. Gen2 and gen3 then
+consume only the one Pergyra-produced MIR. Static ratchets reject restoring
+the oracle-owned start, and the script remains below its 300-line owner cap.
+This closes complete-source Pergyra MIR production plus the v63 gen2/gen3 C
+fixed point. The native C object-code boundary and released/default `pgy`
+selection remain open; released/default replacement remains 0%.
+
 2026-07-26 v63 preserves the expression graph inside normal `${...}` string
 interpolation. The legacy interpolation parser flattened `Fact1(k1, v1)` into
 one leaf, so the full MIR carried no call spine for four `ToString` arguments
@@ -4051,7 +4069,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The explicit complete-source lane additionally consumes one C-oracle-owned verified MIR through the Pergyra-built seed and gen2, producing byte-identical 3,378,704-byte gen2/gen3 C. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the bounded driver through Pergyra parser/codegen seeds; the complete-source evidence closes the MIR-consumer fixed point, not Pergyra MIR production or default promotion. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The explicit complete-source lane makes the Pergyra-built gen2 produce MIR byte-identical to C-oracle evidence, then produces byte-identical 3,378,704-byte gen2/gen3 C from that Pergyra artifact. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the bounded driver through Pergyra parser/codegen seeds; the complete-source evidence closes Pergyra MIR production and the gen2/gen3 fixed point, not default promotion. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -4468,7 +4486,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/semantic/` |   46203 |        7792 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 113 fixtures, including nested generic signature canonicalization, Long suffix/cast typing, Option `?` payload propagation, and Result core consumption. Artifact-native DRV-2 additionally owns signatures, nominal constructors, locals, assignments, iteration, statement typing, and ordered body verdicts without source rescanning. |
 | `src/codegen/`  |  107123 |        7220 | rung-0..21 | **C-emit rung-0..21 (2026-07-12).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 69 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen has a blocking byte-identical `gen2 == gen3` fixed point; v63 also observed the explicit integrated complete-source MIR-consumer gen2/gen3 C fixed point. TextBuilder owns program assembly and hot token rewrites. Out-of-subset input is an observable `Exit(1)`; the released default path remains C-owned. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
-| `src/compiler/` |   43304 |        9389 | bounded producer-first DRV-2; complete-source consumer fixed point; released 0% | `driver_pipeline_owner.pgy` owns the shared source->AST spine. Bounded DRV-2 composes artifact-native semantics, Pergyra MIR production, MIR consumption, and codegen. The explicit complete-source lane currently starts from one C-oracle-owned verified MIR and reaches byte-identical gen2/gen3 C. Full-source Pergyra MIR production and the default native-driver promotion remain open. |
+| `src/compiler/` |   43304 |        9389 | complete-source Pergyra MIR producer + gen2/gen3 fixed point; released 0% | `driver_pipeline_owner.pgy` owns the shared source->AST spine. The Pergyra-built gen2 produces verified complete-source MIR byte-identical to separate C-oracle evidence; the Pergyra seed/gen2 then consume that artifact and reach byte-identical gen2/gen3 C. The default native-driver promotion remains open. |
 | `src/lsp/`      |    1037 |        2066 | bounded LSP-2i; released 0% | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, and LSP-2a..LSP-2i buffered transport/session/document/hover owners exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed. |
 | **Live inventory** | `make self-host-progress-metric-test-smoke` | `make self-host-progress-metric-test-smoke` | not a substitution percentage | lexer/parser/semantic/codegen implementation volume and the wider compiler-core inventory are measured at gate time |
 
@@ -4643,16 +4661,17 @@ The realistic incremental path toward genuine self-host:
    then round-trip
    self-compilation.
 7. **Bootstrap loop** -- v63 completes the explicit integrated
-   semantic/MIR-consumer fixed point: one C-oracle-owned verified full-source
-   MIR is consumed unchanged by the Pergyra-built seed and gen2, and the
-   resulting gen2/gen3 C is byte-identical. Full-source Pergyra MIR production
-   and released-driver replacement remain open.
+   semantic/MIR fixed point. v64 makes the Pergyra-built gen2 driver produce
+   the verified complete-source MIR, requires byte parity against the separate
+   C-oracle artifact, and feeds only the Pergyra artifact to gen2/gen3. The
+   resulting gen2/gen3 C is byte-identical. Released-driver replacement remains
+   open.
 
 Steps 1-4 are active staged substitution. Step 6 (codegen) opened 2026-06-17
 after the hard-migration freeze was lifted; step 7 has reached the explicit
-integrated complete-source MIR-consumer fixed point. The remaining terminus is
-Pergyra-owned full-source MIR production plus released/default promotion; AIR
-consumer expansion remains a separate owned track.
+integrated complete-source Pergyra MIR producer plus gen2/gen3 C fixed point.
+The remaining terminus is released/default promotion; AIR consumer expansion
+remains a separate owned track.
 
 ## Surface Lifts Required Before Substitution Can Continue
 
@@ -4888,11 +4907,11 @@ beyond the lexer:
   fixed point. Full-source Pergyra MIR production and released/default
   promotion remain open.
 
-The next critical work is the exact full-source Pergyra MIR-producer allocation
-boundary, followed by released/default build/install/run promotion while the
-fixed point stays green. Post-fixed-point SoT ratchets, the live-owner Coq
-adequacy bridge, and seed/runtime boundaries remain explicit follow-up work;
-none may reopen a second MIR or text-recovery path.
+The next critical work is released/default build/install/run promotion while
+the Pergyra producer and gen2/gen3 fixed point stay green. Post-fixed-point SoT
+ratchets, the live-owner Coq adequacy bridge, and native object/runtime
+boundaries remain explicit follow-up work; none may reopen a second MIR or
+text-recovery path.
 
 ## How to Update This Document
 

@@ -124,12 +124,11 @@ The active hard rungs are:
   the Pergyra MIR producer and existing Pergyra MIR consumer before codegen;
   the C-produced MIR is comparison evidence only. Both inputs converge on
   `AstTreeArtifact`; missing or unsupported facts fail closed.
-- The explicit complete-source fixed-point lane has a narrower producer
-  boundary: until full-source Pergyra MIR allocation growth is closed, the C
-  oracle emits one verified MIR artifact. The Pergyra-built seed emits gen2 C
-  from that artifact; gen2 builds and runs, then consumes the same immutable
-  MIR to emit byte-identical gen3 C. Regenerating, reparsing, or substituting a
-  second MIR between generations is forbidden.
+- The explicit complete-source fixed-point lane starts from the Pergyra-built
+  MIR producer. The native driver emits a separate oracle artifact; owned
+  comparison must pass before the Pergyra seed and gen2 consume the one
+  Pergyra-produced MIR to emit byte-identical gen2/gen3 C. Regenerating,
+  reparsing, or substituting a second MIR between generations is forbidden.
 
 Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler

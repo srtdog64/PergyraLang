@@ -20,11 +20,11 @@ ten capabilities has a gate, and the tree carries a broad smoke gate set. The
 process-argument tooling gap is closed by `Args() -> Array<String>`, and
 allocator pass lanes now have explicit `AllocatorDestroy(namedAllocator)`
 cleanup that works through C and LLVM. The explicit full-source bootstrap lane
-now reaches an integrated MIR-consumer fixed point: the C oracle emits one
-verified MIR artifact for the current driver source, the Pergyra-built seed
-consumes it to emit gen2 C, and gen2 consumes the unchanged MIR to emit
-byte-identical gen3 C. This closes the explicit consumer/fixed-point rung, not
-released/default replacement or full-source Pergyra MIR production.
+now reaches an integrated producer/fixed point: the Pergyra-built gen2 driver
+emits verified MIR for the current complete source, that artifact is
+byte-identical to separate C-oracle evidence, and the Pergyra seed/gen2 consume
+only the Pergyra artifact to emit byte-identical gen2/gen3 C. This closes the
+complete-source producer/fixed-point rung, not released/default replacement.
 
 As a planning estimate, hard self-host substrate readiness is effectively
 complete for the first pass-rewrite stage, but capability 5 is not a blanket
@@ -261,11 +261,9 @@ domain-oriented surface the language is already strong on.
 ## Sequencing
 
 The order that keeps each step verifiable is: keep capability 5 and the
-explicit full-source MIR-consumer fixed point green; close the full-source
-producer allocation-growth blocker so MIR production can move from the C
-oracle to the Pergyra producer; then promote the Pergyra-owned driver through
-the normal build/install/default path without a second MIR owner or
-compatibility read.
+explicit complete-source Pergyra producer/gen2/gen3 fixed point green; then
+promote the Pergyra-owned driver through the normal build/install/default path
+without a second MIR owner or compatibility read.
 
 ## Measured closures
 
@@ -414,8 +412,8 @@ locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
 The honest summary is that deterministic collection, allocator substrate, the
-measured CFG/MIR body SoT frontier, and the explicit full-source MIR-consumer
-fixed point are closed. The remaining critical path is full-source
-Pergyra-owned MIR production, migration of any bounded/bridge stage owners, and
-released/default driver and backend promotion. The fixed point is not a
-default-compiler replacement claim.
+measured CFG/MIR body SoT frontier, and the explicit complete-source Pergyra
+MIR producer/gen2/gen3 fixed point are closed. The remaining critical path is
+migration of any bounded/bridge stage owners and released/default driver and
+backend promotion. The fixed point is not a default-compiler replacement
+claim.
