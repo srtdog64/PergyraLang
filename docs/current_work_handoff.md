@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-07-26 (Asia/Seoul)
+Updated: 2026-07-27 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -8,26 +8,28 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Implementation checkpoint: `f0fcf3db` on `main` (v63 interpolation graph
-  preservation and complete-source MIR-consumer fixed point). Its parent is
-  `bc6d501e` (v62 structured assignment binding).
-- The C-oracle-built current driver emitted one verified 54,205,046-byte MIR
-  artifact, SHA-256
+- Implementation checkpoint: `07726b47` on `main` (v64 Pergyra-owned
+  complete-source MIR production). Its parent `f0fcf3db` preserves nested
+  interpolation graphs and establishes the complete gen2/gen3 C fixed point.
+- The Pergyra-built gen2 driver directly emitted one verified 54,205,046-byte
+  MIR artifact from the current complete compiler source, SHA-256
   `3d6aa33595592f8af2c78a68c6d5fc9e5a242c15e55b9e5a8deb4fe60209083b`.
-  The Pergyra-built seed consumed it and emitted complete gen2 C; gen2 consumed
-  the unchanged MIR and emitted byte-identical gen3 C.
+  It is byte-identical to the separate C-oracle artifact. The Pergyra-built
+  seed consumes this Pergyra artifact to emit complete gen2 C; gen2 consumes
+  the unchanged artifact and emits byte-identical gen3 C.
 - Gen2/gen3 C is 3,378,704 bytes / 56,867 lines with SHA-256
   `6aaf915d67fb129fce6a85bece93d9c814c66dadf94578c8ee160e7b9e1f7087`.
   Both generations compile, and both reproduce the established 414-byte
   bounded artifact with SHA-256
   `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
-- This closes the explicit complete-source MIR-consumer fixed point. It does
-  not prove Pergyra-owned complete-source MIR production and does not replace
-  the released/default C-owned `pgy`; released/default replacement remains 0%.
-- The v59-v63 memory conclusion is stable: cumulative graph copying and
+- This closes Pergyra-owned complete-source MIR production and the explicit
+  gen2/gen3 fixed point. It does not replace the released/default C-owned
+  `pgy`; released/default replacement remains 0%.
+- The v59-v64 memory conclusion is stable: cumulative graph copying and
   repeated whole-arena/readiness validation caused the historical 20+ GiB /
-  3 GiB symptom. The complete v63 producer, consumer, and gen2 fixed-point legs
-  stayed below the unchanged 3,072 MB cap.
+  3 GiB symptom. The Pergyra full-source producer used 1,091.0 MB peak private;
+  all complete producer, consumer, and fixed-point legs stayed below the
+  unchanged 3,072 MB cap.
 
 ## Exact dirty state at this handoff
 
@@ -39,36 +41,35 @@ must remain unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v63 implementation or documentation file should remain dirty.
+No v63/v64 implementation or documentation file should remain dirty.
 
 ## Active executable objective card
 
-- Objective: make the Pergyra-built gen2 driver produce verified MIR directly
-  from the current complete compiler source, compare it with the exact
-  C-oracle-owned v63 MIR, and remove the oracle-owned initial MIR from the
-  fixed-point lane only after byte/schema parity passes.
-- Priority: stable artifact identity, Pergyra-owned producer substitution,
-  fail-closed missing facts, negative ratchet against the old oracle start,
-  then released/default build/install/run promotion.
-- Fact owner: `SelfMirProgramFacts` and its verified `pgy.mir.v1` projection.
-  The current comparison artifact is
-  `.tmp/instruction_writer_pressure/driver_source_v63_interpolation_graph.mir.json`;
-  it is evidence, not a semantic owner.
-- Last legitimate consumer: the unchanged MIR input consumed by the gen2
-  driver before gen3 C emission. Once producer parity is proven, the C-produced
-  artifact is oracle comparison evidence only.
+- Objective: run the rewired formal full-bootstrap gate under its 3,072 MB
+  pressure owner, then promote the same Pergyra producer/gen2/gen3 fixed point
+  through the normal build/install/default driver path.
+- Priority: keep the Pergyra MIR identity and fixed point green, prove the
+  rewired integration gate, move one default-selection owner, fail closed when
+  the self-hosted artifact is absent, then ratchet the opt-in-only old path.
+- Fact owner: `SelfMirProgramFacts` and its verified `pgy.mir.v1` projection own
+  the compiler artifact; `tests/self_hosted/parity/driver_bootstrap.sh` owns the
+  generation comparison; `src/pgy_driver.c` plus the build/install target own
+  current public driver selection.
+- Last legitimate consumer: gen2/gen3 consume the one Pergyra-produced MIR.
+  The C-produced artifact is comparison evidence only. During promotion the C
+  compiler remains the explicit oracle, not the default semantic executor.
 - Forbidden fallback: a second MIR between generations, source/AST text
   recovery for semantic facts, interpolation leaf flattening, codegen type
   guessing, `new ? old` reads, raising the 3,072 MB cap, or treating default
   replacement as complete before normal `pgy` selects the new driver.
-- Focused falsifier: under root-process-tree pressure ownership, run
-  `driver_gen2_v63.exe --emit-mir-json-verified` on the current complete driver
-  source. It must finish below 3,072 MB and produce a schema/byte-equivalent
-  artifact or expose the first exact producer-owned divergence.
-- Acceptance gate: after producer parity, the formal full bootstrap must start
-  from the Pergyra-produced MIR, keep gen2/gen3 C byte-identical, and statically
-  reject restoring the oracle-owned start. Default promotion is the following
-  separate rung.
+- Focused falsifier: `mingw32-make
+  self-host-driver-bootstrap-full-test-smoke` must run the rewired producer,
+  oracle comparison, gen2, and gen3 sequence under the pressure owner. A
+  failure must name the first owned stage; no partial artifact or cap increase.
+- Acceptance gate: the formal full bootstrap starts from Pergyra-produced MIR,
+  retains gen2/gen3 C byte equality, and rejects an oracle-owned start. The next
+  promotion gate must prove ordinary `pgy` selects the Pergyra driver without
+  `--self-driver` and fails explicitly if its installed artifact is absent.
 
 ## Current measured evidence
 
@@ -76,6 +77,7 @@ No v63 implementation or documentation file should remain dirty.
 | --- | ---: | ---: | --- |
 | v63 observed current-driver build | 0 / 54,476 ms | 2,593.7 / 2,582.8 MB | Current parser/interpolation owners compiled below the cap. |
 | C-oracle full MIR producer | 0 / 767,407 ms | 844.3 / 762.8 MB | 54,205,046-byte verified MIR emitted. |
+| Pergyra gen2 full MIR producer | 0 / 1,210,574 ms | 1,091.0 / 963.4 MB | Byte-identical to the C-oracle MIR; no partial output. |
 | full MIR consumer to gen2 C | 0 / 1,774,216 ms | 1,714.8 / 1,590.9 MB | Complete 3,378,704-byte C emitted. |
 | gen2 host compile | 0 / 4,721 ms | 302.1 / 316.4 MB | `driver_gen2_v63.exe` created. |
 | gen2 to gen3 C | 0 / 800,248 ms | 2,033.2 / 1,867.9 MB | Same MIR consumed; gen3 C byte-equal to gen2 C. |
@@ -90,9 +92,18 @@ Green:
 - DRV-2 C build and executable `let_log` readiness;
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
+- `bash -n tests/self_hosted/parity/driver_bootstrap.sh`;
+- `tests/build_pressure_contract_smoke.sh`;
+- `tests/self_host_ci_profile_smoke.sh`;
 - `PGY_DOC_QUALITY_FULL_UTF8=1 tests/documentation_quality_smoke.sh`;
 - `git diff --check`;
 - gen2/gen3 complete C byte equality and bounded gen2/gen3 parity.
+
+Not yet rerun after the v64 gate rewiring:
+
+- `mingw32-make self-host-driver-bootstrap-full-test-smoke`. Its expensive
+  producer, consumer, compile, and fixed-point legs were observed separately;
+  the formal composed invocation remains the next integration gate.
 
 Known unrelated RED, unchanged and not weakened:
 
@@ -103,6 +114,7 @@ Known unrelated RED, unchanged and not weakened:
 Current ignored evidence:
 
 - `.tmp/instruction_writer_pressure/driver_source_v63_interpolation_graph.mir.json`;
+- `.tmp/instruction_writer_pressure/driver_source_v63_gen2_owned.mir.json`;
 - `.tmp/self_hosted/driver_bootstrap/v63_full.c`;
 - `.tmp/self_hosted/driver_bootstrap/v63_gen3.c`;
 - `.tmp/self_hosted/driver_bootstrap/driver_gen2_v63.exe`;
