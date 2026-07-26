@@ -58,7 +58,9 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   driver emits verified MIR byte-identical to C-oracle evidence. The
   Pergyra-built seed consumes it to emit `driver_gen2.c`; that artifact builds
   and runs as gen2; gen2 consumes the same immutable Pergyra MIR and emits
-  byte-identical `driver_gen3.c`. No regenerated second MIR participates.
+  byte-identical `driver_gen3.c`. No regenerated second MIR participates. A
+  fresh isolated composed runner completed all these stages in 3,770,822 ms at
+  2,658.0/2,667.1 MB peak private/working set, below the 3,072 MB cap.
 
 Single source of truth (capability 5) is closed for the measured
 source_ast/source_decl frontier and the supported self-hosted MIR-lowering

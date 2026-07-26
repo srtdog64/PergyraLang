@@ -18,6 +18,15 @@ This closes complete-source Pergyra MIR production plus the v63 gen2/gen3 C
 fixed point. The native C object-code boundary and released/default `pgy`
 selection remain open; released/default replacement remains 0%.
 
+A fresh formal-runner invocation then exercised the composed sequence. The
+dedicated codegen/parser seed refresh completed in 412,649 ms at
+1,107.9/1,123.6 MB peak private/working set. The driver runner completed in
+3,770,822 ms at 2,658.0/2,667.1 MB: Pergyra and C-oracle MIR were byte-equal,
+the Pergyra MIR produced gen2 C, bounded gen2 parity passed, and gen2/gen3 C
+were byte-equal at 3,378,704 bytes / 59,482 lines. The environment had no
+`mingw32-make`, so this was the Make target's pressure-owned script body with
+fresh isolated seeds, not a claim that the Make wrapper itself executed.
+
 2026-07-26 v63 preserves the expression graph inside normal `${...}` string
 interpolation. The legacy interpolation parser flattened `Fact1(k1, v1)` into
 one leaf, so the full MIR carried no call spine for four `ToString` arguments

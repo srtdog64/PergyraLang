@@ -8952,3 +8952,12 @@ Released/default replacement remains 0%.
 - This closes complete-source Pergyra MIR production and connects it to the
   v63 complete gen2/gen3 C fixed point. The native C object-code boundary and
   released/default `pgy` promotion remain open.
+- A fresh isolated codegen/parser seed refresh completed in 412,649 ms at
+  1,107.9/1,123.6 MB peak private/working set. The rewired full driver runner
+  then completed the complete composed sequence in 3,770,822 ms at
+  2,658.0/2,667.1 MB, below the 3,072 MB cap. It reported
+  `integrated MIR-consumer fixpoint ok: gen2 == gen3 (59482 lines)`.
+- The environment did not provide `mingw32-make`; the runner was invoked
+  directly with the Make target's full-fixpoint environment and pressure owner,
+  using fresh isolated seed/driver directories. Do not report the unavailable
+  wrapper as executed.

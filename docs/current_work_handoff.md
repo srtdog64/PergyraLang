@@ -17,7 +17,7 @@ owner, and the named executable gate.
   It is byte-identical to the separate C-oracle artifact. The Pergyra-built
   seed consumes this Pergyra artifact to emit complete gen2 C; gen2 consumes
   the unchanged artifact and emits byte-identical gen3 C.
-- Gen2/gen3 C is 3,378,704 bytes / 56,867 lines with SHA-256
+- Gen2/gen3 C is 3,378,704 bytes / 59,482 lines with SHA-256
   `6aaf915d67fb129fce6a85bece93d9c814c66dadf94578c8ee160e7b9e1f7087`.
   Both generations compile, and both reproduce the established 414-byte
   bounded artifact with SHA-256
@@ -45,31 +45,33 @@ No v63/v64 implementation or documentation file should remain dirty.
 
 ## Active executable objective card
 
-- Objective: run the rewired formal full-bootstrap gate under its 3,072 MB
-  pressure owner, then promote the same Pergyra producer/gen2/gen3 fixed point
-  through the normal build/install/default driver path.
-- Priority: keep the Pergyra MIR identity and fixed point green, prove the
-  rewired integration gate, move one default-selection owner, fail closed when
-  the self-hosted artifact is absent, then ratchet the opt-in-only old path.
+- Objective: carry the one Pergyra-produced verified MIR into both declared
+  backend lanes, C and LLVM, without either backend reopening source/AST
+  lowering; then promote that shared spine through the normal default path.
+- Priority: stable Pergyra MIR identity, C/LLVM backend consumption, explicit
+  missing-fact failure, negative ratchet against native source re-lowering,
+  then one default-selection owner.
 - Fact owner: `SelfMirProgramFacts` and its verified `pgy.mir.v1` projection own
   the compiler artifact; `tests/self_hosted/parity/driver_bootstrap.sh` owns the
-  generation comparison; `src/pgy_driver.c` plus the build/install target own
-  current public driver selection.
-- Last legitimate consumer: gen2/gen3 consume the one Pergyra-produced MIR.
-  The C-produced artifact is comparison evidence only. During promotion the C
-  compiler remains the explicit oracle, not the default semantic executor.
+  generation comparison. The next audit must name the existing native C and
+  LLVM backend entrypoints that can receive this artifact; `src/pgy_driver.c`
+  owns current public selection only after both lanes share that owner.
+- Last legitimate consumers: the C and LLVM backend emitters. They may project
+  the Pergyra MIR into backend-specific output but may not re-own semantic or
+  source-lowering facts. The native compiler remains oracle evidence.
 - Forbidden fallback: a second MIR between generations, source/AST text
   recovery for semantic facts, interpolation leaf flattening, codegen type
   guessing, `new ? old` reads, raising the 3,072 MB cap, or treating default
   replacement as complete before normal `pgy` selects the new driver.
-- Focused falsifier: `mingw32-make
-  self-host-driver-bootstrap-full-test-smoke` must run the rewired producer,
-  oracle comparison, gen2, and gen3 sequence under the pressure owner. A
-  failure must name the first owned stage; no partial artifact or cap increase.
-- Acceptance gate: the formal full bootstrap starts from Pergyra-produced MIR,
-  retains gen2/gen3 C byte equality, and rejects an oracle-owned start. The next
-  promotion gate must prove ordinary `pgy` selects the Pergyra driver without
-  `--self-driver` and fails explicitly if its installed artifact is absent.
+- Focused falsifier: trace one committed DRV-2 source through Pergyra MIR into
+  both C and LLVM backend entrypoints. If LLVM cannot consume the artifact,
+  record the first exact missing fact, owner, and fixture rather than adding a
+  C-only default or a source-text bridge.
+- Acceptance gate: one Pergyra MIR artifact drives both backend projections;
+  C/LLVM ABI, diagnostics, and runtime evidence agree under their declared
+  oracle contract; deleting or mutating a required MIR fact fails before
+  emission; native source re-lowering cannot silently reappear. Only then may
+  ordinary `pgy` default selection move.
 
 ## Current measured evidence
 
@@ -82,6 +84,8 @@ No v63/v64 implementation or documentation file should remain dirty.
 | gen2 host compile | 0 / 4,721 ms | 302.1 / 316.4 MB | `driver_gen2_v63.exe` created. |
 | gen2 to gen3 C | 0 / 800,248 ms | 2,033.2 / 1,867.9 MB | Same MIR consumed; gen3 C byte-equal to gen2 C. |
 | gen3 host compile | 0 / 4,942 ms | 337.0 / 351.6 MB | `driver_gen3_v63.exe` created. |
+| fresh v64 codegen/parser seed refresh | 0 / 412,649 ms | 1,107.9 / 1,123.6 MB | Isolated current gen2 codegen and parser seeds created. |
+| rewired full-bootstrap runner | 0 / 3,770,822 ms | 2,658.0 / 2,667.1 MB | Pergyra/C MIR parity, gen2 compile/bounded preflight, and gen2/gen3 C equality all passed. |
 
 ## Current gates and artifacts
 
@@ -98,12 +102,14 @@ Green:
 - `PGY_DOC_QUALITY_FULL_UTF8=1 tests/documentation_quality_smoke.sh`;
 - `git diff --check`;
 - gen2/gen3 complete C byte equality and bounded gen2/gen3 parity.
+- the rewired `tests/self_hosted/parity/driver_bootstrap.sh` full-fixpoint body
+  with fresh isolated seeds under the 3,072 MB pressure owner.
 
-Not yet rerun after the v64 gate rewiring:
+Environment omission:
 
-- `mingw32-make self-host-driver-bootstrap-full-test-smoke`. Its expensive
-  producer, consumer, compile, and fixed-point legs were observed separately;
-  the formal composed invocation remains the next integration gate.
+- `mingw32-make` is not installed on this host, so the Make wrapper target was
+  not executable. Its full-fixpoint runner body was invoked directly with the
+  same environment and pressure contract; do not claim the wrapper passed.
 
 Known unrelated RED, unchanged and not weakened:
 
@@ -119,6 +125,10 @@ Current ignored evidence:
 - `.tmp/self_hosted/driver_bootstrap/v63_gen3.c`;
 - `.tmp/self_hosted/driver_bootstrap/driver_gen2_v63.exe`;
 - `.tmp/self_hosted/driver_bootstrap/driver_gen3_v63.exe`.
+- `.tmp/self_hosted/codegen/bootstrap_v64_formal/`;
+- `.tmp/self_hosted/driver/bootstrap_v64_formal_r3/`;
+- `.tmp/build-pressure/self-host-codegen-seed-v64-formal.summary.json`;
+- `.tmp/build-pressure/self-host-driver-fixpoint-v64-formal-r3.summary.json`.
 
 ## Historical execution directive: gen2 takeover before global SoT closure
 

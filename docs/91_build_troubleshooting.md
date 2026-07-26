@@ -1451,6 +1451,15 @@ Do not regenerate MIR between generations or relabel the native artifact as the
 fixed-point input. The next memory investigation, if needed, starts from this
 1,091 MB baseline; a return to multi-GiB growth is a regression.
 
+The fresh composed runner confirms that wiring. Refreshing isolated
+codegen/parser seeds took 412,649 ms at 1,107.9/1,123.6 MB peak
+private/working set. The full driver sequence took 3,770,822 ms at
+2,658.0/2,667.1 MB and exited 0: Pergyra/C-oracle MIR parity, gen2 C emission
+and compile, bounded gen2 preflight, and 3,378,704-byte / 59,482-line
+gen2/gen3 C equality all passed. On a host without `mingw32-make`, invoke the
+same runner body directly under `measure_build_pressure.ps1`; record that the
+wrapper was unavailable instead of claiming its target ran.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
