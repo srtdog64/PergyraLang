@@ -43,7 +43,9 @@ func MirExpressionGraphSequenceAppendUnaryCall(
         );
     let with_subject: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
-            MirExpressionGraphSequence(true, roots, prefix_arena),
+            MirExpressionGraphSequence(
+                true, ArrayLength(kinds), roots, prefix_arena
+            ),
             subject_graph
         );
     if !with_subject.ok || ArrayLength(with_subject.roots) == 0 {
@@ -87,5 +89,7 @@ func MirExpressionGraphSequenceAppendUnaryCall(
             result_kinds, result_texts, result_left, result_right,
             result_target_kinds, result_target_names, result_places
         );
-    return MirExpressionGraphSequence(true, result_roots, final_arena);
+    return MirExpressionGraphSequence(
+        true, ArrayLength(result_kinds), result_roots, final_arena
+    );
 }

@@ -29,7 +29,7 @@ func MirExpressionGraphSequenceFromRoutineIndex(
         MirExpressionGraphSequenceEmpty();
     let json: String = routines.source_json;
     let instruction_count: Int = ArrayLength(routines.instruction_starts);
-    if !routines.valid || routines.source_length != StringLength(json) ||
+    if !MirProgramRoutineIndexStructureReady(routines) ||
         instruction_count != ArrayLength(routines.instruction_ends) {
         return MirExpressionGraphSequenceError(sequence);
     }

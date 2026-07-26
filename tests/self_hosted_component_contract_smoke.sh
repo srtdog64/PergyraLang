@@ -3816,6 +3816,12 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "SemanticExpressionGraphArenaFromRows("
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "ready_node_count: Int"
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "sequence.ready_node_count != offset"
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "if !MirProgramRoutineIndexStructureReady(routines)"
 reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphSequenceAppend(" \
     "SemanticExpressionGraphArenaUnclassified("

@@ -86,7 +86,9 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
             kinds, texts, left, right, target_kinds, target_names, places
         );
     let result: MirExpressionGraphSequence =
-        MirExpressionGraphSequence(true, roots, final_arena);
+        MirExpressionGraphSequence(
+            true, ArrayLength(kinds), roots, final_arena
+        );
     if !IsSome(variant_opt) { return result; }
     if binding_count == 0 {
         return MirExpressionGraphSequenceError(result);
@@ -156,7 +158,7 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatch(
                 payload_target_kinds, payload_target_names, payload_places
             );
         result = MirExpressionGraphSequence(
-            true, payload_roots, completed_arena
+            true, ArrayLength(payload_kinds), payload_roots, completed_arena
         );
         binding_index = binding_index + 1;
     }

@@ -81,5 +81,7 @@ func MirExpressionGraphSequenceAppendView(
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    return MirExpressionGraphSequence(true, roots, arena);
+    return MirExpressionGraphSequence(
+        true, ArrayLength(kinds), roots, arena
+    );
 }

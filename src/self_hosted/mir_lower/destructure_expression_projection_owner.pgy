@@ -65,7 +65,7 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     if !MirExpressionGraphRangeReachable(arena, offset, 3, offset + 2) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    return MirExpressionGraphSequence(true, roots, arena);
+    return MirExpressionGraphSequence(true, ArrayLength(kinds), roots, arena);
 }
 
 func MirExpressionGraphSequenceAppendDestructure(

@@ -5,6 +5,7 @@ import "../semantic/ast_expression_surface_fact_owner.pgy";
 
 struct MirExpressionGraphSequence {
     ok: Bool;
+    ready_node_count: Int;
     roots: Array<Int>;
     arena: SemanticExpressionGraphArena;
 }
@@ -12,14 +13,16 @@ struct MirExpressionGraphSequence {
 func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
     let roots: Array<Int> = [];
     return MirExpressionGraphSequence(
-        true, roots, SemanticExpressionGraphArenaEmpty()
+        true, 0, roots, SemanticExpressionGraphArenaEmpty()
     );
 }
 
 func MirExpressionGraphSequenceError(
     sequence: MirExpressionGraphSequence
 ) -> MirExpressionGraphSequence {
-    return MirExpressionGraphSequence(false, sequence.roots, sequence.arena);
+    return MirExpressionGraphSequence(
+        false, sequence.ready_node_count, sequence.roots, sequence.arena
+    );
 }
 
 func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
@@ -148,7 +151,8 @@ func MirExpressionGraphSequenceAppend(
     let call_target_names: Array<String> = sequence.arena.call_target_names;
     let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
-    if ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
+    if sequence.ready_node_count != offset ||
+        ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
         ArrayLength(right_children) != offset ||
         ArrayLength(call_target_kinds) != offset ||
         ArrayLength(call_target_names) != offset ||
@@ -288,5 +292,7 @@ func MirExpressionGraphSequenceAppend(
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    return MirExpressionGraphSequence(true, roots, arena);
+    return MirExpressionGraphSequence(
+        true, ArrayLength(kinds), roots, arena
+    );
 }
