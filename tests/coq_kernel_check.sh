@@ -57,12 +57,34 @@ fi
 
 echo "coq-kernel-check: $($coq_version_cmd 2>&1 | head -1) [compile='$coq_compile' check='$coq_check']"
 
+# `-Q . ""` binds PROOFS_DIR to the empty logical prefix so a proof can
+# `Require Import PergyraCore` (a sibling .vo) rather than only stdlib. The
+# corpus used to be 38 independent models with no cross-Require; the shared
+# PergyraCore foundation is the first file others build on, so the load path is
+# now load-bearing. Existing files Require only `Coq.*`, so this is inert for
+# them. Kept identical on the coqchk side so the kernel resolves the same deps.
+LOADPATH=(-Q . "")
+
+# Foundation modules that other proofs Require must have their .vo built before
+# the requiring file, regardless of the alphabetical glob order (an importer
+# whose name sorts before its dependency -- e.g. AIRBinding before PergyraCore
+# -- would otherwise fail). Compile these first, then the rest, skipping repeats.
+FOUNDATION_FIRST=(PergyraCore.v)
+
+compile_proof() {
+    (cd "$PROOFS_DIR" && $coq_compile "${LOADPATH[@]}" "$1")
+}
+
 proof_count=0
+for base in "${FOUNDATION_FIRST[@]}"; do
+    [ -f "$PROOFS_DIR/$base" ] || continue
+    compile_proof "$base"
+    proof_count=$((proof_count + 1))
+done
 for proof_abs in "$PROOFS_DIR"/*.v; do
-    # Compile from within PROOFS_DIR so the gate follows the override instead of
-    # a hardcoded path. Each proof is self-contained (stdlib Requires only, no
-    # local cross-Require), so no -Q/-R load path is needed.
-    (cd "$PROOFS_DIR" && $coq_compile "$(basename "$proof_abs")")
+    base="$(basename "$proof_abs")"
+    case " ${FOUNDATION_FIRST[*]} " in *" $base "*) continue;; esac
+    compile_proof "$base"
     proof_count=$((proof_count + 1))
 done
 
@@ -72,7 +94,7 @@ if [ "$proof_count" -eq 0 ]; then
 fi
 echo "coq-kernel-check: $proof_count proofs compiled"
 
-report=$(cd "$PROOFS_DIR" && $coq_check -silent -o $(ls *.vo | sed 's/\.vo$//') 2>&1)
+report=$(cd "$PROOFS_DIR" && $coq_check "${LOADPATH[@]}" -silent -o $(ls *.vo | sed 's/\.vo$//') 2>&1)
 echo "$report"
 
 # Each escape hatch must be reported and must be empty. A missing section is
