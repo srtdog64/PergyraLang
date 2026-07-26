@@ -908,6 +908,39 @@ rerun the same revision until a favorable sample appears, raise the window, or
 expand the prefix into another global/local authority. Keep routine 2,048 as
 the fixed falsifier and choose the next exact measured owner/consumer seam.
 
+#### Admit a carried routine fact once, not once per block
+
+The v46 regression came from the shape of the new read path, not from phi
+semantics. `BuildMirRoutineFactIndex` had already built and admitted one
+routine-local bundle, but every block called the prefix accessor. That accessor
+repeated `MirProgramRoutineIndexRowReady` and
+`MirRoutineInstructionFactBundleReady`, including at least 23 array-length
+checks. Across 20,022 blocks and 2,345 routines this introduced 17,677
+redundant admissions and at least 406,571 redundant shape checks. In routines
+1,984 through 2,048 it repeated 618 admissions where 64 were sufficient.
+
+Checkpoint `a05aaf06` moves row identity, exact block-count, and bundle-shape
+admission to the entry of `MirRoutinePhiFactsReady`. The block loop reads the
+carried prefix array directly and rejects negative or oversized values. The
+one-use `MirRoutineInstructionFactBundlePhiPrefixCountAtBlock` definition and
+all calls are deleted. A truncated prefix carrier fails the focused C/LLVM
+gate. There is no per-block fallback, count-to-zero repair, extra cache,
+program-global aggregate, or backend-specific path.
+
+The exact-source v47 driver built in 51,436 ms at 2,535.7 MB peak private /
+2,524.3 MB working set. Its bounded output remained 414 bytes with the
+established SHA, and the wrong-ABI input exited 1 with the owned diagnostic and
+no output. The fixed run reached routine 704 at 158,438 ms, routine 896 at
+186,805 ms, routine 1,600 at 234,127 ms, routine 1,920 at 283,594 ms, and
+routine 1,984 at 293,201 ms. It timed out at 300,384 ms with 207.7 MB peak
+private / 209.7 MB working set and no cap crossing.
+
+At routine 1,920, v47 is 10,122 ms (3.45%) earlier than v46 and 4,730 ms
+(1.64%) earlier than v45. Routine 1,984 is 5,180 ms (1.74%) earlier than v45.
+This both recovers the v46 regression and establishes measured executable CPU
+progress. Routine 2,048, `consumer:mir-to-ast:done`, and gen2 output remain
+absent, so keep routine 2,048 as the unchanged fixed falsifier.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,

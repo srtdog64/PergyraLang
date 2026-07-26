@@ -1,5 +1,28 @@
 # Self-Host Progress
 
+2026-07-26 routine-boundary phi-prefix admission (`a05aaf06`). The v46 prefix
+consumer called a shape-validating accessor once per block, repeating routine
+row and bundle admission 20,022 times across 2,345 routines. The phi owner now
+admits row identity, exact block counts, and the routine-local bundle once at
+entry, then reads `block_phi_prefix_counts` directly. The one-use accessor is
+deleted rather than retained as C-style helper fragmentation. Negative,
+truncated, or oversized prefix facts fail closed; the old instruction scan,
+per-block re-admission, JSON kind recovery, and backend split remain forbidden.
+
+The focused C/LLVM routine-index and component gates pass, including a
+truncated prefix carrier negative. The exact-source v47 driver built in 51,436
+ms at 2,535.7 MB peak private / 2,524.3 MB working set. Its bounded run finished
+in 1,410 ms with the established 414-byte SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+the wrong-ABI input exited 1 with the owned diagnostic and no output. The fixed
+full run reached routine 704 at 158,438 ms, routine 896 at 186,805 ms, routine
+1,600 at 234,127 ms, routine 1,920 at 283,594 ms, and routine 1,984 at 293,201
+ms. It timed out at 300,384 ms with 207.7 MB peak private / 209.7 MB working
+set, no routine 2,048, `consumer:mir-to-ast:done`, or gen2 output. Routine
+1,920 is 10,122 ms earlier than v46 and 4,730 ms earlier than v45; routine
+1,984 is 5,180 ms earlier than v45. This is measured executable CPU progress.
+The next fixed-window falsifier remains routine 2,048.
+
 2026-07-26 routine-local phi-prefix carriage (`99e76e76`). The existing
 `MirRoutineInstructionFactBundle` scalar pass now records the leading phi count
 for every block and records a negative sentinel when a phi appears after the

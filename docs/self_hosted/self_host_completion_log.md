@@ -8426,3 +8426,34 @@ Released/default replacement remains 0%.
   speedup or self-host completion. Routine 2,048, MIR-to-AST completion, gen2
   output and compilation, and gen3 comparison remain absent. Do not rerun v46
   for a favorable sample or raise the fixed 300-second/3,072 MB gate.
+
+### 2026-07-26 -- Phi-prefix admission moves to the routine boundary
+
+- The v46 prefix accessor repeated program-row and bundle-shape admission once
+  per block even though `BuildMirRoutineFactIndex` had already built one
+  routine-local bundle. Across the full artifact that meant 20,022 admissions
+  for 2,345 routines: 17,677 redundant admissions and at least 406,571
+  redundant array-length checks.
+- `a05aaf06` makes `MirRoutinePhiFactsReady` admit routine identity, exact block
+  counts, and `MirRoutineInstructionFactBundleReady` once at entry. The block
+  loop directly reads the carried prefix and rejects negative or oversized
+  counts. The one-use prefix accessor is deleted, not retained as C-style
+  helper fragmentation or a compatibility fallback.
+- The existing leading/late phi C/LLVM cases remain green. A truncated prefix
+  array now fails bundle admission, and the component ratchet requires exactly
+  one bundle-ready call in the phi owner while forbidding the deleted helper
+  and old all-instruction scan.
+- The exact-source v47 driver built in 51,436 ms at 2,535.7 MB peak private /
+  2,524.3 MB working set. Its 1,410 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  The wrong-ABI input exited 1 with the owned diagnostic and no output.
+- The fixed 300-second run reached routine 1,920 at 283,594 ms and routine
+  1,984 at 293,201 ms. It timed out at 300,384 ms with 207.7 MB peak private /
+  209.7 MB working set and no cap crossing. Routine 1,920 is 10,122 ms earlier
+  than v46 and 4,730 ms earlier than v45; routine 1,984 is 5,180 ms earlier than
+  v45.
+- This is executable CPU progress, not self-host completion. Routine 2,048,
+  `consumer:mir-to-ast:done`, complete `driver_gen2.c`, gen2 compilation, and
+  gen3 comparison remain absent. The next fixed-window falsifier is routine
+  2,048 under the unchanged 300-second/3,072 MB gate.
