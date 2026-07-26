@@ -78,6 +78,15 @@ fi
 
 PGY_BIN="$PGY" PGY_CC="${PGY_CC:-cc}" bash "$ROOT_DIR/tests/fmt_smoke.sh" >/dev/null
 
+JSON_ESCAPE_PROBE="$WORK_DIR/lsp_json_escape_probe.exe"
+"${PGY_CC:-cc}" -std=c11 -Wall -Wextra -Werror -I"$ROOT_DIR/src" \
+    "$ROOT_DIR/tests/lsp_json_escape_probe.c" \
+    "$ROOT_DIR/src/lsp/pgy_lsp_protocol.c" \
+    "$ROOT_DIR/src/lexer/lexer_keywords.c" \
+    "$ROOT_DIR/src/common/numeric_parse.c" \
+    -o "$JSON_ESCAPE_PROBE"
+"$JSON_ESCAPE_PROBE"
+
 DEBUG_SOURCE="$WORK_DIR/debug_case.pgy"
 DEBUG_SOURCE_ARG="$(pgy_path_for_compiler "$PGY" "$DEBUG_SOURCE")"
 cat > "$DEBUG_SOURCE" <<'EOF'
@@ -128,7 +137,7 @@ import sys
 lsp_bin = sys.argv[1]
 out_path = sys.argv[2]
 
-source = "func Main() {\n    Log(1);\n}\n"
+source = "// subject\nfunc Main() {\n    Log(1);\n}\n"
 invalid_source = "func Main() -> Void\n{\n    let x: Int = ;\n}\n"
 uri = "file:///tmp/pgy_tooling_conformance.pgy"
 
@@ -162,7 +171,16 @@ messages = [
         "method": "textDocument/hover",
         "params": {
             "textDocument": {"uri": uri},
-            "position": {"line": 0, "character": 1},
+            "position": {"line": 1, "character": 1},
+        },
+    },
+    {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "textDocument/hover",
+        "params": {
+            "textDocument": {"uri": uri},
+            "position": {"line": 0, "character": 4},
         },
     },
     {
@@ -186,7 +204,7 @@ messages = [
         "method": "textDocument/definition",
         "params": {
             "textDocument": {"uri": uri},
-            "position": {"line": 0, "character": 5},
+            "position": {"line": 1, "character": 5},
         },
     },
     {
@@ -228,6 +246,71 @@ if stderr:
     sys.stderr.write(stderr)
     raise SystemExit(1)
 
+
+def parse_lsp_frames(payload):
+    frames = []
+    cursor = 0
+    while cursor < len(payload):
+        header_end = payload.find(b"\r\n\r\n", cursor)
+        if header_end < 0:
+            raise SystemExit("LSP output ended with an incomplete header")
+        headers = {}
+        for line in payload[cursor:header_end].decode("ascii").split("\r\n"):
+            name, separator, value = line.partition(":")
+            if not separator:
+                raise SystemExit(f"malformed LSP header: {line!r}")
+            headers[name.strip().lower()] = value.strip()
+        if "content-length" not in headers:
+            raise SystemExit("LSP frame is missing Content-Length")
+        body_start = header_end + 4
+        body_end = body_start + int(headers["content-length"])
+        if body_end > len(payload):
+            raise SystemExit("LSP output ended with an incomplete body")
+        raw_body = payload[body_start:body_end]
+        try:
+            parsed = json.loads(raw_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"LSP emitted an invalid JSON body: {exc}") from exc
+        frames.append((raw_body, parsed))
+        cursor = body_end
+    return frames
+
+
+frames = parse_lsp_frames(proc.stdout)
+responses = {
+    message.get("id"): (raw_body, message)
+    for raw_body, message in frames
+    if isinstance(message, dict) and "id" in message
+}
+
+subject_expected = (
+    "**subject** - Identity-bearing host type\n"
+    "- subject values are anchored handles, not plain copied values\n"
+    "- subject actions can carry contract clauses like `requires`, `within`, "
+    "`authorized by`, `causes`"
+)
+if 7 not in responses:
+    raise SystemExit("LSP multiline subject hover response is missing")
+subject_raw, subject_response = responses[7]
+try:
+    subject_value = subject_response["result"]["contents"]["value"]
+except (KeyError, TypeError) as exc:
+    raise SystemExit("LSP multiline subject hover response has the wrong shape") from exc
+if subject_value != subject_expected:
+    raise SystemExit(f"LSP multiline subject hover changed: {subject_value!r}")
+if b"\\n- subject values" not in subject_raw:
+    raise SystemExit("LSP multiline subject hover did not encode newline as \\n")
+if b"\n" in subject_raw or b"\r" in subject_raw:
+    raise SystemExit("LSP multiline subject hover contains a raw JSON line break")
+
+if 2 not in responses:
+    raise SystemExit("LSP single-line func hover response is missing")
+func_response = responses[2][1]
+if func_response.get("result", {}).get("contents", {}).get("value") != (
+    "**func** - Function declaration"
+):
+    raise SystemExit("LSP single-line func hover changed")
+
 required = [
     '"serverInfo":{"name":"pgy-lsp","version":"0.1"}',
     '"experimental":{"airSchema":"pgy.air.graph.v1"',
@@ -237,7 +320,7 @@ required = [
     '"textDocumentSync":1',
     '"hoverProvider":true',
     '"completionProvider":{"resolveProvider":false}',
-    '"Function declaration"',
+    '"value":"**func** - Function declaration"',
     '"id":4,"result":[{"name":"Main","kind":12',
     '"id":5,"result":{"uri":"file:///tmp/pgy_tooling_conformance.pgy"',
     '"label":"subject"',

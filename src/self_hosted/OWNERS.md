@@ -1311,3 +1311,6 @@ inventory must not become a second fact-family owner registry.
   state projection over response replay plus document-store facts.
 - `src/self_hosted/lsp/hover_content_owner.pgy` -- LSP-2i bounded hover
   content over buffered document snapshots and hover requests.
+- `src/self_hosted/lsp/hover_content_projection_owner.pgy` -- generated
+  presentation projection from `src/lsp/lsp_hover_content.def`; lowercase
+  exposure remains owned by the language keyword registry HOVER flags.

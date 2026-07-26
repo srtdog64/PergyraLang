@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+2026-07-27 closes the language-word source-of-truth seam reached after v69.
+The compiler-owned registry now contains 145 sorted identities: 71 reserved,
+71 contextual, and 3 soft words. The lexer still reserves only the original 71
+words; all contextual and soft rows remain identifiers, and the owning parser
+production retains grammar validity. An explicit-selector gate binds the 74
+non-reserved rows bidirectionally to native parser owners without treating
+diagnostic strings, builtin/type names, effect data, or duration suffixes as
+keywords.
+
+Native lookup and debug rendering now consume the same registry. The generated
+self-host lexer projection contains only the 71 reserved rows, replacing the
+hand-written classifier and repairing `impl/ref/own/type` plus five previously
+missing self-host words. The exhaustive ninth fixture passed C, LLVM, and live
+native token parity on all 9 sources. Completion is built from registry flags;
+lowercase hover presentation is exposure-checked and generated for self-host;
+TextMate contains the exact 92 highlighted words, and the thin VS Code client
+cannot own a second grammar. Multiline hover and diagnostics share one JSON
+escape owner.
+
+This closure is supporting evidence, not a new Pergyra implementation replacing
+a released/default C compiler path. v69 remains the latest executable
+substitution rung and released/default replacement remains 0%. Because the two
+consecutive keyword SoT commits exhaust the guard budget, the next commit must
+return to the executable `reassign_block.pgy` CFG/phi rung described below.
+
 2026-07-27 v69 replaces the next bounded C-owned CFG/dataflow slice. The
 Pergyra-built integrated driver emitted `if_else_assign.pgy` once as a
 4,916-byte `pgy.mir.v1` artifact with SHA-256

@@ -6,6 +6,27 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Language-word identity is one registry
+
+- Promoted the lexical table into a 145-row compiler-owned registry: 71
+  reserved tokens, 71 parser-contextual words, and 3 soft production values.
+  Contextual/soft rows remain identifiers; the parser still owns exact
+  grammatical admission.
+- Native lookup/debug and the generated 71-word self-host lexical projection
+  now share one identity set. `impl/ref/own/type` no longer render as `UNKNOWN`,
+  and the self-host lexer gained the five reserved words it had omitted.
+- The exhaustive ninth lexer fixture passed all C, LLVM, and live-native token
+  comparisons. Parser selector, class/token, support, tooling flag, completion,
+  hover, TextMate, and physical VS Code graph ratchets reject independent word
+  ownership or stale projections.
+- LSP completion now enumerates registry flags; C/self-host hover prose has one
+  presentation owner while lowercase exposure stays registry-owned. Multiline
+  hover and diagnostics use one control-safe JSON escape path.
+- This work does not count as a new executable self-host substitution. It is
+  the second consecutive SoT-only commit after v69, so the next commit must be
+  the queued `reassign_block.pgy` executable delta rather than another registry
+  or documentation-only closure.
+
 ## 2026-07-27 - One predecessor-resolved phi plan drives both backends
 
 - The Pergyra-built integrated driver emitted the 4,916-byte

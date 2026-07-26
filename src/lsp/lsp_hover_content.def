@@ -1,0 +1,75 @@
+/*
+ * Canonical LSP hover presentation content.
+ *
+ * LANGUAGE_WORD_HOVER rows own markdown prose only. Whether a lowercase
+ * language word is exposed belongs to language_keyword_registry.def through
+ * PGY_KEYWORD_TOOLING_HOVER. BUILTIN_HOVER rows own the bounded PascalCase
+ * builtin presentation surface.
+ */
+LANGUAGE_WORD_HOVER(
+    "action",
+    "**action** - Subject-host contract-bearing operation\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\n- matching intent steps may reuse this contract pack instead of repeating every clause")
+LANGUAGE_WORD_HOVER(
+    "authority",
+    "**authority** - Zone mutation authority declaration\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice")
+LANGUAGE_WORD_HOVER(
+    "authorized",
+    "**authorized by** - Authority contract clause\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\n- matching intent steps may reuse this from the action contract")
+LANGUAGE_WORD_HOVER(
+    "by",
+    "**by** - Authority clause tail\n- used in `authorized by` and domain lifecycle commands to name the approving participant")
+LANGUAGE_WORD_HOVER(
+    "causes",
+    "**causes** - Effect contract clause\n- declares which effect layer/state transition the action or step drives\n- matching intent steps may reuse this from the action contract")
+LANGUAGE_WORD_HOVER("class", "**class** - Passive nominal host type (value semantics)")
+LANGUAGE_WORD_HOVER(
+    "effects",
+    "**effects** - Declaration-local effect contract tail\n- used in `with effects ...`\n- currently stays on the function/action declaration surface\n- not reused as part of the intent step contract pack")
+LANGUAGE_WORD_HOVER("func", "**func** - Function declaration")
+LANGUAGE_WORD_HOVER("import", "**import** - Import module")
+LANGUAGE_WORD_HOVER("let", "**let** - Variable declaration")
+LANGUAGE_WORD_HOVER("match", "**match** - Pattern matching expression")
+LANGUAGE_WORD_HOVER(
+    "object",
+    "**object** - Passive state-bearing object type; can react but does not initiate intent")
+LANGUAGE_WORD_HOVER("parallel", "**parallel** - Parallel execution block")
+LANGUAGE_WORD_HOVER("party", "**party** - Authority-bearing participant declaration")
+LANGUAGE_WORD_HOVER(
+    "requires",
+    "**requires** - Ability contract clause\n- on `action`: part of the action contract pack\n- on `step`: explicit override or restatement of ability requirements")
+LANGUAGE_WORD_HOVER(
+    "roster",
+    "**roster** - Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)")
+LANGUAGE_WORD_HOVER("struct", "**struct** - Value type (passed by value)")
+LANGUAGE_WORD_HOVER(
+    "subject",
+    "**subject** - Identity-bearing host type\n- subject values are anchored handles, not plain copied values\n- subject actions can carry contract clauses like `requires`, `within`, `authorized by`, `causes`")
+LANGUAGE_WORD_HOVER("tobject", "**tobject** - Transfer object. Boundary transfer data type")
+LANGUAGE_WORD_HOVER(
+    "transfer",
+    "**transfer** - Cross-zone handoff clause\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and the derived target contract")
+LANGUAGE_WORD_HOVER(
+    "using",
+    "**using** - Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from the `transfer` target contract")
+LANGUAGE_WORD_HOVER(
+    "where",
+    "**where** - Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface")
+LANGUAGE_WORD_HOVER(
+    "who",
+    "**who** - Intent step participant clause\n- names which intent participant performs the step\n- may be inherited from a unique matching subject action")
+LANGUAGE_WORD_HOVER(
+    "with",
+    "**with** - Two different surfaces share this word\n- `with slot ... as ...` is a scoped binding/resource surface\n- `with effects ...` is a declaration-local effect contract\n- `with effects` is not part of the action -> step contract pack")
+LANGUAGE_WORD_HOVER(
+    "within",
+    "**within** - Action zone contract clause\n- fixes which zone type the action runs inside\n- matching intent steps may reuse this zone contract")
+
+BUILTIN_HOVER("Err", "**Err(message)** - Create error Result")
+BUILTIN_HOVER(
+    "Log",
+    "**Log(value)** - Print value with newline\n- If argument is multiline string, it is normalized and emitted via banner-style output")
+BUILTIN_HOVER("LogBanner", "**LogBanner(text)** - Print banner text with indentation-normalized output")
+BUILTIN_HOVER("LogBlock", "**LogBlock(text)** - Print multiline block text with banner-style normalization")
+BUILTIN_HOVER("LogRaw", "**LogRaw(value)** - Print raw string value including embedded escapes/newlines")
+BUILTIN_HOVER("Ok", "**Ok(value)** - Create success Result")
+BUILTIN_HOVER("Unwrap", "**Unwrap(result)** - Extract value or panic")

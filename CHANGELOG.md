@@ -6,6 +6,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Language-Word Source of Truth (2026-07-27)
+
+- **lexer/registry**: Replace the native keyword table and reserved-token debug
+  switch with one 145-row language-word registry: 71 reserved, 71 contextual,
+  and 3 soft rows. Contextual and soft words remain identifiers at the lexer
+  boundary; their owning parser productions continue to decide validity.
+- **self-host/lexer**: Generate the 71-word self-host lexical projection from
+  the registry, remove the hand-written classifier, and add one exhaustive
+  fixture. This repairs `impl/ref/own/type` debug identity and five reserved
+  words that the self-host lexer previously missed.
+- **tooling**: Build completion labels from registry flags, bind lowercase hover
+  words and TextMate highlighting to registered exposure, remove unowned
+  `domain`/`sync` highlighting, and keep the thin VS Code client from owning a
+  second grammar. Multiline hover and diagnostics now share one control-safe
+  JSON escape owner.
+- **tests/docs**: Add bidirectional parser-vocabulary, native/self-host lexical,
+  LSP completion/hover, TextMate, physical editor-graph, and stale projection
+  ratchets. Grammar docs now point to the registry instead of recreating
+  lexical authority.
+
 ### Self-Hosted Phi Merge Projection Rung (2026-07-27)
 
 - **self-host/mir**: Capture instruction names and flattened use facts once,

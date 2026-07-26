@@ -12,9 +12,8 @@
 #
 #   (1) Coq    keyword_axis   (AxisOwnership.v section 8, mirrored below)
 #   (2) Design docs/42 section 0 axis -> surface keyword table
-#   (3) Impl   the keywords the compiler actually recognizes
-#              (reserved in src/lexer/language_keyword_registry.def, or contextual in
-#               src/parser/**)
+#   (3) Impl   language words declared by LanguageKeywordRegistry; the parser
+#              still owns where contextual/soft rows are grammatically valid
 #
 # Checks:
 #   A. every docs/42 axis keyword is recognized by the compiler        (2 subset 3)
@@ -28,7 +27,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOC42="$ROOT_DIR/docs/42_keyword_orthogonality.md"
 KEYWORD_REGISTRY="$ROOT_DIR/src/lexer/language_keyword_registry.def"
-PARSER_DIR="$ROOT_DIR/src/parser"
 AXIS_COQ="$ROOT_DIR/docs/semantics/proofs/AxisOwnership.v"
 
 for f in "$DOC42" "$KEYWORD_REGISTRY" "$AXIS_COQ"; do
@@ -43,9 +41,10 @@ reserved_has() {
         "$KEYWORD_REGISTRY"
 }
 
-# --- layer 3b: contextual keywords recognized in the parser ------------------
+# --- layer 3b: contextual/soft vocabulary owned by the registry --------------
 contextual_has() {
-    grep -rqE "\"$1\"" "$PARSER_DIR" 2>/dev/null
+    grep -qE "^[[:space:]]*\"$1\",[[:space:]]+PGY_KEYWORD_CLASS_(CONTEXTUAL|SOFT)," \
+        "$KEYWORD_REGISTRY"
 }
 
 recognized() {
@@ -181,8 +180,8 @@ for row in "${CLAUSE_MAP[@]}"; do
     read -r clause fact axis ofile otok <<<"$row"
     checker="$ROOT_DIR/src/semantic/$ofile"
     axis_ctor="$(coq_axis_name "$axis")"
-    if ! grep -rqE "\"$clause\"" "$PARSER_DIR" 2>/dev/null; then
-        echo "  FAIL: intent clause '$clause' not recognized by the parser"; fail=1; continue
+    if ! contextual_has "$clause"; then
+        echo "  FAIL: intent clause '$clause' is absent from the language-word registry"; fail=1; continue
     fi
     if ! grep -qE "\b$fact\b" "$AXIS_COQ"; then
         echo "  FAIL: clause '$clause' has no Coq fact '$fact' in AxisOwnership.v"; fail=1; continue

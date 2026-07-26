@@ -12,7 +12,9 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- Lexer-reserved keyword source of truth: `src/lexer/lexer_keywords.c`.
+- Language-word source of truth:
+  `src/lexer/language_keyword_registry.def`. Reserved token identity and
+  contextual/soft vocabulary are separate row classes in that registry.
 - Lexer-reserved keywords (71): `ability`, `as`, `async`, `await`, `bind`,
   `break`, `case`, `channel`, `class`, `collapse`, `compensate`, `continue`, `default`,
   `defer`, `dyn`, `effect`, `else`, `enum`, `event`, `export`, `extends`,
@@ -28,6 +30,9 @@
 - Parser-contextual words are matched as identifiers by the owning parser.
   Examples include `action`, `requires`, `within`, `causes`, `authorized`,
   `by`, `involves`, `step`, `who`, `expect`, `success`, and `failure`.
+- The exhaustive 71 reserved + 71 contextual + 3 soft inventory and consumer
+  projection contract are documented in
+  `docs/semantics/language_keyword_registry.md`; this prose list is illustrative.
 - `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`

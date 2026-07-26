@@ -2,18 +2,16 @@
 
 English anchor for tooling/doc gates:
 
-- Active SoT closure: add one language-keyword registry after the landed v69
-  executable rung. Native lexical classification already gives `impl`, `ref`,
-  `own`, and `type` dedicated reserved tokens, while token debug omits their
-  cases and self-host classification copies the resulting `UNKNOWN`. The
-  registry must own spelling, lexical class, token identity, language axis,
-  and native/self-host/tool exposure; parser-owned context remains separate,
-  so `authority`, `authorized`, `using`, `within`, and other contextual words
-  must not become reserved merely to simplify the registry. First falsifier:
-  every native reserved token has a non-UNKNOWN debug identity and matching
-  self-host identity. Negative gates must reject duplicate spelling/token,
-  reserved/contextual dual classification, independent consumer keyword
-  tables, and LSP/docs claims absent from the registry.
+- Closed SoT closure: `src/lexer/language_keyword_registry.def` now owns one
+  145-row language-word identity set: 71 reserved, 71 contextual, and 3 soft
+  rows. Native lookup/debug and the generated self-host lexical projection use
+  the same 71 reserved rows; parser selectors are bidirectionally registered
+  without promoting contextual words such as `authority`, `authorized`,
+  `using`, or `within` to reserved tokens. Completion, lowercase hover, and
+  the one full TextMate grammar are exposure-checked projections; unowned
+  `domain`/`sync`, a second grammar, hardcoded completion labels, and stale
+  generated lexer rows fail their focused gates. This is a supporting SoT
+  closure after v69, not a new released/default self-host replacement rung.
 - Queued self-host backend rung: extend the landed shared CFG/AIR plan to
   `reassign_block.pgy`. v69 now admits the unchanged 4,916-byte
   `if_else_assign.pgy` MIR (SHA-256

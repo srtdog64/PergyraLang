@@ -1,12 +1,13 @@
 // Self-host LSP hover content owner.
 //
-// LSP-2i owns bounded semantic hover content over a buffered document snapshot.
-// It mirrors the C LSP keyword/builtin hover table shape without owning the
-// live read-exact loop or indexed symbol database.
+// LSP-2i owns bounded semantic hover behavior over a buffered document snapshot.
+// Presentation prose comes from the generated projection; this owner does not
+// own the live read-exact loop or indexed symbol database.
 
 import "../lib/json_emit.pgy";
 import "../lib/json_fact_table.pgy";
 import "document_store_owner.pgy";
+import "hover_content_projection_owner.pgy";
 import "request_owner.pgy";
 import "transport_owner.pgy";
 
@@ -94,39 +95,7 @@ func LspHoverWordAt(source: String, line: Int, character: Int) -> Option<String>
 }
 
 func LspHoverTextForWord(word: String) -> Option<String> {
-    if word == "func" { return Some("**func** - Function declaration"); }
-    if word == "let" { return Some("**let** - Variable declaration"); }
-    if word == "struct" { return Some("**struct** - Value type (passed by value)"); }
-    if word == "object" { return Some("**object** - Passive state-bearing object type; can react but does not initiate intent"); }
-    if word == "tobject" { return Some("**tobject** - Transfer object. Boundary transfer data type"); }
-    if word == "roster" { return Some("**roster** - Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)"); }
-    if word == "party" { return Some("**party** - Authority-bearing participant declaration"); }
-    if word == "class" { return Some("**class** - Passive nominal host type (value semantics)"); }
-    if word == "subject" { return Some("**subject** - Identity-bearing host type\\n- subject values are anchored handles, not plain copied values\\n- subject actions can carry contract clauses like `requires`, `within`, `authorized by`, `causes`"); }
-    if word == "action" { return Some("**action** - Subject-host contract-bearing operation\\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\\n- matching intent steps may reuse this contract pack instead of repeating every clause"); }
-    if word == "where" { return Some("**where** - Contract/location clause\\n- in generics: type constraint surface\\n- in intent steps: current zone contract surface"); }
-    if word == "who" { return Some("**who** - Intent step participant clause\\n- names which intent participant performs the step\\n- may be inherited from a unique matching subject action"); }
-    if word == "using" { return Some("**using** - Intent step bound-zone alias clause\\n- binds the step to a specific zone participant alias\\n- may be derived from the `transfer` target contract"); }
-    if word == "transfer" { return Some("**transfer** - Cross-zone handoff clause\\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\\n- diagnostics should explain both current contract and the derived target contract"); }
-    if word == "authority" { return Some("**authority** - Zone mutation authority declaration\\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"); }
-    if word == "requires" { return Some("**requires** - Ability contract clause\\n- on `action`: part of the action contract pack\\n- on `step`: explicit override or restatement of ability requirements"); }
-    if word == "within" { return Some("**within** - Action zone contract clause\\n- fixes which zone type the action runs inside\\n- matching intent steps may reuse this zone contract"); }
-    if word == "causes" { return Some("**causes** - Effect contract clause\\n- declares which effect layer/state transition the action or step drives\\n- matching intent steps may reuse this from the action contract"); }
-    if word == "authorized" { return Some("**authorized by** - Authority contract clause\\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\\n- matching intent steps may reuse this from the action contract"); }
-    if word == "by" { return Some("**by** - Authority clause tail\\n- used in `authorized by` and domain lifecycle commands to name the approving participant"); }
-    if word == "with" { return Some("**with** - Two different surfaces share this word\\n- `with slot ... as ...` is a scoped binding/resource surface\\n- `with effects ...` is a declaration-local effect contract\\n- `with effects` is not part of the action -> step contract pack"); }
-    if word == "effects" { return Some("**effects** - Declaration-local effect contract tail\\n- used in `with effects ...`\\n- currently stays on the function/action declaration surface\\n- not reused as part of the intent step contract pack"); }
-    if word == "match" { return Some("**match** - Pattern matching expression"); }
-    if word == "parallel" { return Some("**parallel** - Parallel execution block"); }
-    if word == "import" { return Some("**import** - Import module"); }
-    if word == "Log" { return Some("**Log(value)** - Print value with newline\\n- If argument is multiline string, it is normalized and emitted via banner-style output"); }
-    if word == "LogBlock" { return Some("**LogBlock(text)** - Print multiline block text with banner-style normalization"); }
-    if word == "LogBanner" { return Some("**LogBanner(text)** - Print banner text with indentation-normalized output"); }
-    if word == "LogRaw" { return Some("**LogRaw(value)** - Print raw string value including embedded escapes/newlines"); }
-    if word == "Ok" { return Some("**Ok(value)** - Create success Result"); }
-    if word == "Err" { return Some("**Err(message)** - Create error Result"); }
-    if word == "Unwrap" { return Some("**Unwrap(result)** - Extract value or panic"); }
-    return None;
+    return LspHoverPresentationTextForWord(word);
 }
 
 func LspHoverResultForTextPosition(source: String, line: Int, character: Int) -> Option<String> {
@@ -280,6 +249,9 @@ func LspHoverContentJson(buffer: String) -> Option<String> {
 }
 
 func LspHoverContentContractReady() -> Bool {
+    if !LspHoverPresentationProjectionReady() {
+        return false;
+    }
     let source: String = "func Main() -> Void {}";
     let hover: Option<String> = LspHoverResultForTextPosition(source, 0, 1);
     if !IsSome(hover) {

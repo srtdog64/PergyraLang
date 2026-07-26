@@ -4,6 +4,7 @@
 
 #include "pgy_lsp_internal.h"
 #include "../common/numeric_parse.h"
+#include "../lexer/lexer_keywords.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,36 +12,194 @@
 
 char lsp_response_buf[65536];
 
-const char *lsp_completion_items =
-    "["
-    "{\"label\":\"subject\",\"kind\":14,\"detail\":\"Identity-bearing host type\"},"
-    "{\"label\":\"action\",\"kind\":14,\"detail\":\"Subject-host contract-bearing operation\"},"
-    "{\"label\":\"object\",\"kind\":14,\"detail\":\"Passive local projection/state type\"},"
-    "{\"label\":\"tobject\",\"kind\":14,\"detail\":\"Boundary transfer type\"},"
-    "{\"label\":\"intent\",\"kind\":14,\"detail\":\"Orchestration core declaration\"},"
-    "{\"label\":\"where\",\"kind\":14,\"detail\":\"Type/step zone contract clause\"},"
-    "{\"label\":\"who\",\"kind\":14,\"detail\":\"Intent step participant clause\"},"
-    "{\"label\":\"using\",\"kind\":14,\"detail\":\"Intent step bound-zone alias clause\"},"
-    "{\"label\":\"transfer\",\"kind\":14,\"detail\":\"Cross-zone handoff clause with using/where derivation\"},"
-    "{\"label\":\"authority\",\"kind\":14,\"detail\":\"Zone mutation authority declaration\"},"
-    "{\"label\":\"requires\",\"kind\":14,\"detail\":\"Ability contract clause\"},"
-    "{\"label\":\"within\",\"kind\":14,\"detail\":\"Action zone contract clause\"},"
-    "{\"label\":\"causes\",\"kind\":14,\"detail\":\"Effect contract clause\"},"
-    "{\"label\":\"authorized\",\"kind\":14,\"detail\":\"Authority contract clause head\"},"
-    "{\"label\":\"with\",\"kind\":14,\"detail\":\"Scoped binding or declaration-local effects clause head\"},"
-    "{\"label\":\"parallel\",\"kind\":14,\"detail\":\"Core execution primitive\"},"
-    "{\"label\":\"spawn\",\"kind\":14,\"detail\":\"Parallel task creation\"},"
-    "{\"label\":\"async\",\"kind\":14,\"detail\":\"Suspension surface\"},"
-    "{\"label\":\"await\",\"kind\":14,\"detail\":\"Join/completion surface\"},"
-    "{\"label\":\"select\",\"kind\":14,\"detail\":\"Readiness arbitration\"},"
-    "{\"label\":\"zone\",\"kind\":14,\"detail\":\"Authority/boundary execution layer\"},"
-    "{\"label\":\"roster\",\"kind\":14,\"detail\":\"Party container declaration\"},"
-    "{\"label\":\"world\",\"kind\":14,\"detail\":\"Cross-zone orchestration boundary\"},"
-    "{\"label\":\"ability\",\"kind\":14,\"detail\":\"Behavior contract\"},"
-    "{\"label\":\"role\",\"kind\":14,\"detail\":\"Ability implementation\"},"
-    "{\"label\":\"func\",\"kind\":14,\"detail\":\"Function declaration\"},"
-    "{\"label\":\"let\",\"kind\":14,\"detail\":\"Variable declaration\"}"
-    "]";
+#define LSP_COMPLETION_ITEMS_CAPACITY 65536u
+#define LSP_COMPLETION_STRING_INPUT_LIMIT 127u
+#define LSP_COMPLETION_ESCAPED_CAPACITY \
+    (LSP_COMPLETION_STRING_INPUT_LIMIT * 6u + 1u)
+
+typedef struct {
+    char *data;
+    size_t size;
+    size_t length;
+} LspCompletionJsonBuilder;
+
+static bool
+lsp_completion_append(LspCompletionJsonBuilder *builder,
+                      const char *text, size_t length)
+{
+    if (builder == NULL || builder->data == NULL || text == NULL
+        || builder->length >= builder->size
+        || length >= builder->size - builder->length)
+        return false;
+    memcpy(builder->data + builder->length, text, length);
+    builder->length += length;
+    builder->data[builder->length] = '\0';
+    return true;
+}
+
+static bool
+lsp_completion_append_json_string(LspCompletionJsonBuilder *builder,
+                                  const char *text)
+{
+    char escaped[LSP_COMPLETION_ESCAPED_CAPACITY];
+    size_t text_length;
+    size_t escaped_length;
+
+    if (text == NULL)
+        return false;
+    text_length = strlen(text);
+    if (text_length > LSP_COMPLETION_STRING_INPUT_LIMIT)
+        return false;
+
+    /* json_escape_copy can expand one input byte to at most six bytes. The
+     * fixed 6x+NUL buffer therefore cannot truncate any admitted string. */
+    json_escape_copy(escaped, sizeof(escaped), text);
+    escaped_length = strlen(escaped);
+    return lsp_completion_append(builder, "\"", 1)
+        && lsp_completion_append(builder, escaped, escaped_length)
+        && lsp_completion_append(builder, "\"", 1);
+}
+
+static const char *
+lsp_completion_class_name(PgyLanguageKeywordClass keyword_class)
+{
+    switch (keyword_class) {
+    case PGY_KEYWORD_CLASS_RESERVED: return "reserved";
+    case PGY_KEYWORD_CLASS_CONTEXTUAL: return "contextual";
+    case PGY_KEYWORD_CLASS_SOFT: return "soft";
+    }
+    return NULL;
+}
+
+static const char *
+lsp_completion_axis_name(PgyLanguageKeywordAxis axis)
+{
+    switch (axis) {
+    case PGY_KEYWORD_AXIS_GENERAL: return "general";
+    case PGY_KEYWORD_AXIS_RESOURCE: return "resource";
+    case PGY_KEYWORD_AXIS_EXECUTION: return "execution";
+    case PGY_KEYWORD_AXIS_DOMAIN: return "domain";
+    case PGY_KEYWORD_AXIS_TYPE_CONTRACT: return "type-contract";
+    }
+    return NULL;
+}
+
+static bool
+lsp_completion_row_valid(const PgyLanguageKeywordRow *row)
+{
+    const uint32_t known_contexts =
+        PGY_KEYWORD_CONTEXT_DECLARATION | PGY_KEYWORD_CONTEXT_STATEMENT |
+        PGY_KEYWORD_CONTEXT_EXPRESSION | PGY_KEYWORD_CONTEXT_TYPE |
+        PGY_KEYWORD_CONTEXT_CLAUSE | PGY_KEYWORD_CONTEXT_MODULE |
+        PGY_KEYWORD_CONTEXT_INTENT_STEP | PGY_KEYWORD_CONTEXT_ZONE_BODY |
+        PGY_KEYWORD_CONTEXT_NAME;
+    const uint32_t known_support =
+        PGY_KEYWORD_SUPPORT_NATIVE | PGY_KEYWORD_SUPPORT_SELF_HOST;
+    const uint32_t known_tooling =
+        PGY_KEYWORD_TOOLING_COMPLETION | PGY_KEYWORD_TOOLING_HOVER |
+        PGY_KEYWORD_TOOLING_HIGHLIGHT;
+
+    if (row == NULL || row->spelling == NULL || row->spelling[0] == '\0'
+        || row->debug_identity == NULL || row->debug_identity[0] == '\0'
+        || lsp_completion_class_name(row->keyword_class) == NULL
+        || lsp_completion_axis_name(row->axis) == NULL
+        || row->context_mask == 0 || (row->context_mask & ~known_contexts) != 0
+        || (row->implementation_support & ~known_support) != 0
+        || (row->tooling_flags & ~known_tooling) != 0)
+        return false;
+
+    if (row->keyword_class == PGY_KEYWORD_CLASS_RESERVED)
+        return row->token_type != PGY_KEYWORD_TOKEN_NONE;
+    return row->token_type == PGY_KEYWORD_TOKEN_NONE;
+}
+
+static bool
+lsp_completion_fail(char *out, size_t out_size, size_t *item_count_out)
+{
+    if (item_count_out != NULL)
+        *item_count_out = 0;
+    if (out != NULL && out_size >= 3) {
+        out[0] = '[';
+        out[1] = ']';
+        out[2] = '\0';
+    } else if (out != NULL && out_size > 0) {
+        out[0] = '\0';
+    }
+    return false;
+}
+
+bool
+lsp_build_completion_items_json(char *out, size_t out_size,
+                                size_t *item_count_out)
+{
+    LspCompletionJsonBuilder builder = { out, out_size, 0 };
+    const char *previous_spelling = NULL;
+    size_t item_count = 0;
+    size_t row_index;
+
+    if (item_count_out != NULL)
+        *item_count_out = 0;
+    if (out == NULL || out_size < 3)
+        return lsp_completion_fail(out, out_size, item_count_out);
+    out[0] = '\0';
+    if (!lsp_completion_append(&builder, "[", 1))
+        return lsp_completion_fail(out, out_size, item_count_out);
+
+    for (row_index = 0; row_index < lexer_keyword_registry_count(); row_index++) {
+        const PgyLanguageKeywordRow *row =
+            lexer_keyword_registry_row(row_index);
+        const char *class_name;
+        const char *axis_name;
+        char detail[96];
+        int detail_length;
+
+        if (!lsp_completion_row_valid(row)
+            || (previous_spelling != NULL
+                && strcmp(previous_spelling, row->spelling) >= 0))
+            return lsp_completion_fail(out, out_size, item_count_out);
+        previous_spelling = row->spelling;
+
+        if ((row->tooling_flags & PGY_KEYWORD_TOOLING_COMPLETION) == 0)
+            continue;
+        class_name = lsp_completion_class_name(row->keyword_class);
+        axis_name = lsp_completion_axis_name(row->axis);
+        detail_length = snprintf(detail, sizeof(detail),
+            "Pergyra %s %s keyword", class_name, axis_name);
+        if (detail_length < 0 || (size_t)detail_length >= sizeof(detail)
+            || (item_count > 0
+                && !lsp_completion_append(&builder, ",", 1))
+            || !lsp_completion_append(&builder, "{\"label\":",
+                                      sizeof("{\"label\":") - 1)
+            || !lsp_completion_append_json_string(&builder, row->spelling)
+            || !lsp_completion_append(&builder, ",\"kind\":14,\"detail\":",
+                                      sizeof(",\"kind\":14,\"detail\":") - 1)
+            || !lsp_completion_append_json_string(&builder, detail)
+            || !lsp_completion_append(&builder, "}", 1))
+            return lsp_completion_fail(out, out_size, item_count_out);
+        item_count++;
+    }
+
+    if (!lsp_completion_append(&builder, "]", 1))
+        return lsp_completion_fail(out, out_size, item_count_out);
+    if (item_count_out != NULL)
+        *item_count_out = item_count;
+    return true;
+}
+
+const char *
+lsp_completion_items_json(void)
+{
+    static char items[LSP_COMPLETION_ITEMS_CAPACITY] = "[]";
+    static bool initialized = false;
+
+    /* pgy-lsp dispatch is single-threaded; the immutable registry is projected
+     * once and the same bounded JSON value is reused for later requests. */
+    if (!initialized) {
+        initialized = true;
+        (void)lsp_build_completion_items_json(items, sizeof(items), NULL);
+    }
+    return items;
+}
 
 static const char *
 json_find_string_start(const char *json, const char *key)
@@ -133,16 +292,50 @@ json_find_int(const char *json, const char *key)
 void
 json_escape_copy(char *dst, size_t dst_size, const char *src)
 {
+    static const char hex[] = "0123456789abcdef";
     size_t di = 0;
+
     if (dst == NULL || dst_size == 0) return;
     if (src == NULL) {
         dst[0] = '\0';
         return;
     }
-    for (const char *p = src; *p && di + 2 < dst_size; p++) {
-        if (*p == '"' || *p == '\\')
-            dst[di++] = '\\';
-        dst[di++] = *p;
+
+    for (const unsigned char *p = (const unsigned char *)src; *p != '\0'; p++) {
+        const char *escape = NULL;
+        char unicode_escape[6];
+        size_t escape_len = 2;
+
+        switch (*p) {
+        case '"': escape = "\\\""; break;
+        case '\\': escape = "\\\\"; break;
+        case '\b': escape = "\\b"; break;
+        case '\f': escape = "\\f"; break;
+        case '\n': escape = "\\n"; break;
+        case '\r': escape = "\\r"; break;
+        case '\t': escape = "\\t"; break;
+        default:
+            if (*p >= 0x20) {
+                unicode_escape[0] = (char)*p;
+                escape = unicode_escape;
+                escape_len = 1;
+                break;
+            }
+            unicode_escape[0] = '\\';
+            unicode_escape[1] = 'u';
+            unicode_escape[2] = '0';
+            unicode_escape[3] = '0';
+            unicode_escape[4] = hex[*p >> 4];
+            unicode_escape[5] = hex[*p & 0x0f];
+            escape = unicode_escape;
+            escape_len = sizeof(unicode_escape);
+            break;
+        }
+
+        if (escape_len >= dst_size - di)
+            break;
+        memcpy(dst + di, escape, escape_len);
+        di += escape_len;
     }
     dst[di] = '\0';
 }

@@ -36,28 +36,6 @@ lsp_advance_json_offset(size_t *off, size_t buf_size, int written)
     return true;
 }
 
-static void
-lsp_escape_json_string(char *out, size_t out_size, const char *text)
-{
-    size_t oi = 0;
-
-    if (out == NULL || out_size == 0)
-        return;
-    if (text == NULL) {
-        out[0] = '\0';
-        return;
-    }
-
-    for (const char *p = text; *p != '\0' && oi < out_size - 1; p++) {
-        if ((*p == '"' || *p == '\\') && oi + 1 < out_size - 1)
-            out[oi++] = '\\';
-        if (oi >= out_size - 1)
-            break;
-        out[oi++] = *p;
-    }
-    out[oi] = '\0';
-}
-
 /*
  * docs/140 slice 5c: BLUE erasure squiggles. Lower the (clean) program to AIR —
  * the only stage that measures erasure — collect the fully-erased nodes, and
@@ -104,7 +82,7 @@ lsp_append_erasure_diagnostics(ASTNode *ast, char *diag_buf, size_t buf_size,
 
         dline = (int)sites[i].line - 1;
         if (dline < 0) dline = 0;
-        lsp_escape_json_string(reason, sizeof(reason),
+        json_escape_copy(reason, sizeof(reason),
             sites[i].reason != NULL ? sites[i].reason
                                     : "compressed to a runtime summary");
 
@@ -166,7 +144,7 @@ lsp_build_diagnostics_params(const char *uri, const char *source_text,
         if (line < 0) line = 0;
 
         char escaped[512];
-        lsp_escape_json_string(escaped, sizeof(escaped), parse_msg);
+        json_escape_copy(escaped, sizeof(escaped), parse_msg);
 
         snprintf(diag_buf, sizeof(diag_buf),
             "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"
@@ -209,11 +187,10 @@ lsp_build_diagnostics_params(const char *uri, const char *source_text,
                 char code[128];
                 char cause_ir[128];
                 char fix_source[128];
-                lsp_escape_json_string(escaped, sizeof(escaped), d->message);
-                lsp_escape_json_string(code, sizeof(code), d->code);
-                lsp_escape_json_string(cause_ir, sizeof(cause_ir), d->cause_ir);
-                lsp_escape_json_string(fix_source, sizeof(fix_source),
-                    d->fix_source);
+                json_escape_copy(escaped, sizeof(escaped), d->message);
+                json_escape_copy(code, sizeof(code), d->code);
+                json_escape_copy(cause_ir, sizeof(cause_ir), d->cause_ir);
+                json_escape_copy(fix_source, sizeof(fix_source), d->fix_source);
 
                 int n = snprintf(diag_buf + off, sizeof(diag_buf) - off,
                     "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"

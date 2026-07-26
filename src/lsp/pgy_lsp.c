@@ -318,7 +318,7 @@ main(int argc, char **argv)
             diagnostics_deferred = defer;
             free(text);
         } else if (strcmp(method, "textDocument/completion") == 0) {
-            lsp_respond(id, lsp_completion_items);
+            lsp_respond(id, lsp_completion_items_json());
         } else if (strcmp(method, "textDocument/documentSymbol") == 0) {
             if (doc_content != NULL)
                 respond_document_symbols(id, doc_content);

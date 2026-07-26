@@ -4,7 +4,8 @@
 설계 초안이나 미래 문법은 넣지 않는다.
 
 구현 근거:
-- lexer 예약어 기준: [src/lexer/lexer_keywords.c](/mnt/e/PergyraLang/src/lexer/lexer_keywords.c)
+- 언어 어휘 기준:
+  [`src/lexer/language_keyword_registry.def`](../../src/lexer/language_keyword_registry.def)
 - 파서 테스트: [src/test_parser.c](/mnt/e/PergyraLang/src/test_parser.c)
 - 시맨틱 테스트: [src/test_semantic.c](/mnt/e/PergyraLang/src/test_semantic.c)
 - 예제 모음: [examples](/mnt/e/PergyraLang/examples)
@@ -45,9 +46,9 @@
 | 제어 | `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue` |
 | 비동기 | `async`, `await`, `spawn`, `select`, `channel` |
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
-| 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
-| 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local` |
-| 도메인 | `slot`, `shared`, `bind`, `include`, `fields`, `override` |
+| 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `reflect` |
+| 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local`, `transaction`, `compensate`, `fail` |
+| 도메인 | `slot`, `shared`, `bind`, `include`, `override` |
 | 블록 / 접근 | `with`, `parallel`, `private`, `public`, `innate` |
 | 리터럴 | `true`, `false` |
 
@@ -61,6 +62,11 @@
 | `action` | subject 전용 플롯 행위 |
 | `requires`, `within`, `causes`, `authorized`, `by` | action / intent step clause |
 | `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
+| `fields` | ability field-contract declaration selector |
+
+전체 71개 예약어, 71개 문맥어, 3개 soft word 목록과 소비자 투영 규칙은
+[Language Keyword Registry](../semantics/language_keyword_registry.md)가 소유한다.
+이 표는 문법 안내용 부분집합이며 두 번째 전수 어휘 권위가 아니다.
 
 주의:
 - declaration 이름은 현재 **일반 식별자만** 허용한다. 예약 키워드를 선언 이름으로 재사용하는 surface는 더 이상 권장/지원하지 않는다.

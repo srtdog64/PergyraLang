@@ -1014,6 +1014,7 @@ Qed.
 Inductive SpineFact : Type :=
   | SFSourceModuleGraph
   | SFTokenStream
+  | SFLanguageWordRegistry
   | SFSyntaxProvenanceTree
   | SFSemanticSymbolTypeGraph
   | SFSemanticDestructureBindingType
@@ -1067,6 +1068,7 @@ Inductive SpineFact : Type :=
 Inductive SpineOwner : Type :=
   | SOModuleLoader
   | SOLexer
+  | SOLanguageLexicon
   | SOParserAst
   | SOSemanticAnalyzer
   | SOSemanticDestructureType
@@ -1114,6 +1116,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
   | SFSourceModuleGraph => SOModuleLoader
   | SFTokenStream => SOLexer
+  | SFLanguageWordRegistry => SOLanguageLexicon
   | SFSyntaxProvenanceTree => SOParserAst
   | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer
   | SFSemanticDestructureBindingType => SOSemanticDestructureType

@@ -1,5 +1,14 @@
 # Keyword Progress Board
 
+Current vocabulary authority (2026-07-27):
+
+- `src/lexer/language_keyword_registry.def` owns the 71 reserved, 71
+  contextual, and 3 soft language-word identities.
+- This board records maturity notes only; it is not a lexer/parser/LSP keyword
+  list. In particular, `fields` is contextual rather than lexer-reserved.
+- See `docs/semantics/language_keyword_registry.md` for ownership and gate
+  contracts.
+
 Anti-hype status note (2026-04-29):
 
 - Percentages in this board are local keyword-surface ledger values, not

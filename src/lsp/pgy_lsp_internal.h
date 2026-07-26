@@ -12,7 +12,10 @@
 #include "../parser/ast.h"
 
 extern char lsp_response_buf[65536];
-extern const char *lsp_completion_items;
+
+bool lsp_build_completion_items_json(char *out, size_t out_size,
+                                     size_t *item_count_out);
+const char *lsp_completion_items_json(void);
 
 bool json_find_string_copy(const char *json, const char *key,
                            char *out, size_t out_size);

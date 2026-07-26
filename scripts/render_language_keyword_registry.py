@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render and verify the self-host keyword projection from the C registry."""
+"""Verify the language registry and render its reserved lexer projection."""
 
 from __future__ import annotations
 
@@ -10,13 +10,70 @@ import re
 
 
 MACRO = "PGY_LANGUAGE_KEYWORD"
-EXPECTED_ROW_COUNT = 71
+EXPECTED_ROW_COUNT = 145
+EXPECTED_RESERVED_ROW_COUNT = 71
+EXPECTED_CONTEXTUAL_ROW_COUNT = 71
+EXPECTED_SOFT_ROW_COUNT = 3
+
+RESERVED = "PGY_KEYWORD_CLASS_RESERVED"
+CONTEXTUAL = "PGY_KEYWORD_CLASS_CONTEXTUAL"
+SOFT = "PGY_KEYWORD_CLASS_SOFT"
+TOKEN_NONE = "PGY_KEYWORD_TOKEN_NONE"
+
+VALID_CONTEXTS = {
+    "PGY_KEYWORD_CONTEXT_DECLARATION",
+    "PGY_KEYWORD_CONTEXT_STATEMENT",
+    "PGY_KEYWORD_CONTEXT_EXPRESSION",
+    "PGY_KEYWORD_CONTEXT_TYPE",
+    "PGY_KEYWORD_CONTEXT_CLAUSE",
+    "PGY_KEYWORD_CONTEXT_MODULE",
+    "PGY_KEYWORD_CONTEXT_INTENT_STEP",
+    "PGY_KEYWORD_CONTEXT_ZONE_BODY",
+    "PGY_KEYWORD_CONTEXT_NAME",
+}
+VALID_AXES = {
+    "PGY_KEYWORD_AXIS_GENERAL",
+    "PGY_KEYWORD_AXIS_RESOURCE",
+    "PGY_KEYWORD_AXIS_EXECUTION",
+    "PGY_KEYWORD_AXIS_DOMAIN",
+    "PGY_KEYWORD_AXIS_TYPE_CONTRACT",
+}
+VALID_SUPPORT = {
+    "PGY_KEYWORD_SUPPORT_NATIVE",
+    "PGY_KEYWORD_SUPPORT_SELF_HOST",
+}
+VALID_TOOLING = {
+    "PGY_KEYWORD_TOOLING_COMPLETION",
+    "PGY_KEYWORD_TOOLING_HOVER",
+    "PGY_KEYWORD_TOOLING_HIGHLIGHT",
+}
 
 
 @dataclass(frozen=True)
 class KeywordRow:
     spelling: str
+    keyword_class: str
+    token_type: str
     debug_identity: str
+    context_mask: str
+    axis: str
+    implementation_support: str
+    tooling_flags: str
+
+
+def reserved_rows(rows: list[KeywordRow]) -> list[KeywordRow]:
+    projected = [row for row in rows if row.keyword_class == RESERVED]
+    if len(projected) != EXPECTED_RESERVED_ROW_COUNT:
+        raise ValueError(
+            f"registry has {len(projected)} reserved rows; "
+            f"expected {EXPECTED_RESERVED_ROW_COUNT}"
+        )
+    if any(
+        "PGY_KEYWORD_SUPPORT_SELF_HOST" not in row.implementation_support
+        for row in projected
+    ):
+        raise ValueError("a reserved row is not marked self-host supported")
+    return projected
 
 
 def _macro_bodies(source: str) -> list[str]:
@@ -91,6 +148,18 @@ def _plain_c_string(field: str, label: str) -> str:
     return match.group(1)
 
 
+def _flag_terms(field: str, label: str, valid: set[str]) -> set[str]:
+    terms = [term.strip() for term in field.split("|")]
+    if not terms or any(not term for term in terms):
+        raise ValueError(f"{label} is empty or malformed: {field!r}")
+    if len(terms) != len(set(terms)):
+        raise ValueError(f"{label} repeats a flag: {field!r}")
+    unknown = set(terms) - valid
+    if unknown:
+        raise ValueError(f"{label} has unknown flags: {sorted(unknown)}")
+    return set(terms)
+
+
 def load_rows(registry: Path) -> list[KeywordRow]:
     source = registry.read_text(encoding="utf-8")
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
@@ -103,14 +172,51 @@ def load_rows(registry: Path) -> list[KeywordRow]:
                 f"registry row {row_number} has {len(fields)} fields; expected 8"
             )
         spelling = _plain_c_string(fields[0], f"row {row_number} spelling")
+        keyword_class = fields[1]
+        token_type = fields[2]
         debug_identity = _plain_c_string(
             fields[3], f"row {row_number} debug identity"
         )
-        if fields[1] != "PGY_KEYWORD_CLASS_RESERVED":
-            raise ValueError(f"row {row_number} is not a reserved keyword")
-        if "PGY_KEYWORD_SUPPORT_SELF_HOST" not in fields[6]:
-            raise ValueError(f"row {row_number} is not marked self-host supported")
-        rows.append(KeywordRow(spelling, debug_identity))
+        if keyword_class not in {RESERVED, CONTEXTUAL, SOFT}:
+            raise ValueError(
+                f"row {row_number} has unknown keyword class: {keyword_class}"
+            )
+        if keyword_class == RESERVED and token_type == TOKEN_NONE:
+            raise ValueError(f"reserved row {row_number} has no token identity")
+        if keyword_class != RESERVED and token_type != TOKEN_NONE:
+            raise ValueError(
+                f"non-reserved row {row_number} has lexer token identity {token_type}"
+            )
+        contexts = _flag_terms(
+            fields[4], f"row {row_number} context mask", VALID_CONTEXTS
+        )
+        if not contexts:
+            raise ValueError(f"row {row_number} has no grammar context")
+        if fields[5] not in VALID_AXES:
+            raise ValueError(
+                f"row {row_number} has unknown semantic axis: {fields[5]}"
+            )
+        support = _flag_terms(
+            fields[6], f"row {row_number} implementation support", VALID_SUPPORT
+        )
+        if "PGY_KEYWORD_SUPPORT_NATIVE" not in support:
+            raise ValueError(f"row {row_number} is not marked native supported")
+        if fields[7] != "0":
+            _flag_terms(
+                fields[7], f"row {row_number} tooling flags", VALID_TOOLING
+            )
+        rows.append(
+            KeywordRow(
+                spelling=spelling,
+                keyword_class=keyword_class,
+                token_type=token_type,
+                debug_identity=debug_identity,
+                context_mask=fields[4],
+                axis=fields[5],
+                implementation_support=fields[6],
+                tooling_flags=fields[7],
+            )
+        )
 
     if len(rows) != EXPECTED_ROW_COUNT:
         raise ValueError(
@@ -124,6 +230,41 @@ def load_rows(registry: Path) -> list[KeywordRow]:
     identities = [row.debug_identity for row in rows]
     if any(re.fullmatch(r"[A-Z][A-Z0-9_]*", value) is None for value in identities):
         raise ValueError("registry contains a non-canonical debug identity")
+    if any(row.debug_identity != row.spelling.upper() for row in rows):
+        raise ValueError("registry debug identity does not match uppercase spelling")
+
+    class_counts = {
+        keyword_class: sum(row.keyword_class == keyword_class for row in rows)
+        for keyword_class in (RESERVED, CONTEXTUAL, SOFT)
+    }
+    expected_counts = {
+        RESERVED: EXPECTED_RESERVED_ROW_COUNT,
+        CONTEXTUAL: EXPECTED_CONTEXTUAL_ROW_COUNT,
+        SOFT: EXPECTED_SOFT_ROW_COUNT,
+    }
+    if class_counts != expected_counts:
+        raise ValueError(
+            f"registry class counts are {class_counts}; expected {expected_counts}"
+        )
+    reserved_tokens = [
+        row.token_type for row in rows if row.keyword_class == RESERVED
+    ]
+    if len(reserved_tokens) != len(set(reserved_tokens)):
+        duplicates = sorted(
+            token for token in set(reserved_tokens)
+            if reserved_tokens.count(token) > 1
+        )
+        raise ValueError(
+            "registry contains duplicate reserved token identities: "
+            + ", ".join(duplicates)
+        )
+    soft_spellings = {
+        row.spelling for row in rows if row.keyword_class == SOFT
+    }
+    if soft_spellings != {"current", "full", "none"}:
+        raise ValueError(
+            "soft keyword set must be exactly current, full, none"
+        )
     return rows
 
 
@@ -193,7 +334,7 @@ def main() -> int:
     mode.add_argument("--write", action="store_true")
     args = parser.parse_args()
 
-    expected = render(load_rows(args.registry))
+    expected = render(reserved_rows(load_rows(args.registry)))
     if args.check:
         if not args.projection.is_file():
             raise SystemExit(f"missing generated projection: {args.projection}")

@@ -8,10 +8,23 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Implementation checkpoint: `92c38472` on `main` (v69 predecessor-resolved
-  phi facts, one widened MIR-bound AIR certificate, one target-neutral plan,
-  and the same normalized plan contract consumed by C and LLVM). Its parent
-  `d5325155` is the v68 handoff; `bc33eead` is the v68 implementation.
+- Latest executable implementation checkpoint: `92c38472` on `main` (v69
+  predecessor-resolved phi facts, one widened MIR-bound AIR certificate, one
+  target-neutral plan, and the same normalized plan contract consumed by C and
+  LLVM). `b644449d` is its documentation checkpoint.
+- Language-word closure phase 1 is `738a131a`. The complete 145-row closure is
+  the commit containing this handoff; use `git rev-parse HEAD` to resolve that
+  commit after checkout. This self-reference avoids recording an impossible
+  self-hash while still fixing the exact parent and tree boundary.
+- `src/lexer/language_keyword_registry.def` now owns 145 sorted identities:
+  71 reserved, 71 contextual, and 3 soft. Lexer classification/debug, the
+  generated self-host reserved projection, parser-selector coverage, LSP
+  completion/lowercase hover exposure, and the one canonical TextMate grammar
+  are checked projections. Contextual/soft rows remain lexer identifiers.
+- This keyword closure is the second consecutive SoT-only commit after v69.
+  The next commit must be the executable `reassign_block.pgy` replacement rung;
+  another registry or documentation-only closure would violate the hard
+  self-host progress guard.
 - The Pergyra-built v69 r2 driver emitted one 4,916-byte
   `if_else_assign.pgy` MIR with SHA-256
   `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`.
@@ -44,59 +57,42 @@ owner, and the named executable gate.
 
 ## Exact dirty state at this handoff
 
-After the handoff-only successor is committed, `main` and `origin/main` should
-be synchronized. The following unstaged files are concurrent user work and
-must remain unmodified and excluded from task commits:
+After the language-word closure commit is pushed, `main` and `origin/main`
+should be synchronized. The following unstaged files are concurrent user work
+and must remain unmodified and excluded from task commits:
 
 - `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v63-v69 implementation or documentation file should remain dirty.
+No language-registry, LSP, editor, or documentation file should remain dirty.
 
-## Active language-keyword SoT objective card
+## Active executable `reassign_block.pgy` objective card
 
-- Objective: promote the existing 71-row lexical table behind
-  `lexer_lookup_keyword()` into `LanguageKeywordRegistry`, with one stable word
-  identity for native token classification, token debug projection, and
-  self-host lexer substitution. The first falsifier is
-  `impl/ref/own/type`: all four are dedicated native reserved tokens but debug
-  and self-host currently report `UNKNOWN`.
-- Priority: lexical semantic identity and one SoT; exhaustive native/debug/
-  self-host parity; parser-owned contextual admission; LSP/TextMate derived
-  views; documentation anchors; then patch size. This is a concrete lexer
-  substitution blocker, not permission for a global documentation sweep.
-- Fact owner: the current `src/lexer/lexer_keywords.c` seam becomes the
-  registry implementation. `PgyTokenType` remains the token-kind vocabulary.
-  Grammar-specific parser owners continue to decide where registered
-  contextual words are legal. Hover prose and PascalCase builtins remain
-  separate consumer facts.
-- Last legitimate consumers: native keyword lookup and token debug, self-host
-  `KeywordType`/scan, explicit contextual parser seams, C/self-host LSP word
-  identity, the existing full VSCode TextMate artifact, and registry-projected
-  grammar/axis documentation gates.
-- Forbidden fallback: a hand-copied self-host map, hardcoded LSP language-word
-  arrays, TextMate-only language words, parser-wide recursive string grep,
-  generated JSON or prose as authority, `new ? old` dual reads, a second
-  tmLanguage/third editor project, or promoting contextual words such as
-  `authority`, `authorized`, `using`, and `within` to reserved tokens.
-- Observed falsifiers: debug lacks 9 enum cases, including the four real
-  reserved-token defects; self-host differs from the 71 lexical rows on 9
-  words (the four `UNKNOWN` rows plus missing `collapse`, `innate`, `local`,
-  `nondeterministic`, and `override`); TextMate carries 94 lowercase words,
-  including unowned `domain` and `sync`; existing parity proves debug text,
-  not internal token identity.
-- Acceptance gate: add `tests/language_keyword_registry_smoke.sh` with
-  sorted/unique/token-valid rows, exhaustive native-debug-self-host identity,
-  lexical/contextual collision negatives, registered LSP/hover/highlight
-  views, unowned tooling-word rejection, and a ratchet against a second keyword
-  table. Migrate consumers without dual-read fallback.
-- Queued executable rung after this closure: `reassign_block.pgy`, 4,062-byte
-  MIR, SHA-256
+- Objective: extend the landed shared CFG/AIR certificate and target-neutral
+  plan so one Pergyra-owned admitted graph compiles `reassign_block.pgy`
+  through both the direct C and LLVM projections and matches native output 10.
+- Priority: stable MIR/CFG/SSA identity; predecessor-resolved phi input;
+  certificate/plan binding; one selected backend execution; mutation negatives;
+  then implementation size.
+- Fact owner: the existing MIR routine/phi owners and
+  `direct_mir_cfg_plan_owner.pgy`. The combined
+  `direct_mir_backend_emission_owner.pgy` remains the last C/LLVM consumer; do
+  not split ownership by backend language.
+- Forbidden fallback: serialized-expression reparse, raw phi-use ordering as
+  predecessor identity, a second graph/certificate/plan, repeated whole-graph
+  validation inside emitters, backend-specific MIR readers, C output built and
+  discarded on the LLVM lane, or a native-C result substituted for Pergyra
+  execution.
+- First falsifying fixture: `reassign_block.pgy`, 4,062-byte MIR, SHA-256
   `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`,
   three blocks `[2,1,2]`, one merge phi, native output `10`. Its missing fact is
-  the false edge carrying entry SSA directly to the merge; reuse the v69
-  certificate/plan after the keyword seam closes.
+  the false edge carrying entry SSA directly to the merge.
+- Acceptance gate: extend
+  `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh` with the fixture,
+  retain the unchanged MIR digest, compile/run C and LLVM to native-equal
+  output, and reject predecessor, phi, certificate, plan, target, and
+  post-verification mutation before output.
 
 ## Current measured evidence
 
@@ -141,8 +137,19 @@ Green:
   plan mutation negatives;
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
-- `python scripts/sot_registry_gate.py`: 51 authorities, 44 derived carriers,
-  `CLOSED=31 BRIDGE=20 ACTIVE=0`;
+- `tests/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
+  lexer rows, 74 exact parser selectors, native lookup/debug probe, and the
+  generated 9-fixture self-host projection;
+- `tests/self_hosted/parity/lexer_parity.sh`: all 9 sources byte-equal on C,
+  LLVM, and live-native comparison;
+- `tests/lsp_completion_registry_smoke.sh`: 27 registry-owned completion rows;
+- `tests/lsp_hover_registry_smoke.sh`: 25 lowercase language rows plus 7
+  builtins, with C/self-host runtime parity and decoded multiline Markdown;
+- `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
+  grammar, and no grammar ownership in the thin client;
+- `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
+- `python scripts/sot_registry_gate.py`: 52 authorities, 44 derived carriers,
+  `CLOSED=32 BRIDGE=20 ACTIVE=0`;
 - `python scripts/protocol_registry_gate.py`: 7 protocol rows;
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_ci_profile_smoke.sh`;

@@ -72,6 +72,7 @@ required_files=(
     "src/self_hosted/lexer/token_owner.pgy"
     "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
     "src/self_hosted/lexer/scan_owner.pgy"
+    "src/self_hosted/lsp/hover_content_projection_owner.pgy"
     "tests/self_hosted/parity/lexer_parity.sh"
     "src/self_hosted/parser/intent.md"
     "src/self_hosted/parser/main.pgy"
@@ -352,6 +353,10 @@ require_text "src/self_hosted/lexer/language_keyword_registry_projection_owner.p
 forbid_text "src/self_hosted/lexer/token_owner.pgy" "if text =="
 require_text "src/self_hosted/lexer/token_owner.pgy" "func TokenLine"
 require_text "src/self_hosted/lexer/scan_owner.pgy" "func LexContent"
+require_text "src/self_hosted/lsp/hover_content_owner.pgy" 'import "hover_content_projection_owner.pgy";'
+require_text "src/self_hosted/lsp/hover_content_owner.pgy" "return LspHoverPresentationTextForWord(word);"
+require_text "src/self_hosted/lsp/hover_content_projection_owner.pgy" "func LspHoverPresentationProjectionReady"
+forbid_text "src/self_hosted/lsp/hover_content_owner.pgy" "if word =="
 require_text "src/self_hosted/parser/main.pgy" "import \"run_owner.pgy\""
 require_text "src/self_hosted/parser/run_owner.pgy" "import \"source_path_owner.pgy\""
 require_text "src/self_hosted/parser/run_owner.pgy" "import \"program_parse_owner.pgy\""

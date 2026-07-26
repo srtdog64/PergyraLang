@@ -11617,6 +11617,7 @@ require_file "src/self_hosted/lsp/response_owner.pgy"
 require_file "src/self_hosted/lsp/session_owner.pgy"
 require_file "src/self_hosted/lsp/session_state_owner.pgy"
 require_file "src/self_hosted/lsp/hover_content_owner.pgy"
+require_file "src/self_hosted/lsp/hover_content_projection_owner.pgy"
 require_file "src/self_hosted/lsp/squiggle_owner.pgy"
 require_file "src/self_hosted/lsp/transport_owner.pgy"
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
@@ -11627,6 +11628,7 @@ require_max_lines "src/self_hosted/lsp/response_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/session_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/session_state_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/hover_content_owner.pgy" 600
+require_max_lines "src/self_hosted/lsp/hover_content_projection_owner.pgy" 300
 require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
@@ -11638,6 +11640,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/response_owner.pgy
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/session_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/session_state_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/hover_content_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/hover_content_projection_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/squiggle_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/transport_owner.pgy"
 require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
@@ -11707,10 +11710,15 @@ require_text "src/self_hosted/lsp/session_state_owner.pgy" "func LspSessionState
 require_text "src/self_hosted/lsp/session_state_owner.pgy" "LspSessionReplayJson(buffer)"
 require_text "src/self_hosted/lsp/session_state_owner.pgy" "LspDocumentStoreJson(buffer)"
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" 'import "document_store_owner.pgy";'
+require_text "src/self_hosted/lsp/hover_content_owner.pgy" 'import "hover_content_projection_owner.pgy";'
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" 'import "transport_owner.pgy";'
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "func LspHoverContentContractReady"
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "func LspHoverContentJson"
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "func LspHoverTextForWord"
+require_text "src/self_hosted/lsp/hover_content_owner.pgy" "return LspHoverPresentationTextForWord(word);"
+require_text "src/self_hosted/lsp/hover_content_owner.pgy" "LspHoverPresentationProjectionReady()"
+require_text "src/self_hosted/lsp/hover_content_projection_owner.pgy" "func LspHoverPresentationProjectionReady"
+reject_text "src/self_hosted/lsp/hover_content_owner.pgy" "if word =="
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "LspDocumentStoreApplyText(body)"
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "LspTransportCompleteFrameLength(tail)"
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "squiggle_owner.pgy";'

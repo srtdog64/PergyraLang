@@ -3295,9 +3295,22 @@ site: $(PGY)
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 
-.PHONY: language-keyword-registry-test-smoke
+.PHONY: language-keyword-registry-test-smoke \
+	lsp-completion-registry-test-smoke \
+	lsp-hover-registry-test-smoke \
+	vscode-language-graph-test-smoke
 language-keyword-registry-test-smoke:
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
+
+lsp-completion-registry-test-smoke:
+	"$(BASH)" tests/lsp_completion_registry_smoke.sh
+
+lsp-hover-registry-test-smoke: $(PGY) $(PGY_LSP)
+	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" \
+		"$(BASH)" tests/lsp_hover_registry_smoke.sh
+
+vscode-language-graph-test-smoke:
+	"$(BASH)" tests/vscode_language_graph_smoke.sh
 
 self-host-compiler-world-perf-probe:
 	"$(BASH)" tests/self_host_compiler_world_perf_probe.sh
