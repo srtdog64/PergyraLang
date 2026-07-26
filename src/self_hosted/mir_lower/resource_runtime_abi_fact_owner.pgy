@@ -69,139 +69,18 @@ func MirResourceRuntimeRowFactReady(
     let json: String = routines.source_json;
     let inst_start: Int = instruction_view.start;
     let inst_end: Int = instruction_view.end;
-    if inst_start < 0 || inst_end <= inst_start ||
-        JsonCharCodeAt(json, inst_end, inst_start) != JsonAsciiCode("{") {
+    let required_bounds: Array<Int> = [0, 0];
+    let required: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end,
+        "runtime_call_abi_required", required_bounds);
+    if required && !JsonObjectBoolFieldEqualsWithin(
+        json, inst_start, inst_end,
+        "runtime_call_abi_required", true
+    ) {
         return false;
     }
-    let name_start: Int = 0 - 1;
-    let name_end: Int = 0 - 1;
-    let required_start: Int = 0 - 1;
-    let required_end: Int = 0 - 1;
-    let row_start: Int = 0 - 1;
-    let row_end: Int = 0 - 1;
-    let aux_start: Int = 0 - 1;
-    let aux_end: Int = 0 - 1;
-    let object_closed: Bool = false;
-    let i: Int = inst_start + 1;
-    while i < inst_end {
-        i = JsonSkipWhitespaceWithin(json, i, inst_end);
-        if i >= inst_end { return false; }
-        let code: Int = JsonCharCodeAt(json, inst_end, i);
-        if code == JsonAsciiCode("}") {
-            if i + 1 != inst_end { return false; }
-            object_closed = true;
-            i = inst_end;
-            continue;
-        }
-        if code == JsonAsciiCode(",") {
-            i = i + 1;
-            continue;
-        }
-        if code != JsonAsciiCode("\"") { return false; }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(
-            json, i, inst_end
-        );
-        if !IsSome(key_end_opt) { return false; }
-        let key_end: Int = UnwrapOption(key_end_opt);
-        let raw_key_length: Int = key_end - i - 2;
-        let key_has_escape: Bool = false;
-        let key_row: Int = i + 1;
-        while key_row < key_end - 1 {
-            if JsonCharCodeAt(json, key_end, key_row) ==
-                JsonAsciiCode("\\") {
-                key_has_escape = true;
-            }
-            key_row = key_row + 1;
-        }
-        let is_name: Bool = (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(
-            json, i, key_end, "name"
-        );
-        let is_required: Bool =
-            (key_has_escape || raw_key_length == 25) &&
-            JsonObjectKeyEqualsWithin(
-            json, i, key_end, "runtime_call_abi_required"
-        );
-        let is_row: Bool = (key_has_escape || raw_key_length == 16) &&
-            JsonObjectKeyEqualsWithin(
-            json, i, key_end, "runtime_call_abi"
-        );
-        let is_aux: Bool = (key_has_escape || raw_key_length == 20) &&
-            JsonObjectKeyEqualsWithin(
-            json, i, key_end, "runtime_call_abi_aux"
-        );
-        i = JsonSkipWhitespaceWithin(json, key_end, inst_end);
-        if i >= inst_end ||
-            JsonCharCodeAt(json, inst_end, i) != JsonAsciiCode(":") {
-            return false;
-        }
-        i = JsonSkipWhitespaceWithin(json, i + 1, inst_end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(
-            json, i, inst_end
-        );
-        if !IsSome(value_end_opt) { return false; }
-        let value_end: Int = UnwrapOption(value_end_opt);
-        if value_end <= i { return false; }
-        if is_name {
-            if name_start >= 0 { return false; }
-            name_start = i;
-            name_end = value_end;
-        } else if is_required {
-            if required_start >= 0 { return false; }
-            required_start = i;
-            required_end = value_end;
-        } else if is_row {
-            if row_start >= 0 { return false; }
-            row_start = i;
-            row_end = value_end;
-        } else if is_aux {
-            if aux_start >= 0 { return false; }
-            aux_start = i;
-            aux_end = value_end;
-        }
-        i = value_end;
-    }
-    if !object_closed { return false; }
-    if (name_start < 0 || name_end < 0) &&
-        (name_start != 0 - 1 || name_end != 0 - 1) {
-        return false;
-    }
-    if (required_start < 0 || required_end < 0) &&
-        (required_start != 0 - 1 || required_end != 0 - 1) {
-        return false;
-    }
-    if (row_start < 0 || row_end < 0) &&
-        (row_start != 0 - 1 || row_end != 0 - 1) {
-        return false;
-    }
-    if (aux_start < 0 || aux_end < 0) &&
-        (aux_start != 0 - 1 || aux_end != 0 - 1) {
-        return false;
-    }
-    let operation: String = "";
-    if name_start >= 0 {
-        if name_start + 4 == name_end && SubEqualsWithLen(
-            json, name_end, name_start, 4, "null"
-        ) {
-            operation = "";
-        } else if JsonCharCodeAt(json, name_end, name_start) !=
-            JsonAsciiCode("\"") {
-            return false;
-        } else {
-            let decoded_end: Array<Int> = [0];
-            operation = ReadJsonStringBounded(
-                json, name_start, name_end, decoded_end
-            );
-            if decoded_end[0] != name_end { return false; }
-        }
-    }
-    let required: Bool = required_start >= 0;
-    if required && !(required_start + 4 == required_end &&
-        SubEqualsWithLen(
-            json, required_end, required_start, 4, "true"
-        )) {
-        return false;
-    }
+    let operation: String = MirObjectStringFactAtBounds(
+        json, inst_start, inst_end, "name");
     let machine_operation: String =
         MirMachineLayerInstructionRuntimeOperationAtBounds(
             json, instruction_view.machine_layer_start,
@@ -210,26 +89,30 @@ func MirResourceRuntimeRowFactReady(
     if !MirResourceRuntimeRowRequired(expected_operation) {
         expected_operation = machine_operation;
     }
-    let has_row: Bool = row_start >= 0;
+    let row_bounds: Array<Int> = [0, 0];
+    let has_row: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end, "runtime_call_abi", row_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
-        if has_row && row_start < row_end &&
-            JsonCharCodeAt(json, row_end, row_start) ==
+        if has_row && row_bounds[0] < row_bounds[1] &&
+            JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) ==
                 JsonAsciiCode("{") {
             expected_operation = MirObjectStringFactAtBounds(
-                json, row_start, row_end, "operation");
+                json, row_bounds[0], row_bounds[1], "operation");
         }
     }
-    let has_aux: Bool = aux_start >= 0;
+    let aux_bounds: Array<Int> = [0, 0];
+    let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
+        json, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
         return !required && !has_row && !has_aux;
     }
-    if !has_row || row_start >= row_end ||
-        JsonCharCodeAt(json, row_end, row_start) !=
+    if !has_row || row_bounds[0] >= row_bounds[1] ||
+        JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) !=
             JsonAsciiCode("{") {
         return false;
     }
     let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, row_start, row_end);
+        json, row_bounds[0], row_bounds[1]);
     if !JsonObjectFactTableReady(row) ||
         !JsonObjectFactStringFieldEquals(row, "owner", "MIRResource") ||
         !JsonObjectFactStringFieldEquals(
@@ -272,7 +155,7 @@ func MirResourceRuntimeRowFactReady(
     if has_aux {
         let aux_rows: JsonArrayObjectFactTable =
             JsonArrayObjectFactTableFromBounds(
-                json, aux_start, aux_end);
+                json, aux_bounds[0], aux_bounds[1]);
         if !JsonArrayObjectFactTableReady(aux_rows) {
             return false;
         }
