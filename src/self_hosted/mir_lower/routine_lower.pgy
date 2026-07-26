@@ -257,82 +257,81 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, ref routines: MirProgramRout
     return StringJoin(chunks, "");
 }
 
-// A loop whose every body path transfers out (for example, `break` on both
-// branches) has no CFG backedge to project.  Its native summary is still
-// authoritative; detect that shape from the branch facts without reopening
-// the source body.  `while true` is the other canonical no-backedge shape.
-func BlockHasLoopTransfer(ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex, routine_row: Int,
-    block_row: Int) -> Bool {
-    let selection: MirRoutineInstructionSelection =
-        MirRoutineFactIndexBranchAtBlock(
-            index, routines, routine_row, block_row
-        );
-    if !selection.valid { MirLowerFailClosed("invalid loop transfer branch facts"); }
-    if !selection.found { return false; }
-    let instruction: MirRoutineInstructionView = selection.instruction;
-    let scalar: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, instruction.global_row
-        );
-    if !scalar.valid { return false; }
-    let source_type: String = instruction.source_type;
-    let condition: String = scalar.expr0;
-    return source_type == "AST_BREAK" || source_type == "AST_CONTINUE" ||
-        condition == "true";
-}
-
-// A semantic producer is the only source of loop transfer facts.  The
-// self-host projection may use CFG shape to locate the loop headers it will
-// render, but it must admit exactly the already-proven summary rows and may
-// not synthesize a replacement summary from those edges.
-func LoopFlowSummaryProjectionReady(
-    ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex,
-    routine_row: Int
-) -> Bool {
+// Project only already-proven loop summaries; CFG shape locates their headers
+// but never synthesizes replacement semantic facts.
+func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex, routine_row: Int) -> Bool {
+    let block_count: Int = ArrayLength(index.block_starts);
     let summary_count: Int = ArrayLength(index.loop_flow_summary_loop_ids);
+    if !index.valid || !MirProgramRoutineIndexRowReady(routines, routine_row) {
+        return false;
+    }
+    let owner_block_start: Int = routines.routine_block_starts[routine_row];
+    if index.routine_start != routines.starts[routine_row] || index.routine_end != routines.ends[routine_row] ||
+        routines.routine_block_counts[routine_row] != block_count || owner_block_start < 0 ||
+        owner_block_start + block_count > ArrayLength(routines.block_starts) || owner_block_start + block_count > ArrayLength(routines.block_ends) ||
+        owner_block_start + block_count > ArrayLength(routines.block_instruction_starts) || owner_block_start + block_count > ArrayLength(routines.block_instruction_counts) ||
+        block_count != ArrayLength(index.block_ends) || block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) || !MirRoutineInstructionFactBundleReady(index.instruction_facts, block_count) ||
+        block_count != ArrayLength(index.backedge_headers) || block_count != ArrayLength(index.instruction_facts.block_branch_global_rows) ||
+        summary_count != ArrayLength(index.loop_flow_summary_kinds) { return false; }
     let summary_row: Int = 0;
     let block_row: Int = 0;
     let has_backedge: Bool = false;
     let has_loop_transfer: Bool = false;
-    while block_row < ArrayLength(index.backedge_headers) {
-        let block_is_backedge: Bool =
-            index.backedge_headers[block_row] == 1;
-        let cond: String = BlockCond(
-            index, routines, routine_row, block_row
-        );
-        let is_for: Bool = StringLength(cond) >= 4 &&
-            Substring(cond, 0, 4) == "for ";
+    while block_row < block_count {
+        let owner_block_row: Int = owner_block_start + block_row;
+        if index.block_starts[block_row] != routines.block_starts[owner_block_row] || index.block_ends[block_row] != routines.block_ends[owner_block_row] ||
+            index.block_instruction_starts[block_row] != routines.block_instruction_starts[owner_block_row] - index.instruction_facts.global_start ||
+            index.block_instruction_counts[block_row] != routines.block_instruction_counts[owner_block_row] { return false; }
+        let block_is_backedge: Bool = index.backedge_headers[block_row] == 1;
+        let branch_global_row: Int = index.instruction_facts.block_branch_global_rows[block_row];
+        if branch_global_row < (0 - 1) { return false; }
+        let is_for: Bool = false;
+        let has_branch_condition: Bool = false;
+        if branch_global_row >= 0 {
+            let selection: MirRoutineInstructionSelection =
+                MirRoutineFactIndexBranchAtBlock(index, routines, routine_row, block_row);
+            if !selection.valid || !selection.found ||
+                selection.instruction.global_row != branch_global_row { return false; }
+            let scalar: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(index.instruction_facts,
+                    branch_global_row);
+            if !scalar.valid { return false; }
+            let branch_source_type: String = selection.instruction.source_type;
+            let abrupt: Bool = branch_source_type == "AST_BREAK" ||
+                branch_source_type == "AST_CONTINUE";
+            if branch_source_type == "AST_FOR_LOOP" {
+                if scalar.arg0 == "" || scalar.expr0 == "" ||
+                    scalar.expr1 == "" { return false; }
+                is_for = true;
+                if scalar.expr0 == scalar.expr1 {
+                    let iterable_type: String = MirRoutineFactIndexSourceLocalType(
+                        index, scalar.expr0);
+                    if MirIterationTypeIsSupportedCollection(iterable_type) {
+                        let binding_type: String = MirRoutineFactIndexSourceLocalType(index, scalar.arg0);
+                        if !MirIterationTypeFactsAdmitForEach(index.iteration_type_facts, binding_type, iterable_type) { return false; }
+                    }
+                }
+            }
+            has_branch_condition = !abrupt && StringLength(scalar.expr0) > 0;
+            if abrupt || scalar.expr0 == "true" { has_loop_transfer = true; }
+        }
         // Backedge analysis can mark an inner merge target in the same cycle
         // as the real loop header.  Only a backedge target carrying a branch
         // condition is a renderable loop header; the merge remains ordinary
         // body CFG.
-        let is_loop: Bool = is_for ||
-            (block_is_backedge && StringLength(cond) > 0);
-        if block_is_backedge {
-            has_backedge = true;
-        }
-        if BlockHasLoopTransfer(
-            index, routines, routine_row, block_row
-        ) {
-            has_loop_transfer = true;
-        }
+        let is_loop: Bool = is_for || (block_is_backedge && has_branch_condition);
+        if block_is_backedge { has_backedge = true; }
         if is_loop {
-            if summary_row >= summary_count {
-                return false;
-            }
+            if summary_row >= summary_count { return false; }
             let expected_kind: Int = index.loop_flow_summary_kinds[summary_row];
-            if (expected_kind == 1) != is_for {
-                return false;
-            }
+            if (expected_kind == 1) != is_for { return false; }
             summary_row = summary_row + 1;
         }
         block_row = block_row + 1;
     }
-    if summary_row == summary_count {
-        return true;
-    }
+    if summary_row == summary_count { return true; }
     // No backedge means no structured loop node will be emitted.  Permit the
     // already-proven while summaries only when the CFG contains an explicit
     // loop transfer; a forged `for` kind remains rejected.

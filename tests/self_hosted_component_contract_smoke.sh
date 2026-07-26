@@ -10489,8 +10489,51 @@ reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func BlockCond(" "MirObjectStringFactAtBounds("
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitBlockStmts(" "MirObjectStringFactAtBounds("
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func BlockHasLoopTransfer("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.instruction_facts.block_branch_global_rows[block_row]"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let block_count: Int = ArrayLength(index.block_starts);"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "!MirRoutineInstructionFactBundleReady("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "block_count != ArrayLength(index.backedge_headers)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.instruction_facts.block_branch_global_rows"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "if branch_global_row < (0 - 1) { return false; }"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'if branch_source_type == "AST_FOR_LOOP" {'
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "func BlockHasLoopTransfer(" "MirObjectStringFactAtBounds("
+    "func LoopFlowSummaryProjectionReady(" \
+    "BlockCond("
+reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func LoopFlowSummaryProjectionReady(" 'Substring(cond, 0, 4) == "for "'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "selection.instruction.global_row != branch_global_row"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'let abrupt: Bool = branch_source_type == "AST_BREAK" ||'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'if abrupt || scalar.expr0 == "true" {'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'if scalar.arg0 == "" || scalar.expr0 == "" ||'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "if scalar.expr0 == scalar.expr1 {"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirIterationTypeIsSupportedCollection(iterable_type)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "MirIterationTypeFactsAdmitForEach("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.routine_start != routines.starts[routine_row]"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.routine_end != routines.ends[routine_row]"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "let owner_block_row: Int = owner_block_start + block_row;"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.block_starts[block_row] != routines.block_starts[owner_block_row]"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "index.block_instruction_counts[block_row] != routines.block_instruction_counts[owner_block_row]"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "let expr0: String = scalar.expr0;"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -10499,6 +10542,22 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineFactIndexBranchAtBlock("
 require_text_count_at_least "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineFactIndexBranchAtBlock(" 3
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-invalid-branch-sentinel-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-cross-block-branch-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-for-projection-arg0-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-for-projection-expr0-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-for-projection-expr1-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-for-projection-row-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-same-endpoint-range-failed"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-no-branch-span-failed"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirRoutineInstructionViewOfKind("
 reject_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \

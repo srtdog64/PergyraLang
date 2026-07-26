@@ -4,6 +4,7 @@ import "../../../src/self_hosted/mir_lower/program_routine_index_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_instruction_view_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
 import "../../../src/self_hosted/mir_lower/abi_layout_fact_owner.pgy";
+import "../../../src/self_hosted/mir_lower/routine_lower.pgy";
 
 func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
@@ -337,6 +338,135 @@ func Main() -> Void {
         out_of_block_branch_index, branch_program, 0, 0
     ).valid {
         Log("mir-program-routine-index-owner-out-of-block-branch-failed");
+        failures = failures + 1;
+    }
+    let invalid_sentinel_branch_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(branch_program, 0);
+    let invalid_sentinel_branch_rows: Array<Int> =
+        invalid_sentinel_branch_index.instruction_facts.block_branch_global_rows;
+    ArraySet(invalid_sentinel_branch_rows, 0, 0 - 2);
+    if MirRoutineFactIndexBranchAtBlock(
+        invalid_sentinel_branch_index, branch_program, 0, 0
+    ).valid {
+        Log("mir-program-routine-index-owner-invalid-branch-sentinel-failed");
+        failures = failures + 1;
+    }
+    let cross_block_first: String = Concat(
+        "{\"id\":0,\"instructions\":[", Concat(first_instruction, "]}")
+    );
+    let cross_block_second: String = Concat(
+        "{\"id\":1,\"instructions\":[", Concat(branch_instruction, "]}")
+    );
+    let cross_block_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"CrossBlock\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
+        Concat(cross_block_first, Concat(",", Concat(cross_block_second, "]}")))
+    );
+    let cross_block_json: String = Concat(
+        prefix, Concat(cross_block_routine, "]}")
+    );
+    let cross_block_document: MirDocumentFactIndex =
+        BuildMirDocumentFactIndex(cross_block_json);
+    let cross_block_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(cross_block_document.routines);
+    let cross_block_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(cross_block_program, 0);
+    let cross_block_branch_rows: Array<Int> =
+        cross_block_index.instruction_facts.block_branch_global_rows;
+    ArraySet(cross_block_branch_rows, 0, 1);
+    if MirRoutineFactIndexBranchAtBlock(
+        cross_block_index, cross_block_program, 0, 0
+    ).valid {
+        Log("mir-program-routine-index-owner-cross-block-branch-failed");
+        failures = failures + 1;
+    }
+    let no_branch_projection_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(index, 0);
+    if !LoopFlowSummaryProjectionReady(
+        no_branch_projection_index, index, 0
+    ) {
+        Log("mir-program-routine-index-owner-no-branch-projection-failed");
+        failures = failures + 1;
+    }
+    let no_branch_span_starts: Array<Int> =
+        no_branch_projection_index.block_starts;
+    ArraySet(no_branch_span_starts, 0, no_branch_span_starts[0] + 1);
+    if LoopFlowSummaryProjectionReady(
+        no_branch_projection_index, index, 0
+    ) {
+        Log("mir-program-routine-index-owner-no-branch-span-failed");
+        failures = failures + 1;
+    }
+    let for_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_FOR_LOOP\",\"arg0\":\"i\",\"expr0\":\"0\",\"expr1\":\"10\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let for_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"ForProjection\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"loop_flow_summary_count\":1,\"loop_flow_summaries\":[{\"loop_syntax_id\":1,\"kind\":\"for\",\"effect_base\":0,\"effect_delta\":0,\"flags\":0,\"entry_state_start\":0,\"entry_state_count\":0,\"exit_state_start\":0,\"exit_state_count\":0}],\"loop_flow_state_count\":0,\"loop_flow_states\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        Concat(for_instruction, "]}]}")
+    );
+    let for_json: String = Concat(prefix, Concat(for_routine, "]}"));
+    let for_document: MirDocumentFactIndex = BuildMirDocumentFactIndex(for_json);
+    let for_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(for_document.routines);
+    let for_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(for_program, 0);
+    if !LoopFlowSummaryProjectionReady(for_index, for_program, 0) {
+        Log("mir-program-routine-index-owner-for-projection-failed");
+        failures = failures + 1;
+    }
+    let same_endpoint_for_json: String = StringReplace(
+        for_json, "\"expr1\":\"10\"", "\"expr1\":\"0\""
+    );
+    let same_endpoint_for_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(same_endpoint_for_json);
+    let same_endpoint_for_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(same_endpoint_for_program, 0);
+    if !LoopFlowSummaryProjectionReady(
+        same_endpoint_for_index, same_endpoint_for_program, 0
+    ) {
+        Log("mir-program-routine-index-owner-same-endpoint-range-failed");
+        failures = failures + 1;
+    }
+    let missing_for_arg0_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(for_program, 0);
+    let missing_for_arg0s: Array<String> =
+        missing_for_arg0_index.instruction_facts.arg0s;
+    ArraySet(missing_for_arg0s, 0, "");
+    let missing_for_expr0_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(for_program, 0);
+    let missing_for_expr0s: Array<String> =
+        missing_for_expr0_index.instruction_facts.expr0s;
+    ArraySet(missing_for_expr0s, 0, "");
+    let missing_for_expr1_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(for_program, 0);
+    let missing_for_expr1s: Array<String> =
+        missing_for_expr1_index.instruction_facts.expr1s;
+    ArraySet(missing_for_expr1s, 0, "");
+    let malformed_projection_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(for_program, 0);
+    let malformed_projection_rows: Array<Int> =
+        malformed_projection_index.instruction_facts.block_branch_global_rows;
+    ArraySet(malformed_projection_rows, 0, 0 - 2);
+    if LoopFlowSummaryProjectionReady(
+        missing_for_arg0_index, for_program, 0
+    ) {
+        Log("mir-program-routine-index-owner-for-projection-arg0-failed");
+        failures = failures + 1;
+    }
+    if LoopFlowSummaryProjectionReady(
+        missing_for_expr0_index, for_program, 0
+    ) {
+        Log("mir-program-routine-index-owner-for-projection-expr0-failed");
+        failures = failures + 1;
+    }
+    if LoopFlowSummaryProjectionReady(
+        missing_for_expr1_index, for_program, 0
+    ) {
+        Log("mir-program-routine-index-owner-for-projection-expr1-failed");
+        failures = failures + 1;
+    }
+    if LoopFlowSummaryProjectionReady(
+        malformed_projection_index, for_program, 0
+    ) {
+        Log("mir-program-routine-index-owner-for-projection-row-failed");
         failures = failures + 1;
     }
     let duplicate_branch_block: String = Concat(
