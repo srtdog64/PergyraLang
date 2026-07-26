@@ -8571,3 +8571,37 @@ Released/default replacement remains 0%.
   reads in `BuildMirRoutineFactIndex`. It must preserve the existing fact-index
   owner and fail-closed `cfg_successor` contract rather than introducing a
   program-global graph or backend-specific path.
+
+### 2026-07-26 -- Block-successor pair capture is rejected and reverted
+
+- `8c49f74f` replaced the two direct block reads for `succ_true` and
+  `succ_false` with one order-independent capture in the existing MIR JSON fact
+  transport owner. `MirRoutineFactIndex` remained the semantic owner; no
+  program-global carrier, second graph, cache, backend split, or old-read
+  fallback was introduced.
+- Focused current-source C/LLVM and component gates covered reordered fields,
+  one or both fields missing, string-valued numbers, plain and escaped
+  semantic duplicates, explicit negatives, and out-of-range targets. Missing
+  alone retained the internal negative sentinel, while present invalid facts
+  failed at `cfg_successor`.
+- The exact-source v52 driver built in 67,265 ms at 2,591.5 MB peak private /
+  2,580.9 MB working set. Its 1,704 ms bounded result remained 414 bytes with
+  SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`.
+  Wrong ABI exited 1 with the owned diagnostic and no output.
+- The correctly observed fixed run completed machine routine-index admission
+  at 83,531 ms and reached routines 704/896/1,600/1,664 at
+  198,093/233,293/291,565/298,472 ms. It timed out at 300,560 ms with 172.9 MB
+  peak private / 176.6 MB working set and no routine 1,728/2,048, MIR-to-AST
+  completion, or gen2 output.
+- Machine admission and routine 704 were 15,964 and 39,276 ms later than v48.
+  This is a material generated-code CPU regression, not memory pressure.
+  `40037e52` reverts v52 and abandons the successor-pair seam. Do not retry it
+  as another pair struct, generic wrapper, array carrier, or backend-specific
+  path.
+- An initial v52 full invocation omitted the observation token. Its memory and
+  timeout evidence is retained under the unqualified `v52-300s` label, but it
+  has no valid routine markers. Only `v52-300s-observed` is used above.
+- Accepted performance evidence returns to v48 plus the isolated stray-row
+  fail-closed correction. Self-host completion remains absent: no complete
+  `driver_gen2.c`, gen2 compilation, or gen3 comparison exists.

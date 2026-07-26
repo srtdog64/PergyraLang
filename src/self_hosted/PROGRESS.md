@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-26 rejected block-successor pair capture (`8c49f74f`, reverted by
+`40037e52`). The experiment replaced the two direct `succ_true`/`succ_false`
+block reads with one order-independent capture in the existing MIR JSON fact
+transport owner. `MirRoutineFactIndex` remained the fact owner; no second graph,
+global carrier, cache, backend branch, or old-read fallback was added. Focused
+current-source C/LLVM and component gates passed for reordered fields, one or
+both missing fields, string-valued numbers, plain and escaped semantic
+duplicates, explicit negative values, and out-of-range targets. Missing alone
+kept the internal negative sentinel; all present invalid rows failed at
+`cfg_successor`.
+
+The v52 driver built in 67,265 ms at 2,591.5 MB peak private / 2,580.9 MB
+working set, 15,786 ms slower than v48. Its 1,704 ms bounded result remained
+414 bytes with SHA-256
+`0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+wrong ABI exited 1 with the owned diagnostic and no output. The correctly
+observed fixed run completed machine routine-index admission at 83,531 ms,
+reached routine 704 at 198,093 ms, 896 at 233,293 ms, 1,600 at 291,565 ms,
+and 1,664 at 298,472 ms, then timed out at 300,560 ms with only 172.9 MB peak
+private / 176.6 MB working set. Against v48, machine admission was 15,964 ms
+later and routine 704 was 39,276 ms later. No routine 1,728/2,048,
+`consumer:mir-to-ast:done`, or gen2 output exists. This is another generated-
+code CPU regression, not memory pressure. The successor pair seam is abandoned;
+do not try a second pair carrier/parser shape. Accepted performance evidence
+returns to v48 plus the isolated stray-row fail-closed correction.
+
 2026-07-26 rejected the second and final resource-runtime read-shape
 experiment (`e6abdeaa`, reverted by `6879f0c0`).
 `MirResourceRuntimeRowFactReady` replaced four independent top-level object

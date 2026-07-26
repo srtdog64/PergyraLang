@@ -79,9 +79,12 @@ not turn whole-language soundness into the next global-closure project.
 
 ## Resume checkpoint
 
-- Implementation checkpoint: `6879f0c0` (revert rejected v51 resource local
-  scan) on `main`. The rejected v51 implementation is `e6abdeaa`; the rejected
-  v50 carrier is `530682af`, reverted by `c5ee6e62`. Accepted compiler source
+- Implementation checkpoint: `40037e52` (revert rejected v52 block-successor
+  pair capture) on `main`. The rejected v52 implementation is `8c49f74f`.
+  The successor-pair seam is abandoned after its first measured shape; do not
+  re-express it as another pair struct, wrapper, or carrier. The rejected v51
+  implementation is `e6abdeaa`; the rejected v50 carrier is `530682af`,
+  reverted by `c5ee6e62`. Accepted compiler source
   retains `5e12cf43`'s isolated stray runtime-row fail-closed correction. Its
   accepted performance baseline remains `8074d6c8` branch selection plus that
   correction. The resource ABI performance seam is now abandoned after both
@@ -336,6 +339,8 @@ window. The latest fixed-cap observations are:
 | `full-mir-consumer-resource-raw-capture-v50-300s` | 178.2 MB | 182.3 MB | Rejected experiment timed out at 300,680 ms after routine 704 at 189,951 ms, routine 896 at 222,884 ms, routine 1,600 at 279,085 ms, and routine 1,728 at 296,959 ms; no routine 1,792/2,048 or gen2. Reverted by `c5ee6e62`. |
 | `full-mir-consumer-resource-local-scan-v51-build` | 2576.8 MB | 2565.8 MB | Rejected exact-source experiment compiled in 56,417 ms below the cap but 4,938 ms slower than v48. |
 | `full-mir-consumer-resource-local-scan-v51-300s` | 192.6 MB | 195.6 MB | Rejected experiment timed out at 300,614 ms after routine 704 at 173,196 ms, routine 896 at 204,052 ms, routine 1,600 at 255,976 ms, routine 1,728 at 272,517 ms, and routine 1,792 at 287,519 ms; it lost v48's routine-1,984 marker and produced no gen2. Reverted by `6879f0c0`. |
+| `full-mir-consumer-block-successor-pair-v52-build` | 2591.5 MB | 2580.9 MB | Rejected exact-source experiment compiled in 67,265 ms below the cap, 15,786 ms slower than v48. |
+| `full-mir-consumer-block-successor-pair-v52-300s-observed` | 172.9 MB | 176.6 MB | Rejected experiment timed out at 300,560 ms after machine routine-index completion at 83,531 ms and routines 704/896/1,600/1,664 at 198,093/233,293/291,565/298,472 ms; no routine 1,728/2,048 or gen2. Reverted by `40037e52`. |
 
 The cursor run completed in 869,913 ms before the pressure owner stopped it
 inside routine `SemanticExpressionGraphNodeKind`. `e5587bee` then removed the
@@ -635,7 +640,7 @@ body gate green.
 
 ## Last observed gates
 
-Green on current checkpoint `5e12cf43` plus the accepted v48 measurements:
+Green on current checkpoint `40037e52` plus the accepted v48 measurements:
 
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/self_hosted/parity/json_bounded_string_owner_smoke.sh` (C/LLVM,
@@ -731,7 +736,10 @@ v49 evidence remains under
 evidence remains under
 `full-mir-consumer-resource-raw-capture-v50-300s.*`. The rejected/reverted v51
 evidence remains under
-`full-mir-consumer-resource-local-scan-v51-300s.*`. The current accepted
+`full-mir-consumer-resource-local-scan-v51-300s.*`. The rejected/reverted v52
+successor-pair evidence remains under
+`full-mir-consumer-block-successor-pair-v52-{build,bounded,wrong-abi,300s,300s-observed}.*`;
+only the `300s-observed` run has valid routine-marker evidence. The current accepted
 executable is
 `.tmp/self_hosted/driver_bootstrap/driver_rung2_v48_branch_index_admission.exe`; its
 414-byte bounded result is
@@ -745,32 +753,35 @@ evidence only, not semantic authority or commit content.
 
 ## Next executable work
 
-1. The resource ABI read seam is abandoned. Both v50's expanded carrier and
-   v51's ephemeral local scan passed correctness gates but materially regressed
-   fixed-window CPU progress. Do not add a third resource carrier, guard, or
-   scan shape.
-2. Combine the two direct block-object reads for `succ_true` and `succ_false`
-   into one exact, order-independent pair capture in the existing JSON fact
-   transport owner. `MirRoutineFactIndex.block_succ_true/block_succ_false`
-   remain the semantic owner and last consumers remain graph/backedge/merge/
-   phi. Do not add a program-global carrier, second graph, backend branch,
-   field-order dependency, missing-to-zero guess, or old two-read fallback.
-3. Preserve missing-edge `-1` only for absence. Duplicate, malformed, explicit
-   negative, and out-of-range successor values must fail at `cfg_successor`.
-   Focused current-source C/LLVM gates must cover reordered fields, missing one
-   or both fields, string-valued numbers, duplicate keys, explicit negative,
-   and out-of-range targets. A static ratchet must reject the old two lookups.
-   The quantified full input has 20,022 blocks: one pass removes 20,022 object
-   scans and about 49.5 million character visits overall, including about 1.8
-   million visits in routines 1,984 through 2,048.
-4. Run the same bounded/wrong-ABI/full ladder once. Accept only if semantics
-   remain byte-equal and shared markers do not materially regress from v48;
-   otherwise revert before choosing another measured owner seam.
+1. The resource ABI and block-successor pair read seams are abandoned. Their
+   focused correctness gates passed, but their carrier/local-scan/pair shapes
+   materially regressed generated-driver CPU. Do not try another representation
+   of either read consolidation.
+2. Execute the accepted source through the already-declared LLVM performance
+   projection before adding another C-generated parser shape. Objective:
+   determine whether the LLVM-built integrated DRV-2 can take the same complete
+   MIR artifact to gen2 within the unchanged window. Priority is semantic byte
+   parity, then observed bootstrap progress, memory, and build/run time.
+3. Pergyra semantic and canonical MIR facts remain the fact owner. The LLVM
+   backend owns only native projection; the last legitimate consumer is the
+   same integrated driver executable. Forbidden fallbacks are LLVM-specific
+   semantics, a different MIR artifact, C-only regenerated input, backend-
+   conditional owner facts, an unobserved full run, or a raised time/memory
+   budget.
+4. Build `driver_bootstrap_main.pgy` with `--backend=llvm` under the 3,072 MB
+   pressure owner. Require the existing focused C/LLVM gates, the same 414-byte
+   bounded SHA, the same wrong-ABI diagnostic with no output, and one observed
+   300-second full run over the exact 51,807,108-byte admitted artifact. Compare
+   both behavior and marker timing with the accepted C v48 evidence; do not
+   infer a win from backend positioning alone.
 5. Continue the same admitted artifact until `consumer:mir-to-ast:done` is
    observed. Post-loop markers for top-level completion, string join, and AST
    inventory must distinguish projected completion from an observed result.
-6. Continue that same run to emit `driver_gen2.c`, then compile that C as the
-   bootstrap object-code boundary; do not regenerate another oracle MIR.
+   If LLVM regresses or fails projection, record the exact backend failure and
+   return to a newly measured owner seam; do not mutate semantics merely to
+   make LLVM pass.
+6. If the LLVM projection emits a complete `driver_gen2.c`, compile that C as
+   the bootstrap object-code boundary; do not regenerate another oracle MIR.
 7. Make the generated gen2 driver consume the same complete compiler source
    and emit `driver_gen3.c`. Do not divert into global SoT closure or fixture
    expansion; close only a concrete owner seam that blocks this exact run.

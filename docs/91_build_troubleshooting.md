@@ -1054,6 +1054,38 @@ shape. A lower static lookup count remains only a hypothesis until the fixed
 wall-time markers improve. Keep the 300-second/3,072 MB gate fixed and move to
 the separately quantified block-successor pair.
 
+#### One block pass can cost more than two narrow generated readers
+
+The v52 experiment (`8c49f74f`) targeted 20,022 blocks whose successor fields
+are serialized after their instruction arrays. A single order-independent
+capture theoretically removed 20,022 object scans and about 49.5 million
+character visits. It preserved the `MirRoutineFactIndex` owner and rejected
+duplicate, malformed, negative, and out-of-range rows at `cfg_successor` in
+current-source C and LLVM. The static reduction and focused correctness gates
+were real, but they did not predict generated-program cost.
+
+The exact-source driver build took 67,265 ms at 2,591.5 MB peak private /
+2,580.9 MB working set, versus v48's 51,479 ms. In the correctly observed
+fixed run, machine routine-index completion moved from 67,567 to 83,531 ms,
+routine 704 moved from 158,817 to 198,093 ms, routine 896 moved from 187,672
+to 233,293 ms, and routine 1,600 moved from 235,166 to 291,565 ms. The last
+marker was routine 1,664 at 298,472 ms; timeout was 300,560 ms at only 172.9 MB
+peak private / 176.6 MB working set. No gen2 file was opened.
+
+The new 97-line stateful capture and aggregate-return shape therefore cost
+more in the generated compiler than the removed byte visits saved. The
+pre-MIR marker regression directly attributes material cost to routine-index
+admission rather than later lowering. `40037e52` reverts the experiment and
+abandons this successor-pair seam. Do not repeat it with another pair struct,
+array carrier, or generic two-field wrapper.
+
+One earlier v52 pressure invocation omitted
+`--observe-mir-consumer-stages`. Its 300,304 ms timeout and 172.3/176.1 MB
+memory observation remain valid, but its empty stage stream is not valid
+marker evidence. The separately labeled `v52-300s-observed` run above is the
+only v52 marker comparison. Always pass the observation token when a fixed
+MIR-consumer run is intended to compare routine progress.
+
 ### Owned semantic scratch: heap corruption versus retained memory
 
 The first owned-String cleanup attempt exposed a separate correctness failure,
