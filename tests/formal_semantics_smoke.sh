@@ -995,6 +995,9 @@ echo "formal semantics smoke: ok"
 #
 # Keep the proof inventory compatible with the macOS system Bash 3.2.
 coq_proofs="\
+docs/semantics/proofs/PergyraCore.v \
+docs/semantics/proofs/PergyraCoreComposition.v \
+docs/semantics/proofs/PergyraCoreZoneBridge.v \
 docs/semantics/proofs/SlotCalculus.v \
 docs/semantics/proofs/AxisOwnership.v \
 docs/semantics/proofs/IntentStepSoundness.v \
@@ -1089,10 +1092,13 @@ if [ -z "$coq_compile" ]; then
 else
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
     for coq_proof in $coq_proofs; do
+        coq_proof_base="$(basename "$coq_proof")"
         if command -v timeout >/dev/null 2>&1; then
-            (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile "$coq_proof")
+            (cd "$ROOT_DIR/docs/semantics/proofs" && \
+                timeout "$coq_timeout" $coq_compile -Q . "" "$coq_proof_base")
         else
-            (cd "$ROOT_DIR" && $coq_compile "$coq_proof")
+            (cd "$ROOT_DIR/docs/semantics/proofs" && \
+                $coq_compile -Q . "" "$coq_proof_base")
         fi
     done
     echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs machine-checked" \

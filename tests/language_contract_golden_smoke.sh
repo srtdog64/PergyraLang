@@ -131,8 +131,10 @@ require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate dele
 # hardcoding one binary. And "type-check when available" turned out to mean the
 # gate passed green on runners with no prover at all (macOS CI was skipping the
 # whole corpus), so the absence of a prover is now fatal unless the skip is
-# declared -- that stronger contract is pinned here too.
-require_text "tests/formal_semantics_smoke.sh" '$coq_compile "$coq_proof"'
+# declared -- that stronger contract is pinned here too. The shared
+# PergyraCore root also makes the sibling-module load path load-bearing.
+require_text "tests/formal_semantics_smoke.sh" 'docs/semantics/proofs/PergyraCore.v'
+require_text "tests/formal_semantics_smoke.sh" '-Q . "" "$coq_proof_base"'
 require_text "tests/formal_semantics_smoke.sh" "PGY_ALLOW_MISSING_COQ"
 require_text "tests/slot_calculus_adequacy_smoke.sh" "SlotCalculus.v model <-> slot_manager.h runtime consistent"
 require_text "tests/axis_keyword_adequacy_smoke.sh" "Coq keyword_axis (AxisOwnership.v section 8) = docs/42 axis"
