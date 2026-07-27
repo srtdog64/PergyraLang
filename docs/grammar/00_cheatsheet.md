@@ -118,8 +118,12 @@ pin slot as view: ReadView<T> { ... }                                    // type
 if c { } else { }      while c { }      for x in xs { }
 match v { case A: ...   case B(p): ...   default: ... }
 parallel { ... }       let h = spawn F(args); await h;
-channel<Int> ch;       select { ... }
+select { ... }
 ```
+
+`channel`은 예약어로 등록돼 있지만 아직 파서가 읽지 않는다. `channel<Int> ch;`는
+현재 파스되지 않으므로 위 목록에서 뺐다 — 상태는
+`docs/199_language_word_and_dogfood_grammar.md` §5가 소유한다.
 
 ## 8. 능력 게이트 / effect 선언
 

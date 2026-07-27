@@ -247,4 +247,40 @@ grep -Fq 'all_keywords_tokens.txt' \
     "$ROOT_DIR/src/self_hosted/lexer/fixture_manifest_owner.pgy" ||
     fail "lexer fixture manifest is missing all_keywords_tokens.txt"
 
-echo "[language-keyword-registry] ok (145 rows; 71 reserved lexer rows; 74 parser selectors; 9 fixtures)"
+# Keyword adequacy ratchet: a RESERVED word with no parser selector is dead
+# surface. It takes the spelling away from user identifiers and gives nothing
+# back -- the program can neither name a variable `channel` nor write a channel
+# declaration, because the lexer emits TOKEN_CHANNEL and no parser reads it.
+# That fails two clauses of the adequacy rule in docs/42_keyword_orthogonality.md
+# ("must have a compiler fact owner", "must carry a proof/diagnostic/backend/
+# runtime/verifier obligation"). The generated inventory already REPORTS the
+# condition; nothing failed on it, so it could accumulate silently.
+#
+# `channel` is the one known row in this state and is named here rather than
+# hidden, in the same spirit as the Coq axiom budget: a declared exception, not
+# a blanket allowance. Its resolution -- implement it, demote it to contextual
+# so the spelling returns to users, or drop the row -- is a language-roadmap
+# decision, and whichever is chosen, this list must shrink and never grow.
+KNOWN_DEAD_RESERVED="channel"
+
+dead_reserved=$(awk -F'|' '
+    /^\| `/ {
+        gsub(/[` ]/, "", $2); gsub(/ /, "", $3); gsub(/ /, "", $10)
+        if ($3 == "reserved" && $10 == "no-parser-selector") print $2
+    }' "$INVENTORY" | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
+expected_dead=$(printf '%s\n' $KNOWN_DEAD_RESERVED | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
+
+if [ "$dead_reserved" != "$expected_dead" ]; then
+    echo "[language-keyword-registry] keyword adequacy drifted." >&2
+    echo "  reserved words with NO parser selector (dead surface):" >&2
+    echo "    expected: ${expected_dead:-<none>}" >&2
+    echo "    actual:   ${dead_reserved:-<none>}" >&2
+    echo "  A reserved word must be read by some parser, or it only costs" >&2
+    echo "  users the identifier. Give the new row a selector, declare it" >&2
+    echo "  contextual, or -- if the debt is deliberate -- update" >&2
+    echo "  KNOWN_DEAD_RESERVED in this gate." >&2
+    exit 1
+fi
+
+echo "[language-keyword-registry] ok (145 rows; 71 reserved lexer rows; 74 parser selectors; 9 fixtures;" \
+     "dead reserved surface pinned at $(printf '%s\n' $KNOWN_DEAD_RESERVED | wc -w | tr -d '[:space:]'): $expected_dead)"

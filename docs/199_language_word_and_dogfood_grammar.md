@@ -129,7 +129,7 @@ func CharAt(s: String, i: Int) -> String {
 - **함수 PascalCase, 지역 snake_case.**
 - 주석은 *무엇*이 아니라 **왜**를 적는다.
 
-### 2.2 고유 표면은 선언됐지만 production bootstrap에는 아직 도달하지 않는다
+### 2.2 첫 production subject/action은 도달했고 world/zone/intent는 아직 아니다
 
 컴파일러 파이프라인의 목표 토폴로지는
 world/zone/subject/object/authority로 선언돼 있다. 그러나 “선언이
@@ -165,24 +165,32 @@ intent FrontendPipeline(intake: SourceIntakeZone, ...) {
 ```
 
 `step`의 `where/using/who/on/expect`는 docs/198의 포지셔닝
-**"의도·권한·수명·예산 없이 효과 없음"**을 표현할 수 있는 문법이다. 현재는
-아키텍처/파서 표면 검사 대상이지 load-bearing bootstrap 실행 증거가 아니다.
+**"의도·권한·수명·예산 없이 효과 없음"**을 표현할 수 있는 문법이다. 이
+world/zone/intent 묶음은 현재 아키텍처/파서 표면 검사 대상이지 load-bearing
+bootstrap 실행 증거가 아니다. 다만 direct-MIR mode에는 별도의 production
+`DriverRung2Execution` subject와 `EmitDirectMir` action이 실제로 연결됐다.
 
 canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
 같다.
 
-- import closure 395개, missing import 0;
-- fixture/generated/probe 제외 reachable source 394개;
-- reachable 선언은 `func` 2,641, `struct` 174, `enum` 1;
-- reachable `world/zone/subject/action/intent/role/ability/effect` 선언은 전부 0;
-- 비-fixture Pergyra-native syntax는 unreachable한 `compiler/world.pgy`,
-  `compiler/stage_intents.pgy`, `compiler/authority_owner.pgy` 세 파일에만 존재;
+- import closure 396개, missing import 0;
+- fixture/generated/probe 제외 reachable source 395개;
+- reachable 선언은 `func` 2,643, `struct` 175, `enum` 3, `subject` 1,
+  `action` 1;
+- reachable `world/zone/intent/role/ability/effect` 선언은 아직 전부 0;
+- `compiler/driver_rung2_execution_owner.pgy`의 subject/action은 direct-MIR
+  production mode에서 `REACHABLE`이고, 기존 direct call과 output write를
+  `Main`에서 제거했다;
+- 나머지 비-fixture Pergyra-native syntax는 unreachable한
+  `compiler/world.pgy`, `compiler/stage_intents.pgy`,
+  `compiler/authority_owner.pgy` 세 파일에 존재;
 - `world.pgy`의 action 16개는 19개 `Compiler*Ready()` 결합만 반환하며 실제
   source/MIR/backend artifact 경로를 호출하지 않는다.
 
-따라서 현재 bootstrap은 99.96% `func + struct` 선언으로 구성된 실행
-그래프이고, Pergyra 고유 표면은 목표 골격이다. 이를 실행 dogfood로 바꾸는
-규칙과 첫 takeover rung은
+따라서 현재 bootstrap에는 첫 Pergyra-native orchestration 경계가 생겼지만,
+world/zone/intent와 source-to-MIR mode는 아직 목표 골격이다. 이 action은
+`REACHABLE`이며 C-owned 구현을 대체하지 않았으므로 `SUBSTITUTING` 진척으로
+세지 않는다. 이후 takeover 규칙은
 `docs/self_hosted/17_pergyra_native_dogfood_contract.md`가 소유한다.
 
 ---
@@ -232,6 +240,12 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 
 ## 4. 미해결 / 주의
 
+- direct-MIR `DriverRung2Execution.EmitDirectMir`만 현재 `REACHABLE`이다.
+  source-to-MIR/source-to-C mode와 `PgyCompilerWorld`/zone/root intent는 아직
+  기존 func 경로나 unreachable 표면에 남아 있다.
+- subject/action이 전역 helper를 호출하는 C 선언 순서는
+  `subject_action_global_helper` backend-compare 사례가 고정한다. action에
+  중복 C prototype이나 local fallback을 넣어 이 순서를 우회하지 않는다.
 - 실제 parser selector 증거는 typed 80 / direct-only 18 / native-only 46 /
   양쪽 없음 1이다. `SUPPORT_SELF_HOST` 비트로 계산한 112개를 구현 완료로
   인용하지 않는다.
@@ -245,3 +259,59 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 - 선언형 raw count도 production reachability가 아니다. fixture/generated/probe를
   제외한 entrypoint import/call graph로 `SURFACE`, `REACHABLE`,
   `SUBSTITUTING`을 구분한다.
+
+---
+
+## 5. 키워드 적정성 감사 (145행 전수)
+
+`docs/42_keyword_orthogonality.md`의 **키워드 적정성 규칙**은 핵심 키워드가
+(1) 구별되는 세계 모델링 좌표를 이름하고, (2) 컴파일러 fact owner를 가지며,
+(3) proof/diagnostic/backend/runtime/verifier 의무를 지고, (4) 이웃과 직교하며,
+(5) 도메인 명사가 아닐 것을 요구한다. 이 중 (2)·(3)은 기계적으로 감사 가능하다 —
+"어떤 파서가 이 단어를 실제로 읽는가"로 환원되기 때문이다.
+
+생성 인벤토리 기준 증거 클래스 × 단어 클래스:
+
+| 증거 | reserved | contextual | soft |
+|---|---:|---:|---:|
+| native + self-host typed | 47 | 33 | – |
+| native-only | 13 | 30 | 3 |
+| direct-string only (부채) | 10 | 8 | – |
+| **parser selector 없음** | **1** | 0 | 0 |
+
+**규칙은 145행 중 144행에서 지켜진다.** 확인된 긍정 신호 하나: fixture 0개인
+단어가 31개인데 **전부 contextual/soft**이고, 예약어 71개는 **전원 최소 1개
+픽스처를 가진다.** 이름을 뺏는 단어에는 예외 없이 테스트가 붙는다.
+
+### 5.1 위반 1건: `channel`
+
+레지스트리는 `channel`을 RESERVED로, `SUPPORT_NATIVE | SUPPORT_SELF_HOST`로,
+declaration/expression/type 세 문맥 전부로 선언한다. 실제로는:
+
+- `TOKEN_CHANNEL`은 `src/lexer/lexer.h:115`에 **선언만 되고 그 외 참조가 0건**이다
+  (`TOKEN_CHANNEL_OP`은 `<-` 연산자로 별개 토큰);
+- 네이티브 파서 selector 0, self-host typed selector 0.
+
+실측 (`bin/pgy --backend=c`):
+
+```
+channel<Int> ch;        → parse error: Unexpected token in expression
+let channel: Int = 1;   → parse error: Expected variable name
+```
+
+**양방향 손실**이다. 예약어라 사용자에게서 `channel` 스펠링을 뺏지만, 문법으로는
+아무것도 하지 않는다. 적정성 규칙 (2)·(3) 위반. 같은 치트시트 줄의 `select`는
+정상 파스되며 `spawn`/`async`/`await`도 통과하므로, async 계열 전체가 아니라
+**이 한 단어만 구멍**이다.
+
+조치:
+- `docs/grammar/00_cheatsheet.md`가 `channel<Int> ch;`를 작동 문법으로 광고하던
+  줄을 제거했다(문서 드리프트).
+- `tests/language_keyword_registry_smoke.sh`에 **적정성 래칫**을 추가했다:
+  "reserved인데 parser selector 0"인 행 집합을 `KNOWN_DEAD_RESERVED="channel"`로
+  핀 고정하고, 집합이 달라지면 fail-closed. 인벤토리는 이 상태를 **보고**만 했고
+  아무것도 실패시키지 않아 조용히 누적될 수 있었다. Coq axiom budget과 같은
+  방식 — 감춤이 아니라 **선언된 예외**이며, 이 목록은 줄어들 수만 있다.
+
+`channel`의 처분(구현 / contextual 강등으로 스펠링 반환 / 행 제거)은 언어 로드맵
+결정이므로 이 문서가 정하지 않는다. 어느 쪽이든 위 래칫을 갱신해야 한다.
