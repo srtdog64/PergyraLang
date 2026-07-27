@@ -8,13 +8,16 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - compiler world/action boundary
 
-- Checkout base before this work: `eedebd007a6c3b73bbe621a2767b35fb9d2cc994` on `main`, equal to the observed
-  `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
-  revision. The three protected parity-owner files named below remain separate
-  concurrent user work and are not part of this change.
-- Exact executable/capability checkpoint: `0c85b74e7f25da9774f016faa98f5610b046f3d5`.
-  The handoff refresh that records this checkpoint follows it without changing
-  compiler semantics; use `git rev-parse HEAD` for the exact checkout revision.
+- Exact implementation checkpoint:
+  `dd7fee24daccc5a238b1404c742145fa5c77dcc4` on `main`, with parent
+  `a705f059f13c456b76b82d750d9f849aa3f1d391`. This handoff refresh follows as
+  a documentation-only commit; use `git rev-parse HEAD` for the checkout
+  revision while retaining `dd7fee24` as the executable boundary.
+- Dirty state at the implementation checkpoint contains only three protected
+  concurrent user files, none staged or included in `dd7fee24`:
+  `driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`.
 - Active executable rung: `REACHABLE`, not `SUBSTITUTING`. Production direct
   MIR now follows exactly one graph:
   `driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld ->
@@ -156,16 +159,17 @@ owner, and the named executable gate.
   `FileExists`, host grant denial, and denied-write zero artifact. The
   object/action boundary, documentation-quality, and recursive compiler
   topology gates are also green.
-- Current ActionContract evidence: the latest `mir_lower/main.pgy` compiles
-  with 0 errors/0 warnings; the focused `function_clause_order_minimal` DRV-2
-  gate rebuilt C and LLVM drivers and passed native/self MIR carriage, emitted
-  C/runtime parity, and six fail-closed mutations. The self-host component
-  contract, object/action authoring contract, documentation-quality gates,
-  proof-spine static pack, and SoT live/edge gates are green. No Coq prover is
-  installed, so `SoTAuthority.v` and the proof spine report explicit
-  `DECLARED SKIP`; they were not theorem-checked on this runner.
-  Full parser parity is also green: C and LLVM are byte-equal across all 189
-  sources and the rung-1 summary reports `live-drift=yes`.
+- Current ActionContract evidence: the isolated native compiler build and
+  bootstrap source compile are green. The focused C action subgate observes
+  exact native/self contract carriage and rejects all 11 field/vocabulary wire
+  mutations. After the multi-impl and zone-slot repairs, canonical native/self
+  MIR parity is also green. The containing DRV-2 shard then fails later while
+  consuming that MIR because `Damage` is not admitted to the self-host C ABI
+  type universe; emitted-C/runtime parity for this fixture is therefore not
+  claimed. Callable/language registries, self-host component contracts, runtime
+  header static gates, and SoT live/edge/single-owner gates are green. No Coq
+  prover is installed, so `SoTAuthority.v` reports explicit `DECLARED SKIP` and
+  was not theorem-checked on this runner.
 - Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
   pre-existing Option/Result match-destructuring direct unit cases. The graph
   cycle/provenance cases pass; the full `type_resolution_dag_smoke.sh` wrapper
