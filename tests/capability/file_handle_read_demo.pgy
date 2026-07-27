@@ -1,0 +1,10 @@
+// FileOpen("r") and FileRead both require io_read. The harness seeds this file
+// inside PGY_IO_ROOT before executing the program.
+let input: Int = FileOpen("capability_handle_read.txt", "r");
+if input < 0 {
+    Log("file handle open failed");
+    Exit(1);
+}
+let line: String = FileRead(input);
+FileClose(input);
+Log(line);

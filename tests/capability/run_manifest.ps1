@@ -53,5 +53,22 @@ function Check-Violation($file, $fn) {
 Check-Violation "manifest_violation" "GetTimestamp"
 Check-Violation "manifest_interproc" "entry"
 
+function Check-FileHandleViolation($file, $fn, $missingCap) {
+    $out = Run-Manifest "tests\capability\$file.pgy"
+    $rc = $LASTEXITCODE
+    if ($rc -eq 0) { Write-Host "[FAIL] $file exit=0 (gate did not fire)"; $script:fail++; return }
+    if ($out -notmatch "missing declared capabilities") { Write-Host "[FAIL] $file missing violation message"; $script:fail++ }
+    if ($out -notmatch $fn) { Write-Host "[FAIL] $file should name '$fn'"; $script:fail++ }
+    if ($out -notmatch $missingCap) { Write-Host "[FAIL] $file should name missing '$missingCap'"; $script:fail++ }
+    if ($out -match "missing declared capabilities" -and $out -match $fn -and $out -match $missingCap) {
+        Write-Host "[PASS] $file under-declaration gate fired ($fn -> $missingCap, exit $rc)"
+    }
+}
+Check-FileHandleViolation "file_handle_write_violation" "StreamWrite" "io_write"
+Check-FileHandleViolation "file_handle_read_violation" "StreamRead" "io_read"
+Check-FileHandleViolation "file_handle_dynamic_mode_violation" "OpenDynamic" "io_write"
+Check-FileHandleViolation "file_handle_read_write_violation" "OpenReadWrite" "io_read"
+Check-FileHandleViolation "file_exists_violation" "ProbeExists" "io_read"
+
 if ($fail -eq 0) { Write-Host "ALL PASS (0 failures)"; exit 0 }
 Write-Host "FAILED ($fail)"; exit 1

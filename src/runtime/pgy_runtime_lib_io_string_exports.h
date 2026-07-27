@@ -11,6 +11,7 @@ pgy_runtime_lib_strdup(const char *src)
     return copy;
 }
 #include "pgy_runtime_io_status.h"
+#include "pgy_runtime_file_mode_capability.h"
 #include "pgy_runtime_process_exit.h"
 #include "pgy_runtime_strview_inline.h"
 #include "pgy_runtime_secure_open.h"
@@ -31,16 +32,20 @@ PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
                                                const char *mode)
 {
     char *resolved;
-    bool for_write = false;
+    uint32_t capability_mask;
+    bool for_write;
     int fd = -1;
     if (mode == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_NULL_MODE, "io-boundary", "file-open"));
-    for (const char *p = mode; *p != '\0'; p++) {
-        if (*p == 'w' || *p == 'a' || *p == '+') {
-            for_write = true;
-            break;
-        }
+    capability_mask = pgy_file_mode_capability_mask(mode);
+    for_write = (capability_mask & PGY_CAP_IO_WRITE) != 0u;
+    if (capability_mask == PGY_CAP_IO_WRITE) {
+        pgy_cap_require_export(PGY_CAP_IO_WRITE, "file-open-write");
+    } else if (capability_mask == PGY_CAP_IO_READ) {
+        pgy_cap_require_export(PGY_CAP_IO_READ, "file-open-read");
+    } else {
+        pgy_cap_require_export(capability_mask, "file-open-read-write");
     }
     resolved = pgy_runtime_resolve_file_path(path, for_write);
     if (resolved == NULL)
@@ -79,6 +84,7 @@ int32_t pgy_file_open(const char *path, const char *mode)
 PgyRuntimeIoStringResult pgy_try_file_read_result(int32_t fd)
 {
     char tmp[4096];
+    pgy_cap_require_export(PGY_CAP_IO_READ, "file-read");
     tmp[0] = '\0';
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
@@ -113,6 +119,7 @@ PgyRuntimeIoVoidResult pgy_try_file_write_result(int32_t fd, const char *data)
 {
     size_t len;
     size_t written;
+    pgy_cap_require_export(PGY_CAP_IO_WRITE, "file-write");
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
         pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
@@ -245,7 +252,9 @@ char *pgy_read_stdin(int32_t max_bytes)
 }
 PgyRuntimeIoIntResult pgy_try_file_exists_result(const char *path)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    char *resolved;
+    pgy_cap_require_export(PGY_CAP_IO_READ, "file-exists");
+    resolved = pgy_runtime_resolve_file_path(path, false);
     if (resolved == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED,

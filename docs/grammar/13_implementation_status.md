@@ -54,6 +54,27 @@ subkind (`zone`/`world`). Their slot rows are consumed as constructor facts;
 authority, relation, effect, and topology metadata remain owned by the domain
 semantic layer rather than being silently converted into executable fields.
 
+## Bounded nominal/action claim
+
+The 17/17 self-driver result proves spelling, self-host AST construction,
+declaration rows, and the supported verified-C projection. It does not yet prove
+full nominal/action semantic parity:
+
+- the self-host nominal parser accepts `func`/`action` through one common body
+  path and does not itself own the native subject-only action or struct-method
+  negative;
+- action `with caps`/`with effects` names are parsed but not preserved as one
+  self-host action contract fact;
+- current `pgy.mir.v1` declaration JSON does not carry action identity,
+  `within`, `causes`, authority, requires, caps/effects, or call-site binding;
+- the reached direct-MIR authority hook supports one direct
+  world -> zone -> subject / `authorized by self` shape and its runtime evidence
+  proves non-null presence, not identity-token or ability authorization.
+
+Until those owners and C/LLVM negatives are closed, grammar support is
+`SURFACE` for the broader action contract and `REACHABLE` only for the bounded
+direct-MIR slice. Do not infer completeness from the fixture count.
+
 ## Documentation rule
 
 The implementation matrix above supersedes older "not current surface" notes

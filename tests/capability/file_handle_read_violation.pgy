@@ -1,0 +1,8 @@
+// Literal read mode is refined to io_read; declaring only io_write must fail.
+func StreamRead() -> String
+    with caps io_write {
+    let input: Int = FileOpen("capability_handle_read.txt", "r");
+    let line: String = FileRead(input);
+    FileClose(input);
+    return line;
+}

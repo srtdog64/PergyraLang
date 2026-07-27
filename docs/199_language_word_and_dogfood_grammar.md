@@ -129,7 +129,7 @@ func CharAt(s: String, i: Int) -> String {
 - **함수 PascalCase, 지역 snake_case.**
 - 주석은 *무엇*이 아니라 **왜**를 적는다.
 
-### 2.2 첫 production subject/action은 도달했고 world/zone/intent는 아직 아니다
+### 2.2 direct-MIR subject/action/zone/world 한 slice만 production 도달
 
 `struct`/`class`/`object`/`tobject`/`vessel`/`subject`/`action`의 선택 규칙은
 [`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md)가
@@ -171,31 +171,34 @@ intent FrontendPipeline(intake: SourceIntakeZone, ...) {
 
 `step`의 `where/using/who/on/expect`는 docs/198의 포지셔닝
 **"의도·권한·수명·예산 없이 효과 없음"**을 표현할 수 있는 문법이다. 이
-world/zone/intent 묶음은 현재 아키텍처/파서 표면 검사 대상이지 load-bearing
-bootstrap 실행 증거가 아니다. 다만 direct-MIR mode에는 별도의 production
-`DriverRung2Execution` subject와 `EmitDirectMir` action이 실제로 연결됐다.
+readiness world/zone/intent 묶음 자체는 load-bearing bootstrap 실행 증거가
+아니다. 다만 direct-MIR mode에는 `DriverRung2Execution` subject/action,
+`DriverRung2DirectMirZone`, 기존 `PgyCompilerWorld`의 한 slice가 실제 production
+call chain으로 연결됐다. root intent와 나머지 resource zone은 아직 호출되지
+않는다.
 
 canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
 같다.
 
-- import closure 403개, missing import 0;
-- fixture/generated/probe 제외 reachable source 403개;
-- reachable 선언은 `func` 2,664, `struct` 175, `enum` 4, `subject` 1,
-  `action` 1;
-- reachable `world/zone/intent/role/ability/effect` 선언은 아직 전부 0;
-- `compiler/driver_rung2_execution_owner.pgy`의 subject/action은 direct-MIR
-  production mode에서 `REACHABLE`이고, 기존 direct call과 output write를
-  `Main`에서 제거했다;
-- 나머지 비-fixture Pergyra-native syntax는 unreachable한
-  `compiler/world.pgy`, `compiler/stage_intents.pgy`,
-  `compiler/authority_owner.pgy` 세 파일에 존재;
-- `world.pgy`의 action 16개는 `Compiler*Ready()` 결합만 반환하며 실제
-  source/MIR/backend artifact 경로를 호출하지 않는다.
+- import closure 443개, missing import 0;
+- import-reachable 선언은 `func` 3,473개, `struct` 176개, `enum` 4개,
+  `object` 18개, `tobject` 1개, `subject` 17개, `action` 17개, `zone` 19개,
+  `world` 1개, `intent` 14개, `role` 4개, `ability` 4개;
+- `class`/`vessel`/`effect`/`relation`/`party`/`roster` 선언은 0개;
+- direct-MIR subject/action/zone과 world composition slice는 production mode에서
+  `REACHABLE`이고 `Main`의 direct action/backend bypass는 삭제됐다;
+- `world.pgy`의 나머지 subject/action 16개는 `Compiler*Ready()` 결합만
+  반환하고 production artifact 경로에서 호출되지 않는다;
+- intent 14개와 object/tobject projection schema도 import-reachable하지만
+  active call-site가 없으므로 `SURFACE`다.
 
-따라서 현재 bootstrap에는 첫 Pergyra-native orchestration 경계가 생겼지만,
-world/zone/intent와 source-to-MIR mode는 아직 목표 골격이다. 이 action은
-`REACHABLE`이며 C-owned 구현을 대체하지 않았으므로 `SUBSTITUTING` 진척으로
-세지 않는다. 이후 takeover 규칙은
+따라서 현재 bootstrap에는 subject/action/zone/world를 잇는 첫
+Pergyra-native orchestration slice가 생겼지만 root intent와 source-to-MIR
+artifact action은 아직 목표 골격이다. 이 direct-MIR slice는 `REACHABLE`이며
+C-owned 구현을 대체하지 않았으므로 `SUBSTITUTING` 진척으로 세지 않는다.
+또한 self-host parser가 action contract의 caps/effects를 보존하지 않고
+`pgy.mir.v1`도 action 계약을 운반하지 않으므로 문법 fixture 통과를 full action
+semantic parity로 승격하지 않는다. 이후 takeover 규칙은
 `docs/self_hosted/17_pergyra_native_dogfood_contract.md`가 소유한다.
 
 ---
@@ -245,9 +248,9 @@ world/zone/intent와 source-to-MIR mode는 아직 목표 골격이다. 이 actio
 
 ## 4. 미해결 / 주의
 
-- direct-MIR `DriverRung2Execution.EmitDirectMir`만 현재 `REACHABLE`이다.
-  source-to-MIR/source-to-C mode와 `PgyCompilerWorld`/zone/root intent는 아직
-  기존 func 경로나 unreachable 표면에 남아 있다.
+- direct-MIR의 `DriverRung2Execution.EmitDirectMir`과 그 zone/world slice만
+  현재 `REACHABLE`이다. source-to-MIR/source-to-C mode와 root intent는 아직
+  기존 func 경로나 호출되지 않는 표면에 남아 있다.
 - subject/action이 전역 helper를 호출하는 C 선언 순서는
   `subject_action_global_helper` backend-compare 사례가 고정한다. action에
   중복 C prototype이나 local fallback을 넣어 이 순서를 우회하지 않는다.

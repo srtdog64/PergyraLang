@@ -2057,3 +2057,36 @@ Raising the cap,
 removing compiler-world owners to shrink the input graph, splitting the world
 into backend-specific graphs, or hiding the graph in another process does not
 repair the lifetime defect and must not be accepted as the fix.
+
+## `with caps io_write`인데 streaming `FileWrite`가 grant 없이 성공하는 경우
+
+증상은 `WriteFile`은 `PGY_CAP_GRANT=io_read`에서 거부되는데 같은 내용을
+`FileOpen(path, "w") -> FileWrite -> FileClose`로 쓰면 성공하는 것이다. 이는
+action/zone 문제가 아니라 raw file-handle builtin이 static capability inference와
+runtime `pgy_cap_require_export`를 모두 우회한 결함이었다.
+
+현재 native owner는 다음을 고정한다.
+
+- semantic은 literal `r`을 `io_read`, `w`/`a`를 `io_write`, `+`를 양쪽으로
+  추론하고 dynamic/unknown mode는 양쪽을 보수적으로 요구한다;
+- runtime은 실제 `FileOpen` mode를 다시 분류하고 `FileRead`/`FileWrite`에서도
+  각각 capability를 재검사한다;
+- `FileExists`도 ambient read로 분류한다;
+- C/LLVM runtime gate는 denied write가 final artifact를 만들기 전에
+  `class=capability-denied`로 중단되는지 검사한다.
+
+회귀는 다음 두 gate로 확인한다.
+
+```sh
+PGY_BIN=bin/pgy.exe bash tests/capability/run_manifest.sh
+PGY_BIN=bin/pgy.exe bash tests/capability/run_runtime_enforce.sh
+```
+
+이 수정이 artifact commit을 완성한 것은 아니다. `FileWrite`/`FileClose`의
+Pergyra 반환형은 여전히 `Void`, self-host generated C helper는 별도 unchecked
+구현, `FileOpen`의 mode-derived capability는 MIR/AIR call-site fact에 아직 없다.
+또한 final path를 먼저 truncate하므로 short-write/close failure나 process abort
+뒤 기존 artifact 보존을 보장하지 못한다. compiler artifact action에는 raw
+handle API를 더 늘리지 말고 checked same-directory transaction + atomic replace +
+typed receipt를 사용해야 한다. 그 owner가 없으면 `ArtifactCommitted`를 성공
+stage로 기록하지 않는다.

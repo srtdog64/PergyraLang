@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - compiler world/action boundary
 
-- Checkout base before this work: `738fefbd` on `main`, equal to the observed
+- Checkout base before this work: `c8dfcf61c776a4ebd91214624e03906dc6ae1ee8` on `main`, equal to the observed
   `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
   revision. The three protected parity-owner files named below remain separate
   concurrent user work and are not part of this change.
@@ -29,9 +29,31 @@ owner, and the named executable gate.
   `object` / `tobject`; identity-bearing state belongs to `subject`; an
   `action` owns the public authority/state/effect transition; the current
   direct-MIR `zone` owns its authority/lifetime boundary; the compiler `world`
-  delegates once. The next executable rung is a second source-to-MIR
-  subject/action/zone slice; root `intent` takeover follows only after that
-  multi-action graph is executable.
+  delegates once. The full audit now grades `struct` as substituting in the
+  supported computation slice; `class/object/tobject/vessel/intent` remain
+  surface; only one subject/action/zone/world slice is reachable. The next
+  source-to-MIR action must reuse/generalize the active execution boundary
+  rather than mechanically add a zone per compiler stage. Root `intent`
+  takeover follows only after a real multi-action graph is executable.
+- Raw file-handle I/O had a real capability escape. Semantic analysis now
+  refines literal `FileOpen` modes (`r`/`w`/`a`/`+`) and conservatively requires
+  read+write for dynamic modes. Native C-inline and LLVM-linked runtime twins
+  enforce actual open mode plus `FileRead`, `FileWrite`, and `FileExists` at
+  runtime. Shell and PowerShell manifest gates cover read/write
+  under-declaration; the runtime gate covers grant/deny and denied-write
+  zero-artifact behavior.
+- This capability fix does not make raw handles a Pergyra-native artifact
+  transaction. `FileWrite`/`FileClose` are still `Void`, checked errors are not
+  exposed to Pergyra, final paths are truncated before success, self-host
+  generated C has a separate unchecked helper, and FileOpen mode is not yet a
+  MIR/AIR call-site fact. Therefore source-to-MIR `ArtifactCommitted` is
+  explicitly BLOCKED on checked same-directory temp write/flush/close, atomic
+  replace, cleanup, and typed `tobject ArtifactReceipt` evidence.
+- A second completeness blocker is action-contract carriage. The self-host
+  nominal parser does not own the native subject-only action/struct-method
+  negatives, drops action caps/effects after parsing, and current `pgy.mir.v1`
+  declaration JSON omits the action contract. Native ABI parity does not prove
+  self-host source -> MIR action-contract preservation.
 - Authority evidence is deliberately bounded. `MIRDeclMethod` owns declaration
   clauses and `MIRDeclZoneAuthority` owns zone topology. The current C/LLVM
   world hook supports only the exact direct `world -> zone -> subject` receiver
@@ -57,7 +79,7 @@ owner, and the named executable gate.
   when node/edge generation changes. Exact-source C peak private memory fell
   from 3,522.4 MiB to 1,566.4 MiB; LLVM completed at 1,226.0 MiB under the
   unchanged 3,072 MiB cap.
-- Last observed native build: full UCRT64 `make -j4` completed and linked both
+- Last observed native build: incremental UCRT64 `make -j4` completed and linked both
   `bin/pgy.exe` and `bin/pgy-lsp.exe`. Current `world.pgy --emit-c` completed in
   28.1 seconds at 564.1 MiB peak private under the unchanged 3,072 MiB cap.
   Current `driver_bootstrap_main.pgy --backend=c` completed in 104.2 seconds at
@@ -75,13 +97,14 @@ owner, and the named executable gate.
   19-zone/19-member/14-intent topology counters are correct. Existing MIR
   inventory/link gates retain their separately documented pre-existing
   failures; do not weaken any of these gates for this rung.
-- Next falsifying fixture: a second source-to-MIR subject/action/zone slice must
-  join the same `PgyCompilerWorld`, reject invalid source/semantic verdicts
-  without leaving a MIR artifact, and delete the migrated `Main ->
-  CompileSourceTo*` direct edge. Root-intent takeover comes only after that
-  rung. Separately, a call-site authority-binding owner must prove identity and
-  ability before named, multiple, indirect, or generic direct-subject authority
-  shapes can be admitted.
+- Next falsifying fixture: an artifact transaction must preserve a pre-existing
+  sentinel byte/hash under injected open/write/flush/close/publish failure,
+  leave no temp, and return no success receipt; C and LLVM must agree. Then a
+  single `ActionContract` fact must carry subject-only action identity,
+  requires/within/causes/authority/caps/effects through self-host source ->
+  `pgy.mir.v1` -> both backends. Only after those blockers close may the
+  source-to-MIR action delete `Main -> CompileSourceTo*` and claim a committed
+  artifact transition. Root-intent takeover comes after that rung.
 
 The remainder of this file preserves earlier v63-v74 evidence as history. If a
 historical statement below conflicts with this checkpoint, current source,

@@ -38,7 +38,11 @@ require_text "$DOC" '현재 semantic은 passive `func`를 허용하지만 새 �
 require_text "$DOC" '`func == pure`, `action == impure`로 나누지'
 require_text "$DOC" '`causes DamageEffect` 같은 domain effect'
 require_text "$DOC" '`MakeSubject().Action()` 같은 temporary subject receiver'
-require_text "$DOC" '`REACHABLE`이지만 아직 C-owned compiler path를'
+require_text "$DOC" '`REACHABLE`이지만 아직 C-owned compiler'
+require_text "$DOC" 'Artifact action의 commit 조건'
+require_text "$DOC" 'Begin(final path)'
+require_text "$DOC" '`ArtifactCommitted` stage는 현재 BLOCKED'
+require_text "$DOC" '`pgy.mir.v1` declaration JSON은'
 
 # The parser owns six distinct nominal identities; aliases may not collapse them.
 for kind in CLASS SUBJECT VESSEL STRUCT OBJECT TOBJECT; do
@@ -71,6 +75,26 @@ require_text "src/codegen/llvm_type.c" \
 require_text "src/semantic/type_checker_host_helpers.c" \
     'type_is_class_object_type(const Type *type, SemanticContext *ctx)'
 require_text "$DOC" '`type_is_class_object_type()`은 이름과 달리 현재 subject만'
+
+# Raw file handles remain a compatibility surface, never an artifact action
+# receipt. Native semantic/runtime mode gates are closed, while AIR FileOpen
+# stays explicitly partial until MIR carries the mode-derived fact.
+require_text "src/runtime/pgy_runtime_file_mode_capability.h" \
+    'pgy_file_mode_capability_mask(const char *mode)'
+require_text "src/semantic/type_checker_builtins_nominal.c" \
+    'pgy_file_mode_capability_mask('
+require_text "src/semantic/type_checker_builtins_nominal.c" \
+    'semantic_record_capability(ctx, PGY_CAP_IO_WRITE);'
+require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
+    'PGY_CAP_IO_WRITE, "file-open-write"'
+require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
+    'PGY_CAP_IO_READ, "file-read"'
+require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
+    'PGY_CAP_IO_WRITE, "file-write"'
+require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    'PGY_CAP_IO_WRITE, "file-open-write"'
+reject_text "src/semantic/capability_analyze.c" \
+    '{"FileOpen",'
 
 # Keep the present-vs-canonical tobject distinction honest until semantic closure.
 require_text "src/tests/semantic/test_semantic_misc_b1_part_a_2.cases.h" \

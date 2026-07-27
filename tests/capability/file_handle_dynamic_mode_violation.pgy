@@ -1,0 +1,5 @@
+// A mode supplied at runtime cannot under-declare either possible authority.
+func OpenDynamic(mode: String) -> Int
+    with caps io_read {
+    return FileOpen("capability_handle_dynamic.txt", mode);
+}

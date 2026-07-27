@@ -88,11 +88,24 @@ missing import는 0이다. 이 import-reachable 집합에는 `func` 3,473개,
 이 수치는 import 표면 census이지 모든 선언의 실행 call-site 증거가 아니다.
 실제 direct-MIR production call chain은 `PgyCompilerWorld`의 `direct_mir` zone과
 `DriverRung2Execution.EmitDirectMir` action 하나를 지난다. 이 action은
-identity admission, target admission, artifact 검증, write/rejected transition을
-실제로 소유한다. `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
+identity admission과 target admission을 실제로 소유한다. 다만 현재 final
+`WriteFile`은 `Void`이고 runtime의 checked write 결과를 버리므로
+`ArtifactWritten`은 아직 durable/atomic commit receipt가 아니다. `world.pgy`의
+기존 action 16개는 import closure에는 들어왔지만
 계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
 chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름은 구조
 적합성의 참고 자료일 뿐, 실행 개사료나 C-path 대체 진척은 아니다.
+
+| 구성체 | production dogfood 판정 | 근거 |
+| --- | --- | --- |
+| `struct` | `SUBSTITUTING` (지원 self-host 계산 범위) | parser/semantic/MIR/codegen의 실제 typed fact와 계산 owner |
+| `class` | `SURFACE` | bootstrap closure 선언 0, backend fixture만 존재 |
+| `object` | `SURFACE` | world schema 18개, active direct-MIR call chain 소비 0 |
+| `tobject` | `SURFACE` | `ParityVerdict` 1개, active call chain 소비 0 |
+| `vessel` | `SURFACE` | bootstrap closure 선언 0 |
+| `subject` / `action` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR subject/action 1쌍만 production 호출, 나머지 16쌍은 readiness |
+| `zone` / `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 하나만 호출; authority runtime 증거는 presence-only |
+| `intent` | `SURFACE` | 14개가 import되지만 production intent call 없음 |
 
 corpus에서 반복되는 유효 패턴도 이 행렬과 일치한다.
 
@@ -163,16 +176,58 @@ escape 문제이고, `Slot<T>`는 자원 규율이다. `subject != heap`,
 7. **Negative ratchet**: action을 추가할 때 기존 direct bypass 삭제와 rejected
    path의 zero-artifact 검사를 같은 rung에 둔다.
 
+### 4.1 Artifact action의 commit 조건
+
+파일 artifact를 만드는 action은 `FileOpen -> FileWrite* -> FileClose`를 성공
+전이라고 부르면 안 된다. 이 raw `Int` handle 표면은 open mode, write failure,
+flush/close failure, final publish를 서로 다른 호출로 흩뜨린 호환성 API다.
+특히 현재 구현은 다음 한계를 가진다.
+
+- native runtime은 이제 `FileOpen` mode와 `FileRead`/`FileWrite`에서 실제
+  `io_read`/`io_write` grant를 다시 검사하고 semantic도 literal mode를
+  정밀 추론한다. 동적 mode는 양쪽 capability를 보수적으로 요구한다.
+- `FileOpen`의 mode-derived capability는 아직 MIR/AIR call-site fact로 운반되지
+  않는다. name-only AIR mapping으로 READ|WRITE 두 site를 추정하면 read-only
+  program의 실제 manifest와 충돌하므로 이 부분은 `PARTIAL`이다.
+- `FileWrite`/`FileClose`는 언어 표면에서 `Void`이고 checked runtime result를
+  호출자가 관측하지 못한다. `FileClose(Int)`는 handle mode도 잃는다.
+- final path를 먼저 truncate하므로 short write, close failure, process abort에서
+  기존 artifact 불변과 zero-partial-output을 보장하지 못한다.
+- self-host C emitter의 `host_io_runtime_owner.pgy`에는 별도의 unchecked handle
+  helper가 남아 있다. native runtime gate만으로 self-host generated artifact
+  commit이 닫혔다고 주장할 수 없다.
+
+Pergyra다운 해법은 `TryFileWrite`류를 계속 추가하는 것이 아니라 compiler
+artifact 전용 transaction owner 하나다.
+
+```text
+Begin(final path)
+  -> same-directory unique temp
+  -> checked chunk writes
+  -> checked flush + close
+  -> atomic replace
+  -> tobject ArtifactReceipt
+```
+
+transaction은 실패 시 기존 final의 byte/hash를 보존하고 temp를 제거하며 성공
+receipt를 발행하지 않는다. `tobject ArtifactReceipt`는 commit 이후 schema,
+fingerprint, path identity, byte count만 전달하는 immutable 결과다. write 권한과
+handle은 action-local resource이며 `object`/`tobject`가 소유하지 않는다.
+atomic visibility와 crash durability도 구분한다. file/directory sync가 없으면
+"crash-durable"이라고 부르지 않는다.
+
 `causes DamageEffect` 같은 domain effect와 `with effects io, alloc, authority`
 같은 compiler effect mask, `with caps io_read, clock` 같은 runtime capability는
 서로 다른 축이다. 특히 `with effects authority`는 zone의 `authority`와
 `authorized by`가 소유하는 승인 provenance를 대신하지 않는다.
 
-현재 production 예인 `DriverRung2Execution.EmitDirectMir`는 target admission,
-`Requested -> TargetAdmitted -> ArtifactWritten/Rejected`, artifact identity
-검증, 최종 write를 소유한다. backend artifact 생성 자체는 기존 typed owner에
-남긴다. 따라서 이 action은 `REACHABLE`이지만 아직 C-owned compiler path를
-대체한 `SUBSTITUTING`은 아니다.
+현재 production 예인 `DriverRung2Execution.EmitDirectMir`는 target admission과
+`Requested -> TargetAdmitted`를 소유한다. wrong identity/target은 반환된
+`Rejected`로 구별할 수 있지만 하위 direct-MIR owner의 malformed-input 실패는
+여전히 `Die` fatal boundary다. final `WriteFile` 성공도 관측하지 못하므로
+`ArtifactWritten`은 provisional stage다. backend artifact 생성 자체는 기존 typed
+owner에 남는다. 따라서 이 action은 `REACHABLE`이지만 아직 C-owned compiler
+path를 대체한 `SUBSTITUTING`은 아니다.
 
 ## 5. 권장 조합
 
@@ -282,6 +337,26 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
     body를 방출하고, LLVM은 nominal/domain layout을 모두 등록한 뒤 method
     signature와 body를 방출한다. 이 순서를 source 재배치나 opaque type 추정으로
     우회하지 말고 declaration inventory와 later-declared value fixture로 고정한다.
+11. self-host parser의 `decl_nominal_owner.pgy`는 nominal body의 `func`/`action`을
+    공통 경로로 읽어 native의 subject-only action, struct-method 금지를 자체적으로
+    재검증하지 않는다. self-host semantic negative owner가 생기기 전에는 grammar
+    fixture 통과를 nominal semantic parity로 해석하지 않는다.
+12. self-host function parser는 `requires`/`within`/`causes`/`authorized by`를
+    AST text로 남기지만 `with caps`/`with effects` 이름은 소비 후 버린다.
+    action을 generic signature로 낮춰 계약 fact를 잃는 경로는 full self-host
+    action 지원이 아니다.
+13. native in-memory `MIRDeclMethod`의 일부 action metadata와 달리 현재
+    `pgy.mir.v1` declaration JSON은 method name/return/params 중심이며 action
+    identity, `within`, `causes`, authority, requires, caps/effects, call binding을
+    운반하지 않는다. source -> MIR -> direct backend가 action 계약을 보존했다고
+    주장하기 전에 `ActionContract` 단일 fact owner와 wire carriage가 필요하다.
+14. raw file-handle capability는 mode별 semantic/runtime gate까지 닫혔지만
+    checked close, atomic artifact transaction, self-host generated runtime, MIR/AIR
+    mode fact는 열려 있다. 이 때문에 source -> MIR action의
+    `ArtifactCommitted` stage는 현재 BLOCKED다.
+15. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
+    identity/target처럼 action이 직접 반환하는 실패와, 하위 `Die`/`Exit`가
+    중단시키는 fatal 실패를 gate와 문서에서 분리한다.
 
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
 `object` bare-field mutation, `class` mutator persistence 오해, subject의
@@ -296,8 +371,10 @@ bare/`self.` mutability 불일치, temporary subject action receiver다. 이 작
    변경되는지 C/LLVM parity로 확인한다.
 3. reachable action은 production caller, 실제 subject fact 사용, 소비되는
    result를 가져야 하며 `return *Ready()` 단독 body를 금지한다.
-4. 잘못된 execution identity가 `Rejected`이고 output을 만들지 않는 현재
-   direct-MIR dynamic negative를 유지한다.
+4. 잘못된 execution identity/target은 returned `Rejected`, malformed MIR은
+   fatal/nonzero로 분리하고 둘 다 output 부재를 실행 gate로 만든다. 현재는
+   이 dynamic negative가 완전히 존재하지 않으므로 문서 주장보다 gate를 먼저
+   추가한다.
 5. zone이 authority 없이 subject-owned vessel을 직접 바꾸는 경로를 거부하고,
    동일 subject identity가 multi-zone handoff 뒤 유지되는지 실행으로 고정한다.
 

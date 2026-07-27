@@ -1,0 +1,7 @@
+// Literal write mode is refined to io_write; declaring only io_read must fail.
+func StreamWrite() -> Void
+    with caps io_read {
+    let output: Int = FileOpen("capability_handle_write.txt", "w");
+    FileWrite(output, "not admitted");
+    FileClose(output);
+}

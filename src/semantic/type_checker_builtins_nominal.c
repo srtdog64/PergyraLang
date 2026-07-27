@@ -4,6 +4,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
 #include "runtime/pgy_runtime_capability.h"
+#include "runtime/pgy_runtime_file_mode_capability.h"
 
 Type *
 type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
@@ -127,6 +128,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_READ);
         return TYPE_BOOL;
     case BUILTIN_FILE_OPEN:
         if (check_call_arity(call, 2, "FileOpen", ctx)) {
@@ -136,6 +138,10 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, pgy_file_mode_capability_mask(
+            ast_string_value(ast_call_arg_count(call) >= 2
+                ? ast_call_argument(call, 1)
+                : NULL)));
         return TYPE_INT;
     case BUILTIN_FILE_READ:
         if (check_call_arity(call, 1, "FileRead", ctx)) {
@@ -143,6 +149,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_READ);
         return TYPE_STRING;
     case BUILTIN_FILE_WRITE:
         if (check_call_arity(call, 2, "FileWrite", ctx)) {
@@ -152,6 +159,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
         return TYPE_VOID;
     case BUILTIN_FILE_CLOSE:
         if (check_call_arity(call, 1, "FileClose", ctx)) {

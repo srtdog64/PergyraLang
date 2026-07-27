@@ -1,0 +1,10 @@
+// File-handle writes are the streaming counterpart of WriteFile. They must
+// infer io_write statically and fail closed at runtime when the host omits it.
+let output: Int = FileOpen("capability_handle_write.txt", "w");
+if output < 0 {
+    Log("file handle open failed");
+    Exit(1);
+}
+FileWrite(output, "file handle write ok\n");
+FileClose(output);
+Log("file handle write ok");

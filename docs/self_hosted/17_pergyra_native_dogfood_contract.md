@@ -46,8 +46,14 @@ driver_bootstrap_main.Main
 
 action이 request를 typed target projection으로 admit하고, 기존
 `CompileMirJsonToDirectBackendVerified` owner를 정확히 한 번 소비하고,
-artifact identity를 확인한 뒤 출력 파일을 쓴다. `Main`의 target-fact 생성,
+artifact identity를 확인한 뒤 현재 raw `WriteFile` 경계를 호출한다. `Main`의 target-fact 생성,
 direct backend 호출, direct-mode `WriteFile` 우회는 삭제됐다.
+
+이 `WriteFile`은 `Void`이며 runtime의 checked write 결과를 버리므로 현재
+`ArtifactWritten` stage는 atomic/durable commit receipt가 아니다. wrong
+identity/target은 action이 returned `Rejected`로 구별하지만 malformed MIR의 하위
+`Die`는 fatal boundary다. 두 실패 종류를 하나의 Rejected 계약으로 과장하지
+않는다.
 
 `src/self_hosted/compiler/world.pgy`는 이제 composition owner를 통해 bootstrap
 import/call graph에 들어오며 `PgyCompilerWorld`는 direct-MIR slice의 실제
@@ -61,6 +67,13 @@ composition boundary다. 다만 현재 호출되는 world/zone/subject/action은
 `zone` 19개, `world` 1개, `intent` 14개, `role` 4개, `ability` 4개다.
 `class`/`vessel`/`effect`/`relation`/`party`/`roster`는 0개다. 이 수치는
 import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
+
+| 구성체 | 현재 grade | production 근거 |
+| --- | --- | --- |
+| `struct` | `SUBSTITUTING` (지원 계산 범위) | self-host typed fact/계산 owner |
+| `class`, `object`, `tobject`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
+| `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
+| `intent` | `SURFACE` | 14개 import, production call 0 |
 
 production declaration과 composition은 다음처럼 나뉜다.
 
@@ -103,6 +116,34 @@ negative와 named/multiple/indirect world-action authority의 backend fail-close
 negative를 고정한다. runtime identity/token mismatch와 generic direct-subject
 receiver negative는 아직 없다. 호출별 binding fact가 생기기 전에는 지원 범위
 밖 shape를 계속 semantic/codegen boundary에서 명시적으로 거부해야 한다.
+
+### Source-to-MIR action의 선행 blocker
+
+source-to-MIR을 lexer/parser/semantic/MIR action 네 개로 쪼개지 않는다. 그
+계산은 기존 typed `func` owner가 계속 소유하고 하나의 compiler-run action만
+request admission과 verified MIR artifact commit을 소유한다. 현재 commit 선행
+조건은 다음 이유로 `BLOCKED`다.
+
+- native file-handle semantic/runtime은 mode별 `io_read`/`io_write`를 이제
+  fail-closed로 검사하지만 `FileOpen` mode fact는 MIR/AIR에 아직 없다;
+- `FileWrite`/`FileClose`가 `Void`라 short-write/flush/close failure를 Pergyra
+  action result가 관측하지 못한다;
+- final path를 먼저 truncate하며 same-directory temp + atomic replace owner가
+  없다;
+- self-host generated C runtime의 handle helper도 별도 unchecked 구현이다;
+- MIR producer와 file writer가 `SelfMirProgramFactsReady`를 다시 호출해 같은
+  whole-program graph를 두 번 검증한다.
+
+필요한 owner는 parallel `TryFile*` API 묶음이 아니라
+`Begin(final) -> checked chunk writes -> checked flush/close -> atomic replace ->
+tobject ArtifactReceipt` 하나다. 실패 시 기존 final byte/hash 불변, temp 잔존 0,
+성공 receipt 부재를 C/LLVM에서 증명해야 한다. 이 경계가 생기기 전에는 source
+action을 `ArtifactCommitted` 또는 returned `Rejected` 완료로 기록하지 않는다.
+
+별도의 self-host completeness blocker도 있다. self-host nominal parser는
+subject-only action/struct-method negative를 소유하지 않고 action caps/effects를
+보존하지 않으며, 현재 `pgy.mir.v1` declaration wire도 action contract를 운반하지
+않는다. grammar fixture나 native action ABI parity는 이 wire gap을 닫지 않는다.
 
 ### Hosted-method declaration schedule
 
@@ -280,7 +321,7 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
 6. **intent takeover**: 둘 이상의 실제 action/zone과 성공/실패 계약이
    준비된 시점에만 root intent를 entrypoint에서 호출한다.
 
-## 완료된 direct-MIR action rung objective card
+## 완료된 direct-MIR action reachability objective card
 
 - Objective: direct MIR C/LLVM projection의 실제 target 선택 및 artifact
   handoff를 Pergyra subject action 하나로 옮기고 bootstrap `Main`의
@@ -288,11 +329,13 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
 - Execution owner: `driver_rung2_execution_owner.pgy`가
   `DriverRung2ExecutionStage`의 `Requested`, `TargetAdmitted`,
   `ArtifactWritten`, `Rejected` 전이와 그 전이를 수행하는 subject/action을
-  소유한다. 이름은 구현 시 기존 owner manifest와 충돌 여부를 검증한다.
+  선언한다. 현재 정직한 반환 증거는 admission 범위이며 `ArtifactWritten`은
+  checked/atomic commit owner가 생길 때까지 provisional label이다.
 - Action responsibility: CLI의 C/LLVM 요청을 owner projection으로 변환하고,
   `CompilerTargetProjectionFactFromOwner`로 target을 admit하고, 기존
-  `CompileMirJsonToDirectBackendVerified` 결과를 한 번 소비해 파일을 쓴 뒤
-  성공 stage를 남긴다. semantic/MIR/ABI fact는 재소유하지 않는다.
+  `CompileMirJsonToDirectBackendVerified` 결과를 한 번 소비해 raw file sink를
+  호출한 뒤 provisional stage를 남긴다. semantic/MIR/ABI fact는 재소유하지
+  않는다.
 - Priority: 동일 MIR/target fact identity; 실제 entrypoint reachability;
   missing/unknown target fail-closed; direct bypass 삭제; C/LLVM/native parity;
   이후 world/zone 결속.
@@ -311,10 +354,11 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
   고정 MIR identity, C/LLVM/native output parity, target/graph/certificate/plan
   negative가 artifact 전에 거부됨을 함께 검사한다.
 
-이 objective는 현재 source에서 달성됐다. 증거 등급은 `REACHABLE`이다.
-Pergyra action이 실제 direct-MIR orchestration을 소유하지만 새로운 C-owned
-compiler path를 대체한 것은 아니므로 `SUBSTITUTING`으로 올리거나 hard
-self-host 대체율을 변경하지 않는다.
+이 objective의 **orchestration reachability와 direct bypass 삭제 범위**는 현재
+source에서 달성됐다. artifact commit/failure 반환까지 완료했다는 뜻은 아니다.
+증거 등급은 `REACHABLE`이다. Pergyra action이 실제 direct-MIR orchestration을
+소유하지만 새로운 C-owned compiler path를 대체한 것은 아니므로
+`SUBSTITUTING`으로 올리거나 hard self-host 대체율을 변경하지 않는다.
 
 ## 완료된 direct-MIR zone/world 결속 objective card
 

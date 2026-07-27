@@ -5,10 +5,20 @@ Status: `self-host-architecture-shape / executable BRIDGE`
 This document records how the self-hosted compiler should use Pergyra's own
 language model. The target is not "C compiler folders rewritten in Pergyra".
 The target is a compiler world whose visible flow is intent-owned and whose
-state is held by resource zones. The current bootstrap has not reached this
-shape: its production import/call graph contains no action, intent, zone, or
-world declaration. See `17_pergyra_native_dogfood_contract.md` for the measured
-status and executable migration gate.
+state is held by resource zones. The current bootstrap has reached one bounded
+slice of this shape: direct MIR runs through one production subject/action,
+`DriverRung2DirectMirZone`, and the existing `PgyCompilerWorld`. The other 18
+zones, 16 readiness actions, and 14 intents are import-reachable surface rather
+than active production flow; root intent takeover has not happened. See
+`17_pergyra_native_dogfood_contract.md` for the measured status and executable
+migration gate.
+
+The next source-to-MIR boundary must not create one action per lexer/parser/
+semantic/MIR folder. Existing typed computation owners remain `func`; one
+compiler-run subject action may own request admission and an atomic artifact
+commit only after checked write/close/publish results exist. Raw
+`FileOpen -> FileWrite* -> FileClose`, readiness `Bool`, or declaration counts
+are not an artifact transition.
 
 ## Core Rule
 

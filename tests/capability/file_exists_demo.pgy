@@ -1,0 +1,5 @@
+if !FileExists("capability_handle_read.txt") {
+    Log("file exists probe failed");
+    Exit(1);
+}
+Log("file exists ok");

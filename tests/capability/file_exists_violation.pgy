@@ -1,0 +1,4 @@
+func ProbeExists() -> Bool
+    with caps io_write {
+    return FileExists("capability_handle_read.txt");
+}

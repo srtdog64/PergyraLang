@@ -35,6 +35,9 @@ fi
 
 fail=0
 llvm_ok=1
+io_root="$(mktemp -d "${TMPDIR:-/tmp}/pgy-capability-io.XXXXXX")" || exit 2
+trap 'rm -rf -- "$io_root"' EXIT
+printf 'file handle read ok\n' > "$io_root/capability_handle_read.txt"
 
 # run <backend> <file> <env-assignments...> -- prints program output+stderr.
 # Guarded by `timeout` where available so a wall-clock-deadline regression (a
@@ -51,7 +54,10 @@ expect() {
     local label="$1" be="$2" file="$3" want="$4"; shift 4
     local out rc
     out="$(run_prog "$be" "$file" "$@")"; rc=$?
-    if [ "$be" = "llvm" ] && [ "$rc" -eq 127 ]; then
+    # LLVM --run reports a failing child as 127 too. A typed runtime denial is
+    # evidence, not backend unavailability; only a marker-free 127 may skip.
+    if [ "$be" = "llvm" ] && [ "$rc" -eq 127 ] \
+       && ! printf '%s' "$out" | grep -q "class=capability-denied\|class=budget-exceeded"; then
         [ "$llvm_ok" -eq 1 ] && echo "[SKIP] llvm backend unavailable (exit 127)"
         llvm_ok=0; return
     fi
@@ -90,6 +96,24 @@ for be in c llvm; do
     # backends now that the LLVM Args sret-call crash is fixed.)
     expect "env default"        "$be" tests/capability/cap_env_demo.pgy run:"args ok"
     expect "env denied"         "$be" tests/capability/cap_env_demo.pgy deny:capability-denied PGY_CAP_GRANT=random
+    # FileOpen/FileRead/FileWrite used to bypass both static inference and the
+    # runtime grant. Pin literal-mode refinement and mode-specific fail-closed
+    # enforcement on both backends.
+    rm -f -- "$io_root/capability_handle_write.txt"
+    expect "file handle write default" "$be" tests/capability/file_handle_write_demo.pgy run:"file handle write ok" PGY_IO_ROOT="$io_root"
+    rm -f -- "$io_root/capability_handle_write.txt"
+    expect "file handle write granted" "$be" tests/capability/file_handle_write_demo.pgy run:"file handle write ok" PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_write
+    rm -f -- "$io_root/capability_handle_write.txt"
+    expect "file handle write denied" "$be" tests/capability/file_handle_write_demo.pgy deny:capability-denied PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_read
+    if [ -e "$io_root/capability_handle_write.txt" ]; then
+        echo "[FAIL] file handle write denial created an artifact ($be)"; fail=1
+    else
+        echo "[PASS] file handle write denial left no artifact ($be)"
+    fi
+    expect "file handle read granted" "$be" tests/capability/file_handle_read_demo.pgy run:"file handle read ok" PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_read
+    expect "file handle read denied" "$be" tests/capability/file_handle_read_demo.pgy deny:capability-denied PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_write
+    expect "file exists granted" "$be" tests/capability/file_exists_demo.pgy run:"file exists ok" PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_read
+    expect "file exists denied" "$be" tests/capability/file_exists_demo.pgy deny:capability-denied PGY_IO_ROOT="$io_root" PGY_CAP_GRANT=io_write
     # budget: forced-heap List
     expect "budget no-limit"    "$be" tests/capability/budget_alloc_demo4.pgy run:"pushed"
     expect "budget limit=64"    "$be" tests/capability/budget_alloc_demo4.pgy deny:budget-exceeded PGY_BUDGET_ALLOC_BYTES=64

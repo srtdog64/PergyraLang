@@ -67,5 +67,28 @@ check_violation() { # file  function-name
 check_violation manifest_violation GetTimestamp
 check_violation manifest_interproc entry
 
+# File-handle I/O is not a capability escape hatch. Literal modes refine the
+# open operation, while FileRead/FileWrite independently carry the same cap.
+check_file_handle_violation() { # file  function-name  missing-cap
+    out="$(run_manifest "tests/capability/$1.pgy")"; rc=$?
+    if [ "$rc" -eq 0 ]; then echo "[FAIL] $1 exit=0 (gate did not fire)"; fail=1; return; fi
+    printf '%s' "$out" | grep -q "missing declared capabilities" \
+        || { echo "[FAIL] $1 missing capability-violation message"; fail=1; }
+    printf '%s' "$out" | grep -q "$2" \
+        || { echo "[FAIL] $1 violation should name '$2'"; fail=1; }
+    printf '%s' "$out" | grep -q "$3" \
+        || { echo "[FAIL] $1 violation should name missing '$3'"; fail=1; }
+    if printf '%s' "$out" | grep -q "missing declared capabilities" \
+       && printf '%s' "$out" | grep -q "$2" \
+       && printf '%s' "$out" | grep -q "$3"; then
+        echo "[PASS] $1 under-declaration gate fired ($2 -> $3, exit $rc)"
+    fi
+}
+check_file_handle_violation file_handle_write_violation StreamWrite io_write
+check_file_handle_violation file_handle_read_violation StreamRead io_read
+check_file_handle_violation file_handle_dynamic_mode_violation OpenDynamic io_write
+check_file_handle_violation file_handle_read_write_violation OpenReadWrite io_read
+check_file_handle_violation file_exists_violation ProbeExists io_read
+
 if [ "$fail" -eq 0 ]; then echo "ALL PASS (0 failures)"; exit 0; fi
 echo "FAILED"; exit 1

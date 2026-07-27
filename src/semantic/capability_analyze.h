@@ -35,8 +35,10 @@ void capability_manifest_print(uint32_t used_mask, FILE *out);
    Reused by AIR JSON so the effect-inventory fact is owned in one place. */
 void capability_used_names_print_json(uint32_t used_mask, FILE *out);
 
-/* The capability a gated ambient builtin requires (PGY_CAP_NONE if not gated).
-   The single source of truth for per-operation effect->capability binding. */
+/* The capability mask a name-only ambient builtin requires (PGY_CAP_NONE if
+   not gated). Mode-sensitive FileOpen is refined from its AST operand by the
+   semantic checker and enforced from the concrete mode by the runtime; AIR
+   cannot claim an exact FileOpen site until MIR carries that mode fact. */
 uint32_t capability_for_builtin(const char *name);
 
 /* The name of a single PGY_CAP_* bit, or NULL. */

@@ -1,0 +1,5 @@
+// Update mode is both a read and write boundary; io_write alone is incomplete.
+func OpenReadWrite() -> Int
+    with caps io_write {
+    return FileOpen("capability_handle_read_write.txt", "r+");
+}
