@@ -4,6 +4,7 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "direct_mir_nested_cfg_emission_owner.pgy";
+import "direct_mir_loop_cfg_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
 func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
@@ -163,6 +164,12 @@ func DirectMirCfgEmitC(
         StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
         Die("direct MIR CFG C projection plan or runtime ABI is invalid");
     }
+    if DirectMirLoopCfgPlanFactReady(plan.loop_fact) {
+        return DirectMirLoopCfgEmitC(
+            plan.loop_fact.shape, plan.loop_fact.certificate, formatted_print,
+            line_format, int_c_type
+        );
+    }
     if plan.shape.kind == DirectMirCfgNestedConditionalShapeKind() {
         return DirectMirNestedCfgEmitC(
             plan.shape, plan.nested, formatted_print,
@@ -252,6 +259,12 @@ func DirectMirCfgEmitLlvm(
         StringLength(formatted_print.symbol) == 0 ||
         StringLength(line_format) == 0 {
         Die("direct MIR CFG LLVM projection plan or runtime ABI is invalid");
+    }
+    if DirectMirLoopCfgPlanFactReady(plan.loop_fact) {
+        return DirectMirLoopCfgEmitLlvm(
+            plan.loop_fact.shape, plan.loop_fact.certificate,
+            formatted_print, line_format
+        );
     }
     if plan.shape.kind == DirectMirCfgNestedConditionalShapeKind() {
         return DirectMirNestedCfgEmitLlvm(

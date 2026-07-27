@@ -75,4 +75,4 @@ mutation="$(make_mutation outer_merge_edge \
 expect_rejected_without_artifact outer_merge_edge "$mutation" \
     'CFG|nested|merge|successor'
 
-echo "[$LABEL] ifelse + if_else_assign + reassign_block + nestedif one-MIR CFG/AIR-plan gate ok (sha256=$mir_digest)"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_loop_case.sh"

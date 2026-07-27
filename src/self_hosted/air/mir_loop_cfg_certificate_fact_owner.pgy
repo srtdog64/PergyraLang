@@ -1,0 +1,341 @@
+// Fixed-size AIR fact binding one bounded loop spine and its header phi to
+// the already-built routine index. No graph, document, or use table is rebuilt.
+
+import "mir_cfg_identity_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/phi_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirLoopCfgCertificateFact {
+    let valid: Bool;
+    let digest: Int;
+    let block_count: Int;
+    let preheader_block: Int;
+    let header_block: Int;
+    let body_block: Int;
+    let exit_block: Int;
+    let loop_syntax_id: Int;
+    let loop_kind: Int;
+    let effect_base: Int;
+    let effect_delta: Int;
+    let loop_flags: Int;
+    let entry_state_start: Int;
+    let entry_state_count: Int;
+    let exit_state_start: Int;
+    let exit_state_count: Int;
+    let state_count: Int;
+    let phi_global_row: Int;
+    let branch_global_row: Int;
+    let log_global_row: Int;
+    let increment_global_row: Int;
+    let local_name: String;
+    let phi_result_name: String;
+    let preheader_incoming: String;
+    let backedge_incoming: String;
+}
+
+func DirectMirLoopCfgCertificateFactEmpty()
+    -> DirectMirLoopCfgCertificateFact {
+    return DirectMirLoopCfgCertificateFact(
+        false, 0, 0, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        "", "", "", ""
+    );
+}
+
+func DirectMirLoopCfgCertificateFactDigest(
+    ref fact: DirectMirLoopCfgCertificateFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(53L, fact.block_count);
+    hash = DirectMirCfgHashInt(hash, fact.preheader_block);
+    hash = DirectMirCfgHashInt(hash, fact.header_block);
+    hash = DirectMirCfgHashInt(hash, fact.body_block);
+    hash = DirectMirCfgHashInt(hash, fact.exit_block);
+    hash = DirectMirCfgHashInt(hash, fact.loop_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.loop_kind);
+    hash = DirectMirCfgHashInt(hash, fact.effect_base);
+    hash = DirectMirCfgHashInt(hash, fact.effect_delta);
+    hash = DirectMirCfgHashInt(hash, fact.loop_flags);
+    hash = DirectMirCfgHashInt(hash, fact.entry_state_start);
+    hash = DirectMirCfgHashInt(hash, fact.entry_state_count);
+    hash = DirectMirCfgHashInt(hash, fact.exit_state_start);
+    hash = DirectMirCfgHashInt(hash, fact.exit_state_count);
+    hash = DirectMirCfgHashInt(hash, fact.state_count);
+    hash = DirectMirCfgHashInt(hash, fact.phi_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.branch_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.log_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.increment_global_row);
+    hash = DirectMirCfgHashString(hash, fact.local_name);
+    hash = DirectMirCfgHashString(hash, fact.phi_result_name);
+    hash = DirectMirCfgHashString(hash, fact.preheader_incoming);
+    hash = DirectMirCfgHashString(hash, fact.backedge_incoming);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLoopCfgCertificateFactWithDigest(
+    fact: DirectMirLoopCfgCertificateFact, digest: Int
+) -> DirectMirLoopCfgCertificateFact {
+    return DirectMirLoopCfgCertificateFact(
+        fact.valid, digest, fact.block_count, fact.preheader_block,
+        fact.header_block, fact.body_block, fact.exit_block,
+        fact.loop_syntax_id, fact.loop_kind, fact.effect_base,
+        fact.effect_delta, fact.loop_flags, fact.entry_state_start,
+        fact.entry_state_count, fact.exit_state_start,
+        fact.exit_state_count, fact.state_count,
+        fact.phi_global_row, fact.branch_global_row,
+        fact.log_global_row,
+        fact.increment_global_row, fact.local_name, fact.phi_result_name,
+        fact.preheader_incoming, fact.backedge_incoming
+    );
+}
+
+func DirectMirLoopCfgCertificateFactAbsent(
+    ref fact: DirectMirLoopCfgCertificateFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.block_count == 0 &&
+        fact.preheader_block < 0 && fact.header_block < 0 &&
+        fact.body_block < 0 && fact.exit_block < 0 &&
+        fact.loop_syntax_id < 0 && fact.loop_kind < 0 &&
+        fact.effect_base < 0 && fact.effect_delta < 0 &&
+        fact.loop_flags < 0 && fact.entry_state_start < 0 &&
+        fact.entry_state_count < 0 && fact.exit_state_start < 0 &&
+        fact.exit_state_count < 0 && fact.state_count < 0 &&
+        fact.phi_global_row < 0 && fact.branch_global_row < 0 &&
+        fact.log_global_row < 0 && fact.increment_global_row < 0 &&
+        fact.local_name == "" && fact.phi_result_name == "" &&
+        fact.preheader_incoming == "" && fact.backedge_incoming == "";
+}
+
+func DirectMirLoopCfgCertificateFactReady(
+    ref fact: DirectMirLoopCfgCertificateFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.block_count == 4 &&
+        fact.digest == DirectMirLoopCfgCertificateFactDigest(fact) &&
+        fact.preheader_block == 0 && fact.header_block >= 0 &&
+        fact.header_block < fact.block_count && fact.body_block >= 0 &&
+        fact.body_block < fact.block_count && fact.exit_block >= 0 &&
+        fact.exit_block < fact.block_count &&
+        fact.preheader_block != fact.header_block &&
+        fact.preheader_block != fact.body_block &&
+        fact.preheader_block != fact.exit_block &&
+        fact.header_block != fact.body_block &&
+        fact.header_block != fact.exit_block &&
+        fact.body_block != fact.exit_block && fact.loop_syntax_id > 0 &&
+        fact.loop_kind == 0 && fact.effect_base == 0 &&
+        fact.effect_delta == 0 && fact.loop_flags == 1 &&
+        fact.entry_state_start == 0 && fact.entry_state_count == 0 &&
+        fact.exit_state_start == 0 && fact.exit_state_count == 0 &&
+        fact.state_count == 0 &&
+        fact.phi_global_row >= 0 &&
+        fact.branch_global_row >= 0 && fact.log_global_row >= 0 &&
+        fact.increment_global_row >= 0 &&
+        fact.phi_global_row != fact.branch_global_row &&
+        fact.phi_global_row != fact.log_global_row &&
+        fact.phi_global_row != fact.increment_global_row &&
+        fact.branch_global_row != fact.log_global_row &&
+        fact.branch_global_row != fact.increment_global_row &&
+        fact.log_global_row != fact.increment_global_row &&
+        StringLength(fact.local_name) > 0 &&
+        MirSsaNameMatches(fact.phi_result_name, fact.local_name, false) &&
+        MirSsaNameMatches(fact.preheader_incoming, fact.local_name, false) &&
+        MirSsaNameMatches(fact.backedge_incoming, fact.local_name, false) &&
+        fact.phi_result_name != fact.preheader_incoming &&
+        fact.phi_result_name != fact.backedge_incoming &&
+        fact.preheader_incoming != fact.backedge_incoming;
+}
+
+func DirectMirLoopCfgCertificateFactFromIndex(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts
+) -> DirectMirLoopCfgCertificateFact {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || block_count != 4 ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.backedge_headers) ||
+        block_count != ArrayLength(index.block_has_conditional_branch) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        block_count != ArrayLength(
+            index.instruction_facts.block_phi_prefix_counts
+        ) || !MirRoutineFactIndexLoopFlowFactsValid(index) ||
+        ArrayLength(index.loop_flow_summary_loop_ids) != 1 ||
+        ArrayLength(index.loop_flow_summary_kinds) != 1 ||
+        index.loop_flow_summary_kinds[0] != 0 ||
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 ||
+        !MirRoutineInstructionUseFactsReady(
+            use_facts, ArrayLength(index.instruction_facts.starts)
+        ) {
+        Die("direct MIR loop CFG inventory or use owner is invalid");
+    }
+    let preheader: Int = 0;
+    let header: Int = index.block_succ_true[preheader];
+    if header < 0 || header >= block_count ||
+        index.block_succ_false[preheader] >= 0 {
+        Die("direct MIR loop CFG preheader edge is invalid");
+    }
+    let body: Int = index.block_succ_true[header];
+    let exit: Int = index.block_succ_false[header];
+    if body < 0 || body >= block_count || exit < 0 || exit >= block_count ||
+        preheader == header || preheader == body || preheader == exit ||
+        header == body || header == exit || body == exit ||
+        index.block_succ_true[body] != header ||
+        index.block_succ_false[body] >= 0 ||
+        index.block_succ_true[exit] >= 0 ||
+        index.block_succ_false[exit] >= 0 {
+        Die("direct MIR loop CFG header, backedge, or exit is invalid");
+    }
+    let block: Int = 0;
+    while block < block_count {
+        let expected_count: Int = 0;
+        let expected_branch: Int = 0;
+        let expected_phi: Int = 0;
+        let expected_backedge_header: Int = 0;
+        if block == preheader { expected_count = 1; }
+        if block == header {
+            expected_count = 2;
+            expected_branch = 1;
+            expected_phi = 1;
+            expected_backedge_header = 1;
+        }
+        if block == body { expected_count = 2; }
+        if !index.block_reachable[block] ||
+            index.block_instruction_counts[block] != expected_count ||
+            index.block_has_conditional_branch[block] != expected_branch ||
+            index.instruction_facts.block_phi_prefix_counts[block] !=
+                expected_phi ||
+            index.backedge_headers[block] != expected_backedge_header {
+            Die("direct MIR loop CFG block inventory is invalid");
+        }
+        block = block + 1;
+    }
+    let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+        index, admitted.routines, use_facts, 0, header, 0
+    );
+    if !phi.valid || phi.predecessor_count != 2 ||
+        ArrayLength(phi.incoming_results) != 2 ||
+        ArrayLength(phi.incoming_definition_blocks) != 2 {
+        Die("direct MIR loop CFG header phi is invalid");
+    }
+    let preheader_incoming: String = "";
+    let backedge_incoming: String = "";
+    let incoming: Int = 0;
+    while incoming < 2 {
+        let definition_block: Int =
+            phi.incoming_definition_blocks[incoming];
+        if definition_block == preheader && preheader_incoming == "" {
+            preheader_incoming = phi.incoming_results[incoming];
+        } else if definition_block == body && backedge_incoming == "" {
+            backedge_incoming = phi.incoming_results[incoming];
+        } else {
+            Die("direct MIR loop CFG phi predecessor coverage is invalid");
+        }
+        incoming = incoming + 1;
+    }
+    let branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, admitted.routines, 0, header
+        );
+    let log_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, body, 0
+    );
+    let increment_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, body, 1
+    );
+    if !branch.valid || !branch.found ||
+        branch.instruction.source_type != "AST_BINARY" || log_row < 0 ||
+        increment_row < 0 ||
+        admitted.routines.instruction_kinds[log_row] != "stmt" ||
+        admitted.routines.instruction_source_types[log_row] != "AST_CALL" ||
+        admitted.routines.instruction_kinds[increment_row] != "def" ||
+        admitted.routines.instruction_source_types[increment_row] !=
+            "AST_ASSIGNMENT" {
+        Die("direct MIR loop CFG instruction identity is invalid");
+    }
+    let branch_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, branch.instruction.global_row, 0
+    );
+    let log_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, log_row, 0
+    );
+    let increment_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, increment_row, 0
+    );
+    let increment_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, increment_row
+        );
+    if MirRoutineInstructionUseCountAtGlobal(
+            use_facts, branch.instruction.global_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, log_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, increment_row
+        ) != 1 || !IsSome(branch_use) || !IsSome(log_use) ||
+        !IsSome(increment_use) ||
+        UnwrapOption(branch_use) != phi.result_name ||
+        UnwrapOption(log_use) != phi.result_name ||
+        UnwrapOption(increment_use) != phi.result_name ||
+        !increment_scalar.valid || increment_scalar.name != "ssa-def" ||
+        increment_scalar.result != backedge_incoming ||
+        increment_scalar.arg0 != phi.local_name ||
+        increment_scalar.arg1 != "local" ||
+        increment_scalar.expr1 != phi.local_name ||
+        increment_scalar.slot_anchor != "" ||
+        !increment_scalar.abi_type_value_ready ||
+        increment_scalar.abi_type_name != "" {
+        Die("direct MIR loop CFG SSA use or increment fact is invalid");
+    }
+    let fact: DirectMirLoopCfgCertificateFact =
+        DirectMirLoopCfgCertificateFact(
+            true, 0, block_count, preheader, header, body, exit,
+            index.loop_flow_summary_loop_ids[0],
+            index.loop_flow_summary_kinds[0],
+            index.loop_flow_summary_effect_bases[0],
+            index.loop_flow_summary_effect_deltas[0],
+            index.loop_flow_summary_flags[0],
+            index.loop_flow_summary_entry_starts[0],
+            index.loop_flow_summary_entry_counts[0],
+            index.loop_flow_summary_exit_starts[0],
+            index.loop_flow_summary_exit_counts[0],
+            ArrayLength(index.loop_flow_state_stable_indices), phi.global_row,
+            branch.instruction.global_row, log_row,
+            increment_row, phi.local_name, phi.result_name,
+            preheader_incoming, backedge_incoming
+        );
+    return DirectMirLoopCfgCertificateFactWithDigest(
+        fact, DirectMirLoopCfgCertificateFactDigest(fact)
+    );
+}
+
+func DirectMirLoopCfgCertificateFactInvalidBackedge(
+    fact: DirectMirLoopCfgCertificateFact
+) -> DirectMirLoopCfgCertificateFact {
+    let invalid: DirectMirLoopCfgCertificateFact =
+        DirectMirLoopCfgCertificateFact(
+            fact.valid, 0, fact.block_count, fact.preheader_block,
+            fact.header_block, fact.body_block, fact.exit_block,
+            fact.loop_syntax_id, fact.loop_kind, fact.effect_base,
+            fact.effect_delta, fact.loop_flags, fact.entry_state_start,
+            fact.entry_state_count, fact.exit_state_start,
+            fact.exit_state_count, fact.state_count, fact.phi_global_row,
+            fact.branch_global_row, fact.log_global_row,
+            fact.increment_global_row, fact.local_name, fact.phi_result_name,
+            fact.preheader_incoming, fact.preheader_incoming
+        );
+    return DirectMirLoopCfgCertificateFactWithDigest(
+        invalid, DirectMirLoopCfgCertificateFactDigest(invalid)
+    );
+}
+
+func DirectMirLoopCfgCertificateFactMutationRejected(
+    own fact: DirectMirLoopCfgCertificateFact
+) -> Bool {
+    if !DirectMirLoopCfgCertificateFactReady(fact) { return false; }
+    let invalid: DirectMirLoopCfgCertificateFact =
+        DirectMirLoopCfgCertificateFactInvalidBackedge(fact);
+    return !DirectMirLoopCfgCertificateFactReady(invalid);
+}

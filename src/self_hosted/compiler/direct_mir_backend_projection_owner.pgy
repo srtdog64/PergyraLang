@@ -75,7 +75,8 @@ func CompileAdmittedDirectMirForTarget(
             Die("direct MIR CFG verified plan identity is invalid before emission");
         }
         let line_format: String = StringRuntimeCStringLineFormat();
-        if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+        if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
+            plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
             line_format = StringRuntimeCIntLineFormat();
         } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
                 plan.shape.kind !=

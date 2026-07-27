@@ -11373,7 +11373,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 180
+    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
@@ -11391,16 +11391,33 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" 60
 require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
+require_file "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 210
 require_file "src/self_hosted/air/mir_cfg_identity_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
 require_file "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" 220
+require_file "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy" 360
+require_file "src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" 130
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
 require_file "tests/self_hosted/parity/one_mir_cfg_nested_case.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_cfg_nested_case.sh" 80
+require_file "tests/self_hosted/parity/one_mir_cfg_loop_case.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_cfg_loop_case.sh" 150
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
@@ -11457,8 +11474,10 @@ require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'func DirectMirCfgCertificateMutationRejected('
 require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'CompilerAirEvidenceMirTerminatorFact()'
-require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
+require_text "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" \
     'let phi_digest: Int;'
+require_text "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" \
+    'let loop_fact: DirectMirLoopCfgCertificateFact;'
 require_text "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" \
     'func DirectMirNestedCfgCertificateFactFromIndex('
 require_text "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" \
@@ -11471,6 +11490,18 @@ require_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy"
     'func DirectMirNestedCfgEmitC('
 require_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
     'func DirectMirNestedCfgEmitLlvm('
+require_text "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirLoopCfgCertificateFactFromIndex('
+require_text "src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirLoopCfgCertificateFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy" \
+    'func DirectMirLoopCfgShapeFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy" \
+    'func DirectMirLoopCfgPlanFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" \
+    'func DirectMirLoopCfgEmitC('
+require_text "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" \
+    'func DirectMirLoopCfgEmitLlvm('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
     'BuildMirRoutineFactIndex('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
@@ -11485,6 +11516,50 @@ for nested_cfg_owner in \
     reject_text "$nested_cfg_owner" 'BuildMirRoutineInstructionUseFacts('
     reject_text "$nested_cfg_owner" 'DirectMirCfgCertificateFromIndex('
     reject_text "$nested_cfg_owner" 'MirJsonRead'
+done
+for loop_cfg_owner in \
+    src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy \
+    src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy; do
+    reject_text "$loop_cfg_owner" 'whileloop.pgy'
+    reject_text "$loop_cfg_owner" 'BuildMirDocumentFactIndex('
+    reject_text "$loop_cfg_owner" 'BuildMirRoutineFactIndex('
+    reject_text "$loop_cfg_owner" 'BuildMirRoutineInstructionUseFacts('
+    reject_text "$loop_cfg_owner" 'DirectMirCfgCertificateFromIndex('
+    reject_text "$loop_cfg_owner" 'DirectMirCfgPlanFromAdmitted('
+    reject_text "$loop_cfg_owner" 'MirJsonRead'
+    reject_text "$loop_cfg_owner" '"succ_true"'
+    reject_text "$loop_cfg_owner" '"succ_false"'
+    reject_text "$loop_cfg_owner" '"expr0"'
+    reject_text "$loop_cfg_owner" 'air_json'
+    reject_text "$loop_cfg_owner" 'AirJson'
+done
+for loop_emission_raw_term in JsonObject JsonArray ExpressionGraph \
+    MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
+    MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" \
+        "$loop_emission_raw_term"
+done
+for post_plan_owner in \
+    src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy; do
+    for post_plan_raw_term in MirMachineLayerAdmittedJsonInput \
+        MirDocumentFactIndex MirProgramRoutineIndex MirRoutineFactIndex \
+        source_json BuildMir MirJson; do
+        reject_text "$post_plan_owner" "$post_plan_raw_term"
+    done
+done
+for loop_single_issuer_term in \
+    DirectMirLoopCfgCertificateFactFromIndex \
+    DirectMirLoopCfgShapeFactFromOwners \
+    DirectMirLoopCfgPlanFactFromOwners \
+    DirectMirLoopCfgEmitC DirectMirLoopCfgEmitLlvm; do
+    loop_single_issuer_count="$(grep -R -F --include='*.pgy' \
+        "$loop_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
+    [[ "$loop_single_issuer_count" == 2 ]] ||
+        fail "$loop_single_issuer_term must have one definition and one caller"
 done
 for nested_emission_raw_term in JsonObject JsonArray MirRoutineFactIndex; do
     reject_text \

@@ -24,18 +24,19 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
     if plan.phi_count == 1 {
         let bad_phi_digest: Int = plan.phi_digest + 1;
         let bad_false_block: Int = plan.false_block;
-        if plan.shape.entry_result_name == plan.shape.false_result_name {
+        if !DirectMirLoopCfgPlanFactReady(plan.loop_fact) &&
+            plan.shape.entry_result_name == plan.shape.false_result_name {
             bad_phi_digest = plan.phi_digest;
             bad_false_block = plan.merge_block + 1;
         }
         let bad_phi_binding: DirectMirCfgPlan = DirectMirCfgPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
-            bad_phi_digest, plan.nested_digest,
+            bad_phi_digest, plan.nested_digest, plan.loop_digest,
             plan.target_capability_schema,
             plan.target_capability_fingerprint, plan.entry_block,
             plan.true_block, bad_false_block, plan.merge_block,
-            plan.phi_count, plan.nested, plan.shape
+            plan.phi_count, plan.nested, plan.loop_fact, plan.shape
         );
         bad_phi_binding = DirectMirCfgPlanWithDigest(
             bad_phi_binding,
@@ -59,14 +60,28 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         );
         bad_nested_rejected = !DirectMirCfgPlanReady(bad_nested_plan);
     }
+    let bad_loop_rejected: Bool = true;
+    if DirectMirLoopCfgPlanFactReady(plan.loop_fact) {
+        let loop_for_mutation: DirectMirLoopCfgPlanFact = plan.loop_fact;
+        let bad_loop: DirectMirLoopCfgPlanFact =
+            DirectMirLoopCfgPlanFactInvalidBackedge(loop_for_mutation);
+        let bad_loop_plan: DirectMirCfgPlan =
+            DirectMirCfgPlanWithLoop(plan, bad_loop);
+        bad_loop_plan = DirectMirCfgPlanWithDigest(
+            bad_loop_plan, DirectMirCfgPlanIdentityDigest(bad_loop_plan)
+        );
+        let loop_for_negative: DirectMirLoopCfgPlanFact = plan.loop_fact;
+        bad_loop_rejected = !DirectMirCfgPlanReady(bad_loop_plan) &&
+            DirectMirLoopCfgPlanFactMutationRejected(loop_for_negative);
+    }
     return !DirectMirCfgPlanReady(bad_digest) &&
         !DirectMirCfgPlanReady(bad_target) && bad_phi_binding_rejected &&
-        bad_nested_rejected;
+        bad_nested_rejected && bad_loop_rejected;
 }
 
 func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirCfgPlan {
     let block_count: Int = admitted.routines.routine_block_counts[0];
-    if !DirectMirProgramEnvelopeReady(admitted) ||
+    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
         (block_count != 3 && block_count != 4 && block_count != 5) {
         Die("direct MIR CFG block inventory or program structure is invalid");
     }
@@ -100,6 +115,9 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
             certificate, certificate.certificate_digest
         );
     if !DirectMirCfgCertificateReady(certificate) {
+        if certificate.valid {
+            Die("direct MIR CFG issued certificate identity or fixed binding is invalid");
+        }
         let merge_block: Int = index.block_structural_merges[0];
         if merge_block >= 0 &&
             merge_block < ArrayLength(index.block_instruction_counts) &&
@@ -112,7 +130,17 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
         Die("direct MIR CFG AIR certificate mutation negative is invalid");
     }
     let shape: DirectMirCfgShapeFacts = DirectMirCfgShapeFactsEmpty();
-    if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
+    let loop_plan: DirectMirLoopCfgPlanFact =
+        DirectMirLoopCfgPlanFactEmpty();
+    if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
+        let loop_shape: DirectMirLoopCfgShapeFact =
+            DirectMirLoopCfgShapeFactFromOwners(
+                admitted, index, use_facts, certificate.loop_fact
+            );
+        loop_plan = DirectMirLoopCfgPlanFactFromOwners(
+            certificate.loop_fact, loop_shape
+        );
+    } else if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
         shape = DirectMirNestedCfgShapeFactsFromOwners(
             admitted, index, use_facts, certificate
         );
@@ -121,19 +149,29 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
             admitted, index, use_facts, certificate
         );
     }
-    if !DirectMirCfgShapeFactsReady(shape, certificate.phi_count) {
+    let shape_ready: Bool = DirectMirCfgShapeFactsReady(
+        shape, certificate.phi_count
+    );
+    if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
+        shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
+            DirectMirLoopCfgPlanFactReady(loop_plan);
+    }
+    if !shape_ready {
+        if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
+            Die("direct MIR loop CFG condition, Log, increment, or graph facts are invalid");
+        }
         Die("direct MIR CFG condition, arm, or merge facts are invalid");
     }
     let plan: DirectMirCfgPlan = DirectMirCfgPlan(
         true, DirectMirCfgPlanSchema(), CompilerArtifactPlanRevision(), 0,
         certificate.certificate_digest, certificate.mir_digest,
         certificate.cfg_digest, certificate.phi_digest,
-        certificate.nested.digest,
+        certificate.nested.digest, loop_plan.digest,
         CompilerTargetCapabilitySchema(),
         CompilerTargetCapabilityFingerprint(), certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.phi_count,
-        certificate.nested, shape
+        certificate.nested, loop_plan, shape
     );
     let verified: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, DirectMirCfgPlanIdentityDigest(plan)

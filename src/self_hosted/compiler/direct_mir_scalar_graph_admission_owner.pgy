@@ -86,6 +86,25 @@ func DirectMirRoutineHasNoUnsupportedFacts(
         DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0");
 }
 
+func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
+    ref routine: JsonObjectFactTable
+) -> Bool {
+    return DirectMirObjectArrayEmpty(routine, "generics") &&
+        DirectMirObjectArrayEmpty(routine, "params") &&
+        !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
+        !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
+        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectNumberEquals(
+            routine, "resource_flow_symbol_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "iteration_type_fact_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "destructure_type_fact_count", "0"
+        );
+}
+
 func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     let length: Int = StringLength(literal);
     if length < 2 || CharCode(literal, length, 0) != 34 ||
@@ -99,7 +118,7 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     return Some(Substring(literal, 1, length - 2));
 }
 
-func DirectMirProgramEnvelopeReady(
+func DirectMirProgramBaseEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
     let json: String = admitted.routines.source_json;
     let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
@@ -128,8 +147,29 @@ func DirectMirProgramEnvelopeReady(
     return JsonObjectFactTableReady(routine) &&
         JsonObjectFactStringFieldEquals(routine, "name", "Main") &&
         JsonObjectFactStringFieldEquals(routine, "kind", "function") &&
-        JsonObjectFactStringFieldEquals(routine, "return", "Void") &&
-        DirectMirRoutineHasNoUnsupportedFacts(routine);
+        JsonObjectFactStringFieldEquals(routine, "return", "Void");
+}
+
+func DirectMirProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if !DirectMirProgramBaseEnvelopeReady(admitted) { return false; }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.ends[0]
+    );
+    return DirectMirRoutineHasNoUnsupportedFacts(routine);
+}
+
+func DirectMirCfgProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if !DirectMirProgramBaseEnvelopeReady(admitted) { return false; }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.ends[0]
+    );
+    return DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine);
 }
 
 func DirectMirLogInstructionEnvelopeReady(

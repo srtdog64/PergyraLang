@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One admitted MIR identity -> one MIR-bound AIR/CFG plan -> both backends.
-# one admitted ifelse/reassign/nested CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; direct CFG plan target mutation rejects before output
+# one admitted ifelse/reassign/nested/while CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; typed Int line format drives the loop emitter; direct CFG plan target mutation rejects before output
 
 set -euo pipefail
 

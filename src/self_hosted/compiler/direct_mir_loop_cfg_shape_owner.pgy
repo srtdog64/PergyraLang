@@ -1,0 +1,269 @@
+// Target-neutral payload for one bounded loop certificate. This projection
+// consumes the admitted index/use facts once; emitters receive only this fact.
+
+import "direct_mir_cfg_entry_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../air/mir_loop_cfg_certificate_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirLoopCfgShapeFact {
+    let valid: Bool;
+    let digest: Int;
+    let local_name: String;
+    let entry_result_name: String;
+    let phi_result_name: String;
+    let backedge_result_name: String;
+    let initial_literal: String;
+    let limit_literal: String;
+    let increment_literal: String;
+}
+
+func DirectMirLoopCfgShapeFactEmpty() -> DirectMirLoopCfgShapeFact {
+    return DirectMirLoopCfgShapeFact(
+        false, 0, "", "", "", "", "", "", ""
+    );
+}
+
+func DirectMirLoopCfgShapeFactDigest(
+    ref fact: DirectMirLoopCfgShapeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(59L, fact.local_name);
+    hash = DirectMirCfgHashString(hash, fact.entry_result_name);
+    hash = DirectMirCfgHashString(hash, fact.phi_result_name);
+    hash = DirectMirCfgHashString(hash, fact.backedge_result_name);
+    hash = DirectMirCfgHashString(hash, fact.initial_literal);
+    hash = DirectMirCfgHashString(hash, fact.limit_literal);
+    hash = DirectMirCfgHashString(hash, fact.increment_literal);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLoopCfgShapeFactWithDigest(
+    fact: DirectMirLoopCfgShapeFact, digest: Int
+) -> DirectMirLoopCfgShapeFact {
+    return DirectMirLoopCfgShapeFact(
+        fact.valid, digest, fact.local_name, fact.entry_result_name,
+        fact.phi_result_name, fact.backedge_result_name,
+        fact.initial_literal, fact.limit_literal, fact.increment_literal
+    );
+}
+
+func DirectMirLoopCfgShapeFactAbsent(
+    ref fact: DirectMirLoopCfgShapeFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.local_name == "" &&
+        fact.entry_result_name == "" && fact.phi_result_name == "" &&
+        fact.backedge_result_name == "" && fact.initial_literal == "" &&
+        fact.limit_literal == "" && fact.increment_literal == "";
+}
+
+func DirectMirLoopCfgShapeFactReady(
+    ref fact: DirectMirLoopCfgShapeFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirLoopCfgShapeFactDigest(fact) &&
+        StringLength(fact.local_name) > 0 &&
+        MirSsaNameMatches(
+            fact.entry_result_name, fact.local_name, false
+        ) && MirSsaNameMatches(
+            fact.phi_result_name, fact.local_name, false
+        ) && MirSsaNameMatches(
+            fact.backedge_result_name, fact.local_name, false
+        ) && fact.entry_result_name != fact.phi_result_name &&
+        fact.entry_result_name != fact.backedge_result_name &&
+        fact.phi_result_name != fact.backedge_result_name &&
+        StringLength(fact.initial_literal) > 0 &&
+        ToString(ToInt(fact.initial_literal)) == fact.initial_literal &&
+        StringLength(fact.limit_literal) > 0 &&
+        ToString(ToInt(fact.limit_literal)) == fact.limit_literal &&
+        StringLength(fact.increment_literal) > 0 &&
+        ToString(ToInt(fact.increment_literal)) == fact.increment_literal;
+}
+
+func DirectMirLoopCfgBinaryLiteral(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    global_row: Int,
+    expected_kind: Int,
+    local_name: String,
+    assignment_target: Bool
+) -> String {
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 3 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 3 ||
+        ArrayLength(sequence.arena.topology.left_children) != 3 ||
+        ArrayLength(sequence.arena.topology.right_children) != 3 ||
+        ArrayLength(sequence.arena.node_texts) != 3 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 3 ||
+        ArrayLength(sequence.arena.call_target_names) != 3 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != local_name ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[2] != expected_kind ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 {
+        Die("direct MIR loop CFG binary graph is invalid");
+    }
+    let node: Int = 0;
+    while node < 3 {
+        if sequence.arena.call_target_kinds[node] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[node] != "" {
+            Die("direct MIR loop CFG binary call target is invalid");
+        }
+        node = node + 1;
+    }
+    if assignment_target {
+        let target_graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+            instruction, "expr1_graph"
+        );
+        let target: MirExpressionGraphSequence =
+            MirExpressionGraphSequenceAppend(
+                MirExpressionGraphSequenceEmpty(), target_graph
+            );
+        if !target.ok || target.ready_node_count != 1 ||
+            ArrayLength(target.roots) != 1 || target.roots[0] != 0 ||
+            ArrayLength(target.arena.topology.node_kinds) != 1 ||
+            ArrayLength(target.arena.node_texts) != 1 ||
+            ArrayLength(target.arena.call_target_kinds) != 1 ||
+            ArrayLength(target.arena.call_target_names) != 1 ||
+            target.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+            target.arena.node_texts[0] != local_name ||
+            target.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+            target.arena.call_target_names[0] != "" {
+            Die("direct MIR loop CFG assignment target graph is invalid");
+        }
+    }
+    let literal: String = sequence.arena.node_texts[1];
+    if StringLength(literal) == 0 || ToString(ToInt(literal)) != literal {
+        Die("direct MIR loop CFG integer literal is not canonical");
+    }
+    return literal;
+}
+
+func DirectMirLoopCfgLogReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref loop_fact: DirectMirLoopCfgCertificateFact
+) -> Bool {
+    let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, loop_fact.log_global_row, 0
+    );
+    if MirRoutineInstructionUseCountAtGlobal(
+            use_facts, loop_fact.log_global_row
+        ) != 1 || !IsSome(use_opt) ||
+        UnwrapOption(use_opt) != loop_fact.phi_result_name {
+        return false;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[loop_fact.log_global_row],
+        admitted.routines.instruction_ends[loop_fact.log_global_row]
+    );
+    let instruction_id: String =
+        DirectMirCfgCanonicalInstructionId(instruction);
+    if StringLength(instruction_id) == 0 ||
+        !DirectMirLogInstructionEnvelopeReady(instruction, instruction_id) {
+        return false;
+    }
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 4 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 3 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 4 ||
+        ArrayLength(sequence.arena.topology.left_children) != 4 ||
+        ArrayLength(sequence.arena.topology.right_children) != 4 ||
+        ArrayLength(sequence.arena.node_texts) != 4 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 4 ||
+        ArrayLength(sequence.arena.call_target_names) != 4 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != "ToString" ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[2] != loop_fact.local_name ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 {
+        return false;
+    }
+    let node: Int = 0;
+    while node < 4 {
+        if node != 1 &&
+            (sequence.arena.call_target_kinds[node] !=
+                SemanticCallTargetNone() ||
+             sequence.arena.call_target_names[node] != "") {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirLoopCfgShapeFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref loop_fact: DirectMirLoopCfgCertificateFact
+) -> DirectMirLoopCfgShapeFact {
+    if !DirectMirLoopCfgCertificateFactReady(loop_fact) {
+        return DirectMirLoopCfgShapeFactEmpty();
+    }
+    let entry: DirectMirCfgEntryFact = DirectMirCfgEntryFactFromOwners(
+        admitted, index, use_facts, loop_fact.preheader_block
+    );
+    let branch_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, loop_fact.branch_global_row, 0
+    );
+    let increment_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, loop_fact.increment_global_row, 0
+    );
+    if !entry.valid || entry.local_name != loop_fact.local_name ||
+        entry.result_name != loop_fact.preheader_incoming ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, loop_fact.branch_global_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, loop_fact.increment_global_row
+        ) != 1 || !IsSome(branch_use) || !IsSome(increment_use) ||
+        UnwrapOption(branch_use) != loop_fact.phi_result_name ||
+        UnwrapOption(increment_use) != loop_fact.phi_result_name ||
+        !DirectMirLoopCfgLogReady(admitted, use_facts, loop_fact) {
+        return DirectMirLoopCfgShapeFactEmpty();
+    }
+    let limit_literal: String = DirectMirLoopCfgBinaryLiteral(
+        admitted, loop_fact.branch_global_row, AstExpressionNodeLess(),
+        loop_fact.local_name, false
+    );
+    let increment_literal: String = DirectMirLoopCfgBinaryLiteral(
+        admitted, loop_fact.increment_global_row, AstExpressionNodeAdd(),
+        loop_fact.local_name, true
+    );
+    let fact: DirectMirLoopCfgShapeFact = DirectMirLoopCfgShapeFact(
+        true, 0, loop_fact.local_name, entry.result_name,
+        loop_fact.phi_result_name, loop_fact.backedge_incoming,
+        entry.integer_literal, limit_literal, increment_literal
+    );
+    return DirectMirLoopCfgShapeFactWithDigest(
+        fact, DirectMirLoopCfgShapeFactDigest(fact)
+    );
+}

@@ -1078,15 +1078,24 @@ inventory must not become a second fact-family owner registry.
   fact vocabulary for intent/effect/authority/coordination and MIR terminators.
 - `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
   certificate issuer for the bounded direct CFG rung. It verifies the typed
-  block/terminator/merge-phi or nested-conditional inventory once, binds MIR,
-  CFG, predecessor-resolved phi, and nested-spine facts, and permits only
-  strict zero-fallback/zero-drift evidence with a fixed-size mutation guard.
+  block/terminator/merge-phi, nested-conditional, or single-loop inventory
+  once, binds MIR, CFG, predecessor-resolved phi, nested-spine, and loop-spine
+  facts, and permits only strict zero-fallback/zero-drift evidence with a
+  fixed-size mutation guard.
+- `src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy` -- fixed-size v4
+  certificate identity and copy/update contract shared by issuance and the
+  target-neutral plan; it carries nested and loop digests without reopening
+  the MIR graph.
 - `src/self_hosted/air/mir_cfg_identity_owner.pgy` -- stable digest functions
   over the already-built typed MIR routine index; it does not reopen a document
   or build another graph/certificate view.
 - `src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy` -- bounded
   five-block nested-condition fact binding both branch rows to one entry SSA,
   the inner direct-false merge, and the forward edge to the outer merge.
+- `src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy` -- bounded
+  four-block while-loop fact binding preheader, header, body, exit, backedge,
+  predecessor-resolved phi lanes, SSA uses, increment result, and loop-summary
+  metadata from the already-built routine index.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
@@ -1263,8 +1272,8 @@ inventory must not become a second fact-family owner registry.
   plan issuer. It derives the admitted bounded shape from typed owners and
   issues one verified plan; no full certificate survives issuance.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy` -- fixed-size
-  plan identity/readiness contract binding AIR/MIR/CFG/phi/nested digests,
-  target capability, topology, and normalized shape before emission.
+  v4 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/loop
+  digests, target capability, topology, and normalized shape before emission.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is
@@ -1277,6 +1286,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy` -- one
   nested-condition text responsibility containing both C and LLVM emitters;
   it receives fixed facts, never a plan or MIR/AIR reader.
+- `src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy` -- derives one
+  target-neutral while-loop payload from the issued loop certificate plus the
+  existing index/use owners, including condition, Log, increment, and
+  assignment-target graphs.
+- `src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy` -- fixed
+  loop certificate/shape compound fact carried by the one direct CFG plan;
+  repaired certificate or shape digests fail readiness.
+- `src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy` -- one
+  loop-text responsibility containing both structured C and predecessor-bound
+  LLVM emission; it receives only fixed loop facts and the shared print ABI.
 - `src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy` -- shared
   LLVM line-format byte encoding used by scalar and CFG text emitters.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --

@@ -1,5 +1,41 @@
 # Self-Host Progress
 
+2026-07-27 v72 replaces the bounded single-header while CFG slice. One
+unchanged 4,692-byte `whileloop.pgy` `pgy.mir.v1` artifact has SHA-256
+`c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`.
+Its blocks have instruction counts `[1,2,2,0]`: `b0` defines `i.1 = 0`, `b1`
+owns phi `i.2 <- i.1@b0 / i.5@b2` and `i.2 < 3`, `b2` logs `i.2`, defines
+`i.5 = i.2 + 1`, and returns to `b1`, while `b3` is terminal. Direct C and
+LLVM both compile and match native output `0`, `1`, `2`.
+
+Certificate and plan schemas are v4. The fixed loop certificate consumes the
+existing routine index, phi, unique-definition, use, backedge, and loop-summary
+facts once. It maps phi lanes by definition block rather than storage order and
+binds the exact preheader/header/body/exit, instruction identities, three SSA
+uses, increment result, summary kind/effects/flags, and empty state spans. The
+target-neutral loop shape additionally verifies the condition, Log, increment,
+and assignment-target graphs before one fixed loop plan reaches emission.
+
+Ownership is split by Pergyra responsibility: certificate identity, loop
+certificate, loop shape, loop plan fact, and one loop text emitter. The emitter
+contains both C and LLVM and receives only fixed facts plus the shared formatted
+print ABI; the common dispatcher remains the last full-plan artifact consumer.
+No second graph/certificate/plan, fixture dispatch, backend-specific reader, or
+post-plan MIR/JSON/index access exists. Reversed phi row order produces
+byte-identical artifacts, while summary, predecessor/topology, SSA use/result,
+operator/call-target, assignment-target graph, and repaired-digest mutations
+reject before output. A fresh Pergyra-built integrated driver matched the native
+oracle for sample C, MIR production, and bounded MIR consumption, then passed
+hello/`let_log`/`multilet` and every direct CFG predecessor through this loop
+under both targets. Released/default `pgy` replacement remains 0%.
+
+The next active executable falsifier is `forloop.pgy`: a distinct 3,197-byte,
+four-block, phi-free range MIR with SHA-256
+`02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`, one
+`for` summary, and native output `0`, `1`, `2`. Its first failure is the shared
+CFG inventory/program-structure boundary; v73 must consume its range-owned
+facts instead of inventing a while-style phi or reparsing source.
+
 2026-07-27 v71 replaces the next bounded C-owned CFG slice. A fresh
 Pergyra-built integrated driver emitted `nestedif.pgy` as one unchanged
 3,687-byte `pgy.mir.v1` artifact with SHA-256

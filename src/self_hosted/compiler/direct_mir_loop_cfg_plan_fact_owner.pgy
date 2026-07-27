@@ -1,0 +1,99 @@
+// Fixed loop binding carried by the single target-neutral direct CFG plan.
+
+import "direct_mir_loop_cfg_shape_owner.pgy";
+
+struct DirectMirLoopCfgPlanFact {
+    let valid: Bool;
+    let digest: Int;
+    let certificate: DirectMirLoopCfgCertificateFact;
+    let shape: DirectMirLoopCfgShapeFact;
+}
+
+func DirectMirLoopCfgPlanFactEmpty() -> DirectMirLoopCfgPlanFact {
+    return DirectMirLoopCfgPlanFact(
+        false, 0, DirectMirLoopCfgCertificateFactEmpty(),
+        DirectMirLoopCfgShapeFactEmpty()
+    );
+}
+
+func DirectMirLoopCfgPlanFactDigest(
+    ref fact: DirectMirLoopCfgPlanFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        61L, DirectMirLoopCfgCertificateFactDigest(fact.certificate)
+    );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirLoopCfgShapeFactDigest(fact.shape)
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLoopCfgPlanFactWithDigest(
+    fact: DirectMirLoopCfgPlanFact, digest: Int
+) -> DirectMirLoopCfgPlanFact {
+    return DirectMirLoopCfgPlanFact(
+        fact.valid, digest, fact.certificate, fact.shape
+    );
+}
+
+func DirectMirLoopCfgPlanFactAbsent(
+    ref fact: DirectMirLoopCfgPlanFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 &&
+        DirectMirLoopCfgCertificateFactAbsent(fact.certificate) &&
+        DirectMirLoopCfgShapeFactAbsent(fact.shape);
+}
+
+func DirectMirLoopCfgPlanFactReady(
+    ref fact: DirectMirLoopCfgPlanFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirLoopCfgPlanFactDigest(fact) &&
+        DirectMirLoopCfgCertificateFactReady(fact.certificate) &&
+        DirectMirLoopCfgShapeFactReady(fact.shape) &&
+        fact.shape.local_name == fact.certificate.local_name &&
+        fact.shape.entry_result_name ==
+            fact.certificate.preheader_incoming &&
+        fact.shape.phi_result_name == fact.certificate.phi_result_name &&
+        fact.shape.backedge_result_name ==
+            fact.certificate.backedge_incoming;
+}
+
+func DirectMirLoopCfgPlanFactFromOwners(
+    loop_fact: DirectMirLoopCfgCertificateFact,
+    shape: DirectMirLoopCfgShapeFact
+) -> DirectMirLoopCfgPlanFact {
+    let fact: DirectMirLoopCfgPlanFact = DirectMirLoopCfgPlanFact(
+        true, 0, loop_fact, shape
+    );
+    if !DirectMirLoopCfgCertificateFactReady(loop_fact) ||
+        !DirectMirLoopCfgShapeFactReady(shape) {
+        return DirectMirLoopCfgPlanFactEmpty();
+    }
+    return DirectMirLoopCfgPlanFactWithDigest(
+        fact, DirectMirLoopCfgPlanFactDigest(fact)
+    );
+}
+
+func DirectMirLoopCfgPlanFactInvalidBackedge(
+    fact: DirectMirLoopCfgPlanFact
+) -> DirectMirLoopCfgPlanFact {
+    let invalid_certificate: DirectMirLoopCfgCertificateFact =
+        DirectMirLoopCfgCertificateFactInvalidBackedge(fact.certificate);
+    let invalid: DirectMirLoopCfgPlanFact = DirectMirLoopCfgPlanFact(
+        fact.valid, 0, invalid_certificate, fact.shape
+    );
+    return DirectMirLoopCfgPlanFactWithDigest(
+        invalid, DirectMirLoopCfgPlanFactDigest(invalid)
+    );
+}
+
+func DirectMirLoopCfgPlanFactMutationRejected(
+    own fact: DirectMirLoopCfgPlanFact
+) -> Bool {
+    if !DirectMirLoopCfgPlanFactReady(fact) { return false; }
+    let invalid: DirectMirLoopCfgPlanFact =
+        DirectMirLoopCfgPlanFactInvalidBackedge(fact);
+    return !DirectMirLoopCfgPlanFactReady(invalid);
+}

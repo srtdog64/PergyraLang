@@ -8,9 +8,9 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Latest exact committed parent: `94342b18` on `main`, which closes the v70
-  direct-false merge rung. The v71
-  executable replacement is the commit containing this handoff; use
+- Latest exact committed parent: `8ee08774` on `main`, which closes the v71
+  nested-conditional rung. The v72 executable replacement is the commit
+  containing this handoff; use
   `git rev-parse HEAD` after checkout to resolve its exact self-referential
   commit boundary.
 - `src/lexer/language_keyword_registry.def` now owns 145 sorted identities:
@@ -18,34 +18,39 @@ owner, and the named executable gate.
   generated self-host reserved projection, parser-selector coverage, LSP
   completion/lowercase hover exposure, and the one canonical TextMate grammar
   are checked projections. Contextual/soft rows remain lexer identifiers.
-- v71 satisfies the hard executable-progress guard. The fresh Pergyra-built
-  driver emitted one 3,687-byte `nestedif.pgy` MIR with SHA-256
-  `20e5b34b43bf7658331760cd1c5314aeb30bf8db7131686fe3fc79da8c6b3db0`.
-  C and LLVM compiled from that same identity and matched native output `big`.
-- Certificate and plan schemas are v3. One fixed nested fact binds both branch
-  rows to entry SSA `x.1`, inner direct-false merge block 3, and the forward
-  edge to outer merge block 4. Repaired certificate and plan digests cannot
-  legitimize an inner/outer topology mismatch.
-- Ownership is split by Pergyra responsibility: common identity, entry fact,
-  nested topology, target-neutral shape, plan identity, and one nested text
-  emitter containing both C and LLVM. The common emission dispatcher remains
-  the last artifact-producing plan consumer and only the selected emitter
-  executes.
-- The final r2 Pergyra-built bounded v71 bootstrap is green: generated driver seed and
-  native oracle agree on sample C, MIR production, and bounded MIR consumption.
-  That seed also passes the scalar/CFG predecessor rungs and nested C/LLVM
-  runtime plus mutation gate.
+- v72 satisfies the hard executable-progress guard. One 4,692-byte
+  `whileloop.pgy` MIR has SHA-256
+  `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`.
+  C and LLVM compiled from that identity and matched native output `0`, `1`,
+  `2`.
+- Certificate and plan schemas are v4. One fixed loop fact binds preheader
+  `b0`, header `b1`, body/backedge `b2`, exit `b3`, predecessor-resolved phi
+  `i.2 <- i.1@b0 / i.5@b2`, three SSA uses, increment result, and exact loop
+  summary metadata. A repaired digest cannot legitimize topology/shape drift.
+- Ownership remains split by Pergyra responsibility: common certificate
+  identity, loop topology, target-neutral loop shape, fixed loop plan, and one
+  loop text emitter containing both C and LLVM. The common dispatcher remains
+  the last artifact-producing full-plan consumer; emitters receive no MIR,
+  JSON, index, or full plan.
+- The first Pergyra-built v72 bootstrap attempt correctly failed because the
+  new code used reserved `loop` as an identifier. Renaming it to `loop_fact`
+  made native and self-host parsing agree; only the subsequent successful run
+  counts as evidence.
+- The final r2 Pergyra-built bounded bootstrap is green: generated seed and
+  native oracle match on sample C, MIR production, and bounded MIR consumption.
+  That fresh seed also passes hello/`let_log`/`multilet` plus every predecessor
+  CFG rung through `whileloop`, including the new assignment-target negative.
 - The historical 20+ GiB / 3 GiB symptom came from cumulative graph copying
-  and repeated whole-arena/readiness validation. The accepted v71 path keeps
+  and repeated whole-arena/readiness validation. The accepted v72 path keeps
   one typed admission/certificate issuance followed by fixed-size identity
-  checks; no 20 GiB-class behavior was observed in this bootstrap.
+  checks. No new peak-memory measurement was taken in this slice.
 - This is a real Pergyra-owned replacement for the bounded direct-CFG path.
   It does not replace the released/default C-owned `pgy`; released/default
   replacement remains 0%.
 
 ## Exact dirty state at this handoff
 
-After the v71 commit is pushed, `main` and `origin/main` should be synchronized.
+After the v72 commit is pushed, `main` and `origin/main` should be synchronized.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
@@ -53,34 +58,36 @@ unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v71 implementation, gate, or documentation file should remain dirty.
+No v72 implementation, gate, or documentation file should remain dirty.
 
-## Active executable `whileloop.pgy` objective card
+## Active executable `forloop.pgy` objective card
 
-- Objective: extend the same Pergyra-owned certificate and target-neutral plan
-  from acyclic CFGs to one bounded loop header/backedge spine, then compile
-  `whileloop.pgy` through C and LLVM to native-equal output `0`, `1`, `2`.
-- Priority: stable header/preheader/backedge/exit roles; predecessor-resolved
-  header phi; condition, Log, and increment SSA uses; one certificate/plan;
-  selected backend execution; topology mutations; then implementation size.
-- Fact owner: the existing MIR routine/phi owners and
-  `direct_mir_cfg_plan_owner.pgy`. The combined
-  `direct_mir_backend_emission_owner.pgy` remains the last C/LLVM consumer; do
-  not split ownership by backend language.
+- Objective: admit the distinct phi-free range loop represented by
+  `forloop.pgy` through the existing Pergyra-owned certificate/plan boundary,
+  then compile C and LLVM to native-equal output `0`, `1`, `2`.
+- Priority: preserve range start/stop identity and `for` loop-summary meaning;
+  bind preheader/header/body/exit/backedge and body use; reuse one plan and
+  selected backend execution; add negative ratchets; then implementation size.
+- Fact owner: MIR `loop-init`, loop-flow summary, successor/backedge, and Log
+  graph facts in the existing admitted routine index. A for-specific derived
+  certificate/shape may consume them, but the common
+  `direct_mir_cfg_plan_owner.pgy` and artifact-producing emission dispatcher
+  retain the single plan and last-consumer boundaries.
 - Forbidden fallback: AST/source reconstruction, treating block order as
-  loop-role proof, a second graph/certificate/plan, emitter-side MIR reads,
+  loop-role or implicit-range proof, synthesizing a while-style phi, a second
+  graph/certificate/plan, emitter-side MIR reads,
   repeated whole-graph validation, backend-specific CFG readers, fixture-name
   dispatch, or native-C output substitution.
-- First falsifying fixture: `whileloop.pgy`, 4,692-byte MIR, SHA-256
-  `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`,
-  four blocks `[1,2,2,0]`, header phi `i.2 <- i.1/i.5`, header condition
-  `i.2 < 3`, body Log plus increment `i.5 = i.2 + 1`, backedge `b2 -> b1`,
-  exit `b3`, and native output `0`, `1`, `2`. Current first rejection is the
-  shared CFG block-inventory/program-structure boundary.
+- First falsifying fixture: `forloop.pgy`, 3,197-byte MIR, SHA-256
+  `02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`,
+  four blocks `[1,1,1,0]`, no phi, `b0` `loop-init` carrying start `0` and stop
+  `3`, `b1` range branch, `b2` `Log(ToString(i))` and backedge, `b3` exit, one
+  exact `for` summary, and native output `0`, `1`, `2`. Current first rejection
+  is the shared CFG inventory/program-structure boundary because the v72 fixed
+  loop certificate owns `while` phi/increment semantics, not range-loop facts.
 - Acceptance gate: preserve the MIR identity, compile/run C and LLVM to exact
-  native output, and reject header phi predecessor/use drift, missing backedge,
-  wrong exit, stale increment SSA, and repaired certificate/plan mutation
-  before output.
+  native output, and reject range start/stop, summary, branch/body-use,
+  backedge/exit, and repaired certificate/plan mutations before output.
 
 ## Current measured evidence
 
@@ -110,6 +117,9 @@ No v71 implementation, gate, or documentation file should remain dirty.
 | v70 Pergyra-built direct-false CFG gate | 0 / not separately timed | not separately sampled | `reassign_block` MIR SHA stayed `c891...b223b`; C/LLVM/native output `10` matched and edge/predecessor/phi plus certificate/plan mutations rejected pre-artifact. |
 | v71 final r2 Pergyra-built bounded bootstrap | 0 / not separately timed | not separately sampled | Fresh generated driver seed matched the native oracle on sample C, MIR producer, and bounded MIR consumer with certificate/plan v3. |
 | v71 final r2 Pergyra-built nested CFG gate | 0 / not separately timed | not separately sampled | `nestedif` MIR SHA stayed `20e5...b3db0`; C/LLVM/native output `big` matched and inner-use/edge/merge plus repaired certificate/plan mutations rejected pre-artifact. |
+| v72 native-current loop CFG gate | 0 / not separately timed | not separately sampled | `whileloop` MIR stayed 4,692 bytes / `c48c...e50fb0`; C/LLVM/native output `0`, `1`, `2` matched, phi-order permutation was byte-identical, and loop-summary/topology/SSA/graph/assignment-target mutations rejected pre-artifact. |
+| v72 final r2 Pergyra-built bounded bootstrap | 0 / not separately timed | not separately sampled | Fresh generated driver seed matched the native oracle on sample C, MIR producer, and bounded MIR consumer with certificate/plan v4. |
+| v72 final r2 Pergyra-built loop CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed `whileloop` C/LLVM/native execution, phi-order permutation, and all pre-artifact mutations. |
 
 ## Current gates and artifacts
 
@@ -125,8 +135,9 @@ Green:
 - `tests/self_hosted/parity/one_mir_dual_backend_projection.sh` using the
   current driver for hello, `let_log`, and `multilet`;
 - `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh` using the fresh
-  Pergyra-built v71 seed for `ifelse`, `if_else_assign`, `reassign_block`, and
-  `nestedif`, including CFG/phi/nested/AIR/certificate/plan mutations;
+  Pergyra-built v72 seed for `ifelse`, `if_else_assign`, `reassign_block`,
+  `nestedif`, and `whileloop`, including CFG/phi/nested/loop/AIR/certificate/
+  plan mutations;
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
@@ -140,7 +151,7 @@ Green:
 - `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
   grammar, and no grammar ownership in the thin client;
 - `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
-- `python scripts/sot_registry_gate.py`: 52 authorities, 47 derived carriers,
+- `python scripts/sot_registry_gate.py`: 52 authorities, 50 derived carriers,
   `CLOSED=32 BRIDGE=20 ACTIVE=0`;
 - `python scripts/protocol_registry_gate.py`: 7 protocol rows;
 - `tests/build_pressure_contract_smoke.sh`;
@@ -224,11 +235,22 @@ Current ignored evidence:
 - `.tmp/self_hosted/driver/one_mir_cfg_v71_seed_r2/`;
 - `.tmp/self_hosted/driver/one_mir_cfg_v71_seed_final/`;
 - `.tmp/self_hosted/driver/one_mir_cfg_v71_full_r1/`.
+- `.tmp/self_hosted/driver/v72_native_dev/`;
+- `.tmp/self_hosted/driver/v72_native_final/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v72_native/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v72_native_r2/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v72_native_r3/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v72_native_final/`;
+- `.tmp/self_hosted/driver/bootstrap_v72_loop_r1/`;
+- `.tmp/self_hosted/driver/bootstrap_v72_loop_r2/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v72_seed_r2/`;
+- `.tmp/next_cfg_rung_audit_v71/`;
+- `.tmp/next_cfg_rung_audit_v72/`.
 
 Current open boundary:
 
 - `CompilerEmissionArtifact` still does not carry the verified plan revision
-  and digest as a repository-wide artifact fact. The direct v71 emitter checks
+  and digest as a repository-wide artifact fact. The direct v72 emitter checks
   the plan immediately before artifact creation, so the bounded path is closed,
   but global artifact carriage remains open and must not be inferred from this
   fixture gate.

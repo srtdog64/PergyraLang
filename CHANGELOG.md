@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Self-Hosted Loop CFG Rung (2026-07-27)
+
+- Added the four-block `whileloop.pgy` shape to the single MIR-bound
+  certificate and target-neutral plan. Schema v4 binds preheader, header,
+  body, exit, backedge, loop summary, predecessor-resolved phi lanes, and the
+  condition/Log/increment SSA uses.
+- One unchanged 4,692-byte MIR (SHA-256 `c48c9f59...e50fb0`) drives both C and
+  LLVM. Structured C and predecessor-bound LLVM compile and match native output
+  `0`, `1`, `2`; the LLVM path retains one real phi and no stack spill.
+- Split certificate identity, loop certificate, target-neutral loop shape,
+  fixed loop plan, and loop text emission by Pergyra responsibility. The loop
+  emitter retains both targets and receives no MIR, JSON, index, or full plan.
+- Added phi-order permutation parity plus pre-artifact loop-summary, topology,
+  predecessor, SSA-use/result, condition/Log/increment graph, assignment-target
+  graph, and repaired certificate/plan mutation gates.
+- The next executable falsifier is the distinct phi-free range lowering in
+  `forloop.pgy`; it remains open rather than being guessed into the while owner.
+
 ### Self-Hosted Nested CFG Rung (2026-07-27)
 
 - Added the five-block `nestedif.pgy` shape to the existing one-MIR

@@ -6,6 +6,35 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Single-header while CFG reaches both backends (v72)
+
+- Admitted the unchanged 4,692-byte `whileloop.pgy` MIR with SHA-256
+  `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`.
+  Its four blocks contain the entry definition, header phi/condition, body
+  Log/increment, and terminal exit; C and LLVM match native output `0`, `1`,
+  `2`.
+- Advanced certificate and plan schemas to v4. A fixed loop fact binds loop
+  summary metadata, preheader/header/body/exit roles, the `b2 -> b1` backedge,
+  `i.2 <- i.1@b0 / i.5@b2`, and condition/Log/increment uses without treating
+  phi array order as predecessor identity.
+- Kept one common artifact-producing plan consumer and one loop emission owner
+  containing both C and LLVM. Certificate identity, loop topology, normalized
+  shape, fixed plan, and text emission are split by Pergyra responsibility,
+  with no emitter-side MIR/JSON/index read.
+- Reversed phi storage order still emits byte-identical artifacts. Loop-summary,
+  predecessor/topology, stale SSA, operator/call-target, assignment-target
+  graph, and repaired certificate/plan mutations fail before output.
+- The first bootstrap attempt exposed use of reserved `loop` as a new field or
+  parameter name in code accepted by the native parser but rejected by the
+  self-host parser. Renaming the identifier to `loop_fact` restored the shared
+  parse boundary; the failed attempt is not counted as green evidence.
+- The subsequent Pergyra-built integrated bootstrap matched the native oracle
+  on sample C, MIR production, and bounded MIR consumption. Its fresh seed
+  passed the scalar rungs and all CFG predecessors through `whileloop`.
+- Fixed the next executable falsifier as phi-free range `forloop.pgy`:
+  3,197-byte MIR, SHA-256 `02a683...72070`, one `for` summary, and native
+  output `0`, `1`, `2`.
+
 ## 2026-07-27 - Nested conditional spine reaches both backends (v71)
 
 - Rebuilt the integrated driver with the existing Pergyra parser/codegen seed;

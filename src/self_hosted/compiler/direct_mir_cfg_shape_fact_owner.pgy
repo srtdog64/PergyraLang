@@ -43,6 +43,19 @@ func DirectMirCfgShapeFactsEmpty() -> DirectMirCfgShapeFacts {
     );
 }
 
+func DirectMirCfgShapeFactsAbsent(
+    ref facts: DirectMirCfgShapeFacts
+) -> Bool {
+    return !facts.valid && facts.kind == 0 && facts.local_name == "" &&
+        facts.entry_result_name == "" &&
+        facts.entry_integer_literal == "" && facts.condition_kind == 0 &&
+        facts.condition_literal == "" &&
+        facts.nested_condition_literal == "" && facts.true_literal == "" &&
+        facts.true_content == "" && facts.false_literal == "" &&
+        facts.false_content == "" && facts.true_result_name == "" &&
+        facts.false_result_name == "" && facts.phi_result_name == "";
+}
+
 func DirectMirCfgAssignmentArmFactEmpty() -> DirectMirCfgAssignmentArmFact {
     return DirectMirCfgAssignmentArmFact(false, "", "");
 }

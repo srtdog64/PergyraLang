@@ -37,16 +37,25 @@ English anchor for tooling/doc gates:
   mutations reject before output. The responsibility split is by typed
   identity/topology/shape/emission fact, never by C versus LLVM, and no second
   graph, certificate, plan, backend reader, or fixture dispatch was added.
-- Queued v72 executable rung: `whileloop.pgy`. The v71 Pergyra-built seed emits
-  a 4,692-byte MIR with SHA-256
-  `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`:
-  four blocks, instruction counts `[1,2,2,0]`, header phi `i.2 <- i.1/i.5`,
-  header branch `i.2 < 3`, body Log plus `i.5 = i.2 + 1`, backedge `b2 -> b1`,
-  exit `b3`, and native output `0`, `1`, `2`. The first shared rejection is
-  `direct MIR CFG block inventory or program structure is invalid`. Bind the
-  loop header, predecessor-resolved phi, backedge, body-use, increment-use,
-  and exit roles in the same certificate/plan; do not add a loop fixture
-  projector or backend-specific loop reader.
+- Closed v72 executable rung: `whileloop.pgy`. One unchanged 4,692-byte MIR
+  (SHA-256 `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`)
+  now reaches C and LLVM through certificate/plan schema v4. The fixed loop
+  fact binds preheader/header/body/exit, predecessor-resolved `i.2 <- i.1/i.5`,
+  condition, Log, increment, backedge, and loop-summary metadata. Both targets
+  compile and match native output `0`, `1`, `2`; reversed phi storage order is
+  byte-identical, while summary/topology/SSA/graph/assignment-target and
+  repaired certificate/plan mutations reject before output. C and LLVM remain
+  together in one loop emission responsibility; no second MIR graph, plan,
+  fixture projector, or backend-specific reader was added.
+- Queued v73 executable rung: `forloop.pgy`. Fresh v72 evidence is a
+  3,197-byte MIR with SHA-256
+  `02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`:
+  four blocks, no phi, one `loop-init` row carrying range start `0` and stop
+  `3`, one `for` loop summary, body `Log(ToString(i))`, and native output
+  `0`, `1`, `2`. The current first rejection is the shared CFG inventory/
+  program-structure boundary. Extend the existing loop certificate/plan only
+  where this MIR exposes a real missing fact; do not synthesize a while-style
+  phi or reconstruct the range from source text.
 - Current beta progress: feature-surface feel is about 85%, and
   strict beta readiness is now about 83% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
