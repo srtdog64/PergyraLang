@@ -1,0 +1,43 @@
+// LLVM text encoding for runtime line-format facts shared by direct emitters.
+
+func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
+    let payload: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        let code: Int = CharCode(line_format, n, i);
+        if code == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format escape is invalid");
+            }
+            payload = Concat(payload, "\\0A");
+            i = i + 2;
+        } else {
+            if code < 32 || code > 126 || code == 34 {
+                Die("direct MIR scalar LLVM format byte is invalid");
+            }
+            payload = Concat(payload, CharAtN(line_format, n, i));
+            i = i + 1;
+        }
+    }
+    return payload;
+}
+
+func DirectMirScalarLlvmFormatByteCount(line_format: String) -> Int {
+    let count: Int = 1;
+    let i: Int = 0;
+    let n: Int = StringLength(line_format);
+    while i < n {
+        if CharCode(line_format, n, i) == 92 {
+            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
+                Die("direct MIR scalar LLVM format length is invalid");
+            }
+            count = count + 1;
+            i = i + 2;
+        } else {
+            count = count + 1;
+            i = i + 1;
+        }
+    }
+    return count;
+}

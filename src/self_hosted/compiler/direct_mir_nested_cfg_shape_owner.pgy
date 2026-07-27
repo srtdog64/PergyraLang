@@ -1,0 +1,51 @@
+// Target-neutral payload projection for the bounded nested-conditional spine.
+// It consumes the already issued topology fact and the same routine/use owners;
+// no document, graph, certificate, or backend view is rebuilt here.
+
+import "direct_mir_cfg_shape_fact_owner.pgy";
+import "direct_mir_cfg_entry_fact_owner.pgy";
+
+func DirectMirNestedCfgShapeFactsFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref certificate: DirectMirCfgCertificate
+) -> DirectMirCfgShapeFacts {
+    if !DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
+        certificate.block_count != 5 || certificate.phi_count != 0 {
+        return DirectMirCfgShapeFactsEmpty();
+    }
+    let entry: DirectMirCfgEntryFact = DirectMirCfgEntryFactFromOwners(
+        admitted, index, use_facts, certificate.entry_block
+    );
+    if !entry.valid ||
+        entry.result_name != certificate.nested.condition_result_name {
+        return DirectMirCfgShapeFactsEmpty();
+    }
+    let outer_literal: String = DirectMirCfgGreaterConditionLiteral(
+        admitted, index, use_facts, certificate.branch_global_row,
+        entry.local_name, entry.result_name
+    );
+    let inner_literal: String = DirectMirCfgGreaterConditionLiteral(
+        admitted, index, use_facts, certificate.nested.branch_global_row,
+        entry.local_name, entry.result_name
+    );
+    let log_projection: DirectMirHelloProjection =
+        DirectMirCfgLiteralArmProjection(
+            admitted, use_facts, certificate.nested.true_block
+        );
+    if !log_projection.valid {
+        return DirectMirCfgShapeFactsEmpty();
+    }
+    let facts: DirectMirCfgShapeFacts = DirectMirCfgShapeFacts(
+        true, DirectMirCfgNestedConditionalShapeKind(), entry.local_name,
+        entry.result_name, entry.integer_literal,
+        AstExpressionNodeGreater(), outer_literal, inner_literal,
+        log_projection.literal, log_projection.content,
+        "", "", "", "", ""
+    );
+    if !DirectMirCfgShapeFactsReady(facts, certificate.phi_count) {
+        return DirectMirCfgShapeFactsEmpty();
+    }
+    return facts;
+}

@@ -5,6 +5,7 @@
 // the only value consumed by C and LLVM emission.
 
 import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_cfg_entry_fact_owner.pgy";
 import "../air/mir_cfg_certificate_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
@@ -16,6 +17,7 @@ struct DirectMirCfgShapeFacts {
     let entry_integer_literal: String;
     let condition_kind: Int;
     let condition_literal: String;
+    let nested_condition_literal: String;
     let true_literal: String;
     let true_content: String;
     let false_literal: String;
@@ -33,29 +35,16 @@ struct DirectMirCfgAssignmentArmFact {
 
 func DirectMirCfgLiteralArmShapeKind() -> Int { return 1; }
 func DirectMirCfgPhiMergeShapeKind() -> Int { return 2; }
+func DirectMirCfgNestedConditionalShapeKind() -> Int { return 3; }
 
 func DirectMirCfgShapeFactsEmpty() -> DirectMirCfgShapeFacts {
     return DirectMirCfgShapeFacts(
-        false, 0, "", "", "", 0, "", "", "", "", "", "", "", ""
+        false, 0, "", "", "", 0, "", "", "", "", "", "", "", "", ""
     );
 }
 
 func DirectMirCfgAssignmentArmFactEmpty() -> DirectMirCfgAssignmentArmFact {
     return DirectMirCfgAssignmentArmFact(false, "", "");
-}
-
-func DirectMirCfgCanonicalInstructionId(
-    ref instruction: JsonObjectFactTable
-) -> String {
-    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
-        instruction, "id"
-    );
-    if !IsSome(id_opt) { return ""; }
-    let id: String = UnwrapOption(id_opt);
-    if StringLength(id) == 0 || ToInt(id) < 0 || ToString(ToInt(id)) != id {
-        return "";
-    }
-    return id;
 }
 
 func DirectMirCfgShapeFactsDigest(
@@ -68,6 +57,7 @@ func DirectMirCfgShapeFactsDigest(
     hash = DirectMirCfgHashString(hash, facts.entry_integer_literal);
     hash = DirectMirCfgHashInt(hash, facts.condition_kind);
     hash = DirectMirCfgHashString(hash, facts.condition_literal);
+    hash = DirectMirCfgHashString(hash, facts.nested_condition_literal);
     hash = DirectMirCfgHashString(hash, facts.true_literal);
     hash = DirectMirCfgHashString(hash, facts.true_content);
     hash = DirectMirCfgHashString(hash, facts.false_literal);
@@ -101,6 +91,7 @@ func DirectMirCfgShapeFactsReady(
             StringLength(facts.condition_literal) > 0 &&
             ToString(ToInt(facts.condition_literal)) ==
                 facts.condition_literal &&
+            facts.nested_condition_literal == "" &&
             IsSome(true_content) &&
             UnwrapOption(true_content) == facts.true_content &&
             IsSome(false_content) &&
@@ -119,6 +110,7 @@ func DirectMirCfgShapeFactsReady(
             facts.condition_kind == AstExpressionNodeBoolLiteral() &&
             (facts.condition_literal == "true" ||
                 facts.condition_literal == "false") &&
+            facts.nested_condition_literal == "" &&
             StringLength(facts.true_literal) > 0 &&
             ToString(ToInt(facts.true_literal)) == facts.true_literal &&
             StringLength(facts.false_literal) > 0 &&
@@ -136,6 +128,22 @@ func DirectMirCfgShapeFactsReady(
             facts.true_result_name != facts.false_result_name &&
             facts.true_result_name != facts.phi_result_name &&
             facts.false_result_name != facts.phi_result_name;
+    }
+    if facts.kind == DirectMirCfgNestedConditionalShapeKind() {
+        let content: Option<String> =
+            DirectMirAsciiLiteralContent(facts.true_literal);
+        return expected_phi_count == 0 &&
+            facts.condition_kind == AstExpressionNodeGreater() &&
+            StringLength(facts.condition_literal) > 0 &&
+            ToString(ToInt(facts.condition_literal)) ==
+                facts.condition_literal &&
+            StringLength(facts.nested_condition_literal) > 0 &&
+            ToString(ToInt(facts.nested_condition_literal)) ==
+                facts.nested_condition_literal && IsSome(content) &&
+            UnwrapOption(content) == facts.true_content &&
+            facts.false_literal == "" && facts.false_content == "" &&
+            facts.true_result_name == "" && facts.false_result_name == "" &&
+            facts.phi_result_name == "";
     }
     return false;
 }
@@ -215,11 +223,10 @@ func DirectMirCfgGreaterConditionLiteral(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref use_facts: MirRoutineInstructionUseFacts,
-    ref certificate: DirectMirCfgCertificate,
+    global_row: Int,
     local_name: String,
     result_name: String
 ) -> String {
-    let global_row: Int = certificate.branch_global_row;
     if admitted.routines.instruction_source_types[global_row] !=
             "AST_BINARY" ||
         !MirRoutineFactIndexResultExists(index, result_name) ||
@@ -475,7 +482,7 @@ func DirectMirCfgPhiMergeShapeFromOwners(
         true, DirectMirCfgPhiMergeShapeKind(), local_name,
         entry_result_name, entry_integer_literal,
         AstExpressionNodeBoolLiteral(), condition_literal,
-        true_arm.integer_literal, "", false_arm.integer_literal, "",
+        "", true_arm.integer_literal, "", false_arm.integer_literal, "",
         true_arm.result_name, false_arm.result_name,
         certificate.phi_result_name
     );
@@ -487,42 +494,15 @@ func DirectMirCfgShapeFactsFromOwners(
     ref use_facts: MirRoutineInstructionUseFacts,
     ref certificate: DirectMirCfgCertificate
 ) -> DirectMirCfgShapeFacts {
-    if ArrayLength(index.source_local_names) != 1 ||
-        ArrayLength(index.source_local_types) != 1 ||
-        index.source_local_types[0] != "Int" ||
-        StringLength(index.source_local_names[0]) == 0 {
-        return DirectMirCfgShapeFactsEmpty();
-    }
-    let local_name: String = index.source_local_names[0];
-    let definition_global_row: Int =
-        MirProgramRoutineIndexGlobalInstructionRow(
-            admitted.routines, 0, certificate.entry_block, 0
-        );
-    if definition_global_row < 0 ||
-        admitted.routines.instruction_kinds[definition_global_row] != "def" ||
-        admitted.routines.instruction_source_types[definition_global_row] !=
-            "AST_LET_DECL" ||
-        MirRoutineInstructionUseCountAtGlobal(
-            use_facts, definition_global_row
-        ) != 0 {
-        return DirectMirCfgShapeFactsEmpty();
-    }
-    let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
-        admitted.routines.instruction_starts[definition_global_row],
-        admitted.routines.instruction_ends[definition_global_row]
+    let entry: DirectMirCfgEntryFact = DirectMirCfgEntryFactFromOwners(
+        admitted, index, use_facts, certificate.entry_block
     );
-    let result_opt: Option<String> =
-        JsonObjectFactStringFieldOpt(definition, "result");
-    let definition_id: String =
-        DirectMirCfgCanonicalInstructionId(definition);
-    if !IsSome(result_opt) || StringLength(definition_id) == 0 {
+    if !entry.valid {
         return DirectMirCfgShapeFactsEmpty();
     }
-    let entry_result_name: String = UnwrapOption(result_opt);
-    let entry_integer_literal: String = DirectMirScalarDefinitionLiteral(
-        definition, definition_id, local_name, entry_result_name
-    );
+    let local_name: String = entry.local_name;
+    let entry_result_name: String = entry.result_name;
+    let entry_integer_literal: String = entry.integer_literal;
     if certificate.phi_count == 0 {
         let true_projection: DirectMirHelloProjection =
             DirectMirCfgLiteralArmProjection(
@@ -536,9 +516,9 @@ func DirectMirCfgShapeFactsFromOwners(
             true, DirectMirCfgLiteralArmShapeKind(), local_name,
             entry_result_name, entry_integer_literal,
             AstExpressionNodeGreater(), DirectMirCfgGreaterConditionLiteral(
-                admitted, index, use_facts, certificate,
+                admitted, index, use_facts, certificate.branch_global_row,
                 local_name, entry_result_name
-            ), true_projection.literal, true_projection.content,
+            ), "", true_projection.literal, true_projection.content,
             false_projection.literal, false_projection.content, "", "", ""
         );
         if DirectMirCfgShapeFactsReady(facts, certificate.phi_count) {

@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+2026-07-27 v71 replaces the next bounded C-owned CFG slice. A fresh
+Pergyra-built integrated driver emitted `nestedif.pgy` as one unchanged
+3,687-byte `pgy.mir.v1` artifact with SHA-256
+`20e5b34b43bf7658331760cd1c5314aeb30bf8db7131686fe3fc79da8c6b3db0`.
+The same identity drove direct C and LLVM projection, both artifacts compiled,
+and both matched native output `big`. The earlier scalar, four-block diamond,
+and three-block direct-false rungs remained green.
+
+Certificate and plan schemas are now v3. One fixed nested fact binds outer
+edges `b0 ? b1 : b4`, inner edges `b1 ? b2 : b3`, the `b2 -> b3 -> b4`
+forwarding spine, and both condition rows to entry SSA `x.1`. The existing MIR
+routine index and use owner supply those facts once. A repaired-digest inner
+merge mutation rejects in both the certificate and plan readiness contracts.
+
+The responsibility split remains Pergyra-shaped: common identity, entry fact,
+nested topology, target-neutral shape, plan identity, and nested text emission.
+The nested emission owner retains both C and LLVM implementations; the common
+emission dispatcher is the last artifact-producing plan consumer and gives it
+only fixed facts.
+No backend-specific graph reader, second certificate/plan, fixture dispatch,
+or emitter-side MIR/AIR access exists. C emits two nested `if` statements;
+LLVM emits two comparisons over `%pgy.local.entry` and preserves the inner and
+outer merge blocks without inventing a phi.
+
+The fresh Pergyra-built bootstrap passed integrated sample, MIR producer, and
+bounded MIR consumer parity. Its generated seed then passed C/LLVM/native
+runtime parity plus inner-use, missing-edge, inner/outer-merge, certificate,
+and plan mutations before artifact creation. Released/default `pgy`
+replacement remains 0%; v71 is a bounded executable substitution rung.
+
 2026-07-27 v70 replaces the next bounded C-owned CFG/dataflow slice. A fresh
 Pergyra-built integrated driver emitted `reassign_block.pgy` as one unchanged
 4,062-byte `pgy.mir.v1` artifact with SHA-256

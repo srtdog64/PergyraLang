@@ -9,7 +9,8 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../mir_lower/phi_fact_owner.pgy";
 import "../compiler/air_evidence_owner.pgy";
-
+import "mir_cfg_identity_owner.pgy";
+import "mir_nested_cfg_certificate_fact_owner.pgy";
 struct DirectMirCfgCertificate {
     let valid: Bool;
     let schema: String;
@@ -28,6 +29,7 @@ struct DirectMirCfgCertificate {
     let false_block: Int;
     let merge_block: Int;
     let branch_global_row: Int;
+    let nested: DirectMirNestedCfgCertificateFact;
     let evidence_kind: String;
     let evidence_fact_count: Int;
     let fallback_count: Int;
@@ -43,120 +45,17 @@ struct DirectMirCfgCertificate {
 }
 
 func DirectMirCfgCertificateSchema() -> String {
-    return "pgy.selfhost.air.mir-cfg-certificate.v2";
+    return "pgy.selfhost.air.mir-cfg-certificate.v3";
 }
-
-func DirectMirCfgCertificateRevision() -> Int { return 2; }
+func DirectMirCfgCertificateRevision() -> Int { return 3; }
 
 func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
     return DirectMirCfgCertificate(
         false, "", 0, 0, 0, 0, 0, 0, "", 0, 0, 0,
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, "", 0, 0, 0,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        DirectMirNestedCfgCertificateFactEmpty(), "", 0, 0, 0,
         false, false, 0, 0, "", "", "", ""
     );
-}
-
-func DirectMirCfgHashString(hash: Long, value: String) -> Long {
-    let modulus: Long = 268435456L;
-    let out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
-    let row: Int = 0;
-    while row < StringLength(value) {
-        out = (out * 131L +
-            (CharCode(value, StringLength(value), row) as Long)) % modulus;
-        row = row + 1;
-    }
-    return out;
-}
-
-func DirectMirCfgHashInt(hash: Long, value: Int) -> Long {
-    let modulus: Long = 268435456L;
-    return (hash * 131L + ((value + 2) as Long)) % modulus;
-}
-
-func DirectMirCfgBoundedDigest(hash: Long) -> Int {
-    return (1073741824L + hash) as Int;
-}
-
-func DirectMirCfgMirDigest(json: String) -> Int {
-    return DirectMirCfgBoundedDigest(
-        DirectMirCfgHashString(17L, json)
-    );
-}
-
-func DirectMirCfgDigestFromIndex(
-    ref index: MirRoutineFactIndex
-) -> Int {
-    let block_count: Int = ArrayLength(index.block_starts);
-    if !index.valid || block_count != ArrayLength(index.block_ends) ||
-        block_count != ArrayLength(index.block_reachable) ||
-        block_count != ArrayLength(index.backedge_headers) ||
-        block_count != ArrayLength(index.block_succ_true) ||
-        block_count != ArrayLength(index.block_succ_false) ||
-        block_count != ArrayLength(index.block_has_conditional_branch) ||
-        block_count != ArrayLength(index.block_structural_merges) ||
-        block_count != ArrayLength(index.block_instruction_starts) ||
-        block_count != ArrayLength(index.block_instruction_counts) ||
-        block_count != ArrayLength(
-            index.instruction_facts.block_phi_prefix_counts
-        ) {
-        return 0;
-    }
-    let hash: Long = DirectMirCfgHashString(23L, index.source_syntax_id);
-    hash = DirectMirCfgHashInt(hash, block_count);
-    hash = DirectMirCfgHashInt(
-        hash, ArrayLength(index.instruction_facts.starts)
-    );
-    let block: Int = 0;
-    while block < block_count {
-        let reachable: Int = 0;
-        if index.block_reachable[block] { reachable = 1; }
-        hash = DirectMirCfgHashInt(hash, block);
-        hash = DirectMirCfgHashInt(hash, reachable);
-        hash = DirectMirCfgHashInt(hash, index.backedge_headers[block]);
-        hash = DirectMirCfgHashInt(hash, index.block_succ_true[block]);
-        hash = DirectMirCfgHashInt(hash, index.block_succ_false[block]);
-        hash = DirectMirCfgHashInt(
-            hash, index.block_has_conditional_branch[block]
-        );
-        hash = DirectMirCfgHashInt(
-            hash, index.block_structural_merges[block]
-        );
-        hash = DirectMirCfgHashInt(
-            hash, index.block_instruction_starts[block]
-        );
-        hash = DirectMirCfgHashInt(
-            hash, index.block_instruction_counts[block]
-        );
-        hash = DirectMirCfgHashInt(
-            hash, index.instruction_facts.block_phi_prefix_counts[block]
-        );
-        block = block + 1;
-    }
-    return DirectMirCfgBoundedDigest(hash);
-}
-
-func DirectMirCfgPhiBindingDigest(
-    phi_count: Int,
-    local_name: String,
-    result_name: String,
-    true_incoming: String,
-    false_incoming: String
-) -> Int {
-    if phi_count == 0 && local_name == "" && result_name == "" &&
-        true_incoming == "" && false_incoming == "" {
-        return 0;
-    }
-    if phi_count != 1 || StringLength(local_name) == 0 ||
-        StringLength(result_name) == 0 || StringLength(true_incoming) == 0 ||
-        StringLength(false_incoming) == 0 {
-        return 0;
-    }
-    let hash: Long = DirectMirCfgHashInt(29L, phi_count);
-    hash = DirectMirCfgHashString(hash, local_name);
-    hash = DirectMirCfgHashString(hash, result_name);
-    hash = DirectMirCfgHashString(hash, true_incoming);
-    hash = DirectMirCfgHashString(hash, false_incoming);
-    return DirectMirCfgBoundedDigest(hash);
 }
 
 func DirectMirCfgCertificateIdentityDigest(
@@ -178,6 +77,9 @@ func DirectMirCfgCertificateIdentityDigest(
     hash = DirectMirCfgHashInt(hash, certificate.false_block);
     hash = DirectMirCfgHashInt(hash, certificate.merge_block);
     hash = DirectMirCfgHashInt(hash, certificate.branch_global_row);
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirNestedCfgCertificateFactDigest(certificate.nested)
+    );
     hash = DirectMirCfgHashString(hash, certificate.evidence_kind);
     hash = DirectMirCfgHashInt(hash, certificate.evidence_fact_count);
     hash = DirectMirCfgHashInt(hash, certificate.fallback_count);
@@ -207,7 +109,8 @@ func DirectMirCfgCertificateWithDigest(
         certificate.block_count, certificate.instruction_count,
         certificate.entry_block, certificate.true_block,
         certificate.false_block, certificate.merge_block,
-        certificate.branch_global_row, certificate.evidence_kind,
+        certificate.branch_global_row, certificate.nested,
+        certificate.evidence_kind,
         certificate.evidence_fact_count, certificate.fallback_count,
         certificate.drift_count, certificate.strict_evidence,
         certificate.mir_evidence_bound, certificate.phi_count,
@@ -232,7 +135,30 @@ func DirectMirCfgCertificateWithEvidenceCounts(
         certificate.instruction_count, certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.branch_global_row,
-        certificate.evidence_kind, fact_count, fallback_count, drift_count,
+        certificate.nested, certificate.evidence_kind,
+        fact_count, fallback_count, drift_count,
+        certificate.strict_evidence, certificate.mir_evidence_bound,
+        certificate.phi_count, certificate.phi_digest,
+        certificate.phi_local_name, certificate.phi_result_name,
+        certificate.phi_true_incoming, certificate.phi_false_incoming
+    );
+}
+
+func DirectMirCfgCertificateWithNested(
+    certificate: DirectMirCfgCertificate,
+    nested: DirectMirNestedCfgCertificateFact
+) -> DirectMirCfgCertificate {
+    return DirectMirCfgCertificate(
+        certificate.valid, certificate.schema, certificate.revision,
+        certificate.certificate_digest, certificate.mir_digest,
+        certificate.source_length, certificate.routine_start,
+        certificate.routine_end, certificate.source_syntax_id,
+        certificate.cfg_digest, certificate.block_count,
+        certificate.instruction_count, certificate.entry_block,
+        certificate.true_block, certificate.false_block,
+        certificate.merge_block, certificate.branch_global_row, nested,
+        certificate.evidence_kind, certificate.evidence_fact_count,
+        certificate.fallback_count, certificate.drift_count,
         certificate.strict_evidence, certificate.mir_evidence_bound,
         certificate.phi_count, certificate.phi_digest,
         certificate.phi_local_name, certificate.phi_result_name,
@@ -253,7 +179,7 @@ func DirectMirCfgCertificateFromIndex(
         ) {
         return DirectMirCfgCertificateEmpty();
     }
-    if (block_count != 3 && block_count != 4) ||
+    if (block_count != 3 && block_count != 4 && block_count != 5) ||
         block_count != ArrayLength(index.block_ends) ||
         block_count != ArrayLength(index.block_reachable) ||
         block_count != ArrayLength(index.backedge_headers) ||
@@ -281,8 +207,19 @@ func DirectMirCfgCertificateFromIndex(
     let true_block: Int = index.block_succ_true[entry];
     let false_block: Int = index.block_succ_false[entry];
     let merge_block: Int = index.block_structural_merges[entry];
+    let nested: DirectMirNestedCfgCertificateFact =
+        DirectMirNestedCfgCertificateFactEmpty();
+    if block_count == 5 {
+        nested = DirectMirNestedCfgCertificateFactFromIndex(
+            admitted, index, use_facts
+        );
+    }
+    let nested_ready: Bool = DirectMirNestedCfgCertificateFactReady(nested);
+    if block_count == 5 && !nested_ready {
+        Die("direct MIR nested CFG issued topology fact is invalid");
+    }
     let direct_false_edge: Bool =
-        block_count == 3 && false_block == merge_block;
+        (block_count == 3 || nested_ready) && false_block == merge_block;
     if true_block < 0 || true_block >= block_count ||
         false_block < 0 || false_block >= block_count ||
         merge_block < 0 || merge_block >= block_count ||
@@ -292,14 +229,23 @@ func DirectMirCfgCertificateFromIndex(
         (!direct_false_edge && false_block == merge_block) {
         return DirectMirCfgCertificateEmpty();
     }
-    if index.block_succ_true[true_block] != merge_block ||
-        index.block_succ_false[true_block] >= 0 ||
-        (!direct_false_edge &&
-            (index.block_succ_true[false_block] != merge_block ||
-             index.block_succ_false[false_block] >= 0)) ||
-        index.block_succ_true[merge_block] >= 0 ||
-        index.block_succ_false[merge_block] >= 0 {
-        return DirectMirCfgCertificateEmpty();
+    if nested_ready {
+        if true_block != nested.branch_block ||
+            false_block != nested.outer_merge_block ||
+            merge_block != nested.outer_merge_block {
+            return DirectMirCfgCertificateEmpty();
+        }
+    } else {
+        if block_count == 5 ||
+            index.block_succ_true[true_block] != merge_block ||
+            index.block_succ_false[true_block] >= 0 ||
+            (!direct_false_edge &&
+                (index.block_succ_true[false_block] != merge_block ||
+                 index.block_succ_false[false_block] >= 0)) ||
+            index.block_succ_true[merge_block] >= 0 ||
+            index.block_succ_false[merge_block] >= 0 {
+            return DirectMirCfgCertificateEmpty();
+        }
     }
 
     let phi_count: Int = 0;
@@ -320,7 +266,10 @@ func DirectMirCfgCertificateFromIndex(
             return DirectMirCfgCertificateEmpty();
         }
         let should_branch: Int = 0;
-        if block == entry { should_branch = 1; }
+        if block == entry ||
+            (nested_ready && block == nested.branch_block) {
+            should_branch = 1;
+        }
         if index.block_has_conditional_branch[block] != should_branch {
             return DirectMirCfgCertificateEmpty();
         }
@@ -328,13 +277,20 @@ func DirectMirCfgCertificateFromIndex(
     }
     let expected_merge_instructions: Int = 0;
     if phi_count == 1 { expected_merge_instructions = 2; }
-    if index.block_instruction_counts[entry] != 2 ||
-        index.block_instruction_counts[true_block] != 1 ||
-        (!direct_false_edge &&
-            index.block_instruction_counts[false_block] != 1) ||
-        index.block_instruction_counts[merge_block] !=
-            expected_merge_instructions {
-        return DirectMirCfgCertificateEmpty();
+    if nested_ready {
+        if ArrayLength(index.instruction_facts.starts) != 4 ||
+            phi_count != 0 {
+            return DirectMirCfgCertificateEmpty();
+        }
+    } else {
+        if index.block_instruction_counts[entry] != 2 ||
+            index.block_instruction_counts[true_block] != 1 ||
+            (!direct_false_edge &&
+                index.block_instruction_counts[false_block] != 1) ||
+            index.block_instruction_counts[merge_block] !=
+                expected_merge_instructions {
+            return DirectMirCfgCertificateEmpty();
+        }
     }
 
     let phi_local_name: String = "";
@@ -396,6 +352,8 @@ func DirectMirCfgCertificateFromIndex(
     if cfg_digest == 0 || (phi_count == 1 && phi_digest == 0) {
         return DirectMirCfgCertificateEmpty();
     }
+    let evidence_fact_count: Int = 1;
+    if nested_ready { evidence_fact_count = 2; }
     let certificate: DirectMirCfgCertificate = DirectMirCfgCertificate(
         true, DirectMirCfgCertificateSchema(),
         DirectMirCfgCertificateRevision(), 0,
@@ -404,8 +362,8 @@ func DirectMirCfgCertificateFromIndex(
         index.routine_end, index.source_syntax_id, cfg_digest,
         block_count, ArrayLength(index.instruction_facts.starts),
         entry, true_block, false_block, merge_block,
-        branch.instruction.global_row,
-        CompilerAirEvidenceMirTerminatorFact(), 1, 0, 0,
+        branch.instruction.global_row, nested,
+        CompilerAirEvidenceMirTerminatorFact(), evidence_fact_count, 0, 0,
         true, true, phi_count, phi_digest, phi_local_name,
         phi_result_name, phi_true_incoming, phi_false_incoming
     );
@@ -419,10 +377,26 @@ func DirectMirCfgCertificateReady(
 ) -> Bool {
     let expected_instruction_count: Int = 4;
     if certificate.phi_count == 1 { expected_instruction_count = 6; }
-    let direct_false_edge: Bool = certificate.block_count == 3 &&
+    let nested_ready: Bool = certificate.block_count == 5 &&
+        DirectMirNestedCfgCertificateFactReady(certificate.nested) &&
+        certificate.true_block == certificate.nested.branch_block &&
+        certificate.false_block == certificate.nested.outer_merge_block &&
+        certificate.merge_block == certificate.nested.outer_merge_block &&
+        certificate.branch_global_row !=
+            certificate.nested.branch_global_row;
+    let nested_binding_ready: Bool = nested_ready;
+    if certificate.block_count != 5 {
+        nested_binding_ready =
+            DirectMirNestedCfgCertificateFactAbsent(certificate.nested);
+    }
+    let direct_false_edge: Bool =
+        (certificate.block_count == 3 || nested_ready) &&
         certificate.phi_count == 1 &&
         certificate.false_block == certificate.merge_block;
-    if direct_false_edge { expected_instruction_count = 5; }
+    if nested_ready { direct_false_edge = true; }
+    if certificate.block_count == 3 && direct_false_edge {
+        expected_instruction_count = 5;
+    }
     let expected_phi_digest: Int = DirectMirCfgPhiBindingDigest(
         certificate.phi_count, certificate.phi_local_name,
         certificate.phi_result_name, certificate.phi_true_incoming,
@@ -462,10 +436,11 @@ func DirectMirCfgCertificateReady(
         certificate.routine_end > certificate.routine_start &&
         StringLength(certificate.source_syntax_id) > 0 &&
         certificate.cfg_digest != 0 &&
-        (certificate.block_count == 4 || direct_false_edge) &&
+        (certificate.block_count == 4 || direct_false_edge || nested_ready) &&
         (certificate.phi_count == 0 || certificate.phi_count == 1) &&
         certificate.instruction_count == expected_instruction_count &&
         certificate.phi_digest == expected_phi_digest && phi_fields_ready &&
+        nested_binding_ready &&
         certificate.entry_block == 0 &&
         certificate.true_block >= 0 && certificate.false_block >= 0 &&
         certificate.merge_block >= 0 &&
@@ -478,7 +453,8 @@ func DirectMirCfgCertificateReady(
             certificate.false_block != certificate.merge_block) &&
         certificate.evidence_kind ==
             CompilerAirEvidenceMirTerminatorFact() &&
-        certificate.evidence_fact_count == 1 &&
+        ((!nested_ready && certificate.evidence_fact_count == 1) ||
+            (nested_ready && certificate.evidence_fact_count == 2)) &&
         certificate.fallback_count == 0 &&
         certificate.drift_count == 0 && certificate.strict_evidence &&
         certificate.mir_evidence_bound;
@@ -487,6 +463,10 @@ func DirectMirCfgCertificateReady(
 func DirectMirCfgCertificateMutationRejected(
     own certificate: DirectMirCfgCertificate
 ) -> Bool {
+    let expected_evidence_count: Int = 1;
+    if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
+        expected_evidence_count = 2;
+    }
     let bad_digest: DirectMirCfgCertificate =
         DirectMirCfgCertificateWithDigest(
             certificate, certificate.certificate_digest + 1
@@ -498,17 +478,43 @@ func DirectMirCfgCertificateMutationRejected(
         DirectMirCfgCertificateIdentityDigest(missing_evidence)
     );
     let fallback: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithEvidenceCounts(certificate, 1, 1, 0);
+        DirectMirCfgCertificateWithEvidenceCounts(
+            certificate, expected_evidence_count, 1, 0
+        );
     fallback = DirectMirCfgCertificateWithDigest(
         fallback, DirectMirCfgCertificateIdentityDigest(fallback)
     );
     let drift: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithEvidenceCounts(certificate, 1, 0, 1);
+        DirectMirCfgCertificateWithEvidenceCounts(
+            certificate, expected_evidence_count, 0, 1
+        );
     drift = DirectMirCfgCertificateWithDigest(
         drift, DirectMirCfgCertificateIdentityDigest(drift)
     );
+    let bad_nested_rejected: Bool = true;
+    if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
+        let nested_for_mutation: DirectMirNestedCfgCertificateFact =
+            certificate.nested;
+        let bad_nested: DirectMirNestedCfgCertificateFact =
+            DirectMirNestedCfgCertificateFactInvalidMerge(
+                nested_for_mutation
+            );
+        let bad_nested_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithNested(certificate, bad_nested);
+        bad_nested_certificate = DirectMirCfgCertificateWithDigest(
+            bad_nested_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_nested_certificate)
+        );
+        let nested_for_negative: DirectMirNestedCfgCertificateFact =
+            certificate.nested;
+        bad_nested_rejected =
+            !DirectMirCfgCertificateReady(bad_nested_certificate) &&
+            DirectMirNestedCfgCertificateFactMutationRejected(
+                nested_for_negative
+            );
+    }
     return !DirectMirCfgCertificateReady(bad_digest) &&
         !DirectMirCfgCertificateReady(missing_evidence) &&
         !DirectMirCfgCertificateReady(fallback) &&
-        !DirectMirCfgCertificateReady(drift);
+        !DirectMirCfgCertificateReady(drift) && bad_nested_rejected;
 }

@@ -29,4 +29,4 @@ mutation="$(make_mutation missing_false_predecessor_phi \
 expect_rejected_without_artifact missing_false_predecessor_phi "$mutation" \
     'phi.*(incoming|predecessor)|incoming.*predecessor'
 
-echo "[$LABEL] ifelse + if_else_assign + reassign_block one-MIR CFG/AIR-plan gate ok (sha256=$mir_digest)"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_nested_case.sh"

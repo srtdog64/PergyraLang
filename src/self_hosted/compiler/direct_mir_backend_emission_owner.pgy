@@ -2,6 +2,8 @@
 
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "direct_mir_nested_cfg_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
 func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
@@ -86,48 +88,6 @@ func DirectMirScalarEmitC(
     return output;
 }
 
-func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
-    let payload: String = "";
-    let i: Int = 0;
-    let n: Int = StringLength(line_format);
-    while i < n {
-        let code: Int = CharCode(line_format, n, i);
-        if code == 92 {
-            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
-                Die("direct MIR scalar LLVM format escape is invalid");
-            }
-            payload = Concat(payload, "\\0A");
-            i = i + 2;
-        } else {
-            if code < 32 || code > 126 || code == 34 {
-                Die("direct MIR scalar LLVM format byte is invalid");
-            }
-            payload = Concat(payload, CharAtN(line_format, n, i));
-            i = i + 1;
-        }
-    }
-    return payload;
-}
-
-func DirectMirScalarLlvmFormatByteCount(line_format: String) -> Int {
-    let count: Int = 1;
-    let i: Int = 0;
-    let n: Int = StringLength(line_format);
-    while i < n {
-        if CharCode(line_format, n, i) == 92 {
-            if i + 1 >= n || CharCode(line_format, n, i + 1) != 110 {
-                Die("direct MIR scalar LLVM format length is invalid");
-            }
-            count = count + 1;
-            i = i + 2;
-        } else {
-            count = count + 1;
-            i = i + 1;
-        }
-    }
-    return count;
-}
-
 func DirectMirScalarEmitLlvm(
     projection: DirectMirScalarBlockProjection,
     formatted_print: CompilerRuntimeCallAbiFact,
@@ -202,6 +162,12 @@ func DirectMirCfgEmitC(
         StringLength(formatted_print.symbol) == 0 ||
         StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
         Die("direct MIR CFG C projection plan or runtime ABI is invalid");
+    }
+    if plan.shape.kind == DirectMirCfgNestedConditionalShapeKind() {
+        return DirectMirNestedCfgEmitC(
+            plan.shape, plan.nested, formatted_print,
+            line_format, int_c_type
+        );
     }
     let output: String = "#include <stdio.h>\n";
     if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
@@ -286,6 +252,11 @@ func DirectMirCfgEmitLlvm(
         StringLength(formatted_print.symbol) == 0 ||
         StringLength(line_format) == 0 {
         Die("direct MIR CFG LLVM projection plan or runtime ABI is invalid");
+    }
+    if plan.shape.kind == DirectMirCfgNestedConditionalShapeKind() {
+        return DirectMirNestedCfgEmitLlvm(
+            plan.shape, plan.nested, formatted_print, line_format
+        );
     }
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
     let output: String = "@";

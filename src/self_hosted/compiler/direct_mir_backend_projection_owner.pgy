@@ -63,7 +63,7 @@ func CompileAdmittedDirectMirForTarget(
                 scalar, formatted_print, line_format, int_c_type
             );
         }
-    } else if block_count == 3 || block_count == 4 {
+    } else if block_count == 3 || block_count == 4 || block_count == 5 {
         let formatted_print: CompilerRuntimeCallAbiFact =
             CompilerRuntimeCallAbiFormattedPrintFact();
         if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
@@ -77,7 +77,9 @@ func CompileAdmittedDirectMirForTarget(
         let line_format: String = StringRuntimeCStringLineFormat();
         if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
             line_format = StringRuntimeCIntLineFormat();
-        } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() {
+        } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
+                plan.shape.kind !=
+                    DirectMirCfgNestedConditionalShapeKind() {
             Die("direct MIR CFG projection shape has no runtime ABI format");
         }
         if is_llvm {

@@ -1078,9 +1078,15 @@ inventory must not become a second fact-family owner registry.
   fact vocabulary for intent/effect/authority/coordination and MIR terminators.
 - `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
   certificate issuer for the bounded direct CFG rung. It verifies the typed
-  block/terminator/merge-phi inventory once, binds MIR, CFG, and predecessor-
-  resolved phi digests, and permits only strict zero-fallback/zero-drift
-  evidence with a fixed-size self-digest mutation guard.
+  block/terminator/merge-phi or nested-conditional inventory once, binds MIR,
+  CFG, predecessor-resolved phi, and nested-spine facts, and permits only
+  strict zero-fallback/zero-drift evidence with a fixed-size mutation guard.
+- `src/self_hosted/air/mir_cfg_identity_owner.pgy` -- stable digest functions
+  over the already-built typed MIR routine index; it does not reopen a document
+  or build another graph/certificate view.
+- `src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy` -- bounded
+  five-block nested-condition fact binding both branch rows to one entry SSA,
+  the inner direct-false merge, and the forward edge to the outer merge.
 - `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/region_plan_owner.pgy` -- verified region plan SoT
@@ -1249,17 +1255,30 @@ inventory must not become a second fact-family owner registry.
   LLVM artifact without rebuilding AST/semantic artifacts or creating
   backend-specific MIR readers.
 - `src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy` -- one text
-  emission responsibility containing both C and LLVM consumers. It consumes
-  scalar projections or `DirectMirCfgPlan`; it owns no MIR/AIR read path.
+  emission dispatch responsibility containing both C and LLVM consumers. It
+  is the last artifact-producing `DirectMirCfgPlan` consumer and passes only
+  normalized facts to a responsibility-specific emitter; it owns no MIR/AIR
+  read path.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy` -- target-neutral
-  verified four-block CFG plan. It derives entry/arm/merge roles from typed MIR
-  owners, copies only fixed AIR/MIR/CFG/phi digest bindings and the target-
-  capability fingerprint, and self-digests every mechanical emission fact
-  before either backend sees it; the full certificate is not retained.
+  plan issuer. It derives the admitted bounded shape from typed owners and
+  issues one verified plan; no full certificate survives issuance.
+- `src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy` -- fixed-size
+  plan identity/readiness contract binding AIR/MIR/CFG/phi/nested digests,
+  target capability, topology, and normalized shape before emission.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is
   a derived plan payload, not a second plan or backend reader.
+- `src/self_hosted/compiler/direct_mir_cfg_entry_fact_owner.pgy` -- shared
+  typed entry-local/result/literal projection used by every direct CFG shape.
+- `src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy` -- derives
+  outer/inner comparison literals and the nested Log payload from one issued
+  topology fact and the existing typed index/use owners.
+- `src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy` -- one
+  nested-condition text responsibility containing both C and LLVM emitters;
+  it receives fixed facts, never a plan or MIR/AIR reader.
+- `src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy` -- shared
+  LLVM line-format byte encoding used by scalar and CFG text emitters.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. It owns neither target text

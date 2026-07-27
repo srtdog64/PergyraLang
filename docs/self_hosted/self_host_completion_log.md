@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Nested conditional spine reaches both backends (v71)
+
+- Rebuilt the integrated driver with the existing Pergyra parser/codegen seed;
+  sample, MIR producer, and bounded MIR consumer parity matched the native
+  oracle.
+- The generated seed emitted one 3,687-byte `nestedif.pgy` MIR with SHA-256
+  `20e5b34b43bf7658331760cd1c5314aeb30bf8db7131686fe3fc79da8c6b3db0`.
+  C and LLVM compiled from that exact identity and matched native output `big`.
+- Advanced certificate and plan schemas to v3. The single fixed nested fact
+  binds both branch rows to `x.1`, the inner direct-false merge, and its forward
+  edge to the outer merge. Repaired-digest certificate and plan mutations fail
+  closed.
+- Kept the split by Pergyra responsibility: shared CFG identity, entry fact,
+  nested topology, target-neutral shape, plan identity, and one nested emitter
+  containing both C and LLVM. No second graph/certificate/plan, fixture
+  dispatch, backend-specific reader, or emitter-side MIR/AIR access was added.
+- Added executable inner-use, missing-edge, inner-merge, and outer-forward-edge
+  mutations. All reject for both targets before artifact creation.
+- Fixed the next falsifying rung from fresh v71 evidence: `whileloop.pgy`,
+  4,692-byte MIR, SHA-256 `c48c9f...e50fb0`, header phi/backedge/increment,
+  native output `0`, `1`, `2`, and current block-inventory rejection.
+
 ## 2026-07-27 - Direct-false merge CFG reaches both backends (v70)
 
 - Rebuilt the integrated driver through the existing Pergyra parser/codegen

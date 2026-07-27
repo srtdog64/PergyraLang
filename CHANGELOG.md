@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Self-Hosted Nested CFG Rung (2026-07-27)
+
+- Added the five-block `nestedif.pgy` shape to the existing one-MIR
+  certificate/plan path. Certificate and plan schemas advance to v3 and bind
+  both branch uses, inner direct-false merge, and outer forward merge through
+  one fixed nested fact.
+- A freshly Pergyra-built integrated driver projected the unchanged
+  3,687-byte MIR (SHA-256 `20e5b34b...b3db0`) to C and LLVM. Both artifacts
+  compiled and matched native output `big`.
+- C emits two nested conditions. LLVM emits two comparisons over the same
+  entry SSA and preserves inner/outer merge blocks without a synthetic phi.
+- Added pre-artifact negatives for second-branch use drift, missing inner false
+  edge, wrong inner merge edge, wrong outer forwarding edge, and repaired
+  certificate/plan identity mutations.
+- Split growing code by target-neutral compiler responsibility, while keeping
+  C and LLVM together in one nested emission owner and keeping the common
+  emission dispatcher as the last plan consumer.
+
 ### Self-Hosted Direct-False CFG Rung (2026-07-27)
 
 - **self-host/verification**: Generalize the existing MIR-bound certificate

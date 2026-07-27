@@ -11371,14 +11371,36 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
+require_file "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 180
 require_file "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
+require_file "src/self_hosted/compiler/direct_mir_cfg_entry_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_entry_fact_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" 140
+require_file "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" 60
 require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
+require_file "src/self_hosted/air/mir_cfg_identity_owner.pgy"
+require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
+require_file "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" 220
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
+require_file "tests/self_hosted/parity/one_mir_cfg_nested_case.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_cfg_nested_case.sh" 80
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
@@ -11416,16 +11438,18 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "../air/mir_cfg_certificate_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
-    'func DirectMirCfgPlanMutationRejected('
+    'import "direct_mir_cfg_plan_fact_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+    'func DirectMirCfgPlanMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
     'let shape: DirectMirCfgShapeFacts;'
 require_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
     'func DirectMirCfgPhiMergeShapeKind()'
 require_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
     'func DirectMirCfgShapeFactsFromOwners('
-reject_function_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+reject_function_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
     'func DirectMirCfgPlanReady(' 'DirectMirCfgCertificateReady('
-reject_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+reject_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
     'let certificate: DirectMirCfgCertificate;'
 reject_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
     'MirObjectArrayStringFactsAtBounds('
@@ -11435,6 +11459,38 @@ require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'CompilerAirEvidenceMirTerminatorFact()'
 require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'let phi_digest: Int;'
+require_text "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirNestedCfgCertificateFactFromIndex('
+require_text "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirNestedCfgCertificateFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
+    'DirectMirNestedCfgCertificateFactDigest(plan.nested)'
+require_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
+    'func DirectMirNestedCfgShapeFactsFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
+    'func DirectMirNestedCfgEmitC('
+require_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
+    'func DirectMirNestedCfgEmitLlvm('
+reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
+    'BuildMirRoutineFactIndex('
+reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
+    'DirectMirCfgPlan'
+for nested_cfg_owner in \
+    src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy \
+    src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy; do
+    reject_text "$nested_cfg_owner" 'nestedif.pgy'
+    reject_text "$nested_cfg_owner" 'BuildMirDocumentFactIndex('
+    reject_text "$nested_cfg_owner" 'BuildMirRoutineFactIndex('
+    reject_text "$nested_cfg_owner" 'BuildMirRoutineInstructionUseFacts('
+    reject_text "$nested_cfg_owner" 'DirectMirCfgCertificateFromIndex('
+    reject_text "$nested_cfg_owner" 'MirJsonRead'
+done
+for nested_emission_raw_term in JsonObject JsonArray MirRoutineFactIndex; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
+        "$nested_emission_raw_term"
+done
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'let block_reachable: Array<Bool>;'
 require_text \

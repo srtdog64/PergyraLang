@@ -1,0 +1,81 @@
+// One typed entry-local fact shared by every admitted direct CFG shape.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirCfgEntryFact {
+    let valid: Bool;
+    let local_name: String;
+    let result_name: String;
+    let integer_literal: String;
+}
+
+func DirectMirCfgEntryFactEmpty() -> DirectMirCfgEntryFact {
+    return DirectMirCfgEntryFact(false, "", "", "");
+}
+
+func DirectMirCfgCanonicalInstructionId(
+    ref instruction: JsonObjectFactTable
+) -> String {
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        instruction, "id"
+    );
+    if !IsSome(id_opt) { return ""; }
+    let id: String = UnwrapOption(id_opt);
+    if StringLength(id) == 0 || ToInt(id) < 0 || ToString(ToInt(id)) != id {
+        return "";
+    }
+    return id;
+}
+
+func DirectMirCfgEntryFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    entry_block: Int
+) -> DirectMirCfgEntryFact {
+    if ArrayLength(index.source_local_names) != 1 ||
+        ArrayLength(index.source_local_types) != 1 ||
+        index.source_local_types[0] != "Int" ||
+        StringLength(index.source_local_names[0]) == 0 {
+        return DirectMirCfgEntryFactEmpty();
+    }
+    let local_name: String = index.source_local_names[0];
+    let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, entry_block, 0
+    );
+    if global_row < 0 ||
+        admitted.routines.instruction_kinds[global_row] != "def" ||
+        admitted.routines.instruction_source_types[global_row] !=
+            "AST_LET_DECL" ||
+        MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 0 {
+        return DirectMirCfgEntryFactEmpty();
+    }
+    let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    let result_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(definition, "result");
+    let definition_id: String = DirectMirCfgCanonicalInstructionId(
+        definition
+    );
+    if !IsSome(result_opt) || StringLength(definition_id) == 0 {
+        return DirectMirCfgEntryFactEmpty();
+    }
+    let result_name: String = UnwrapOption(result_opt);
+    let literal: String = DirectMirScalarDefinitionLiteral(
+        definition, definition_id, local_name, result_name
+    );
+    let fact: DirectMirCfgEntryFact = DirectMirCfgEntryFact(
+        true, local_name, result_name, literal
+    );
+    if !MirSsaNameMatches(fact.result_name, fact.local_name, false) ||
+        StringLength(fact.integer_literal) == 0 ||
+        ToString(ToInt(fact.integer_literal)) != fact.integer_literal {
+        return DirectMirCfgEntryFactEmpty();
+    }
+    return fact;
+}

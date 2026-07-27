@@ -1,0 +1,150 @@
+// Fixed-size identity and readiness contract for one target-neutral CFG plan.
+
+import "direct_mir_cfg_shape_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../air/mir_cfg_certificate_owner.pgy";
+
+struct DirectMirCfgPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let plan_digest: Int;
+    let certificate_digest: Int;
+    let mir_digest: Int;
+    let cfg_digest: Int;
+    let phi_digest: Int;
+    let nested_digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let entry_block: Int;
+    let true_block: Int;
+    let false_block: Int;
+    let merge_block: Int;
+    let phi_count: Int;
+    let nested: DirectMirNestedCfgCertificateFact;
+    let shape: DirectMirCfgShapeFacts;
+}
+
+func DirectMirCfgPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-cfg-plan.v3";
+}
+
+func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(43L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashInt(hash, plan.certificate_digest);
+    hash = DirectMirCfgHashInt(hash, plan.mir_digest);
+    hash = DirectMirCfgHashInt(hash, plan.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, plan.phi_digest);
+    hash = DirectMirCfgHashInt(hash, plan.nested_digest);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.entry_block);
+    hash = DirectMirCfgHashInt(hash, plan.true_block);
+    hash = DirectMirCfgHashInt(hash, plan.false_block);
+    hash = DirectMirCfgHashInt(hash, plan.merge_block);
+    hash = DirectMirCfgHashInt(hash, plan.phi_count);
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirNestedCfgCertificateFactDigest(plan.nested)
+    );
+    hash = DirectMirCfgHashInt(hash, DirectMirCfgShapeFactsDigest(plan.shape));
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCfgPlanWithDigest(
+    plan: DirectMirCfgPlan, digest: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, plan.nested, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithTargetFingerprint(
+    plan: DirectMirCfgPlan, fingerprint: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest,
+        plan.target_capability_schema, fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.phi_count, plan.nested, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithNested(
+    plan: DirectMirCfgPlan, nested: DirectMirNestedCfgCertificateFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, nested, plan.shape
+    );
+}
+
+func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
+    let nested_shape: Bool =
+        plan.shape.kind == DirectMirCfgNestedConditionalShapeKind();
+    let nested_ready: Bool =
+        DirectMirNestedCfgCertificateFactReady(plan.nested);
+    let nested_binding_ready: Bool = !nested_shape &&
+        DirectMirNestedCfgCertificateFactAbsent(plan.nested);
+    if nested_shape {
+        nested_binding_ready = nested_ready &&
+            plan.true_block == plan.nested.branch_block &&
+            plan.false_block == plan.nested.outer_merge_block &&
+            plan.merge_block == plan.nested.outer_merge_block &&
+            plan.shape.entry_result_name ==
+                plan.nested.condition_result_name;
+    }
+    let direct_false_fact: Bool = nested_shape ||
+        plan.shape.entry_result_name == plan.shape.false_result_name;
+    let direct_false_edge: Bool = plan.false_block == plan.merge_block;
+    let expected_phi_digest: Int = DirectMirCfgPhiBindingDigest(
+        plan.phi_count, plan.shape.local_name, plan.shape.phi_result_name,
+        plan.shape.true_result_name, plan.shape.false_result_name
+    );
+    let phi_binding_ready: Bool =
+        plan.phi_count == 0 && plan.phi_digest == 0 &&
+        expected_phi_digest == 0;
+    if plan.phi_count == 1 {
+        phi_binding_ready = expected_phi_digest != 0 &&
+            plan.phi_digest == expected_phi_digest;
+    }
+    return plan.valid && plan.schema == DirectMirCfgPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() &&
+        plan.plan_digest != 0 &&
+        plan.plan_digest == DirectMirCfgPlanIdentityDigest(plan) &&
+        plan.certificate_digest != 0 && plan.mir_digest != 0 &&
+        plan.cfg_digest != 0 && phi_binding_ready && nested_binding_ready &&
+        plan.nested_digest ==
+            DirectMirNestedCfgCertificateFactDigest(plan.nested) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        plan.entry_block == 0 && plan.true_block >= 0 &&
+        plan.false_block >= 0 && plan.merge_block >= 0 &&
+        plan.entry_block != plan.true_block &&
+        plan.entry_block != plan.false_block &&
+        plan.entry_block != plan.merge_block &&
+        plan.true_block != plan.false_block &&
+        plan.true_block != plan.merge_block &&
+        ((!direct_false_fact && !direct_false_edge) ||
+            (direct_false_fact && direct_false_edge)) &&
+        DirectMirCfgShapeFactsReady(plan.shape, plan.phi_count) &&
+        CompilerArtifactIdentityReady(
+            CompilerEmittedCArtifactKind(), plan.revision, plan.plan_digest
+        ) && CompilerArtifactIdentityReady(
+            CompilerEmittedLlvmArtifactKind(), plan.revision, plan.plan_digest
+        );
+}

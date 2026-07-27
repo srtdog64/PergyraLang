@@ -1,0 +1,220 @@
+// Fixed-size AIR fact binding a bounded nested-conditional spine and both
+// condition uses to one entry SSA before a target plan is issued.
+
+import "mir_cfg_identity_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+struct DirectMirNestedCfgCertificateFact {
+    let valid: Bool;
+    let digest: Int;
+    let block_count: Int;
+    let entry_block: Int;
+    let branch_block: Int;
+    let true_block: Int;
+    let false_block: Int;
+    let merge_block: Int;
+    let outer_merge_block: Int;
+    let branch_global_row: Int;
+    let condition_result_name: String;
+}
+
+func DirectMirNestedCfgCertificateFactEmpty()
+    -> DirectMirNestedCfgCertificateFact {
+    return DirectMirNestedCfgCertificateFact(
+        false, 0, 0, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, ""
+    );
+}
+
+func DirectMirNestedCfgCertificateFactDigest(
+    ref fact: DirectMirNestedCfgCertificateFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(47L, fact.block_count);
+    hash = DirectMirCfgHashInt(hash, fact.entry_block);
+    hash = DirectMirCfgHashInt(hash, fact.branch_block);
+    hash = DirectMirCfgHashInt(hash, fact.true_block);
+    hash = DirectMirCfgHashInt(hash, fact.false_block);
+    hash = DirectMirCfgHashInt(hash, fact.merge_block);
+    hash = DirectMirCfgHashInt(hash, fact.outer_merge_block);
+    hash = DirectMirCfgHashInt(hash, fact.branch_global_row);
+    hash = DirectMirCfgHashString(hash, fact.condition_result_name);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedCfgCertificateFactWithDigest(
+    fact: DirectMirNestedCfgCertificateFact, digest: Int
+) -> DirectMirNestedCfgCertificateFact {
+    return DirectMirNestedCfgCertificateFact(
+        fact.valid, digest, fact.block_count, fact.entry_block,
+        fact.branch_block, fact.true_block,
+        fact.false_block, fact.merge_block, fact.outer_merge_block,
+        fact.branch_global_row, fact.condition_result_name
+    );
+}
+
+func DirectMirNestedCfgCertificateFactAbsent(
+    ref fact: DirectMirNestedCfgCertificateFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.block_count == 0 &&
+        fact.entry_block < 0 && fact.branch_block < 0 &&
+        fact.true_block < 0 && fact.false_block < 0 &&
+        fact.merge_block < 0 && fact.outer_merge_block < 0 &&
+        fact.branch_global_row < 0 && fact.condition_result_name == "";
+}
+
+func DirectMirNestedCfgCertificateFactReady(
+    ref fact: DirectMirNestedCfgCertificateFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.block_count == 5 &&
+        fact.digest == DirectMirNestedCfgCertificateFactDigest(fact) &&
+        fact.entry_block == 0 && fact.branch_block > fact.entry_block &&
+        fact.branch_block < fact.block_count && fact.true_block >= 0 &&
+        fact.true_block < fact.block_count &&
+        fact.false_block >= 0 && fact.merge_block >= 0 &&
+        fact.false_block < fact.block_count &&
+        fact.merge_block < fact.block_count &&
+        fact.outer_merge_block >= 0 && fact.outer_merge_block < fact.block_count &&
+        fact.branch_global_row >= 0 &&
+        fact.entry_block != fact.true_block &&
+        fact.entry_block != fact.false_block &&
+        fact.entry_block != fact.merge_block &&
+        fact.entry_block != fact.outer_merge_block &&
+        fact.branch_block != fact.true_block &&
+        fact.branch_block != fact.false_block &&
+        fact.branch_block != fact.outer_merge_block &&
+        fact.true_block != fact.false_block &&
+        fact.true_block != fact.outer_merge_block &&
+        fact.false_block == fact.merge_block &&
+        fact.merge_block != fact.outer_merge_block &&
+        StringLength(fact.condition_result_name) > 0;
+}
+
+func DirectMirNestedCfgCertificateFactFromIndex(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts
+) -> DirectMirNestedCfgCertificateFact {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || block_count != 5 ||
+        !MirRoutineInstructionUseFactsReady(
+            use_facts, ArrayLength(index.instruction_facts.starts)
+        ) {
+        Die("direct MIR nested CFG inventory or use owner is invalid");
+    }
+    let entry: Int = 0;
+    let branch_block: Int = index.block_succ_true[entry];
+    let outer_merge: Int = index.block_succ_false[entry];
+    if branch_block < 0 || branch_block >= block_count ||
+        outer_merge < 0 || outer_merge >= block_count {
+        Die("direct MIR nested CFG outer successor is invalid");
+    }
+    let true_block: Int = index.block_succ_true[branch_block];
+    let false_block: Int = index.block_succ_false[branch_block];
+    let merge_block: Int = index.block_structural_merges[branch_block];
+    if true_block < 0 || true_block >= block_count ||
+        false_block < 0 || false_block >= block_count ||
+        merge_block < 0 || merge_block >= block_count ||
+        index.block_structural_merges[entry] != outer_merge ||
+        false_block != merge_block ||
+        index.block_succ_true[true_block] != merge_block ||
+        index.block_succ_false[true_block] >= 0 ||
+        index.block_succ_true[merge_block] != outer_merge ||
+        index.block_succ_false[merge_block] >= 0 ||
+        index.block_succ_true[outer_merge] >= 0 ||
+        index.block_succ_false[outer_merge] >= 0 {
+        Die("direct MIR nested CFG successor or merge topology is invalid");
+    }
+    let block: Int = 0;
+    while block < block_count {
+        let should_branch: Int = 0;
+        if block == entry || block == branch_block { should_branch = 1; }
+        let expected_count: Int = 0;
+        if block == entry { expected_count = 2; }
+        if block == branch_block || block == true_block {
+            expected_count = 1;
+        }
+        if !index.block_reachable[block] ||
+            index.backedge_headers[block] != 0 ||
+            index.instruction_facts.block_phi_prefix_counts[block] != 0 ||
+            index.block_has_conditional_branch[block] != should_branch ||
+            index.block_instruction_counts[block] != expected_count {
+            Die("direct MIR nested CFG block inventory is invalid");
+        }
+        block = block + 1;
+    }
+    let outer_branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(index, admitted.routines, 0, entry);
+    let nested_branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, admitted.routines, 0, branch_block
+        );
+    let entry_global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, entry, 0
+    );
+    let entry_fact_row: Int =
+        entry_global_row - index.instruction_facts.global_start;
+    if !outer_branch.valid || !outer_branch.found ||
+        !nested_branch.valid || !nested_branch.found ||
+        outer_branch.instruction.source_type != "AST_BINARY" ||
+        nested_branch.instruction.source_type != "AST_BINARY" ||
+        entry_fact_row < 0 ||
+        entry_fact_row >= ArrayLength(index.instruction_facts.results) {
+        Die("direct MIR nested CFG branch identity is invalid");
+    }
+    let condition_result: String =
+        index.instruction_facts.results[entry_fact_row];
+    let outer_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, outer_branch.instruction.global_row, 0
+    );
+    let nested_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, nested_branch.instruction.global_row, 0
+    );
+    if StringLength(condition_result) == 0 ||
+        !MirRoutineFactIndexResultExists(index, condition_result) ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, outer_branch.instruction.global_row
+        ) != 1 ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, nested_branch.instruction.global_row
+        ) != 1 || !IsSome(outer_use) || !IsSome(nested_use) ||
+        UnwrapOption(outer_use) != condition_result ||
+        UnwrapOption(nested_use) != condition_result {
+        Die("direct MIR nested CFG condition SSA use is invalid");
+    }
+    let fact: DirectMirNestedCfgCertificateFact =
+        DirectMirNestedCfgCertificateFact(
+            true, 0, block_count, entry, branch_block, true_block,
+            false_block, merge_block, outer_merge,
+            nested_branch.instruction.global_row,
+            condition_result
+        );
+    return DirectMirNestedCfgCertificateFactWithDigest(
+        fact, DirectMirNestedCfgCertificateFactDigest(fact)
+    );
+}
+
+func DirectMirNestedCfgCertificateFactMutationRejected(
+    own fact: DirectMirNestedCfgCertificateFact
+) -> Bool {
+    if !DirectMirNestedCfgCertificateFactReady(fact) { return false; }
+    let bad_merge: DirectMirNestedCfgCertificateFact =
+        DirectMirNestedCfgCertificateFactInvalidMerge(fact);
+    return !DirectMirNestedCfgCertificateFactReady(bad_merge);
+}
+
+func DirectMirNestedCfgCertificateFactInvalidMerge(
+    fact: DirectMirNestedCfgCertificateFact
+) -> DirectMirNestedCfgCertificateFact {
+    let bad_merge: DirectMirNestedCfgCertificateFact =
+        DirectMirNestedCfgCertificateFact(
+            fact.valid, 0, fact.block_count, fact.entry_block,
+            fact.branch_block, fact.true_block,
+            fact.block_count, fact.block_count, fact.outer_merge_block,
+            fact.branch_global_row, fact.condition_result_name
+        );
+    bad_merge = DirectMirNestedCfgCertificateFactWithDigest(
+        bad_merge, DirectMirNestedCfgCertificateFactDigest(bad_merge)
+    );
+    return bad_merge;
+}

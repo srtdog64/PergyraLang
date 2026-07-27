@@ -1,0 +1,104 @@
+// Stable identity functions shared by direct MIR CFG certificates and their
+// bounded topology facts. This owner hashes typed facts only; it never opens a
+// second MIR document, graph, certificate, or backend view.
+
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirCfgHashString(hash: Long, value: String) -> Long {
+    let modulus: Long = 268435456L;
+    let out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
+    let row: Int = 0;
+    while row < StringLength(value) {
+        out = (out * 131L +
+            (CharCode(value, StringLength(value), row) as Long)) % modulus;
+        row = row + 1;
+    }
+    return out;
+}
+
+func DirectMirCfgHashInt(hash: Long, value: Int) -> Long {
+    let modulus: Long = 268435456L;
+    return (hash * 131L + ((value + 2) as Long)) % modulus;
+}
+
+func DirectMirCfgBoundedDigest(hash: Long) -> Int {
+    return (1073741824L + hash) as Int;
+}
+
+func DirectMirCfgMirDigest(json: String) -> Int {
+    return DirectMirCfgBoundedDigest(DirectMirCfgHashString(17L, json));
+}
+
+func DirectMirCfgDigestFromIndex(ref index: MirRoutineFactIndex) -> Int {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || block_count != ArrayLength(index.block_ends) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.backedge_headers) ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_count != ArrayLength(index.block_has_conditional_branch) ||
+        block_count != ArrayLength(index.block_structural_merges) ||
+        block_count != ArrayLength(index.block_instruction_starts) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        block_count != ArrayLength(
+            index.instruction_facts.block_phi_prefix_counts
+        ) {
+        return 0;
+    }
+    let hash: Long = DirectMirCfgHashString(23L, index.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, block_count);
+    hash = DirectMirCfgHashInt(
+        hash, ArrayLength(index.instruction_facts.starts)
+    );
+    let block: Int = 0;
+    while block < block_count {
+        let reachable: Int = 0;
+        if index.block_reachable[block] { reachable = 1; }
+        hash = DirectMirCfgHashInt(hash, block);
+        hash = DirectMirCfgHashInt(hash, reachable);
+        hash = DirectMirCfgHashInt(hash, index.backedge_headers[block]);
+        hash = DirectMirCfgHashInt(hash, index.block_succ_true[block]);
+        hash = DirectMirCfgHashInt(hash, index.block_succ_false[block]);
+        hash = DirectMirCfgHashInt(
+            hash, index.block_has_conditional_branch[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_structural_merges[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_instruction_starts[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.block_instruction_counts[block]
+        );
+        hash = DirectMirCfgHashInt(
+            hash, index.instruction_facts.block_phi_prefix_counts[block]
+        );
+        block = block + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCfgPhiBindingDigest(
+    phi_count: Int,
+    local_name: String,
+    result_name: String,
+    true_incoming: String,
+    false_incoming: String
+) -> Int {
+    if phi_count == 0 && local_name == "" && result_name == "" &&
+        true_incoming == "" && false_incoming == "" {
+        return 0;
+    }
+    if phi_count != 1 || StringLength(local_name) == 0 ||
+        StringLength(result_name) == 0 || StringLength(true_incoming) == 0 ||
+        StringLength(false_incoming) == 0 {
+        return 0;
+    }
+    let hash: Long = DirectMirCfgHashInt(29L, phi_count);
+    hash = DirectMirCfgHashString(hash, local_name);
+    hash = DirectMirCfgHashString(hash, result_name);
+    hash = DirectMirCfgHashString(hash, true_incoming);
+    hash = DirectMirCfgHashString(hash, false_incoming);
+    return DirectMirCfgBoundedDigest(hash);
+}
