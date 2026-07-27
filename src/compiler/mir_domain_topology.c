@@ -61,6 +61,9 @@ mir_domain_topology_kind_from_dir(DIRDomainTopologyKind source,
     case DIR_DOMAIN_TOPOLOGY_PROJECTION_BIND:
         *target = MIR_DOMAIN_TOPOLOGY_PROJECTION_BIND;
         return true;
+    case DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT:
+        *target = MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT;
+        return true;
     case DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT:
         *target = MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT;
         return true;
@@ -174,6 +177,7 @@ mir_domain_topology_kind_name(MIRDomainTopologyKind kind)
     case MIR_DOMAIN_TOPOLOGY_PROJECTION_REFRESH: return "refresh";
     case MIR_DOMAIN_TOPOLOGY_PROJECTION_PUBLISH: return "publish";
     case MIR_DOMAIN_TOPOLOGY_PROJECTION_BIND: return "bind";
+    case MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT: return "apply-effect";
     case MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT: return "maintain-effect";
     case MIR_DOMAIN_TOPOLOGY_LINK_RELATION: return "link-relation";
     default: return "unknown";
@@ -308,7 +312,8 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                 && row->left_slot_source_syntax_id == 0
                 && row->right_slot_name == NULL
                 && row->right_slot_source_syntax_id == 0;
-        } else if (row->kind == MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
+        } else if (row->kind == MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT
+                   || row->kind == MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
             shape_ok = shape_ok
                 && owner_header->ast_type == AST_ZONE_DECL
                 && mir_domain_topology_field_identity_matches(

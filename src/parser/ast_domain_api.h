@@ -229,6 +229,9 @@ bool ast_zone_layer_slot_is_relation(const ASTNode* node);
 bool ast_zone_layer_slot_is_pool(const ASTNode* node);
 int ast_zone_layer_slot_pool_capacity(const ASTNode* node);
 ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_slot_name);
+bool ast_zone_apply_bind_resolved_state(ASTNode* node,
+                                        const char* effect_slot_name,
+                                        const char* target_slot_name);
 ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target_slot_name);
 ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);

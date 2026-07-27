@@ -1,0 +1,13 @@
+subject Player {}
+
+relation TrustedLink for source: Player, target: Player {}
+
+zone BattleZone {
+    subject slot player: Player
+    relation slot trust: TrustedLink
+    apply trust to player
+}
+
+func Main() -> Void {
+    Log(0);
+}

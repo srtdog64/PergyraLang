@@ -145,7 +145,8 @@ func SelfMirDomainTopologyPositiveDecimal(value: String) -> Bool {
 
 func SelfMirDomainTopologyKnownKind(kind: String) -> Bool {
     return kind == "refresh" || kind == "publish" || kind == "bind" ||
-        kind == "maintain-effect" || kind == "link-relation";
+        kind == "apply-effect" || kind == "maintain-effect" ||
+        kind == "link-relation";
 }
 
 func SelfMirDomainTopologyNameIdReady(name: String, id: String) -> Bool {

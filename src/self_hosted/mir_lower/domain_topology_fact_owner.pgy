@@ -77,7 +77,8 @@ func MirDomainTopologyPositiveDecimal(value: String) -> Bool {
 
 func MirDomainTopologyKnownKind(kind: String) -> Bool {
     return kind == "refresh" || kind == "publish" || kind == "bind" ||
-        kind == "maintain-effect" || kind == "link-relation";
+        kind == "apply-effect" || kind == "maintain-effect" ||
+        kind == "link-relation";
 }
 
 func MirDomainTopologyNullableNameId(
@@ -241,7 +242,7 @@ func MirDomainTopologyRowDeclarationJoinReady(
         projection_id != "0" || source_name != "" || source_id != "0" {
         return false;
     }
-    if kind == "maintain-effect" {
+    if kind == "apply-effect" || kind == "maintain-effect" {
         return MirProgramDeclarationFieldIdentityMatches(
                 identities, owner_name, layer_name, layer_id,
                 NominalFieldKindEffectSlot()

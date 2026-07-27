@@ -300,7 +300,8 @@ action Attack(self, target: Fighter) -> Int
 ```
 C 백엔드:
   free func     -> FuncName(...)
-  hosted func   -> TypeName_FuncName(Type *self, ...)
+  hosted func   -> ReceiverCarriage에 따라 TypeName_FuncName(Type self, ...)
+                   또는 TypeName_FuncName(Type *self, ...)
   action        -> TypeName_ActionName(Type *self, ...)
 
 직접 JS 백엔드 (beta+1 이후 재검토, 베타 dogfood 경로 아님):
@@ -309,6 +310,12 @@ C 백엔드:
   hosted func   -> class Type { FuncName() { this.xxx } }
   action        -> class Type { ActionName() { this.xxx } }
 ```
+
+`subject`/`vessel` hosted receiver와 subject-only `action`은 pointer-self다.
+`class`/`object`/현재 `tobject` hosted `func`는 value-self다. 이 hosted receiver
+carriage를 일반 함수 parameter carriage로 재사용하지 않는다. 현재 vessel 일반
+parameter까지 간접 전달하는 C/LLVM 동작은 알려진 결함이지 위 규칙의 예외가
+아니다.
 
 제네릭과 `where` 절:
 
@@ -380,12 +387,19 @@ enum Shape {
 - semantic은 현재 `object`/`tobject` passive helper `func`를 허용한다.
   canonical authoring은 object의 관측/query만 남기고 tobject를 method-free로
   쓰며, 이 차이는 열린 semantic closure다.
+- canonical `object`/`tobject` field는 construction 이후 read-only/immutable이지만
+  현재 bare/nested field write 검사에는 gap이 있다. `publish`는 detached value
+  projection이며 tobject 전용 channel/API/IPC transport를 보장하지 않는다.
 - `ability`는 기본 공개 계약이다. cross-module에서 숨기고 싶을 때만 `private ability`를 사용한다. 따라서 `export ability`는 허용되더라도 중복 표기다.
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `tobject slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.
 - `shared`는 visibility 키워드가 아니라 host-local contextual state marker다. 즉 `party` / `relation` / `effect` / `zone` / `world`가 문맥 전체에서 공동으로 읽고 갱신하는 상태를 뜻한다.
 - `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/tobject projection slot을 Bool로 조회한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
 - `zone` body는 현재 `subject slot`, `object slot`, `tobject slot`, `relation slot`, `effect slot`, `effect pool <name>: <EffectType> capacity <N>`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <tobjectSlot> from <subjectSlot>`, `bind <slotName> from <subjectOrObjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
+- Native semantic은 `apply <stateName>`을 state declaration의 exact effect/target
+  slot로 정규화한 뒤 DIR/MIR `apply-effect` row에 운반한다. 현재 production
+  self-host source parser는 직접형 `apply <effectSlot> to <targetSlot>`만 admit하고
+  state alias form은 fail closed한다. 이 self parser/DIR parity는 열린 항목이다.
 - `zone`의 `apply/link/detach/unlink/refresh/publish/bind/maintain`은 optional `by <subjectSlot>` authority annotation을 받을 수 있다.
 - `bind <slotName> from <sourceSlot>`는 target slot kind를 declaration에서 유도한다. object slot이면 `refresh`, tobject slot이면 `publish`와 같은 projection contract를 사용한다.
 - `HasLayer(<layerSlot>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 relation/effect layer slot을 Bool로 조회한다. C backend는 generated helper가 `PGY_ZONE_RDLOCK`과 generation stale-warning을 자동으로 감싼다.

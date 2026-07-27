@@ -77,6 +77,11 @@ event Ev(price: Int);
 func F<T>(x: T) -> R where T: Ability { ... }
 ```
 
+`object` read-only와 `tobject` immutable/method-free는 canonical authoring 계약이다.
+현재 semantic에는 passive helper와 bare/nested field write gap이 남아 있다.
+`publish`는 detached value projection이며 별도 channel/API/IPC transport 보장을
+뜻하지 않는다.
+
 ## 3. clause 패밀리 (어느 단어가 어디서)
 
 세 묶음이 *서로 다른 위치*에 산다. 같은 개념이 아니라 *다른 역할*임:
@@ -130,13 +135,17 @@ select { ... }
 현재 파스되지 않으므로 위 목록에서 뺐다 — 상태는
 `docs/199_language_word_and_dogfood_grammar.md` §5가 소유한다.
 
-## 8. 능력 게이트 / effect 선언
+## 8. Callable capability / effect-mask clause
 
 ```text
 func ReadConfig() with caps io_read { ... }     // runtime capability 선언
 func ObserveClock() with caps clock { ... }     // clock도 capability
 func DoWork() with effects io, alloc { ... }    // compiler effect mask 선언
 ```
+
+여기의 contextual `effects` mask는 reserved domain nominal
+`effect Eff for bearer: P { ... }`와 다른 fact family다. `with effects authority`도
+zone authority나 action의 `causes`를 대신하지 않는다.
 
 ## 9. 규칙화 추적 (아직 — 미래 surface-breaking window)
 

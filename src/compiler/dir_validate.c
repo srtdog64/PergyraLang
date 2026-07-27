@@ -97,6 +97,7 @@ dir_domain_topology_kind_name(DIRDomainTopologyKind kind)
     case DIR_DOMAIN_TOPOLOGY_PROJECTION_REFRESH: return "refresh";
     case DIR_DOMAIN_TOPOLOGY_PROJECTION_PUBLISH: return "publish";
     case DIR_DOMAIN_TOPOLOGY_PROJECTION_BIND: return "bind";
+    case DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT: return "apply-effect";
     case DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT: return "maintain-effect";
     case DIR_DOMAIN_TOPOLOGY_LINK_RELATION: return "link-relation";
     default: return "unknown";
@@ -178,6 +179,8 @@ dir_domain_topology_expected_count(const DIRProgram *dir)
         case DIR_NODE_ZONE:
             (void)ast_zone_refreshes(node->ast, &count);
             expected += count;
+            (void)ast_zone_applies(node->ast, &count);
+            expected += count;
             (void)ast_zone_maintained_effects(node->ast, &count);
             expected += count;
             (void)ast_zone_links(node->ast, &count);
@@ -196,6 +199,46 @@ dir_domain_topology_expected_count(const DIRProgram *dir)
         }
     }
     return expected;
+}
+
+static bool
+dir_domain_topology_effect_directive_matches(const DIRNode *owner,
+                                             const DIRDomainTopologyRow *row,
+                                             bool apply)
+{
+    ASTNode **directives = NULL;
+    size_t count = 0;
+
+    if (owner == NULL || row == NULL || owner->kind != DIR_NODE_ZONE
+        || owner->ast == NULL || row->source_syntax_id == 0) {
+        return false;
+    }
+    directives = apply
+        ? ast_zone_applies(owner->ast, &count)
+        : ast_zone_maintained_effects(owner->ast, &count);
+    for (size_t i = 0; directives != NULL && i < count; i++) {
+        ASTNode *directive = directives[i];
+        const char *layer = ast_zone_effect_slot_name(directive);
+        const char *target = ast_zone_effect_target_slot_name(directive);
+        const char *participant =
+            ast_zone_directive_participant_slot_name(directive);
+        bool participant_matches =
+            participant == NULL && row->participant_slot_name == NULL;
+        if (participant != NULL && row->participant_slot_name != NULL) {
+            participant_matches = strcmp(
+                participant, row->participant_slot_name) == 0;
+        }
+        if (directive != NULL
+            && ast_node_stable_id(directive) == row->source_syntax_id
+            && layer != NULL && row->layer_slot_name != NULL
+            && strcmp(layer, row->layer_slot_name) == 0
+            && target != NULL && row->target_slot_name != NULL
+            && strcmp(target, row->target_slot_name) == 0
+            && participant_matches) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static bool
@@ -255,8 +298,12 @@ dir_validate_domain_topology(const DIRProgram *dir, char **error_message)
                 && row->target_slot_name == NULL
                 && row->left_slot_name == NULL
                 && row->right_slot_name == NULL;
-        } else if (row->kind == DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
+        } else if (row->kind == DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT
+                   || row->kind == DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
             shape_ok = owner->kind == DIR_NODE_ZONE
+                && dir_domain_topology_effect_directive_matches(
+                    owner, row,
+                    row->kind == DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT)
                 && dir_domain_topology_slot_matches(
                     owner, row->layer_slot_name,
                     row->layer_slot_source_syntax_id, true)

@@ -40,6 +40,8 @@ does not claim LLVM or run-output parity. Native grammar C coverage is owned by
 - nominal declarations: `struct`, `class`, `subject`, `object`, `tobject`,
   `vessel`, `zone`, and `world`;
 - role/ability method contracts and declaration-only signatures;
+- subject-only `action` identity and ordered
+  `requires`/`within`/`causes`/`authorized by`/caps/effects declaration facts;
 - `if`, `while`, `for`, `match`, `break`, and `continue` CFG lowering;
 - field/slot constructor facts, including world-zone and zone projection slots;
 - explicit `Clone(...)` calls as a polymorphic builtin whose result preserves
@@ -50,9 +52,12 @@ does not claim LLVM or run-output parity. Native grammar C coverage is owned by
   through MIR.
 
 Zone and world slots retain their domain labels in the self-host AST nominal
-subkind (`zone`/`world`). Their slot rows are consumed as constructor facts;
-authority, relation, effect, and topology metadata remain owned by the domain
+subkind (`zone`/`world`). Their slot rows are consumed as constructor facts.
+Authority and action contracts, relation/effect declarations and the bounded
+domain-topology rows stay separate typed fact families owned by the domain
 semantic layer rather than being silently converted into executable fields.
+This carriage does not by itself materialize layer storage or execute projection
+sync.
 
 ## Bounded nominal/action claim
 
@@ -60,20 +65,28 @@ The 17/17 self-driver result proves spelling, self-host AST construction,
 declaration rows, and the supported verified-C projection. It does not yet prove
 full nominal/action semantic parity:
 
-- the self-host nominal parser accepts `func`/`action` through one common body
-  path and does not itself own the native subject-only action or struct-method
-  negative;
-- action `with caps`/`with effects` names are parsed but not preserved as one
-  self-host action contract fact;
-- current `pgy.mir.v1` declaration JSON does not carry action identity,
-  `within`, `causes`, authority, requires, caps/effects, or call-site binding;
+- the self-host parser/semantic path now preserves `func` and `action` as
+  distinct callable kinds, rejects non-subject action ownership, and carries one
+  typed action declaration contract through native/self `pgy.mir.v1`;
+- that declaration carriage does not supply the separate per-call participant/
+  zone authority binding or runtime identity/ability evidence;
+- `tobject` hosted helpers, nested object/tobject mutation, receiver versus
+  parameter carriage and temporary identity receivers still have semantic/ABI
+  gaps documented in `docs/200_object_to_action_boundary_patterns.md`;
+- domain topology carries exact slot identity, including distinct
+  `apply-effect`, but not projection member maps, effect/relation destination
+  roles, layer materialization or runtime sync; native `apply <stateName>` is
+  normalized to its exact effect/target slots, while the production self source
+  parser still rejects that shorthand and supports only the direct form;
 - the reached direct-MIR authority hook supports one direct
   world -> zone -> subject / `authorized by self` shape and its runtime evidence
   proves non-null presence, not identity-token or ability authorization.
 
-Until those owners and C/LLVM negatives are closed, grammar support is
-`SURFACE` for the broader action contract and `REACHABLE` only for the bounded
-direct-MIR slice. Do not infer completeness from the fixture count.
+The action declaration-contract carriage is a closed supporting semantic seam.
+The executable compiler dogfood remains `REACHABLE` only for the bounded
+direct-MIR world/zone/subject/action slice; the broader call/runtime contract and
+domain runtime remain `BRIDGE`. Do not infer completeness from the fixture
+count.
 
 ## Documentation rule
 

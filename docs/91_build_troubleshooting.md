@@ -2369,11 +2369,21 @@ source producer independently derives the 9/16 census; only MIR-input
 canonicalization carries the already-admitted identity.
 
 The non-empty projection now has the same rule. The self-host source producer
-emits typed `refresh`, `publish`, and `link-relation` rows; canonicalization
+emits typed `refresh`, `publish`, `apply-effect`, and `link-relation` rows;
+`apply-effect` is distinct from `maintain-effect` and contributes no dependency
+edge. Canonicalization
 reissues owner, directive, and field identities in one reconstructed epoch.
 Restoring an old raw field ID or pairing `player` with the canonical `enemy`
 ID fails before output. It does not repair IDs by offset and does not parse the
 original source or provenance text.
+
+`apply stateAlias` must not disappear at this boundary. Native semantic now
+binds the alias to the exact effect/target slot names before DIR collection,
+and the topology smoke verifies that the alias form emits the same typed
+`apply-effect` identity. DIR treats an unresolved apply as a hard failure rather
+than reducing the expected row count. The production self source parser still
+rejects the shorthand; until it carries state declaration identity, do not add
+a name-only self lookup or claim native/self parity for this syntax.
 
 The target-neutral topology plan is built and fully validated exactly once in
 `MirMachineLayerAdmitDocumentWithTopologyObserved`. Production C/LLVM
@@ -2388,10 +2398,11 @@ Do not confuse plan consumption with runtime materialization. The current
 self-host plan can project the exact `BattleZone` 3-node/2-edge schedule to C
 and LLVM, but it does not yet create `.poison`/`.trust` storage or execute the
 `apply` plus refresh/publish synchronization needed for runtime output
-`7`/`dst`. The source producer validates `apply` field identity but does not
-carry an apply row. Generic zero-fill, a native topology graft, or claiming the
-correct plan trace as the runtime result would hide the missing fact rather
-than fix it.
+`7`/`dst`. The source producer carries the apply row, but the wire still lacks
+effect/relation destination roles, projection member maps and receiver
+carriage. Same-name/ordinal inference, generic zero-fill, a native topology
+graft, or claiming the correct plan trace as the runtime result would hide the
+missing fact rather than fix it.
 
 2026-07-28 fresh pressure evidence after the non-empty topology producer and
 one-plan change is green. `build-pressure-self-host-compiler` completed the

@@ -6,6 +6,8 @@
 #include "ast_constructors_internal.h"
 #include "../common/string_compat.h"
 
+#include <stdlib.h>
+
 ASTNode* ast_create_zone_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_ZONE_DECL);
     node->data.zone_decl.name = name ? pergyra_strdup(name) : NULL;
@@ -60,6 +62,33 @@ ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_
     node->data.zone_apply.state_name = NULL;
     node->data.zone_apply.participant_slot_name = NULL;
     return node;
+}
+
+bool
+ast_zone_apply_bind_resolved_state(ASTNode* node,
+                                   const char* effect_slot_name,
+                                   const char* target_slot_name)
+{
+    char *owned_effect;
+    char *owned_target;
+
+    if (node == NULL || node->type != AST_ZONE_APPLY
+        || node->data.zone_apply.state_name == NULL
+        || effect_slot_name == NULL || target_slot_name == NULL) {
+        return false;
+    }
+    owned_effect = pergyra_strdup(effect_slot_name);
+    owned_target = pergyra_strdup(target_slot_name);
+    if (owned_effect == NULL || owned_target == NULL) {
+        free(owned_effect);
+        free(owned_target);
+        return false;
+    }
+    free(node->data.zone_apply.effect_slot_name);
+    free(node->data.zone_apply.target_slot_name);
+    node->data.zone_apply.effect_slot_name = owned_effect;
+    node->data.zone_apply.target_slot_name = owned_target;
+    return true;
 }
 
 ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name) {

@@ -1,0 +1,13 @@
+subject Player {}
+
+effect Poisoned for bearer: Player {}
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    apply poison to player by poison
+}
+
+func Main() -> Void {
+    Log(0);
+}

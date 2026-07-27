@@ -6,7 +6,93 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - non-empty topology producer and one graph plan
+## Current resume checkpoint - distinct apply topology and boundary contract
+
+- Checkout base before this executable slice is
+  `820e1ec32960a78ed73b37bd4f4046f0ba6270a9` on `main`, aligned with
+  `origin/main`. The landing commit contains this handoff; after landing, use
+  `git rev-parse HEAD` for the exact executable revision.
+- Objective card:
+  - objective: preserve `apply` as a distinct self-host-produced lifecycle fact
+    through DIR/MIR/canonical admission while fixing the canonical
+    `object/tobject -> vessel -> subject/action -> effect/relation/zone/intent`
+    authoring boundary and naming the exact runtime facts still missing;
+  - priority: distinct source identity, exact field-kind join, atomic canonical
+    epoch, no-edge graph admission, honest dogfood grade, then patch size;
+  - fact owner: native/self DIR domain-topology rows for directive identity,
+    declaration-field identity for slot kind, MIR as the lossless carrier, and
+    `MirDomainTopologyGraphPlan` only for the target-neutral dependency plan;
+  - last legitimate consumer: machine admission and the one C/LLVM graph-plan
+    attachment immediately before target projection;
+  - forbidden fallback: folding apply into maintain, deriving runtime lifecycle
+    from graph adjacency, source/AST reparse, same-name projection-member join,
+    0/1 ordinal destination binding, `by participant` as effect bearer,
+    zero-filled layer storage as success, or by-value zone receiver identity;
+  - gates: native topology smoke, focused self producer, canonical identity
+    epoch, one-plan C/LLVM consumer, component/grammar/keyword/object-action/SoT
+    contracts, shell syntax, and `git diff --check`.
+- `zone_layer_projection_runtime` now produces four exact rows from the
+  production self source path: `Poisoned.refresh`, `TrustedLink.publish`,
+  `BattleZone.apply-effect`, and `BattleZone.link-relation`. `apply-effect`
+  exact-joins the `poison` effect slot and `player` subject slot and remains
+  distinct from `maintain-effect`; native/self MIR agree on the four-kind
+  sequence. Stale IDs, a valid relation-slot ID substituted for `poison`, a
+  relation used as the apply layer or target, and a non-subject participant all
+  fail closed.
+- Native `apply stateAlias` is normalized by semantic ownership into the exact
+  effect/target slots before DIR collection, and a focused fixture proves that
+  it emits the same typed row. DIR no longer drops an unresolved apply or
+  reduces the expected row count. The production self source parser still
+  fail-closes this shorthand; typed state-declaration/alias carriage is an open
+  parser/DIR parity seam, not a name-lookup fallback opportunity.
+- Apply is a one-shot lifecycle/materialization transition, not a persistent
+  recomputation dependency. Native and self graph builders therefore admit the
+  exact kind while adding no edge. The BattleZone graph remains exactly
+  `nodes=3 edges=2 depth=2 pass_limit=2`; maintain continues to own the
+  layer-to-target dependency edge. Unknown kinds are not ignored.
+- Evidence grades remain deliberately split: the four-row self source ->
+  DIR/MIR producer is a narrow `SUBSTITUTING` C-owner replacement; the admitted
+  target-neutral graph plan is `REACHABLE`; direct-MIR world/zone/subject/action
+  is `REACHABLE`; object/effect/relation/vessel/intent bootstrap declarations do
+  not become runtime dogfood merely from syntax or import reachability. The
+  layer materialization/projection-sync runtime remains `BRIDGE` and RED.
+- The canonical boundary pattern is now fixed in
+  `docs/200_object_to_action_boundary_patterns.md`: `object` is a same-process
+  refreshable read projection, `tobject` a detached immutable transfer value,
+  `vessel` subject-owned passive state, `subject` the identity-bearing authority
+  host, and `action` its observable transition. Effect is a temporal layer,
+  relation an identity edge, zone the membership/lifetime/frontier owner, and
+  intent is used only when multiple production actions share a real
+  success/failure/compensation purpose. These are orthogonal boundary protocols,
+  not a nominal promotion ladder and not a keyword-density target.
+- Exact runtime blocker: the wire still lacks projection member paths and field
+  types (`view.hp <- bearer.hp`, `packet.name <- target.name`), effect-bearer and
+  relation source/target destination roles, receiver carriage, layer
+  materialization/state/synchronization, and refresh/publish value operations.
+  The self parser currently skips projection `map { ... }` bodies, so the next
+  owner must first preserve them as typed facts. A separate DIR-owned
+  `domain_runtime_assignments` family should carry exact directive/owner/slot/
+  path IDs and types into one target-neutral runtime plan. C/LLVM only render
+  admitted operations.
+- The next executable falsifier remains self MIR -> C output `7`/`dst`, but only
+  after those exact facts exist. Changing one member ID/type or relation
+  destination role must reject the artifact; `.poison`/`.trust` zero storage or
+  a by-value zone receiver must never be accepted as the target result.
+- Last observed focused evidence is green: native build and topology C/LLVM
+  smoke; native/self exact four-row MIR; focused self producer hard gate;
+  canonical stale/wrong-kind negatives; one target-neutral C/LLVM plan with the
+  unchanged 3/2 graph; component, language-word registry, grammar,
+  object/action and single-Gate-SoT contracts; shell syntax and `git diff
+  --check`. The previous fresh pressure build remains the current broad memory
+  evidence at peak working set 1,038.0 MiB/private 1,132.4 MiB under 3,072 MiB;
+  the 35-minute pressure build was not repeated for this bounded row/admission
+  change.
+- This is an executable producer replacement slice, so the supporting-only
+  commit counter resets here. The only protected concurrent user files remain
+  the three unstaged parity owners for indexed assignment, match, and owner
+  field. Do not stage or edit them.
+
+## Previous resume checkpoint - non-empty topology producer and one graph plan
 
 - Checkout base before this executable slice is
   `09e00d29a82584e912534ed1e4cb8eefafe23ab0` on `main`, aligned with

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Executable negative ratchet for canonical MIR topology identity epochs.
-# The valid carrier below keeps the native input envelope only because the
-# canonical JSON projection is not itself the MIR input schema. All declaration
-# field and topology identities in that carrier come from the canonicalizer.
+# The valid carrier below starts from the self-host driver's typed MIR output.
+# All declaration field and topology identities in the carrier are then
+# atomically replaced by the canonicalizer's epoch.
 
 set -euo pipefail
 
@@ -59,6 +59,13 @@ grep -Fq -- 'import "canonical_mir_field_identity_epoch_owner.pgy"' \
 grep -Fq -- 'CanonicalMirIdentityEpochRemapTopology' "$IDENTITY_OWNER" \
     || fail "tree/directive epoch owner lost topology composition"
 for term in \
+    'admitted.domain_topology.layer_slot_source_syntax_ids[row]' \
+    'admitted.domain_topology.target_slot_source_syntax_ids[row]' \
+    'admitted.domain_topology.participant_slot_source_syntax_ids[row]'; do
+    grep -Fq -- "$term" "$IDENTITY_OWNER" \
+        || fail "canonical topology remap lost apply-dependent identity: $term"
+done
+for term in \
     'CanonicalMirIdentityEpochSourceFieldKind' \
     'CanonicalMirIdentityEpochCanonicalFieldId' \
     'CanonicalMirIdentityEpochBindDeclarationFields' \
@@ -89,10 +96,10 @@ if ! (cd "$ROOT_DIR" && "$PGY" \
     fail "driver build failed"
 fi
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
-    "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" \
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
+    "${FIXTURE#$ROOT_DIR/}" \
     2>"$BUILD_DIR/raw.err" | tr -d '\r' >"$RAW_MIR")
-[[ -s "$RAW_MIR" ]] || fail "native topology MIR was not produced"
+[[ -s "$RAW_MIR" ]] || fail "self-host topology MIR was not produced"
 
 "$PYTHON_BIN" - "$RAW_MIR" "$VALID_MIR" <<'PY'
 import json
@@ -101,6 +108,35 @@ import sys
 
 source, target = map(pathlib.Path, sys.argv[1:])
 doc = json.loads(source.read_text(encoding="utf-8"))
+
+# Move the self-produced carrier into a second, internally consistent source
+# epoch. The canonicalizer must join by exact owner/name/field-kind identity,
+# not by accidental numeric equality with the parser's current arena IDs.
+owner_ids = {}
+field_ids = {}
+for decl in doc["decls"]:
+    for field in decl["fields"]:
+        old_field_id = field["source_syntax_id"]
+        field["source_syntax_id"] = old_field_id + 200000
+        field_ids[(decl["name"], field["name"], old_field_id)] = \
+            field["source_syntax_id"]
+for row in doc["domain_topology"]["rows"]:
+    old_owner_id = row["owner_source_syntax_id"]
+    if row["owner_name"] not in owner_ids:
+        owner_ids[row["owner_name"]] = old_owner_id + 100000
+    row["owner_source_syntax_id"] = owner_ids[row["owner_name"]]
+    row["source_syntax_id"] += 300000
+    for prefix in (
+        "projection_slot", "source_slot", "layer_slot", "target_slot",
+        "left_slot", "right_slot", "participant_slot",
+    ):
+        name = row[prefix + "_name"]
+        old_id = row[prefix + "_source_syntax_id"]
+        if name is not None:
+            row[prefix + "_source_syntax_id"] = field_ids[
+                (row["owner_name"], name, old_id)
+            ]
+
 main = next(row for row in doc["routines"] if row["name"] == "Main")
 main["blocks"] = [{
     "id": 0,
@@ -166,12 +202,24 @@ def declaration_field_map(doc):
         for field in decl["fields"]
     }
 
+def topology_owner_map(doc):
+    owners = {}
+    for row in doc["domain_topology"]["rows"]:
+        owner = row["owner_name"]
+        source_id = row["owner_source_syntax_id"]
+        if owner in owners:
+            assert owners[owner] == source_id, (owner, owners[owner], source_id)
+        owners[owner] = source_id
+    return owners
+
 raw_fields = declaration_field_map(raw)
 canonical_fields = declaration_field_map(canonical)
+raw_owners = topology_owner_map(raw)
+canonical_owners = topology_owner_map(canonical)
 raw_topology = raw["domain_topology"]
 canonical_topology = canonical["domain_topology"]
 assert raw_topology["domain_graph_id"] == canonical_topology["domain_graph_id"]
-assert len(raw_topology["rows"]) == len(canonical_topology["rows"]) == 3
+assert len(raw_topology["rows"]) == len(canonical_topology["rows"]) == 4
 
 slot_prefixes = (
     "projection_slot", "source_slot", "layer_slot", "target_slot",
@@ -182,6 +230,8 @@ for raw_row, canonical_row in zip(
 ):
     assert raw_row["owner_name"] == canonical_row["owner_name"]
     assert raw_row["kind"] == canonical_row["kind"]
+    assert raw_row["owner_source_syntax_id"] == raw_owners[raw_row["owner_name"]]
+    assert canonical_row["owner_source_syntax_id"] == canonical_owners[canonical_row["owner_name"]]
     assert raw_row["owner_source_syntax_id"] != canonical_row["owner_source_syntax_id"]
     assert raw_row["source_syntax_id"] != canonical_row["source_syntax_id"]
     for prefix in slot_prefixes:
@@ -202,7 +252,7 @@ for raw_row, canonical_row in zip(
         assert canonical_row[id_key] == canonical_fields[exact]
         assert canonical_row[id_key] != raw_row[id_key]
 
-# Preserve the valid native input envelope, but replace every declaration
+# Preserve the valid self-host input envelope, but replace every declaration
 # field and topology identity with the just-produced canonical epoch.
 carrier = copy.deepcopy(raw)
 for decl in carrier["decls"]:
@@ -225,6 +275,21 @@ assert link["left_slot_name"] == "player"
 assert link["left_slot_source_syntax_id"] == canonical_player
 assert raw_player != canonical_player != canonical_enemy
 
+apply = next(
+    row for row in canonical_topology["rows"]
+    if row["owner_name"] == "BattleZone" and row["kind"] == "apply-effect"
+)
+raw_poison = raw_fields[("BattleZone", "poison", "effect_slot")]
+canonical_poison = canonical_fields[("BattleZone", "poison", "effect_slot")]
+canonical_trust = canonical_fields[("BattleZone", "trust", "relation_slot")]
+assert apply["layer_slot_name"] == "poison"
+assert apply["layer_slot_source_syntax_id"] == canonical_poison
+assert apply["target_slot_name"] == "player"
+assert apply["target_slot_source_syntax_id"] == canonical_player
+assert apply["participant_slot_name"] is None
+assert apply["participant_slot_source_syntax_id"] == 0
+assert raw_poison != canonical_poison != canonical_trust
+
 stale = copy.deepcopy(carrier)
 stale_link = next(
     row for row in stale["domain_topology"]["rows"]
@@ -245,6 +310,27 @@ foreign_link["left_slot_source_syntax_id"] = canonical_enemy
 (output_dir / "player-name-canonical-enemy-id.mir.json").write_text(
     json.dumps(foreign, separators=(",", ":")), encoding="utf-8"
 )
+
+stale_apply = copy.deepcopy(carrier)
+stale_apply_row = next(
+    row for row in stale_apply["domain_topology"]["rows"]
+    if row["owner_name"] == "BattleZone" and row["kind"] == "apply-effect"
+)
+stale_apply_row["layer_slot_source_syntax_id"] = raw_poison
+(output_dir / "stale-raw-poison-id.mir.json").write_text(
+    json.dumps(stale_apply, separators=(",", ":")), encoding="utf-8"
+)
+
+wrong_kind_apply = copy.deepcopy(carrier)
+wrong_kind_apply_row = next(
+    row for row in wrong_kind_apply["domain_topology"]["rows"]
+    if row["owner_name"] == "BattleZone" and row["kind"] == "apply-effect"
+)
+wrong_kind_apply_row["layer_slot_name"] = "poison"
+wrong_kind_apply_row["layer_slot_source_syntax_id"] = canonical_trust
+(output_dir / "poison-name-canonical-trust-id.mir.json").write_text(
+    json.dumps(wrong_kind_apply, separators=(",", ":")), encoding="utf-8"
+)
 PY
 
 # Prove the canonical-epoch carrier is otherwise admissible. This prevents the
@@ -258,7 +344,9 @@ fi
 
 for mutation in \
     "$BUILD_DIR/stale-raw-player-id.mir.json" \
-    "$BUILD_DIR/player-name-canonical-enemy-id.mir.json"; do
+    "$BUILD_DIR/player-name-canonical-enemy-id.mir.json" \
+    "$BUILD_DIR/stale-raw-poison-id.mir.json" \
+    "$BUILD_DIR/poison-name-canonical-trust-id.mir.json"; do
     if (cd "$ROOT_DIR" && "$DRIVER_BIN" --canonicalize-mir-json \
         "${mutation#$ROOT_DIR/}" >"$mutation.out" 2>"$mutation.err"); then
         fail "canonical identity mutation was accepted: $(basename "$mutation")"
@@ -268,4 +356,4 @@ for mutation in \
         || fail "identity mutation missed the topology boundary: $(basename "$mutation")"
 done
 
-echo "[self-host-parity:canonical-identity-epoch] exact epoch remap and stale/foreign field-ID negatives ok"
+echo "[self-host-parity:canonical-identity-epoch] exact apply/link epoch remap and stale/wrong-kind field-ID negatives ok"

@@ -24,7 +24,7 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 
 ## 현재 관측된 상태
 
-2026-07-27 현재 실제 부트스트랩 진입점은
+2026-07-28 현재 실제 부트스트랩 진입점은
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`이다. 이 파일은
 `driver_rung2_owner.pgy`와 `compiler_world_direct_mir_owner.pgy`를 import한다.
 source/MIR 생성 및 기존 C 호환 mode는 아직 다음 일반 함수들로 분기한다.
@@ -113,9 +113,11 @@ semantic compile 성공 역시 production call-site나 대체 증거를 대신�
    zone effect/relation slot의 `field_kind`도 canonical native/self MIR과 exact
    AST reconstruction까지 운반된다. Shared field는 일반 field와 구별되며
    field-kind registry projection drift와 required effect participant 손실은
-   fail closed한다. 그러나 stable field identity, pool capacity,
-   relation declaration, zone refresh/state/lifecycle와 effect/relation runtime
-   ABI는 다음 층의 RED이므로 이 성공을 runtime action 대체로 올려 기록하지 않는다.
+   fail closed한다. Stable declaration-field identity, relation declaration,
+   non-empty canonical topology remap, self producer와 graph plan도 이후 좁게
+   닫혔다. 그러나 pool capacity, projection member map, layer destination role,
+   receiver carriage, zone state/lifecycle operation과 effect/relation runtime ABI는
+   RED이므로 이 성공을 runtime action 대체로 올려 기록하지 않는다.
 2. **Call binding**: 현재 C/LLVM hook은 direct world -> zone -> subject
    receiver와 `authorized by self` 단일 항목만 exact zone authority slot에
    결속한다. named participant, 복수 authority, indirect/direct-subject receiver의
@@ -152,7 +154,7 @@ clause를 건너뛰어 `Body:`를 찾는 fallback은 없다.
 
 이 작업은 기존 production action을 정확히 운반하는 supporting semantic seam이며
 C-owned compiler path를 새로 대체하지 않는다. Callable contract vocabulary는
-이미 닫혔고, 현재 인접 blocker는 domain declaration/field-kind/runtime ABI와
+이미 닫혔고, 현재 인접 blocker는 domain runtime assignment/receiver ABI와
 production source-mode action의 직접 우회다. 따라서 direct-MIR
 world/zone/subject/action은 계속 `REACHABLE`, not `SUBSTITUTING`이고 effect/relation은
 `SURFACE`다. Source-to-MIR을 `SUBSTITUTING`으로 올리려면 production entrypoint가
@@ -246,7 +248,8 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 
 ### `action`
 
-- subject의 공개 상태 전이, 권한 행사 또는 stage handoff를 나타낸다.
+- subject의 관측 가능한 공적 의미의 상태 전이, 권한 행사 또는 stage handoff를
+  나타낸다. 이는 export visibility와 별도이며 action은 기본적으로 private다.
 - 실제 entrypoint가 호출하고, typed fact/`Result`/artifact 같은 관측
   가능한 결과를 소비하거나 생산해야 한다.
 - `return true` 또는 `*Ready()` 하나만 반환하는 action은 readiness shell로
@@ -420,21 +423,24 @@ runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 
 ## 다음 실행 rung objective card
 
-- Objective: source -> MIR 경계에서 두 번째 실제 subject/action/zone slice를
-  같은 `PgyCompilerWorld`에 결속하고, 그 migrated mode의 `Main ->
-  CompileSourceTo*` 직접 우회를 제거한다.
-- Priority: 기존 source/AST/MIR owner identity; observable success/rejected
-  transition; missing fact fail-closed; direct bypass 삭제; 그 뒤에만 multi-action
-  intent takeover.
-- Fact owner: source, AST, semantic verdict와 MIR artifact는 기존 typed owner가
-  계속 소유한다. 새 action/zone은 orchestration과 자원 경계만 소유한다.
-- Forbidden fallback: 기존 readiness action을 실행 action으로 세기, 두 번째
-  compiler world, source/AST/MIR 재탐색, action 실패 뒤 기존 일반 함수 재호출.
-- Falsifying case: invalid source/semantic verdict가 rejected transition 없이 MIR
-  artifact를 남기거나 migrated mode가 world를 우회하는 경우.
-- Blocker/unknown: 구체 owner와 첫 falsifying fixture는 active executable rung에서
-  source -> MIR의 마지막 C-owned consumer를 확인한 뒤 고정한다. 이를 문서의
-  추정 이름으로 미리 완료 처리하지 않는다.
+- Objective: self-produced `zone_layer_projection_runtime` MIR에서 한 exact
+  target-neutral runtime assignment plan을 만들고 self C 실행이 `7`/`dst`를
+  출력하게 한다.
+- Priority: projection member path와 type; effect bearer/relation source·target
+  destination role; receiver carriage; layer materialization/sync; missing-fact
+  fail-closed; 그 뒤에 source -> MIR의 두 번째 실제 action 확장.
+- Fact owner: DIR `domain_runtime_assignments`가 directive, zone/layer/endpoint와
+  destination/source field path의 exact ID/type를 소유하고 MIR은 lossless하게
+  운반한다. C/LLVM은 admitted plan operation만 투영한다.
+- Forbidden fallback: source/AST 재탐색, same-name member join, bindable slot 0/1
+  ordinal, native MIR graft, zero-filled layer storage, by-value zone receiver,
+  출력 문자열만 맞춘 fixture special case.
+- Falsifying case: member ID/type 또는 relation destination role 하나를 바꿔도
+  artifact가 생성되거나, self C가 `.poison`/`.trust` zero storage를 읽거나,
+  zone method가 by-value receiver로 방출되는 경우.
+- Blocker/unknown: self parser가 projection `map { ... }` body를 현재 typed
+  artifact에 보존하지 않으며 MIR wire에는 layer destination-role identity가 없다.
+  이 두 fact를 먼저 생산해야 runtime plan을 만들 수 있다.
 
 전체 상태는 `BRIDGE`로 유지한다. direct-MIR 경계는 `REACHABLE`이며
 `SUBSTITUTING`이 아니다.

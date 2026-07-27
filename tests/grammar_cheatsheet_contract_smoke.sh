@@ -31,7 +31,9 @@ require_text "$SHEET" 'grammar-cheatsheet-contract-test-smoke'
 # The parser still tolerates semicolons in this layer, so this style ratchet
 # scans authored tests while parser-tolerance fixtures remain out of scope.
 WORLD_FACT='^[[:space:]]*(apply|refresh|maintain|link|activate)[[:space:]].*;[[:space:]]*$'
-hits="$(grep -rnE "$WORLD_FACT" tests --include='*.pgy' 2>/dev/null)"
+hits="$(grep -rnE "$WORLD_FACT" tests --include='*.pgy' 2>/dev/null \
+    | grep -v '^tests/self_hosted/parity/fixture/domain_topology_semicolon_legacy.pgy:' \
+    || true)"
 if [ -n "$hits" ]; then
     echo "[FAIL] world-layer fact carries ';' in authored tests:"
     echo "$hits" | sed 's/^/    /'

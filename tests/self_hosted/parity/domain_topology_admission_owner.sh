@@ -103,6 +103,18 @@ with open(valid_path, encoding="utf-8") as stream:
 
 mutations = {}
 
+rows = base["domain_topology"]["rows"]
+apply_index = next(
+    index for index, row in enumerate(rows)
+    if row.get("kind") == "apply-effect"
+    and row.get("owner_name") == "BattleZone"
+)
+link_index = next(
+    index for index, row in enumerate(rows)
+    if row.get("kind") == "link-relation"
+    and row.get("owner_name") == "BattleZone"
+)
+
 doc = copy.deepcopy(base)
 doc.pop("domain_topology")
 mutations["missing-topology"] = doc
@@ -112,19 +124,19 @@ doc["decls"] = [row for row in doc["decls"] if row.get("name") != "TrustedLink"]
 mutations["missing-relation-owner"] = doc
 
 doc = copy.deepcopy(base)
-doc["domain_topology"]["rows"][2]["kind"] = "unknown"
+doc["domain_topology"]["rows"][link_index]["kind"] = "unknown"
 mutations["unknown-kind"] = doc
 
 doc = copy.deepcopy(base)
-doc["domain_topology"]["rows"][2]["source_syntax_id"] = doc["domain_topology"]["rows"][0]["source_syntax_id"]
+doc["domain_topology"]["rows"][link_index]["source_syntax_id"] = doc["domain_topology"]["rows"][0]["source_syntax_id"]
 mutations["duplicate-directive-id"] = doc
 
 doc = copy.deepcopy(base)
-doc["domain_topology"]["rows"][2]["layer_slot_source_syntax_id"] = 0
+doc["domain_topology"]["rows"][apply_index]["layer_slot_source_syntax_id"] = 0
 mutations["missing-required-slot-id"] = doc
 
 doc = copy.deepcopy(base)
-doc["domain_topology"]["rows"][2]["target_slot_source_syntax_id"] = 999
+doc["domain_topology"]["rows"][link_index]["target_slot_source_syntax_id"] = 999
 mutations["stray-unused-slot-id"] = doc
 
 doc = copy.deepcopy(base)
@@ -145,6 +157,26 @@ enemy_id = enemy.get("source_syntax_id")
 assert isinstance(player_id, int) and player_id > 0, player
 assert isinstance(enemy_id, int) and enemy_id > 0, enemy
 assert player_id != enemy_id, (player_id, enemy_id)
+poison = battle_fields.get("poison")
+trust = battle_fields.get("trust")
+assert isinstance(poison, dict) and isinstance(trust, dict), battle_fields
+poison_id = poison.get("source_syntax_id")
+trust_id = trust.get("source_syntax_id")
+assert poison.get("field_kind") == "effect_slot", poison
+assert trust.get("field_kind") == "relation_slot", trust
+assert isinstance(poison_id, int) and poison_id > 0, poison
+assert isinstance(trust_id, int) and trust_id > 0, trust
+assert poison_id != trust_id, (poison_id, trust_id)
+apply_rows = [
+    row for row in base["domain_topology"]["rows"]
+    if row.get("kind") == "apply-effect"
+    and row.get("owner_name") == "BattleZone"
+]
+assert len(apply_rows) == 1, apply_rows
+assert apply_rows[0]["layer_slot_name"] == "poison", apply_rows[0]
+assert apply_rows[0]["layer_slot_source_syntax_id"] == poison_id, apply_rows[0]
+assert apply_rows[0]["target_slot_name"] == "player", apply_rows[0]
+assert apply_rows[0]["target_slot_source_syntax_id"] == player_id, apply_rows[0]
 link_rows = [
     row for row in base["domain_topology"]["rows"]
     if row.get("kind") == "link-relation" and row.get("owner_name") == "BattleZone"
@@ -161,6 +193,16 @@ link = next(
 link["left_slot_name"] = "player"
 link["left_slot_source_syntax_id"] = enemy_id
 mutations["forged-player-name-enemy-id"] = doc
+
+doc = copy.deepcopy(base)
+apply = next(
+    row for row in doc["domain_topology"]["rows"]
+    if row.get("kind") == "apply-effect"
+    and row.get("owner_name") == "BattleZone"
+)
+apply["layer_slot_name"] = "poison"
+apply["layer_slot_source_syntax_id"] = trust_id
+mutations["forged-poison-name-trust-id"] = doc
 
 doc = copy.deepcopy(base)
 field = next(

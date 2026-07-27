@@ -18,6 +18,11 @@ require_term() {
 }
 
 require_term "src/compiler/dir.h" "DIR_DOMAIN_TOPOLOGY_LINK_RELATION"
+require_term "src/compiler/dir.h" "DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT"
+require_term "src/compiler/mir_domain_topology.h" \
+    "MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT"
+require_term "src/compiler/propagation_graph_build.c" \
+    "case MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT:"
 require_term "src/compiler/mir.c" "mir_domain_topology_project_from_dir"
 require_term "src/compiler/mir_json_dump.c" \
     "mir_json_emit_domain_topology(out, mir)"
@@ -60,6 +65,8 @@ trap 'rm -rf -- "$tmp_dir"' EXIT
 
 source_path="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 source_arg="$(pgy_path_for_compiler "$PGY" "$source_path")"
+state_alias_source_path="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_state_alias/main.pgy"
+state_alias_source_arg="$(pgy_path_for_compiler "$PGY" "$state_alias_source_path")"
 
 PYTHON_BIN="${PYTHON:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
@@ -119,15 +126,19 @@ assert isinstance(topology, dict), topology
 assert isinstance(topology.get("domain_graph_id"), int)
 assert topology["domain_graph_id"] > 0
 rows = topology.get("rows")
-assert isinstance(rows, list) and len(rows) == 3, rows
+assert isinstance(rows, list) and len(rows) == 4, rows
 assert [(row.get("kind"), row.get("owner_name")) for row in rows] == [
     ("refresh", "Poisoned"),
     ("publish", "TrustedLink"),
+    ("apply-effect", "BattleZone"),
     ("link-relation", "BattleZone"),
 ]
 assert (rows[0]["projection_slot_name"], rows[0]["source_slot_name"]) == ("view", "bearer")
 assert (rows[1]["projection_slot_name"], rows[1]["source_slot_name"]) == ("packet", "target")
-assert (rows[2]["layer_slot_name"], rows[2]["left_slot_name"], rows[2]["right_slot_name"]) == ("trust", "player", "enemy")
+assert (rows[2]["layer_slot_name"], rows[2]["target_slot_name"]) == ("poison", "player")
+assert rows[2]["participant_slot_name"] is None
+assert rows[2]["participant_slot_source_syntax_id"] == 0
+assert (rows[3]["layer_slot_name"], rows[3]["left_slot_name"], rows[3]["right_slot_name"]) == ("trust", "player", "enemy")
 
 name_fields = [
     "projection_slot", "source_slot", "layer_slot", "target_slot",
@@ -149,6 +160,29 @@ for row in rows:
             exact = field_identities.get((row["owner_name"], name))
             assert exact is not None, (row["owner_name"], field, name)
             assert exact[0] == source_id, (row["owner_name"], field, name, source_id, exact)
+PY
+
+state_alias_mir_json="$tmp_dir/topology-state-alias.mir.json"
+"$PGY" --mir-json "$state_alias_source_arg" >"$state_alias_mir_json" \
+    2>"$tmp_dir/mir-json-state-alias.log" \
+    || fail "native apply-state alias topology JSON emission failed"
+
+"$PYTHON_BIN" - "$state_alias_mir_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    doc = json.load(stream)
+
+rows = doc["domain_topology"]["rows"]
+apply = [row for row in rows if row.get("kind") == "apply-effect"]
+assert len(apply) == 1, apply
+apply = apply[0]
+assert apply["owner_name"] == "BattleZone", apply
+assert apply["layer_slot_name"] == "poison", apply
+assert apply["layer_slot_source_syntax_id"] > 0, apply
+assert apply["target_slot_name"] == "player", apply
+assert apply["target_slot_source_syntax_id"] > 0, apply
 PY
 
 run_projection() {

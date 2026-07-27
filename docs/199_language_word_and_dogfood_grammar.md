@@ -231,17 +231,20 @@ hard self-host 진척으로 센다.
 
 별도의 non-empty domain producer slice는 이제 이 마지막 조건을 좁게 만족한다.
 Production self-host driver가 `zone_layer_projection_runtime` source를 직접 읽어
-`effect.refresh`, `relation.publish`, `zone.link` topology 3행과 exact field identity를
-MIR에 방출한다. Native topology JSON을 붙이지 않으며 refresh→tobject,
+`effect.refresh`, `relation.publish`, `zone.apply`, `zone.link`의 distinct topology
+4행과 exact field identity를 MIR에 방출한다. `apply-effect`는
+`maintain-effect`와 다른 lifecycle identity이며 dependency graph에는 edge를 더하지
+않는다. Native topology JSON을 붙이지 않으며 refresh→tobject,
 publish→object, foreign valid field ID, zone layer storage의 constructor-argument
 재진입을 모두 fail closed로 거부한다. 따라서 이 `source -> typed DIR -> MIR`
 producer 대체는 `SUBSTITUTING`이다.
 
 반면 ID-keyed topology plan은 admission에서 한 번 검증돼 C/LLVM artifact에 exact
-schedule을 투영하는 `REACHABLE` consumer일 뿐이다. `apply` row와 `.poison`/`.trust`
-storage materialization, refresh/publish runtime sync가 없으므로 self-emitted zone
-runtime의 `7`/`dst`는 아직 RED다. 계획 trace나 generic zero-fill을 실행 결과로
-세지 않는다.
+schedule을 투영하는 `REACHABLE` consumer일 뿐이다. Apply row가 있어도 effect
+bearer/relation endpoint destination role, projection member map, `.poison`/`.trust`
+storage materialization, receiver carriage와 refresh/publish runtime sync가 없으므로
+self-emitted zone runtime의 `7`/`dst`는 아직 RED다. 계획 trace, same-name/ordinal
+추론이나 generic zero-fill을 실행 결과로 세지 않는다.
 
 ---
 

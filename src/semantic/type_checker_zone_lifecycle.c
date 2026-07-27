@@ -32,6 +32,12 @@ type_check_zone_lifecycle_mutations(ASTNode *node, SemanticContext *ctx)
         if (state_name != NULL) {
             state_ok = resolve_zone_effect_state(node, apply, state_name, ctx,
                 "apply", &effect_slot_name, &target_slot_name);
+            if (state_ok && !ast_zone_apply_bind_resolved_state(
+                    apply, effect_slot_name, target_slot_name)) {
+                semantic_error(ctx, apply,
+                    "Failed to preserve the resolved zone apply-state identity");
+                state_ok = false;
+            }
         }
         if (!state_ok)
             continue;

@@ -6,16 +6,16 @@
 구현 근거:
 - 언어 어휘 기준:
   [`src/lexer/language_keyword_registry.def`](../../src/lexer/language_keyword_registry.def)
-- 파서 테스트: [src/test_parser.c](/mnt/e/PergyraLang/src/test_parser.c)
-- 시맨틱 테스트: [src/test_semantic.c](/mnt/e/PergyraLang/src/test_semantic.c)
-- 예제 모음: [examples](/mnt/e/PergyraLang/examples)
+- 파서 테스트: [src/test_parser.c](../../src/test_parser.c)
+- 시맨틱 테스트: [src/test_semantic.c](../../src/test_semantic.c)
+- 예제 모음: [examples](../../examples)
 
 ## 상태 표
 
 | 구분 | 현재 상태 | 예시 |
 |---|---|---|
 | Stable | parser/semantic/examples/backend smoke로 계속 검증되는 핵심 문법 | `let`, `func`, `if/else`, `for`, `while`, `match`, 배열, 문자열, `slot/view/move`, `spawn/await`, `Channel`, `import/export/namespace`, `enum` |
-| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `subject`, `event + lambda`, `ability/role`, `party/roster/world`, structured comment `@effects`, `defer`, `unsafe` |
+| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `object/tobject/vessel/subject/action`, `effect/relation/zone/intent/world`, `event + lambda`, `ability/role`, `party/roster`, structured comment `@effects`, `defer`, `unsafe` |
 | Not Current Surface | AST 흔적이나 설계 문서만 있고 공식 문법으로 보면 안 되는 것 | `type alias`, 고급 DSL 확장 초안, 미문서 실험 노드 |
 
 규칙:
@@ -64,7 +64,7 @@
 
 | 키워드 | 용도 |
 |--------|------|
-| `action` | subject 전용 플롯 행위 |
+| `action` | subject identity가 소유하는 관측 가능한 공적 의미의 전이; export visibility와는 별도 |
 | `requires`, `within`, `causes`, `authorized`, `by` | action / intent step clause |
 | `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
 | `fields` | ability field-contract declaration selector |
@@ -388,14 +388,15 @@ enum Color { Red, Green, Blue }
 - `struct`
 - `object`
 - `tobject`
+- `vessel`
 - `subject`
 - `class`
 - `enum`
-- `subject`
-- `subject Name { ... }`
 - `relation`
 - `effect`
 - `zone`
+- `world`
+- `intent`
 
 주의:
 - `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
@@ -406,6 +407,9 @@ enum Color { Red, Green, Blue }
 - semantic은 현재 `object`/`tobject`의 passive helper `func`를 허용한다.
   canonical authoring은 object의 query만 남기고 tobject는 method-free로 쓰며,
   tobject helper 허용은 구현 부채로 추적한다.
+- `object`/`tobject`의 canonical read-only/immutable 계약은 현재 bare/nested field
+  write까지 완전히 닫히지 않았다. `tobject` publish는 detached value projection이며
+  별도 channel/API/IPC transport 보장을 뜻하지 않는다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.

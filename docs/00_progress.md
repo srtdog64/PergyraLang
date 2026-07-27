@@ -7,7 +7,13 @@
 - `zone_layer_projection_runtime`의 production DRV-2 source 경로가 이제 native
   topology JSON을 빌리지 않고 self source -> typed AST/DIR -> MIR로 non-empty
   topology를 생산한다. Exact graph ID는 `14937235025281185444`이고 row는
-  `Poisoned.refresh`, `TrustedLink.publish`, `BattleZone.link-relation` 세 개다.
+  `Poisoned.refresh`, `TrustedLink.publish`, `BattleZone.apply-effect`,
+  `BattleZone.link-relation` 네 개다. Apply는 maintain과 별도 lifecycle identity며
+  dependency graph에는 edge를 추가하지 않는다.
+- Native `apply stateAlias`도 semantic owner가 exact effect/target slot로
+  정규화한 뒤 같은 `apply-effect` row를 생산하며, unresolved apply는 DIR에서
+  누락되지 않고 실패한다. Production self source parser의 state-alias carriage는
+  아직 열려 있어 직접형만 현재 self substitution 범위에 포함한다.
 - 각 row는 같은 canonical identity epoch에서 declaration의
   `(owner, field name, source_syntax_id, field_kind)`에 exact join한다. 과거 raw
   field ID, `player` 이름 + canonical `enemy` ID, refresh의 tobject slot,
@@ -21,9 +27,10 @@
 - `BattleZone` plan은 exact `nodes=3`, `edges=2`, `depth=2`, `pass_limit=2`와
   `trust <- player`, `trust <- enemy`를 C/LLVM 모두에 투영한다. Forged edge와
   gate-only digest mutation은 artifact 생성 전에 거부된다.
-- 실제 zone runtime은 아직 RED다. `apply poison to player`가 MIR topology row로
-  운반되지 않고, `.poison`/`.trust` storage materialization 및 refresh/publish
-  value sync owner가 없다. 따라서 generic zero-fill이나 native graft로
+- 실제 zone runtime은 아직 RED다. Apply row는 운반되지만 effect bearer/relation
+  source·target destination role, projection member map, receiver carriage,
+  `.poison`/`.trust` storage materialization 및 refresh/publish value sync owner가
+  없다. 따라서 same-name/ordinal 추론, generic zero-fill이나 native graft로
   `7`/`dst`를 꾸미지 않는다. 이 owner chain과 실행 결과가 다음 substitution
   rung이다.
 - Fresh pressure-owned self-host compiler build는 2,138,300 ms에 설치/smoke까지

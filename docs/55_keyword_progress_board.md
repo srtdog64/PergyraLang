@@ -90,16 +90,19 @@ highlight, fixture occurrence, import count, readiness `Bool`은 이 등급을 �
 ## 5. 현재 우선순위
 
 1. 완료: `zone_layer_projection_runtime`의 self-host producer가 effect `refresh`,
-   relation `publish`, zone `link`의 non-empty topology 3행을 typed identity로
-   생산한다. 이 좁은 DIR→MIR producer 대체만 `SUBSTITUTING`이다.
+   relation `publish`, zone `apply`/`link`의 distinct non-empty topology 4행을 typed
+   identity로 생산한다. `apply-effect`는 maintain과 다르고 graph에는 edge를 더하지
+   않는다. 이 좁은 DIR→MIR producer 대체만 `SUBSTITUTING`이다.
 2. 완료: canonicalization은 owner/directive/field ID를 한 identity epoch으로 함께
    재발급하며 stale raw ID와 `player` name + canonical `enemy` ID를 거부한다.
 3. 완료(`REACHABLE`): 한 ID-keyed graph plan이 admission에서 한 번 검증되고 C/LLVM에
    exact `nodes=3 edges=2 depth=2 pass_limit=2`, `trust <- player`,
    `trust <- enemy`를 투영한다. 이 trace는 runtime state materialization 증거가 아니다.
-4. 다음: 현재 identity만 검증하고 버리는 `apply`를 MIR row로 운반한 뒤, plan/runtime
-   owner가 `.poison`/`.trust` storage와 refresh/publish sync를 실제 materialize해야
-   `7`/`dst` runtime gate를 닫을 수 있다. Generic zero-fill과 native graft는 금지다.
+4. 다음: 별도 `domain_runtime_assignments` owner가 effect bearer/relation endpoint
+   destination role, projection member exact path와 type, receiver carriage를 join한 뒤
+   `.poison`/`.trust` storage와 refresh/publish sync를 materialize해야 `7`/`dst`
+   runtime gate를 닫을 수 있다. Same-name/ordinal 추론, generic zero-fill과 native
+   graft는 금지다.
 5. 그 다음 state/layout/sync operation, `maintain`/`detach`/`unlink`를 각각 별도
    fact와 falsifying fixture로 닫는다.
 6. 실제 production action이 둘 이상 연결되기 전에는 root `intent`를 실행 진척으로

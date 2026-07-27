@@ -167,20 +167,23 @@ dir_add_projection_contract_edges(DIRProgram *dir,
 }
 
 static bool
-dir_add_zone_maintain_effect_topology(DIRProgram *dir,
-                                      size_t owner_id,
-                                      ASTNode *zone,
-                                      ASTNode *directive)
+dir_add_zone_effect_topology(DIRProgram *dir,
+                             size_t owner_id,
+                             ASTNode *zone,
+                             ASTNode *directive,
+                             DIRDomainTopologyKind kind)
 {
     DIRDomainTopologyRow row = {0};
 
     if (dir == NULL || zone == NULL || directive == NULL
+        || (kind != DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT
+            && kind != DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT)
         || owner_id >= dir->node_count)
         return false;
     row.owner_node_id = owner_id;
     row.owner_source_syntax_id = dir->nodes[owner_id].source_syntax_id;
     row.source_syntax_id = ast_node_stable_id(directive);
-    row.kind = DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT;
+    row.kind = kind;
     row.layer_slot_name = ast_zone_effect_slot_name(directive);
     row.layer_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
         zone, row.layer_slot_name, true);
@@ -238,6 +241,8 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     ASTNode **refreshes = ast_zone_refreshes(node, &refresh_count);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
+    size_t apply_count = 0;
+    ASTNode **applies = ast_zone_applies(node, &apply_count);
     size_t maintained_effect_count = 0;
     ASTNode **maintained_effects = ast_zone_maintained_effects(
         node, &maintained_effect_count);
@@ -370,9 +375,21 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 layer))
             return false;
     }
+    for (size_t i = 0; i < apply_count; i++) {
+        if (ast_zone_effect_slot_name(applies[i]) == NULL
+            || ast_zone_effect_target_slot_name(applies[i]) == NULL) {
+            return false;
+        }
+        if (!dir_add_zone_effect_topology(
+                dir, from_id, node, applies[i],
+                DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT)) {
+            return false;
+        }
+    }
     for (size_t i = 0; i < maintained_effect_count; i++) {
-        if (!dir_add_zone_maintain_effect_topology(
-                dir, from_id, node, maintained_effects[i])) {
+        if (!dir_add_zone_effect_topology(
+                dir, from_id, node, maintained_effects[i],
+                DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT)) {
             return false;
         }
     }

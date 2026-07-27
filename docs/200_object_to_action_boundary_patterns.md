@@ -72,7 +72,7 @@ fact를 재추론하지 않는다. 특히 `ReceiverCarriage`를 일반 parameter
 | --- | --- | --- | --- | --- | --- | --- |
 | `struct` | 작은 구조 값, identity 없음 | 값 복사 | 없음 | 바인딩/필드 규칙에 따른 값 갱신 | free `func`의 입력/출력. hosted `func`는 semantic에서 거부 | 값 fact, 좌표, 옵션, 계획 행 |
 | `class` | 수동 nominal 값/도구, identity 없음 | 값 복사와 값 반환 | value-self | `let mut` 필드는 직접 바인딩을 통해 갱신 가능. hosted func 안의 갱신은 호출자 identity 전이가 아님 | hosted `func` | 계산이 붙은 도구, formatter, policy value |
-| `object` | local projection 값, 능동 identity 없음 | 값 복사 | value-self | construction 이후 read-only. source를 갱신하고 `refresh`하거나 새 view 생성 | 관측/format/query `func`만 권장. `action` 금지 | 동일 실행 경계의 borrow-first read model |
+| `object` | local projection 값, 능동 identity 없음 | 값 복사 | value-self | construction 이후 read-only. source를 갱신하고 `refresh`하거나 새 view 생성 | 관측/format/query `func`만 권장. `action` 금지 | 동일 실행 경계의 refreshable read projection; 현재 ABI는 value projection |
 | `tobject` | 외부 전달 값, identity/authority 없음 | materialized 값 복사 | 현재 passive helper는 value-self; canonical surface는 receiver 없음 | immutable. 새 snapshot을 `publish` | 현재 semantic은 passive `func`를 허용하지만 새 코드는 method-free. `action` 금지 | API/IPC/persistence/world 경계 transfer |
 | `vessel` | subject-owned 수동 상태 값, 독립 actor identity 없음 | canonical은 값 전달. **현재 C/LLVM은 잘못 자동 간접 전달** | **pointer-self** | owner가 호출한 hosted `func`가 원본 내부 상태를 갱신 가능 | hosted `func`; `action` 금지 | subject 내부 상태·자원·규칙 수용체 |
 | `subject` | identity-bearing active host | 기본 파라미터는 자동 참조; plain copy/rebind/value return 금지 | **pointer-self** | 자신의 `func`/`action`을 통한 원본 셀 전이 | private/local `func` + 명시적 public/boundary `action` 권장 | 결정, 승인, stage/resource handoff |
@@ -164,6 +164,42 @@ import되거나 parser fixture에 나온다는 사실은 이 패턴이 실행된
 이 여섯 단계 중 parser/문서/fixture까지만 있으면 `SURFACE`, production caller가
 실제로 호출하고 결과를 소비하면 `REACHABLE`, C-owned 결정을 대신하고 우회가
 삭제됐을 때만 `SUBSTITUTING`이다.
+
+### 2.3 경계 레코드로 구현한다
+
+`object`부터 `action`까지의 best practice는 타입을 단계적으로 승격하는 것이
+아니라, 필요한 경계마다 아래 여섯 사실을 하나의 typed record로 끝까지 운반하는
+것이다.
+
+| 사실 | 답해야 하는 질문 | 대표 owner |
+| --- | --- | --- |
+| source identity | 어느 원본의 사실인가? | subject/declaration field identity |
+| boundary kind | local observation, detached transfer, internal state, public transition 중 무엇인가? | nominal kind + field role |
+| materialization | borrow/view인가, 복사 snapshot인가, stable owned cell인가? | projection/constructor/ABI fact |
+| operation | `refresh`, `publish`, hosted `func`, `action` 중 무엇이 경계를 움직이는가? | topology row 또는 callable contract |
+| authority/lifecycle | 누가 허용하고 언제 유효한가? | subject/action, zone, transaction owner |
+| observable outcome | freshness, receipt, stage, failure 중 무엇을 caller가 소비하는가? | typed result/runtime state fact |
+
+이 레코드의 일부를 nominal 이름이나 backend layout에서 역산하지 않는다. 예를
+들어 `tobject`라는 이유만으로 전송 성공을 주장할 수 없고, `subject`가 C pointer로
+내려갔다는 이유만으로 runtime authority가 증명되지 않는다. `action`이 존재해도
+그 결과가 caller의 결정을 바꾸지 않으면 transition dogfood가 아니다.
+
+Self-host compiler에 적용할 때는 다음 조합을 기본으로 한다.
+
+```text
+typed computation facts (struct/class/func)
+  -> local read model이 필요할 때만 object + refresh
+  -> lifecycle이 분리된 handoff가 필요할 때만 tobject + publish/receipt
+  -> 장기 내부 상태가 필요할 때만 subject-owned vessel + hosted func
+  -> identity-bearing 승인/commit/reject가 필요할 때만 subject.action
+  -> resource/lifetime frontier가 실제로 있을 때만 zone
+  -> 여러 production action의 목적/보상이 생길 때만 intent
+```
+
+따라서 Pergyra다운 구현은 키워드를 많이 쓰는 구현이 아니라, 실제 경계마다
+필요한 키워드 하나를 쓰고 그 typed fact가 production consumer까지 살아남는
+구현이다.
 
 ### 구현 근거
 
@@ -325,10 +361,12 @@ seam이다. production source-mode action의 직접 우회 삭제가 남아 있�
   소비하며 `Damage.bearer=subject_slot`, `BattleZone.damage=effect_slot`을 MIR
   wire와 canonical AST까지 보존한다. 누락, unknown, 선언-host 불일치, effect의
   required participant cardinality 손실은 backend output 전에 실패한다.
-- 이 증거는 effect declaration kind와 slot-role carriage의 부분 closure다. Stable
-  field identity, pool capacity, vessel/binding slot, relation declaration,
-  zone refresh/state/lifecycle metadata와 C/LLVM runtime ABI는 열린 층이다. 따라서
-  전체 domain declaration 또는 runtime ABI를 `CLOSED`로 기록하지 않는다.
+- 이 증거는 effect/relation declaration kind와 slot-role carriage의 부분
+  closure다. Stable declaration-field identity와 non-empty canonical remap도 이후
+  닫혔다. Owner declaration identity join, pool capacity, vessel/binding slot,
+  projection member map, layer destination role, zone state/lifecycle operation과
+  C/LLVM runtime ABI는 열린 층이다. 따라서 전체 domain declaration 또는 runtime
+  ABI를 `CLOSED`로 기록하지 않는다.
 
 ### MatchCase 패턴 그래프 통합
 
@@ -516,11 +554,18 @@ AST domain directive
 
 현재 executable row의 의미는 다음과 같다.
 
-| row | dependency edge | 작성 의미 |
+| row | graph contribution | 작성 의미 |
 | --- | --- | --- |
 | projection refresh/publish/bind | source slot -> object/tobject projection slot | source identity가 바뀐 뒤 projection을 갱신하거나 전달한다 |
+| apply effect | 없음; runtime lifecycle plan이 소비 | inactive layer를 target에 결속하고 `APPLY` transition을 시작한다 |
 | maintain effect | effect layer slot -> target subject slot | 유지되는 effect layer가 target frontier에 영향을 준다 |
 | link relation | left/right subject slot -> relation layer slot | 양 endpoint identity가 relation materialization의 선행 사실이다 |
+
+`apply-effect`와 `maintain-effect`는 같은 layer/target을 가리킬 수 있어도 같은 row가
+아니다. 전자는 새 binding과 `PGY_PROP_CAUSE_APPLY`를 만드는 one-shot lifecycle
+operation이고 dependency schedule에 edge를 추가하지 않는다. 후자는 기존 binding의
+유지와 `PGY_PROP_CAUSE_MAINTAIN`을 뜻하며 frontier edge를 만든다. Graph adjacency를
+runtime transition identity로 사용하거나 둘을 한 enum 값으로 접지 않는다.
 
 각 row는 owner declaration, directive, participant/layer/endpoint slot의 stable
 `SyntaxNodeId`를 함께 운반한다. Backend는 zone AST를 다시 열어 `refresh`,
@@ -555,30 +600,31 @@ revision의 identity epoch다. 유효한 join은 한 MIR 문서와 그 문서에
 consumer 안에서만 한다. MIR-to-AST canonicalization처럼 새 프로그램을 만들면
 declaration field와 이를 참조하는 topology row의 ID를 한 번에 재발급해야 한다.
 숫자 offset, AST text row ordinal, name hash로 native ID를 흉내 내지 않는다. 현재
-canonicalizer가 non-empty topology를 거부하는 것은 이 atomic remap owner가 아직
-없기 때문이며 올바른 fail-closed 경계다.
+canonical identity epoch owner는 declaration field와 dependent topology ID를
+원자적으로 재발급한다. 과거에는 이 owner가 없어 non-empty topology를 fail closed로
+거부했으며, 그 이전 동작을 compatibility fallback으로 되살리지 않는다.
 
-JSON/admission slice 자체의 판정은 계속 `REACHABLE`이다. 다만 그다음 bounded
-executable rung으로 self-host source producer가 “topology row는 없지만 DIR graph는
+이전 JSON/admission slice 자체의 판정은 `REACHABLE`이었다. 그다음 bounded
+executable rung에서는 self-host source producer가 “topology row는 없지만 DIR graph는
 존재하는” 문서를 직접 소유하게 되었다. `function_clause_order_minimal`에서 typed
 `Authority`와 declaration/role/ability/slot facts를 join해 native와 같은
 `nodes=9`, `edges=16`, `domain_graph_id=14937235029576152731`을 계산하고,
 self-produced MIR을 다시 소비한 C가 `clause-order-minimal`을 출력한다. 이 좁은
 empty-topology producer만 `SUBSTITUTING`이다.
 
-여기서 empty는 declaration 수나 topology row 수를 뜻하지 않는다. DIR census를
+그 checkpoint에서 empty는 declaration 수나 topology row 수를 뜻하지 않았다. DIR census를
 완성한 결과 row가 0개임을 뜻한다. `Refresh`/`Publish`/projection `Bind`/
 `Maintain`/`Link`/`Apply`/`Detach`/`Unlink`/`State`는 서로 다른 typed kind로
-보존되며, 현재 owner는 하나라도 발견하면 빈 graph로 낮추지 않고 fail closed한다.
+보존됐고, 당시 owner는 하나라도 발견하면 빈 graph로 낮추지 않고 fail closed했다.
 MIR canonical bridge도 이미 admit된 empty topology를 그대로 운반한다. authority가
 빠지는 MIR-to-AST projection에서 graph를 재계산하거나 native oracle 값을 self
 source producer에 붙이지 않는다.
 
-Pergyra graph plan과 production runtime consumer는 아직 없으므로 전체
-domain/action runtime은 계속 `BRIDGE`다. 다음 executable rung은 self-host가
-non-empty directive row를 생산하고, canonicalization이 새 identity epoch에서
-declaration/topology ID를 함께 remap한 뒤, admitted row로 하나의 ID-keyed
-target-neutral graph plan을 만드는 것이다. 일반 DRV-2 C/LLVM production path가
+그 당시 Pergyra graph plan과 production runtime consumer는 없었으므로 전체
+domain/action runtime은 `BRIDGE`였다. 다음 rung의 목표는 self-host가 non-empty
+directive row를 생산하고, canonicalization이 새 identity epoch에서 declaration/
+topology ID를 함께 remap한 뒤, admitted row로 하나의 ID-keyed target-neutral graph
+plan을 만드는 것이었다. 일반 DRV-2 C/LLVM production path가
 `zone_layer_projection_runtime`의 exact 3-node/2-edge trace를 소비해야 한다.
 canonical topology ID 하나만 과거 raw native ID로 되돌린 row와 `player` 이름에
 canonical `enemy` ID를 붙인 row가 첫 negative다. 이 fixture의 native runtime
@@ -588,28 +634,54 @@ AST` fallback은 두지 않는다.
 
 2026-07-28 producer checkpoint에서 `zone_layer_projection_runtime`은 production
 DRV-2의 self source -> typed AST/DIR -> MIR 경로로 non-empty topology를 직접
-생산한다. `domain_graph_id=14937235025281185444`와 exact 3 rows
-`[refresh, publish, link-relation]`가 declaration의 `(owner, field name,
-source_syntax_id, field_kind)`에 같은 identity epoch 안에서 join된다. 이 좁은
-producer 경로만 `SUBSTITUTING`이다. Target-neutral graph plan은 이 MIR을 실제로
-읽는 `REACHABLE` 단계이며 runtime substitution은 아직 아니다.
+생산한다. `domain_graph_id=14937235025281185444`와 exact 4 rows
+`[refresh, publish, apply-effect, link-relation]`가 declaration의 `(owner, field
+name, source_syntax_id, field_kind)`에 같은 identity epoch 안에서 join된다. Apply는
+maintain과 별도 typed identity이며 `poison` effect slot과 `player` subject slot을
+exact ID로 결속한다. 이 좁은 producer 경로만 `SUBSTITUTING`이다. Target-neutral
+graph plan은 이 MIR을 실제로 읽는 `REACHABLE` 단계이며 runtime substitution은
+아직 아니다.
+
+Native의 `apply stateAlias`는 semantic owner가 state declaration을 정확히
+effect/target slot로 해석하고 AST carrier에 결속한 뒤 같은 `apply-effect` row를
+생산한다. DIR은 unresolved apply를 조용히 건너뛰지 않는다. 현재 production
+self source parser는 state declaration/apply alias를 아직 typed artifact로 보존하지
+않으므로 직접형만 admit하고 alias form은 fail closed한다. Parser가 alias를 이름으로
+다시 찾는 임시 fallback을 넣지 말고, state declaration identity와 resolved slot
+identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한다.
 
 남은 runtime blocker는 다음처럼 정확히 기록한다.
 
-- `apply poison to player`는 DIR에서 shape와 field identity를 검증하지만 MIR
-  topology row로 운반되지 않는다.
-- plan/runtime owner는 zone storage `.poison`/`.trust`의 materialization을 아직
+- `apply poison to player`의 distinct topology identity는 운반되지만, graph row는
+  runtime assignment 자체가 아니다. Effect declaration 내부의 어느 participant
+  field가 zone target을 받을지 명시하는 destination role identity가 없다. Directive의
+  optional `by participant`는 transition initiator/provenance이며 effect의 `bearer`
+  destination role을 대신하지 않는다.
+- Relation도 zone의 left/right slot identity는 있지만 `TrustedLink.source`와
+  `TrustedLink.target` destination role identity가 없다. Backend가 participant
+  declaration의 0/1번째 bindable field를 고르는 것은 임시 AST/ordinal authority다.
+- `refresh view from bearer`와 `publish packet from target`은 projection slot/source
+  slot까지만 topology에 있다. `view.hp <- bearer.hp`,
+  `packet.name <- target.name` 같은 member map의 exact field name/ID/type가 topology
+  wire에 없다. Self parser는 현재 `map { ... }` body를 검증 없이 건너뛰고 typed
+  artifact에 보존하지 않는다.
+- plan/runtime owner는 zone storage `.poison`/`.trust` materialization, transition
+  cause, ready/dirty/epoch, final execution pass limit, method-entry sync를 아직
   소유하지 않는다.
-- `refresh view from bearer`와 `publish packet from target`의 값 sync operation도
-  runtime owner가 아직 구현하지 않았다.
+- self-host general C는 zone hosted receiver를 by-value로 방출한다. Receiver
+  carriage와 일반 parameter carriage를 별도 fact로 닫기 전에는 method-local
+  출력이 우연히 맞아도 persistent zone identity parity가 아니다.
 - 따라서 constructor는 caller가 subject/object/tobject/binding input만 넘기게
   하되, 누락된 layer storage를 generic compound-literal zero-fill로 성공 처리하면
   안 된다. Native MIR/JSON graft도 금지한다.
 
 이 blocker가 닫히기 전 self MIR -> C의 `7`/`dst` runtime 요구는 RED로 남는다.
-다음 rung은 `apply` identity row, layer materialization plan, refresh/publish sync를
-한 owner chain으로 운반하고, `.poison` 또는 `.trust`가 zero-fill된 C를 negative로
-거부해야 한다.
+다음 rung은 topology graph와 별개인 target-neutral runtime plan을 만든다. 이 plan은
+zone/layer/endpoint, layer 내부 destination role, projection member map, field type,
+receiver carriage와 transition state를 exact identity로 한 번 join한다. C/LLVM은
+검증된 plan operation만 투영하며 source AST, same-name member join, 0/1 ordinal
+participant lookup을 다시 사용하지 않는다. `.poison` 또는 `.trust`가 zero-fill된 C,
+by-value zone receiver, map/role 누락은 output 생성 전에 거부해야 한다.
 
 ### 4.3 Artifact action의 commit 조건
 
@@ -667,7 +739,8 @@ protocol 증거로 세지 않으며 caller가 소비하는 terminal 결과는
 반환된 `Rejected`로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
-끝까지 운반된다. 다만 contract vocabulary SoT와 실행 대체는 아직 열려 있다.
+끝까지 운반된다. Contract vocabulary SoT는 shared registry로 닫혔지만 실행 대체는
+아직 열려 있다.
 따라서 이 action은 atomic commit까지 `REACHABLE`이지만 아직
 C-owned compiler path를 대체한 `SUBSTITUTING`은 아니다.
 
@@ -795,10 +868,11 @@ subject CompilerExecution {
     self-host projection으로 단일화됐다. DIR zone-frontier slice는 stable
     directive/slot identity를 운반한다. MIR JSON relation/topology carriage와
     self-host typed admission은 declaration field `(owner, name, ID, kind)` exact
-    join까지 `REACHABLE`로 닫혔다. Native/self raw ID 숫자 수렴, owner declaration
-    ID join, non-empty canonical identity remap, pool capacity, vessel/binding slot,
-    self-host producer emission, graph plan/runtime consumer와 나머지 zone runtime
-    topology는 열려 있다.
+    join까지 `REACHABLE`로 닫혔다. Non-empty canonical identity remap, self-host
+    producer emission과 one-shot graph plan도 이후 닫혔다. Native/self raw ID 숫자
+    수렴은 계약이 아니며, owner declaration ID join, pool capacity,
+    vessel/binding slot, runtime assignment plan과 나머지 zone runtime topology는
+    열려 있다.
 15. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인
@@ -946,7 +1020,7 @@ production action을 하나의 import/call graph로 합친 실행 경계다. 별
 
 | 층 | 현재 owner와 증거 | 아직 닫히지 않은 것 |
 | --- | --- | --- |
-| declaration contract | `MIRDeclMethod`와 native/self MIR wire의 action/`requires`/`within`/`causes`/`authorized_by_names`/caps/effects, `MIRDeclZoneAuthority`의 subject slot/required ability | shared caps/effects vocabulary owner; declaration fact와 별도인 call binding |
+| declaration contract | `MIRDeclMethod`와 native/self MIR wire의 action/`requires`/`within`/`causes`/`authorized_by_names`/caps/effects, `MIRDeclZoneAuthority`의 subject slot/required ability; shared caps/effects vocabulary는 CLOSED | declaration fact와 별도인 call binding |
 | call binding | C/LLVM hook이 direct world -> zone -> subject receiver와 정확한 zone authority slot을 구조적으로 resolve | named participant, 복수 authority, indirect receiver를 나타내는 호출별 binding fact |
 | runtime evidence | 선택한 zone 주소와 participant 주소를 runtime에 전달하고 non-null presence snapshot 기록 | slot membership, subject identity/token, action/zone ability authorization |
 

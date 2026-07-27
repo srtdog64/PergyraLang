@@ -55,6 +55,10 @@ for term in 'MirDomainTopologyOwnerGraphAddEdge' \
     'MirDomainTopologyOwnerGraphSchedule'; do
     grep -Fq -- "$term" "$SCHEDULE_OWNER" || fail "schedule owner missing: $term"
 done
+grep -Fq -- 'kind == "apply-effect"' "$BUILD_OWNER" \
+    || fail "owner graph builder does not explicitly admit apply-effect"
+grep -Fq -- 'edge_ok = true' "$BUILD_OWNER" \
+    || fail "apply-effect no-edge lifecycle admission is missing"
 for term in 'MirDomainTopologyGraphPlanConsumptionFromAdmitted' \
     'MirDomainTopologyGraphPlanConsumptionMutationRejected' \
     'MirDomainTopologyGraphPlanAttachToC' \

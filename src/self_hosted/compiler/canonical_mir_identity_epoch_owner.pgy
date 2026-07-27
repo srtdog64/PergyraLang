@@ -97,6 +97,14 @@ func CanonicalMirIdentityEpochDirectiveText(
                 )
             )
         );
+    } else if kind == "apply-effect" {
+        text = Concat(
+            "Apply: ",
+            Concat(
+                topology.layer_slot_names[row],
+                Concat(" -> ", topology.target_slot_names[row])
+            )
+        );
     } else if kind == "maintain-effect" {
         text = Concat(
             "MaintainEffect: ",

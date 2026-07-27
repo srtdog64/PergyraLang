@@ -3,8 +3,9 @@
  * Build the transitive propagation dependency graph from owner facts.
  *
  * Edge direction is "from must be recomputed before to" (from -> to means
- * to depends on from): refresh source -> object, zone effect source -> target,
- * link endpoints -> relation slot, and world-state inputs -> derived state.
+ * to depends on from): refresh source -> object, maintained zone effect
+ * source -> target, link endpoints -> relation slot, and world-state inputs ->
+ * derived state. One-shot apply lifecycle rows are admitted but add no edge.
  */
 #include "propagation_graph.h"
 #include "propagation_graph_build.h"
@@ -53,6 +54,11 @@ propagation_graph_build_from_zone_mir(PropagationGraph *g,
                     row->projection_slot_name)) {
                 return false;
             }
+            break;
+        case MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT:
+            /* apply is a one-shot lifecycle transition, not a persistent
+             * recomputation dependency.  Admit the owned row without
+             * changing the refresh frontier graph. */
             break;
         case MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT:
             if (!prop_add_named_edge(g,

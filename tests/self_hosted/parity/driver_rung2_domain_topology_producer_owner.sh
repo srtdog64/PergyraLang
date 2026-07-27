@@ -18,6 +18,8 @@ for term in 'struct SelfDirDomainTopologyRows' \
     'topology_kind == "refresh"' \
     'topology_kind == "publish"' \
     'topology_kind != "bind"' \
+    'kind == TypedAstKindDomainApplyTag()' \
+    'ArrayPush(kinds, "apply-effect")' \
     'SelfDirDomainTopologyRowsReady'; do
     grep -Fq -- "$term" "$domain_topology_row_owner" || {
         echo "[self-host-parity:driver-rung2] missing self DIR topology term: $term" >&2
@@ -63,17 +65,29 @@ pgy_selfhost_verify_driver_rung2_domain_topology_producer() {
 
     local python_bin="${PYTHON_BIN:-python3}"
     local negative="$BUILD_DIR/zone_layer_projection_runtime_${backend}.foreign-field-id.mir.json"
-    "$python_bin" - "$self_mir_json" "$negative" <<'PY'
+    local wrong_kind="$BUILD_DIR/zone_layer_projection_runtime_${backend}.apply-wrong-kind-id.mir.json"
+    "$python_bin" - "$self_mir_json" "$native_mir_json" "$negative" "$wrong_kind" <<'PY'
 import json, pathlib, sys
 
 source = pathlib.Path(sys.argv[1])
-negative = pathlib.Path(sys.argv[2])
+native_source = pathlib.Path(sys.argv[2])
+negative = pathlib.Path(sys.argv[3])
+wrong_kind = pathlib.Path(sys.argv[4])
 doc = json.loads(source.read_text(encoding="utf-8"))
 topology = doc["domain_topology"]
 assert topology["domain_graph_id"] == 14937235025281185444, topology
 rows = topology["rows"]
-assert len(rows) == 3, rows
-assert [row["kind"] for row in rows] == ["refresh", "publish", "link-relation"]
+assert len(rows) == 4, rows
+assert [row["kind"] for row in rows] == [
+    "refresh", "publish", "apply-effect", "link-relation"
+]
+
+native = json.loads(native_source.read_text(encoding="utf-8"))
+native_topology = native["domain_topology"]
+assert native_topology["domain_graph_id"] == topology["domain_graph_id"]
+assert [row["kind"] for row in native_topology["rows"]] == [
+    "refresh", "publish", "apply-effect", "link-relation"
+]
 
 decls = {decl["name"]: decl for decl in doc["decls"]}
 fields = {
@@ -93,7 +107,20 @@ for row, (owner, projection, projection_kind, source_name, source_kind) in zip(r
     assert row["source_slot_source_syntax_id"] == fields[owner][source_name]["source_syntax_id"]
     assert fields[owner][source_name]["field_kind"] == source_kind
 
-link = rows[2]
+apply = rows[2]
+assert apply["owner_name"] == "BattleZone"
+assert apply["owner_source_syntax_id"] > 0 and apply["source_syntax_id"] > 0
+for key, name, kind in (
+    ("layer_slot", "poison", "effect_slot"),
+    ("target_slot", "player", "subject_slot"),
+):
+    assert apply[f"{key}_name"] == name
+    assert apply[f"{key}_source_syntax_id"] == fields["BattleZone"][name]["source_syntax_id"]
+    assert fields["BattleZone"][name]["field_kind"] == kind
+assert apply["participant_slot_name"] is None
+assert apply["participant_slot_source_syntax_id"] == 0
+
+link = rows[3]
 assert link["owner_name"] == "BattleZone"
 assert link["owner_source_syntax_id"] > 0 and link["source_syntax_id"] > 0
 for key, name, kind in (
@@ -107,21 +134,32 @@ for key, name, kind in (
 
 link["left_slot_source_syntax_id"] = fields["BattleZone"]["enemy"]["source_syntax_id"]
 negative.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+
+wrong_kind_doc = json.loads(source.read_text(encoding="utf-8"))
+wrong_kind_apply = wrong_kind_doc["domain_topology"]["rows"][2]
+wrong_kind_apply["layer_slot_name"] = "poison"
+wrong_kind_apply["layer_slot_source_syntax_id"] = fields["BattleZone"]["trust"]["source_syntax_id"]
+wrong_kind.write_text(
+    json.dumps(wrong_kind_doc, separators=(",", ":")), encoding="utf-8"
+)
 PY
 
-    local negative_out="${negative}.out" negative_err="${negative}.err"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-        "$(pgy_selfhost_path_relative_to_root "$negative")" \
-        >"$negative_out" 2>"$negative_err"); then
-        echo "[self-host-parity:driver-rung2] $backend topology admitted player name with enemy field ID" >&2
-        return 1
-    fi
-    grep -Fq 'MIR domain topology facts are missing or invalid' \
-        "$negative_out" "$negative_err" || {
-        echo "[self-host-parity:driver-rung2] $backend exact-field topology negative drifted" >&2
-        cat "$negative_out" "$negative_err" >&2
-        return 1
-    }
+    local mutation=""
+    for mutation in "$negative" "$wrong_kind"; do
+        local negative_out="${mutation}.out" negative_err="${mutation}.err"
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$mutation")" \
+            >"$negative_out" 2>"$negative_err"); then
+            echo "[self-host-parity:driver-rung2] $backend topology admitted exact-field mutation: $(basename "$mutation")" >&2
+            return 1
+        fi
+        grep -Fq 'MIR domain topology facts are missing or invalid' \
+            "$negative_out" "$negative_err" || {
+            echo "[self-host-parity:driver-rung2] $backend exact-field topology negative drifted: $(basename "$mutation")" >&2
+            cat "$negative_out" "$negative_err" >&2
+            return 1
+        }
+    done
 
     local legacy_mir="$BUILD_DIR/zone_layer_projection_runtime_${backend}.semicolon-legacy.mir.json"
     local legacy_err="${legacy_mir}.err"
@@ -138,7 +176,14 @@ PY
 import json, pathlib, sys
 doc = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 rows = doc["domain_topology"]["rows"]
-assert [row["kind"] for row in rows] == ["refresh", "publish", "link-relation"]
+assert [row["kind"] for row in rows] == [
+    "refresh", "publish", "apply-effect", "link-relation"
+]
+apply = rows[2]
+assert apply["layer_slot_name"] == "poison"
+assert apply["target_slot_name"] == "player"
+assert apply["participant_slot_name"] == "enemy"
+assert apply["participant_slot_source_syntax_id"] > 0
 PY
 
     local arity_source="tests/self_hosted/parity/fixture/zone_layer_constructor_arity_rejected.pgy"
@@ -174,6 +219,38 @@ PY
             cat "$kind_negative_out" "$kind_negative_err" >&2
             return 1
         }
+    done
+
+    local apply_negative_source=""
+    for apply_negative_source in \
+        "tests/self_hosted/parity/fixture/domain_topology_apply_relation_layer_rejected.pgy" \
+        "tests/self_hosted/parity/fixture/domain_topology_apply_relation_target_rejected.pgy" \
+        "tests/self_hosted/parity/fixture/domain_topology_apply_effect_participant_rejected.pgy"; do
+        local apply_negative_name
+        apply_negative_name="$(basename "$apply_negative_source" .pgy)"
+        local apply_negative_out="$BUILD_DIR/${apply_negative_name}_${backend}.out"
+        local apply_negative_err="$BUILD_DIR/${apply_negative_name}_${backend}.err"
+        if (cd "$ROOT_DIR" && "$driver_bin" --emit-mir-json-verified \
+            "$apply_negative_source" >"$apply_negative_out" \
+            2>"$apply_negative_err"); then
+            echo "[self-host-parity:driver-rung2] $backend admitted apply with the wrong slot kind: $apply_negative_name" >&2
+            return 1
+        fi
+        if [[ "$apply_negative_name" == "domain_topology_apply_effect_participant_rejected" ]]; then
+            grep -Fq 'self-host DIR topology participant does not join a subject slot' \
+                "$apply_negative_out" "$apply_negative_err" || {
+                echo "[self-host-parity:driver-rung2] $backend apply participant-kind negative drifted" >&2
+                cat "$apply_negative_out" "$apply_negative_err" >&2
+                return 1
+            }
+        else
+            grep -Fq 'self-host DIR apply directive field identity is missing' \
+                "$apply_negative_out" "$apply_negative_err" || {
+                echo "[self-host-parity:driver-rung2] $backend apply layer/target-kind negative drifted: $apply_negative_name" >&2
+                cat "$apply_negative_out" "$apply_negative_err" >&2
+                return 1
+            }
+        fi
     done
 
 }

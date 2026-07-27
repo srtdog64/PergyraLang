@@ -353,18 +353,44 @@ func SelfDirDomainTopologyRowsFromArtifact(
             ArrayPush(participant_ids, participant_id);
         } else if kind == TypedAstKindDomainApplyTag() {
             if declarations.nominal_kinds[owner_index] != "zone" ||
-                !IsSome(primary_opt) || !IsSome(secondary_opt) ||
-                SelfDirFieldSourceSyntaxId(
-                    declarations, owner_index, UnwrapOption(primary_opt),
-                    NominalFieldKindEffectSlot()
-                ) <= 0 || SelfDirFieldSourceSyntaxId(
-                    declarations, owner_index, UnwrapOption(secondary_opt),
-                    NominalFieldKindSubjectSlot()
-                ) <= 0 {
+                !IsSome(primary_opt) || !IsSome(secondary_opt) {
                 return SelfDirDomainTopologyRowsError(
                     "self-host DIR apply directive field identity is missing"
                 );
             }
+            let layer_name: String = UnwrapOption(primary_opt);
+            let target_name: String = UnwrapOption(secondary_opt);
+            let layer_id: Int = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, layer_name,
+                NominalFieldKindEffectSlot()
+            );
+            let target_id: Int = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, target_name,
+                NominalFieldKindSubjectSlot()
+            );
+            if layer_id <= 0 || target_id <= 0 {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR apply directive field identity is missing"
+                );
+            }
+            ArrayPush(owner_names, owner_name);
+            ArrayPush(owner_ids, owner_id);
+            ArrayPush(source_ids, node_id);
+            ArrayPush(kinds, "apply-effect");
+            ArrayPush(projection_names, "");
+            ArrayPush(projection_ids, 0);
+            ArrayPush(source_names, "");
+            ArrayPush(source_slot_ids, 0);
+            ArrayPush(layer_names, layer_name);
+            ArrayPush(layer_ids, layer_id);
+            ArrayPush(target_names, target_name);
+            ArrayPush(target_ids, target_id);
+            ArrayPush(left_names, "");
+            ArrayPush(left_ids, 0);
+            ArrayPush(right_names, "");
+            ArrayPush(right_ids, 0);
+            ArrayPush(participant_names, participant_name);
+            ArrayPush(participant_ids, participant_id);
         } else {
             return SelfDirDomainTopologyRowsError(
                 "self-host DIR bounded topology directive is unsupported"
@@ -412,6 +438,7 @@ func SelfDirDomainTopologyRowsReady(
             rows.source_syntax_ids[i] <= 0 ||
             (rows.kinds[i] != "refresh" && rows.kinds[i] != "publish" &&
              rows.kinds[i] != "bind" &&
+             rows.kinds[i] != "apply-effect" &&
              rows.kinds[i] != "maintain-effect" &&
              rows.kinds[i] != "link-relation") {
             return false;

@@ -25,6 +25,10 @@ func MirDomainTopologyOwnerGraphFromFacts(
                     facts.projection_slot_names[row],
                     facts.projection_slot_source_syntax_ids[row]
                 );
+            } else if kind == "apply-effect" {
+                // apply is a one-shot lifecycle transition, not a persistent
+                // recomputation dependency. Its row contributes no edge.
+                edge_ok = true;
             } else if kind == "maintain-effect" {
                 edge_ok = MirDomainTopologyOwnerGraphAddEdge(
                     node_names, node_source_syntax_ids,

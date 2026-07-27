@@ -12,22 +12,23 @@ tobject PlayerDto {
 }
 
 effect Poisoned for bearer: Player {
-    object slot view: PlayerView;
-    refresh view from bearer;
+    object slot view: PlayerView
+    refresh view from bearer
 }
 
 relation TrustedLink for source: Player, target: Player {
-    tobject slot packet: PlayerDto;
-    publish packet from target;
+    tobject slot packet: PlayerDto
+    publish packet from target
 }
 
 zone BattleZone {
-    subject slot player: Player;
-    subject slot enemy: Player;
-    effect slot poison: Poisoned;
-    relation slot trust: TrustedLink;
-    apply poison to player by enemy;
-    link trust between player, enemy;
+    subject slot player: Player
+    subject slot enemy: Player
+    effect slot poison: Poisoned
+    relation slot trust: TrustedLink
+    state poisoned: effect poison on player
+    apply poisoned
+    link trust between player, enemy
 
     func Show(self) -> Void {
         Log(self.poison.view.hp);
