@@ -390,20 +390,35 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(method_counts, method_count);
         ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
         let impl_count: Int = analysis.roles.impl_counts[role_i];
-        if impl_count > 1 {
-            return SelfMirDeclarationRowsEmpty();
-        }
+        let impl_method_cursor: Int = 0;
         let impl_i: Int = 0;
         while impl_i < impl_count {
-            ArrayPush(
-                role_impl_ability_names,
-                analysis.roles.impl_ability_names[
-                    analysis.roles.impl_starts[role_i] + impl_i
-                ]
+            let ability_name: String = analysis.roles.impl_ability_names[
+                analysis.roles.impl_starts[role_i] + impl_i
+            ];
+            let ability_index: Option<Int> = SemanticAstAbilityIndexForName(
+                analysis.roles, ability_name
             );
-            ArrayPush(role_impl_method_starts, 0);
-            ArrayPush(role_impl_method_counts, method_count);
+            if !IsSome(ability_index) {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            let impl_method_count: Int = analysis.roles.ability_method_counts[
+                UnwrapOption(ability_index)
+            ];
+            if impl_method_count < 0 ||
+                impl_method_cursor + impl_method_count > method_count {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            ArrayPush(
+                role_impl_ability_names, ability_name
+            );
+            ArrayPush(role_impl_method_starts, impl_method_cursor);
+            ArrayPush(role_impl_method_counts, impl_method_count);
+            impl_method_cursor = impl_method_cursor + impl_method_count;
             impl_i = impl_i + 1;
+        }
+        if impl_method_cursor != method_count {
+            return SelfMirDeclarationRowsEmpty();
         }
         ArrayPush(role_impl_counts, impl_count);
         ArrayPush(variant_starts, ArrayLength(variant_names));

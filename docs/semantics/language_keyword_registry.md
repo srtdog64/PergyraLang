@@ -48,7 +48,10 @@ occurrences across 34 language words as migration debt.
   together from the same registry SoT.
 - Native parser selector literals are checked bidirectionally against all 74
   contextual/soft rows. Ordinary identifier data, builtin/type names, effect
-  values, and duration suffixes are not language-word rows.
+  values, and duration suffixes are not language-word rows. The closed values
+  of `with caps`/`with effects` are instead owned by
+  [`callable_contract_vocabulary.md`](callable_contract_vocabulary.md); this
+  keeps semantic mask membership out of the lexer authority.
 - LSP completion labels are built from `COMPLETION` flags. The current view has
   27 labels.
 - Lowercase language hover content is allowed only for the 25 rows marked

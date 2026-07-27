@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "callable_contract_vocabulary.h"
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
@@ -27,21 +28,18 @@ flow_effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
         return;
     }
 
-    if (type_effect_mask_has(closed, EFFECT_SECURE))
-        off = pergyra_str_appendf(buf, buf_size,
-                                  "%ssecure", off > 0 ? ", " : "");
-    if (type_effect_mask_has(closed, EFFECT_REMOTE))
-        off = pergyra_str_appendf(buf, buf_size,
-                                  "%sremote", off > 0 ? ", " : "");
-    if (type_effect_mask_has(closed, EFFECT_NONDETERMINISTIC))
-        off = pergyra_str_appendf(buf, buf_size,
-                                  "%snondeterministic", off > 0 ? ", " : "");
-    if (type_effect_mask_has(closed, EFFECT_COLLAPSE))
-        off = pergyra_str_appendf(buf, buf_size,
-                                  "%scollapse", off > 0 ? ", " : "");
-    if (type_effect_mask_has(closed, EFFECT_UNSAFE))
-        off = pergyra_str_appendf(buf, buf_size,
-                                  "%sunsafe", off > 0 ? ", " : "");
+    for (size_t i = 0; i < pgy_callable_contract_vocabulary_axis_count(
+             PGY_CALLABLE_CONTRACT_AXIS_EFFECT); i++) {
+        const PgyCallableContractWordSpec *spec =
+            pgy_callable_contract_vocabulary_at_rank(
+                PGY_CALLABLE_CONTRACT_AXIS_EFFECT, i);
+        if (spec != NULL && spec->mask != 0 &&
+            type_effect_mask_has(closed, spec->mask)) {
+            off = pergyra_str_appendf(buf, buf_size, "%s%s",
+                                      off > 0 ? ", " : "",
+                                      spec->spelling);
+        }
+    }
 }
 
 void

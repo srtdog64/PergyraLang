@@ -3,13 +3,27 @@
   "name": "Pergyra",
   "scopeName": "source.pergyra",
   "patterns": [
-    { "include": "#comments" },
-    { "include": "#keywords" },
-    { "include": "#domain-keywords" },
-    { "include": "#intent-keywords" },
-    { "include": "#strings" },
-    { "include": "#numbers" },
-    { "include": "#types" }
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#domain-keywords"
+    },
+    {
+      "include": "#intent-keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#types"
+    }
   ],
   "repository": {
     "comments": {

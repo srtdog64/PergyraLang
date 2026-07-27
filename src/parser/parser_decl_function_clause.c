@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "../lexer/lexer_keywords.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -149,7 +150,8 @@ static bool
 parse_function_clause_with_is_caps(Parser *parser)
 {
     Token after = parser_peek_next(parser);
-    return after.text != NULL && strcmp(after.text, "caps") == 0;
+    return after.text != NULL && lexer_lookup_language_word(
+        after.text, strlen(after.text)) == PGY_LANGUAGE_WORD_CAPS;
 }
 
 static bool

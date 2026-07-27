@@ -155,13 +155,32 @@ codegen은 이 owner가 지정한 clause node만 정확한 순서로 소비하�
 `callable_kind + contract` wire를 방출하고 `mir_lower`는 이를 한 번 읽어 action
 AST를 복원한다.
 
+`semantic.callable_contract_vocabulary`는 capability 9개와 effect 9개의 spelling,
+stable identity, mask symbol 연결, canonical rank, capability manifest 이름과
+`local` zero-exclusive 정책을 하나로 소유한다. Native parser·AST/MIR renderer·
+structured-comment effect·runtime grant와 self-host parser·semantic·MIR verifier는
+모두 이 owner 또는 생성 projection을 소비한다. `all`/`none`은 runtime grant
+alias일 뿐 source `with caps` 어휘가 아니다.
+
 `function_clause_order_minimal` focused gate는 C와 LLVM driver 각각에서 native/self
-MIR의 contract byte row를 확인하고, missing `within`, unknown zone, non-subject
-owner, action-as-function, empty explicit caps, empty explicit effects의 여섯 변조가
-backend output 전에 fail closed함을 관측했다. 그러나 이 closure는 C-owned compiler
-path를 대체하지 않는 supporting semantic seam이다. caps/effects 어휘의 공유 SoT와
-production source-mode action의 직접 우회 삭제가 남아 있으므로 registry 상태는
-`ACTIVE`, dogfood 상태는 계속 `REACHABLE`, not `SUBSTITUTING`이다.
+MIR의 contract byte row를 확인한다. 기존 여섯 field 변조에 더해 unknown,
+duplicate, noncanonical order, `local + nonlocal` 양방향 변조가 backend output 전에
+fail closed한다. 따라서 declaration carriage와 vocabulary fact family는 `CLOSED`다.
+다만 이 closure는 C-owned compiler path를 대체하지 않는 supporting semantic
+seam이다. production source-mode action의 직접 우회 삭제가 남아 있으므로 dogfood
+상태는 계속 `REACHABLE`, not `SUBSTITUTING`이다.
+
+이 fixture가 드러낸 인접 경계도 같은 규칙을 따른다.
+
+- role이 여러 `impl ability`를 소유할 때 선언 전체를 비우는 임시 제한은 허용하지
+  않는다. 각 impl의 method span은 이름 추측이 아니라 ability semantic owner의
+  method count로 분할하고, 전체 role method span을 정확히 덮지 못하면 실패한다.
+- zone의 `subject/object/tobject/effect/relation slot`은 문자열 장식이 아니라 zone이
+  소유하는 typed field fact다. 특히 effect/relation slot을 AST-text inventory에서
+  누락하면 action contract는 살아 있어도 zone resource graph가 끊긴다.
+- 현재 canonical native/self MIR은 이 두 경계를 통과한다. 다음 RED는 C consumer의
+  `Damage` effect nominal admission이다. 이를 알 수 없는 struct로 추측해서 통과시키지
+  말고, effect declaration identity와 zone runtime ABI를 MIR에 실어야 한다.
 
 ### MatchCase 패턴 그래프 통합
 
@@ -273,9 +292,14 @@ parser clause nodes
 - declaration carriage, call-site authority binding, runtime identity/ability
   authorization은 서로 다른 증거 층이다. 첫 층이 닫혀도 뒤의 두 층을 완료로
   기록하지 않는다.
-- `io_read` 같은 capability와 `secure` 같은 effect의 canonical vocabulary는
-  별도 언어 어휘 SoT에서 파생돼야 한다. parser, semantic, MIR reader, native
-  debug/dump가 독립 문자열 목록을 계속 소유하는 동안 이 row는 `ACTIVE`다.
+- role impl partition, zone slot carriage, effect runtime ABI 역시 서로 다른 owner
+  층이다. 앞 층의 결함이 뒤 층 증상을 만들더라도 빈 선언이나 unknown-type
+  fallback으로 덮지 말고 최초로 사라진 fact에서 닫는다.
+- `io_read` 같은 capability와 `secure` 같은 effect는 lexer 예약어 목록이 아니라
+  `semantic.callable_contract_vocabulary`의 closed values다. lexer는 `with`, `caps`,
+  `effects` 같은 grammar selector를 소유하고, semantic registry가 목록 membership,
+  mask, canonical wire 순서와 `local` 배타성을 소유한다. 이 둘을 합치면 문법과
+  의미 ABI가 다시 한 테이블에 뒤섞인다.
 
 이 패턴의 핵심은 clause를 많이 쓰는 것이 아니라, action의 권한·전이 계약을
 한 identity로 끝까지 운반하는 것이다. 계산-only 함수에 빈 action contract를

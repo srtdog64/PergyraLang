@@ -8,8 +8,7 @@
 #include "mir_decl_header_zone_state_validate.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
-#include "../runtime/pgy_runtime_capability.h"
-#include "../semantic/type_system.h"
+#include "../semantic/callable_contract_vocabulary.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -676,17 +675,16 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 }
             }
         }
-        if ((method->declared_capabilities & ~(PGY_CAP_IO_READ |
-                PGY_CAP_IO_WRITE | PGY_CAP_NETWORK | PGY_CAP_CLOCK |
-                PGY_CAP_RANDOM | PGY_CAP_ENV | PGY_CAP_RENDER |
-                PGY_CAP_AUDIO | PGY_CAP_INPUT)) != 0 ||
+        if ((method->declared_capabilities &
+                ~pgy_callable_contract_vocabulary_known_mask(
+                    PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY)) != 0 ||
             (!method->has_caps_clause &&
                 method->declared_capabilities != 0) ||
             (method->has_caps_clause &&
                 method->declared_capabilities == 0) ||
-            (method->declared_effects & ~(EFFECT_SECURE | EFFECT_REMOTE |
-                EFFECT_NONDETERMINISTIC | EFFECT_COLLAPSE | EFFECT_UNSAFE |
-                EFFECT_IO | EFFECT_ALLOC | EFFECT_AUTHORITY)) != 0 ||
+            (method->declared_effects &
+                ~pgy_callable_contract_vocabulary_known_mask(
+                    PGY_CALLABLE_CONTRACT_AXIS_EFFECT)) != 0 ||
             (!method->has_effects_clause && method->declared_effects != 0)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(

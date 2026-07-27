@@ -80,16 +80,31 @@ owner, and the named executable gate.
   requires/within/causes/authorized/caps/effects/body nodes; native and self
   MIR declarations emit the same `callable_kind + contract` wire; `mir_lower`
   validates it once and reconstructs the exact Action rows. Codegen does not
-  skip clauses to find `Body:`. A focused source/MIR gate rebuilt both C and
-  LLVM drivers and rejected missing `within`, unknown zone, non-subject owner,
-  action-as-function, explicit empty caps, and explicit empty effects before
-  backend output. The old AST node 88972 `Within:` / `expected Body:` result is
-  retained in troubleshooting as the historical falsifier, not the current
-  focused result.
-- This semantic seam is `ACTIVE`, not `CLOSED`: caps/effects vocabulary still
-  has independent parser/semantic/mir_lower/native spellings. It also does not
-  replace a C-owned compiler path. Production direct-MIR remains `REACHABLE`,
-  not `SUBSTITUTING`; source-mode `Main -> CompileSourceTo*` is not deleted.
+  skip clauses to find `Body:`. `semantic.callable_contract_vocabulary` now
+  owns the 9 capability and 9 effect rows, canonical order, mask-symbol link,
+  manifest spelling, and `local` zero-exclusive policy. Native/self/runtime
+  consume direct or generated projections. The gate rejects missing/unknown
+  fields, duplicates, noncanonical order, and `local + nonlocal` in both orders
+  before backend output. The old AST node 88972 `Within:` / `expected Body:`
+  result is retained in troubleshooting as the historical falsifier.
+- `selfhost.action_contract` and its semantic vocabulary are now `CLOSED` as a
+  declaration-carriage fact family. This still does not replace a C-owned
+  compiler path. Production direct-MIR remains `REACHABLE`, not `SUBSTITUTING`;
+  source-mode `Main -> CompileSourceTo*` is not deleted.
+- The focused C shard exposed and closed two adjacent declaration holes before
+  reaching its next boundary: roles with multiple `impl ability` rows now
+  partition methods from the referenced ability owner instead of returning an
+  empty declaration table, and zone `EffectSlot:`/`RelationSlot:` rows now enter
+  nominal field facts. Action wire mutations and canonical native/self MIR are
+  green. Full C consumption then fails closed on `Damage`: effect declaration
+  identity and zone-layer runtime ABI are not yet admitted to the self-host MIR
+  type universe. Do not add an unknown-nominal-as-struct fallback.
+- The unfiltered `valid_array_builtins` failure was a separate runtime-header
+  SoT omission. Array runtime emission already owned `uses_array` but did not
+  pass it to header selection, while emitted owned-String helpers require
+  `<string.h>` and `pgy_runtime_panic_contract.h`. Header selection now consumes
+  `uses_array`; array-only output receives only those narrow dependencies and
+  does not falsely claim String surface use or checked-arithmetic ownership.
 - Match-case pattern identity no longer has a second physical graph. Typed
   `MatchCase` AST atoms feed one bounded HIR fact; `AstTreeArtifact` payload v3
   carries executable expression graphs only. The parser partition owner,
@@ -162,23 +177,22 @@ owner, and the named executable gate.
   production-reachable world member. Existing MIR
   inventory/link gates retain their separately documented pre-existing
   failures; do not weaken any semantic gate for this rung.
-- The unfiltered DRV-2 body matrix currently stops before MIR rows at the
-  pre-existing `valid_array_builtins` emitted-C compile: its generated array
-  runtime uses `strlen`/`memcpy` and `PGY_RUNTIME_PANIC*` without the required
-  headers. `PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER` now correctly isolates MIR
-  producer/consumer rows, so this unrelated semantic-fixture failure cannot
-  hide the focused ActionContract gate; it remains a separate runtime-header
-  owner fix, not a reason to weaken the new contract gate.
+- The prior `valid_array_builtins` emitted-C failure has an owner-level fix:
+  `uses_array` now reaches runtime-header selection and supplies `<string.h>`
+  plus the panic contract. The focused emitted-C compile/run is green; the full
+  unfiltered DRV-2 matrix must be rerun at the integration boundary.
 - The artifact falsifier is now green: a pre-existing sentinel is preserved
   under injected open/write/flush/close/publish failure, no temp remains, no
   success receipt is issued, and C-inline/LLVM-export status agrees. The next
   falsifying fixture for ActionContract carriage is now green through
   self-host source -> native/self `pgy.mir.v1` -> `mir_lower` -> both C/LLVM
-  drivers plus six wire mutations. The next semantic falsifier is a shared
-  caps/effects vocabulary owner that removes independent contract-word tables.
-  The next executable rung remains a production source-to-MIR action that
-  deletes `Main -> CompileSourceTo*` in the same change and proves committed or
-  rejected artifact transition. Root-intent takeover comes after that rung.
+  drivers plus field and vocabulary wire mutations. The shared caps/effects
+  vocabulary owner is now closed. The next executable rung remains a
+  typed effect declaration/runtime ABI row for `Damage`, with the focused
+  `function_clause_order_minimal` shard as falsifier. After that shard consumes
+  and runs the canonical MIR, resume the production source-to-MIR action that
+  deletes `Main -> CompileSourceTo*` in the same change. Root-intent takeover
+  comes after that rung.
 
 The remainder of this file preserves earlier v63-v74 evidence as history. If a
 historical statement below conflicts with this checkpoint, current source,

@@ -6,6 +6,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "stmt_owner.pgy";
 import "generic_parameter_list_owner.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 
 func ParserCallableContractContains(names: Array<String>, name: String) -> Bool {
     let i: Int = 0;
@@ -17,51 +18,62 @@ func ParserCallableContractContains(names: Array<String>, name: String) -> Bool 
 }
 
 func ParserCallableContractAppendName(
-    inout names: Array<String>, name: String, vocabulary: Array<String>
+    inout names: Array<String>, name: String, axis: Int
 ) -> Bool {
+    let index: Int = CallableContractVocabularyFindIndex(axis, name);
     if StringLength(name) == 0 ||
-        !ParserCallableContractContains(vocabulary, name) ||
+        index < 0 ||
         ParserCallableContractContains(names, name) {
         return false;
+    }
+    let zero_policy: Int = CallableContractVocabularyZeroPolicyAt(index);
+    if zero_policy == CallableContractVocabularyZeroExclusive() &&
+        ArrayLength(names) > 0 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        let existing: Int = CallableContractVocabularyFindIndex(
+            axis, names[i]
+        );
+        if existing >= 0 && CallableContractVocabularyZeroPolicyAt(existing) ==
+            CallableContractVocabularyZeroExclusive() {
+            return false;
+        }
+        i = i + 1;
     }
     ArrayPush(names, name);
     return true;
 }
 
 func ParserCallableContractCanonicalNames(
-    names: Array<String>, vocabulary: Array<String>
+    names: Array<String>, axis: Int
 ) -> String {
     let out: String = "";
-    let i: Int = 0;
-    while i < ArrayLength(vocabulary) {
-        if ParserCallableContractContains(names, vocabulary[i]) {
+    let rank: Int = 0;
+    while rank < 9 {
+        let index: Int = CallableContractVocabularyIndexAtRank(axis, rank);
+        if index >= 0 && ParserCallableContractContains(
+            names, CallableContractVocabularySpellingAt(index)
+        ) {
             if StringLength(out) > 0 { out = Concat(out, ", "); }
-            out = Concat(out, vocabulary[i]);
+            out = Concat(out, CallableContractVocabularySpellingAt(index));
         }
-        i = i + 1;
+        rank = rank + 1;
     }
     return out;
 }
 
 func ParserCallableContractCanonicalEffects(names: Array<String>) -> String {
-    let vocabulary: Array<String> = [
-        "secure", "remote", "nondeterministic", "collapse", "unsafe",
-        "io", "alloc", "authority"
-    ];
-    let out: String = ParserCallableContractCanonicalNames(names, vocabulary);
-    if StringLength(out) == 0 &&
-        ParserCallableContractContains(names, "local") {
-        return "local";
-    }
-    return out;
+    return ParserCallableContractCanonicalNames(
+        names, CallableContractVocabularyEffectAxis()
+    );
 }
 
 func ParserCallableContractCanonicalCaps(names: Array<String>) -> String {
-    let vocabulary: Array<String> = [
-        "io_read", "io_write", "network", "clock", "random", "env",
-        "render", "audio", "input"
-    ];
-    return ParserCallableContractCanonicalNames(names, vocabulary);
+    return ParserCallableContractCanonicalNames(
+        names, CallableContractVocabularyCapabilityAxis()
+    );
 }
 
 // Parse one `func IDENT(params) -> RET { body }` declaration starting
@@ -308,17 +320,14 @@ func ParseFunction(
                 if saw_effects { Exit(1); }
                 saw_effects = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordEffects);
-                let effect_vocabulary: Array<String> = [
-                    "secure", "remote", "nondeterministic", "collapse",
-                    "unsafe", "io", "alloc", "authority", "local"
-                ];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
                     let effect_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if !ParserCallableContractAppendName(
-                        effect_names, effect_name, effect_vocabulary
+                        effect_names, effect_name,
+                        CallableContractVocabularyEffectAxis()
                     ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
@@ -333,17 +342,14 @@ func ParseFunction(
                 if saw_caps { Exit(1); }
                 saw_caps = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordCaps);
-                let cap_vocabulary: Array<String> = [
-                    "io_read", "io_write", "network", "clock", "random",
-                    "env", "render", "audio", "input"
-                ];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
                     let cap_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if !ParserCallableContractAppendName(
-                        cap_names, cap_name, cap_vocabulary
+                        cap_names, cap_name,
+                        CallableContractVocabularyCapabilityAxis()
                     ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {

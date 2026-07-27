@@ -1,6 +1,37 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-07-27
+
+## 2026-07-27 self-host closure checkpoint
+
+- Production direct-MIR entrypoint reaches one real
+  `PgyCompilerWorld -> zone -> subject.action` slice. This is `REACHABLE`, not
+  yet `SUBSTITUTING`; source-mode `Main -> CompileSourceTo*` still bypasses it.
+- ActionContract declaration carriage is `CLOSED`: callable identity and
+  requires/within/causes/authorized/caps/effects survive typed AST, semantic,
+  native/self MIR, `mir_lower`, and C/LLVM validation.
+- The same focused source now preserves two `impl ability` partitions instead
+  of dropping every declaration when a role owns more than one impl. Zone
+  `effect slot` and `relation slot` rows also enter the nominal field fact.
+  Canonical native/self MIR parity is green through that boundary. The next
+  executable seam is separate: the self-host C consumer still rejects the
+  carried `Damage` effect nominal because effect declaration/runtime ABI facts
+  are not yet present in its admitted MIR type universe.
+- `semantic.callable_contract_vocabulary` owns the 9 capability and 9 effect
+  closed values. Native, self-host, MIR, diagnostic, manifest, and runtime
+  grant consumers use one direct/generated projection. Duplicate,
+  noncanonical, unknown, and `local + nonlocal` contracts fail closed.
+- The prior array-only DRV-2 emitted-C header defect is fixed at the
+  runtime-header owner: `uses_array` selects `<string.h>` and the narrow panic
+  contract. Full unfiltered DRV-2 remains an integration-boundary rerun.
+- The historical multi-GiB incident was repeated whole-graph readiness inside
+  per-local loops. The hot loop now consumes a once-validated artifact. The
+  3 GiB cap remains mandatory; later compiler-scale stages still carry
+  measurable optimization debt.
+
+Exact revision, dirty state, last green gate, and next falsifier live in
+`docs/current_work_handoff.md`. The sections below are a broad capability
+inventory and older test snapshot, not the resume authority.
 
 ## 컴파일러 파이프라인
 

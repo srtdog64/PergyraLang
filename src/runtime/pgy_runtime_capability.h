@@ -51,11 +51,11 @@ static inline unsigned
 pgy_cap_token_bit(const char *tok, size_t len)
 {
     struct { const char *name; unsigned bit; } table[] = {
-        { "io_read",  PGY_CAP_IO_READ },  { "io_write", PGY_CAP_IO_WRITE },
-        { "network",  PGY_CAP_NETWORK },  { "clock",    PGY_CAP_CLOCK },
-        { "random",   PGY_CAP_RANDOM },   { "env",      PGY_CAP_ENV },
-        { "render",   PGY_CAP_RENDER },   { "audio",    PGY_CAP_AUDIO },
-        { "input",    PGY_CAP_INPUT },    { "all",      PGY_CAP_ALL },
+#define PGY_CALLABLE_CONTRACT_RUNTIME_CAP(spelling, mask_symbol) \
+        { spelling, mask_symbol },
+#include "pgy_callable_contract_capability_projection.h"
+#undef PGY_CALLABLE_CONTRACT_RUNTIME_CAP
+        { "all",      PGY_CAP_ALL },
         { "none",     PGY_CAP_NONE },
     };
     size_t i;

@@ -424,7 +424,7 @@ func GenerateCUnitFromSemanticFacts(
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
-    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction);
+    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction);
     let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_artifact_transaction || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
@@ -436,10 +436,10 @@ func GenerateCUnitFromSemanticFacts(
     if need_stdlib {
         TextBuilderAppend(output, "#include <stdlib.h>\n");
     }
-    if uses_str || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
+    if uses_str || uses_array || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
-    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)); }
+    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)); }
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }

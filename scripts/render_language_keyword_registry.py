@@ -666,6 +666,13 @@ def _native_parser_use_counts(
         if spelling in counts:
             counts[spelling] += 1
     for row in rows:
+        # Contextual/soft consumers may select the stable registry identity
+        # directly instead of comparing a spelling through the legacy helper.
+        # Count that typed edge as native implementation evidence.
+        language_word_id = "PGY_LANGUAGE_WORD_" + row.debug_identity
+        counts[row.spelling] += len(
+            re.findall(rf"\b{re.escape(language_word_id)}\b", joined)
+        )
         if row.keyword_class == RESERVED:
             counts[row.spelling] += len(
                 re.findall(rf"\b{re.escape(row.token_type)}\b", joined)

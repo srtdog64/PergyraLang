@@ -1,47 +1,19 @@
 #include "type_checker_internal.h"
 #include "../common/string_compat.h"
+#include "callable_contract_vocabulary.h"
 
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
-
-typedef struct {
-    const char *name;
-    uint32_t mask;
-} EffectWordSpec;
-
-static const EffectWordSpec kEffectWordSpecs[] = {
-    {"alloc", EFFECT_ALLOC},
-    {"authority", EFFECT_AUTHORITY},
-    {"collapse", EFFECT_COLLAPSE},
-    {"io", EFFECT_IO},
-    {"local", EFFECT_NONE},
-    {"nondeterministic", EFFECT_NONDETERMINISTIC},
-    {"remote", EFFECT_REMOTE},
-    {"secure", EFFECT_SECURE},
-};
-
-static int
-effect_word_spec_compare(const void *key, const void *entry)
-{
-    const char *name = (const char *)key;
-    const EffectWordSpec *spec = (const EffectWordSpec *)entry;
-    return strcmp(name, spec->name);
-}
 
 static uint32_t
 parse_effect_word(const char *word)
 {
-    const EffectWordSpec *spec;
+    const PgyCallableContractWordSpec *spec;
 
     if (word == NULL || *word == '\0')
         return EFFECT_NONE;
-    spec = (const EffectWordSpec *)bsearch(
-        word,
-        kEffectWordSpecs,
-        sizeof(kEffectWordSpecs) / sizeof(kEffectWordSpecs[0]),
-        sizeof(kEffectWordSpecs[0]),
-        effect_word_spec_compare);
+    spec = pgy_callable_contract_vocabulary_find(
+        PGY_CALLABLE_CONTRACT_AXIS_EFFECT, word);
     if (spec != NULL)
         return spec->mask;
     return UINT32_MAX;
@@ -81,22 +53,16 @@ effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
         return;
     }
 
-    if (type_effect_mask_has(mask, EFFECT_SECURE))
-        append_effect_name(buf, buf_size, "secure", &first);
-    if (type_effect_mask_has(mask, EFFECT_REMOTE))
-        append_effect_name(buf, buf_size, "remote", &first);
-    if (type_effect_mask_has(mask, EFFECT_NONDETERMINISTIC))
-        append_effect_name(buf, buf_size, "nondeterministic", &first);
-    if (type_effect_mask_has(mask, EFFECT_COLLAPSE))
-        append_effect_name(buf, buf_size, "collapse", &first);
-    if (type_effect_mask_has(mask, EFFECT_UNSAFE))
-        append_effect_name(buf, buf_size, "unsafe", &first);
-    if (type_effect_mask_has(mask, EFFECT_IO))
-        append_effect_name(buf, buf_size, "io", &first);
-    if (type_effect_mask_has(mask, EFFECT_ALLOC))
-        append_effect_name(buf, buf_size, "alloc", &first);
-    if (type_effect_mask_has(mask, EFFECT_AUTHORITY))
-        append_effect_name(buf, buf_size, "authority", &first);
+    for (size_t i = 0; i < pgy_callable_contract_vocabulary_axis_count(
+             PGY_CALLABLE_CONTRACT_AXIS_EFFECT); i++) {
+        const PgyCallableContractWordSpec *spec =
+            pgy_callable_contract_vocabulary_at_rank(
+                PGY_CALLABLE_CONTRACT_AXIS_EFFECT, i);
+        if (spec != NULL && spec->mask != 0 &&
+            type_effect_mask_has(mask, spec->mask)) {
+            append_effect_name(buf, buf_size, spec->spelling, &first);
+        }
+    }
 }
 
 static uint32_t
@@ -132,7 +98,7 @@ effects_from_structured_comment(StructuredComment *comment,
                 uint32_t effect = parse_effect_word(token);
                 if (effect == UINT32_MAX) {
                     semantic_warning(ctx, site,
-                        "Unknown effect tag '%s' in structured comment; expected secure, remote, nondeterministic, collapse, or local",
+                        "Unknown effect tag '%s' in structured comment; expected a registered callable effect",
                         token);
                 } else {
                     mask |= effect;

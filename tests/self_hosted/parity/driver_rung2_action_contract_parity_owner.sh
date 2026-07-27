@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 # Owns exact ActionContract carriage and fail-closed wire mutations for DRV-2.
-# Gate contract: native/self MIR contract parity and six field mutations fail closed
+# Gate contract: native/self MIR parity and vocabulary/field mutations fail closed
+# CLOSED fallback identities owned by this gate: action_as_function_kind,
+# action_clause_skip_to_body, action_clause_text_rescan,
+# parser_caps_effects_discard, missing_contract_wire_success,
+# callable_kind_default_function, backend_contract_recovery,
+# independent_contract_vocabulary, multi_impl_role_declaration_drop.
+
+if rg -Fq 'if impl_count > 1' \
+    "$ROOT_DIR/src/self_hosted/mir/declaration_rows_owner.pgy"; then
+    echo "[self-host-parity:driver-rung2] multi-ability role declaration fallback returned" >&2
+    return 1 2>/dev/null || exit 1
+fi
+grep -Fq 'SemanticAstAbilityIndexForName(' \
+    "$ROOT_DIR/src/self_hosted/mir/declaration_rows_owner.pgy" || {
+    echo "[self-host-parity:driver-rung2] role impl method partition lost its ability owner" >&2
+    return 1 2>/dev/null || exit 1
+}
 
 pgy_selfhost_driver_rung2_action_contract_reject() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
@@ -77,4 +93,29 @@ pgy_selfhost_verify_driver_rung2_action_contract() {
         "empty-effects" '"effects_present":true,"effects":["secure","remote"]' \
         '"effects_present":true,"effects":[]' \
         "method contract clause presence disagrees with its values"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "duplicate-cap" '"caps":["io_read","io_write"]' \
+        '"caps":["io_read","io_read"]' \
+        "method contract fields are incomplete or malformed"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "noncanonical-cap" '"caps":["io_read","io_write"]' \
+        '"caps":["io_write","io_read"]' \
+        "unknown or noncanonical capability"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "unknown-effect" '"effects":["secure","remote"]' \
+        '"effects":["secure","missing_effect"]' \
+        "invalid or noncanonical effect"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "local-mixed-first" '"effects":["secure","remote"]' \
+        '"effects":["local","secure"]' \
+        "invalid or noncanonical effect"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "local-mixed-last" '"effects":["secure","remote"]' \
+        '"effects":["secure","local"]' \
+        "invalid or noncanonical effect"
 }

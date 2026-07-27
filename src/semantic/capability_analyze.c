@@ -11,25 +11,8 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "callable_contract_vocabulary.h"
 #include "runtime/pgy_runtime_capability.h" /* PGY_CAP_* bits */
-
-typedef struct {
-    uint32_t    bit;
-    const char *name;
-    const char *diagnostic_name;
-} CapBitName;
-
-static const CapBitName k_cap_names[] = {
-    {PGY_CAP_IO_READ,  "IO_READ",  "io_read"},
-    {PGY_CAP_IO_WRITE, "IO_WRITE", "io_write"},
-    {PGY_CAP_NETWORK,  "NETWORK",  "network"},
-    {PGY_CAP_CLOCK,    "CLOCK",    "clock"},
-    {PGY_CAP_RANDOM,   "RANDOM",   "random"},
-    {PGY_CAP_ENV,      "ENV",      "env"},
-    {PGY_CAP_RENDER,   "RENDER",   "render"},
-    {PGY_CAP_AUDIO,    "AUDIO",    "audio"},
-    {PGY_CAP_INPUT,    "INPUT",    "input"},
-};
 
 /* Emit the used-capability names as a bare JSON array: ["IO_READ", "RANDOM"].
    These names are the program's external effect families; AIR reuses this so the
@@ -72,9 +55,13 @@ capability_for_builtin(const char *name)
 const char *
 capability_bit_name(uint32_t bit)
 {
-    for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
-        if (k_cap_names[i].bit == bit)
-            return k_cap_names[i].name;
+    for (size_t i = 0; i < pgy_callable_contract_vocabulary_axis_count(
+             PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY); i++) {
+        const PgyCallableContractWordSpec *spec =
+            pgy_callable_contract_vocabulary_at_rank(
+                PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY, i);
+        if (spec != NULL && spec->mask == bit)
+            return spec->external_name;
     }
     return NULL;
 }
@@ -93,12 +80,16 @@ capability_mask_to_diagnostic_string(uint32_t mask,
         snprintf(buf, buf_size, "none");
         return;
     }
-    for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
-        if ((mask & k_cap_names[i].bit) == 0)
+    for (size_t i = 0; i < pgy_callable_contract_vocabulary_axis_count(
+             PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY); i++) {
+        const PgyCallableContractWordSpec *spec =
+            pgy_callable_contract_vocabulary_at_rank(
+                PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY, i);
+        if (spec == NULL || (mask & spec->mask) == 0)
             continue;
         off = pergyra_str_appendf(buf, buf_size, "%s%s",
                                   off > 0 ? ", " : "",
-                                  k_cap_names[i].diagnostic_name);
+                                  spec->spelling);
     }
 }
 
@@ -110,12 +101,16 @@ capability_used_names_print_json(uint32_t used_mask, FILE *out)
     if (out == NULL)
         return;
     fputs("[", out);
-    for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
-        if ((used_mask & k_cap_names[i].bit) == 0)
+    for (size_t i = 0; i < pgy_callable_contract_vocabulary_axis_count(
+             PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY); i++) {
+        const PgyCallableContractWordSpec *spec =
+            pgy_callable_contract_vocabulary_at_rank(
+                PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY, i);
+        if (spec == NULL || (used_mask & spec->mask) == 0)
             continue;
         if (!first)
             fputs(", ", out);
-        fprintf(out, "\"%s\"", k_cap_names[i].name);
+        fprintf(out, "\"%s\"", spec->external_name);
         first = 0;
     }
     fputs("]", out);

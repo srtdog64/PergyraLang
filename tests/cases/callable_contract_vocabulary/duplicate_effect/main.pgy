@@ -1,0 +1,3 @@
+func Main() -> Void with effects secure, secure {
+    return;
+}

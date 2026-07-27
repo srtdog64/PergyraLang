@@ -409,6 +409,7 @@ RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_system_function.c \
+                   $(SEMANTIC_DIR)/callable_contract_vocabulary.c \
                    $(SEMANTIC_DIR)/boundary_witness.c \
                    $(SEMANTIC_DIR)/type_system_slot.c \
                    $(SEMANTIC_DIR)/type_system_tuple.c \
@@ -2777,6 +2778,7 @@ self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-s
 
 self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
+	"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
@@ -3324,11 +3326,16 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 
 .PHONY: language-keyword-registry-test-smoke \
+	callable-contract-vocabulary-test-smoke \
 	lsp-completion-registry-test-smoke \
 	lsp-hover-registry-test-smoke \
 	vscode-language-graph-test-smoke
 language-keyword-registry-test-smoke:
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
+
+callable-contract-vocabulary-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
 
 lsp-completion-registry-test-smoke:
 	"$(BASH)" tests/lsp_completion_registry_smoke.sh

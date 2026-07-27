@@ -14,6 +14,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
 PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
+# Zone effect/relation slots are nominal field facts. Dropping either label
+# reopens a parser-text classification hole and erases the slot before MIR.
+grep -Fq 'StartsWith(text, "EffectSlot:")' \
+    "$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy"
+grep -Fq 'StartsWith(text, "RelationSlot:")' \
+    "$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy"
+
 fail() {
     echo "[self-host-component-contract] $*" >&2
     exit 1
@@ -4245,7 +4252,9 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
+    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -4255,6 +4264,8 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" 60
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
+    "uses_allocator, uses_text_builder, uses_box_array, false, false,"
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
     "func RuntimeCHeaderOwnsBoolToString("
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime.h\"'
@@ -4262,6 +4273,10 @@ require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime_allocator_inline.h\"'
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime_text_builder_inline.h\"'
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
+    'else if uses_array {'
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    'uses_str || uses_array || uses_io'
 require_file "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 require_max_lines "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" 20
 require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \

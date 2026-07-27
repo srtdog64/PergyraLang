@@ -180,6 +180,7 @@ for flag, expected in tooling_contract.items():
 # Only explicit parser grammar-selector owners are scanned. This deliberately
 # excludes arbitrary string literals, diagnostics, fixtures, AST data, and
 # recursive repository grep so prose/value strings cannot become authority.
+# Stable `PGY_LANGUAGE_WORD_*` identity selectors are equivalent typed edges.
 helper_selector = re.compile(
     r"parser_(?:decl_(?:match|check)_contextual_keyword|"
     r"match_identifier_keyword(?:_on_line)?|intent_match_keyword|"
@@ -191,10 +192,20 @@ direct_selector = re.compile(
     r"\.text\s*,\s*\"([a-z]+)\"\s*\)"
 )
 parser_selectors = set()
+identity_spellings = {
+    "PGY_LANGUAGE_WORD_" + row.debug_identity: row.spelling
+    for row in all_rows
+}
+identity_selector = re.compile(r"\bPGY_LANGUAGE_WORD_[A-Z0-9_]+\b")
 for parser_owner in sorted((root / "src/parser").glob("parser*.c")):
     owner_source = parser_owner.read_text(encoding="utf-8")
     parser_selectors.update(helper_selector.findall(owner_source))
     parser_selectors.update(direct_selector.findall(owner_source))
+    parser_selectors.update(
+        identity_spellings[identity]
+        for identity in identity_selector.findall(owner_source)
+        if identity in identity_spellings
+    )
 
 registry_spellings = reserved | non_reserved
 missing_registry_rows = parser_selectors - registry_spellings

@@ -4,6 +4,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 
 struct SemanticAstActionContractFacts {
     ok: Bool;
@@ -46,20 +47,9 @@ func SemanticAstActionContractRangeContains(
     return false;
 }
 
-func SemanticAstActionContractVocabularyContains(
-    vocabulary: Array<String>, name: String
-) -> Bool {
-    let i: Int = 0;
-    while i < ArrayLength(vocabulary) {
-        if vocabulary[i] == name { return true; }
-        i = i + 1;
-    }
-    return false;
-}
-
 func SemanticAstActionContractAppendList(
     payload: String,
-    vocabulary: Array<String>,
+    vocabulary_axis: Int,
     inout names: Array<String>
 ) -> Bool {
     let start: Int = ArrayLength(names);
@@ -78,13 +68,33 @@ func SemanticAstActionContractAppendList(
             item = StringTrim(rest);
             rest = "";
         }
+        let vocabulary_index: Int = -1;
+        if vocabulary_axis > 0 {
+            vocabulary_index = CallableContractVocabularyFindIndex(
+                vocabulary_axis, item
+            );
+        }
         if StringLength(item) == 0 ||
-            (ArrayLength(vocabulary) > 0 &&
-                !SemanticAstActionContractVocabularyContains(
-                    vocabulary, item
-                )) ||
+            (vocabulary_axis > 0 && vocabulary_index < 0) ||
             SemanticAstActionContractRangeContains(names, start, item) {
             return false;
+        }
+        if vocabulary_axis == CallableContractVocabularyEffectAxis() {
+            let item_zero: Bool = CallableContractVocabularyZeroPolicyAt(
+                vocabulary_index
+            ) == CallableContractVocabularyZeroExclusive();
+            let i: Int = start;
+            while i < ArrayLength(names) {
+                let existing: Int = CallableContractVocabularyFindIndex(
+                    vocabulary_axis, names[i]
+                );
+                if item_zero || (existing >= 0 &&
+                    CallableContractVocabularyZeroPolicyAt(existing) ==
+                        CallableContractVocabularyZeroExclusive()) {
+                    return false;
+                }
+                i = i + 1;
+            }
         }
         ArrayPush(names, item);
     }
@@ -115,7 +125,6 @@ func SemanticAstActionContractFactsFromArtifact(
     callable_node_ids: Array<Int>,
     runtime_callables: Array<Bool>
 ) -> SemanticAstActionContractFacts {
-    let unrestricted_vocabulary: Array<String> = [];
     let is_actions: Array<Bool> = [];
     let owner_nominal_subkinds: Array<Int> = [];
     let body_node_ids: Array<Int> = [];
@@ -223,7 +232,7 @@ func SemanticAstActionContractFactsFromArtifact(
                     artifact.arena, child_id
                 );
                 if !IsSome(payload) || !SemanticAstActionContractAppendList(
-                    UnwrapOption(payload), unrestricted_vocabulary,
+                    UnwrapOption(payload), 0,
                     requires_names
                 ) {
                     ok = false;
@@ -273,7 +282,7 @@ func SemanticAstActionContractFactsFromArtifact(
                     artifact.arena, child_id
                 );
                 if !IsSome(payload) || !SemanticAstActionContractAppendList(
-                    UnwrapOption(payload), unrestricted_vocabulary,
+                    UnwrapOption(payload), 0,
                     authorized_by_names
                 ) {
                     ok = false;
@@ -290,12 +299,9 @@ func SemanticAstActionContractFactsFromArtifact(
                 let payload: Option<String> = TypedAstArenaAtomText(
                     artifact.arena, child_id
                 );
-                let cap_vocabulary: Array<String> = [
-                    "io_read", "io_write", "network", "clock", "random",
-                    "env", "render", "audio", "input"
-                ];
                 if !IsSome(payload) || !SemanticAstActionContractAppendList(
-                    UnwrapOption(payload), cap_vocabulary, cap_names
+                    UnwrapOption(payload),
+                    CallableContractVocabularyCapabilityAxis(), cap_names
                 ) {
                     ok = false;
                     diagnostic_message = "callable capability list is invalid";
@@ -311,12 +317,9 @@ func SemanticAstActionContractFactsFromArtifact(
                 let payload: Option<String> = TypedAstArenaAtomText(
                     artifact.arena, child_id
                 );
-                let effect_vocabulary: Array<String> = [
-                    "secure", "remote", "nondeterministic", "collapse",
-                    "unsafe", "io", "alloc", "authority", "local"
-                ];
                 if !IsSome(payload) || !SemanticAstActionContractAppendList(
-                    UnwrapOption(payload), effect_vocabulary, effect_names
+                    UnwrapOption(payload),
+                    CallableContractVocabularyEffectAxis(), effect_names
                 ) {
                     ok = false;
                     diagnostic_message = "callable effect list is invalid";

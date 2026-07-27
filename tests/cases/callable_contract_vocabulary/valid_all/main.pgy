@@ -1,0 +1,5 @@
+func Main() -> Void
+    with caps io_read, io_write, network, clock, random, env, render, audio, input
+    with effects secure, remote, nondeterministic, collapse, unsafe, io, alloc, authority {
+    return;
+}

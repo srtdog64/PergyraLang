@@ -30,6 +30,8 @@ EXPORT_RUNTIME="$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h"
 CODEGEN_RUNTIME_CALLS="$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"
 CODEGEN_COLLECTION_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
 CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
+CODEGEN_PROGRAM_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit.pgy"
+CODEGEN_RUNTIME_HEADER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$PLACE_FACTS" "$GENERIC_FACTS" \
@@ -38,7 +40,8 @@ for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
-    "$CODEGEN_CALL_EMITTER"; do
+    "$CODEGEN_CALL_EMITTER" "$CODEGEN_PROGRAM_EMITTER" \
+    "$CODEGEN_RUNTIME_HEADER"; do
     [[ -f "$path" ]] || {
         echo "[self-host-parity:semantic-environment-lifetime] missing $path" >&2
         exit 1
@@ -339,6 +342,21 @@ grep -Fq 'pgy_as_drop_owned' "$CODEGEN_COLLECTION_RUNTIME"
 grep -Fq 'free((void *)a->data[i])' "$CODEGEN_COLLECTION_RUNTIME"
 grep -Fq 'next_data == NULL' "$CODEGEN_COLLECTION_RUNTIME"
 grep -Fq 'PGY_RUNTIME_PANIC_CLASS_OOM' "$CODEGEN_COLLECTION_RUNTIME"
+grep -Fq 'uses_str || uses_array || uses_io' "$CODEGEN_PROGRAM_EMITTER" || {
+    echo "[self-host-parity:semantic-environment-lifetime] array runtime lost its direct string-header dependency" >&2
+    exit 1
+}
+grep -Fq 'usage.uses_box_array, uses_array, usage.uses_spawn' \
+    "$CODEGEN_PROGRAM_EMITTER" || {
+    echo "[self-host-parity:semantic-environment-lifetime] array runtime dependency was not passed to the header owner" >&2
+    exit 1
+}
+grep -Fq 'else if uses_array {' "$CODEGEN_RUNTIME_HEADER" &&
+grep -Fq '#include \"pgy_runtime_panic_contract.h\"' \
+    "$CODEGEN_RUNTIME_HEADER" || {
+    echo "[self-host-parity:semantic-environment-lifetime] array runtime lost its panic-contract header" >&2
+    exit 1
+}
 grep -Fq 'func RewriteSemanticOwnedStringArrayCall(' "$CODEGEN_CALL_EMITTER"
 grep -Fq '"Array<String>", "inout"' "$CODEGEN_CALL_EMITTER"
 grep -Fq 'CollectionRuntimeCOwnedStringPushFn()' "$CODEGEN_CALL_EMITTER"

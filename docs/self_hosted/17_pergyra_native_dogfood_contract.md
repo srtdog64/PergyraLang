@@ -104,8 +104,14 @@ semantic compile 성공 역시 production call-site나 대체 증거를 대신�
    `within`, `causes`, `authorized_by_names`, caps/effects를 하나의 method
    contract로 운반하고 `MIRDeclZoneAuthority`가 subject slot과 required
    ability를 운반한다. Native/self `pgy.mir.v1`과 `mir_lower`는 같은 contract
-   wire를 소비하며 여섯 field mutation을 fail closed로 거부한다. 이 층의
-   구현은 존재하지만 vocabulary 공유 SoT가 남아 있어 registry는 `ACTIVE`다.
+   wire를 소비한다. `semantic.callable_contract_vocabulary`의 18행과 생성
+   projection이 native/self/runtime의 membership, mask, canonical order와
+   `local` 배타성을 함께 고정하고 field/unknown/duplicate/noncanonical/
+   local-mix 변조를 fail closed로 거부한다. 이 declaration 층은 `CLOSED`다.
+   다중 `impl ability` method partition과 zone effect/relation slot도 이제
+   canonical native/self MIR까지 운반된다. 그러나 `Damage` 같은 effect nominal의
+   C ABI/runtime declaration은 다음 층의 RED이므로 이 성공을 runtime action
+   대체로 올려 기록하지 않는다.
 2. **Call binding**: 현재 C/LLVM hook은 direct world -> zone -> subject
    receiver와 `authorized by self` 단일 항목만 exact zone authority slot에
    결속한다. named participant, 복수 authority, indirect/direct-subject receiver의

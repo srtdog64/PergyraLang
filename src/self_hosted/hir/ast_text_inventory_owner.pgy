@@ -49,7 +49,8 @@ func TypedAstTextKindOf(text: String) -> Int {
     }
     if StartsWith(text, "Field:") || StartsWith(text, "SubjectSlot:") ||
         StartsWith(text, "ObjectSlot:") || StartsWith(text, "TObjectSlot:") ||
-        StartsWith(text, "WorldZone:") {
+        StartsWith(text, "EffectSlot:") ||
+        StartsWith(text, "RelationSlot:") || StartsWith(text, "WorldZone:") {
         return TypedAstKindFieldTag();
     }
     if StartsWith(text, "RoleSlot:") {
@@ -200,7 +201,7 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         let labels: Array<String> = [
             "SubjectSlot: ", "ObjectSlot: ", "TObjectSlot: ",
-            "WorldZone: "
+            "EffectSlot: ", "RelationSlot: ", "WorldZone: "
         ];
         let label_i: Int = 0;
         while label_i < ArrayLength(labels) {

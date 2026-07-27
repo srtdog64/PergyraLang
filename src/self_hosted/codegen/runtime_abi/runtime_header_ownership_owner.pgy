@@ -17,7 +17,7 @@ func RuntimeCHeaderOwnsCheckedArithmetic(
     uses_artifact_transaction: Bool
 ) -> Bool {
     return RuntimeCHeaderRequired(
-        uses_allocator, uses_text_builder, uses_box_array, false,
+        uses_allocator, uses_text_builder, uses_box_array, false, false,
         uses_list, uses_queue, uses_set, uses_artifact_transaction
     );
 }

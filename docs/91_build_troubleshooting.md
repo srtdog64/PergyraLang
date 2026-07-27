@@ -2240,16 +2240,63 @@ nodes. Native and self-host MIR declarations emit the same
 reconstructing the action.
 
 The focused `function_clause_order_minimal` gate rebuilt both C- and LLVM-built
-drivers and observed native/self MIR parity. It also rejects six wire faults
-before backend output: missing `within`, unknown zone, non-subject owner,
-action-as-function, explicit empty caps, and explicit empty effects. If this
-failure returns, check the first layer that lost `ActionContract`; do not add a
-cursor scan or default function contract. The SoT row remains `ACTIVE` until
-the shared caps/effects vocabulary is registry-directed, and this supporting
-closure does not make the production action `SUBSTITUTING`.
+drivers and observed native/self MIR parity. It rejects the original six field
+faults plus unknown, duplicate, noncanonical, and `local + nonlocal` vocabulary
+mutations before backend output. `semantic.callable_contract_vocabulary` now
+owns the 9 capability and 9 effect rows; native/self/runtime consumers use its
+direct or generated projections. If this failure returns, check the first layer
+that lost `ActionContract`; do not add a cursor scan, default function contract,
+or consumer-local string table. This declaration seam is `CLOSED`, but it does
+not make the production action `SUBSTITUTING`.
+
+#### Multi-ability role or zone slot makes self MIR declarations disappear
+
+The focused C shard later exposed two adjacent declaration-carriage defects.
+First, `SelfMirDeclarationsFromAnalysis` returned an empty declaration table
+whenever one role implemented more than one ability. The old code also assigned
+the entire role method span to every impl. The projection now partitions each
+impl from the referenced ability semantic row and rejects a partition that does
+not cover the role method span exactly.
+
+Second, the compact AST inventory classified subject/object/tobject slots as
+nominal fields but omitted `EffectSlot:` and `RelationSlot:`. That erased
+`damage: Damage` and relation state before MIR. Both labels now enter the same
+typed nominal field stream. The focused action subgate and canonical native/self
+MIR parity are green after these fixes.
+
+The shard then reaches a later, distinct RED:
+
+```text
+CODEGEN ERROR: unsupported C ABI value type ...: Damage
+```
+
+Do not fix this by accepting any unknown capitalized type as a struct. Native
+MIR owns an `AST_EFFECT_DECL` header, but the admitted JSON/self-host C type
+universe does not yet carry the effect declaration and its zone runtime ABI.
+The next rung must carry that identity, teach the MIR consumer its explicit
+effect declaration kind, and preserve native zone-layer layout/operations.
 
 During the observed runs, large seed generation remained in the hundreds of
 MiB and integrated gen2 emission peaked around 1.33 GiB private, below the
 unchanged 3 GiB cap. This is separate from the fixed 20 GiB/3.5 GiB repeated
 graph-validation defect; the runtime is still expensive but the old memory
 growth pattern did not recur.
+
+### Array-only emitted C loses runtime headers
+
+An Array program can use the collection runtime without otherwise using
+`String`. `CollectionRuntimeCArrayBlock` still emits the owned-String helpers,
+which reference `strlen`, `memcpy`, and `PGY_RUNTIME_PANIC`. The observed
+`valid_array_builtins` failure happened because header selection did not receive
+the already-owned `uses_array` fact, so generated C lacked both `<string.h>` and
+`pgy_runtime_panic_contract.h`.
+
+The runtime-header owner now receives `uses_array` explicitly. Array emission
+selects `<string.h>` plus the narrow panic-contract header; it does not claim
+that the array uses the String language surface, and it does not include the
+entire `pgy_runtime.h`. `RuntimeCHeaderOwnsCheckedArithmetic` deliberately passes
+`uses_array=false`, because the panic contract alone does not own checked
+arithmetic helpers. The focused lifetime/component gates reject old call arity
+and missing header relationships; `valid_array_builtins` emitted C compile/run
+is the executable witness. Removing either header must make the C11 negative
+compile fail.

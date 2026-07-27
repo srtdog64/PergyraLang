@@ -1,0 +1,3 @@
+func Main() -> Void with caps io_read, io_read {
+    return;
+}

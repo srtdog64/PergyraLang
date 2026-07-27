@@ -2,6 +2,7 @@
 
 import "declaration_fact_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 
 func SelfMirDeclarationParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
@@ -26,6 +27,30 @@ func SelfMirDeclarationStringRangeReady(
             if rows[start + j] == rows[start + i] { return false; }
             j = j + 1;
         }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirDeclarationContractVocabularyRangeReady(
+    rows: Array<String>, start: Int, count: Int, axis: Int
+) -> Bool {
+    if !SelfMirDeclarationStringRangeReady(rows, start, count) {
+        return false;
+    }
+    let previous_rank: Int = -1;
+    let i: Int = 0;
+    while i < count {
+        let index: Int = CallableContractVocabularyFindIndex(
+            axis, rows[start + i]
+        );
+        if index < 0 ||
+            CallableContractVocabularyCanonicalRankAt(index) <= previous_rank ||
+            (CallableContractVocabularyZeroPolicyAt(index) ==
+                CallableContractVocabularyZeroExclusive() && count != 1) {
+            return false;
+        }
+        previous_rank = CallableContractVocabularyCanonicalRankAt(index);
         i = i + 1;
     }
     return true;
@@ -152,13 +177,15 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
                 rows.method_authorized_by_names, authority_cursor,
                 rows.method_authorized_by_counts[i]
             ) || rows.method_cap_starts[i] != cap_cursor ||
-            !SelfMirDeclarationStringRangeReady(
+            !SelfMirDeclarationContractVocabularyRangeReady(
                 rows.method_cap_names, cap_cursor,
-                rows.method_cap_counts[i]
+                rows.method_cap_counts[i],
+                CallableContractVocabularyCapabilityAxis()
             ) || rows.method_effect_starts[i] != effect_cursor ||
-            !SelfMirDeclarationStringRangeReady(
+            !SelfMirDeclarationContractVocabularyRangeReady(
                 rows.method_effect_names, effect_cursor,
-                rows.method_effect_counts[i]
+                rows.method_effect_counts[i],
+                CallableContractVocabularyEffectAxis()
             ) || (rows.method_is_actions[i] != 0 &&
                 rows.method_is_actions[i] != 1) ||
             (rows.method_caps_present[i] != 0 &&

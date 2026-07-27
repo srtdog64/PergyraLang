@@ -6,6 +6,7 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 
 struct MirDeclarationMethodContractFact {
     valid: Bool;
@@ -45,19 +46,6 @@ func MirDeclarationMethodContractContains(
         i = i + 1;
     }
     return false;
-}
-
-func MirDeclarationMethodContractKnownCap(name: String) -> Bool {
-    return name == "io_read" || name == "io_write" || name == "network" ||
-        name == "clock" || name == "random" || name == "env" ||
-        name == "render" || name == "audio" || name == "input";
-}
-
-func MirDeclarationMethodContractKnownEffect(name: String) -> Bool {
-    return name == "secure" || name == "remote" ||
-        name == "nondeterministic" || name == "collapse" ||
-        name == "unsafe" || name == "io" || name == "alloc" ||
-        name == "authority" || name == "local";
 }
 
 func MirDeclarationMethodContractReadStringArray(
@@ -284,22 +272,42 @@ func MirDeclarationMethodContractFactFromBounds(
     }
 
     let i: Int = 0;
+    let previous_rank: Int = -1;
     while i < ArrayLength(cap_names) {
-        if !MirDeclarationMethodContractKnownCap(cap_names[i]) {
+        let vocabulary_index: Int = CallableContractVocabularyFindIndex(
+            CallableContractVocabularyCapabilityAxis(), cap_names[i]
+        );
+        if vocabulary_index < 0 ||
+            CallableContractVocabularyCanonicalRankAt(vocabulary_index) <=
+                previous_rank {
             return MirDeclarationMethodContractEmpty(
-                "method contract contains an unknown capability"
+                "method contract contains an unknown or noncanonical capability"
             );
         }
+        previous_rank = CallableContractVocabularyCanonicalRankAt(
+            vocabulary_index
+        );
         i = i + 1;
     }
     i = 0;
+    previous_rank = -1;
     while i < ArrayLength(effect_names) {
-        if !MirDeclarationMethodContractKnownEffect(effect_names[i]) ||
-            (effect_names[i] == "local" && ArrayLength(effect_names) != 1) {
+        let vocabulary_index: Int = CallableContractVocabularyFindIndex(
+            CallableContractVocabularyEffectAxis(), effect_names[i]
+        );
+        if vocabulary_index < 0 ||
+            CallableContractVocabularyCanonicalRankAt(vocabulary_index) <=
+                previous_rank ||
+            (CallableContractVocabularyZeroPolicyAt(vocabulary_index) ==
+                CallableContractVocabularyZeroExclusive() &&
+                ArrayLength(effect_names) != 1) {
             return MirDeclarationMethodContractEmpty(
-                "method contract contains an invalid effect"
+                "method contract contains an invalid or noncanonical effect"
             );
         }
+        previous_rank = CallableContractVocabularyCanonicalRankAt(
+            vocabulary_index
+        );
         i = i + 1;
     }
     if ((!caps_box[0] && ArrayLength(cap_names) > 0) ||
