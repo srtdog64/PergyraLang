@@ -8,52 +8,56 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Exact v73 executable revision: `ed9fd17913ba23d90c4c99728eb6f37a6ae3b82a`
-  on `main`. Its direct parent is concurrent emitted-code sanitizer measurement
-  revision `f90e539b`; v72 remains `b0150891`. This handoff correction is a
+- Exact v74 executable revision: `bce4ae6f75a36dc014e19515732468a5de0de245`
+  on `main`. Its direct parent is the v73 handoff correction `a9f5dfaa`; the
+  v73 executable boundary remains `ed9fd179`. This handoff refresh is a
   documentation-only follow-up, so use `git rev-parse HEAD` for the checkout
-  revision while retaining `ed9fd179` as the executable range-rung boundary.
-- `src/lexer/language_keyword_registry.def` now owns 145 sorted identities:
-  71 reserved, 71 contextual, and 3 soft. Lexer classification/debug, the
-  generated self-host reserved projection, parser-selector coverage, LSP
-  completion/lowercase hover exposure, and the one canonical TextMate grammar
-  are checked projections. Contextual/soft rows remain lexer identifiers.
-- v73 satisfies the hard executable-progress guard. One 3,197-byte
-  `forloop.pgy` MIR has SHA-256
-  `02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`.
-  C and LLVM compiled from that identity and matched native output `0`, `1`,
-  `2`.
-- Certificate and plan schemas are v5. One range fact binds typed
-  preheader/header/body/exit roles, the `for` summary, exact `Int`/`Int`
-  non-hoisted iteration verdict, source local `i`, three zero-use rows, and
-  the body backedge. A repaired digest cannot legitimize topology/shape drift.
-- Ownership remains split by Pergyra responsibility: common certificate
-  identity, range topology, target-neutral range shape, fixed range plan, and
-  one range text emitter containing both C and LLVM. The common dispatcher remains
-  the last artifact-producing full-plan consumer; emitters receive no MIR,
-  JSON, index, or full plan.
-- Range start is owned by the loop-init value graph; exclusive stop is owned by
-  the branch auxiliary graph. The shape owns less-than and step `+1` once.
-  LLVM materializes alloca/load/add/store without fabricating a MIR phi.
-- The final r2 Pergyra-built bounded bootstrap is green: generated seed and
+  revision while retaining `bce4ae6f` as the loop-break boundary.
+- v74 satisfies the hard executable-progress guard. One unchanged 7,054-byte
+  `break_after_stmt.pgy` MIR has SHA-256
+  `cb2d4f9fad6411ae9ce54e2d072d038735c29d2499a960909a09fae8eb59efbf`.
+  C and LLVM compiled from that identity and matched normalized native output
+  `3`, `3`.
+- Certificate and plan schemas are v6. One break fact binds typed
+  preheader/header/decision/break/empty-continuation/exit roles, one while
+  summary, the actual `b4` continuation predecessor separately from the
+  `i.4@b2` definition, one header phi, exact break row, two Log uses, and
+  normal-exit `i.2` versus break-exit `i.4` lanes. Repaired digests cannot
+  legitimize topology, SSA, or exit-selection drift.
+- Ownership remains split by Pergyra responsibility: common fixed certificate
+  identity/readiness, loop-break topology and SSA, target-neutral break shape,
+  fixed break plan, and one break text emitter containing both C and LLVM. The
+  common dispatcher remains the last artifact-producing full-plan consumer;
+  emitters receive no MIR, JSON, index, or full plan. LLVM's exit phi is marked
+  backend-only materialization and is not a second MIR fact.
+- The fresh Pergyra-built bounded bootstrap is green: generated seed and
   native oracle match on sample C, MIR production, and bounded MIR consumption.
-  That fresh seed also passes hello/`let_log`/`multilet` plus every predecessor
-  CFG rung through `forloop`, including consistent `2..5`, zero-trip `3..3`,
-  and all range negative mutations.
+  That seed passes hello/`let_log`/`multilet`, every CFG predecessor through
+  `forloop`, and original/late-break/zero-trip break execution. Phi storage
+  permutation is byte-identical and all break/topology/SSA/graph/plan negatives
+  reject before artifact acceptance.
+- `src/lexer/language_keyword_registry.def` owns 145 sorted identities and
+  native `impl/ref/own/type` token/debug output is correct, but the registry row
+  is now accurately `BRIDGE`, not `CLOSED`. The self-host parser still owns raw
+  keyword selectors in 17 files, accepts unregistered `systemic`, self-host
+  completion advertises an empty independent list, granular grammar roles are
+  not carried, and TextMate scope identity is not registry-derived or exact-
+  gated. Current registry counts are `CLOSED=31 BRIDGE=21 ACTIVE=0`.
 - The historical 20+ GiB / 3 GiB symptom came from cumulative graph copying
-  and repeated whole-arena/readiness validation. The accepted v72 path keeps
-  one typed admission/certificate issuance followed by fixed-size identity
-  checks. During the successful v73 gen2 emission, observed non-peak samples
-  were 886.2/791.0 MB and 988.4/887.8 MB private/working set.
+  and repeated whole-arena/readiness validation. The accepted direct CFG path
+  keeps one typed admission/certificate issuance followed by fixed-size
+  identity checks. During the successful v74 seed emission, an observed
+  non-peak sample was 944.3/847.7 MB private/working set; it is not peak proof,
+  but shows no 20 GiB-class recurrence.
 - This is a real Pergyra-owned replacement for the bounded direct-CFG path.
   It does not replace the released/default C-owned `pgy`; released/default
   replacement remains 0%.
 
 ## Exact dirty state at this handoff
 
-At the observed v73 checkpoint, `main` and `origin/main` are synchronized at
-`ed9fd179`. After this documentation-only correction is pushed, they must again
-resolve to the same revision.
+At the observed v74 executable checkpoint, local `main` is one revision ahead
+of `origin/main` at `bce4ae6f`. After this documentation-only correction and
+push, local and remote must again resolve to the same revision.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
@@ -61,41 +65,46 @@ unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v73 implementation, gate, or documentation file should remain dirty.
+No v74 implementation, gate, or documentation file should remain dirty.
 
-## Active executable `break_after_stmt.pgy` objective card
+## Active language-word registry BRIDGE objective card
 
-- Objective: admit the fixed six-block `while + increment + inner
-  if(Log; break) + continuation backedge + final Log` CFG through the existing
-  single certificate/plan, then compile C and LLVM to normalized native output
-  `3`, `3`.
-- Priority: role/edge identity; forwarded header-phi value; break versus
-  continuation classification; exit-value binding; condition/increment/two-Log
-  graphs and uses; one plan and selected backend; negatives; then patch size.
-- Fact owner: the existing routine index, predecessor-resolved phi, unique
-  definition, use, loop-flow, expression graph, and shared Log graph owners.
-  One derived break-loop certificate/shape may consume them. The common direct
-  plan remains the sole plan and the common dispatcher remains the last
-  artifact-producing full-plan consumer.
-- Forbidden fallback: source/AST reconstruction, instruction or block ordinal
-  as a role, treating definition block b2 as predecessor b4, emitter-side
-  structural-merge guessing, a fabricated MIR exit phi, backend MIR reads,
-  C-first LLVM projection, repeated graph validation, or a second
-  graph/certificate/plan.
-- First falsifying fixture: `break_after_stmt.pgy`, 7,054-byte MIR, SHA-256
-  `cb2d4f9fad6411ae9ce54e2d072d038735c29d2499a960909a09fae8eb59efbf`,
-  six reachable blocks with instruction counts `[1,2,2,2,0,1]`, one header
-  phi, one exact `while` summary, and normalized native output `3\n3`.
-  Fresh v73 direct C currently rejects it at the explicit 3/4/5-block
-  dispatcher before certificate issuance.
-- Critical exit fact: the normal header exit carries phi `i.2`, while the
-  break edge carries increment result `i.4`; the final Log at b5 needs that
-  owner-directed two-lane selection. LLVM may materialize a backend output phi
-  from this plan fact but must not claim a second MIR phi.
-- Acceptance gate: preserve MIR identity; compile/run C and LLVM to exact native
-  output; keep every scalar/CFG/range predecessor green; and reject backedge,
-  break-row/edge, forwarded-phi, inner condition, exit-value, graph/use,
-  summary, and repaired certificate/plan mutations before output.
+- Objective: make the 145-row language-word registry the actual identity and
+  grammatical-role source for native and self-host parser/tooling consumers,
+  rather than merely a correct native lexer/debug and membership projection.
+- Priority: stable word/token identity; granular grammar-role facts; native and
+  self-host parser parity; missing-word fail-closed behavior; completion and
+  hover parity; TextMate word+scope projection; negative ratchet; then patch
+  size. Contextual and soft words must remain lexer identifiers.
+- Fact owner: `src/lexer/language_keyword_registry.def` owns spelling, lexical
+  class, stable word/token identity, grammar-role mask, stage support, and
+  tooling exposure. Parsers continue to own grammatical validity but consume a
+  typed word/role query. Hover prose remains a presentation table keyed by the
+  registry identity rather than becoming lexical authority.
+- Last legitimate consumers: native lexer/debug and parser selectors, the
+  generated full-row self-host projection and parser role query, native and
+  self-host completion/hover, and generated TextMate word+scope groups.
+- Forbidden fallback: raw self-host `MatchKeyword(..., "word")` selectors,
+  unregistered parser-only words, a provider that advertises completion while
+  returning an independent empty list, token/debug tables outside the owner,
+  boolean highlight membership without a scope identity, or docs as authority.
+- First falsifying fixture: `world W { systemic slot actors: Int; }`. The
+  current self-host parser accepts `systemic`, while the registry and native
+  parser have no row/consumer for it. A closure must either register one exact
+  role supported by both parsers or make both reject the unregistered word with
+  the same owned diagnostic.
+- Additional fixture: type alias + role `impl` + function parameters using
+  `ref`, `own`, and `impl`, with role-bit/token-ID mutations checked across
+  lexer, parser, completion/hover, and TextMate projections.
+- Acceptance gate: generated full 145-row self-host projection; no raw keyword
+  selector outside the typed adapter; native/self-host parser role parity;
+  exact completion parity; hover flag/prose foreign-key parity; exact TextMate
+  spelling+scope projection; semantic-token capability absent while unsupported;
+  and old independent tables rejected by static negative gates.
+- After this SoT closure, the next smallest executable rung is the one-block
+  `tests/cases/backend_compare/basic/main.pgy` `Log(42)` path. It currently
+  falls into the implicit string-hello shape; replace that guess with one typed
+  literal-Log fact before attempting multi-routine `nested_loop_cfg.pgy`.
 
 ## Current measured evidence
 
@@ -131,6 +140,8 @@ No v73 implementation, gate, or documentation file should remain dirty.
 | v73 native-current range CFG gate | 0 / not separately timed | not separately sampled | `forloop` MIR stayed 3,197 bytes / `02a6...61720`; C/LLVM/native output `0`, `1`, `2` matched, generalized `2..5` and zero-trip `3..3` passed, and range fact/topology/graph/policy mutations rejected pre-artifact. |
 | v73 Pergyra-built bounded bootstrap | 0 / not separately timed | 988.4 / 887.8 MB largest observed sample | Current generated seed matched the native oracle for sample C, MIR producer, and bounded MIR consumer with certificate/plan v5. The memory value is an in-flight sample, not a peak. |
 | v73 Pergyra-built range CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/generalized/zero-trip range execution and all pre-artifact mutations. |
+| v74 Pergyra-built bounded bootstrap | 0 / not separately timed | 944.3 / 847.7 MB observed sample | Current generated seed matched the native oracle for sample C, MIR producer, and bounded MIR consumer with certificate/plan v6. The memory value is an in-flight sample, not a peak. |
+| v74 Pergyra-built loop-break CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/late-break/zero-trip execution, phi permutation, and all strengthened pre-artifact mutations. |
 
 ## Current gates and artifacts
 
@@ -146,9 +157,9 @@ Green:
 - `tests/self_hosted/parity/one_mir_dual_backend_projection.sh` using the
   current driver for hello, `let_log`, and `multilet`;
 - `tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh` using the fresh
-  Pergyra-built v73 seed for `ifelse`, `if_else_assign`, `reassign_block`,
-  `nestedif`, `whileloop`, and `forloop`, including CFG/phi/nested/while/
-  range/AIR/certificate/plan mutations;
+  Pergyra-built v74 seed for `ifelse`, `if_else_assign`, `reassign_block`,
+  `nestedif`, `whileloop`, `forloop`, and `break_after_stmt`, including
+  CFG/phi/nested/while/range/break/AIR/certificate/plan mutations;
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
@@ -162,8 +173,8 @@ Green:
 - `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
   grammar, and no grammar ownership in the thin client;
 - `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
-- `python scripts/sot_registry_gate.py`: 52 authorities, 52 derived carriers,
-  `CLOSED=32 BRIDGE=20 ACTIVE=0`;
+- `python scripts/sot_registry_gate.py`: 52 authorities, 54 derived carriers,
+  `CLOSED=31 BRIDGE=21 ACTIVE=0`;
 - `python scripts/protocol_registry_gate.py`: 7 protocol rows;
 - `tests/build_pressure_contract_smoke.sh`;
 - `tests/self_host_ci_profile_smoke.sh`;
@@ -263,11 +274,16 @@ Current ignored evidence:
 - `.tmp/v73_range_self_gate_r2/`;
 - `.tmp/v73_range_self_gate_final/`;
 - `.tmp/v73_forloop_audit/`.
+- `.tmp/v74_break_native_r5/`;
+- `.tmp/self_hosted/driver/bootstrap_v74_break_r1/`;
+- `.tmp/self_hosted/driver/one_mir_cfg_v74_seed_final/`;
+- `.tmp/v74_break_inspect.mir.json`;
+- `.tmp/v74_break_inspect.ll`.
 
 Current open boundary:
 
 - `CompilerEmissionArtifact` still does not carry the verified plan revision
-  and digest as a repository-wide artifact fact. The direct v73 emitter checks
+  and digest as a repository-wide artifact fact. The direct v74 emitter checks
   the plan immediately before artifact creation, so the bounded path is closed,
   but global artifact carriage remains open and must not be inferred from this
   fixture gate.
