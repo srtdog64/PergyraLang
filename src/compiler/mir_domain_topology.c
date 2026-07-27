@@ -188,6 +188,12 @@ mir_domain_topology_is_projection(MIRDomainTopologyKind kind)
         || kind == MIR_DOMAIN_TOPOLOGY_PROJECTION_BIND;
 }
 
+static bool
+mir_domain_topology_name_id_pair_ready(const char *name, uint32_t source_id)
+{
+    return (name == NULL) == (source_id == 0);
+}
+
 bool
 mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
 {
@@ -207,7 +213,28 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
         bool shape_ok = row->owner_source_syntax_id != 0
             && row->source_syntax_id != 0
             && row->owner_name != NULL
-            && owner_header != NULL;
+            && owner_header != NULL
+            && mir_domain_topology_name_id_pair_ready(
+                row->projection_slot_name,
+                row->projection_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->source_slot_name,
+                row->source_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->layer_slot_name,
+                row->layer_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->target_slot_name,
+                row->target_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->left_slot_name,
+                row->left_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->right_slot_name,
+                row->right_slot_source_syntax_id)
+            && mir_domain_topology_name_id_pair_ready(
+                row->participant_slot_name,
+                row->participant_slot_source_syntax_id);
         if (mir_domain_topology_is_projection(row->kind)) {
             shape_ok = shape_ok
                 && (owner_header->ast_type == AST_ZONE_DECL
@@ -245,10 +272,6 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                 && row->source_slot_name == NULL
                 && row->target_slot_name == NULL;
         } else {
-            shape_ok = false;
-        }
-        if ((row->participant_slot_name == NULL)
-            != (row->participant_slot_source_syntax_id == 0)) {
             shape_ok = false;
         }
         if (!shape_ok) {

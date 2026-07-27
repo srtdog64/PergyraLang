@@ -107,8 +107,10 @@ struct Vec3 {
 ### vessel (2026-04-04 추가)
 
 - subject 안에서 상태/자원/행위를 피동적으로 담는 수용체
-- hosted `func` 허용 -- 일반 파라미터로는 값 전달되지만, hosted receiver는
-  pointer-self라 호출당한 원본 내부 상태를 갱신할 수 있다
+- hosted `func` 허용 -- canonical 계약은 일반 파라미터 value carriage와 hosted
+  pointer-self receiver를 분리한다. 현재 C/LLVM은 `uses_pointer_self`를 일반
+  vessel 파라미터에도 재사용해 포인터로 전달하는 결함이 있으므로, 수정 전에는
+  free-function vessel 인자를 값 복사로 가정하지 않는다
 - 스스로 의사결정하지 않음
 - 5대 피동 축: 상태, 행위, 자원, 투영, 규칙
 

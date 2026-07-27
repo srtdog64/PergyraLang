@@ -3,6 +3,7 @@
 #include "mir_decl_headers.h"
 #include "mir_json_dump_flow.h"
 #include "mir_json_dump_decl.h"
+#include "mir_json_dump_domain_topology.h"
 #include "mir_json_expression_graph.h"
 #include "mir_json_generic_method_specialization.h"
 #include "mir_json_dump_internal.h"
@@ -498,7 +499,9 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
         out = stdout;
     fputs("{\"schema\":\"pgy.mir.v1\",\"decls\":[", out);
     mir_json_emit_decls(out, mir);
-    fputs("],\"parallel_capture_boundaries\":[", out);
+    fputc(']', out);
+    mir_json_emit_domain_topology(out, mir);
+    fputs(",\"parallel_capture_boundaries\":[", out);
     mir_json_emit_parallel_capture_boundaries(out, mir);
     fputs("],\"generic_method_specializations\":[", out);
     mir_json_emit_generic_method_specializations(out, mir);

@@ -3860,7 +3860,9 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "MirParallelCaptureFactsFromTableReady("
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
-    "MirMachineLayerAdmitDocumentObserved("
+    "MirMachineLayerAdmitDocumentWithTopologyObserved("
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "MirDomainTopologyFactsFromDocument("
 reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "func MirJsonReadMachineAdmittedInputObserved(" \
     "MirDocumentSchemaEquals("

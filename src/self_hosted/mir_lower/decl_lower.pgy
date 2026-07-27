@@ -330,6 +330,9 @@ func NominalAstLabel(nominal_kind: String) -> String {
     if nominal_kind == "effect" {
         return "Effect";
     }
+    if nominal_kind == "relation" {
+        return "Relation";
+    }
     return "Class";
 }
 
@@ -337,7 +340,7 @@ func MirCanonicalDeclarationPhase(kind: String) -> Int {
     if kind == "struct" || kind == "class" || kind == "subject" ||
         kind == "object" || kind == "tobject" || kind == "vessel" ||
         kind == "zone" || kind == "world" || kind == "party" ||
-        kind == "effect" {
+        kind == "effect" || kind == "relation" {
         return 0;
     }
     if kind == "role" { return 1; }
@@ -380,7 +383,7 @@ func EmitCanonicalNominalDecl(
     let direct_kind: Bool = kind == "struct" || kind == "subject" ||
         kind == "object" || kind == "tobject" || kind == "vessel" ||
         kind == "zone" || kind == "world" || kind == "party" ||
-        kind == "effect";
+        kind == "effect" || kind == "relation";
     if (direct_kind && nominal_kind != kind) ||
         (kind == "class" && nominal_kind == "effect") {
         MirLowerFailClosed(Concat(

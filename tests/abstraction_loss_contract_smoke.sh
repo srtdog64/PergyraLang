@@ -97,7 +97,7 @@ require_text "docs/semantics/pass_contract_manifest.md" "abi_slot_pin_layout | s
 require_text "docs/semantics/pass_contract_manifest.md" "boundary_owner_migration | docs/semantics/boundary_migration_manifest.md | tests/boundary_migration_contract_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "merged_program_syntax_identity | src/parser/ast_identity.c | tests/stable_identity_contract_smoke.sh | gate-backed-partial"
 require_text "docs/semantics/pass_contract_manifest.md" "semantic_declaration_identity | src/semantic/symbol_table.c | tests/semantic_declaration_identity_smoke.sh | gate-backed-partial"
-require_text "docs/semantics/pass_contract_manifest.md" "dir_zone_runtime_topology | src/compiler/dir_collect_domain.c | tests/domain_runtime_topology_smoke.sh | gate-backed-partial"
+require_text "docs/semantics/pass_contract_manifest.md" "dir_zone_runtime_topology | src/compiler/dir_collect_domain.c | tests/domain_runtime_topology_smoke.sh,tests/self_hosted/parity/domain_topology_admission_owner.sh | gate-backed-partial"
 require_text "docs/semantics/pass_contract_manifest.md" "hir_routine_identity | src/compiler/hir_callgraph.c | tests/hir_routine_identity_smoke.sh | gate-backed-partial"
 require_text "docs/semantics/pass_contract_manifest.md" "required_facts"
 require_text "docs/semantics/pass_contract_manifest.md" "preserved_facts"

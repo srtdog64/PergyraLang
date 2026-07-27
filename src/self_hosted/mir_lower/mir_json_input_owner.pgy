@@ -5,6 +5,7 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
+import "domain_topology_fact_owner.pgy";
 import "parallel_capture_fact_owner.pgy";
 import "machine_layer_fact_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -54,12 +55,20 @@ func MirJsonReadMachineAdmittedInputObserved(
     MirJsonInputPressureStage(
         observe_pressure, "consumer:input:parallel-capture:done"
     );
+    let topology_required: Bool = MirDomainTopologyRequiredForDocument(document);
+    let topology: MirDomainTopologyFacts = MirDomainTopologyFactsFromDocument(
+        document
+    );
+    if (topology_required && (!topology.present || !topology.valid)) ||
+        (topology.present && !topology.valid) {
+        MirLowerFailClosed("MIR domain topology facts are missing or invalid");
+    }
     MirJsonInputPressureStage(
         observe_pressure, "consumer:input:machine-layer:start"
     );
     let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
-        MirMachineLayerAdmitDocumentObserved(
-            declaration, document, observe_pressure
+        MirMachineLayerAdmitDocumentWithTopologyObserved(
+            declaration, document, topology, observe_pressure
         );
     if !IsSome(admitted_opt) {
         MirLowerFailClosed("MIR machine-layer facts are missing or invalid");

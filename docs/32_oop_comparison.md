@@ -197,7 +197,7 @@ tobject PlayerPacket { }  // 경계 밖 전송용
 | subject | pointer | 참조 | O | O | 행동 주체 |
 | class | value | 복사 | X | X | 도구/사물 |
 | struct | value | 복사 | X | X | 순수 데이터 |
-| vessel | value | 복사 | X | X | 내부 수용체 |
+| vessel | pointer | canonical 복사; 현재 C/LLVM 일반 인자 자동 간접 결함 | X | X | 내부 수용체 |
 | object | value | 복사 | X | X | 읽기 스냅샷 |
 | tobject | value | 복사 | X | X | 경계 전송 |
 
@@ -205,6 +205,10 @@ tobject PlayerPacket { }  // 경계 밖 전송용
 
 - `object`는 내부 관찰 모델이다.
 - `tobject`는 boundary transfer 모델이다.
+- 표의 `self`와 전달 방식은 서로 다른 축이다. vessel hosted receiver는 원본
+  내부 상태 갱신을 위해 pointer-self지만 일반 파라미터는 값이어야 한다. 현재
+  backend가 두 축을 `uses_pointer_self` 하나로 합친 동작은 언어 철학이 아니라
+  열린 ABI 결함이다.
 - 큰 telemetry를 zero-copy로 넘기는 정책은 여기 포함되지 않는다. 그건 snapshot/generation/lease 계층의 일이다.
 
 ### 5. 세계 모델이 언어에 내장되어 있다

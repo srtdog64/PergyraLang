@@ -48,7 +48,9 @@
 - `subject`, `relation`, `effect`, `zone`, `world`는 identity-bearing 타입이다.
 - 이 타입들을 함수 파라미터로 전달하면 **자동으로 reference(참조) 전달**된다.
 - 사용자는 포인터를 의식하지 않아도 된다 -- 언어가 내부적으로 처리한다.
-- `struct`, `vessel`, `class`, `object`, `tobject`는 value 타입이다 -- 복사 전달된다.
+- `struct`, `vessel`, `class`, `object`, `tobject`는 canonical value 타입이다 --
+  일반 파라미터는 복사 전달되어야 한다. 현재 C/LLVM의 vessel 파라미터는
+  pointer-self fact를 잘못 재사용하는 알려진 구현 결함이다.
 - 이 규칙은 함수 인자 carriage다. hosted receiver는 별도이며 `subject`와
   `vessel`은 pointer-self, `class`/`object`/현재 `tobject`는 value-self다.
   구성체별 authoring contract는

@@ -112,6 +112,7 @@ test_mir_carries_dir_domain_topology(void)
     char *saved_owner_name = NULL;
     bool carried = false;
     bool rejected_bad_identity = false;
+    bool rejected_stray_unused_identity = false;
     bool rejected_unknown_owner = false;
     bool rejected_missing_dir = false;
     bool rejected_wrong_dir = false;
@@ -201,6 +202,14 @@ test_mir_carries_dir_domain_topology(void)
         free(error);
         error = NULL;
 
+        row->participant_slot_source_syntax_id = 999;
+        rejected_stray_unused_identity = !mir_validate(mir, &error)
+            && error != NULL
+            && strstr(error, "domain topology row") != NULL;
+        row->participant_slot_source_syntax_id = 0;
+        free(error);
+        error = NULL;
+
         saved_owner_name = row->owner_name;
         row->owner_name = (char *)"MissingZone";
         rejected_unknown_owner = !mir_validate(mir, &error)
@@ -211,8 +220,9 @@ test_mir_carries_dir_domain_topology(void)
 
     TEST("MIR requires DIR and carries its zone topology by stable identity");
     EXPECT(rejected_missing_dir && rejected_wrong_dir && carried);
-    TEST("MIR rejects damaged slot identity and unknown topology owners");
-    EXPECT(rejected_bad_identity && rejected_unknown_owner);
+    TEST("MIR rejects damaged, stray, and unknown topology identities");
+    EXPECT(rejected_bad_identity && rejected_stray_unused_identity
+        && rejected_unknown_owner);
     free(error);
     mir_destroy(mir);
     rir_destroy(rir);

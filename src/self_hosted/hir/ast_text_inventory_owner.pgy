@@ -94,7 +94,7 @@ func TypedAstTextKindOf(text: String) -> Int {
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
         StartsWith(text, "Vessel:") || StartsWith(text, "Zone:") ||
         StartsWith(text, "World:") || StartsWith(text, "Party:") ||
-        StartsWith(text, "Effect:") {
+        StartsWith(text, "Effect:") || StartsWith(text, "Relation:") {
         return TypedAstKindNominalDeclTag();
     }
     if StartsWith(text, "Enum:") {
@@ -267,6 +267,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         if StartsWith(text, "Effect: ") {
             return Substring(text, 8, StringLength(text) - 8);
+        }
+        if StartsWith(text, "Relation: ") {
+            return Substring(text, 10, StringLength(text) - 10);
         }
     }
     if kind == TypedAstKindEnumDeclTag() {

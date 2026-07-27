@@ -201,7 +201,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
             } else if (
                 UnwrapOption(subkind_opt) == TypedAstNominalSubkindZone() ||
                 UnwrapOption(subkind_opt) == TypedAstNominalSubkindWorld() ||
-                UnwrapOption(subkind_opt) == TypedAstNominalSubkindEffect() ||
+                UnwrapOption(subkind_opt) == TypedAstNominalSubkindEffect() || UnwrapOption(subkind_opt) == TypedAstNominalSubkindRelation() ||
                 UnwrapOption(subkind_opt) == TypedAstNominalSubkindParty()
             ) && TypedAstArenaNodeKindIs(
                 artifact.arena, child_id, TypedAstKindFieldTag()

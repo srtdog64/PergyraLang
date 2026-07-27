@@ -7,6 +7,7 @@
 // operation or infer a device contact from syntax payloads.
 
 import "json_fact_read.pgy";
+import "domain_topology_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -17,6 +18,7 @@ import "../compiler/machine_layer_declaration_consumer.pgy";
 struct MirMachineLayerAdmittedJsonInput {
     let machine_declaration: SelfHostMachineLayerDeclaration;
     let document: MirDocumentFactIndex;
+    let domain_topology: MirDomainTopologyFacts;
     let routines: MirProgramRoutineIndex;
 }
 
@@ -220,6 +222,25 @@ func MirMachineLayerAdmitDocumentObserved(
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
     if !document.valid { return None; }
+    let domain_topology: MirDomainTopologyFacts =
+        MirDomainTopologyFactsFromDocument(document);
+    return MirMachineLayerAdmitDocumentWithTopologyObserved(
+        machine_declaration, document, domain_topology, observe_pressure
+    );
+}
+
+func MirMachineLayerAdmitDocumentWithTopologyObserved(
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    document: MirDocumentFactIndex,
+    domain_topology: MirDomainTopologyFacts,
+    observe_pressure: Bool
+) -> Option<MirMachineLayerAdmittedJsonInput> {
+    if !document.valid ||
+        ((MirDomainTopologyRequiredForDocument(document) &&
+            (!domain_topology.present || !domain_topology.valid)) ||
+         (domain_topology.present && !domain_topology.valid)) {
+        return None;
+    }
     let json: String = document.routines.json;
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
@@ -245,7 +266,7 @@ func MirMachineLayerAdmitDocumentObserved(
         observe_pressure, "consumer:input:machine-layer:instruction-scan:done"
     );
     return Some(MirMachineLayerAdmittedJsonInput(
-        machine_declaration, document, routines
+        machine_declaration, document, domain_topology, routines
     ));
 }
 

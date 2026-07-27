@@ -1,9 +1,10 @@
-# 200. Object-to-Action 경계와 작성 패턴
+# 200. Object-to-Action 경계와 Domain Composition 작성 패턴
 
 Updated: 2026-07-28 (Asia/Seoul)
 
-이 문서는 `struct`에서 `action`까지의 선택 기준을 한곳에 모은 authoring
-contract다. 의미 사실의 최종 권위는 parser/semantic/MIR owner와 executable
+이 문서는 `struct`에서 `action`까지의 값·identity 선택과, 그 action이
+`effect`/`relation`/`zone`/`intent`/`world`로 합성되는 기준을 한곳에 모은
+authoring contract다. 의미 사실의 최종 권위는 parser/semantic/MIR owner와 executable
 gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 고치며,
 구현되지 않은 목표를 현재 동작으로 기록하지 않는다.
 
@@ -14,8 +15,9 @@ gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 
 - Priority: nominal identity 보존; 전달과 receiver 의미 분리; mutation 권한;
   실제 boundary 의미; C/LLVM parity; 짧은 문법보다 정확한 진단.
 - Fact owner: `NominalDeclKind`가 선언 identity를 소유하고
-  `MIRDeclHeader.nominal_kind`가 이를 운반한다. pointer-self, projection
-  immutability, boundary-transfer policy는 이 identity에서 파생한다.
+  `MIRDeclHeader.nominal_kind`가 이를 운반한다. receiver carriage, parameter
+  carriage, field role/mutability, callable/action contract, call authority,
+  runtime authority evidence는 아래의 서로 다른 fact family가 소유해야 한다.
 - Last legitimate consumer: semantic boundary validator와 C/LLVM hosted-call,
   projection, action-contract emitter다.
 - Forbidden fallback: `subject == class`, `tobject == struct`,
@@ -39,10 +41,30 @@ gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 
    경계를 표현하는가?
 
 `value type`이라고 hosted receiver도 반드시 value-self인 것은 아니다.
-`vessel`은 일반 함수 인자로는 값 전달되지만, hosted `func`는 소유 subject
-안의 상태를 갱신할 수 있도록 pointer-self로 lowering된다. 반대로 `class`는
-값 전달과 value-self를 함께 사용한다. 이 차이를 합치면 문서와 backend가
-서로 다른 언어를 설명하게 된다.
+canonical `vessel`은 일반 함수 인자로는 값 전달되고, hosted `func` receiver만
+소유 subject 안의 상태를 갱신하도록 pointer-self여야 한다. 반대로 `class`는
+값 전달과 value-self를 함께 사용한다. 현재 C/LLVM은 이 두 축을 아직
+`uses_pointer_self` 하나로 합쳐서 **일반 vessel 파라미터도 포인터로 전달한다**.
+이것은 canonical 계약이 아니라 아래에 고정한 구현 결함이다. receiver mode와
+parameter carriage를 합치면 문서와 backend가 서로 다른 언어를 설명하게 된다.
+
+구현에서는 하나의 “타입 종류” predicate가 아래 결정을 모두 대신하면 안 된다.
+최소 fact family를 직교하게 나눈다.
+
+| Fact family | 소유하는 질문 |
+| --- | --- |
+| `NominalKind` | struct/class/object/tobject/vessel/subject 중 무엇인가 |
+| `FieldRole` | 일반 field, mutable field, subject-owned vessel, domain slot 중 무엇인가 |
+| `ReceiverCarriage` | hosted self가 value-self인가 pointer-self인가 |
+| `ParameterCarriage` | default/ref/inout 파라미터가 value, readonly indirect, identity reference, value-result 중 무엇인가 |
+| `CallableKind` | free/hosted func인가 subject action인가 |
+| `ActionContract` | requires/within/causes/authorized/caps/effects 선언 fact는 무엇인가 |
+| `CallAuthorityBinding` | 이 호출에서 어떤 participant/zone authority가 결속됐는가 |
+| `RuntimeAuthorityEvidence` | runtime이 어떤 token/identity/provenance를 실제 검증했는가 |
+
+각 consumer는 필요한 fact 하나를 받고, nominal 이름이나 첫 authority row에서 다른
+fact를 재추론하지 않는다. 특히 `ReceiverCarriage`를 일반 parameter ABI로 쓰거나
+`ActionContract` 존재를 runtime 승인 증거로 쓰는 경로를 금지한다.
 
 ## 2. 현재 구현과 canonical authoring 행렬
 
@@ -52,15 +74,62 @@ gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 
 | `class` | 수동 nominal 값/도구, identity 없음 | 값 복사와 값 반환 | value-self | `let mut` 필드는 직접 바인딩을 통해 갱신 가능. hosted func 안의 갱신은 호출자 identity 전이가 아님 | hosted `func` | 계산이 붙은 도구, formatter, policy value |
 | `object` | local projection 값, 능동 identity 없음 | 값 복사 | value-self | construction 이후 read-only. source를 갱신하고 `refresh`하거나 새 view 생성 | 관측/format/query `func`만 권장. `action` 금지 | 동일 실행 경계의 borrow-first read model |
 | `tobject` | 외부 전달 값, identity/authority 없음 | materialized 값 복사 | 현재 passive helper는 value-self; canonical surface는 receiver 없음 | immutable. 새 snapshot을 `publish` | 현재 semantic은 passive `func`를 허용하지만 새 코드는 method-free. `action` 금지 | API/IPC/persistence/world 경계 transfer |
-| `vessel` | subject-owned 수동 상태 값, 독립 actor identity 없음 | 일반 파라미터에서는 값 전달 | **pointer-self** | owner가 호출한 hosted `func`가 원본 내부 상태를 갱신 가능 | hosted `func`; `action` 금지 | subject 내부 상태·자원·규칙 수용체 |
-| `subject` | identity-bearing active host | 기본 파라미터는 자동 참조; plain copy/rebind/value return 금지 | **pointer-self** | 자신의 `func`/`action`을 통한 원본 셀 전이 | private/local `func` + public/boundary `action` | 결정, 승인, stage/resource handoff |
+| `vessel` | subject-owned 수동 상태 값, 독립 actor identity 없음 | canonical은 값 전달. **현재 C/LLVM은 잘못 자동 간접 전달** | **pointer-self** | owner가 호출한 hosted `func`가 원본 내부 상태를 갱신 가능 | hosted `func`; `action` 금지 | subject 내부 상태·자원·규칙 수용체 |
+| `subject` | identity-bearing active host | 기본 파라미터는 자동 참조; plain copy/rebind/value return 금지 | **pointer-self** | 자신의 `func`/`action`을 통한 원본 셀 전이 | private/local `func` + 명시적 public/boundary `action` 권장 | 결정, 승인, stage/resource handoff |
 | `action` | subject의 동사이며 독립 타입이 아님 | subject receiver 계약을 따름 | subject pointer-self | 관측 가능한 성공/실패와 전이를 소유 | `requires`/`within`/`authorized by`/`causes`/`with caps`/`with effects` | 공적 상태 전이, 권한 행사, artifact/resource handoff |
+
+### 2.1 이 구성체들은 상속 계층이 아니라 경계 프로토콜이다
+
+`tobject -> object -> vessel -> subject -> action`을 “점점 강한 class”로 읽으면
+안 된다. 각 구성체는 서로 다른 질문의 답이며 자동 승격 관계가 없다. Domain
+구성체까지 포함한 canonical 책임 사다리는 다음과 같다.
+
+| 구성체 | 한 문장 책임 | 생성·갱신 동사 | 만들지 말아야 할 때 |
+| --- | --- | --- | --- |
+| `struct` | identity 없는 계산 fact | construct/return | hosted behavior나 원본 identity가 필요할 때 |
+| `class` | 복사 가능한 수동 계산 도구 | construct/새 값 return | 호출자 원본의 전이를 기대할 때 |
+| `object` | 같은 실행 경계의 source-bound read projection | `refresh` 또는 새 view | 외부 전달 snapshot이나 mutable store가 필요할 때 |
+| `tobject` | source lifecycle에서 분리된 immutable transfer value | `publish` | borrow, authority, method, live resource를 싣고 싶을 때 |
+| `vessel` | subject가 소유하는 pointer-self 상태·자원 수용체 | subject가 hosted `func` 호출 | 독립 승인 주체나 public transition이 필요할 때 |
+| `subject` | 복제 불가능한 결정·승인 identity | stable binding으로 construct | 단순 namespace나 상태 없는 helper만 필요할 때 |
+| `action` | subject identity가 소유하는 관측 가능한 전이 | admit/commit/reject/handoff | 순수 계산, query, `*Ready()` facade일 때 |
+| `effect` | participant에 적용·유지되는 시간적 상태 layer | apply/maintain/detach | 로그나 generic compiler effect mask의 다른 이름일 때 |
+| `relation` | 두 participant identity 사이의 materialized edge | link/unlink/publish | 두 값을 잠시 함께 계산하기만 할 때 |
+| `zone` | slot, authority, lifecycle, frontier의 실제 경계 | admit/refresh/publish/maintain/link | 함수 묶음이나 이름공간만 필요할 때 |
+| `intent` | 여러 실제 action의 성공·실패·보상 목적 | ordered step protocol | 호출할 production action이 하나뿐일 때 |
+| `world` | 여러 실제 zone을 한 사실 그래프로 합성하는 root | zone/action composition | backend별 mini-world나 readiness dashboard가 필요할 때 |
+
+이 사다리의 best practice는 키워드를 많이 쓰는 것이 아니라 **새 의미 경계가
+생길 때만 다음 구성체를 추가하는 것**이다.
+
+1. 값 계산은 `struct`/`class`/`func`에 남긴다.
+2. local read model과 외부 transfer를 각각 `object.refresh`와
+   `tobject.publish`로 분리한다. 하나의 mutable DTO가 둘을 겸하지 않는다.
+3. 원본 상태는 subject-owned `vessel`에 두되, vessel은 authority를 판정하거나
+   action을 시작하지 않는다.
+4. `action`은 계산을 복제하지 않고 typed owner 결과를 받아 transition과 명시적
+   실패만 소유한다.
+5. `effect`와 `relation`은 action의 장식이 아니라 zone frontier의 독립 typed
+   layer다. `causes`는 effect identity에, link는 relation identity에 결속한다.
+6. `zone`은 admission/authority/resource lifetime과 topology를 소유한다. subject
+   내부 상태 전이는 해당 subject action을 우회해 직접 쓰지 않는다.
+7. production에서 호출되는 action이 둘 이상이고 하나의 성공·실패·보상 목적이
+   생겼을 때만 `intent`를 추가한다. `world`는 그 실제 zone들을 한 선언·호출
+   그래프로 묶으며 C/LLVM별 복제본을 만들지 않는다.
+
+Self-host compiler도 이 규칙의 예외가 아니다. 모든 stage를 ceremonial
+subject/action/intent로 감싸는 것은 개사료가 아니다. 실제 C-owned 결정을 대신하는
+production call, 삭제된 bypass, 소비되는 result, negative gate가 있을 때만 해당
+구성체가 `SUBSTITUTING`이다. 그 전에는 정확히 `SURFACE` 또는 `REACHABLE`로
+기록한다.
 
 ### 구현 근거
 
 - parser는 여섯 nominal을 서로 다른 `NOMINAL_DECL_*`으로 만든다.
-- MIR declaration header는 `subject`와 `vessel`만 `uses_pointer_self`로
-  운반한다.
+- MIR declaration header는 `subject`와 `vessel`의 hosted receiver가
+  `uses_pointer_self`임을 운반한다. 현재 C/LLVM 일반 parameter ABI가 이 receiver
+  fact를 재사용하는 것은 열린 결함이며 별도 parameter-carriage owner로
+  분리해야 한다.
 - semantic은 subject의 plain copy/rebind/value return을 거부하고 기본
   parameter를 reference semantics로 취급한다.
 - semantic은 `object`와 `tobject` field assignment를 각각 refresh/publish
@@ -74,17 +143,23 @@ gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 
 - 현재 semantic unit은 `object`/`tobject` passive helper `func` 선언을
   허용한다. canonical contract는 object의 관측 helper만 남기고 tobject는
   method-free로 닫는 방향이며, 이 차이는 아래의 열린 부채다.
-- LLVM은 `object`/`tobject`를 immutable projection storage로, `tobject`만
-  boundary-transfer contract로 분류한다.
+- LLVM type metadata는 `object`/`tobject`를 immutable projection storage로,
+  `tobject`만 boundary-transfer contract로 분류한다. 그러나 현재 소비자는
+  `ToObject` borrow 등록에 치우쳐 있고 store 거부까지 보장하지 않는다. 이
+  metadata 이름을 backend 불변성 폐쇄 증거로 세지 않는다.
+
+`action`의 기본 visibility는 현재 private다. “공적 action”은 의미 역할과 권장
+authoring이지 자동 export 규칙이 아니다. import 경계를 넘겨야 하는 action만
+`public`을 명시하고, local orchestration action은 private로 남길 수 있다.
 
 같은 C layout을 사용할 수 있다는 사실은 같은 언어 계약이라는 뜻이 아니다.
 storage sharing은 구현 세부사항이고 nominal kind가 의미 identity다.
 
 ### 실제 corpus 판정
 
-2026-07-27의 `driver_bootstrap_main.pgy` 재귀 import closure는 443개 파일이며
-missing import는 0이다. 이 import-reachable 집합에는 `func` 3,495개,
-`struct` 176개, `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개,
+2026-07-28의 `driver_bootstrap_main.pgy` 재귀 import closure는 450개 파일이며
+missing import는 0이다. 이 import-reachable 집합에는 `func` 3,617개,
+`struct` 179개, `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개,
 `action` 17개, `zone` 19개, `world` 1개, `intent` 14개, `role` 4개,
 `ability` 4개가 선언돼 있다. `class`/`vessel`/`effect`/`relation`/`party`/
 `roster` 선언은 0이다.
@@ -94,8 +169,10 @@ missing import는 0이다. 이 import-reachable 집합에는 `func` 3,495개,
 `DriverRung2Execution.EmitDirectMir` action 하나를 지난다. 이 action은
 identity admission, target admission, atomic artifact commit을 실제로 소유한다.
 commit은 `tobject SelfMirArtifactReceipt`가 있을 때만 `ArtifactCommitted`로
-전이하며, 이 receipt는 atomic visibility만 주장하고 crash durability는
-명시적으로 `false`다. `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
+전이하며 이 receipt의 payload는 실제 소비된다. `SelfMirArtifactFailure`도
+생성되지만 현재 caller는 variant tag만 소비하고 failure payload는 버린다.
+receipt는 atomic visibility만 주장하고 crash durability는 명시적으로 `false`다.
+`world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
 계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
 chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름은 구조
 적합성의 참고 자료일 뿐, 실행 개사료나 C-path 대체 진척은 아니다.
@@ -105,7 +182,7 @@ chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름
 | `struct` | `REACHABLE` supporting construct | production 계산에는 실제 사용되지만 구성체 자체가 C-owned path를 대체했다는 독립 증거는 아님 |
 | `class` | `SURFACE` | bootstrap closure 선언 0, backend fixture만 존재 |
 | `object` | `SURFACE` | world schema 18개, active direct-MIR call chain 소비 0 |
-| `tobject` | `REACHABLE`, not `SUBSTITUTING` | active artifact commit의 immutable receipt/failure 전달 |
+| `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload가 소비됨. failure는 생성되지만 tag만 소비되고 payload는 미소비 |
 | `vessel` | `SURFACE` | bootstrap closure 선언 0 |
 | `subject` / `action` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR subject/action 1쌍만 production 호출, 나머지 16쌍은 readiness |
 | `zone` / `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 하나만 호출; authority runtime 증거는 presence-only |
@@ -123,13 +200,35 @@ corpus에서 반복되는 유효 패턴도 이 행렬과 일치한다.
   owner를 우회할 수 있다. zone은 admission/authority를 소유하되 subject
   내부 전이는 해당 subject action으로 요청하는 것이 기본이다.
 
+구성체 등급과 실행 증거를 섞지 않기 위해 각 선언은 다음 사다리의 마지막으로
+관측된 칸까지 별도로 기록한다.
+
+```text
+IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
+```
+
+- `IMPORTED`는 parser/import graph에 들어왔다는 뜻뿐이다.
+- `MATERIALIZED`는 production path가 실제 값을 생성했다는 뜻이다.
+- `INVOKED`는 receiver/action이 production caller에서 호출됐다는 뜻이다.
+- `OUTCOME_CONSUMED`는 tag 존재가 아니라 payload나 전이 결과가 후속 결정을
+  바꿨다는 뜻이다.
+- `SUBSTITUTING`은 여기에 더해 실제 C-owned 경로를 대체하고 우회가 삭제됐다는
+  뜻이다.
+
+현재 object 18개는 `IMPORTED`에서 멈춘다. artifact receipt는
+`OUTCOME_CONSUMED`, failure는 `MATERIALIZED`와 tag-consumed까지만 도달한다.
+subject/action 17쌍 중 `DriverRung2Execution.EmitDirectMir` 한 쌍만
+`INVOKED`와 result consumption에 도달한다. 나머지 readiness/intent 선언과
+문법·lowering fixture는 canonical authoring 예가 아니라 surface 회귀 자료다.
+
 ### 실행 call-site 감사가 보여 준 경계
 
 현재 production 호출 그래프에서 실제로 호출되는 Pergyra-native hosted action은
 `DriverRung2Execution.EmitDirectMir` 하나다. `object` 18개는 schema/slot
 surface이며 construction, `ToObject`, `refresh` production call이 없다.
-`tobject SelfMirArtifactReceipt`와 `SelfMirArtifactFailure`는 transaction 결과로
-실제 도달하지만, `ParityVerdict`는 surface다. `subject/action` 17쌍 중 나머지
+`tobject SelfMirArtifactReceipt`는 transaction 결과 payload까지 실제 도달한다.
+`SelfMirArtifactFailure`는 생성되지만 tag만 소비되며, `ParityVerdict`는 surface다.
+`subject/action` 17쌍 중 나머지
 16쌍도 호출되지 않는 readiness facade다.
 
 따라서 모든 키워드를 한 경로에 억지로 쓰는 것은 개사료가 아니다. 필요한
@@ -384,12 +483,28 @@ endpoint에 의존하므로 native C/LLVM graph는 모두 3 node, 2 edge, depth 
 trace와 옛 AST entrypoint 부재를 함께 gate하는 것이다.
 
 이 slice는 기존 C-owned zone frontier AST graph builder를 삭제했으므로 native
-C/LLVM 경계에서 `SUBSTITUTING`이다. 그러나 전체 domain/action runtime이 닫힌
-것은 아니다. `apply`/detach/unlink, pool capacity, authority/state/lifecycle,
-action transition emission은 아직 이 row 집합의 소유 범위가 아니며, MIR JSON과
-self-host reader도 이 carrier를 받지 않는다. 이들은 `DIR owner -> MIR/JSON carrier
--> self-host consumer`의 같은 방향으로 확장하고 `MIR if present, otherwise AST`
-fallback을 두지 않는다.
+C/LLVM 경계에서 `SUBSTITUTING`이다. Native `pgy.mir.v1`도 이제 relation declaration과
+optional `domain_topology` object에 stable-ID 값을 운반한다. Self-host `mir_lower`는
+이를 typed `MirDomainTopologyFacts`로 한 번 admit하고 declaration field kind,
+relation participant cardinality, null/name-ID shape, directive uniqueness를 fail
+closed로 검사한다. `TrustedLink` relation도 typed declaration으로 복원된다.
+
+그러나 현재 declaration JSON field에는 그 field의 `source_syntax_id`가 없어서
+self-host admission은 `player`라는 이름과 전달된 ID가 실제 같은 field를
+가리키는지 증명하지 못한다. 이름은 `player`로 둔 채 `enemy` ID를 붙인 forged
+row도 현재 구조상 통과할 수 있다. 따라서 이 carrier를 “exact stable identity
+admission”이라고 부르거나 ID-keyed graph plan을 만들면 안 된다.
+
+이 새 JSON/admission slice의 판정은 `REACHABLE`이지 `SUBSTITUTING`이 아니다.
+Pergyra graph plan과 production runtime consumer가 아직 없기 때문이다. 전체
+domain/action runtime도 닫히지 않았다. `apply`/detach/unlink, pool capacity,
+authority/state/lifecycle, action transition emission은 여전히 row owner 범위 밖이다.
+다음 executable rung은 먼저 declaration field identity join을 닫고, self-host
+producer가 typed topology를 방출하며, admitted row로 하나의 target-neutral graph
+plan을 만든 뒤 일반 DRV-2 C production path가 exact 3-node/2-edge trace를
+소비하게 해야 한다. 이 fixture의 native runtime 전체를 대체하려면 graph 외에도
+`apply poison to player`, zone state count, hidden layer layout와 sync operation fact가
+필요하다. 그때도 `MIR if present, otherwise AST` fallback은 두지 않는다.
 
 ### 4.3 Artifact action의 commit 조건
 
@@ -439,15 +554,19 @@ immutable 결과다. byte count/fingerprint는 아직 receipt wire에 넣지 않
 `authorized by`가 소유하는 승인 provenance를 대신하지 않는다.
 
 현재 production 예인 `DriverRung2Execution.EmitDirectMir`는 target admission과
-`Requested -> TargetAdmitted -> ArtifactCommitted`를 소유한다. wrong
-identity/target과 commit failure는 반환된 `Rejected`로 구별하지만 하위
+artifact commit을 실제로 소유한다. 코드에는
+`Requested -> TargetAdmitted -> ArtifactCommitted`가 있지만 앞의 두 stage 값은
+현재 읽히거나 반환되지 않는 local dead write다. 따라서 관측 가능한 stage
+protocol 증거로 세지 않으며 caller가 소비하는 terminal 결과는
+`ArtifactCommitted` 또는 `Rejected`다. wrong identity/target과 commit failure는
+반환된 `Rejected`로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
 끝까지 운반된다. 다만 contract vocabulary SoT와 실행 대체는 아직 열려 있다.
 따라서 이 action은 atomic commit까지 `REACHABLE`이지만 아직
 C-owned compiler path를 대체한 `SUBSTITUTING`은 아니다.
 
-## 5. 권장 조합
+## 5. 권장 조합은 필요한 경계만 쓴다
 
 ```pergyra
 struct TargetRequest {
@@ -462,27 +581,12 @@ class DiagnosticFormatter {
     }
 }
 
-object ArtifactView {
-    schema: String;
-    fingerprint: String;
-}
-
 tobject ArtifactReceipt {
     schema: String;
     fingerprint: String;
 }
 
-vessel ExecutionState {
-    stage: Int;
-
-    func Advance(self, next: Int) -> Void {
-        stage = next;
-    }
-}
-
 subject CompilerExecution {
-    vessel state: ExecutionState;
-
     func TargetKnown(self, request: TargetRequest) -> Bool {
         return StringLength(request.projection) > 0;
     }
@@ -494,10 +598,16 @@ subject CompilerExecution {
 }
 ```
 
-이 예에서 `struct`는 요청 값, `class`는 복사 가능한 계산 도구, `object`는
-local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태,
-`subject/action`은 identity-bearing 전이를 소유한다. 실제 zone/authority가
-없으므로 `within`이나 `authorized by`를 장식으로 추가하지 않는다.
+이 최소 예에서 `struct`는 요청 값, `class`는 복사 가능한 계산 도구,
+`tobject`는 전달 receipt, `subject/action`은 identity-bearing 전이를 소유한다.
+실제 zone/authority가 없으므로 `within`이나 `authorized by`를 장식으로 추가하지
+않는다. production caller는 `Emit`의 `Result`를 match하고 성공 receipt payload나
+실패 payload를 다음 결정에 사용해야 한다.
+
+`object`는 실제 source-bound read projection과 downstream read가 생길 때,
+`vessel`은 subject가 소유해야 할 장기 상태와 pointer-self 갱신이 생길 때만
+별도로 추가한다. 모든 구성체를 한 예제나 compiler stage에 한 번씩 배치하는
+것은 조합이 아니라 ceremonial inventory다.
 
 ## 6. 금지 패턴
 
@@ -521,69 +631,106 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
    canonical contract는 method-free다. 기존 positive를 전용 semantic
    negative로 전환해 fail closed해야 한다.
 2. `object` receiver field assignment은 거부되지만, hosted body의 bare field
-   write와 `self.field` write가 같은 owner policy를 소비하는지는 완전히
-   닫히지 않았다. object query/format func의 무효과 규칙을 한 gate로 묶어야
-   한다.
+   write는 실제로 그 검사를 우회한다. `object`/`tobject`의 bare `hp = hp + 1`
+   probe는 컴파일되고 C 실행에서 value-self 복사본만 바꿔 caller의 7은 그대로
+   남았지만, `self.hp = ...`는 semantic에서 거부됐다. nested
+   `holder.view.hp`와 indexed member도 shallow identifier 검사 밖이다. query/format
+   func의 무효과 규칙을 target-shape와 무관한 한 field policy owner로 묶어야 한다.
 3. subject/class/vessel의 bare field write와 `self.field` write가 동일한
-   field-mutability fact를 소비하지 않는 오래된 경로가 남아 있다. 새 코드는
-   변경 상태를 `let mut` 또는 vessel bare field로 명시하고 두 표기를 같은
-   의미로 가정하지 않는다.
+   field-mutability fact를 소비하지 않는다. 실제 probe에서 `class`와 `subject`의
+   `let count`도 bare assignment가 통과했고, class caller는 7로 남은 반면 subject
+   원본은 8로 바뀌었다. `MIRDeclField`에는 현재 mutability fact도 없다. 새 코드는
+   hosted field를 항상 `self.field`로 쓰고 변경 상태를 `let mut`로 명시하며,
+   bare 표기를 같은 의미로 가정하지 않는다.
 4. `class` hosted func는 value-self이므로 내부 mutation 결과가 호출자에 남지
    않는다. mutator처럼 보이는 이름은 피하고 새 class 값을 반환하는 형태를
    쓴다.
-5. production self-host import graph에는 `PgyCompilerWorld`와 19개 zone을 포함한
+5. vessel의 receiver carriage와 parameter carriage가 한 predicate로 합쳐져 있다.
+   `func Touch(state: HealthState) { state.Advance(); }` probe는 initial 7을 C와
+   LLVM 모두 8로 바꿨다. MIR default carriage는 value인데 backend ABI는 mutable
+   pointer이며 `ref vessel`도 C에서 const 경계보다 pointer-self 분기가 먼저다.
+   수정 전에는 vessel을 free-function default/ref 파라미터로 넘기지 않고 subject
+   owner 안의 stable storage에서만 호출한다.
+6. production self-host import graph에는 `PgyCompilerWorld`와 19개 zone을 포함한
    domain 표면이 들어와 있다. 그러나 실제 direct-MIR call chain이 통과하는
    Pergyra-native 경계는 world 1개, direct-MIR zone 1개, subject/action 1개다.
    import-reachable 선언 수나 fixture 수를 self-host substitution으로 세지 않는다.
-6. `MakeSubject().Action()` 같은 temporary subject receiver는 C에서
+7. `MakeSubject().Action()` 같은 temporary subject receiver는 C에서
    address-of-rvalue가 되고 LLVM에서는 임시 alloca로 보존될 가능성이 있다.
    두 backend가 다른 lifetime을 만들지 않도록 semantic에서 stable subject
    binding만 receiver로 허용하는 negative가 필요하다.
-7. `MIRDeclMethod`와 native/self `pgy.mir.v1`은 action identity, `requires`,
+8. `MIRDeclMethod`와 native/self `pgy.mir.v1`은 action identity, `requires`,
    `within`, `causes`, `authorized by`, declared caps/effects를 한 method contract로
    운반한다. 그러나 zone authority ability와 호출별 participant binding은
    declaration contract가 아니라 별도 call/runtime fact다. backend가 AST를
    재조회하거나 이름에서 binding을 추정하지 않도록 이 owner 구분을 유지해야 한다.
-8. action 후 zone frontier pass-limit graph는 이제 DIR owner의 MIR carrier를
+9. action 후 zone frontier pass-limit graph는 이제 DIR owner의 MIR carrier를
    C와 LLVM이 함께 소비한다. 그러나 실제 projection/effect/relation operation
    emission과 action transition은 여전히 별도 backend/AST 경로가 남아 있다.
    동일한 검증 plan으로 계속 이동시키며 출력 parity만으로 중복 정책 소유를
    정당화하지 않는다.
-9. semantic helper `type_is_class_object_type()`은 이름과 달리 현재 subject만
+10. semantic helper `type_is_class_object_type()`은 이름과 달리 현재 subject만
    판정한다. 새 consumer를 붙이지 말고 subject identity 이름으로 바꿔
    오분류 가능성을 제거해야 한다.
-10. hosted method의 source declaration order는 사용자 ABI가 아니다. C는
+11. hosted method의 source declaration order는 사용자 ABI가 아니다. C는
     MIR-owned value layout schedule 뒤 domain type을 완성한 후 nominal method
     body를 방출하고, LLVM은 nominal/domain layout을 모두 등록한 뒤 method
     signature와 body를 방출한다. 이 순서를 source 재배치나 opaque type 추정으로
     우회하지 말고 declaration inventory와 later-declared value fixture로 고정한다.
-11. self-host parser의 `decl_nominal_owner.pgy`는 non-subject action을 거부한다.
+12. self-host parser의 `decl_nominal_owner.pgy`는 non-subject action을 거부한다.
     native의 struct hosted-`func` 금지는 아직 같은 self-host semantic negative로
     닫히지 않았다. grammar fixture 통과를 이 nominal semantic parity의 대체로
     해석하지 않는다.
-12. callable contract vocabulary는 shared registry와 projection으로 닫혔다. 현재
+13. self-host parser는 native와 달리 non-subject nominal body에서도 `vessel`
+    field prefix를 소비할 수 있고 그 field-role을 AST/MIR JSON에 보존하지 않는다.
+    `class X { vessel y: Y; }` native/self mismatch를 거부하고
+    `field_role=subject_owned_vessel`을 wire까지 운반해야 한다.
+14. callable contract vocabulary는 shared registry와 projection으로 닫혔다. 현재
     domain declaration의 `field_kind` spelling도 compiler-owned registry와 생성
     self-host projection으로 단일화됐다. DIR zone-frontier slice는 stable
-    directive/slot identity를 운반하지만 전체 stable field identity, pool
-    capacity, vessel/binding slot, self-host relation admission과 나머지 zone
-    runtime topology는 열려 있다.
-13. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
+    directive/slot identity를 운반한다. MIR JSON relation/topology carriage와
+    self-host typed admission은 `REACHABLE`로 닫혔지만 전체 stable field identity,
+    pool capacity, vessel/binding slot, self-host producer emission,
+    graph plan/runtime consumer와 나머지 zone runtime topology는 열려 있다.
+15. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인
     증거는 아니다.
-14. compiler artifact transaction은 shared C/LLVM runtime core, self-host typed
+16. compiler artifact transaction은 shared C/LLVM runtime core, self-host typed
     receipt, generated runtime include, old-final 보존 fault gate까지 닫혔다.
     일반 raw file handle의 MIR/AIR mode fact와 checked close 표면은 별도 호환성
     부채다. source -> MIR의 완전한 action substitution은 domain
     declaration/field-kind/runtime ABI closure, production action reachability,
     `Main -> CompileSourceTo*` 직접 경로 삭제에 계속 막혀 있다.
-15. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
+17. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
     identity/target처럼 action이 직접 반환하는 실패와, 하위 `Die`/`Exit`가
     중단시키는 fatal 실패를 gate와 문서에서 분리한다.
 
+18. 일반 zone routine prologue는 복수 authority 중 첫 row를 C/LLVM 모두 암묵
+    선택한다. 호출별 binding fact가 없으면 `authority_count != 1`을 fail closed하고,
+    source order를 권한 선택 정책으로 만들지 않는다.
+19. strongest dynamic action gate인
+    `driver_execution_action_abi_parity.sh`는 아직 Makefile/aggregate gate graph에
+    연결되지 않았다. 수동 PASS를 표준 회귀 보호로 과장하지 않는다.
+20. generic subject/vessel class의 LLVM on-demand method specialization은
+    pointer-self flag를 self parameter type에 적용하지 않는 C/LLVM ABI gap이 있다.
+21. `uses_pointer_self` MIR validator는 subject/vessel/domain이 `false`인 한 방향만
+    거부한다. class/struct/object/tobject에 잘못 `true`가 들어온 반대 drift도
+    fail closed하고 양방향 negative를 둬야 한다.
+22. default subject argument의 non-identifier temporary는 semantic에서 통과한 뒤
+    C/LLVM backend의 addressable-storage 경계에서 늦게 실패한다. receiver뿐 아니라
+    identity-reference parameter도 semantic stable-binding owner가 먼저 거부해야 한다.
+23. C의 `ToTObject` emitter는 semantic을 우회한 입력에서 exact `tobject`가 아니라
+    struct/vessel/object/tobject shape를 함께 허용한다. `ToObject`/`ToTObject`의
+    exact target kind를 MIR/backend에서도 검증하는 direct-MIR negative가 필요하다.
+24. `ToObject`/`ToTObject`는 현재 둘 다 value projection ABI이고 tobject 전용
+    channel/API/IPC transport 정책은 아직 없다. API/IPC/persistence는 canonical
+    사용 의도이지 구현된 별도 wire/transport 보장으로 과장하지 않는다.
+
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
-`object` bare-field mutation, `class` mutator persistence 오해, subject의
-bare/`self.` mutability 불일치, temporary subject action receiver다. 이 작업은
+`object`/`tobject` bare·nested-field mutation, class/subject의 bare/`self.` mutability
+불일치, vessel default/ref parameter mutation, temporary pointer-self receiver,
+temporary subject parameter, exact projection target, non-subject vessel field다. 이 작업은
 현재 zone/world executable rung을 우회하는 별도 진척으로 계산하지 않는다.
 
 후속 gate는 다음 순서가 안전하다.

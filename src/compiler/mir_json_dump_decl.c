@@ -344,6 +344,7 @@ mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
 {
     return ast_type == AST_ZONE_DECL
         || ast_type == AST_EFFECT_DECL
+        || ast_type == AST_RELATION_DECL
         || ast_type == AST_PARTY_DECL
         || (ast_type == AST_CLASS_DECL
         && (nominal_kind == NOMINAL_DECL_STRUCT
@@ -378,11 +379,14 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
             ? "zone" : mir_json_nominal_kind_name(nominal_kind);
         if (ast_type == AST_EFFECT_DECL)
             json_nominal_kind = "effect";
+        if (ast_type == AST_RELATION_DECL)
+            json_nominal_kind = "relation";
         if (ast_type == AST_PARTY_DECL)
             json_nominal_kind = "party";
         fputs("{\"kind\":", out);
         mir_json_emit_str(out, is_struct_decl ? "struct"
-            : ast_type == AST_EFFECT_DECL ? "effect" : "class");
+            : ast_type == AST_EFFECT_DECL ? "effect"
+            : ast_type == AST_RELATION_DECL ? "relation" : "class");
         fputs(",\"nominal_kind\":", out);
         mir_json_emit_str(out, json_nominal_kind);
         fputs(",\"name\":", out);

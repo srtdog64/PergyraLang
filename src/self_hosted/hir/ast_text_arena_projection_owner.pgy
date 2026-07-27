@@ -68,6 +68,9 @@ func CodegenAstTextNominalSubkindFor(node: CodegenAstTextNode) -> Int {
     if StartsWith(node.text, "Effect: ") {
         return TypedAstNominalSubkindEffect();
     }
+    if StartsWith(node.text, "Relation: ") {
+        return TypedAstNominalSubkindRelation();
+    }
     return TypedAstNominalSubkindNone();
 }
 

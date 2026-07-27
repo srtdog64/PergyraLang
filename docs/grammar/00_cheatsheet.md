@@ -10,9 +10,11 @@
 - 블록은 `{ ... }`, **정규 표기는 BSD/Allman** (formatter 기준; 파서는 K&R도 읽음).
 - 키워드 = **소문자**. 타입·내장 API = **PascalCase**. 필드·로컬·파라미터 = **camelCase**.
 - identity 타입(`subject` `relation` `effect` `zone` `world`) = 함수 인자로 **자동 참조 전달**.
-  value 타입(`struct` `object` `tobject` `class` `vessel`) = **복사 전달**.
+  canonical value 타입(`struct` `object` `tobject` `class` `vessel`) = **복사 전달**.
   단, hosted receiver는 별도 축이다. `subject`와 `vessel`의 `self`는
   pointer-self이고 `class`/`object`/현재 `tobject`의 `self`는 value-self다.
+  현재 C/LLVM은 일반 vessel 파라미터까지 포인터로 내리는 알려진 결함이 있어,
+  vessel의 복사 전달은 아직 실행 보장으로 쓰면 안 된다.
 - doc comment `/// @effects ...` 를 파서가 읽는다.
 - declaration 이름은 **일반 식별자만**(예약어 재사용 불가).
 - 선언 토큰은 lexer에서 이미 분리됨 — `subject`/`class`, `struct`/`object`/`tobject` 등은 *별도 토큰*(alias 아님).
@@ -60,7 +62,7 @@ class  C     { let x: Int;  func F(self, n: Int) -> Int { ... } }   // 수동 �
 subject P    { let x: Int;
                action A(self, n: Int) -> Void within Z authorized by self { ... }
                func   F(self) -> Bool { ... } }       // 능동 주체
-vessel  V    { let x: Int;  func F(self) -> Int { ... } }   // 인자는 value, hosted self는 pointer-self
+vessel  V    { let x: Int;  func F(self) -> Int { ... } }   // canonical: 인자는 value, hosted self는 pointer-self; 현재 param ABI 결함 있음
 ability Ab   { fields x: Int;  func M() -> Bool; }    // 계약: 요구 필드 + 요구 메서드(시그니처만)
 role  R for P { impl ability Ab { func M() -> Bool { ... } } }
 effect Eff for bearer: P { object slot v: O   refresh v from bearer }     // 본문 ; 없음

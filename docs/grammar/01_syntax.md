@@ -32,14 +32,16 @@
 - 타입과 내장 API는 PascalCase
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 - identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
-- value 타입 (`struct`, `vessel`, `class`, `object`, `tobject`)은 복사 전달
+- canonical value 타입 (`struct`, `vessel`, `class`, `object`, `tobject`)은 복사 전달
 - nominal family는 lexer 단계에서 이미 분리된다:
   `subject` / `class`, `struct` / `object` / `tobject`, `vessel`, `intent`, `event`,
   `roster` / `world` / `relation` / `effect` / `zone`은 각각 **별도 토큰**이다
 - 즉 현재 구현은 예전처럼 `subject -> class`, `tobject -> struct` 같은 lexer alias 모델이 아니다
-- 함수 인자 전달과 hosted `self`는 다른 축이다. `vessel`은 일반 인자로는
-  값 전달되지만 hosted `func`에서는 pointer-self다. 구성체 선택과 mutation
-  계약은 [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md)를 따른다.
+- 함수 인자 전달과 hosted `self`는 다른 축이다. canonical `vessel`은 일반
+  인자로는 값 전달되고 hosted `func`에서만 pointer-self다. 현재 C/LLVM이 일반
+  vessel 파라미터도 포인터로 내리는 결함은 언어 규칙이 아니다. 구성체 선택,
+  실제 구현 차이, mutation 계약은
+  [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md)를 따른다.
 
 ### 예약 키워드 (reserved — 식별자로 사용 불가)
 

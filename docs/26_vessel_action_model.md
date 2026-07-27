@@ -48,6 +48,14 @@ vessel은 subject 안에서 운용되는 내부 수용체로, 다섯 가지 피�
 
 > **vessel은 subject가 상태, 자원, 수동 실행, projection, 규칙 적용점을 담아 운용하는 내부 수용체다.**
 
+전달 축은 receiver 축과 분리한다. canonical vessel의 일반 파라미터는 value
+carriage이고, subject가 소유한 hosted receiver만 pointer-self다. 2026-07-28
+감사에서 C/LLVM이 `uses_pointer_self`를 두 축에 함께 적용해 일반 vessel
+파라미터도 mutable pointer로 전달하는 결함이 확인됐다. 현재 동작을 설계 결정으로
+승격하지 않으며, 수정 전에는 vessel을 owner의 stable storage에서 hosted call로만
+다룬다. 실행 반례와 폐쇄 gate는 `200_object_to_action_boundary_patterns.md` §7이
+소유한다.
+
 ## action vs func: 두 종류의 동사
 
 ### 핵심 구분

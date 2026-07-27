@@ -63,8 +63,8 @@ composition boundary다. 다만 현재 호출되는 world/zone/subject/action은
 경로의 각 하나뿐이다. `world.pgy`의 기존 readiness action과 intent, 나머지
 18개 zone은 import-reachable surface이지만 production call site가 없다.
 
-재귀 import 감사에서 bootstrap closure는 443개 파일이고 missing import는
-0이다. 그 import-reachable 집합의 선언은 `func` 3,495개, `struct` 176개,
+재귀 import 감사에서 bootstrap closure는 450개 파일이고 missing import는
+0이다. 그 import-reachable 집합의 선언은 `func` 3,617개, `struct` 179개,
 `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개,
 `zone` 19개, `world` 1개, `intent` 14개, `role` 4개, `ability` 4개다.
 `class`/`vessel`/`effect`/`relation`/`party`/`roster`는 0개다. 이 수치는
@@ -74,7 +74,7 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | --- | --- | --- |
 | `struct` | `REACHABLE` supporting construct | production typed 계산에 사용되지만 독립 C-path 대체 등급은 아님 |
 | `class`, `object`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
-| `tobject` | `REACHABLE`, not `SUBSTITUTING` | artifact receipt/failure가 production commit 경계에서 실제 생성·소비됨 |
+| `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload까지 소비된다. failure는 생성되지만 caller는 tag만 소비하고 payload는 버린다 |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | `SURFACE` | focused fixture와 syntax surface뿐이며 bootstrap closure 선언/production call은 0; field-kind carriage도 hard substitution 증거가 아님 |
@@ -195,6 +195,16 @@ parser probe, readiness shell의 단어 수는 실행 개사료율로 세지 않
 한 구성체가 `SURFACE`라고 해서 `REACHABLE` 또는 `SUBSTITUTING`으로
 승격하지 않는다. 문서, LOC, 선언 수, readiness `Bool`도 승격 근거가
 아니다.
+
+세 단계 grade 안에서는 call-site의 실제 깊이를 다음 보조 사다리로 기록한다.
+
+```text
+IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
+```
+
+`REACHABLE`을 주장하려면 최소한 production caller의 `INVOKED` 증거가 필요하다.
+결과 enum tag를 읽은 것만으로 payload가 `OUTCOME_CONSUMED`됐다고 세지 않는다.
+`SUBSTITUTING`은 기존 C-owned bypass 삭제와 parity/negative gate까지 요구한다.
 
 ## 구성체별 구현 규칙
 

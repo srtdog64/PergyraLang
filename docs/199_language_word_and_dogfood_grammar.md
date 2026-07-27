@@ -102,7 +102,7 @@ grep -oE "PGY_KEYWORD_(CLASS|AXIS|SUPPORT)_[A-Z_]+" src/lexer/language_keyword_r
 
 ## 2. 도그푸딩 문법 — Pergyra로 쓴 Pergyra
 
-`src/self_hosted/` 아래 **.pgy 1028개** (`_owner.pgy` 472, `main.pgy` 45).
+`src/self_hosted/` 아래 **.pgy 1035개** (`_owner.pgy` 479, `main.pgy` 41).
 
 ### 2.1 기본 문법 규율
 
@@ -125,7 +125,7 @@ func CharAt(s: String, i: Int) -> String {
 - **타입 명시 전면** — 파라미터, 반환, 지역 `let` 모두. 추론 의존 없음.
 - **가드절 + 조기 반환** — `else` 중첩 대신 실패를 먼저 걷어낸다.
 - **예외 없음** — 실패는 값으로 돌아온다. 흔한 형태는 `.ok` 필드를 가진
-  fact 구조체(자체호스팅 코드에 **771회**)와 `Result<T>`.
+  fact 구조체(자체호스팅 코드에 `.ok` **785회**)와 `Result<T>`.
 - **함수 PascalCase, 지역 snake_case.**
 - 주석은 *무엇*이 아니라 **왜**를 적는다.
 
@@ -180,8 +180,8 @@ call chain으로 연결됐다. root intent와 나머지 resource zone은 아직 
 canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
 같다.
 
-- import closure 443개, missing import 0;
-- import-reachable 선언은 `func` 3,495개, `struct` 176개, `enum` 6개,
+- import closure 450개, missing import 0;
+- import-reachable 선언은 `func` 3,617개, `struct` 179개, `enum` 6개,
   `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개, `zone` 19개,
   `world` 1개, `intent` 14개, `role` 4개, `ability` 4개;
 - `class`/`vessel`/`effect`/`relation`/`party`/`roster` 선언은 0개;
@@ -195,18 +195,28 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 - `world.pgy`의 나머지 subject/action 16개는 `Compiler*Ready()` 결합만
   반환하고 production artifact 경로에서 호출되지 않는다;
 - intent 14개와 object projection schema는 import-reachable하지만 active
-  call-site가 없어 `SURFACE`다. tobject 중 artifact receipt/failure는 active
-  commit에서 `REACHABLE`이며 기존 `ParityVerdict`만 surface다.
+  call-site가 없어 `SURFACE`다. tobject 중 artifact receipt는 active commit에서
+  payload까지 소비된다. failure는 materialize되지만 caller가 tag만 읽고 payload는
+  버리며, 기존 `ParityVerdict`는 surface다.
 
 따라서 현재 bootstrap에는 subject/action/zone/world를 잇는 첫
 Pergyra-native orchestration slice가 생겼고 direct-MIR artifact action은
 atomic-visibility receipt까지 실행된다. root intent와 source-to-MIR 전체 action
 takeover는 아직 목표 골격이다. 이 direct-MIR slice는 `REACHABLE`이며
 C-owned 구현을 대체하지 않았으므로 `SUBSTITUTING` 진척으로 세지 않는다.
-또한 self-host parser가 action contract의 caps/effects를 보존하지 않고
-`pgy.mir.v1`도 action 계약을 운반하지 않으므로 문법 fixture 통과를 full action
-semantic parity로 승격하지 않는다. 이후 takeover 규칙은
+Native/self parser와 `pgy.mir.v1`은 action identity와
+requires/within/causes/authorized/caps/effects declaration contract를 운반한다.
+하지만 호출별 authority binding과 runtime authority evidence는 별도 열린 fact이므로
+이 carriage를 full action runtime parity로 승격하지 않는다. 이후 takeover 규칙은
 `docs/self_hosted/17_pergyra_native_dogfood_contract.md`가 소유한다.
+
+구성체의 실행 증거는 단순 선언 수와 분리해
+`IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING`으로
+기록한다. 현재 object 18개는 `IMPORTED`, artifact receipt는
+`OUTCOME_CONSUMED`, failure는 `MATERIALIZED`와 tag-consumed, direct-MIR
+subject/action 한 쌍은 `INVOKED`와 terminal result consumption까지다. 마지막
+`SUBSTITUTING`만 기존 C-owned path 삭제와 executable negative가 함께 있을 때
+hard self-host 진척으로 센다.
 
 ---
 

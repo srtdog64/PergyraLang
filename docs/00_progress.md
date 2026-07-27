@@ -2,6 +2,60 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 object-to-action boundary audit
+
+- Canonical 구현 단위는 keyword 하나가 아니라 `NominalKind`, `FieldRole`,
+  `ReceiverCarriage`, `ParameterCarriage`, `CallableKind`, `ActionContract`,
+  `CallAuthorityBinding`, `RuntimeAuthorityEvidence`의 직교 fact다.
+- Production import closure 450개에서 object 18개는 import만 되고 실제 생성/소비가
+  없다. artifact receipt는 payload까지 소비되지만 failure payload는 버려지며,
+  subject/action 17쌍 중 production 호출은 direct-MIR 한 쌍뿐이다.
+- C/LLVM은 vessel hosted receiver의 `uses_pointer_self`를 일반 vessel 파라미터에도
+  재사용해 canonical value carriage와 달리 caller 원본을 바꾼다. object/tobject
+  bare-field write와 class/subject immutable bare-field write도 shallow semantic
+  검사 밖으로 빠진다. 이것들은 언어 규칙이 아니라 executable negative가 필요한
+  현재 결함이다.
+- 세부 authoring 규칙, 실제 반례, 폐쇄 순서는
+  `docs/200_object_to_action_boundary_patterns.md`가 소유한다. 선언/import 수는
+  `IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING`
+  사다리와 분리하며 마지막 단계만 hard self-host 진척으로 센다.
+
+## 2026-07-28 MIR JSON topology admission checkpoint
+
+- Native `pgy.mir.v1`은 이제 `relation` declaration과 optional
+  `domain_topology` object를 운반한다. Domain row는 graph, owner, directive,
+  participant/layer/endpoint slot의 stable identity를 flat 18-field wire로
+  보존하며, domain declaration이 없는 scalar 문서의 기존 5-field root는
+  그대로 유지된다.
+- Self-host `mir_lower`는 이 object를 한 번 index한 뒤 typed
+  `MirDomainTopologyFacts`로 admit한다. name/ID null pair, known row kind,
+  directive identity uniqueness, declaration field-kind join, relation의 정확한
+  두 subject endpoint를 fail closed로 검사한다. AST/source 복구는 없다. 다만
+  declaration field JSON에 `source_syntax_id`가 없어 field name과 ID가 실제 같은
+  field인지 증명하는 join은 아직 없다.
+- `TrustedLink`도 self-host typed declaration과 canonical AST text로 복원된다.
+  topology 누락, relation owner 누락, unknown kind, duplicate directive,
+  missing/stray slot identity, kind drift negative가 backend output 전에 실패한다.
+- 이 checkpoint의 새 증거는 `REACHABLE`이다. Native C/LLVM zone frontier의
+  기존 `SUBSTITUTING` 경계는 유지되지만, self-host graph plan/runtime consumer는
+  아직 이 carrier를 실행하지 않는다. 따라서 전체 `DomainRuntimeTopology`는
+  계속 `BRIDGE`다.
+- 관측된 gate는 MIR 155/0, `domain_runtime_topology_smoke.sh`,
+  `domain_topology_admission_owner.sh`, `object_action_boundary_contract_smoke.sh`,
+  self-host `mir_lower` source compile 및 positive relation reconstruction이다.
+- 기존 self-host MIR producer는 domain declaration을 만들면서 아직
+  `domain_topology` 부재/empty를 증명해 emit하지 못한다. focused
+  `function_clause_order_minimal` DRV-2 producer gate는 새 admission 경계에서
+  의도적으로 RED다. 이를 optional fallback으로 숨기지 않고 다음 executable
+  rung에서 producer-side typed topology owner와 graph plan으로 닫는다.
+- 다음 rung은 정확히 `BLOCKED`다. 빠진 사실은 declaration-field name/ID join,
+  self-host producer-owned typed topology, Pergyra `MirDomainTopologyGraphPlan`,
+  그리고 fixture의 apply/state-count/hidden-layout/sync-operation fact다. 먼저
+  `player` 이름에 `enemy` ID를 붙인 forged row를 거부하고, 그 다음
+  `zone_layer_projection_runtime`의 exact 3-node/2-edge trace와 mutation 결과를
+  일반 DRV-2 C production path가 한 plan에서 소비해야 한다. 이 다음에는 다른
+  SoT-only commit을 두지 않는다.
+
 ## 2026-07-28 DIR-owned zone frontier topology executable checkpoint
 
 - 실행 경계 `c66e22ca6dd34b50ff2a7a3a8e183852943d3a9a`에서
@@ -26,10 +80,9 @@
   `identifier -> same name`에서 null 결과를 `strcmp`해 SIGSEGV가 나는 RED이며,
   이 checkpoint의 green으로 기록하지 않는다.
 - 전체 `DomainRuntimeTopology`는 계속 `BRIDGE`다. Apply/detach/unlink, pool capacity,
-  authority/state/lifecycle/action transition, MIR JSON carriage, self-host relation
-  declaration admission과 direct consumer가 남아 있다. 다음 falsifier는 같은
-  fixture를 native MIR JSON과 self-host `mir_lower`가 exact relation/topology row로
-  받아 native와 같은 graph trace를 만드는 것이다.
+  authority/state/lifecycle/action transition과 self-host graph/runtime consumer가
+  남아 있다. MIR JSON relation/topology carriage와 typed admission은 위의 최신
+  checkpoint에서 `REACHABLE`로 닫혔다.
 
 ## 2026-07-28 nominal field-kind bridge checkpoint
 

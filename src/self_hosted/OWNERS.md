@@ -687,6 +687,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
+- `src/self_hosted/mir_lower/domain_topology_fact_owner.pgy` -- derived typed
+  admission view of the program-global DIR-owned topology carrier,
+  relation/field-kind joins, stable row identity checks, and
+  missing/unknown/duplicate fail-closed policy. `dir.domain_graph` remains the
+  semantic authority.
 - `src/self_hosted/mir_lower/loop_flow_fact_owner.pgy` -- native
   LoopFlowSummary and stable-indexed entry/exit state fact parsing.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact

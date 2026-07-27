@@ -948,6 +948,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
                    $(COMPILER_DIR)/mir_json_dump_decl.c \
+                   $(COMPILER_DIR)/mir_json_dump_domain_topology.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
                    $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
@@ -1551,6 +1552,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump_domain_topology.o \
                    $(BUILD_DIR)/compiler/mir_json_expression_graph.o \
                    $(BUILD_DIR)/compiler/mir_json_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
@@ -3174,6 +3176,9 @@ self-host-compatibility-corpus-parity-test-smoke: $(PGY)
 self-host-mir-json-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
 
+self-host-domain-topology-admission-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain_topology_admission_owner.sh
+
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh
 
@@ -3186,7 +3191,7 @@ self-host-json-bounded-string-test-smoke: $(PGY)
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
 
-.PHONY: self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
+.PHONY: self-host-domain-topology-admission-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh

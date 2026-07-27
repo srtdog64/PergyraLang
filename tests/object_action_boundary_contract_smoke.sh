@@ -8,6 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 2
 
 DOC="docs/200_object_to_action_boundary_patterns.md"
+DOGFOOD_DOC="docs/199_language_word_and_dogfood_grammar.md"
 fail=0
 
 require_text() {
@@ -31,7 +32,9 @@ fi
 
 # Canonical authoring decisions and the deliberately open tobject debt.
 require_text "$DOC" '현재 구현과 canonical authoring 행렬'
-require_text "$DOC" '`vessel`은 일반 함수 인자로는 값 전달되지만'
+require_text "$DOC" '일반 vessel 파라미터도 포인터로 전달한다'
+require_text "$DOC" 'receiver mode와'
+require_text "$DOC" 'parameter carriage를 합치면'
 require_text "$DOC" '`subject` | identity-bearing active host'
 require_text "$DOC" 'canonical surface는 receiver 없음'
 require_text "$DOC" '현재 semantic은 passive `func`를 허용하지만 새 코드는 method-free'
@@ -45,6 +48,17 @@ require_text "$DOC" '`Requested -> TargetAdmitted -> ArtifactCommitted`'
 require_text "$DOC" '`tobject SelfMirArtifactReceipt`'
 require_text "$DOC" '`crash_durable`은 항상 `false`'
 require_text "$DOC" '`pgy.mir.v1` declaration JSON은'
+require_text "$DOC" '상속 계층이 아니라 경계 프로토콜이다'
+require_text "$DOC" '`tobject` | source lifecycle에서 분리된 immutable transfer value'
+require_text "$DOC" '`effect` | participant에 적용·유지되는 시간적 상태 layer'
+require_text "$DOC" '`relation` | 두 participant identity 사이의 materialized edge'
+require_text "$DOC" '모든 stage를 ceremonial'
+require_text "$DOC" 'IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING'
+require_text "$DOC" '`MIRDeclField`에는 현재 mutability fact도 없다'
+require_text "$DOC" '이름과 전달된 ID가 실제 같은 field를'
+reject_text "$DOC" '`vessel`은 일반 함수 인자로는 값 전달되지만'
+reject_text "$DOGFOOD_DOC" 'self-host parser가 action contract의 caps/effects를 보존하지 않고'
+require_text "$DOGFOOD_DOC" 'requires/within/causes/authorized/caps/effects declaration contract를 운반한다'
 
 # The parser owns six distinct nominal identities; aliases may not collapse them.
 for kind in CLASS SUBJECT VESSEL STRUCT OBJECT TOBJECT; do

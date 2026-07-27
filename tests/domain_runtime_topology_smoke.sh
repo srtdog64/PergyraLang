@@ -19,6 +19,11 @@ require_term() {
 
 require_term "src/compiler/dir.h" "DIR_DOMAIN_TOPOLOGY_LINK_RELATION"
 require_term "src/compiler/mir.c" "mir_domain_topology_project_from_dir"
+require_term "src/compiler/mir_json_dump.c" \
+    "mir_json_emit_domain_topology(out, mir)"
+require_term "src/compiler/mir_json_dump_decl.c" "AST_RELATION_DECL"
+require_term "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "MIR domain topology facts are missing or invalid"
 require_term "src/compiler/driver_app.c" \
     "mir_lower_request_bind_dir(&mir_request, dir)"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
@@ -38,6 +43,11 @@ if rg -n 'ast_zone_(refreshes|maintained_effects|links)' \
     fail "zone frontier graph reconstructs DIR-owned topology from AST"
 fi
 
+if rg -n 'ast_(zone|relation|effect|node|domain)_[a-z_]+\(|owner_node_id|DIRProgram|DIRDomainTopology' \
+    "$ROOT_DIR/src/compiler/mir_json_dump_domain_topology.c" >/dev/null; then
+    fail "MIR JSON topology emitter reopened AST/DIR recovery or leaked a DIR-local id"
+fi
+
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
 pgy_require_runnable_binary_here "domain-runtime-topology" "$PGY" \
@@ -48,6 +58,74 @@ trap 'rm -rf -- "$tmp_dir"' EXIT
 
 source_path="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 source_arg="$(pgy_path_for_compiler "$PGY" "$source_path")"
+
+PYTHON_BIN="${PYTHON:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    else
+        fail "python3/python is required for MIR topology JSON validation"
+    fi
+fi
+
+mir_json="$tmp_dir/topology.mir.json"
+"$PGY" --mir-json "$source_arg" >"$mir_json" 2>"$tmp_dir/mir-json.log" \
+    || fail "native MIR topology JSON emission failed"
+
+"$PYTHON_BIN" - "$mir_json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as stream:
+    doc = json.load(stream)
+
+relation = [row for row in doc.get("decls", []) if row.get("name") == "TrustedLink"]
+assert len(relation) == 1, relation
+relation = relation[0]
+assert relation.get("kind") == "relation", relation
+assert relation.get("nominal_kind") == "relation", relation
+field_kinds = {field.get("name"): field.get("field_kind") for field in relation.get("fields", [])}
+assert field_kinds == {
+    "source": "subject_slot",
+    "target": "subject_slot",
+    "packet": "tobject_slot",
+}, field_kinds
+
+topology = doc.get("domain_topology")
+assert isinstance(topology, dict), topology
+assert isinstance(topology.get("domain_graph_id"), int)
+assert topology["domain_graph_id"] > 0
+rows = topology.get("rows")
+assert isinstance(rows, list) and len(rows) == 3, rows
+assert [(row.get("kind"), row.get("owner_name")) for row in rows] == [
+    ("refresh", "Poisoned"),
+    ("publish", "TrustedLink"),
+    ("link-relation", "BattleZone"),
+]
+assert (rows[0]["projection_slot_name"], rows[0]["source_slot_name"]) == ("view", "bearer")
+assert (rows[1]["projection_slot_name"], rows[1]["source_slot_name"]) == ("packet", "target")
+assert (rows[2]["layer_slot_name"], rows[2]["left_slot_name"], rows[2]["right_slot_name"]) == ("trust", "player", "enemy")
+
+name_fields = [
+    "projection_slot", "source_slot", "layer_slot", "target_slot",
+    "left_slot", "right_slot", "participant_slot",
+]
+source_ids = set()
+for row in rows:
+    assert row["owner_source_syntax_id"] > 0
+    assert row["source_syntax_id"] > 0
+    assert row["source_syntax_id"] not in source_ids
+    source_ids.add(row["source_syntax_id"])
+    for field in name_fields:
+        name = row[f"{field}_name"]
+        source_id = row[f"{field}_source_syntax_id"]
+        assert (name is None and source_id == 0) or (
+            isinstance(name, str) and name and isinstance(source_id, int) and source_id > 0
+        ), (field, name, source_id)
+PY
 
 run_projection() {
     local backend="$1"

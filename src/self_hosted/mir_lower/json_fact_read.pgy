@@ -12,6 +12,7 @@ struct MirDocumentFactIndex {
     let valid: Bool;
     let root: JsonObjectFactTable;
     let declarations: JsonArrayObjectFactTable;
+    let domain_topology: JsonObjectFactTable;
     let routines: JsonArrayObjectFactTable;
     let parallel_capture_boundaries: JsonArrayObjectFactTable;
 }
@@ -20,13 +21,14 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
     let root: JsonObjectFactTable = EmptyJsonObjectFactTable();
     let declarations: JsonArrayObjectFactTable =
         EmptyJsonArrayObjectFactTable();
+    let domain_topology: JsonObjectFactTable = EmptyJsonObjectFactTable();
     let routines: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
     let boundaries: JsonArrayObjectFactTable =
         EmptyJsonArrayObjectFactTable();
     let n: Int = StringLength(json);
     if n <= 0 || JsonCharCodeAt(json, n, 0) != JsonAsciiCode("{") {
         return MirDocumentFactIndex(
-            false, root, declarations, routines, boundaries
+            false, root, declarations, domain_topology, routines, boundaries
         );
     }
     let cursor: Int = 1;
@@ -37,7 +39,7 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
         if code == JsonAsciiCode("}") {
             root = JsonObjectFactTable(true, json, 0, cursor + 1);
             return MirDocumentFactIndex(
-                true, root, declarations, routines, boundaries
+                true, root, declarations, domain_topology, routines, boundaries
             );
         }
         if code == JsonAsciiCode(",") {
@@ -83,11 +85,19 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
             ) {
                 boundaries = table;
             }
+        } else if value_start < value_end &&
+            JsonCharCodeAt(json, value_end, value_start) ==
+                JsonAsciiCode("{") && JsonObjectKeyEqualsWithin(
+                    json, key_start, key_end, "domain_topology"
+                ) {
+            domain_topology = JsonObjectFactTableFromBounds(
+                json, value_start, value_end
+            );
         }
         cursor = value_end;
     }
     return MirDocumentFactIndex(
-        false, root, declarations, routines, boundaries
+        false, root, declarations, domain_topology, routines, boundaries
     );
 }
 

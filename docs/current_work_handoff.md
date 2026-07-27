@@ -6,55 +6,76 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - DIR-owned zone frontier topology
+## Current resume checkpoint - MIR JSON topology admission
 
-- Exact executable checkpoint:
-  `c66e22ca6dd34b50ff2a7a3a8e183852943d3a9a` on `main`, parent
-  `36aa9975ef77c53567284dcd48281458ebf3dd9a`. This handoff refresh follows as
-  a documentation commit; retain `c66e22ca` as the executable boundary.
-- Dirty state at the executable checkpoint contains only the three protected
-  concurrent user files, none staged or included:
+- Checkout base before this supporting slice is
+  `da26dc09d0ad5c04ee94b122bb23e18f6073a611` on `main`. The last hard
+  substitution checkpoint remains
+  `c66e22ca6dd34b50ff2a7a3a8e183852943d3a9a`: native C/LLVM zone frontier
+  topology consumes MIR instead of the deleted AST graph entrypoints. After
+  landing this slice, use `git rev-parse HEAD` for its exact revision without
+  relabeling it as a substitution boundary.
+- The only protected concurrent user files are
   `driver_rung2_indexed_assignment_parity_owner.sh`,
   `driver_rung2_match_parity_owner.sh`, and
-  `driver_rung2_owner_field_parity_owner.sh`.
-- Active executable rung: the native zone frontier topology slice is
-  `SUBSTITUTING`. `dir.domain_graph` owns projection refresh/publish/bind,
-  maintained-effect and relation-link rows with stable owner/directive/slot
-  identity. MIR is a copied carrier. C and LLVM build the target-neutral graph
-  only from that carrier.
-- Deleted direct bypasses are
-  `propagation_graph_build_from_zone(ASTNode *)` and
-  `pgy_codegen_zone_frontier_graph_pass_limit(ASTNode *)`. Production MIR
-  lowering requires an explicitly bound same-source DIR; missing DIR, wrong
-  source-program identity, damaged slot identity, and unknown topology owner
-  fail before backend output.
-- Falsifying fixture `zone_layer_projection_runtime` is green in both backends:
-  exact graph `nodes=3 edges=2 acyclic depth=2 pass_limit=2`, dependencies
-  `trust <- player` and `trust <- enemy`. The generated loop limit is 3 because
-  the count floor exceeds graph depth; the trace gate prevents that floor from
-  hiding a missing graph.
-- Last observed gates: isolated LLVM-enabled `-j4` compiler/LSP build green;
-  DIR 15/0; MIR 155/0 plus destructure, match-binding, speculation and domain
-  topology smoke gates green; focused C/LLVM backend compare green. The
-  transpile test binary compiles after its central helpers bind real DIR facts.
-- Current broad `test-transpile` is RED before domain tests at expression
-  `identifier -> same name`: `emit_expression` returns null and the test calls
-  `strcmp`, producing SIGSEGV; GDB stops in `ucrtbase!strcmp`. No causal
-  attribution to this rung has been established, so it is an explicit
-  integration blocker rather than a claimed regression or pass.
-- Whole-family status remains `BRIDGE`, not `CLOSED`. Apply/detach/unlink, pool
-  capacity, authority/state/lifecycle/action-transition rows, runtime operation
-  emission, MIR JSON carriage, self-host relation declaration admission, and a
-  self-host direct consumer are open.
-- Next executable falsifier: carry the exact relation/topology rows for
-  `zone_layer_projection_runtime` through native `pgy.mir.v1`, admit them in
-  self-host `mir_lower`, then require the self-host direct path to produce the
-  same 3-node/2-edge trace without AST/source recovery. This is the next rung;
-  do not start another unrelated SoT-only closure first.
-- Resume by reading `docs/200_object_to_action_boundary_patterns.md` section
-  4.2.1, the `dir.domain_graph` registry row, and
-  `tests/domain_runtime_topology_smoke.sh`, then run the narrow gate before a
-  broader matrix.
+  `driver_rung2_owner_field_parity_owner.sh`. They must remain unstaged and
+  outside this checkpoint commit.
+- Native `pgy.mir.v1` now carries `relation` declarations plus optional
+  `domain_topology: { domain_graph_id, rows }`. Domain rows carry graph,
+  owner, directive, participant/layer/endpoint slot identity values. A
+  non-domain scalar document retains its exact five-field root shape.
+- Self-host `mir_lower` indexes the topology object once and admits it as typed
+  `MirDomainTopologyFacts`. Missing topology for a domain declaration, unknown
+  kind, duplicate directive identity, damaged null/name-ID pairs, owner or
+  field-kind mismatch, and invalid relation cardinality fail before backend
+  emission. No source/AST recovery or compatibility read exists. This is not
+  yet an exact name-to-ID proof: declaration JSON fields do not carry their
+  `source_syntax_id`, so a valid field name paired with another field's valid ID
+  cannot currently be rejected by a declaration-field identity join.
+- Relation identity is also connected through the self-host declaration,
+  typed-AST and semantic-constructor projections, so `TrustedLink` reconstructs
+  as a relation with two subject slots and one tobject slot.
+- Evidence status for the JSON/admission delta is `REACHABLE`, not
+  `SUBSTITUTING`. The native C/LLVM frontier remains `SUBSTITUTING`, while the
+  whole `dir.domain_graph` family remains `BRIDGE`. Admission and canonical
+  reconstruction do not yet execute a Pergyra-owned graph plan.
+- Last observed green gates: MIR 155/0; native
+  `domain_runtime_topology_smoke.sh`; self-host
+  `domain_topology_admission_owner.sh`; object/action boundary contract;
+  `mir_lower` source compile; positive verify-input and relation reconstruction.
+  The broad `test-transpile` remains independently RED before domain tests at
+  expression `identifier -> same name`, where a null emission reaches `strcmp`.
+- Focused DRV-2 `function_clause_order_minimal` producer parity now reaches the
+  new fail-closed boundary and is RED because the self-host MIR producer does
+  not own or emit a proved empty/domain topology fact. Do not weaken admission
+  or graft the native oracle row onto self output. This exact producer gap is
+  part of the next executable rung.
+- Hard-guard accounting: this is the second consecutive supporting/SoT-only
+  checkpoint after `c66e22ca`. The next commit must land executable replacement
+  evidence; do not insert another documentation, registry, or admission-only
+  commit.
+- Exact `BLOCKED` record for the next rung: missing facts are declaration-field
+  name/`source_syntax_id` identity join, self-host producer-owned typed topology,
+  the target-neutral `MirDomainTopologyGraphPlan`, and the fixture's apply,
+  state-count, hidden-layout and sync-operation facts. `dir.domain_graph` owns
+  topology identity; its last legitimate consumers are the plan and self-host
+  C/LLVM emitters. AST/source recovery, native-oracle grafting, and
+  count-floor-only success are forbidden fallbacks.
+- A bounded experiment to carry the missing topology through the current
+  semantic graph was rejected and reverted: the `own` variant compiled, then
+  the diagnostic executable panicked out of bounds while satisfying
+  `graph_shape`. The current constructor path also conflates storage-field and
+  exposed-parameter counts. No experimental source change or inferred topology
+  fact remains in the tree.
+- Next executable falsifiers: first, a forged row with name `player` and the
+  valid `enemy` field ID must fail admission. Then `zone_layer_projection_runtime`
+  must make the general DRV-2 C production path consume exact
+  `nodes=3 edges=2 depth=2 pass_limit=2`, `trust <- player`, `trust <- enemy`,
+  and the exact mutation/state/layout/sync result from one typed plan.
+- Resume with `docs/200_object_to_action_boundary_patterns.md` sections 2.1 and
+  4.2.1, the `dir.domain_graph` registry row,
+  `tests/domain_runtime_topology_smoke.sh`, and
+  `tests/self_hosted/parity/domain_topology_admission_owner.sh`.
 
 ## Previous compiler world/action boundary checkpoint (superseded)
 
@@ -86,8 +107,8 @@ historical context; the current executable state is the section above.
   target-neutral topology plan and self-host C/LLVM runtime emitters. Backend
   AST/source topology rereads are the forbidden fallback. The next falsifying
   fixture is `zone_layer_projection_runtime`.
-- The production import closure is 443 files with no missing import. Reachable
-  Pergyra-native declarations include func 3,495, struct 176, enum 6, object
+- The production import closure is 450 files with no missing import. Reachable
+  Pergyra-native declarations include func 3,617, struct 179, enum 6, object
   18, tobject 3, subject 17, action 17, zone 19, world 1, and intent 14.
   Keyword/declaration counts are topology
   evidence only; only the direct-MIR world/zone/subject/action call chain is a
@@ -1455,12 +1476,17 @@ not a project gate result.
 
 ## Historical temporary artifacts through v60
 
-The current full artifact and driver oracle remain under
-`.tmp/instruction_writer_pressure/` because the next executable rung consumes
-that exact artifact. The relevant file is
-`driver_source_pool.mir.json` (51,807,108 bytes, SHA above). The 40,263,680-byte
-`driver_source.mir.json` is the preceding RED partial and must never be used as
-input. Pressure evidence remains under
+The ignored temporary tree is diagnostic evidence, not semantic authority.
+During the 2026-07-28 cleanup, a command intended for exact probe binaries
+traversed ignored `.tmp` paths and removed a broader set of ignored diagnostics.
+No tracked file or protected dirty file was touched, but the historical
+`.tmp/instruction_writer_pressure/driver_source_pool.mir.json` (formerly
+51,807,108 bytes), `.tmp/driver_rung2_topology.exe`, and
+`.tmp/native_zone_topology.c` are no longer present and are not recoverable from
+Git. Any resumed v60 pressure run must regenerate and hash-check the exact full
+MIR from its owner before use; the 40,263,680-byte RED partial must never be
+substituted. The names below are historical references and their existence must
+be checked rather than assumed. Pressure evidence was recorded under
 `.tmp/build-pressure/instruction-stream-ready.*` and
 `.tmp/build-pressure/instruction-string-pool-ready.*`. Consumer progression is
 captured by `full-mir-consumer-admitted.*`,
@@ -1602,8 +1628,9 @@ evidence only, not semantic authority or commit content.
 4. Confirm no unrelated `pgy`, `genN`, `driver_oracle`, `gcc`, `cc1`, or
    `clang` process is active before the pressure gate; concurrent broad builds
    invalidate attribution.
-5. Continue the v60 executable on the same frozen MIR and fixed
-   1,800-second/3,072 MB pressure gate; the first required marker is
-   `semantic-body-type-stage assignment:done`.
+5. Regenerate and hash-check the exact v60 full MIR first; the former frozen
+   temporary artifact was removed in the ignored-temp cleanup. Then continue
+   the v60 executable under the fixed 1,800-second/3,072 MB pressure gate; the
+   first required marker is `semantic-body-type-stage assignment:done`.
 6. Treat current source, registries, and executable gates as authoritative if
    this snapshot disagrees with them.
