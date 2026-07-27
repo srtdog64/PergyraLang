@@ -12,6 +12,9 @@ owner, and the named executable gate.
   `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
   revision. The three protected parity-owner files named below remain separate
   concurrent user work and are not part of this change.
+- Exact executable/capability checkpoint: `cc31ac2666061234bd8d09b04f13d64c26cf3a53`.
+  The handoff refresh that records this checkpoint follows it without changing
+  compiler semantics; use `git rev-parse HEAD` for the exact checkout revision.
 - Active executable rung: `REACHABLE`, not `SUBSTITUTING`. Production direct
   MIR now follows exactly one graph:
   `driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld ->
@@ -89,6 +92,12 @@ owner, and the named executable gate.
   compiler-world/component contracts, object/action, execution-action, C/LLVM
   authority ABI including unsupported named/multiple/indirect shapes, hosted
   later-value-object parity, and AIR 144/0 are green.
+- Current focused capability evidence is green in both C and LLVM:
+  `run_manifest.sh`, `run_manifest.ps1`, and `run_runtime_enforce.sh` cover
+  literal read/write/update modes, dynamic-mode conservative inference,
+  `FileExists`, host grant denial, and denied-write zero artifact. The
+  object/action boundary, documentation-quality, and recursive compiler
+  topology gates are also green.
 - Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
   pre-existing Option/Result match-destructuring direct unit cases. The graph
   cycle/provenance cases pass; the full `type_resolution_dag_smoke.sh` wrapper
