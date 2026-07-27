@@ -145,6 +145,11 @@ inventory must not become a second fact-family owner registry.
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
   cardinality, selection, and top-level function declaration routing.
+- `src/self_hosted/semantic/ast_action_contract_fact_owner.pgy` -- callable-
+  identity-bound `func`/`action` variant, subject ownership, body handle,
+  action-only `requires`/`within`/`causes`/`authorized by`, and callable
+  caps/effects rows. Codegen and MIR consume this owner rather than skipping
+  typed rows or inferring action identity from clauses.
 - `src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy` -- typed
   generic-list node to ordered formal-parameter/default-type rows; nested type
   defaults are partitioned once by the delimited-range owner, and provenance
@@ -619,6 +624,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction,
   including MIR-carried generic parameter constraints and default types; it
   never guesses a missing declaration default.
+- `src/self_hosted/mir_lower/declaration_method_contract_fact_owner.pgy` --
+  single bounded `pgy.mir.v1` method-contract read, validation, and canonical
+  AST-row projection for explicit `function`/`action` identity.
+- `src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy` -- binds
+  nominal, ability, and role method rows to their one contract fact and, for
+  executable methods, to the corresponding routine reconstruction.
 - `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower-specific
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware

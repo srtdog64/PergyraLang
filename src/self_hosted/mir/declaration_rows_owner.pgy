@@ -73,6 +73,100 @@ func SelfMirDeclarationAppendMethodParams(
     return true;
 }
 
+func SelfMirDeclarationCopyStringRange(
+    source: Array<String>, start: Int, count: Int,
+    inout target: Array<String>
+) -> Bool {
+    if start < 0 || count < 0 || start + count > ArrayLength(source) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(target, source[start + i]);
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirDeclarationAppendMethodContract(
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    inout method_is_actions: Array<Int>,
+    inout method_requires_starts: Array<Int>,
+    inout method_requires_counts: Array<Int>,
+    inout method_requires_names: Array<String>,
+    inout method_within_zone_names: Array<String>,
+    inout method_causes_names: Array<String>,
+    inout method_authorized_by_starts: Array<Int>,
+    inout method_authorized_by_counts: Array<Int>,
+    inout method_authorized_by_names: Array<String>,
+    inout method_caps_present: Array<Int>,
+    inout method_cap_starts: Array<Int>,
+    inout method_cap_counts: Array<Int>,
+    inout method_cap_names: Array<String>,
+    inout method_effects_present: Array<Int>,
+    inout method_effect_starts: Array<Int>,
+    inout method_effect_counts: Array<Int>,
+    inout method_effect_names: Array<String>
+) -> Bool {
+    let facts: SemanticAstActionContractFacts = signatures.action_contracts;
+    if signature_index < 0 ||
+        signature_index >= ArrayLength(facts.callable_node_ids) {
+        return false;
+    }
+    let requires_start: Int = ArrayLength(method_requires_names);
+    let authority_start: Int = ArrayLength(method_authorized_by_names);
+    let cap_start: Int = ArrayLength(method_cap_names);
+    let effect_start: Int = ArrayLength(method_effect_names);
+    if !SelfMirDeclarationCopyStringRange(
+        facts.requires_names, facts.requires_starts[signature_index],
+        facts.requires_counts[signature_index], method_requires_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.authorized_by_names,
+        facts.authorized_by_starts[signature_index],
+        facts.authorized_by_counts[signature_index],
+        method_authorized_by_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.cap_names, facts.cap_starts[signature_index],
+        facts.cap_counts[signature_index], method_cap_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.effect_names, facts.effect_starts[signature_index],
+        facts.effect_counts[signature_index], method_effect_names
+    ) {
+        return false;
+    }
+    let is_action: Int = 0;
+    if facts.is_actions[signature_index] { is_action = 1; }
+    ArrayPush(method_is_actions, is_action);
+    ArrayPush(method_requires_starts, requires_start);
+    ArrayPush(
+        method_requires_counts,
+        ArrayLength(method_requires_names) - requires_start
+    );
+    ArrayPush(
+        method_within_zone_names, facts.within_zone_names[signature_index]
+    );
+    ArrayPush(method_causes_names, facts.causes_names[signature_index]);
+    ArrayPush(method_authorized_by_starts, authority_start);
+    ArrayPush(
+        method_authorized_by_counts,
+        ArrayLength(method_authorized_by_names) - authority_start
+    );
+    let caps_present: Int = 0;
+    if facts.caps_node_ids[signature_index] >= 0 { caps_present = 1; }
+    ArrayPush(method_caps_present, caps_present);
+    ArrayPush(method_cap_starts, cap_start);
+    ArrayPush(method_cap_counts, ArrayLength(method_cap_names) - cap_start);
+    let effects_present: Int = 0;
+    if facts.effects_node_ids[signature_index] >= 0 { effects_present = 1; }
+    ArrayPush(method_effects_present, effects_present);
+    ArrayPush(method_effect_starts, effect_start);
+    ArrayPush(
+        method_effect_counts, ArrayLength(method_effect_names) - effect_start
+    );
+    return true;
+}
+
 func SelfMirDeclarationsFromAnalysis(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
@@ -91,6 +185,27 @@ func SelfMirDeclarationsFromAnalysis(
     let method_counts: Array<Int> = rows.method_counts;
     let method_names: Array<String> = rows.method_names;
     let method_returns: Array<String> = rows.method_returns;
+    let method_is_actions: Array<Int> = rows.method_is_actions;
+    let method_requires_starts: Array<Int> = rows.method_requires_starts;
+    let method_requires_counts: Array<Int> = rows.method_requires_counts;
+    let method_requires_names: Array<String> = rows.method_requires_names;
+    let method_within_zone_names: Array<String> =
+        rows.method_within_zone_names;
+    let method_causes_names: Array<String> = rows.method_causes_names;
+    let method_authorized_by_starts: Array<Int> =
+        rows.method_authorized_by_starts;
+    let method_authorized_by_counts: Array<Int> =
+        rows.method_authorized_by_counts;
+    let method_authorized_by_names: Array<String> =
+        rows.method_authorized_by_names;
+    let method_caps_present: Array<Int> = rows.method_caps_present;
+    let method_cap_starts: Array<Int> = rows.method_cap_starts;
+    let method_cap_counts: Array<Int> = rows.method_cap_counts;
+    let method_cap_names: Array<String> = rows.method_cap_names;
+    let method_effects_present: Array<Int> = rows.method_effects_present;
+    let method_effect_starts: Array<Int> = rows.method_effect_starts;
+    let method_effect_counts: Array<Int> = rows.method_effect_counts;
+    let method_effect_names: Array<String> = rows.method_effect_names;
     let variant_starts: Array<Int> = rows.variant_starts;
     let variant_counts: Array<Int> = rows.variant_counts;
     let variant_names: Array<String> = rows.variant_names;
@@ -165,6 +280,18 @@ func SelfMirDeclarationsFromAnalysis(
                 ) {
                     return SelfMirDeclarationRowsEmpty();
                 }
+                if !SelfMirDeclarationAppendMethodContract(
+                    analysis.signatures, signature_i,
+                    method_is_actions,
+                    method_requires_starts, method_requires_counts,
+                    method_requires_names, method_within_zone_names,
+                    method_causes_names, method_authorized_by_starts,
+                    method_authorized_by_counts, method_authorized_by_names,
+                    method_caps_present, method_cap_starts,
+                    method_cap_counts, method_cap_names,
+                    method_effects_present, method_effect_starts,
+                    method_effect_counts, method_effect_names
+                ) { return SelfMirDeclarationRowsEmpty(); }
                 method_count = method_count + 1;
             }
             signature_i = signature_i + 1;
@@ -247,6 +374,17 @@ func SelfMirDeclarationsFromAnalysis(
             ) {
                 return SelfMirDeclarationRowsEmpty();
             }
+            if !SelfMirDeclarationAppendMethodContract(
+                analysis.signatures, signature_i, method_is_actions,
+                method_requires_starts, method_requires_counts,
+                method_requires_names, method_within_zone_names,
+                method_causes_names, method_authorized_by_starts,
+                method_authorized_by_counts, method_authorized_by_names,
+                method_caps_present, method_cap_starts, method_cap_counts,
+                method_cap_names, method_effects_present,
+                method_effect_starts, method_effect_counts,
+                method_effect_names
+            ) { return SelfMirDeclarationRowsEmpty(); }
             method_i = method_i + 1;
         }
         ArrayPush(method_counts, method_count);
@@ -339,6 +477,17 @@ func SelfMirDeclarationsFromAnalysis(
             ) {
                 return SelfMirDeclarationRowsEmpty();
             }
+            if !SelfMirDeclarationAppendMethodContract(
+                analysis.signatures, signature_i, method_is_actions,
+                method_requires_starts, method_requires_counts,
+                method_requires_names, method_within_zone_names,
+                method_causes_names, method_authorized_by_starts,
+                method_authorized_by_counts, method_authorized_by_names,
+                method_caps_present, method_cap_starts, method_cap_counts,
+                method_cap_names, method_effects_present,
+                method_effect_starts, method_effect_counts,
+                method_effect_names
+            ) { return SelfMirDeclarationRowsEmpty(); }
             ability_method_i = ability_method_i + 1;
         }
         ArrayPush(method_counts, ability_method_count);
@@ -408,7 +557,16 @@ func SelfMirDeclarationsFromAnalysis(
     return SelfMirDeclarationRows(
         kinds, nominal_kinds, names, target_types, field_starts, field_counts,
         field_names, field_types, method_starts, method_counts,
-        method_names, method_returns, variant_starts, variant_counts,
+        method_names, method_returns,
+        method_is_actions,
+        method_requires_starts, method_requires_counts, method_requires_names,
+        method_within_zone_names, method_causes_names,
+        method_authorized_by_starts, method_authorized_by_counts,
+        method_authorized_by_names, method_caps_present,
+        method_cap_starts, method_cap_counts, method_cap_names,
+        method_effects_present, method_effect_starts, method_effect_counts,
+        method_effect_names,
+        variant_starts, variant_counts,
         variant_names, variant_param_starts, variant_param_counts,
         variant_param_type_names,
         generic_starts, generic_counts, generic_names,

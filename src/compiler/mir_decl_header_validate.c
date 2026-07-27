@@ -8,6 +8,8 @@
 #include "mir_decl_header_zone_state_validate.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
+#include "../runtime/pgy_runtime_capability.h"
+#include "../semantic/type_system.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -519,6 +521,19 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 }
                 return false;
             }
+            if (routine->is_action_like != method->is_action_like ||
+                ((routine->within_zone == NULL) !=
+                    (method->within_zone == NULL)) ||
+                (routine->within_zone != NULL &&
+                    strcmp(routine->within_zone,
+                           method->within_zone) != 0)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] callable contract disagrees with routine projection",
+                        header_index, i);
+                }
+                return false;
+            }
         }
 
         if (method->name == NULL) {
@@ -554,8 +569,94 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
+        if (method->required_ability_ref_count > 0 &&
+            method->required_ability_refs == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has required abilities but no structured storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (!method->is_action_like &&
+            (method->required_ability_ref_count > 0 ||
+             method->within_zone != NULL || method->causes_effect != NULL ||
+             method->authorized_by_count > 0)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] carries action-only contract facts on a function",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (method->is_action_like &&
+            (header->ast_type != AST_CLASS_DECL ||
+             header->nominal_kind != NOMINAL_DECL_SUBJECT)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] action is not owned by a subject",
+                    header_index, i);
+            }
+            return false;
+        }
+        if ((method->within_zone != NULL &&
+                method->within_zone[0] == '\0') ||
+            (method->causes_effect != NULL &&
+                method->causes_effect[0] == '\0')) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has an empty action contract name",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t r = 0; r < method->required_ability_ref_count; r++) {
+            const MIRAbilityRef *ref = &method->required_ability_refs[r];
+            if (ref->base_name == NULL || ref->base_name[0] == '\0' ||
+                (ref->actual_arg_count > 0 &&
+                 ref->actual_arg_type_names == NULL)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] required ability[%zu] is incomplete",
+                        header_index, i, r);
+                }
+                return false;
+            }
+            for (size_t a = 0; a < ref->actual_arg_count; a++) {
+                if (ref->actual_arg_type_names[a] == NULL ||
+                    ref->actual_arg_type_names[a][0] == '\0') {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] method[%zu] required ability[%zu] actual[%zu] is incomplete",
+                            header_index, i, r, a);
+                    }
+                    return false;
+                }
+            }
+            for (size_t p = 0; p < r; p++) {
+                const MIRAbilityRef *prior =
+                    &method->required_ability_refs[p];
+                bool same = prior->base_name != NULL &&
+                    strcmp(ref->base_name, prior->base_name) == 0 &&
+                    ref->actual_arg_count == prior->actual_arg_count;
+                for (size_t a = 0;
+                     same && a < ref->actual_arg_count; a++) {
+                    same = strcmp(ref->actual_arg_type_names[a],
+                                  prior->actual_arg_type_names[a]) == 0;
+                }
+                if (same) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] method[%zu] required ability[%zu] is duplicated",
+                            header_index, i, r);
+                    }
+                    return false;
+                }
+            }
+        }
         for (size_t a = 0; a < method->authorized_by_count; a++) {
-            if (method->authorized_by_names[a] == NULL) {
+            if (method->authorized_by_names[a] == NULL ||
+                method->authorized_by_names[a][0] == '\0') {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR declaration header[%zu] method[%zu] authorization[%zu] has no subject metadata",
@@ -563,6 +664,36 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 }
                 return false;
             }
+            for (size_t b = 0; b < a; b++) {
+                if (strcmp(method->authorized_by_names[a],
+                           method->authorized_by_names[b]) == 0) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] method[%zu] authorization[%zu] is duplicated",
+                            header_index, i, a);
+                    }
+                    return false;
+                }
+            }
+        }
+        if ((method->declared_capabilities & ~(PGY_CAP_IO_READ |
+                PGY_CAP_IO_WRITE | PGY_CAP_NETWORK | PGY_CAP_CLOCK |
+                PGY_CAP_RANDOM | PGY_CAP_ENV | PGY_CAP_RENDER |
+                PGY_CAP_AUDIO | PGY_CAP_INPUT)) != 0 ||
+            (!method->has_caps_clause &&
+                method->declared_capabilities != 0) ||
+            (method->has_caps_clause &&
+                method->declared_capabilities == 0) ||
+            (method->declared_effects & ~(EFFECT_SECURE | EFFECT_REMOTE |
+                EFFECT_NONDETERMINISTIC | EFFECT_COLLAPSE | EFFECT_UNSAFE |
+                EFFECT_IO | EFFECT_ALLOC | EFFECT_AUTHORITY)) != 0 ||
+            (!method->has_effects_clause && method->declared_effects != 0)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has invalid callable caps/effects presence or mask",
+                    header_index, i);
+            }
+            return false;
         }
         if (method->projection_write_count > 0
             && (method->projection_write_root_names == NULL

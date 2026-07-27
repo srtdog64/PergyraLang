@@ -63,7 +63,7 @@ mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
     return true;
 }
 
-static void
+void
 mir_decl_method_metadata_clear(MIRDeclMethod *meta)
 {
     if (meta == NULL)
@@ -79,11 +79,18 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
             free(meta->authorized_by_names[i]);
     }
     free(meta->authorized_by_names);
+    if (meta->required_ability_refs != NULL) {
+        for (size_t i = 0; i < meta->required_ability_ref_count; i++)
+            mir_ability_ref_clear(&meta->required_ability_refs[i]);
+    }
+    free(meta->required_ability_refs);
     mir_decl_method_projection_metadata_clear(meta);
     meta->param_type_names = NULL;
     meta->return_type_name = NULL;
     meta->authorized_by_names = NULL;
     meta->authorized_by_count = 0;
+    meta->required_ability_refs = NULL;
+    meta->required_ability_ref_count = 0;
 }
 
 static void
@@ -193,6 +200,26 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     mir_decl_method_metadata_capture_type_names(meta);
     meta->is_async = method->is_async_decl;
     meta->is_action_like = ast_func_is_action(method);
+    {
+        size_t required_count = ast_func_required_ability_count(method);
+        meta->required_ability_ref_count = required_count;
+        if (required_count > 0 && required_count <= SIZE_MAX /
+            sizeof(MIRAbilityRef)) {
+            meta->required_ability_refs = calloc(
+                required_count, sizeof(MIRAbilityRef));
+            if (meta->required_ability_refs != NULL) {
+                for (size_t i = 0; i < required_count; i++) {
+                    ASTNode *required =
+                        ast_func_required_ability(method, i);
+                    if (!mir_ability_ref_capture(
+                            &meta->required_ability_refs[i], required)) {
+                        mir_ability_ref_clear(
+                            &meta->required_ability_refs[i]);
+                    }
+                }
+            }
+        }
+    }
     meta->within_zone = ast_func_within_zone(method);
     meta->causes_effect = ast_func_causes_effect(method);
     meta->authorized_by_count = ast_func_authorized_by_count(method);
@@ -207,6 +234,10 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
             }
         }
     }
+    meta->has_caps_clause = ast_func_has_caps_clause(method);
+    meta->declared_capabilities = ast_func_declared_capabilities(method);
+    meta->has_effects_clause = ast_func_has_effects_clause(method);
+    meta->declared_effects = ast_func_declared_effects(method);
     (void)mir_decl_method_projection_metadata_capture(
         meta, ast_func_body(method));
 }

@@ -29,8 +29,7 @@ pgy_selfhost_prepare_driver_rung2_mir_oracles() {
         "$oracle_bin" >"$BUILD_DIR/${base}.oracle.run.raw"
         tr -d '\r' <"$BUILD_DIR/${base}.oracle.run.raw" \
             >"$BUILD_DIR/${base}.oracle.run"
-    done
-}
+    done; }
 pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local backend="$1" driver_bin="$2"
     local fixture_rel base mir_json mir_json_arg self_mir_json self_mir_json_arg oracle_canonical
@@ -67,6 +66,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
+        pgy_selfhost_verify_driver_rung2_action_contract "$backend" "$base" "$mir_json" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_machine_facts \
             "$machine_fixture" "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"

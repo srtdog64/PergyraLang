@@ -243,3 +243,60 @@ func CodegenSemanticFunctionParamModeOrDie(
     }
     return UnwrapOption(mode);
 }
+
+func CodegenSemanticCallableContractAdvanceRowOrDie(
+    arena: AstArena,
+    count: Int,
+    expected_node_id: Int,
+    expected_kind: Int,
+    inout cur: Array<Int>
+) -> Void {
+    if expected_node_id < 0 { return; }
+    if cur[0] >= count || cur[0] != expected_node_id ||
+        !TypedAstArenaNodeKindIs(arena, cur[0], expected_kind) {
+        Die("semantic callable contract row does not match AST traversal");
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+}
+
+func CodegenSemanticCallableContractAdvanceOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    arena: AstArena,
+    count: Int,
+    inout cur: Array<Int>
+) -> Void {
+    let contracts: SemanticAstActionContractFacts = facts.action_contracts;
+    if signature_index < 0 ||
+        signature_index >= ArrayLength(contracts.callable_node_ids) {
+        Die("semantic callable contract row is missing");
+    }
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.requires_node_ids[signature_index],
+        TypedAstKindActionRequiresTag(), cur
+    );
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.within_node_ids[signature_index],
+        TypedAstKindActionWithinTag(), cur
+    );
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.causes_node_ids[signature_index],
+        TypedAstKindActionCausesTag(), cur
+    );
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.authorized_by_node_ids[signature_index],
+        TypedAstKindActionAuthorizedByTag(), cur
+    );
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.caps_node_ids[signature_index],
+        TypedAstKindCallableCapsTag(), cur
+    );
+    CodegenSemanticCallableContractAdvanceRowOrDie(
+        arena, count, contracts.effects_node_ids[signature_index],
+        TypedAstKindCallableEffectsTag(), cur
+    );
+    if cur[0] >= count ||
+        contracts.body_node_ids[signature_index] != cur[0] {
+        Die("semantic callable contract body owner does not match AST traversal");
+    }
+}

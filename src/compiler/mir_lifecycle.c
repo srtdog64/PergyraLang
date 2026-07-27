@@ -120,13 +120,7 @@ mir_destroy(MIRProgram *mir)
                      j++) {
                     MIRDeclMethod *method =
                         &mir->decl_headers[i].method_metadata[j];
-                    if (method->param_type_names != NULL) {
-                        for (size_t k = 0; k < method->param_count; k++)
-                            free(method->param_type_names[k]);
-                    }
-                    free(method->param_type_names);
-                    free(method->return_type_name);
-                    mir_decl_method_projection_metadata_clear(method);
+                    mir_decl_method_metadata_clear(method);
                 }
             }
             free(mir->decl_headers[i].type_alias_target_type_name);

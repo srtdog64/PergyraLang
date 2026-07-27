@@ -1062,6 +1062,7 @@ Inductive SpineFact : Type :=
   | SFNodeKindSurface
   | SFEntrypointSelection
   | SFFunctionDeclarationRows
+  | SFActionContract
   | SFLocalBindingStatementRouting
   | SFAssignmentStatementRouting
   | SFStatementKindRouting
@@ -1113,6 +1114,7 @@ Inductive SpineOwner : Type :=
   | SOSemanticTypeSurface
   | SOSemanticKindSurface
   | SOSemanticSignature
+  | SOSemanticActionContract
   | SOSemanticAssignment
   | SOSemanticStatementType.
 
@@ -1168,6 +1170,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFNodeKindSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature
   | SFFunctionDeclarationRows => SOSemanticSignature
+  | SFActionContract => SOSemanticActionContract
   | SFLocalBindingStatementRouting => SOSemanticLocalBinding
   | SFAssignmentStatementRouting => SOSemanticAssignment
   | SFStatementKindRouting => SOSemanticStatement

@@ -16,7 +16,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_operator_kind_negative_o
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_abi_layout_negative_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh"
-source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_action_contract_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_recursive_call_target_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_bool_literal_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_string_literal_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
@@ -167,8 +167,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 280 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 280" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 281 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 281" >&2
     exit 1
 fi
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
@@ -197,6 +197,10 @@ if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
         )
     done
     mir_fixture_rows=("${filtered_mir_fixture_rows[@]}")
+    # A MIR fixture filter owns a focused producer/consumer gate.  The
+    # semantic fixture matrix is independent and must not prevent that focused
+    # gate from reaching its selected MIR row.
+    fixture_rows=()
 fi
 
 pgy_selfhost_prepare_driver_rung2_mir_oracles

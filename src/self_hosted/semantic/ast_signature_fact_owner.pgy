@@ -5,12 +5,14 @@ import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_generic_parameter_fact_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
+import "ast_action_contract_fact_owner.pgy";
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
     diagnostic_fact: SemanticDiagnosticMessageFact;
     artifact_node_count: Int;
+    action_contracts: SemanticAstActionContractFacts;
     function_node_ids: Array<Int>;
     owner_names: Array<String>;
     runtime_callables: Array<Bool>;
@@ -125,9 +127,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
 
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
-        if !TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindFuncDeclTag()
-        ) {
+        if !TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
             node_id = node_id + 1;
             continue;
         }
@@ -366,10 +366,24 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             "missing_fact", "signature_type_expression"
         );
     }
+    let action_contracts: SemanticAstActionContractFacts =
+        SemanticAstActionContractFactsFromArtifact(
+            artifact, function_node_ids, runtime_callables
+        );
+    if ok && !SemanticAstActionContractFactsReady(
+        artifact, action_contracts
+    ) {
+        ok = false;
+        diagnostic_fact = SemanticDiagnosticMessageFact2(
+            "callable_contract_invalid",
+            "owner", "SemanticAstActionContractFacts",
+            "missing_fact", action_contracts.diagnostic_message
+        );
+    }
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
-        artifact.count,
+        artifact.count, action_contracts,
         function_node_ids, owner_names, runtime_callables, names, return_types,
         type_expressions,
         generic_starts, generic_counts, generic_names,

@@ -36,8 +36,8 @@ func SemanticAstExpressionSurfaceBorrowReady(
         if node_id <= previous_node_id || node_id < 0 ||
             node_id >= artifact.count ||
             function_node_id < -1 || function_node_id >= artifact.count ||
-            (function_node_id >= 0 && !TypedAstArenaNodeKindIs(
-                artifact.arena, function_node_id, TypedAstKindFuncDeclTag()
+            (function_node_id >= 0 && !TypedAstArenaNodeKindIsCallable(
+                artifact.arena, function_node_id
             )) || (has_graph && function_node_id < 0) ||
             (facts.expression_graph.has_roots[i * 3] &&
                 !facts.has_atoms[i]) ||

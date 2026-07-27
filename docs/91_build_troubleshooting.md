@@ -2227,14 +2227,26 @@ Action: EmitDirectMir
   Body:
 ```
 
-and fails closed with `expected Body:` at `Within:`. This is the executable
+and failed closed with `expected Body:` at `Within:`. This was the executable
 falsifier for the `ActionContract` gap: the self-host declaration/codegen path
-still treats action like an ordinary function and does not carry
+treated action like an ordinary function and did not carry
 `requires`/`within`/`causes`/`authorized by`/caps/effects as one typed fact.
-Do not fix it by skipping clause lines. The next rung must preserve the action
-identity and clause fact through typed AST, semantic validation, MIR
-declaration/wire, and both backends, with a negative gate for any missing or
-mutated field.
+
+The fix does not skip rows until `Body:`. `Action:` and every clause now have
+distinct typed AST kinds; `SemanticAstActionContractFacts` binds their exact
+node IDs to the callable `SyntaxNodeId`; codegen advances only over those owned
+nodes. Native and self-host MIR declarations emit the same
+`callable_kind + contract` object, and `mir_lower` validates it once before
+reconstructing the action.
+
+The focused `function_clause_order_minimal` gate rebuilt both C- and LLVM-built
+drivers and observed native/self MIR parity. It also rejects six wire faults
+before backend output: missing `within`, unknown zone, non-subject owner,
+action-as-function, explicit empty caps, and explicit empty effects. If this
+failure returns, check the first layer that lost `ActionContract`; do not add a
+cursor scan or default function contract. The SoT row remains `ACTIVE` until
+the shared caps/effects vocabulary is registry-directed, and this supporting
+closure does not make the production action `SUBSTITUTING`.
 
 During the observed runs, large seed generation remained in the hundreds of
 MiB and integrated gen2 emission peaked around 1.33 GiB private, below the

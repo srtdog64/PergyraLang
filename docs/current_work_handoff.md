@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - compiler world/action boundary
 
-- Checkout base before this work: `8321f8d31c20f86385520c6b0c4e39543f0b5b54` on `main`, equal to the observed
+- Checkout base before this work: `eedebd007a6c3b73bbe621a2767b35fb9d2cc994` on `main`, equal to the observed
   `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
   revision. The three protected parity-owner files named below remain separate
   concurrent user work and are not part of this change.
@@ -74,16 +74,22 @@ owner, and the named executable gate.
   `LanguageWordId`. Native/self-host AST is byte-equal for the committed
   `top_level_visibility_decl` witness, and the production `public zone
   DriverRung2DirectMirZone` parses through the self-host parser.
-- A second completeness blocker is action-contract carriage. The self-host
-  nominal parser does not own the native subject-only action/struct-method
-  negatives, drops action caps/effects after parsing, and current `pgy.mir.v1`
-  declaration JSON omits the action contract. Native ABI parity does not prove
-  self-host source -> MIR action-contract preservation. The current one-MIR
-  integration now reaches this exact falsifier: after passing the typed world
-  local and exact one-member world constructor, gen2 reaches AST node 88972
-  (`DriverRung2Execution.EmitDirectMir`) and rejects `Within:` with `expected
-  Body:`. Clause skipping is forbidden; the next rung is typed
-  `ActionContract` carriage.
+- The `selfhost.action_contract` supporting seam now has one semantic owner,
+  `SemanticAstActionContractFacts`, keyed by callable `SyntaxNodeId`. The
+  self-host parser preserves distinct Action/Function identity and exact
+  requires/within/causes/authorized/caps/effects/body nodes; native and self
+  MIR declarations emit the same `callable_kind + contract` wire; `mir_lower`
+  validates it once and reconstructs the exact Action rows. Codegen does not
+  skip clauses to find `Body:`. A focused source/MIR gate rebuilt both C and
+  LLVM drivers and rejected missing `within`, unknown zone, non-subject owner,
+  action-as-function, explicit empty caps, and explicit empty effects before
+  backend output. The old AST node 88972 `Within:` / `expected Body:` result is
+  retained in troubleshooting as the historical falsifier, not the current
+  focused result.
+- This semantic seam is `ACTIVE`, not `CLOSED`: caps/effects vocabulary still
+  has independent parser/semantic/mir_lower/native spellings. It also does not
+  replace a C-owned compiler path. Production direct-MIR remains `REACHABLE`,
+  not `SUBSTITUTING`; source-mode `Main -> CompileSourceTo*` is not deleted.
 - Match-case pattern identity no longer has a second physical graph. Typed
   `MatchCase` AST atoms feed one bounded HIR fact; `AstTreeArtifact` payload v3
   carries executable expression graphs only. The parser partition owner,
@@ -135,6 +141,16 @@ owner, and the named executable gate.
   `FileExists`, host grant denial, and denied-write zero artifact. The
   object/action boundary, documentation-quality, and recursive compiler
   topology gates are also green.
+- Current ActionContract evidence: the latest `mir_lower/main.pgy` compiles
+  with 0 errors/0 warnings; the focused `function_clause_order_minimal` DRV-2
+  gate rebuilt C and LLVM drivers and passed native/self MIR carriage, emitted
+  C/runtime parity, and six fail-closed mutations. The self-host component
+  contract, object/action authoring contract, documentation-quality gates,
+  proof-spine static pack, and SoT live/edge gates are green. No Coq prover is
+  installed, so `SoTAuthority.v` and the proof spine report explicit
+  `DECLARED SKIP`; they were not theorem-checked on this runner.
+  Full parser parity is also green: C and LLVM are byte-equal across all 189
+  sources and the rung-1 summary reports `live-drift=yes`.
 - Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
   pre-existing Option/Result match-destructuring direct unit cases. The graph
   cycle/provenance cases pass; the full `type_resolution_dag_smoke.sh` wrapper
@@ -146,14 +162,23 @@ owner, and the named executable gate.
   production-reachable world member. Existing MIR
   inventory/link gates retain their separately documented pre-existing
   failures; do not weaken any semantic gate for this rung.
+- The unfiltered DRV-2 body matrix currently stops before MIR rows at the
+  pre-existing `valid_array_builtins` emitted-C compile: its generated array
+  runtime uses `strlen`/`memcpy` and `PGY_RUNTIME_PANIC*` without the required
+  headers. `PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER` now correctly isolates MIR
+  producer/consumer rows, so this unrelated semantic-fixture failure cannot
+  hide the focused ActionContract gate; it remains a separate runtime-header
+  owner fix, not a reason to weaken the new contract gate.
 - The artifact falsifier is now green: a pre-existing sentinel is preserved
   under injected open/write/flush/close/publish failure, no temp remains, no
   success receipt is issued, and C-inline/LLVM-export status agrees. The next
-  falsifying fixture is a single `ActionContract` fact carrying subject-only action identity,
-  requires/within/causes/authority/caps/effects through self-host source ->
-  `pgy.mir.v1` -> both backends. Only after those blockers close may the
-  source-to-MIR action delete `Main -> CompileSourceTo*` and claim a committed
-  artifact transition. Root-intent takeover comes after that rung.
+  falsifying fixture for ActionContract carriage is now green through
+  self-host source -> native/self `pgy.mir.v1` -> `mir_lower` -> both C/LLVM
+  drivers plus six wire mutations. The next semantic falsifier is a shared
+  caps/effects vocabulary owner that removes independent contract-word tables.
+  The next executable rung remains a production source-to-MIR action that
+  deletes `Main -> CompileSourceTo*` in the same change and proves committed or
+  rejected artifact transition. Root-intent takeover comes after that rung.
 
 The remainder of this file preserves earlier v63-v74 evidence as history. If a
 historical statement below conflicts with this checkpoint, current source,

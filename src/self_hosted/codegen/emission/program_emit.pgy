@@ -67,6 +67,9 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         Die("expected Returns: line after parameters");
     }
     ArraySet(cur, 0, cur[0] + 1);
+    CodegenSemanticCallableContractAdvanceOrDie(
+        signatures, signature_index, arena, count, cur
+    );
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
     return CheckStmtList(

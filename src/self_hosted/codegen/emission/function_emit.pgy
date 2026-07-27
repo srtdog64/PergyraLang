@@ -178,6 +178,9 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     );
     ArraySet(cur, 0, cur[0] + 1);
 
+    CodegenSemanticCallableContractAdvanceOrDie(
+        signatures, signature_index, arena, count, cur
+    );
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;

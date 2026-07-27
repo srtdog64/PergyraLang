@@ -9,8 +9,8 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
 ) -> Bool {
     let function_node_id: Int = facts.function_node_ids[signature_index];
     if function_node_id < 0 || function_node_id >= artifact.count ||
-        !TypedAstArenaNodeKindIs(
-            artifact.arena, function_node_id, TypedAstKindFuncDeclTag()
+        !TypedAstArenaNodeKindIsCallable(
+            artifact.arena, function_node_id
         ) {
         return false;
     }
@@ -172,6 +172,9 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     let pn: Int = ArrayLength(facts.param_node_ids);
     if !AstTreeArtifactReady(artifact) || !facts.ok ||
         facts.artifact_node_count != artifact.count ||
+        !SemanticAstActionContractFactsMatchArtifact(
+            artifact, facts.action_contracts
+        ) ||
         ArrayLength(facts.owner_names) != n ||
         ArrayLength(facts.runtime_callables) != n ||
         ArrayLength(facts.names) != n ||
@@ -198,6 +201,8 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
             facts.param_starts[i] != next_param_start ||
             facts.param_counts[i] < 0 ||
             facts.param_starts[i] + facts.param_counts[i] > pn ||
+            facts.action_contracts.callable_node_ids[i] !=
+                facts.function_node_ids[i] ||
             (i > 0 && facts.function_node_ids[i] <= facts.function_node_ids[i - 1]) ||
             !SemanticAstFunctionSignatureRowMatchesArtifact(
                 artifact, facts, i
@@ -214,9 +219,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     let function_count: Int = 0;
     let node_id: Int = 0;
     while node_id < artifact.count {
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindFuncDeclTag()
-        ) {
+        if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
             function_count = function_count + 1;
         }
         node_id = node_id + 1;

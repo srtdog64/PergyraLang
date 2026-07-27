@@ -100,6 +100,14 @@ const char *mir_decl_method_causes_effect(const MIRDeclMethod *method);
 size_t mir_decl_method_authorized_by_count(const MIRDeclMethod *method);
 const char *mir_decl_method_authorized_by(const MIRDeclMethod *method,
                                           size_t index);
+size_t mir_decl_method_required_ability_count(const MIRDeclMethod *method);
+const MIRAbilityRef *mir_decl_method_required_ability_ref(
+    const MIRDeclMethod *method, size_t index);
+bool mir_decl_method_has_caps_clause(const MIRDeclMethod *method);
+uint32_t mir_decl_method_declared_capabilities(const MIRDeclMethod *method);
+bool mir_decl_method_has_effects_clause(const MIRDeclMethod *method);
+uint32_t mir_decl_method_declared_effects(const MIRDeclMethod *method);
+void mir_decl_method_metadata_clear(MIRDeclMethod *method);
 bool mir_decl_method_routine_index(const MIRDeclMethod *method,
                                    size_t *index_out);
 size_t mir_decl_method_projection_write_count(const MIRDeclMethod *method);

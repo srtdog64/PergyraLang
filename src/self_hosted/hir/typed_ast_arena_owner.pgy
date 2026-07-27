@@ -141,6 +141,11 @@ func TypedAstArenaNodeKindIs(arena: AstArena, node_id: Int, expected_kind: Int) 
     return IsSome(kind) && UnwrapOption(kind) == expected_kind;
 }
 
+func TypedAstArenaNodeKindIsCallable(arena: AstArena, node_id: Int) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
+    return IsSome(kind) && TypedAstKindIsCallableDecl(UnwrapOption(kind));
+}
+
 func TypedAstArenaNominalSubkind(
     arena: AstArena,
     node_id: Int

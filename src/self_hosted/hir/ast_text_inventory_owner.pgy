@@ -58,8 +58,29 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Impl ability:") {
         return TypedAstKindImplAbilityTag();
     }
-    if StartsWith(text, "Function:") || StartsWith(text, "Action:") {
+    if StartsWith(text, "Function:") {
         return TypedAstKindFuncDeclTag();
+    }
+    if StartsWith(text, "Action:") {
+        return TypedAstKindActionDeclTag();
+    }
+    if StartsWith(text, "Requires:") {
+        return TypedAstKindActionRequiresTag();
+    }
+    if StartsWith(text, "Within:") {
+        return TypedAstKindActionWithinTag();
+    }
+    if StartsWith(text, "Causes:") {
+        return TypedAstKindActionCausesTag();
+    }
+    if StartsWith(text, "Authorized by:") {
+        return TypedAstKindActionAuthorizedByTag();
+    }
+    if StartsWith(text, "Caps:") {
+        return TypedAstKindCallableCapsTag();
+    }
+    if StartsWith(text, "Effects:") {
+        return TypedAstKindCallableEffectsTag();
     }
     if StartsWith(text, "Role:") {
         return TypedAstKindRoleDeclTag();
@@ -141,10 +162,10 @@ func TypedAstTextKindOf(text: String) -> Int {
 
 func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindFuncDeclTag() {
-        if StartsWith(text, "Action: ") {
-            return Substring(text, 8, StringLength(text) - 8);
-        }
         return Substring(text, 10, StringLength(text) - 10);
+    }
+    if kind == TypedAstKindActionDeclTag() {
+        return Substring(text, 8, StringLength(text) - 8);
     }
     if kind == TypedAstKindReturnsTag() {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
@@ -154,6 +175,24 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == TypedAstKindGenericConstraintsTag() {
         return StringTrim(Substring(text, 12, StringLength(text) - 12));
+    }
+    if kind == TypedAstKindActionRequiresTag() {
+        return StringTrim(Substring(text, 9, StringLength(text) - 9));
+    }
+    if kind == TypedAstKindActionWithinTag() {
+        return StringTrim(Substring(text, 7, StringLength(text) - 7));
+    }
+    if kind == TypedAstKindActionCausesTag() {
+        return StringTrim(Substring(text, 7, StringLength(text) - 7));
+    }
+    if kind == TypedAstKindActionAuthorizedByTag() {
+        return StringTrim(Substring(text, 14, StringLength(text) - 14));
+    }
+    if kind == TypedAstKindCallableCapsTag() {
+        return StringTrim(Substring(text, 5, StringLength(text) - 5));
+    }
+    if kind == TypedAstKindCallableEffectsTag() {
+        return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
     if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Field: ") {

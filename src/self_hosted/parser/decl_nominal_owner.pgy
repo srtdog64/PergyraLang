@@ -136,6 +136,7 @@ func ParseNominalDecl(
             // instead of `Function:` but keeps the same shape and
             // base_indent.
             if MatchLanguageWord(content, i, LanguageWordId.WordAction) {
+                if decl_label != "Subject" { Exit(1); }
                 ArraySet(cursor_out, 0, i);
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,

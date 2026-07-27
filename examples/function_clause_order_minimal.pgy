@@ -20,6 +20,7 @@ subject Hero {
         causes Damage
         within BattleZone
         requires Combatable, Movable
+        with caps io_read, io_write
         with effects secure, remote
         where T: Combatable {
         return;

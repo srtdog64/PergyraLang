@@ -11,6 +11,8 @@
 #include <stdio.h>
 
 #include "../parser/ast_api.h"
+#include "../runtime/pgy_runtime_capability.h"
+#include "../semantic/type_system.h"
 
 static const char *
 mir_json_nominal_kind_name(NominalDeclKind kind)
@@ -127,6 +129,89 @@ mir_json_emit_decl_method_params(FILE *out, const MIRDeclMethod *method)
     fputc(']', out);
 }
 
+typedef struct MIRJsonMaskName
+{
+    uint32_t bit;
+    const char *name;
+} MIRJsonMaskName;
+
+static void
+mir_json_emit_mask_names(FILE *out, uint32_t mask,
+                         const MIRJsonMaskName *names, size_t count,
+                         bool local_when_zero)
+{
+    bool first = true;
+    fputc('[', out);
+    if (mask == 0 && local_when_zero) {
+        mir_json_emit_str_or_null(out, "local");
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            if ((mask & names[i].bit) == 0)
+                continue;
+            if (!first)
+                fputc(',', out);
+            mir_json_emit_str_or_null(out, names[i].name);
+            first = false;
+        }
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_decl_method_contract(FILE *out, const MIRDeclMethod *method)
+{
+    static const MIRJsonMaskName caps[] = {
+        {PGY_CAP_IO_READ, "io_read"}, {PGY_CAP_IO_WRITE, "io_write"},
+        {PGY_CAP_NETWORK, "network"}, {PGY_CAP_CLOCK, "clock"},
+        {PGY_CAP_RANDOM, "random"}, {PGY_CAP_ENV, "env"},
+        {PGY_CAP_RENDER, "render"}, {PGY_CAP_AUDIO, "audio"},
+        {PGY_CAP_INPUT, "input"},
+    };
+    static const MIRJsonMaskName effects[] = {
+        {EFFECT_SECURE, "secure"}, {EFFECT_REMOTE, "remote"},
+        {EFFECT_NONDETERMINISTIC, "nondeterministic"},
+        {EFFECT_COLLAPSE, "collapse"}, {EFFECT_UNSAFE, "unsafe"},
+        {EFFECT_IO, "io"}, {EFFECT_ALLOC, "alloc"},
+        {EFFECT_AUTHORITY, "authority"},
+    };
+
+    fputs(",\"callable_kind\":", out);
+    mir_json_emit_str_or_null(
+        out, mir_decl_method_is_action_like(method) ? "action" : "function");
+    fputs(",\"contract\":{\"requires\":[", out);
+    for (size_t i = 0; i <
+            mir_decl_method_required_ability_count(method); i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_ability_ref(
+            out, mir_decl_method_required_ability_ref(method, i));
+    }
+    fputs("],\"within\":", out);
+    mir_json_emit_str_or_null(out, mir_decl_method_within_zone(method));
+    fputs(",\"causes\":", out);
+    mir_json_emit_str_or_null(out, mir_decl_method_causes_effect(method));
+    fputs(",\"authorized_by\":[", out);
+    for (size_t i = 0; i < mir_decl_method_authorized_by_count(method); i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out, mir_decl_method_authorized_by(method, i));
+    }
+    fputs("],\"caps_present\":", out);
+    fputs(mir_decl_method_has_caps_clause(method) ? "true" : "false", out);
+    fputs(",\"caps\":", out);
+    mir_json_emit_mask_names(
+        out, mir_decl_method_declared_capabilities(method), caps,
+        sizeof(caps) / sizeof(caps[0]), false);
+    fputs(",\"effects_present\":", out);
+    fputs(mir_decl_method_has_effects_clause(method) ? "true" : "false", out);
+    fputs(",\"effects\":", out);
+    mir_json_emit_mask_names(
+        out, mir_decl_method_declared_effects(method), effects,
+        sizeof(effects) / sizeof(effects[0]),
+        mir_decl_method_has_effects_clause(method));
+    fputc('}', out);
+}
+
 static void
 mir_json_emit_decl_methods(FILE *out,
                            const MIRDeclHeader *header,
@@ -142,6 +227,7 @@ mir_json_emit_decl_methods(FILE *out,
         fputs(",\"return\":", out);
         mir_json_emit_str_or_null(out,
             mir_decl_method_return_type_name(method));
+        mir_json_emit_decl_method_contract(out, method);
         if (include_params)
             mir_json_emit_decl_method_params(out, method);
         fputc('}', out);

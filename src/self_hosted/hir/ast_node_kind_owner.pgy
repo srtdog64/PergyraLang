@@ -42,10 +42,22 @@ func TypedAstKindRoleSlotTag() -> Int { return 39; }
 func TypedAstKindImplAbilityTag() -> Int { return 40; }
 func TypedAstKindBindStmtTag() -> Int { return 41; }
 func TypedAstKindGenericConstraintsTag() -> Int { return 42; }
+func TypedAstKindActionDeclTag() -> Int { return 43; }
+func TypedAstKindActionRequiresTag() -> Int { return 44; }
+func TypedAstKindActionWithinTag() -> Int { return 45; }
+func TypedAstKindActionCausesTag() -> Int { return 46; }
+func TypedAstKindActionAuthorizedByTag() -> Int { return 47; }
+func TypedAstKindCallableCapsTag() -> Int { return 48; }
+func TypedAstKindCallableEffectsTag() -> Int { return 49; }
+
+func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
+    return kind == TypedAstKindFuncDeclTag() ||
+        kind == TypedAstKindActionDeclTag();
+}
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindGenericConstraintsTag();
+        kind <= TypedAstKindCallableEffectsTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -104,14 +116,17 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag(),
         TypedAstKindDestructureStmtTag(), TypedAstKindRoleSlotTag(),
         TypedAstKindImplAbilityTag(), TypedAstKindBindStmtTag(),
-        TypedAstKindGenericConstraintsTag()
+        TypedAstKindGenericConstraintsTag(), TypedAstKindActionDeclTag(),
+        TypedAstKindActionRequiresTag(), TypedAstKindActionWithinTag(),
+        TypedAstKindActionCausesTag(), TypedAstKindActionAuthorizedByTag(),
+        TypedAstKindCallableCapsTag(), TypedAstKindCallableEffectsTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 42 {
+    if ArrayLength(tags) != 49 {
         return false;
     }
     let i: Int = 0;
@@ -134,8 +149,13 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindImplAbilityTag()) &&
         TypedAstKindKnown(TypedAstKindBindStmtTag()) &&
         TypedAstKindKnown(TypedAstKindGenericConstraintsTag()) &&
+        TypedAstKindKnown(TypedAstKindActionDeclTag()) &&
+        TypedAstKindKnown(TypedAstKindCallableEffectsTag()) &&
+        TypedAstKindIsCallableDecl(TypedAstKindFuncDeclTag()) &&
+        TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
+        !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindGenericConstraintsTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindCallableEffectsTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

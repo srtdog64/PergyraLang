@@ -4370,9 +4370,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 280;"
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 281;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 280'
+    'mir_fixture_rows[@]}" -ne 281'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4974,11 +4974,11 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 280;"
+    "return 281;"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 280'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 281'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -5056,7 +5056,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/loop_collect_distinct_set/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 280;"
+    "return 281;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -10518,8 +10518,10 @@ reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "MirObjectStringFact(json, bounds[0], bounds[1]"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return Some(row)"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return None"
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    '"      ", false, false, expression_order, abi_validation'
+require_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "EmitRoutineTreeWithContractAtRowWithExpressionOrder("
+require_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "contract.callable_kind, contract_rows, false, false,"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "consumer:mir-to-ast:declarations:done"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -10578,11 +10580,12 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "total == 191 || total == 242)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func EmitRoutineTreeWithSelfTypeAtRow("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "func EmitRoutineTreeWithContractAtRowWithExpressionOrder("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "BuildMirRoutineFactIndex(routines, routine_row)"
 reject_function_text "src/self_hosted/mir_lower/routine_lower.pgy" \
-    "func EmitRoutineTreeWithSelfTypeAtRow" "StringLength(json)"
+    "func EmitRoutineTreeWithContractAtRowWithExpressionOrder" "StringLength(json)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitRoutineTreeWithSelfTypeAtSpan("
 reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \

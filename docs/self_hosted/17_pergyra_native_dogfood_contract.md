@@ -100,10 +100,12 @@ semantic compile 성공 역시 production call-site나 대체 증거를 대신�
 
 ### 현재 action authority 증거의 세 층
 
-1. **Declaration contract**: `MIRDeclMethod`가 action identity, `within`,
-   `causes`, `authorized_by_names`를 운반하고 `MIRDeclZoneAuthority`가 subject
-   slot과 required ability를 운반한다. action `requires`와 caps/effects를
-   호출이 소비할 하나의 contract row로 결합하는 일은 남아 있다.
+1. **Declaration contract**: `MIRDeclMethod`가 action identity, `requires`,
+   `within`, `causes`, `authorized_by_names`, caps/effects를 하나의 method
+   contract로 운반하고 `MIRDeclZoneAuthority`가 subject slot과 required
+   ability를 운반한다. Native/self `pgy.mir.v1`과 `mir_lower`는 같은 contract
+   wire를 소비하며 여섯 field mutation을 fail closed로 거부한다. 이 층의
+   구현은 존재하지만 vocabulary 공유 SoT가 남아 있어 registry는 `ACTIVE`다.
 2. **Call binding**: 현재 C/LLVM hook은 direct world -> zone -> subject
    receiver와 `authorized by self` 단일 항목만 exact zone authority slot에
    결속한다. named participant, 복수 authority, indirect/direct-subject receiver의
@@ -132,15 +134,22 @@ atomic replace -> tobject receipt`는 C-inline/LLVM-linked가 한 runtime core�
 검증한다. production source-to-MIR은 facts를 한 번 검증한 뒤 verified writer를
 호출하므로 writer가 whole graph를 다시 검증하지 않는다.
 
-남은 blocker는 commit이 아니라 action-contract carriage와 실행 대체다.
-self-host source -> `pgy.mir.v1`이 action identity/requires/within/causes/authority/
-caps/effects를 보존하고 `Main -> CompileSourceTo*` 직접 경로를 삭제하기 전에는
-source-to-MIR 전체를 `SUBSTITUTING`으로 기록하지 않는다.
+ActionContract carriage는 parser, typed AST, semantic owner, native/self MIR
+declaration wire와 `mir_lower` 소비 경계까지 연결됐다. focused C/LLVM gate는
+native/self contract parity와 missing `within`, unknown zone, non-subject owner,
+action-as-function, empty explicit caps/effects를 backend output 전에 거부한다.
+clause를 건너뛰어 `Body:`를 찾는 fallback은 없다.
 
-별도의 self-host completeness blocker도 있다. self-host nominal parser는
-subject-only action/struct-method negative를 소유하지 않고 action caps/effects를
-보존하지 않으며, 현재 `pgy.mir.v1` declaration wire도 action contract를 운반하지
-않는다. grammar fixture나 native action ABI parity는 이 wire gap을 닫지 않는다.
+이 작업은 기존 production action을 정확히 운반하는 supporting semantic seam이며
+C-owned compiler path를 새로 대체하지 않는다. caps/effects vocabulary의 단일
+owner와 production source-mode action의 실행 대체가 남아 있다. 따라서 direct-MIR
+world/zone/subject/action은 계속 `REACHABLE`, not `SUBSTITUTING`이고 전체 상태도
+`BRIDGE`다. Source-to-MIR을 `SUBSTITUTING`으로 올리려면 production entrypoint가
+새 action을 실제 호출하는 변경과 같은 rung에서 `Main -> CompileSourceTo*`
+직접 우회를 삭제하고 실행/parity/negative gate를 통과해야 한다.
+
+`struct` hosted-func negative, 호출별 authority binding, runtime identity/token과
+ability authorization은 declaration carriage와 별도인 열린 fact family다.
 
 ### Hosted-method declaration schedule
 

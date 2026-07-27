@@ -21,9 +21,7 @@ func SemanticAstFunctionScopeFactsFromArtifact(
     let node_id: Int = 0;
     while node_id < artifact.count {
         let function_node_id: Int = -1;
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindFuncDeclTag()
-        ) {
+        if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
             function_node_id = node_id;
         } else {
             let parent: Option<Int> = TypedAstArenaParentId(
@@ -104,8 +102,7 @@ func SemanticAstFunctionScopeFactsContractReady() -> Bool {
             true, artifact.count + 1, facts.function_node_ids
         );
     return SemanticAstFunctionScopeFactsMatchArtifact(artifact, facts) &&
-        IsSome(function_node) && TypedAstArenaNodeKindIs(
-            artifact.arena, UnwrapOption(function_node),
-            TypedAstKindFuncDeclTag()
+        IsSome(function_node) && TypedAstArenaNodeKindIsCallable(
+            artifact.arena, UnwrapOption(function_node)
         ) && !SemanticAstFunctionScopeFactsMatchArtifact(artifact, stale);
 }

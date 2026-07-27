@@ -446,6 +446,45 @@ mir_decl_method_authorized_by(const MIRDeclMethod *method, size_t index)
     return method->authorized_by_names[index];
 }
 
+size_t
+mir_decl_method_required_ability_count(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->required_ability_ref_count : 0;
+}
+
+const MIRAbilityRef *
+mir_decl_method_required_ability_ref(const MIRDeclMethod *method, size_t index)
+{
+    if (method == NULL || method->required_ability_refs == NULL ||
+        index >= method->required_ability_ref_count)
+        return NULL;
+    return &method->required_ability_refs[index];
+}
+
+bool
+mir_decl_method_has_caps_clause(const MIRDeclMethod *method)
+{
+    return method != NULL && method->has_caps_clause;
+}
+
+uint32_t
+mir_decl_method_declared_capabilities(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->declared_capabilities : 0;
+}
+
+bool
+mir_decl_method_has_effects_clause(const MIRDeclMethod *method)
+{
+    return method != NULL && method->has_effects_clause;
+}
+
+uint32_t
+mir_decl_method_declared_effects(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->declared_effects : 0;
+}
+
 bool
 mir_decl_method_routine_index(const MIRDeclMethod *method, size_t *index_out)
 {

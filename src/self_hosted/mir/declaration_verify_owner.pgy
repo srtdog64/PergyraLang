@@ -12,6 +12,25 @@ func SelfMirDeclarationParallelStringCount(
     return ArrayLength(rows) == count;
 }
 
+func SelfMirDeclarationStringRangeReady(
+    rows: Array<String>, start: Int, count: Int
+) -> Bool {
+    if start < 0 || count < 0 || start + count > ArrayLength(rows) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if rows[start + i] == "" { return false; }
+        let j: Int = 0;
+        while j < i {
+            if rows[start + j] == rows[start + i] { return false; }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     let count: Int = ArrayLength(rows.names);
     if !SelfMirDeclarationParallelStringCount(count, rows.kinds) ||
@@ -31,6 +50,29 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirDeclarationParallelCount(count, rows.role_impl_counts) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_is_actions) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_requires_starts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_requires_counts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_within_zone_names) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_causes_names) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_authorized_by_starts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_authorized_by_counts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_caps_present) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_cap_starts) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_cap_counts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_effects_present) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_effect_starts) ||
+        ArrayLength(rows.method_names) !=
+            ArrayLength(rows.method_effect_counts) ||
         ArrayLength(rows.method_names) !=
             ArrayLength(rows.method_param_starts) ||
         ArrayLength(rows.method_names) !=
@@ -93,17 +135,65 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         return false;
     }
     let method_param_cursor: Int = 0;
+    let requires_cursor: Int = 0;
+    let authority_cursor: Int = 0;
+    let cap_cursor: Int = 0;
+    let effect_cursor: Int = 0;
     i = 0;
     while i < ArrayLength(rows.method_names) {
         if rows.method_param_starts[i] != method_param_cursor ||
-            rows.method_param_counts[i] < 0 {
+            rows.method_param_counts[i] < 0 ||
+            rows.method_requires_starts[i] != requires_cursor ||
+            !SelfMirDeclarationStringRangeReady(
+                rows.method_requires_names, requires_cursor,
+                rows.method_requires_counts[i]
+            ) || rows.method_authorized_by_starts[i] != authority_cursor ||
+            !SelfMirDeclarationStringRangeReady(
+                rows.method_authorized_by_names, authority_cursor,
+                rows.method_authorized_by_counts[i]
+            ) || rows.method_cap_starts[i] != cap_cursor ||
+            !SelfMirDeclarationStringRangeReady(
+                rows.method_cap_names, cap_cursor,
+                rows.method_cap_counts[i]
+            ) || rows.method_effect_starts[i] != effect_cursor ||
+            !SelfMirDeclarationStringRangeReady(
+                rows.method_effect_names, effect_cursor,
+                rows.method_effect_counts[i]
+            ) || (rows.method_is_actions[i] != 0 &&
+                rows.method_is_actions[i] != 1) ||
+            (rows.method_caps_present[i] != 0 &&
+                rows.method_caps_present[i] != 1) ||
+            (rows.method_effects_present[i] != 0 &&
+                rows.method_effects_present[i] != 1) ||
+            (rows.method_caps_present[i] == 0 &&
+                rows.method_cap_counts[i] != 0) ||
+            (rows.method_caps_present[i] == 1 &&
+                rows.method_cap_counts[i] == 0) ||
+            (rows.method_effects_present[i] == 0 &&
+                rows.method_effect_counts[i] != 0) ||
+            (rows.method_effects_present[i] == 1 &&
+                rows.method_effect_counts[i] == 0) ||
+            (rows.method_is_actions[i] == 0 &&
+                (rows.method_requires_counts[i] != 0 ||
+                    rows.method_within_zone_names[i] != "" ||
+                    rows.method_causes_names[i] != "" ||
+                    rows.method_authorized_by_counts[i] != 0)) {
             return false;
         }
         method_param_cursor = method_param_cursor +
             rows.method_param_counts[i];
+        requires_cursor = requires_cursor + rows.method_requires_counts[i];
+        authority_cursor = authority_cursor +
+            rows.method_authorized_by_counts[i];
+        cap_cursor = cap_cursor + rows.method_cap_counts[i];
+        effect_cursor = effect_cursor + rows.method_effect_counts[i];
         i = i + 1;
     }
-    if method_param_cursor != ArrayLength(rows.method_param_names) {
+    if method_param_cursor != ArrayLength(rows.method_param_names) ||
+        requires_cursor != ArrayLength(rows.method_requires_names) ||
+        authority_cursor != ArrayLength(rows.method_authorized_by_names) ||
+        cap_cursor != ArrayLength(rows.method_cap_names) ||
+        effect_cursor != ArrayLength(rows.method_effect_names) {
         return false;
     }
     return true;

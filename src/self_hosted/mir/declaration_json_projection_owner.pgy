@@ -3,6 +3,98 @@
 import "declaration_rows_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+
+func SelfMirJsonDeclarationStringRange(
+    values: Array<String>, start: Int, count: Int
+) -> String {
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(rows, JsonStringLiteral(values[start + i]));
+        i = i + 1;
+    }
+    return JsonEmitArray(rows);
+}
+
+func SelfMirJsonDeclarationRequires(
+    rows: SelfMirDeclarationRows, method_row: Int
+) -> String {
+    let refs: Array<String> = [];
+    let i: Int = 0;
+    while i < rows.method_requires_counts[method_row] {
+        let name: String = rows.method_requires_names[
+            rows.method_requires_starts[method_row] + i
+        ];
+        let shape: SemanticConstructedTypeNameFact =
+            SemanticConstructedTypeNameFactFrom(name);
+        let base: String = name;
+        let actuals: Array<String> = [];
+        if shape.ok {
+            base = shape.nominal_base_name;
+            let actual_i: Int = 0;
+            while actual_i < ArrayLength(shape.actual_type_names) {
+                ArrayPush(
+                    actuals,
+                    JsonStringLiteral(shape.actual_type_names[actual_i])
+                );
+                actual_i = actual_i + 1;
+            }
+        }
+        ArrayPush(refs, JsonEmitObject([
+            JsonEmitFieldString("base", base),
+            JsonEmitFieldRaw("actuals", JsonEmitArray(actuals))
+        ]));
+        i = i + 1;
+    }
+    return JsonEmitArray(refs);
+}
+
+func SelfMirJsonDeclarationMethodContract(
+    rows: SelfMirDeclarationRows, method_row: Int
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldRaw(
+            "requires", SelfMirJsonDeclarationRequires(rows, method_row)
+        ),
+        JsonEmitFieldRaw(
+            "within", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.method_within_zone_names[method_row])
+            )
+        ),
+        JsonEmitFieldRaw(
+            "causes", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.method_causes_names[method_row])
+            )
+        ),
+        JsonEmitFieldRaw(
+            "authorized_by", SelfMirJsonDeclarationStringRange(
+                rows.method_authorized_by_names,
+                rows.method_authorized_by_starts[method_row],
+                rows.method_authorized_by_counts[method_row]
+            )
+        ),
+        JsonEmitFieldBool(
+            "caps_present", rows.method_caps_present[method_row] == 1
+        ),
+        JsonEmitFieldRaw(
+            "caps", SelfMirJsonDeclarationStringRange(
+                rows.method_cap_names, rows.method_cap_starts[method_row],
+                rows.method_cap_counts[method_row]
+            )
+        ),
+        JsonEmitFieldBool(
+            "effects_present", rows.method_effects_present[method_row] == 1
+        ),
+        JsonEmitFieldRaw(
+            "effects", SelfMirJsonDeclarationStringRange(
+                rows.method_effect_names,
+                rows.method_effect_starts[method_row],
+                rows.method_effect_counts[method_row]
+            )
+        )
+    ]);
+}
 
 func SelfMirJsonDeclarationMethodParams(
     rows: SelfMirDeclarationRows,
@@ -130,9 +222,16 @@ func SelfMirJsonDeclaration(
     let method_i: Int = 0;
     while method_i < rows.method_counts[declaration_index] {
         let row: Int = rows.method_starts[declaration_index] + method_i;
+        let callable_kind: String = "function";
+        if rows.method_is_actions[row] == 1 { callable_kind = "action"; }
         let method: Array<String> = [
             JsonEmitFieldString("name", rows.method_names[row]),
-            JsonEmitFieldString("return", rows.method_returns[row])
+            JsonEmitFieldString("return", rows.method_returns[row]),
+            JsonEmitFieldString("callable_kind", callable_kind),
+            JsonEmitFieldRaw(
+                "contract",
+                SelfMirJsonDeclarationMethodContract(rows, row)
+            )
         ];
         if rows.kinds[declaration_index] == "ability" ||
             rows.kinds[declaration_index] == "role" {

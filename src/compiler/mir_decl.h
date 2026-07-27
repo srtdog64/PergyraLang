@@ -19,6 +19,13 @@
 
 typedef struct
 {
+    char    *base_name;
+    size_t   actual_arg_count;
+    char   **actual_arg_type_names;
+} MIRAbilityRef;
+
+typedef struct
+{
     const char *owner_name;
     const char *name;
     FuncParam **params;
@@ -28,10 +35,16 @@ typedef struct
     char       *return_type_name;
     bool        is_async;
     bool        is_action_like;
+    MIRAbilityRef *required_ability_refs;
+    size_t      required_ability_ref_count;
     const char *within_zone;
     const char *causes_effect;
     char      **authorized_by_names;
     size_t      authorized_by_count;
+    bool        has_caps_clause;
+    uint32_t    declared_capabilities;
+    bool        has_effects_clause;
+    uint32_t    declared_effects;
     bool        has_routine;
     size_t      routine_index;
     char      **projection_write_root_names;
@@ -54,13 +67,6 @@ typedef enum
     MIR_DECL_FIELD_DOMAIN_SLOT,
     MIR_DECL_FIELD_ZONE_LAYER_SLOT
 } MIRDeclFieldKind;
-
-typedef struct
-{
-    char    *base_name;
-    size_t   actual_arg_count;
-    char   **actual_arg_type_names;
-} MIRAbilityRef;
 
 typedef struct
 {

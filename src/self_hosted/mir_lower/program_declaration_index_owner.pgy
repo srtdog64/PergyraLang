@@ -11,6 +11,7 @@ struct MirProgramDeclarationIndex {
     let starts: Array<Int>;
     let ends: Array<Int>;
     let kinds: Array<String>;
+    let nominal_kinds: Array<String>;
     let names: Array<String>;
 }
 
@@ -30,11 +31,12 @@ func BuildMirProgramDeclarationIndex(
     let starts: Array<Int> = [];
     let ends: Array<Int> = [];
     let kinds: Array<String> = [];
+    let nominal_kinds: Array<String> = [];
     let names: Array<String> = [];
     let array_bounds: Array<Int> = [0, 0];
     if !MirDeclArrayBounds(json, array_bounds) {
         return MirProgramDeclarationIndex(
-            false, starts, ends, kinds, names
+            false, starts, ends, kinds, nominal_kinds, names
         );
     }
 
@@ -48,6 +50,9 @@ func BuildMirProgramDeclarationIndex(
         ArrayPush(kinds, MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "kind"
         ));
+        ArrayPush(nominal_kinds, MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "nominal_kind"
+        ));
         ArrayPush(names, MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "name"
         ));
@@ -57,12 +62,32 @@ func BuildMirProgramDeclarationIndex(
         json, cursor, array_bounds[1]
     ) && ArrayLength(starts) == ArrayLength(ends) &&
         ArrayLength(starts) == ArrayLength(kinds) &&
+        ArrayLength(starts) == ArrayLength(nominal_kinds) &&
         ArrayLength(starts) == ArrayLength(names);
-    return MirProgramDeclarationIndex(valid, starts, ends, kinds, names);
+    return MirProgramDeclarationIndex(
+        valid, starts, ends, kinds, nominal_kinds, names
+    );
 }
 
 func MirProgramDeclarationIndexCount(
     ref index: MirProgramDeclarationIndex
 ) -> Int {
     return ArrayLength(index.starts);
+}
+
+func MirProgramDeclarationIndexContains(
+    ref index: MirProgramDeclarationIndex, kind: String, name: String
+) -> Bool {
+    if !index.valid || StringLength(kind) == 0 || StringLength(name) == 0 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(index.kinds) {
+        if (index.kinds[i] == kind || index.nominal_kinds[i] == kind) &&
+            index.names[i] == name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }

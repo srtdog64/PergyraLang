@@ -146,14 +146,22 @@ typed struct/enum request + existing owner facts
   -> intent only after multiple real actions exist
 ```
 
-현재 더 큰 결함은 action 선언의 **typed carriage**다. self-host typed arena는
-`Action:`과 `Function:`을 같은 callable kind로 접고, parser가 읽은 caps/effects를
-signature fact에 운반하지 않는다. self-host MIR declaration과 `pgy.mir.v1`도
-action identity, `requires`, `within`, `causes`, `authorized by`, caps/effects를
-하나의 fact로 보존하지 않는다. 그러므로 native action 실행 parity는
-self-host source -> MIR action-contract 보존 증거가 아니다. 다음 실제 대체
-rung은 이 필드를 `ActionContract` 하나로 운반하고 변조·누락을 fail closed로
-거부해야 한다.
+action 선언의 **typed carriage**는 이제 구현돼 있다. self-host typed arena는
+`Action:`과 `Function:`을 서로 다른 callable kind로 보존하고,
+`SemanticAstActionContractFacts`가 callable `SyntaxNodeId`에 subject-only identity,
+`requires`/`within`/`causes`/`authorized by`, caps/effects, body identity를 결속한다.
+codegen은 이 owner가 지정한 clause node만 정확한 순서로 소비하며 `Body:`를
+찾기 위해 중간 행을 건너뛰지 않는다. Native/self MIR declaration은 같은
+`callable_kind + contract` wire를 방출하고 `mir_lower`는 이를 한 번 읽어 action
+AST를 복원한다.
+
+`function_clause_order_minimal` focused gate는 C와 LLVM driver 각각에서 native/self
+MIR의 contract byte row를 확인하고, missing `within`, unknown zone, non-subject
+owner, action-as-function, empty explicit caps, empty explicit effects의 여섯 변조가
+backend output 전에 fail closed함을 관측했다. 그러나 이 closure는 C-owned compiler
+path를 대체하지 않는 supporting semantic seam이다. caps/effects 어휘의 공유 SoT와
+production source-mode action의 직접 우회 삭제가 남아 있으므로 registry 상태는
+`ACTIVE`, dogfood 상태는 계속 `REACHABLE`, not `SUBSTITUTING`이다.
 
 ### MatchCase 패턴 그래프 통합
 
@@ -238,7 +246,43 @@ escape 문제이고, `Slot<T>`는 자원 규율이다. `subject != heap`,
    caps/effects를 한 typed `ActionContract`로 semantic과 MIR wire까지 운반한다.
    중간 단계가 action을 일반 function으로 접거나 clause를 버리면 fail closed다.
 
-### 4.1 Artifact action의 commit 조건
+### 4.1 ActionContract SoT 패턴
+
+권장 파이프라인은 다음 하나다.
+
+```text
+parser clause nodes
+  -> SemanticAstActionContractFacts(callable SyntaxNodeId)
+  -> MIRDeclMethod callable_kind + contract projection
+  -> pgy.mir.v1 method contract wire
+  -> MirDeclarationMethodContractFact
+  -> exact Action AST reconstruction
+  -> target-neutral C/LLVM consumers
+```
+
+- parser는 순서와 표면 syntax를 소유하지만 action 의미의 최종 owner가 아니다.
+- semantic owner는 callable 하나당 contract 하나를 만들고 subject-only,
+  clause 순서/중복, body identity를 판정한다. consumer가 AST text를 다시 읽어
+  이 판단을 복제하지 않는다.
+- MIR method는 `callable_kind`와 `contract`를 함께 검증한다. `action`을 기본
+  `function`으로 추정하거나 contract가 없을 때 빈 contract를 합성하지 않는다.
+- `caps_present`/`effects_present`는 값 mask와 별도다. 생략과 명시된 빈 목록을
+  같은 상태로 접지 않으며, 현재 명시된 빈 목록은 malformed wire로 거부한다.
+- `within`은 문자열을 출력하는 것으로 끝나지 않는다. declaration index의
+  실제 `nominal_kind=zone` identity에 결속돼야 한다.
+- declaration carriage, call-site authority binding, runtime identity/ability
+  authorization은 서로 다른 증거 층이다. 첫 층이 닫혀도 뒤의 두 층을 완료로
+  기록하지 않는다.
+- `io_read` 같은 capability와 `secure` 같은 effect의 canonical vocabulary는
+  별도 언어 어휘 SoT에서 파생돼야 한다. parser, semantic, MIR reader, native
+  debug/dump가 독립 문자열 목록을 계속 소유하는 동안 이 row는 `ACTIVE`다.
+
+이 패턴의 핵심은 clause를 많이 쓰는 것이 아니라, action의 권한·전이 계약을
+한 identity로 끝까지 운반하는 것이다. 계산-only 함수에 빈 action contract를
+붙이거나 모든 compiler stage를 subject/action으로 감싸는 것은 이 패턴에
+해당하지 않는다.
+
+### 4.2 Artifact action의 commit 조건
 
 파일 artifact를 만드는 action은 `FileOpen -> FileWrite* -> FileClose`를 성공
 전이라고 부르면 안 된다. 이 raw `Int` handle 표면은 open mode, write failure,
@@ -290,7 +334,8 @@ immutable 결과다. byte count/fingerprint는 아직 receipt wire에 넣지 않
 identity/target과 commit failure는 반환된 `Rejected`로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
-아직 열려 있다. 따라서 이 action은 atomic commit까지 `REACHABLE`이지만 아직
+끝까지 운반된다. 다만 contract vocabulary SoT와 실행 대체는 아직 열려 있다.
+따라서 이 action은 atomic commit까지 `REACHABLE`이지만 아직
 C-owned compiler path를 대체한 `SUBSTITUTING`은 아니다.
 
 ## 5. 권장 조합
@@ -385,11 +430,11 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
    address-of-rvalue가 되고 LLVM에서는 임시 alloca로 보존될 가능성이 있다.
    두 backend가 다른 lifetime을 만들지 않도록 semantic에서 stable subject
    binding만 receiver로 허용하는 negative가 필요하다.
-7. `MIRDeclMethod`는 현재 action identity, `within`, `causes`,
-   `authorized by` 이름 목록을 운반한다. action `requires`, declared caps/effects,
-   zone authority ability와 호출별 participant binding은 아직 하나의 소비 가능한
-   method/call fact로 닫히지 않았다. backend가 AST를 재조회하거나 이름에서
-   binding을 추정하지 않도록 각 carriage owner를 분리해 명시해야 한다.
+7. `MIRDeclMethod`와 native/self `pgy.mir.v1`은 action identity, `requires`,
+   `within`, `causes`, `authorized by`, declared caps/effects를 한 method contract로
+   운반한다. 그러나 zone authority ability와 호출별 participant binding은
+   declaration contract가 아니라 별도 call/runtime fact다. backend가 AST를
+   재조회하거나 이름에서 binding을 추정하지 않도록 이 owner 구분을 유지해야 한다.
 8. action 후 projection/effect sync가 C와 LLVM에 별도로 구현돼 있다. 동일한
    검증 plan을 두 backend가 소비하도록 합쳐야 하며, 출력 parity만으로 중복
    정책 소유를 정당화하지 않는다.
@@ -401,24 +446,24 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
     body를 방출하고, LLVM은 nominal/domain layout을 모두 등록한 뒤 method
     signature와 body를 방출한다. 이 순서를 source 재배치나 opaque type 추정으로
     우회하지 말고 declaration inventory와 later-declared value fixture로 고정한다.
-11. self-host parser의 `decl_nominal_owner.pgy`는 nominal body의 `func`/`action`을
-    공통 경로로 읽어 native의 subject-only action, struct-method 금지를 자체적으로
-    재검증하지 않는다. self-host semantic negative owner가 생기기 전에는 grammar
-    fixture 통과를 nominal semantic parity로 해석하지 않는다.
-12. self-host function parser는 `requires`/`within`/`causes`/`authorized by`를
-    AST text로 남기지만 `with caps`/`with effects` 이름은 소비 후 버린다.
-    action을 generic signature로 낮춰 계약 fact를 잃는 경로는 full self-host
-    action 지원이 아니다.
-13. native in-memory `MIRDeclMethod`의 일부 action metadata와 달리 현재
-    `pgy.mir.v1` declaration JSON은 method name/return/params 중심이며 action
-    identity, `within`, `causes`, authority, requires, caps/effects, call binding을
-    운반하지 않는다. source -> MIR -> direct backend가 action 계약을 보존했다고
-    주장하기 전에 `ActionContract` 단일 fact owner와 wire carriage가 필요하다.
+11. self-host parser의 `decl_nominal_owner.pgy`는 non-subject action을 거부한다.
+    native의 struct hosted-`func` 금지는 아직 같은 self-host semantic negative로
+    닫히지 않았다. grammar fixture 통과를 이 nominal semantic parity의 대체로
+    해석하지 않는다.
+12. self-host function parser는 모든 action clause와 caps/effects를 typed AST와
+    semantic ActionContract에 보존한다. 남은 부채는 이 vocabulary가 parser,
+    semantic, mir_lower, native debug/dump의 독립 문자열 목록으로 반복되는 점이다.
+    shared registry가 spelling과 mask identity를 소유하고 각 consumer가 파생해야 한다.
+13. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
+    운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
+    carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인
+    증거는 아니다.
 14. compiler artifact transaction은 shared C/LLVM runtime core, self-host typed
     receipt, generated runtime include, old-final 보존 fault gate까지 닫혔다.
     일반 raw file handle의 MIR/AIR mode fact와 checked close 표면은 별도 호환성
-    부채다. source -> MIR의 완전한 action substitution은 item 12~13의 action
-    contract carriage와 `Main -> CompileSourceTo*` 직접 경로 삭제에 계속 막혀 있다.
+    부채다. source -> MIR의 완전한 action substitution은 item 12의 vocabulary
+    closure, production action reachability, `Main -> CompileSourceTo*` 직접 경로
+    삭제에 계속 막혀 있다.
 15. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
     identity/target처럼 action이 직접 반환하는 실패와, 하위 `Die`/`Exit`가
     중단시키는 fatal 실패를 gate와 문서에서 분리한다.
@@ -528,7 +573,7 @@ production action을 하나의 import/call graph로 합친 실행 경계다. 별
 
 | 층 | 현재 owner와 증거 | 아직 닫히지 않은 것 |
 | --- | --- | --- |
-| declaration contract | `MIRDeclMethod`의 action/`within`/`causes`/`authorized_by_names`, `MIRDeclZoneAuthority`의 subject slot/required ability | action `requires`, caps/effects를 호출이 소비할 한 contract row로 결합 |
+| declaration contract | `MIRDeclMethod`와 native/self MIR wire의 action/`requires`/`within`/`causes`/`authorized_by_names`/caps/effects, `MIRDeclZoneAuthority`의 subject slot/required ability | shared caps/effects vocabulary owner; declaration fact와 별도인 call binding |
 | call binding | C/LLVM hook이 direct world -> zone -> subject receiver와 정확한 zone authority slot을 구조적으로 resolve | named participant, 복수 authority, indirect receiver를 나타내는 호출별 binding fact |
 | runtime evidence | 선택한 zone 주소와 participant 주소를 runtime에 전달하고 non-null presence snapshot 기록 | slot membership, subject identity/token, action/zone ability authorization |
 

@@ -1,0 +1,414 @@
+// Single pgy.mir.v1 method-contract fact owner for declaration lowering.
+//
+// The wire must state callable identity and every contract axis explicitly.
+// Lowering consumes this fact once and never infers Action from a name, owner,
+// or the presence of one clause.
+
+import "error_owner.pgy";
+import "json_fact_read.pgy";
+
+struct MirDeclarationMethodContractFact {
+    valid: Bool;
+    diagnostic: String;
+    callable_kind: String;
+    requires_bases: Array<String>;
+    requires_actual_starts: Array<Int>;
+    requires_actual_counts: Array<Int>;
+    requires_actual_names: Array<String>;
+    within_zone: String;
+    causes_name: String;
+    authorized_by_names: Array<String>;
+    caps_present: Bool;
+    cap_names: Array<String>;
+    effects_present: Bool;
+    effect_names: Array<String>;
+}
+
+func MirDeclarationMethodContractEmpty(
+    diagnostic: String
+) -> MirDeclarationMethodContractFact {
+    let strings: Array<String> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    return MirDeclarationMethodContractFact(
+        false, diagnostic, "", strings, starts, counts, strings, "", "",
+        strings, false, strings, false, strings
+    );
+}
+
+func MirDeclarationMethodContractContains(
+    names: Array<String>, name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func MirDeclarationMethodContractKnownCap(name: String) -> Bool {
+    return name == "io_read" || name == "io_write" || name == "network" ||
+        name == "clock" || name == "random" || name == "env" ||
+        name == "render" || name == "audio" || name == "input";
+}
+
+func MirDeclarationMethodContractKnownEffect(name: String) -> Bool {
+    return name == "secure" || name == "remote" ||
+        name == "nondeterministic" || name == "collapse" ||
+        name == "unsafe" || name == "io" || name == "alloc" ||
+        name == "authority" || name == "local";
+}
+
+func MirDeclarationMethodContractReadStringArray(
+    json: String, start: Int, end: Int, field: String,
+    reject_duplicates: Bool, inout values: Array<String>
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(json, start, end, field, bounds) {
+        return false;
+    }
+    let value_start: Int = ArrayLength(values);
+    let cursor: Int = bounds[0] + 1;
+    let need_value: Bool = true;
+    while cursor < bounds[1] {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, bounds[1]);
+        if cursor >= bounds[1] { return false; }
+        let code: Int = JsonCharCodeAt(json, bounds[1], cursor);
+        if code == JsonAsciiCode("]") {
+            return need_value || ArrayLength(values) > value_start;
+        }
+        if !need_value {
+            if code != JsonAsciiCode(",") { return false; }
+            cursor = JsonSkipWhitespaceWithin(
+                json, cursor + 1, bounds[1]
+            );
+            if cursor >= bounds[1] ||
+                JsonCharCodeAt(json, bounds[1], cursor) ==
+                    JsonAsciiCode("]") {
+                return false;
+            }
+        }
+        if JsonCharCodeAt(json, bounds[1], cursor) != JsonAsciiCode("\"") {
+            return false;
+        }
+        let value_end: Array<Int> = [0];
+        let value: String = ReadJsonStringBounded(
+            json, cursor, bounds[1], value_end
+        );
+        let duplicate: Bool = false;
+        let duplicate_i: Int = value_start;
+        while duplicate_i < ArrayLength(values) {
+            if values[duplicate_i] == value { duplicate = true; }
+            duplicate_i = duplicate_i + 1;
+        }
+        if value_end[0] <= cursor || StringLength(value) == 0 ||
+            (reject_duplicates && duplicate) {
+            return false;
+        }
+        ArrayPush(values, value);
+        cursor = value_end[0];
+        need_value = false;
+    }
+    return false;
+}
+
+func MirDeclarationMethodContractRequiredOptionalString(
+    json: String, start: Int, end: Int, field: String,
+    inout value_box: Array<String>
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if ArrayLength(value_box) != 1 || !MirObjectFieldValueBoundsAtBounds(
+        json, start, end, field, bounds
+    ) {
+        return false;
+    }
+    if bounds[0] + 4 == bounds[1] &&
+        Substring(json, bounds[0], 4) == "null" {
+        ArraySet(value_box, 0, "");
+        return true;
+    }
+    let value: String = MirObjectStringFactAtBounds(
+        json, start, end, field
+    );
+    if StringLength(value) == 0 { return false; }
+    ArraySet(value_box, 0, value);
+    return true;
+}
+
+func MirDeclarationMethodContractRequiredBool(
+    json: String, start: Int, end: Int, field: String,
+    inout value_box: Array<Bool>
+) -> Bool {
+    if ArrayLength(value_box) != 1 { return false; }
+    if JsonObjectBoolFieldEqualsWithin(json, start, end, field, true) {
+        ArraySet(value_box, 0, true);
+        return true;
+    }
+    if JsonObjectBoolFieldEqualsWithin(json, start, end, field, false) {
+        ArraySet(value_box, 0, false);
+        return true;
+    }
+    return false;
+}
+
+func MirDeclarationMethodContractReadRequires(
+    json: String, start: Int, end: Int,
+    inout bases: Array<String>, inout actual_starts: Array<Int>,
+    inout actual_counts: Array<Int>, inout actual_names: Array<String>
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(json, start, end, "requires", bounds) {
+        return false;
+    }
+    let cursor: Int = bounds[0] + 1;
+    let first: Bool = true;
+    while cursor < bounds[1] {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, bounds[1]);
+        if cursor >= bounds[1] { return false; }
+        let code: Int = JsonCharCodeAt(json, bounds[1], cursor);
+        if code == JsonAsciiCode("]") { return true; }
+        if !first {
+            if code != JsonAsciiCode(",") { return false; }
+            cursor = JsonSkipWhitespaceWithin(
+                json, cursor + 1, bounds[1]
+            );
+            if cursor >= bounds[1] ||
+                JsonCharCodeAt(json, bounds[1], cursor) !=
+                    JsonAsciiCode("{") {
+                return false;
+            }
+        } else if code != JsonAsciiCode("{") {
+            return false;
+        }
+        let object_end: Option<Int> = JsonObjectEndWithin(
+            json, cursor, bounds[1]
+        );
+        if !IsSome(object_end) { return false; }
+        let row_end: Int = UnwrapOption(object_end);
+        let base: String = MirObjectStringFactAtBounds(
+            json, cursor, row_end, "base"
+        );
+        if StringLength(base) == 0 {
+            return false;
+        }
+        let actual_start: Int = ArrayLength(actual_names);
+        if !MirDeclarationMethodContractReadStringArray(
+            json, cursor, row_end, "actuals", false, actual_names
+        ) {
+            return false;
+        }
+        let actual_count: Int = ArrayLength(actual_names) - actual_start;
+        let prior: Int = 0;
+        while prior < ArrayLength(bases) {
+            let same: Bool = bases[prior] == base &&
+                actual_counts[prior] == actual_count;
+            let actual_i: Int = 0;
+            while same && actual_i < actual_count {
+                same = actual_names[actual_starts[prior] + actual_i] ==
+                    actual_names[actual_start + actual_i];
+                actual_i = actual_i + 1;
+            }
+            if same { return false; }
+            prior = prior + 1;
+        }
+        ArrayPush(bases, base);
+        ArrayPush(actual_starts, actual_start);
+        ArrayPush(actual_counts, actual_count);
+        cursor = row_end;
+        first = false;
+    }
+    return false;
+}
+
+func MirDeclarationMethodContractFactFromBounds(
+    json: String, method_start: Int, method_end: Int
+) -> MirDeclarationMethodContractFact {
+    let callable_kind: String = MirObjectStringFactAtBounds(
+        json, method_start, method_end, "callable_kind"
+    );
+    if callable_kind != "function" && callable_kind != "action" {
+        return MirDeclarationMethodContractEmpty(
+            "method callable_kind is missing or invalid"
+        );
+    }
+    let contract_bounds: Array<Int> = [0, 0];
+    if !MirObjectFieldValueBoundsAtBounds(
+        json, method_start, method_end, "contract", contract_bounds
+    ) || contract_bounds[0] >= contract_bounds[1] ||
+        JsonCharCodeAt(json, contract_bounds[1], contract_bounds[0]) !=
+            JsonAsciiCode("{") {
+        return MirDeclarationMethodContractEmpty(
+            "method contract object is missing"
+        );
+    }
+
+    let requires_bases: Array<String> = [];
+    let requires_actual_starts: Array<Int> = [];
+    let requires_actual_counts: Array<Int> = [];
+    let requires_actual_names: Array<String> = [];
+    let within_box: Array<String> = [""];
+    let causes_box: Array<String> = [""];
+    let authorized_by_names: Array<String> = [];
+    let caps_box: Array<Bool> = [false];
+    let cap_names: Array<String> = [];
+    let effects_box: Array<Bool> = [false];
+    let effect_names: Array<String> = [];
+    if !MirDeclarationMethodContractReadRequires(
+        json, contract_bounds[0], contract_bounds[1], requires_bases,
+        requires_actual_starts, requires_actual_counts,
+        requires_actual_names
+    ) || !MirDeclarationMethodContractRequiredOptionalString(
+        json, contract_bounds[0], contract_bounds[1], "within", within_box
+    ) || !MirDeclarationMethodContractRequiredOptionalString(
+        json, contract_bounds[0], contract_bounds[1], "causes", causes_box
+    ) || !MirDeclarationMethodContractReadStringArray(
+        json, contract_bounds[0], contract_bounds[1], "authorized_by",
+        true, authorized_by_names
+    ) || !MirDeclarationMethodContractRequiredBool(
+        json, contract_bounds[0], contract_bounds[1], "caps_present",
+        caps_box
+    ) || !MirDeclarationMethodContractReadStringArray(
+        json, contract_bounds[0], contract_bounds[1], "caps", true,
+        cap_names
+    ) || !MirDeclarationMethodContractRequiredBool(
+        json, contract_bounds[0], contract_bounds[1], "effects_present",
+        effects_box
+    ) || !MirDeclarationMethodContractReadStringArray(
+        json, contract_bounds[0], contract_bounds[1], "effects", true,
+        effect_names
+    ) {
+        return MirDeclarationMethodContractEmpty(
+            "method contract fields are incomplete or malformed"
+        );
+    }
+
+    let i: Int = 0;
+    while i < ArrayLength(cap_names) {
+        if !MirDeclarationMethodContractKnownCap(cap_names[i]) {
+            return MirDeclarationMethodContractEmpty(
+                "method contract contains an unknown capability"
+            );
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(effect_names) {
+        if !MirDeclarationMethodContractKnownEffect(effect_names[i]) ||
+            (effect_names[i] == "local" && ArrayLength(effect_names) != 1) {
+            return MirDeclarationMethodContractEmpty(
+                "method contract contains an invalid effect"
+            );
+        }
+        i = i + 1;
+    }
+    if ((!caps_box[0] && ArrayLength(cap_names) > 0) ||
+        (caps_box[0] && ArrayLength(cap_names) == 0) ||
+        (!effects_box[0] && ArrayLength(effect_names) > 0) ||
+        (effects_box[0] && ArrayLength(effect_names) == 0)) {
+        return MirDeclarationMethodContractEmpty(
+            "method contract clause presence disagrees with its values"
+        );
+    }
+    let has_action_only: Bool = ArrayLength(requires_bases) > 0 ||
+        StringLength(within_box[0]) > 0 || StringLength(causes_box[0]) > 0 ||
+        ArrayLength(authorized_by_names) > 0;
+    if callable_kind == "function" && has_action_only {
+        return MirDeclarationMethodContractEmpty(
+            "function method carries action-only contract facts"
+        );
+    }
+    return MirDeclarationMethodContractFact(
+        true, "", callable_kind, requires_bases, requires_actual_starts,
+        requires_actual_counts, requires_actual_names, within_box[0],
+        causes_box[0], authorized_by_names, caps_box[0], cap_names,
+        effects_box[0], effect_names
+    );
+}
+
+func MirDeclarationMethodContractRequiredType(
+    fact: MirDeclarationMethodContractFact, row: Int
+) -> String {
+    let out: String = fact.requires_bases[row];
+    let count: Int = fact.requires_actual_counts[row];
+    if count == 0 { return out; }
+    out = Concat(out, "<");
+    let i: Int = 0;
+    while i < count {
+        if i > 0 { out = Concat(out, ", "); }
+        out = Concat(
+            out,
+            fact.requires_actual_names[fact.requires_actual_starts[row] + i]
+        );
+        i = i + 1;
+    }
+    return Concat(out, ">");
+}
+
+func MirDeclarationMethodContractJoin(
+    names: Array<String>
+) -> String {
+    let out: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if i > 0 { out = Concat(out, ", "); }
+        out = Concat(out, names[i]);
+        i = i + 1;
+    }
+    return out;
+}
+
+func MirDeclarationMethodContractRows(
+    fact: MirDeclarationMethodContractFact, indent: String
+) -> String {
+    if !fact.valid { MirLowerFailClosed(fact.diagnostic); }
+    let out: String = "";
+    if ArrayLength(fact.requires_bases) > 0 {
+        let required: Array<String> = [];
+        let i: Int = 0;
+        while i < ArrayLength(fact.requires_bases) {
+            ArrayPush(
+                required, MirDeclarationMethodContractRequiredType(fact, i)
+            );
+            i = i + 1;
+        }
+        out = Concat(out, Concat(
+            indent, Concat("Requires: ", Concat(
+                MirDeclarationMethodContractJoin(required), "\n"
+            ))
+        ));
+    }
+    if StringLength(fact.within_zone) > 0 {
+        out = Concat(out, Concat(
+            indent, Concat("Within: ", Concat(fact.within_zone, "\n"))
+        ));
+    }
+    if StringLength(fact.causes_name) > 0 {
+        out = Concat(out, Concat(
+            indent, Concat("Causes: ", Concat(fact.causes_name, "\n"))
+        ));
+    }
+    if ArrayLength(fact.authorized_by_names) > 0 {
+        out = Concat(out, Concat(
+            indent, Concat("Authorized by: ", Concat(
+                MirDeclarationMethodContractJoin(fact.authorized_by_names),
+                "\n"
+            ))
+        ));
+    }
+    if fact.caps_present {
+        out = Concat(out, Concat(
+            indent, Concat("Caps: ", Concat(
+                MirDeclarationMethodContractJoin(fact.cap_names), "\n"
+            ))
+        ));
+    }
+    if fact.effects_present {
+        out = Concat(out, Concat(
+            indent, Concat("Effects: ", Concat(
+                MirDeclarationMethodContractJoin(fact.effect_names), "\n"
+            ))
+        ));
+    }
+    return out;
+}

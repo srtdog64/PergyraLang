@@ -13,6 +13,23 @@ struct SelfMirDeclarationRows {
     method_counts: Array<Int>;
     method_names: Array<String>;
     method_returns: Array<String>;
+    method_is_actions: Array<Int>;
+    method_requires_starts: Array<Int>;
+    method_requires_counts: Array<Int>;
+    method_requires_names: Array<String>;
+    method_within_zone_names: Array<String>;
+    method_causes_names: Array<String>;
+    method_authorized_by_starts: Array<Int>;
+    method_authorized_by_counts: Array<Int>;
+    method_authorized_by_names: Array<String>;
+    method_caps_present: Array<Int>;
+    method_cap_starts: Array<Int>;
+    method_cap_counts: Array<Int>;
+    method_cap_names: Array<String>;
+    method_effects_present: Array<Int>;
+    method_effect_starts: Array<Int>;
+    method_effect_counts: Array<Int>;
+    method_effect_names: Array<String>;
     variant_starts: Array<Int>;
     variant_counts: Array<Int>;
     variant_names: Array<String>;
@@ -44,7 +61,11 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let strings: Array<String> = [];
     return SelfMirDeclarationRows(
         strings, strings, strings, strings, ints, ints, strings, strings,
-        ints, ints, strings, strings, ints, ints, strings, ints, ints, strings,
+        ints, ints, strings, strings,
+        ints, ints, ints, strings, strings, strings,
+        ints, ints, strings, ints, ints, ints, strings,
+        ints, ints, ints, strings,
+        ints, ints, strings, ints, ints, strings,
         ints, ints, strings, strings, strings,
         ints, ints, strings, strings,
         ints, ints, strings, strings, ints,

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Owns exact ActionContract carriage and fail-closed wire mutations for DRV-2.
+# Gate contract: native/self MIR contract parity and six field mutations fail closed
+
+pgy_selfhost_driver_rung2_action_contract_reject() {
+    local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
+    local suffix="$5" from="$6" to="$7" diagnostic="$8"
+    local mutated="$BUILD_DIR/${base}_${backend}.${suffix}.mir.json"
+
+    if ! pgy_replace_first_literal \
+        "$self_mir_json" "$mutated" "$from" "$to"; then
+        echo "[self-host-parity:driver-rung2] $backend ActionContract mutation did not apply: $suffix" >&2
+        return 1
+    fi
+    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$mutated")" \
+        >"$mutated.out" 2>"$mutated.err"); then
+        echo "[self-host-parity:driver-rung2] $backend malformed ActionContract was accepted: $suffix" >&2
+        return 1
+    fi
+    grep -Fq "$diagnostic" "$mutated.out" "$mutated.err" || {
+        echo "[self-host-parity:driver-rung2] $backend ActionContract diagnostic drifted: $suffix" >&2
+        cat "$mutated.out" "$mutated.err" >&2
+        return 1
+    }
+    if grep -Fq '#include <stdio.h>' "$mutated.out"; then
+        echo "[self-host-parity:driver-rung2] $backend malformed ActionContract reached C emission: $suffix" >&2
+        return 1
+    fi
+}
+
+pgy_selfhost_verify_driver_rung2_action_contract() {
+    local backend="$1" base="$2" native_mir_json="$3"
+    local self_mir_json="$4" driver_bin="$5"
+    local contract
+    if [[ "$base" != "function_clause_order_minimal" ]]; then
+        return 0
+    fi
+
+    contract='"name":"Attack","return":"Void","callable_kind":"action","contract":{"requires":[{"base":"Combatable","actuals":[]},{"base":"Movable","actuals":[]}],"within":"BattleZone","causes":"Damage","authorized_by":["self","target"],"caps_present":true,"caps":["io_read","io_write"],"effects_present":true,"effects":["secure","remote"]}'
+    grep -Fq "$contract" "$native_mir_json" || {
+        echo "[self-host-parity:driver-rung2] native ActionContract carriage drifted" >&2
+        return 1
+    }
+    grep -Fq "$contract" "$self_mir_json" || {
+        echo "[self-host-parity:driver-rung2] $backend self ActionContract carriage drifted" >&2
+        return 1
+    }
+
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "missing-within" '"within":"BattleZone"' \
+        '"within_removed":"BattleZone"' \
+        "method contract fields are incomplete or malformed"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "unknown-within" '"within":"BattleZone"' \
+        '"within":"MissingActionContractZone"' \
+        "action contract references an unknown zone"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "non-subject-owner" '"nominal_kind":"subject"' \
+        '"nominal_kind":"object"' \
+        "action method requires a subject owner"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "action-as-function" '"callable_kind":"action"' \
+        '"callable_kind":"function"' \
+        "function method carries action-only contract facts"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "empty-caps" '"caps_present":true,"caps":["io_read","io_write"]' \
+        '"caps_present":true,"caps":[]' \
+        "method contract clause presence disagrees with its values"
+    pgy_selfhost_driver_rung2_action_contract_reject \
+        "$backend" "$base" "$self_mir_json" "$driver_bin" \
+        "empty-effects" '"effects_present":true,"effects":["secure","remote"]' \
+        '"effects_present":true,"effects":[]' \
+        "method contract clause presence disagrees with its values"
+}

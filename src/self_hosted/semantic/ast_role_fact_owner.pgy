@@ -168,8 +168,8 @@ func SemanticAstRoleFactsFromArtifact(
                     let candidate_parent: Option<Int> = TypedAstArenaParentId(
                         artifact.arena, candidate
                     );
-                    if TypedAstArenaNodeKindIs(
-                        artifact.arena, candidate, TypedAstKindFuncDeclTag()
+                    if TypedAstArenaNodeKindIsCallable(
+                        artifact.arena, candidate
                     ) {
                         let owner: Option<Int> = SemanticAstRoleAncestorNodeId(
                             artifact.arena, candidate
@@ -247,8 +247,8 @@ func SemanticAstRoleFactsFromArtifact(
                         artifact.arena, child
                     );
                     if IsSome(parent) && UnwrapOption(parent) == node_id {
-                        if TypedAstArenaNodeKindIs(
-                            artifact.arena, child, TypedAstKindFuncDeclTag()
+                        if TypedAstArenaNodeKindIsCallable(
+                            artifact.arena, child
                         ) {
                             ArrayPush(ability_method_node_ids, child);
                         }

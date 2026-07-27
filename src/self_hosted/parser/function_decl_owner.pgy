@@ -7,6 +7,63 @@ import "expr_owner.pgy";
 import "stmt_owner.pgy";
 import "generic_parameter_list_owner.pgy";
 
+func ParserCallableContractContains(names: Array<String>, name: String) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ParserCallableContractAppendName(
+    inout names: Array<String>, name: String, vocabulary: Array<String>
+) -> Bool {
+    if StringLength(name) == 0 ||
+        !ParserCallableContractContains(vocabulary, name) ||
+        ParserCallableContractContains(names, name) {
+        return false;
+    }
+    ArrayPush(names, name);
+    return true;
+}
+
+func ParserCallableContractCanonicalNames(
+    names: Array<String>, vocabulary: Array<String>
+) -> String {
+    let out: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(vocabulary) {
+        if ParserCallableContractContains(names, vocabulary[i]) {
+            if StringLength(out) > 0 { out = Concat(out, ", "); }
+            out = Concat(out, vocabulary[i]);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+func ParserCallableContractCanonicalEffects(names: Array<String>) -> String {
+    let vocabulary: Array<String> = [
+        "secure", "remote", "nondeterministic", "collapse", "unsafe",
+        "io", "alloc", "authority"
+    ];
+    let out: String = ParserCallableContractCanonicalNames(names, vocabulary);
+    if StringLength(out) == 0 &&
+        ParserCallableContractContains(names, "local") {
+        return "local";
+    }
+    return out;
+}
+
+func ParserCallableContractCanonicalCaps(names: Array<String>) -> String {
+    let vocabulary: Array<String> = [
+        "io_read", "io_write", "network", "clock", "random", "env",
+        "render", "audio", "input"
+    ];
+    return ParserCallableContractCanonicalNames(names, vocabulary);
+}
+
 // Parse one `func IDENT(params) -> RET { body }` declaration starting
 // at the `func` keyword. Returns the formatted multi-line block.
 // `base_indent` is the column at which `Function:` appears; child rows
@@ -140,6 +197,15 @@ func ParseFunction(
     let causes_effect: String = "";
     let auth_by: String = "";
     let constraint_clause: String = "";
+    let cap_names: Array<String> = [];
+    let effect_names: Array<String> = [];
+    let saw_requires: Bool = false;
+    let saw_within: Bool = StringLength(within_zone_arg) > 0;
+    let saw_causes: Bool = false;
+    let saw_authorized_by: Bool = false;
+    let saw_caps: Bool = false;
+    let saw_effects: Bool = false;
+    let is_action: Bool = fn_keyword == "action";
     if !signature_done {
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
@@ -166,6 +232,8 @@ func ParseFunction(
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
+            if !is_action || saw_requires { Exit(1); }
+            saw_requires = true;
             i = LanguageWordEnd(i, LanguageWordId.WordRequires);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -187,6 +255,8 @@ func ParseFunction(
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordWithin) {
+            if !is_action || saw_within { Exit(1); }
+            saw_within = true;
             i = LanguageWordEnd(i, LanguageWordId.WordWithin);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -195,6 +265,8 @@ func ParseFunction(
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordCauses) {
+            if !is_action || saw_causes { Exit(1); }
+            saw_causes = true;
             i = LanguageWordEnd(i, LanguageWordId.WordCauses);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -203,21 +275,25 @@ func ParseFunction(
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordAuthorized) {
+            if !is_action || saw_authorized_by { Exit(1); }
             let next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordAuthorized));
             if MatchLanguageWord(content, next_i, LanguageWordId.WordBy) {
+                saw_authorized_by = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordBy);
                 i = SkipWhitespaceAndComments(content, i);
                 ArraySet(cursor_out, 0, i);
-                auth_by = ParseExpr(content, i, cursor_out);
+                auth_by = ReadIdent(content, i, cursor_out);
                 i = cursor_out[0];
+                if StringLength(auth_by) == 0 { Exit(1); }
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         i = SkipWhitespaceAndComments(content, i);
                         ArraySet(cursor_out, 0, i);
-                        let next_auth: String = ParseExpr(content, i, cursor_out);
+                        let next_auth: String = ReadIdent(content, i, cursor_out);
                         i = cursor_out[0];
+                        if StringLength(next_auth) == 0 { Exit(1); }
                         auth_by = Concat(auth_by, Concat(", ", next_auth));
                         continue;
                     }
@@ -229,12 +305,21 @@ func ParseFunction(
         if MatchLanguageWord(content, i, LanguageWordId.WordWith) {
             let next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordWith));
             if MatchLanguageWord(content, next_i, LanguageWordId.WordEffects) {
+                if saw_effects { Exit(1); }
+                saw_effects = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordEffects);
+                let effect_vocabulary: Array<String> = [
+                    "secure", "remote", "nondeterministic", "collapse",
+                    "unsafe", "io", "alloc", "authority", "local"
+                ];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let dummy: String = ReadIdent(content, i, cursor_out);
+                    let effect_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
+                    if !ParserCallableContractAppendName(
+                        effect_names, effect_name, effect_vocabulary
+                    ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
@@ -245,12 +330,21 @@ func ParseFunction(
                 continue;
             }
             if MatchLanguageWord(content, next_i, LanguageWordId.WordCaps) {
+                if saw_caps { Exit(1); }
+                saw_caps = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordCaps);
+                let cap_vocabulary: Array<String> = [
+                    "io_read", "io_write", "network", "clock", "random",
+                    "env", "render", "audio", "input"
+                ];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let cap_dummy: String = ReadIdent(content, i, cursor_out);
+                    let cap_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
+                    if !ParserCallableContractAppendName(
+                        cap_names, cap_name, cap_vocabulary
+                    ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
@@ -328,6 +422,22 @@ func ParseFunction(
     }
     if StringLength(auth_by) > 0 {
         block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Authorized by: ", auth_by)));
+    }
+    if saw_caps {
+        let caps: String = ParserCallableContractCanonicalCaps(cap_names);
+        if StringLength(caps) == 0 { Exit(1); }
+        block = AppendLine(block, Concat(
+            IndentStr(base_indent + 2), Concat("Caps: ", caps)
+        ));
+    }
+    if saw_effects {
+        let effects: String = ParserCallableContractCanonicalEffects(
+            effect_names
+        );
+        if StringLength(effects) == 0 { Exit(1); }
+        block = AppendLine(block, Concat(
+            IndentStr(base_indent + 2), Concat("Effects: ", effects)
+        ));
     }
     if is_signature {
         ArraySet(cursor_out, 0, i);

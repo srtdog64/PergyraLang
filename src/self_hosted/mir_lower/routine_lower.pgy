@@ -380,10 +380,11 @@ func EmitRegion(ref index: MirRoutineFactIndex,
     );
 }
 
-func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
+func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
-    routine_indent: String, self_type: String, observe_fact_index: Bool,
+    routine_indent: String, self_type: String, callable_kind: String,
+    contract_rows: String, observe_fact_index: Bool,
     observe_focused_routine: Bool,
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
@@ -452,9 +453,18 @@ func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
         json, routine_start, routine_end
     );
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:header:done"); }
+    if callable_kind != "function" && callable_kind != "action" {
+        MirLowerFailClosed(Concat(
+            "routine callable kind is invalid: ", routine
+        ));
+    }
+    let callable_label: String = "Function: ";
+    if callable_kind == "action" { callable_label = "Action: "; }
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
-    let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
+    let chunks: Array<String> = [Concat(
+        routine_indent, Concat(callable_label, Concat(routine, "\n"))
+    )];
 
     let generic_count: Int = ArrayLength(header.generic_names);
     if generic_count > 0 {
@@ -523,6 +533,9 @@ func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
 
     let rtype: String = header.return_type;
     ArrayPush(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
+    if StringLength(contract_rows) > 0 {
+        ArrayPush(chunks, contract_rows);
+    }
     ArrayPush(chunks, Concat(ppad, "Body:\n"));
     ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
@@ -539,22 +552,6 @@ func EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
     return StringJoin(chunks, "");
 }
 
-func EmitRoutineTreeWithSelfTypeAtRow(
-    ref routines: MirProgramRoutineIndex,
-    routine_row: Int,
-    routine_indent: String, self_type: String, observe_fact_index: Bool,
-    observe_focused_routine: Bool,
-    inout abi_validation: MirAbiLayoutValidationSession
-) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
-        MirStructuredExpressionEmissionOrderEmpty();
-    return EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
-        routines, routine_row, routine_indent, self_type,
-        observe_fact_index, observe_focused_routine, ignored_order,
-        abi_validation
-    );
-}
-
 func EmitRoutineTreeAtRowWithExpressionOrder(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int, routine_indent: String, observe_fact_index: Bool,
@@ -562,21 +559,9 @@ func EmitRoutineTreeAtRowWithExpressionOrder(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    return EmitRoutineTreeWithSelfTypeAtRowWithExpressionOrder(
-        routines, routine_row, routine_indent, "",
+    return EmitRoutineTreeWithContractAtRowWithExpressionOrder(
+        routines, routine_row, routine_indent, "", "function", "",
         observe_fact_index, observe_focused_routine, expression_order,
         abi_validation
-    );
-}
-
-func EmitRoutineTreeAtRow(ref routines: MirProgramRoutineIndex,
-    routine_row: Int, routine_indent: String, observe_fact_index: Bool,
-    observe_focused_routine: Bool,
-    inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
-        MirStructuredExpressionEmissionOrderEmpty();
-    return EmitRoutineTreeAtRowWithExpressionOrder(
-        routines, routine_row, routine_indent, observe_fact_index,
-        observe_focused_routine, ignored_order, abi_validation
     );
 }

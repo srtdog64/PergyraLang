@@ -4,7 +4,76 @@
  */
 
 #include "ast_print_internal.h"
+#include "ast_api.h"
+#include "../runtime/pgy_runtime_capability.h"
+#include "../semantic/type_system.h"
 #include <stdio.h>
+
+typedef struct ASTPrintMaskName
+{
+    uint32_t bit;
+    const char *name;
+} ASTPrintMaskName;
+
+static void
+print_func_mask_clause(const char *label, uint32_t mask,
+                       const ASTPrintMaskName *names, size_t name_count,
+                       const char *zero_name, int indent)
+{
+    bool first = true;
+
+    ast_print_indent(indent);
+    printf("%s:", label);
+    if (mask == 0 && zero_name != NULL) {
+        printf(" %s", zero_name);
+    } else {
+        for (size_t i = 0; i < name_count; i++) {
+            if ((mask & names[i].bit) == 0)
+                continue;
+            printf("%s%s", first ? " " : ", ", names[i].name);
+            first = false;
+        }
+    }
+    printf("\n");
+}
+
+static void
+print_func_contract_masks(const ASTNode *node, int indent)
+{
+    static const ASTPrintMaskName effects[] = {
+        {EFFECT_SECURE, "secure"},
+        {EFFECT_REMOTE, "remote"},
+        {EFFECT_NONDETERMINISTIC, "nondeterministic"},
+        {EFFECT_COLLAPSE, "collapse"},
+        {EFFECT_UNSAFE, "unsafe"},
+        {EFFECT_IO, "io"},
+        {EFFECT_ALLOC, "alloc"},
+        {EFFECT_AUTHORITY, "authority"},
+    };
+    static const ASTPrintMaskName caps[] = {
+        {PGY_CAP_IO_READ, "io_read"},
+        {PGY_CAP_IO_WRITE, "io_write"},
+        {PGY_CAP_NETWORK, "network"},
+        {PGY_CAP_CLOCK, "clock"},
+        {PGY_CAP_RANDOM, "random"},
+        {PGY_CAP_ENV, "env"},
+        {PGY_CAP_RENDER, "render"},
+        {PGY_CAP_AUDIO, "audio"},
+        {PGY_CAP_INPUT, "input"},
+    };
+
+    if (ast_func_has_caps_clause(node)) {
+        print_func_mask_clause("Caps", ast_func_declared_capabilities(node),
+                               caps, sizeof(caps) / sizeof(caps[0]),
+                               NULL, indent);
+    }
+    if (ast_func_has_effects_clause(node)) {
+        print_func_mask_clause("Effects", ast_func_declared_effects(node),
+                               effects,
+                               sizeof(effects) / sizeof(effects[0]),
+                               "local", indent);
+    }
+}
 
 static const char *
 nominal_decl_kind_name(NominalDeclKind kind)
@@ -155,6 +224,7 @@ void ast_print(ASTNode* node, int indent) {
                 }
                 printf("\n");
             }
+            print_func_contract_masks(node, indent + 1);
             if (node->data.func_decl.body) {
                 ast_print_indent(indent + 1);
                 printf("Body:\n");
