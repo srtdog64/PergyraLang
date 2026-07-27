@@ -928,6 +928,7 @@ main() {
         "tests/cases/backend_compare/subject_projection"
         "tests/cases/backend_compare/subject_class_dispatch"
         "tests/cases/backend_compare/action_outcome_dispatch"
+        "tests/cases/backend_compare/subject_action_global_helper"
         "tests/cases/backend_compare/subject_action_state"
         "tests/cases/backend_compare/object_layer_binding"
         "tests/cases/backend_compare/ownership_forwarding"

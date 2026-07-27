@@ -321,15 +321,7 @@ emit_program(TranspilerCtx *ctx)
             emit_statement(type_decl, ctx);
     }
 
-    /* Semantic MIR field/payload rows own the by-value dependency schedule. */
-    if (!transpiler_emit_mir_type_declarations(ctx, types, type_count))
-        return;
-
-    /* Pass 2.5: extern declarations */
-    for (size_t i = 0; i < exten_count; i++)
-        emit_extern_block(externs[i], ctx);
-
-    /* Pass 2.6: early forward declarations for standalone functions so
+    /* Pass 1.4: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
     for (size_t i = 0; i < function_count; i++) {
         if (transpiler_is_synthetic_executable_func(functions[i]))
@@ -351,6 +343,14 @@ emit_program(TranspilerCtx *ctx)
         if (transpiler_can_forward_declare_intent_early(ctx, intents[i]))
             emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
+
+    /* Semantic MIR field/payload rows own the by-value dependency schedule. */
+    if (!transpiler_emit_mir_type_declarations(ctx, types, type_count))
+        return;
+
+    /* Pass 2.5: extern declarations */
+    for (size_t i = 0; i < exten_count; i++)
+        emit_extern_block(externs[i], ctx);
 
     /* Pass 3: roles (vtable instances + free functions) */
     for (size_t i = 0; i < role_count; i++)

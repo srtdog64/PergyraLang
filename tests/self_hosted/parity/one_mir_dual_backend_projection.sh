@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
 # Native compilation is oracle evidence only: one_admitted_graph_directly_drives_C_and_LLVM; typed formatted-print fact drives both direct backends.
-
 set -euo pipefail
-
 if ! command -v dirname >/dev/null 2>&1 \
     || ! command -v tr >/dev/null 2>&1 \
     || ! command -v pwd >/dev/null 2>&1; then
     PATH="/usr/bin:/bin:$PATH"
     export PATH
 fi
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-one-mir-dual-backend"
@@ -51,6 +49,8 @@ assert_mir_identity() {
 assert_direct_owner_ratchet() {
     local term
     require_file "$DIRECT_OWNER"; require_file "$DIRECT_ADMISSION_OWNER"; require_file "$DIRECT_EMISSION_OWNER"; require_file "$RUNTIME_ABI_FACT_OWNER"
+    pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR" ||
+        fail "direct execution action gate failed"
     for term in '--mir-json-backend=c' '--mir-json-backend=llvm'; do
         grep -Fq -- "$term" \
             "$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy" ||

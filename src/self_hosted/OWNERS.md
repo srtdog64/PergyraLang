@@ -1294,6 +1294,11 @@ inventory must not become a second fact-family owner registry.
   integrated seed/oracle parity proof. The full stage2/stage3 consumer fixed
   point is an explicit gate; pipeline ownership remains in
   `driver_rung2_owner.pgy`.
+- `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
+  identity-bearing action boundary for the direct-MIR rung. It owns request-
+  to-target admission, exact emitted-artifact acceptance, output write, and
+  execution stage/result facts while reusing the existing typed MIR and
+  backend owners unchanged.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
   graph, selects the bounded scalar or verified-CFG path, and creates one C or

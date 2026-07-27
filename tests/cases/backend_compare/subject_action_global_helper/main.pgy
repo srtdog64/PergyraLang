@@ -1,0 +1,22 @@
+class Adjustment {
+    let value: Int;
+}
+
+func PrepareAdjustment(value: Int) -> Adjustment {
+    return Adjustment(value + 3);
+}
+
+subject Counter {
+    let total: Int;
+
+    action Apply(self, delta: Int) -> Int {
+        let adjustment: Adjustment = PrepareAdjustment(delta);
+        total = total + adjustment.value;
+        return total;
+    }
+}
+
+func Main() -> Void {
+    let counter = Counter(4);
+    Log(counter.Apply(5));
+}

@@ -11348,6 +11348,20 @@ require_text "Makefile" \
     'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE)'
 require_file "tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" 300
+require_file "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" \
+    '# Owns the reachable direct-MIR action boundary and its no-bypass ratchet.'
+require_text "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" \
+    'pgy_selfhost_assert_driver_rung2_execution_action()'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"'
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR"'
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
+pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR" ||
+    fail "direct execution action gate failed"
 require_text "Makefile" \
     "self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap-test-smoke"
 require_make_target_text \
@@ -11495,14 +11509,13 @@ require_text \
 require_text \
     "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
     "func MirRoutineInstructionUseAtGlobal("
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'import "direct_mir_backend_projection_owner.pgy";'
+require_file "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" 180
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'args[0] == "--mir-json-backend=c"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'args[0] == "--mir-json-backend=llvm"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'CompileMirJsonToDirectBackendVerified('
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'func CompileMirJsonToDirectBackendVerified('
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \

@@ -4,7 +4,7 @@
 // gives the bootstrap runner deterministic source/MIR/output-file surfaces.
 
 import "driver_rung2_owner.pgy";
-import "direct_mir_backend_projection_owner.pgy";
+import "driver_rung2_execution_owner.pgy";
 
 func DriverBootstrapPathEndsWith(path: String, suffix: String) -> Bool {
     let path_length: Int = StringLength(path);
@@ -59,18 +59,20 @@ func Main() -> Void with caps env, io_read, io_write {
     if ArrayLength(args) == 3 &&
         (args[0] == "--mir-json-backend=c" ||
          args[0] == "--mir-json-backend=llvm") {
-        let projection_name: String = CompilerTargetCpuCProjection();
+        let request: DriverRung2DirectMirRequest = DirectMirC;
         if args[0] == "--mir-json-backend=llvm" {
-            projection_name = CompilerTargetCpuLlvmProjection();
+            request = DirectMirLlvm;
         }
-        let target_projection: CompilerTargetProjectionFact =
-            CompilerTargetProjectionFactFromOwner(projection_name);
-        WriteFile(
-            args[2],
-            CompileMirJsonToDirectBackendVerified(
-                args[1], machine_declaration, target_projection
-            ).payload
+        let execution: DriverRung2Execution = DriverRung2Execution(
+            DriverRung2ExecutionOwnerIdentity()
         );
+        let result: DriverRung2ExecutionResult = execution.EmitDirectMir(
+            args[1], args[2], machine_declaration, request
+        );
+        if !DriverRung2ExecutionResultReady(result) {
+            Log(result.diagnostic);
+            Exit(1);
+        }
         return;
     }
     if ArrayLength(args) > 0 && StringLength(args[0]) >= 19 &&

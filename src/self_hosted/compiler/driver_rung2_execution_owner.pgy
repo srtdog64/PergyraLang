@@ -1,0 +1,109 @@
+// Reachable Pergyra action boundary for the direct-MIR driver rung.
+//
+// Existing typed MIR and backend owners retain semantic authority. This owner
+// owns only request-to-target admission, artifact acceptance, and output write
+// completion for one identity-bearing execution subject.
+
+import "direct_mir_backend_projection_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+enum DriverRung2DirectMirRequest {
+    DirectMirC,
+    DirectMirLlvm,
+}
+
+enum DriverRung2ExecutionStage {
+    Requested,
+    TargetAdmitted,
+    ArtifactWritten,
+    Rejected,
+}
+
+struct DriverRung2ExecutionResult {
+    let ok: Bool;
+    let stage: DriverRung2ExecutionStage;
+    let execution_identity: String;
+    let target_projection: String;
+    let diagnostic: String;
+}
+
+func DriverRung2ExecutionOwnerIdentity() -> String {
+    return "driver-rung2-direct-mir-execution";
+}
+
+func DriverRung2ExecutionResultReady(
+    result: DriverRung2ExecutionResult
+) -> Bool {
+    if !result.ok ||
+        result.execution_identity != DriverRung2ExecutionOwnerIdentity() ||
+        !CompilerTargetProjectionKnown(result.target_projection) ||
+        StringLength(result.diagnostic) != 0 {
+        return false;
+    }
+    match result.stage {
+        case ArtifactWritten: return true;
+        case Requested: return false;
+        case TargetAdmitted: return false;
+        case Rejected: return false;
+    }
+}
+
+subject DriverRung2Execution {
+    let identity: String;
+
+    action EmitDirectMir(
+        self,
+        mir_json_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverRung2DirectMirRequest
+    ) -> DriverRung2ExecutionResult with caps io_read, io_write {
+        let stage: DriverRung2ExecutionStage = Requested;
+        let projection_name: String = "";
+        match request {
+            case DirectMirC:
+                projection_name = CompilerTargetCpuCProjection();
+            case DirectMirLlvm:
+                projection_name = CompilerTargetCpuLlvmProjection();
+        }
+        if self.identity != DriverRung2ExecutionOwnerIdentity() {
+            return DriverRung2ExecutionResult(
+                false, Rejected, self.identity, projection_name,
+                "direct MIR execution subject identity is invalid"
+            );
+        }
+
+        let target_projection: CompilerTargetProjectionFact =
+            CompilerTargetProjectionFactFromOwner(projection_name);
+        if !CompilerTargetProjectionFactReadyFor(
+            target_projection, projection_name
+        ) {
+            return DriverRung2ExecutionResult(
+                false, Rejected, self.identity, projection_name,
+                "direct MIR execution target admission failed"
+            );
+        }
+        stage = TargetAdmitted;
+
+        let artifact: CompilerEmissionArtifact =
+            CompileMirJsonToDirectBackendVerified(
+                mir_json_path, machine_declaration, target_projection
+            );
+        if !CompilerEmissionArtifactReady(artifact) ||
+            artifact.target_capability_schema != target_projection.schema ||
+            artifact.target_projection != target_projection.projection ||
+            artifact.target_capability_fingerprint !=
+                target_projection.target_capability_fingerprint {
+            return DriverRung2ExecutionResult(
+                false, Rejected, self.identity, projection_name,
+                "direct MIR execution artifact does not match the admitted target"
+            );
+        }
+
+        WriteFile(output_path, artifact.payload);
+        stage = ArtifactWritten;
+        return DriverRung2ExecutionResult(
+            true, stage, self.identity, projection_name, ""
+        );
+    }
+}

@@ -46,18 +46,32 @@ owner, and the named executable gate.
   direct selectors across 34 words. Support flags, fixtures, and tooling do not
   promote implementation status.
 - Pergyra-native dogfood status is now explicit. The bootstrap import closure
-  has 395 files with no missing import; its non-fixture/generated/probe
-  reachable declaration set has 2,641 `func`, 174 `struct`, one `enum`, and
-  zero `world`/`zone`/`subject`/`action`/`intent`/`role`/`ability`/`effect`.
-  `world.pgy`, `stage_intents.pgy`, and `authority_owner.pgy` are unreachable;
-  the 16 declared compiler-world actions consume readiness facts only.
-  `docs/self_hosted/17_pergyra_native_dogfood_contract.md` and project
-  `AGENTS.md` therefore classify the world as `SURFACE`/`BRIDGE`, not the
-  executable root.
+  has 396 files with no missing import; its non-fixture/generated/probe
+  reachable declaration set has 2,643 `func`, 175 `struct`, three `enum`, one
+  `subject`, and one `action`. `world`/`zone`/`intent`/`role`/`ability`/`effect`
+  remain zero. `DriverRung2Execution.EmitDirectMir` is the first production
+  `REACHABLE` action; `world.pgy`, `stage_intents.pgy`, and
+  `authority_owner.pgy` remain unreachable, and the 16 declared compiler-world
+  actions still consume readiness facts only. The world remains
+  `SURFACE`/`BRIDGE`, not the executable root.
 - The combined action ABI prerequisite is green on C and LLVM: subject action,
   aggregate request, enum-bearing aggregate result, capabilities, and action-
   internal `WriteFile`/`ReadFile` produced `ok / artifact-written / 17` and the
-  same `driver-action-abi` file. This is enabling evidence, not substitution.
+  same `driver-action-abi` file. The production direct-MIR action also owns
+  requested -> target-admitted -> artifact-written/rejected, target admission,
+  exact artifact acceptance, and the final `WriteFile`. `Main` no longer calls
+  `CompilerTargetProjectionFactFromOwner`,
+  `CompileMirJsonToDirectBackendVerified`, or direct-mode `WriteFile`.
+- The production action exposed a native C declaration-order bug: hosted method
+  bodies were emitted before early-eligible file-scope prototypes. The early
+  function/intent prototype pass now precedes nominal method-body emission.
+  `subject_action_global_helper` reproduces the old implicit/conflicting
+  declaration failure and now passes C/LLVM with output `12`. The current
+  396-file driver compiles with 0 errors/0 warnings, and the direct one-MIR
+  hello/`let_log`/`multilet` C/LLVM parity plus negatives remain green.
+- This action rung is `REACHABLE`, not `SUBSTITUTING`: it replaces a Pergyra
+  `Main` orchestration bypass but does not yet replace another C-owned compiler
+  path. Released/default replacement therefore remains 0%.
 - The historical 20+ GiB / 3 GiB symptom came from cumulative graph copying
   and repeated whole-arena/readiness validation. The accepted direct CFG path
   keeps one typed admission/certificate issuance followed by fixed-size
@@ -73,7 +87,8 @@ owner, and the named executable gate.
 At the committed checkpoint containing this handoff, use `git rev-parse HEAD`
 and `git rev-parse origin/main` to verify the exact revision. The v74 executable
 boundary remains `bce4ae6f`; the later language-word/dogfood work is a supporting
-SoT/contract checkpoint and does not change released/default replacement.
+SoT/contract checkpoint, and the direct-MIR production action is a reachable
+dogfood boundary. Neither changes released/default replacement.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
@@ -81,10 +96,10 @@ unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No registry, dogfood-contract, ABI-probe, v74 implementation, gate, or
-documentation file should remain dirty.
+No registry, dogfood-contract, action-rung, codegen-ordering, ABI-probe, v74
+implementation, gate, or documentation file should remain dirty.
 
-## Active Pergyra-native direct-MIR action objective card
+## Completed Pergyra-native direct-MIR action objective card
 
 - Objective: move the actual direct-MIR C/LLVM target admission and artifact
   write transition from `driver_bootstrap_main.pgy` into one production-
@@ -111,7 +126,31 @@ documentation file should remain dirty.
   direct `Main` calls are statically forbidden; fixed MIR identity and all
   target/graph/certificate/plan negatives still reject before artifact; C,
   LLVM, and native outputs remain equal.
-- Root-intent follow-up is blocked on six missing `authorized by` bindings:
+- Result: complete at `REACHABLE`. The current native driver compiles with
+  0 errors/0 warnings; the static no-bypass gate, component contract,
+  subject/action ABI parity, targeted C/LLVM global-helper regression, and
+  hello/`let_log`/`multilet` one-MIR parity/negative gate are green.
+
+## Active zone/world attachment objective card
+
+- Objective: attach the reachable direct-MIR execution action to a real
+  target/artifact zone boundary, then let one compiler world compose that
+  boundary without copying MIR, ABI, target, certificate, plan, or artifact
+  facts.
+- Priority: preserve current target/artifact identity and action transitions;
+  bind an actual resource/authority/lifetime boundary; reject missing authority;
+  keep one C/LLVM-neutral graph; only then connect a root intent.
+- Fact owner: existing typed target and artifact owners remain authoritative.
+  The zone/world owns orchestration and authority only.
+- Last legitimate consumer: the execution action at the artifact sink; the
+  zone may admit and observe it but may not become another emitter owner.
+- Forbidden fallback: importing the entire 5,919-LOC world closure merely to
+  raise keyword counts; separate C/LLVM worlds; readiness-only action; direct
+  `Main` re-entry; source/MIR JSON re-scan inside a zone.
+- Falsifying case: missing or wrong zone authority still reaches the action, or
+  a rejected action leaves an accepted artifact.
+- Blocker: root-intent follow-up is blocked on six missing `authorized by`
+  bindings:
   `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` currently exits 1
   with 6 errors/5 warnings. Do not import the whole world to fake progress.
 
@@ -151,6 +190,9 @@ documentation file should remain dirty.
 | v73 Pergyra-built range CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/generalized/zero-trip range execution and all pre-artifact mutations. |
 | v74 Pergyra-built bounded bootstrap | 0 / not separately timed | 944.3 / 847.7 MB observed sample | Current generated seed matched the native oracle for sample C, MIR producer, and bounded MIR consumer with certificate/plan v6. The memory value is an in-flight sample, not a peak. |
 | v74 Pergyra-built loop-break CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/late-break/zero-trip execution, phi permutation, and all strengthened pre-artifact mutations. |
+| direct-MIR action native build | 0 / not separately timed | not separately sampled | The 396-file current driver compiled with 0 errors/0 warnings after early global prototypes moved ahead of hosted method bodies. |
+| subject action global-helper regression | 0 / not separately timed | not separately sampled | A subject action calling a nominal-return file-scope helper passed C/LLVM and produced `12`; the pre-fix C order reproduced implicit/conflicting declarations. |
+| reachable direct-MIR action one-MIR gate | 0 / not separately timed | not separately sampled | hello, `let_log`, and `multilet` kept fixed MIR identities; direct C/LLVM outputs and all existing negative mutations passed through the action-owned artifact handoff. |
 
 ## Current gates and artifacts
 
@@ -189,9 +231,16 @@ Green:
 - `tests/self_hosted/parity/driver_execution_action_abi_parity.sh`: C/LLVM
   subject/action aggregate ABI, enum result, capabilities, `WriteFile`/`ReadFile`,
   stdout, and artifact byte parity;
+- `tests/self_hosted/parity/driver_rung2_execution_action_gate.sh`: production
+  action reachability, requested/target-admitted/artifact-written/rejected
+  transitions, exactly one backend-owner call and action-owned write, and no
+  direct `Main` bypass;
+- `tests/compare_backends.sh tests/cases/backend_compare/subject_action_global_helper`:
+  C/LLVM output `12`, with the file-scope nominal-return helper prototype ahead
+  of the subject action body;
 - current `driver_bootstrap_main.pgy` native C build: 0 errors/0 warnings;
-  compiled driver emitted a 414-byte hello C artifact with SHA-256
-  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
+  the action-rung driver passed hello, `let_log`, and `multilet` one-MIR direct
+  C/LLVM projection plus the existing graph/kind/target/ABI negatives;
 - `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
 - `python scripts/sot_registry_gate.py`: 52 authorities, 54 derived carriers,
   `CLOSED=31 BRIDGE=21 ACTIVE=0`;
@@ -212,9 +261,10 @@ Environment omission:
   checks with `PGY_ALLOW_MISSING_COQ=1`, then declared the missing prover skip.
   No Coq/Rocq binary is installed, so the 41 proofs were not machine-checked;
   do not report this as proof-kernel success.
-- `mingw32-make` is not installed on this host, so the Make wrapper target was
-  not executable. Its full-fixpoint runner body was invoked directly with the
-  same environment and pressure contract; do not claim the wrapper passed.
+- `make` is not on the default PowerShell/Git-Bash PATH, but
+  `C:\msys64\usr\bin\make.exe` is available. The action-rung native compiler
+  rebuild used that MSYS2 make with `-j2` and succeeded. This does not
+  retroactively prove an unrun full-fixpoint wrapper target.
 
 Known RED, unchanged and not weakened:
 
