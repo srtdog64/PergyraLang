@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Direct-false merge CFG reaches both backends (v70)
+
+- Rebuilt the integrated driver through the existing Pergyra parser/codegen
+  seed. Bounded sample emission, MIR production, and MIR consumption were
+  byte-equal to the native oracle before the new fixture was exercised.
+- Emitted `reassign_block.pgy` once as a 4,062-byte MIR with SHA-256
+  `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`.
+  The Pergyra-built seed drove C and LLVM from that identity; both compiled and
+  matched native output `10`.
+- Generalized the same certificate/plan rather than adding a second reader or
+  graph. `false_block == merge_block` owns the direct false edge, the entry SSA
+  owns the false phi lane, and readiness binds those two facts in both
+  directions. A repaired-digest mismatch rejects after verification.
+- C emits no false assignment. LLVM emits no false block and names `%entry` as
+  the merge phi predecessor. Only the selected emitter executes, and neither
+  backend revalidates the whole MIR graph or certificate.
+- Missing false edge, wrong true predecessor, and duplicate false incoming
+  mutations reject before output. Existing scalar, `ifelse`, and
+  `if_else_assign` gates remain green.
+- A live heavy-codegen sample was 875.2 MB private / 776.5 MB working set. This
+  is not a peak, but the run showed no 20 GiB-class memory regression.
+
 ## 2026-07-27 - Language-word identity is one registry
 
 - Promoted the lexical table into a 145-row compiler-owned registry: 71

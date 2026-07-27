@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Self-Hosted Direct-False CFG Rung (2026-07-27)
+
+- **self-host/verification**: Generalize the existing MIR-bound certificate
+  from the four-block diamond to the three-block direct-false form. A false
+  branch may target the merge directly, with the entry SSA bound as that phi
+  lane; the certificate still issues once and carries five fixed instruction
+  facts for this shape.
+- **self-host/compiler**: Preserve the entry result/literal in the normalized
+  plan, bind entry-carried shape to `false_block == merge_block` in both
+  directions, and add a repaired-digest topology/shape mutation. The combined
+  C/LLVM owner omits a synthetic false assignment/block; LLVM names `%entry`
+  as the merge phi predecessor.
+- **tests/bootstrap**: Add the 4,062-byte `reassign_block.pgy` MIR fixture
+  (SHA-256 `c8912189...b223b`) to the one-MIR CFG gate. A freshly rebuilt
+  Pergyra-generated driver passed bounded seed/oracle parity, then C, LLVM,
+  and native execution all produced `10`; false-edge, predecessor, and phi
+  mutations rejected before artifact creation.
+
 ### Language-Word Source of Truth (2026-07-27)
 
 - **lexer/registry**: Replace the native keyword table and reserved-token debug

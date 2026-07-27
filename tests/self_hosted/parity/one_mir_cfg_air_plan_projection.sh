@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One admitted MIR identity -> one MIR-bound AIR/CFG plan -> both backends.
-# one admitted ifelse CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; direct CFG plan target mutation rejects before output
+# one admitted ifelse/reassign CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; direct CFG plan target mutation rejects before output
 
 set -euo pipefail
 
@@ -20,7 +20,7 @@ pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-cfg-air-plan"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
-DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap_v67_multilet_r3}"
+DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 DRIVER_BIN="${PGY_SELFHOST_ONE_MIR_DRIVER_BIN:-$DRIVER_BUILD/driver_seed.exe}"
 WORK_DIR="${PGY_SELFHOST_ONE_MIR_CFG_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_cfg_air_plan}"
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/ifelse.pgy"
@@ -132,7 +132,7 @@ produce_one_mir() {
         "$source_rel" "$mir_rel" >"$WORK_DIR/producer.out" \
         2>"$WORK_DIR/producer.err"); then
         cat "$WORK_DIR/producer.out" "$WORK_DIR/producer.err" >&2 || true
-        fail "Pergyra seed failed to produce ifelse MIR"
+        fail "Pergyra seed failed to produce ${SOURCE##*/} MIR"
     fi
     grep -Fq '"schema":"pgy.mir.v1"' "$MIR_ARTIFACT" ||
         fail "producer output is not pgy.mir.v1"
@@ -149,7 +149,7 @@ project_one_target() {
         >"$WORK_DIR/project-$target.out" 2>"$WORK_DIR/project-$target.err"); then
         cat "$WORK_DIR/project-$target.out" \
             "$WORK_DIR/project-$target.err" >&2 || true
-        fail "$target rejected admitted ifelse MIR"
+        fail "$target rejected admitted ${SOURCE##*/} MIR"
     fi
     [[ -s "$output" ]] || fail "$target emitted no artifact"
     assert_mir_identity "$digest" "$target projection"
@@ -296,4 +296,4 @@ expect_rejected_without_artifact stale_result_ssa "$mutation" 'phi.*result|resul
 mutation="$(make_mutation merge_edge 's/],"succ_true":3}/],"succ_true":2}/' '],"succ_true":2}')"
 expect_rejected_without_artifact merge_edge "$mutation" 'CFG.*(merge|successor)|merge.*edge'
 
-echo "[$LABEL] ifelse + if_else_assign one-MIR CFG/AIR-plan gate ok (sha256=$mir_digest)"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_reassign_case.sh"

@@ -109,6 +109,12 @@ func DirectMirCfgShapeFactsReady(
             facts.false_result_name == "" && facts.phi_result_name == "";
     }
     if facts.kind == DirectMirCfgPhiMergeShapeKind() {
+        let false_incoming_ready: Bool =
+            facts.entry_result_name != facts.false_result_name;
+        if facts.entry_result_name == facts.false_result_name {
+            false_incoming_ready = facts.entry_integer_literal ==
+                facts.false_literal;
+        }
         return expected_phi_count == 1 &&
             facts.condition_kind == AstExpressionNodeBoolLiteral() &&
             (facts.condition_literal == "true" ||
@@ -125,7 +131,7 @@ func DirectMirCfgShapeFactsReady(
             ) && MirSsaNameMatches(
                 facts.phi_result_name, facts.local_name, false
             ) && facts.entry_result_name != facts.true_result_name &&
-            facts.entry_result_name != facts.false_result_name &&
+            false_incoming_ready &&
             facts.entry_result_name != facts.phi_result_name &&
             facts.true_result_name != facts.false_result_name &&
             facts.true_result_name != facts.phi_result_name &&
@@ -443,9 +449,14 @@ func DirectMirCfgPhiMergeShapeFromOwners(
             admitted, index, use_facts, certificate.true_block, local_name
         );
     let false_arm: DirectMirCfgAssignmentArmFact =
-        DirectMirCfgAssignmentArmFromBlock(
+        DirectMirCfgAssignmentArmFact(
+            true, entry_result_name, entry_integer_literal
+        );
+    if certificate.false_block != certificate.merge_block {
+        false_arm = DirectMirCfgAssignmentArmFromBlock(
             admitted, index, use_facts, certificate.false_block, local_name
         );
+    }
     if !true_arm.valid || !false_arm.valid ||
         certificate.phi_count != 1 ||
         certificate.phi_local_name != local_name ||

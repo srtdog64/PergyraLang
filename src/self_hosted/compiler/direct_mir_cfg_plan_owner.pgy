@@ -62,8 +62,7 @@ func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
 }
 
 func DirectMirCfgPlanWithDigest(
-    plan: DirectMirCfgPlan,
-    digest: Int
+    plan: DirectMirCfgPlan, digest: Int
 ) -> DirectMirCfgPlan {
     return DirectMirCfgPlan(
         plan.valid, plan.schema, plan.revision, digest,
@@ -76,8 +75,7 @@ func DirectMirCfgPlanWithDigest(
 }
 
 func DirectMirCfgPlanWithTargetFingerprint(
-    plan: DirectMirCfgPlan,
-    fingerprint: Int
+    plan: DirectMirCfgPlan, fingerprint: Int
 ) -> DirectMirCfgPlan {
     return DirectMirCfgPlan(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
@@ -89,6 +87,9 @@ func DirectMirCfgPlanWithTargetFingerprint(
 }
 
 func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
+    let direct_false_fact: Bool =
+        plan.shape.entry_result_name == plan.shape.false_result_name;
+    let direct_false_edge: Bool = plan.false_block == plan.merge_block;
     let expected_phi_digest: Int = DirectMirCfgPhiBindingDigest(
         plan.phi_count, plan.shape.local_name, plan.shape.phi_result_name,
         plan.shape.true_result_name, plan.shape.false_result_name
@@ -116,7 +117,8 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         plan.entry_block != plan.merge_block &&
         plan.true_block != plan.false_block &&
         plan.true_block != plan.merge_block &&
-        plan.false_block != plan.merge_block &&
+        ((!direct_false_fact && !direct_false_edge) ||
+            (direct_false_fact && direct_false_edge)) &&
         DirectMirCfgShapeFactsReady(plan.shape, plan.phi_count) &&
         CompilerArtifactIdentityReady(
             CompilerEmittedCArtifactKind(), plan.revision, plan.plan_digest
@@ -125,9 +127,7 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         );
 }
 
-func DirectMirCfgPlanMutationRejected(
-    own plan: DirectMirCfgPlan
-) -> Bool {
+func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
     let bad_digest: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, plan.plan_digest + 1
     );
@@ -140,12 +140,18 @@ func DirectMirCfgPlanMutationRejected(
     );
     let bad_phi_binding_rejected: Bool = true;
     if plan.phi_count == 1 {
+        let bad_phi_digest: Int = plan.phi_digest + 1;
+        let bad_false_block: Int = plan.false_block;
+        if plan.shape.entry_result_name == plan.shape.false_result_name {
+            bad_phi_digest = plan.phi_digest;
+            bad_false_block = plan.merge_block + 1;
+        }
         let bad_phi_binding: DirectMirCfgPlan = DirectMirCfgPlan(
             plan.valid, plan.schema, plan.revision, 0,
             plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
-            plan.phi_digest + 1, plan.target_capability_schema,
+            bad_phi_digest, plan.target_capability_schema,
             plan.target_capability_fingerprint, plan.entry_block,
-            plan.true_block, plan.false_block, plan.merge_block,
+            plan.true_block, bad_false_block, plan.merge_block,
             plan.phi_count, plan.shape
         );
         bad_phi_binding = DirectMirCfgPlanWithDigest(
@@ -159,11 +165,10 @@ func DirectMirCfgPlanMutationRejected(
         !DirectMirCfgPlanReady(bad_target) && bad_phi_binding_rejected;
 }
 
-func DirectMirCfgPlanFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> DirectMirCfgPlan {
+func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirCfgPlan {
+    let block_count: Int = admitted.routines.routine_block_counts[0];
     if !DirectMirProgramEnvelopeReady(admitted) ||
-        admitted.routines.routine_block_counts[0] != 4 {
+        (block_count != 3 && block_count != 4) {
         Die("direct MIR CFG block inventory or program structure is invalid");
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(

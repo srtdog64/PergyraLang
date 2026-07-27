@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+2026-07-27 v70 replaces the next bounded C-owned CFG/dataflow slice. A fresh
+Pergyra-built integrated driver emitted `reassign_block.pgy` as one unchanged
+4,062-byte `pgy.mir.v1` artifact with SHA-256
+`c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`.
+The same identity drove the direct C and LLVM projections, both compiled, and
+both matched native output `10`. The earlier scalar, no-phi four-block, and
+two-assignment phi rungs remained green.
+
+The existing certificate now accepts either the four-block diamond or the
+three-block direct-false shape. In the latter, the branch false target is the
+merge, the entry block is the false phi predecessor, and the certificate owns
+the exact five-instruction count. Shape projection carries the entry result
+and literal as the false lane. Plan readiness binds that entry-carried fact
+bidirectionally to `false_block == merge_block`; a repaired-digest mismatch is
+an executable negative.
+
+C and LLVM remain in one Pergyra-responsibility emission owner. C omits the
+false assignment, while LLVM emits no synthetic false block and uses
+`[ %pgy.local.entry, %entry ]` for the direct merge incoming. Neither emitter
+reopens MIR/AIR or rebuilds a graph/certificate, and an LLVM request does not
+construct C output first. Missing false edge, wrong true predecessor, and
+duplicate false phi incoming mutations reject before either artifact exists.
+
+The Pergyra-built parser/codegen seed regenerated the integrated driver and
+passed bounded sample, MIR producer, and MIR consumer parity against the native
+oracle. An in-flight heavy codegen sample was 875.2 MB private / 776.5 MB
+working set; it is not a peak measurement, but no 20 GiB-class regression was
+observed. Released/default `pgy` replacement remains 0%; v70 is a bounded
+executable self-host substitution rung.
+
 2026-07-27 closes the language-word source-of-truth seam reached after v69.
 The compiler-owned registry now contains 145 sorted identities: 71 reserved,
 71 contextual, and 3 soft words. The lexer still reserves only the original 71
@@ -20,10 +50,9 @@ cannot own a second grammar. Multiline hover and diagnostics share one JSON
 escape owner.
 
 This closure is supporting evidence, not a new Pergyra implementation replacing
-a released/default C compiler path. v69 remains the latest executable
-substitution rung and released/default replacement remains 0%. Because the two
-consecutive keyword SoT commits exhaust the guard budget, the next commit must
-return to the executable `reassign_block.pgy` CFG/phi rung described below.
+a released/default C compiler path. The two consecutive keyword SoT commits
+exhausted the guard budget; v70 above immediately returned to the executable
+`reassign_block.pgy` CFG/phi path. Released/default replacement remains 0%.
 
 2026-07-27 v69 replaces the next bounded C-owned CFG/dataflow slice. The
 Pergyra-built integrated driver emitted `if_else_assign.pgy` once as a

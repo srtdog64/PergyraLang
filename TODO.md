@@ -12,25 +12,30 @@ English anchor for tooling/doc gates:
   `domain`/`sync`, a second grammar, hardcoded completion labels, and stale
   generated lexer rows fail their focused gates. This is a supporting SoT
   closure after v69, not a new released/default self-host replacement rung.
-- Queued self-host backend rung: extend the landed shared CFG/AIR plan to
-  `reassign_block.pgy`. v69 now admits the unchanged 4,916-byte
-  `if_else_assign.pgy` MIR (SHA-256
-  `da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393`)
-  through the existing MIR-bound certificate and target-neutral plan;
-  predecessor blocks, not phi `uses` order, bind the two incoming SSA values.
-  Pergyra-built C/LLVM both compile and match `2`, while missing/duplicate/
-  stale phi identities reject before output. The next 4,062-byte MIR has
-  SHA-256
-  `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`,
-  three blocks with instruction counts `[2,1,2]`, one merge phi, and native
-  output `10`. Generalize the same certificate/plan to a false edge that
-  directly carries the entry SSA into the merge; do not add a fixture
-  projector, backend-specific CFG reader, second MIR/plan, AST/semantic
-  reconstruction, phi-order assumption, raw `expr0`/successor/use reads, or
-  repeated graph/certificate validation. Gates:
+- Closed v70 backend rung: the Pergyra-built driver admits the unchanged
+  4,062-byte `reassign_block.pgy` MIR (SHA-256
+  `c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b`)
+  through the existing MIR-bound certificate and target-neutral plan. Its
+  direct false edge carries entry SSA `x.1` to the merge while the true arm
+  carries `x.3`; Pergyra-built C/LLVM both compile and match native output
+  `10`. Missing edge, wrong predecessor, duplicate phi lane, and repaired-plan
+  topology/shape drift reject before output. No fixture projector,
+  backend-specific CFG reader, second MIR/plan, AST/semantic reconstruction,
+  phi-order assumption, raw `expr0`/successor/use read, or repeated whole-graph
+  validation was added. Gates:
   `self-host-one-mir-dual-backend-projection-test-smoke` and
   `self-host-one-mir-cfg-air-plan-projection-test-smoke`. Released/default
   replacement remains 0%.
+- Queued v71 executable rung: `nestedif.pgy`. The current Pergyra-built seed
+  emits a 3,687-byte MIR with SHA-256
+  `20e5b34b43bf7658331760cd1c5314aeb30bf8db7131686fe3fc79da8c6b3db0`:
+  five blocks with instruction counts `[2,1,1,0,0]`, no phi/backedge, two
+  conditional branches that both use entry SSA `x.1`, one inner merge, one
+  outer merge, and native output `big`. The current first failure is shared
+  block-count dispatch. Bind the second branch plus inner/outer merge roles in
+  the same certificate/plan; do not add a fixture projector or a second
+  backend-specific CFG reader. `whileloop.pgy` follows later because it also
+  requires header phi, backedge, and induction-update ownership.
 - Current beta progress: feature-surface feel is about 85%, and
   strict beta readiness is now about 83% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
