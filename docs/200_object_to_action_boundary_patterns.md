@@ -1,6 +1,6 @@
 # 200. Object-to-Action 경계와 작성 패턴
 
-Updated: 2026-07-27 (Asia/Seoul)
+Updated: 2026-07-28 (Asia/Seoul)
 
 이 문서는 `struct`에서 `action`까지의 선택 기준을 한곳에 모은 authoring
 contract다. 의미 사실의 최종 권위는 parser/semantic/MIR owner와 executable
@@ -348,6 +348,49 @@ effect participant shape를 포함한 native/self MIR parity, canonical reconstr
 생성 C compile/run을 증명한다. 이는 `BRIDGE`/`SURFACE` 증거이며 production
 call graph를 바꾸지 않았으므로 hard substitution 진척으로 세지 않는다.
 
+### 4.2.1 Domain runtime topology의 첫 executable slice
+
+field kind가 “이 field가 어떤 종류인가”를 소유한다면 domain topology는 “어떤
+slot의 변화가 어느 slot을 다시 계산하게 하는가”를 소유한다. 둘을 한 문자열
+목록으로 합치지 않는다. 현재 canonical 경로는 다음 하나다.
+
+```text
+AST domain directive
+  -> DIR lowering boundary
+  -> DIRDomainTopologyRow              # semantic owner
+  -> MIRDomainTopologyRow              # owned copy/carrier
+  -> target-neutral PropagationGraph
+  -> C/LLVM zone frontier pass limit
+```
+
+현재 executable row의 의미는 다음과 같다.
+
+| row | dependency edge | 작성 의미 |
+| --- | --- | --- |
+| projection refresh/publish/bind | source slot -> object/tobject projection slot | source identity가 바뀐 뒤 projection을 갱신하거나 전달한다 |
+| maintain effect | effect layer slot -> target subject slot | 유지되는 effect layer가 target frontier에 영향을 준다 |
+| link relation | left/right subject slot -> relation layer slot | 양 endpoint identity가 relation materialization의 선행 사실이다 |
+
+각 row는 owner declaration, directive, participant/layer/endpoint slot의 stable
+`SyntaxNodeId`를 함께 운반한다. Backend는 zone AST를 다시 열어 `refresh`,
+`maintain`, `link` 문자열을 찾지 않는다. MIR lowering도 아무 DIR이나 받지 않고
+HIR과 같은 source-program identity인지 확인한다. DIR 누락, row 누락, slot identity
+손상, unknown owner는 fail closed한다.
+
+`zone_layer_projection_runtime`에서 relation `trust`는 `player`와 `enemy` 두
+endpoint에 의존하므로 native C/LLVM graph는 모두 3 node, 2 edge, depth 2다.
+다만 runtime loop의 count floor는 3이라 graph가 비어도 최종 limit/output이 같을
+수 있다. 따라서 best practice는 stdout parity만 보는 것이 아니라 exact graph
+trace와 옛 AST entrypoint 부재를 함께 gate하는 것이다.
+
+이 slice는 기존 C-owned zone frontier AST graph builder를 삭제했으므로 native
+C/LLVM 경계에서 `SUBSTITUTING`이다. 그러나 전체 domain/action runtime이 닫힌
+것은 아니다. `apply`/detach/unlink, pool capacity, authority/state/lifecycle,
+action transition emission은 아직 이 row 집합의 소유 범위가 아니며, MIR JSON과
+self-host reader도 이 carrier를 받지 않는다. 이들은 `DIR owner -> MIR/JSON carrier
+-> self-host consumer`의 같은 방향으로 확장하고 `MIR if present, otherwise AST`
+fallback을 두지 않는다.
+
 ### 4.3 Artifact action의 commit 조건
 
 파일 artifact를 만드는 action은 `FileOpen -> FileWrite* -> FileClose`를 성공
@@ -501,9 +544,11 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
    운반한다. 그러나 zone authority ability와 호출별 participant binding은
    declaration contract가 아니라 별도 call/runtime fact다. backend가 AST를
    재조회하거나 이름에서 binding을 추정하지 않도록 이 owner 구분을 유지해야 한다.
-8. action 후 projection/effect sync가 C와 LLVM에 별도로 구현돼 있다. 동일한
-   검증 plan을 두 backend가 소비하도록 합쳐야 하며, 출력 parity만으로 중복
-   정책 소유를 정당화하지 않는다.
+8. action 후 zone frontier pass-limit graph는 이제 DIR owner의 MIR carrier를
+   C와 LLVM이 함께 소비한다. 그러나 실제 projection/effect/relation operation
+   emission과 action transition은 여전히 별도 backend/AST 경로가 남아 있다.
+   동일한 검증 plan으로 계속 이동시키며 출력 parity만으로 중복 정책 소유를
+   정당화하지 않는다.
 9. semantic helper `type_is_class_object_type()`은 이름과 달리 현재 subject만
    판정한다. 새 consumer를 붙이지 말고 subject identity 이름으로 바꿔
    오분류 가능성을 제거해야 한다.
@@ -518,8 +563,10 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
     해석하지 않는다.
 12. callable contract vocabulary는 shared registry와 projection으로 닫혔다. 현재
     domain declaration의 `field_kind` spelling도 compiler-owned registry와 생성
-    self-host projection으로 단일화됐다. 남은 부채는 stable field identity,
-    pool capacity, vessel/binding slot, relation admission과 zone runtime topology다.
+    self-host projection으로 단일화됐다. DIR zone-frontier slice는 stable
+    directive/slot identity를 운반하지만 전체 stable field identity, pool
+    capacity, vessel/binding slot, self-host relation admission과 나머지 zone
+    runtime topology는 열려 있다.
 13. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인

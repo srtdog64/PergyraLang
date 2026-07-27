@@ -2,6 +2,35 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 DIR-owned zone frontier topology executable checkpoint
+
+- 실행 경계 `c66e22ca6dd34b50ff2a7a3a8e183852943d3a9a`에서
+  `dir.domain_graph`가 projection refresh/publish/bind, maintained effect,
+  relation link row를 stable owner/directive/slot `SyntaxNodeId`와 함께 소유한다.
+  MIR은 이 사실을 복사해 운반할 뿐 새 owner가 아니다.
+- Production MIR lowering은 DIR을 명시적으로 bind하며 HIR과 다른 source-program
+  identity의 DIR, DIR 누락, 손상된 slot identity, 존재하지 않는 topology owner를
+  backend 전에 거부한다. 같은 검증 graph를 backend마다 다시 만들지 않는다.
+- C와 LLVM의 zone frontier pass-limit 경로는 이제 MIR carrier만 소비한다. 기존
+  `propagation_graph_build_from_zone(ASTNode *)`와
+  `pgy_codegen_zone_frontier_graph_pass_limit(ASTNode *)` entrypoint는 삭제됐다.
+  따라서 이 좁은 native frontier slice는 실제 C-owned AST read를 대체한
+  `SUBSTITUTING` 진척이다.
+- `zone_layer_projection_runtime`의 양 backend trace는 정확히
+  `nodes=3, edges=2, depth=2, graph pass_limit=2`와
+  `trust <- player`, `trust <- enemy`다. 생성 loop limit은 count floor 때문에 3이며,
+  trace gate가 없으면 빈 graph도 stdout parity 뒤에 숨을 수 있다.
+- 관측된 gate는 isolated LLVM build, DIR 15/0, MIR 155/0,
+  `domain_runtime_topology_smoke.sh`, focused C/LLVM backend compare가 green이다.
+  현재 broad `test-transpile`은 이 domain test에 도달하기 전 기존 expression
+  `identifier -> same name`에서 null 결과를 `strcmp`해 SIGSEGV가 나는 RED이며,
+  이 checkpoint의 green으로 기록하지 않는다.
+- 전체 `DomainRuntimeTopology`는 계속 `BRIDGE`다. Apply/detach/unlink, pool capacity,
+  authority/state/lifecycle/action transition, MIR JSON carriage, self-host relation
+  declaration admission과 direct consumer가 남아 있다. 다음 falsifier는 같은
+  fixture를 native MIR JSON과 self-host `mir_lower`가 exact relation/topology row로
+  받아 native와 같은 graph trace를 만드는 것이다.
+
 ## 2026-07-28 nominal field-kind bridge checkpoint
 
 - `AST_EFFECT_DECL -> pgy.mir.v1 -> self-host mir_lower -> C`가 explicit

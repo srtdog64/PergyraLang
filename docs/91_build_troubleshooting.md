@@ -2129,6 +2129,29 @@ make artifact-atomic-transaction-test-smoke
 make self-host-mir-json-instruction-writer-parity-test-smoke
 ```
 
+## Zone frontier output은 같은데 topology가 사라진 경우
+
+`zone_layer_projection_runtime`처럼 slot/layer 수가 graph depth보다 큰 fixture는
+최종 loop limit과 stdout parity만으로 topology 손실을 발견할 수 없다. 관측된
+정상값은 graph `nodes=3, edges=2, depth=2, pass_limit=2`지만 count-based floor가
+3이라 생성 C의 `_pgy_zone_frontier_pass_limit`은 3이다. Graph가 비어도 이 floor만
+남으면 실행 결과가 우연히 같을 수 있다.
+
+이 경우 memory cap이나 pass count를 먼저 올리지 말고 다음을 확인한다.
+
+1. `PGY_DUMP_PROPAGATION=1`로 C/LLVM compile trace를 각각 얻는다.
+2. `trust <- player`, `trust <- enemy` 같은 exact dependency가 양쪽에 있는지 본다.
+3. `propagation_graph_build_from_zone(ASTNode *)` 같은 backend AST builder가 다시
+   생기지 않았는지 확인한다.
+4. DIR row의 owner/directive/slot stable identity와 MIR의 same-source DIR binding
+   negative를 실행한다.
+
+현재 owner는 `dir.domain_graph`, MIR은 carrier, C/LLVM frontier는 마지막 consumer다.
+`tests/domain_runtime_topology_smoke.sh`가 exact trace, count floor, 양 backend parity,
+retired AST entrypoint 부재를 함께 고정한다. 전체 graph를 backend마다 재검증하거나
+`MIR row가 없으면 AST` fallback을 추가하면 과거의 중복 graph 비용과 dual SoT를
+동시에 되살린다.
+
 ## Self-host codegen exits with `0xC00000FD` while reading `main_ast.txt`
 
 The Bash wrapper may report exit 127, while the Windows process exit is

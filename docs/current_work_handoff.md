@@ -6,7 +6,60 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - compiler world/action boundary
+## Current resume checkpoint - DIR-owned zone frontier topology
+
+- Exact executable checkpoint:
+  `c66e22ca6dd34b50ff2a7a3a8e183852943d3a9a` on `main`, parent
+  `36aa9975ef77c53567284dcd48281458ebf3dd9a`. This handoff refresh follows as
+  a documentation commit; retain `c66e22ca` as the executable boundary.
+- Dirty state at the executable checkpoint contains only the three protected
+  concurrent user files, none staged or included:
+  `driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`.
+- Active executable rung: the native zone frontier topology slice is
+  `SUBSTITUTING`. `dir.domain_graph` owns projection refresh/publish/bind,
+  maintained-effect and relation-link rows with stable owner/directive/slot
+  identity. MIR is a copied carrier. C and LLVM build the target-neutral graph
+  only from that carrier.
+- Deleted direct bypasses are
+  `propagation_graph_build_from_zone(ASTNode *)` and
+  `pgy_codegen_zone_frontier_graph_pass_limit(ASTNode *)`. Production MIR
+  lowering requires an explicitly bound same-source DIR; missing DIR, wrong
+  source-program identity, damaged slot identity, and unknown topology owner
+  fail before backend output.
+- Falsifying fixture `zone_layer_projection_runtime` is green in both backends:
+  exact graph `nodes=3 edges=2 acyclic depth=2 pass_limit=2`, dependencies
+  `trust <- player` and `trust <- enemy`. The generated loop limit is 3 because
+  the count floor exceeds graph depth; the trace gate prevents that floor from
+  hiding a missing graph.
+- Last observed gates: isolated LLVM-enabled `-j4` compiler/LSP build green;
+  DIR 15/0; MIR 155/0 plus destructure, match-binding, speculation and domain
+  topology smoke gates green; focused C/LLVM backend compare green. The
+  transpile test binary compiles after its central helpers bind real DIR facts.
+- Current broad `test-transpile` is RED before domain tests at expression
+  `identifier -> same name`: `emit_expression` returns null and the test calls
+  `strcmp`, producing SIGSEGV; GDB stops in `ucrtbase!strcmp`. No causal
+  attribution to this rung has been established, so it is an explicit
+  integration blocker rather than a claimed regression or pass.
+- Whole-family status remains `BRIDGE`, not `CLOSED`. Apply/detach/unlink, pool
+  capacity, authority/state/lifecycle/action-transition rows, runtime operation
+  emission, MIR JSON carriage, self-host relation declaration admission, and a
+  self-host direct consumer are open.
+- Next executable falsifier: carry the exact relation/topology rows for
+  `zone_layer_projection_runtime` through native `pgy.mir.v1`, admit them in
+  self-host `mir_lower`, then require the self-host direct path to produce the
+  same 3-node/2-edge trace without AST/source recovery. This is the next rung;
+  do not start another unrelated SoT-only closure first.
+- Resume by reading `docs/200_object_to_action_boundary_patterns.md` section
+  4.2.1, the `dir.domain_graph` registry row, and
+  `tests/domain_runtime_topology_smoke.sh`, then run the narrow gate before a
+  broader matrix.
+
+## Previous compiler world/action boundary checkpoint (superseded)
+
+The following section records the immediately preceding checkpoint. It is
+historical context; the current executable state is the section above.
 
 - Exact implementation checkpoint:
   `90ed9f82ae1b3af966739f2e324a989ccc3f4863` on `main`, with parent
