@@ -172,12 +172,22 @@ transpiler_emit_zone_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "PGY_ZONE_GENERATION_INC(self);\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass = 0;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass_limit = %zu;\n",
-        pgy_codegen_zone_frontier_graph_pass_limit(node,
+    size_t frontier_pass_limit = 0;
+    if (!pgy_codegen_zone_frontier_graph_pass_limit_from_mir(
+            ctx->mir,
             name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
-                state_count, layer_view.count)));
+                state_count, layer_view.count),
+            &frontier_pass_limit)) {
+        transpiler_set_mir_topology_invalid(
+            ctx,
+            "MIR-only C path could not build zone frontier topology for '%s'",
+            name);
+        return;
+    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass_limit = %zu;\n",
+        frontier_pass_limit);
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_zone_frontier_continue = true;\n");
     write_indent(ctx);

@@ -17,12 +17,17 @@ require "PGY_MIR_LOWER_PROTOCOL_VERSION" "src/compiler/mir.h"
 require "MIRLowerRequest" "src/compiler/mir.h"
 require "mir_lower_request_init" "src/compiler/mir.h"
 require "mir_lower_request_init" "src/compiler/mir.c"
+require "mir_lower_request_bind_dir" "src/compiler/mir.h"
+require "mir_lower_request_bind_dir" "src/compiler/mir.c"
+require "dir->source_program_syntax_id" "src/compiler/mir.c"
+require "hir->source_program_syntax_id" "src/compiler/mir.c"
 require "strcmp(request->protocol_id, PGY_MIR_LOWER_PROTOCOL_ID)" \
     "src/compiler/mir.c"
 require "request->protocol_version != PGY_MIR_LOWER_PROTOCOL_VERSION" \
     "src/compiler/mir.c"
 require "unsupported protocol id/version" "src/compiler/mir.c"
 require "mir_lower_request_init(&mir_request" "src/compiler/driver_app.c"
+require "mir_lower_request_bind_dir(&mir_request, dir)" "src/compiler/driver_app.c"
 require "mir = mir_lower(&mir_request" "src/compiler/driver_app.c"
 
 if rg -n --glob '*.c' --glob '*.h' --glob '*.cases.h' \

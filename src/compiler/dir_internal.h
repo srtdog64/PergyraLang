@@ -36,6 +36,8 @@ bool dir_add_named_edge(DIRProgram *dir,
                         size_t to_node_id,
                         const char *label,
                         const char *target_name);
+bool dir_add_domain_topology_row(DIRProgram *dir,
+                                 DIRDomainTopologyRow row);
 const char *type_name(DIRProgram *dir, ASTNode *type_node);
 bool dir_domain_slot_is_projection(ASTNode *slot);
 

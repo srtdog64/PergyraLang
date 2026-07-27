@@ -977,6 +977,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_abi_resource_runtime_mir.c \
                    $(COMPILER_DIR)/mir_text_builder_abi.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
+                   $(COMPILER_DIR)/mir_domain_topology.c \
                    $(COMPILER_DIR)/verified_projection_plan.c \
                    $(COMPILER_DIR)/verified_parallel_capture_plan.c \
                    $(COMPILER_DIR)/verified_region_plan.c \
@@ -1549,6 +1550,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
                    $(BUILD_DIR)/compiler/mir_json_expression_graph.o \
                    $(BUILD_DIR)/compiler/mir_json_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
@@ -1576,8 +1578,10 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_abi_resource_runtime_mir.o \
                    $(BUILD_DIR)/compiler/mir_text_builder_abi.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
+                   $(BUILD_DIR)/compiler/mir_domain_topology.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
+                   $(BUILD_DIR)/compiler/mir_fact_surface_validate_resource.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
                    $(BUILD_DIR)/compiler/mir_ability_ref.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_authority.o \
@@ -1833,7 +1837,7 @@ $(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
@@ -2103,7 +2107,10 @@ mir-only-signature-test-smoke:
 mir-lowering-api-test-smoke:
 	"$(BASH)" tests/mir_lowering_api_smoke.sh
 
-.PHONY: mir-only-signature-test-smoke mir-lowering-api-test-smoke parallel-capture-projection-test-smoke
+domain-runtime-topology-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/domain_runtime_topology_smoke.sh
+
+.PHONY: mir-only-signature-test-smoke mir-lowering-api-test-smoke domain-runtime-topology-test-smoke parallel-capture-projection-test-smoke
 
 worker-boundary-ub-test-smoke:
 	"$(BASH)" tests/worker_boundary_ub_smoke.sh
@@ -2166,6 +2173,7 @@ test-rir: $(RIR_TEST)
 test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/domain_runtime_topology_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh

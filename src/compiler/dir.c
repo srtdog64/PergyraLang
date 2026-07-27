@@ -379,6 +379,7 @@ dir_destroy(DIRProgram *dir)
     }
     free(dir->nodes);
     free(dir->edges);
+    free(dir->domain_topology_rows);
     free(dir->intents);
     pgy_resource_flow_facts_destroy(
         dir->resource_flow_facts, dir->resource_flow_fact_count);

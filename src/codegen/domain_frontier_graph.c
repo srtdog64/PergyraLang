@@ -50,22 +50,32 @@ pgy_codegen_world_frontier_graph_pass_limit_from_header(
     return limit;
 }
 
-size_t
-pgy_codegen_zone_frontier_graph_pass_limit(const ASTNode *zone,
-                                           const char *zone_name,
-                                           size_t count_floor)
+bool
+pgy_codegen_zone_frontier_graph_pass_limit_from_mir(
+    const MIRProgram *mir,
+    const char *zone_name,
+    size_t count_floor,
+    size_t *limit_out)
 {
-    PropagationGraph *g = propagation_graph_create();
+    PropagationGraph *g;
     size_t limit = count_floor;
+    bool ok;
 
-    if (g != NULL
-        && propagation_graph_build_from_zone(g, zone)
-        && propagation_graph_schedule(g)
-        && g->pass_limit > limit) {
+    if (limit_out == NULL)
+        return false;
+    g = propagation_graph_create();
+    if (g == NULL)
+        return false;
+    ok = propagation_graph_build_from_zone_mir(g, mir, zone_name)
+        && propagation_graph_schedule(g);
+    if (ok && g->pass_limit > limit) {
         limit = g->pass_limit;
     }
-    if (g != NULL && getenv("PGY_DUMP_PROPAGATION") != NULL)
+    if (ok && getenv("PGY_DUMP_PROPAGATION") != NULL)
         propagation_graph_dump(g, stderr, zone_name);
     propagation_graph_destroy(g);
-    return limit;
+    if (!ok)
+        return false;
+    *limit_out = limit;
+    return true;
 }

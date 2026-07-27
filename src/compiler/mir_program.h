@@ -13,6 +13,7 @@
 #include <stddef.h>
 
 #include "mir_decl.h"
+#include "mir_domain_topology.h"
 #include "mir_generic_method_specialization.h"
 #include "mir_types.h"
 
@@ -26,6 +27,10 @@ struct MIRProgram
     MIRDeclHeader *decl_headers;
     size_t      decl_header_count;
     size_t      decl_header_capacity;
+    bool        has_domain_topology;
+    uint64_t    domain_graph_id;
+    MIRDomainTopologyRow *domain_topology_rows;
+    size_t      domain_topology_row_count;
     MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t      parallel_capture_boundary_count;
     /* HIR-projected semantic region rows retained as MIR-owned facts. */

@@ -10,6 +10,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "compiler/dir.h"
 #include "compiler/hir.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
@@ -40,8 +41,10 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     ASTNode *ast = parser_parse_program(parser);
     SemanticResult *sem = semantic_analyze(ast);
     char *hir_error = NULL;
+    char *dir_error = NULL;
     char *rir_error = NULL;
     char *mir_error = NULL;
+    DIRProgram *dir = NULL;
 
     *hir_out = NULL;
     *rir_out = NULL;
@@ -49,12 +52,18 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
         *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
+        if (*hir_out != NULL) {
+            dir = dir_lower_with_hir_resource_flow_facts(
+                sem->annotated_ast, *hir_out, &dir_error);
+        }
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
-        if (*hir_out != NULL && *rir_out != NULL) {
+        if (*hir_out != NULL && dir != NULL && *rir_out != NULL
+            && dir_validate(dir, &dir_error)) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, *hir_out, *rir_out, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             *mir_out = mir_lower(&mir_request, &mir_error);
         }
     }
@@ -63,6 +72,8 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     if (!ok) {
         if (hir_error != NULL)
             fprintf(stderr, "HIR lowering error: %s\n", hir_error);
+        if (dir_error != NULL)
+            fprintf(stderr, "DIR lowering error: %s\n", dir_error);
         if (rir_error != NULL)
             fprintf(stderr, "RIR lowering error: %s\n", rir_error);
         if (mir_error != NULL)
@@ -70,11 +81,142 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     }
 
     free(hir_error);
+    free(dir_error);
     free(rir_error);
     free(mir_error);
+    dir_destroy(dir);
     parser_destroy(parser);
     lexer_destroy(lexer);
     return ok;
+}
+
+static void
+test_mir_carries_dir_domain_topology(void)
+{
+    const char *source =
+        "subject Player { let hp: Int; }\n"
+        "relation TrustedLink for source: Player, target: Player { }\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    subject slot enemy: Player\n"
+        "    relation slot trust: TrustedLink\n"
+        "    link trust between player, enemy\n"
+        "}\n"
+        "func Main() -> Void { return; }\n";
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    MIRDomainTopologyRow *row = NULL;
+    char *error = NULL;
+    uint32_t saved_left_id = 0;
+    char *saved_owner_name = NULL;
+    bool carried = false;
+    bool rejected_bad_identity = false;
+    bool rejected_unknown_owner = false;
+    bool rejected_missing_dir = false;
+    bool rejected_wrong_dir = false;
+
+    {
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = semantic_analyze(ast);
+        HIRProgram *unbound_hir = NULL;
+        RIRProgram *unbound_rir = NULL;
+        MIRProgram *unbound_mir = NULL;
+        DIRProgram *wrong_dir = NULL;
+        char *hir_error = NULL;
+        char *dir_error = NULL;
+        char *rir_error = NULL;
+        char *mir_error = NULL;
+
+        if (!parser_has_error(parser) && sem != NULL && sem->success) {
+            unbound_hir = hir_lower_with_semantic_facts(
+                sem, NULL, &hir_error);
+            unbound_rir = rir_lower(sem->annotated_ast, &rir_error);
+            if (unbound_hir != NULL && unbound_rir != NULL) {
+                (void)rir_enrich_with_hir_flow(
+                    unbound_rir, unbound_hir, &rir_error);
+                MIRLowerRequest request;
+                mir_lower_request_init(
+                    &request, unbound_hir, unbound_rir, sem);
+                unbound_mir = mir_lower(&request, &mir_error);
+                rejected_missing_dir = unbound_mir == NULL
+                    && mir_error != NULL
+                    && strstr(mir_error,
+                              "requires DIR-owned topology facts") != NULL;
+                free(mir_error);
+                mir_error = NULL;
+
+                wrong_dir = dir_lower_with_hir_resource_flow_facts(
+                    sem->annotated_ast, unbound_hir, &dir_error);
+                if (wrong_dir != NULL && dir_validate(wrong_dir, &dir_error)) {
+                    MIRLowerRequest wrong_request;
+                    wrong_dir->source_program_syntax_id++;
+                    mir_lower_request_init(
+                        &wrong_request, unbound_hir, unbound_rir, sem);
+                    mir_lower_request_bind_dir(&wrong_request, wrong_dir);
+                    unbound_mir = mir_lower(&wrong_request, &mir_error);
+                    rejected_wrong_dir = unbound_mir == NULL
+                        && mir_error != NULL
+                        && strstr(mir_error,
+                                  "different source program") != NULL;
+                }
+            }
+        }
+        free(hir_error);
+        free(dir_error);
+        free(rir_error);
+        free(mir_error);
+        mir_destroy(unbound_mir);
+        dir_destroy(wrong_dir);
+        rir_destroy(unbound_rir);
+        hir_destroy(unbound_hir);
+        semantic_result_destroy(sem);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    if (lower_mir_from_source(source, &hir, &rir, &mir)
+        && mir->domain_topology_row_count == 1) {
+        row = &mir->domain_topology_rows[0];
+        carried = mir->has_domain_topology
+            && mir->domain_graph_id != 0
+            && row->kind == MIR_DOMAIN_TOPOLOGY_LINK_RELATION
+            && strcmp(row->owner_name, "BattleZone") == 0
+            && strcmp(row->layer_slot_name, "trust") == 0
+            && strcmp(row->left_slot_name, "player") == 0
+            && strcmp(row->right_slot_name, "enemy") == 0
+            && mir_validate(mir, &error);
+        free(error);
+        error = NULL;
+
+        saved_left_id = row->left_slot_source_syntax_id;
+        row->left_slot_source_syntax_id = 0;
+        rejected_bad_identity = !mir_validate(mir, &error)
+            && error != NULL
+            && strstr(error, "domain topology row") != NULL;
+        row->left_slot_source_syntax_id = saved_left_id;
+        free(error);
+        error = NULL;
+
+        saved_owner_name = row->owner_name;
+        row->owner_name = (char *)"MissingZone";
+        rejected_unknown_owner = !mir_validate(mir, &error)
+            && error != NULL
+            && strstr(error, "domain topology row") != NULL;
+        row->owner_name = saved_owner_name;
+    }
+
+    TEST("MIR requires DIR and carries its zone topology by stable identity");
+    EXPECT(rejected_missing_dir && rejected_wrong_dir && carried);
+    TEST("MIR rejects damaged slot identity and unknown topology owners");
+    EXPECT(rejected_bad_identity && rejected_unknown_owner);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
 }
 
 static const MIRRoutine *
@@ -685,6 +827,7 @@ test_mir_lowering(void)
 {
     test_mir_carries_function_param_flow_summary();
     test_mir_carries_region_escape_facts();
+    test_mir_carries_dir_domain_topology();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();
     test_mir_lowering_part_c();

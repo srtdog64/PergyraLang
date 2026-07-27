@@ -7,6 +7,7 @@
 #include "mir_cfg_contract_validate.h"
 #include "mir_fact_validate.h"
 #include "mir_machine_layer.h"
+#include "mir_domain_topology.h"
 #include "mir_public_surface.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
@@ -475,6 +476,11 @@ mir_validate(const MIRProgram *mir, char **error_message)
 
     if (!mir_validate_decl_header_metadata(mir, error_message))
         return false;
+    if ((mir->relation_count != 0 || mir->effect_count != 0
+         || mir->zone_count != 0)
+        && !mir_domain_topology_validate(mir, error_message)) {
+        return false;
+    }
     if (!mir_validate_program_inventory_shape(mir, error_message))
         return false;
     if (!mir_validate_inventory_surface_usage(mir, error_message))

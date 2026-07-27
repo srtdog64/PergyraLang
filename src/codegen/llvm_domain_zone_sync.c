@@ -57,6 +57,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     size_t state_count = 0;
     LLVMHostedZoneStateView state_view;
     LLVMHostedZoneLayerSlotView layer_view;
+    size_t frontier_pass_limit = 0;
 
     if (stmt == NULL || stmt->type != AST_ZONE_DECL || decl_name == NULL
         || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
@@ -117,11 +118,26 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         "zone.frontier.pass.addr");
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "zone.frontier.continue.addr");
-    LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_codegen_zone_frontier_graph_pass_limit(stmt,
+    if (!pgy_codegen_zone_frontier_graph_pass_limit_from_mir(
+            ctx->mir,
             decl_name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
-                state_count, layer_view.count)), 0);
+                state_count, layer_view.count),
+            &frontier_pass_limit)) {
+        llvm_set_mir_topology_invalid(ctx,
+            "MIR-only LLVM path could not build zone frontier topology for '%s'",
+            decl_name);
+        LLVMBuildRetVoid(ctx->builder);
+        llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
+        llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret,
+            saved_function_ret, saved_return_type_name,
+            saved_return_callable_type,
+            saved_host_decl, saved_bb);
+        return;
+    }
+    LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
+        (unsigned long long)frontier_pass_limit, 0);
     LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "zone.frontier.check");
     LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

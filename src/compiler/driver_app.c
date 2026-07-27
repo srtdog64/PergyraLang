@@ -436,6 +436,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     phase_start = driver_now_seconds();
     MIRLowerRequest mir_request;
     mir_lower_request_init(&mir_request, hir, rir, sem);
+    mir_lower_request_bind_dir(&mir_request, dir);
     mir = mir_lower(&mir_request, &hir_error);
     if (timings != NULL)
         timings->mir_lower = driver_now_seconds() - phase_start;

@@ -81,6 +81,39 @@ typedef struct
     const char *target_name;
 } DIREdge;
 
+/* DIR owns domain runtime topology.  Later IRs may carry these rows, but
+ * must not recover them from declaration text or backend AST inventories. */
+typedef enum
+{
+    DIR_DOMAIN_TOPOLOGY_PROJECTION_REFRESH,
+    DIR_DOMAIN_TOPOLOGY_PROJECTION_PUBLISH,
+    DIR_DOMAIN_TOPOLOGY_PROJECTION_BIND,
+    DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT,
+    DIR_DOMAIN_TOPOLOGY_LINK_RELATION
+} DIRDomainTopologyKind;
+
+typedef struct
+{
+    size_t                owner_node_id;
+    uint32_t              owner_source_syntax_id;
+    uint32_t              source_syntax_id;
+    DIRDomainTopologyKind kind;
+    const char           *projection_slot_name;
+    uint32_t              projection_slot_source_syntax_id;
+    const char           *source_slot_name;
+    uint32_t              source_slot_source_syntax_id;
+    const char           *layer_slot_name;
+    uint32_t              layer_slot_source_syntax_id;
+    const char           *target_slot_name;
+    uint32_t              target_slot_source_syntax_id;
+    const char           *left_slot_name;
+    uint32_t              left_slot_source_syntax_id;
+    const char           *right_slot_name;
+    uint32_t              right_slot_source_syntax_id;
+    const char           *participant_slot_name;
+    uint32_t              participant_slot_source_syntax_id;
+} DIRDomainTopologyRow;
+
 typedef struct
 {
     const char *alias;
@@ -153,6 +186,9 @@ struct DIRProgram
     DIREdge       *edges;
     size_t         edge_count;
     size_t         edge_capacity;
+    DIRDomainTopologyRow *domain_topology_rows;
+    size_t                domain_topology_row_count;
+    size_t                domain_topology_row_capacity;
     DIRIntentInfo *intents;
     size_t         intent_count;
     size_t         intent_capacity;
@@ -185,5 +221,6 @@ void        dir_destroy(DIRProgram *dir);
 void        dir_dump(const DIRProgram *dir, FILE *out);
 const char *dir_node_kind_name(DIRNodeKind kind);
 const char *dir_edge_kind_name(DIREdgeKind kind);
+const char *dir_domain_topology_kind_name(DIRDomainTopologyKind kind);
 
 #endif

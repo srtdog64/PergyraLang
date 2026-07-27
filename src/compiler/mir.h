@@ -23,6 +23,7 @@ typedef struct
     const char             *protocol_id;
     uint32_t                protocol_version;
     const HIRProgram       *hir;
+    const DIRProgram       *dir;
     const RIRProgram       *rir;
     const SemanticResult   *semantic;
 } MIRLowerRequest;
@@ -31,6 +32,8 @@ void mir_lower_request_init(MIRLowerRequest *request,
                             const HIRProgram *hir,
                             const RIRProgram *rir,
                             const SemanticResult *semantic);
+void mir_lower_request_bind_dir(MIRLowerRequest *request,
+                                const DIRProgram *dir);
 MIRProgram *mir_lower(const MIRLowerRequest *request,
                       char **error_message);
 void        mir_instruction_capture_source_provenance(

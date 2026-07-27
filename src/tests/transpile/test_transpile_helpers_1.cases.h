@@ -267,8 +267,10 @@ lower_program_to_mir_ex(ASTNode *program,
 {
     SemanticResult *sem = semantic_analyze(program);
     char *hir_error = NULL;
+    char *dir_error = NULL;
     char *rir_error = NULL;
     char *mir_error = NULL;
+    DIRProgram *dir = NULL;
     MIRProgram *mir = NULL;
 
     if (hir_out != NULL)
@@ -280,15 +282,21 @@ lower_program_to_mir_ex(ASTNode *program,
         if (hir_out != NULL)
             *hir_out = hir_lower_with_semantic_facts(
                 sem, NULL, &hir_error);
+        if (hir_out != NULL && *hir_out != NULL) {
+            dir = dir_lower_with_hir_resource_flow_facts(
+                sem->annotated_ast, *hir_out, &dir_error);
+        }
         if (rir_out != NULL)
             *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (hir_out != NULL && rir_out != NULL
             && *hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
-        if (hir_out != NULL && rir_out != NULL
-            && *hir_out != NULL && *rir_out != NULL) {
+        if (hir_out != NULL && rir_out != NULL && dir != NULL
+            && *hir_out != NULL && *rir_out != NULL
+            && dir_validate(dir, &dir_error)) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, *hir_out, *rir_out, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             mir = mir_lower(&mir_request, &mir_error);
         }
     }
@@ -301,8 +309,10 @@ lower_program_to_mir_ex(ASTNode *program,
     }
 
     free(hir_error);
+    free(dir_error);
     free(rir_error);
     free(mir_error);
+    dir_destroy(dir);
     g_last_mir = mir;
     return mir;
 }

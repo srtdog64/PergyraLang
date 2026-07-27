@@ -176,6 +176,68 @@ test_dir_resource_flow_universe_carriage(void)
     printf("[dir-resource-flow] semantic ResourceFlowUniverse rows are copied, validated, and fail closed\n");
 }
 
+static void
+test_dir_domain_runtime_topology(void)
+{
+    const char *source =
+        "subject Player { let hp: Int; }\n"
+        "relation TrustedLink for source: Player, target: Player { }\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    subject slot enemy: Player\n"
+        "    relation slot trust: TrustedLink\n"
+        "    link trust between player, enemy\n"
+        "}\n"
+        "func Main() -> Void { return; }\n";
+    DIRProgram *dir = lower_dir_from_source(source);
+    DIRDomainTopologyRow *row = NULL;
+    char *error = NULL;
+    uint32_t saved_left_id = 0;
+    size_t saved_count = 0;
+    bool carried = false;
+    bool rejected_bad_identity = false;
+    bool rejected_missing_row = false;
+
+    if (dir != NULL && dir->domain_topology_row_count == 1) {
+        row = &dir->domain_topology_rows[0];
+        carried = row->kind == DIR_DOMAIN_TOPOLOGY_LINK_RELATION
+            && row->owner_source_syntax_id != 0
+            && row->source_syntax_id != 0
+            && row->layer_slot_source_syntax_id != 0
+            && row->left_slot_source_syntax_id != 0
+            && row->right_slot_source_syntax_id != 0
+            && strcmp(row->layer_slot_name, "trust") == 0
+            && strcmp(row->left_slot_name, "player") == 0
+            && strcmp(row->right_slot_name, "enemy") == 0
+            && dir_validate(dir, &error);
+        free(error);
+        error = NULL;
+
+        saved_left_id = row->left_slot_source_syntax_id;
+        row->left_slot_source_syntax_id = 0;
+        rejected_bad_identity = !dir_validate(dir, &error)
+            && error != NULL
+            && strstr(error, "invalid link-relation shape") != NULL;
+        free(error);
+        error = NULL;
+        row->left_slot_source_syntax_id = saved_left_id;
+
+        saved_count = dir->domain_topology_row_count;
+        dir->domain_topology_row_count = 0;
+        rejected_missing_row = !dir_validate(dir, &error)
+            && error != NULL
+            && strstr(error, "does not match source-owned count") != NULL;
+        dir->domain_topology_row_count = saved_count;
+    }
+
+    TEST("DIR owns link topology with stable slot identities");
+    EXPECT(carried);
+    TEST("DIR rejects damaged or missing domain topology rows");
+    EXPECT(rejected_bad_identity && rejected_missing_row);
+    free(error);
+    dir_destroy(dir);
+}
+
 #include "tests/dir/test_dir_lowering.cases.h"
 
 int
@@ -184,6 +246,7 @@ main(void)
     printf("=== Pergyra DIR Lowering Test Suite ===\n");
     test_dir_lowering();
     test_dir_resource_flow_universe_carriage();
+    test_dir_domain_runtime_topology();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

@@ -17,8 +17,10 @@
 #include "mir_generic_method_specialization.h"
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
+#include "dir.h"
 #include "mir_source_local_types.h"
 #include "mir_destructure_type_facts.h"
+#include "mir_domain_topology.h"
 #include "mir_branch_source_facts.h"
 #include "mir_speculation_facts.h"
 
@@ -54,8 +56,16 @@ mir_lower_request_init(MIRLowerRequest *request,
     request->protocol_id = PGY_MIR_LOWER_PROTOCOL_ID;
     request->protocol_version = PGY_MIR_LOWER_PROTOCOL_VERSION;
     request->hir = hir;
+    request->dir = NULL;
     request->rir = rir;
     request->semantic = semantic;
+}
+
+void
+mir_lower_request_bind_dir(MIRLowerRequest *request, const DIRProgram *dir)
+{
+    if (request != NULL)
+        request->dir = dir;
 }
 
 MIRProgram *
@@ -63,6 +73,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
 {
     const char *debug_mir_lower;
     const HIRProgram *hir;
+    const DIRProgram *dir;
     const RIRProgram *rir;
     const SemanticResult *semantic;
     MIRProgram *mir;
@@ -78,12 +89,29 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         return NULL;
     }
     hir = request->hir;
+    dir = request->dir;
     rir = request->rir;
     semantic = request->semantic;
     if (hir == NULL || semantic == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "MIR lowering requires HIR and semantic facts");
+        return NULL;
+    }
+    if ((hir->relation_count != 0 || hir->effect_count != 0
+         || hir->zone_count != 0)
+        && dir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR domain lowering requires DIR-owned topology facts");
+        return NULL;
+    }
+    if (dir != NULL
+        && dir->source_program_syntax_id
+            != hir->source_program_syntax_id) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR lowering received DIR facts from a different source program");
         return NULL;
     }
 
@@ -155,6 +183,13 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         }
     }
     mir_program_record_inventory_surface_usage(mir);
+
+    if (dir != NULL
+        && !mir_domain_topology_project_from_dir(
+            mir, dir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
 
 #undef MIR_COPY_AST_LIST
 

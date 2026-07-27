@@ -3,11 +3,13 @@
 
 #include <stdbool.h>
 
-#include "mir_decl.h"
+#include "mir.h"
 #include "propagation_graph.h"
 #include "../parser/ast.h"
 
-bool propagation_graph_build_from_zone(PropagationGraph *g, const ASTNode *zone);
+bool propagation_graph_build_from_zone_mir(PropagationGraph *g,
+                                            const MIRProgram *mir,
+                                            const char *zone_name);
 bool propagation_graph_build_from_world(PropagationGraph *g, const ASTNode *world);
 bool propagation_graph_build_from_world_header(
     PropagationGraph *g,

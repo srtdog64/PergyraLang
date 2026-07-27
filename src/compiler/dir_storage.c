@@ -64,6 +64,32 @@ append_edge(DIREdge **edges, size_t *count, size_t *capacity, DIREdge edge)
     return true;
 }
 
+bool
+dir_add_domain_topology_row(DIRProgram *dir, DIRDomainTopologyRow row)
+{
+    DIRDomainTopologyRow *grown;
+    size_t next_capacity;
+
+    if (dir == NULL)
+        return false;
+    if (dir->domain_topology_row_count
+        == dir->domain_topology_row_capacity) {
+        next_capacity = dir->domain_topology_row_capacity;
+        if (!dir_next_capacity(
+                &next_capacity, 16, sizeof(DIRDomainTopologyRow))) {
+            return false;
+        }
+        grown = realloc(dir->domain_topology_rows,
+                        next_capacity * sizeof(DIRDomainTopologyRow));
+        if (grown == NULL)
+            return false;
+        dir->domain_topology_rows = grown;
+        dir->domain_topology_row_capacity = next_capacity;
+    }
+    dir->domain_topology_rows[dir->domain_topology_row_count++] = row;
+    return true;
+}
+
 static char *
 dir_strdup_fmt(const char *fmt, ...)
 {

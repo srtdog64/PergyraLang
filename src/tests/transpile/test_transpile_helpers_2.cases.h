@@ -12,8 +12,10 @@ lower_pipeline_from_source_ex(const char *source,
     ASTNode *program = parser_parse_program(parser);
     SemanticResult *sem = semantic_analyze(program);
     char *hir_error = NULL;
+    char *dir_error = NULL;
     char *rir_error = NULL;
     char *mir_error = NULL;
+    DIRProgram *dir = NULL;
 
     *program_out = program;
     *hir_out = NULL;
@@ -22,12 +24,18 @@ lower_pipeline_from_source_ex(const char *source,
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
         *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
+        if (*hir_out != NULL) {
+            dir = dir_lower_with_hir_resource_flow_facts(
+                sem->annotated_ast, *hir_out, &dir_error);
+        }
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
-        if (*hir_out != NULL && *rir_out != NULL) {
+        if (*hir_out != NULL && dir != NULL && *rir_out != NULL
+            && dir_validate(dir, &dir_error)) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, *hir_out, *rir_out, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             *mir_out = mir_lower(&mir_request, &mir_error);
         }
     }
@@ -36,6 +44,8 @@ lower_pipeline_from_source_ex(const char *source,
     if (!ok && report_failure) {
         if (hir_error != NULL)
             fprintf(stderr, "HIR lowering failed in test: %s\n", hir_error);
+        if (dir_error != NULL)
+            fprintf(stderr, "DIR lowering failed in test: %s\n", dir_error);
         if (rir_error != NULL)
             fprintf(stderr, "RIR lowering failed in test: %s\n", rir_error);
         if (mir_error != NULL)
@@ -46,8 +56,10 @@ lower_pipeline_from_source_ex(const char *source,
     }
 
     free(hir_error);
+    free(dir_error);
     free(rir_error);
     free(mir_error);
+    dir_destroy(dir);
     parser_destroy(parser);
     lexer_destroy(lexer);
     return ok;

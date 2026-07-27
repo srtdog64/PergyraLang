@@ -4,12 +4,67 @@
 #include <stdint.h>
 #include <string.h>
 
+static ASTNode *
+dir_domain_owner_slot(ASTNode *owner, const char *slot_name, bool layer)
+{
+    ASTNode **slots = NULL;
+    size_t slot_count = 0;
+
+    if (owner == NULL || slot_name == NULL)
+        return NULL;
+    if (layer) {
+        if (owner->type != AST_ZONE_DECL)
+            return NULL;
+        slots = ast_zone_layer_slots(owner, &slot_count);
+        for (size_t i = 0; slots != NULL && i < slot_count; i++) {
+            if (slots[i] != NULL
+                && ast_zone_layer_slot_name(slots[i]) != NULL
+                && strcmp(ast_zone_layer_slot_name(slots[i]), slot_name) == 0) {
+                return slots[i];
+            }
+        }
+        return NULL;
+    }
+
+    switch (owner->type) {
+    case AST_ZONE_DECL:
+        slots = ast_zone_slots(owner, &slot_count);
+        break;
+    case AST_RELATION_DECL:
+        slots = ast_relation_slots(owner, &slot_count);
+        break;
+    case AST_EFFECT_DECL:
+        slots = ast_effect_slots(owner, &slot_count);
+        break;
+    default:
+        return NULL;
+    }
+    for (size_t i = 0; slots != NULL && i < slot_count; i++) {
+        if (slots[i] != NULL && ast_domain_slot_name(slots[i]) != NULL
+            && strcmp(ast_domain_slot_name(slots[i]), slot_name) == 0) {
+            return slots[i];
+        }
+    }
+    return NULL;
+}
+
+static uint32_t
+dir_domain_owner_slot_syntax_id(ASTNode *owner,
+                                const char *slot_name,
+                                bool layer)
+{
+    ASTNode *slot = dir_domain_owner_slot(owner, slot_name, layer);
+    return slot != NULL ? ast_node_stable_id(slot) : 0;
+}
+
 static bool
 dir_add_projection_contract_edges(DIRProgram *dir,
                                   size_t owner_id,
                                   const char *owner_name,
                                   ASTNode *refresh)
 {
+    DIRDomainTopologyRow topology = {0};
+    ASTNode *owner;
     ssize_t projection_slot_id;
     ssize_t source_slot_id;
     const char *source_name;
@@ -81,7 +136,93 @@ dir_add_projection_contract_edges(DIRProgram *dir,
             return false;
     }
 
+    owner = owner_id < dir->node_count ? dir->nodes[owner_id].ast : NULL;
+    topology.owner_node_id = owner_id;
+    topology.owner_source_syntax_id = owner_id < dir->node_count
+        ? dir->nodes[owner_id].source_syntax_id : 0;
+    topology.source_syntax_id = ast_node_stable_id(refresh);
+    topology.kind = ast_zone_refresh_derives_target_kind(refresh)
+        ? DIR_DOMAIN_TOPOLOGY_PROJECTION_BIND
+        : (ast_zone_refresh_requires_dto(refresh)
+            ? DIR_DOMAIN_TOPOLOGY_PROJECTION_PUBLISH
+            : DIR_DOMAIN_TOPOLOGY_PROJECTION_REFRESH);
+    topology.projection_slot_name =
+        ast_zone_refresh_object_slot_name(refresh);
+    topology.projection_slot_source_syntax_id =
+        dir_domain_owner_slot_syntax_id(
+            owner, topology.projection_slot_name, false);
+    topology.source_slot_name = source_name;
+    topology.source_slot_source_syntax_id =
+        dir_domain_owner_slot_syntax_id(
+            owner, topology.source_slot_name, false);
+    topology.participant_slot_name =
+        ast_zone_refresh_participant_slot_name(refresh);
+    topology.participant_slot_source_syntax_id =
+        dir_domain_owner_slot_syntax_id(
+            owner, topology.participant_slot_name, false);
+    if (!dir_add_domain_topology_row(dir, topology))
+        return false;
+
     return true;
+}
+
+static bool
+dir_add_zone_maintain_effect_topology(DIRProgram *dir,
+                                      size_t owner_id,
+                                      ASTNode *zone,
+                                      ASTNode *directive)
+{
+    DIRDomainTopologyRow row = {0};
+
+    if (dir == NULL || zone == NULL || directive == NULL
+        || owner_id >= dir->node_count)
+        return false;
+    row.owner_node_id = owner_id;
+    row.owner_source_syntax_id = dir->nodes[owner_id].source_syntax_id;
+    row.source_syntax_id = ast_node_stable_id(directive);
+    row.kind = DIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT;
+    row.layer_slot_name = ast_zone_effect_slot_name(directive);
+    row.layer_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.layer_slot_name, true);
+    row.target_slot_name = ast_zone_effect_target_slot_name(directive);
+    row.target_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.target_slot_name, false);
+    row.participant_slot_name =
+        ast_zone_directive_participant_slot_name(directive);
+    row.participant_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.participant_slot_name, false);
+    return dir_add_domain_topology_row(dir, row);
+}
+
+static bool
+dir_add_zone_link_topology(DIRProgram *dir,
+                           size_t owner_id,
+                           ASTNode *zone,
+                           ASTNode *directive)
+{
+    DIRDomainTopologyRow row = {0};
+
+    if (dir == NULL || zone == NULL || directive == NULL
+        || owner_id >= dir->node_count)
+        return false;
+    row.owner_node_id = owner_id;
+    row.owner_source_syntax_id = dir->nodes[owner_id].source_syntax_id;
+    row.source_syntax_id = ast_node_stable_id(directive);
+    row.kind = DIR_DOMAIN_TOPOLOGY_LINK_RELATION;
+    row.layer_slot_name = ast_zone_relation_slot_name(directive);
+    row.layer_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.layer_slot_name, true);
+    row.left_slot_name = ast_zone_relation_left_slot_name(directive);
+    row.left_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.left_slot_name, false);
+    row.right_slot_name = ast_zone_relation_right_slot_name(directive);
+    row.right_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.right_slot_name, false);
+    row.participant_slot_name =
+        ast_zone_directive_participant_slot_name(directive);
+    row.participant_slot_source_syntax_id = dir_domain_owner_slot_syntax_id(
+        zone, row.participant_slot_name, false);
+    return dir_add_domain_topology_row(dir, row);
 }
 
 bool
@@ -97,6 +238,11 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     ASTNode **refreshes = ast_zone_refreshes(node, &refresh_count);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
+    size_t maintained_effect_count = 0;
+    ASTNode **maintained_effects = ast_zone_maintained_effects(
+        node, &maintained_effect_count);
+    size_t link_count = 0;
+    ASTNode **links = ast_zone_links(node, &link_count);
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
@@ -222,6 +368,16 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 to >= 0 ? (size_t)to : SIZE_MAX,
                                 ast_zone_state_name(state),
                                 layer))
+            return false;
+    }
+    for (size_t i = 0; i < maintained_effect_count; i++) {
+        if (!dir_add_zone_maintain_effect_topology(
+                dir, from_id, node, maintained_effects[i])) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < link_count; i++) {
+        if (!dir_add_zone_link_topology(dir, from_id, node, links[i]))
             return false;
     }
     return true;

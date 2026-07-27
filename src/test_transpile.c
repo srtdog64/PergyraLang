@@ -35,6 +35,7 @@
 #include "compiler/verified_projection_plan.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
+#include "compiler/dir.h"
 
 /* -----------------------------------------------------------------
  * Test runner
