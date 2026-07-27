@@ -17,7 +17,7 @@ func ParseRoleDecl(
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
-    i = i + 4;
+    i = LanguageWordEnd(i, LanguageWordId.WordRole);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let role_name: String = ReadIdent(content, i, cursor_out);
@@ -26,10 +26,10 @@ func ParseRoleDecl(
         Exit(1);
     }
     i = SkipWhitespaceAndComments(content, i);
-    if !MatchKeyword(content, i, "for") {
+    if !MatchLanguageWord(content, i, LanguageWordId.WordFor) {
         Exit(1);
     }
-    i = i + 3;
+    i = LanguageWordEnd(i, LanguageWordId.WordFor);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let role_subj: String = ReadIdent(content, i, cursor_out);
@@ -39,11 +39,11 @@ func ParseRoleDecl(
     }
     let compact_impl: String = "";
     i = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, i, "impl") {
-        i = i + 4;
+    if MatchLanguageWord(content, i, LanguageWordId.WordImpl) {
+        i = LanguageWordEnd(i, LanguageWordId.WordImpl);
         i = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, i, "ability") {
-            i = i + 7;
+        if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
+            i = LanguageWordEnd(i, LanguageWordId.WordAbility);
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
@@ -70,7 +70,7 @@ func ParseRoleDecl(
             i = i + 1;
             break;
         }
-        if MatchKeyword(content, i, "parallel") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordParallel) {
             ArraySet(cursor_out, 0, i);
             let role_parallel: String = ParseOneStmt(
                 content, i, cursor_out, 4, expression_graphs
@@ -79,7 +79,7 @@ func ParseRoleDecl(
             impl_blocks = AppendLine(impl_blocks, role_parallel);
             continue;
         }
-        if StringLength(compact_impl) > 0 && MatchKeyword(content, i, "func") {
+        if StringLength(compact_impl) > 0 && MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let compact_m: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
@@ -90,13 +90,13 @@ func ParseRoleDecl(
             impl_blocks = AppendLine(impl_blocks, compact_m);
             continue;
         }
-        if !MatchKeyword(content, i, "impl") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordImpl) {
             Exit(1);
         }
-        i = i + 4;
+        i = LanguageWordEnd(i, LanguageWordId.WordImpl);
         i = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, i, "ability") {
-            i = i + 7;
+        if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
+            i = LanguageWordEnd(i, LanguageWordId.WordAbility);
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
@@ -119,7 +119,7 @@ func ParseRoleDecl(
                 i = i + 1;
                 break;
             }
-            if !MatchKeyword(content, i, "func") {
+            if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);

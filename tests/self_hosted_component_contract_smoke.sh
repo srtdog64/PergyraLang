@@ -698,6 +698,21 @@ require_file "src/self_hosted/lexer/char_owner.pgy"
 require_file "src/self_hosted/lexer/source_input_owner.pgy"
 require_file "src/self_hosted/lexer/token_owner.pgy"
 require_file "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
+for language_word_projection_owner in \
+    language_word_identity_projection_owner.pgy \
+    language_word_index_projection_owner.pgy \
+    language_word_class_projection_owner.pgy \
+    language_word_axis_projection_owner.pgy \
+    language_word_semantic_projection_owner.pgy \
+    language_word_tooling_projection_owner.pgy \
+    language_keyword_compatibility_projection_owner.pgy; do
+    require_file "src/self_hosted/lexer/$language_word_projection_owner"
+    require_max_lines "src/self_hosted/lexer/$language_word_projection_owner" 600
+    require_text "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
+        "import \"$language_word_projection_owner\";"
+done
+require_max_lines \
+    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" 600
 require_file "src/self_hosted/lexer/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "scan_owner.pgy";'
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "source_input_owner.pgy";'
@@ -12061,13 +12076,19 @@ require_text "src/self_hosted/lsp/expected/response_emission.json" '"schema":"pg
 require_text "src/self_hosted/lsp/expected/response_emission.json" '"method":"initialize"'
 require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '"method":"textDocument/hover"'
 require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '\"result\":null'
-require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '\"items\":[]'
+require_text "src/self_hosted/lsp/expected/response_emission_feature.json" \
+    '\"label\":\"ability\"'
+reject_text "src/self_hosted/lsp/expected/response_emission_feature.json" \
+    '\"items\":[]'
 require_text "src/self_hosted/lsp/expected/response_emission_unsupported.json" '"reason":"unsupported_response"'
 require_text "src/self_hosted/lsp/expected/response_emission_unsupported.json" '"method":"textDocument/semanticTokens/full"'
 require_text "src/self_hosted/lsp/expected/session_replay.json" '"schema":"pgy.selfhost.lsp-session-replay.v1"'
 require_text "src/self_hosted/lsp/expected/session_replay.json" '"wire":"Content-Length: 490'
 require_text "src/self_hosted/lsp/expected/session_replay_feature.json" '\"result\":null'
-require_text "src/self_hosted/lsp/expected/session_replay_feature.json" '\"items\":[]'
+require_text "src/self_hosted/lsp/expected/session_replay_feature.json" \
+    '\"label\":\"ability\"'
+reject_text "src/self_hosted/lsp/expected/session_replay_feature.json" \
+    '\"items\":[]'
 require_text "src/self_hosted/lsp/expected/session_replay_unsupported.json" '"errors":1'
 require_text "src/self_hosted/lsp/expected/session_state.json" '"schema":"pgy.selfhost.lsp-session-state.v1"'
 require_text "src/self_hosted/lsp/expected/session_state.json" '"documentCount":1'

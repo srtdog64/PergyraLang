@@ -1,0 +1,21 @@
+type Count = Int;
+
+ability Ready {
+    func Read(ref value: Count) -> Count
+}
+
+subject Worker {
+    action Touch(self) -> Void {}
+}
+
+role Reader for Worker {
+    impl ability Ready {
+        func Read(ref value: Count) -> Count {
+            return value;
+        }
+    }
+}
+
+func Consume(own value: Count) -> Count {
+    return value;
+}

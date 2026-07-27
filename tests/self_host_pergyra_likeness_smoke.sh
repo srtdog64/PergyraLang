@@ -30,17 +30,18 @@
 #     Ratchet up.
 #   - compiler_world_surface / compiler_resource_zones /
 #     compiler_world_members / compiler_intent_surface /
-#     compiler_zone_bound_steps: positive topology checks for the self-host
-#     compiler world. These are not "more is better" scores; declared zones and
+#     compiler_zone_bound_steps: declared target-topology checks for the
+#     self-host compiler world. They do not prove production-entrypoint
+#     reachability. These are not "more is better" scores; declared zones and
 #     world members are exact to prevent cosmetic zone inflation while hard
 #     substitution grows.
 #   - compiler_stage_bindings: every active compiler stage must publish its
 #     world-zone/actor/intent row in the stage intent document, matching the
-#     compiler-world path manifest. This keeps PgyCompilerWorld load-bearing
-#     instead of decorative.
+#     compiler-world path manifest. This keeps the intended binding reviewable;
+#     only an entrypoint import/call gate can prove it is load-bearing.
 #   - compiler_world_fact_consumers: compiler-world actors must delegate
-#     readiness to named compiler fact owners. A zone/intent shell that does not
-#     consume owner facts is only decoration.
+#     readiness to named compiler fact owners. This rejects empty decoration,
+#     but readiness consumption alone is not executable dogfood evidence.
 #   - stage_payload_consumers: active stage readiness must go below placement
 #     rows and consume stage-owned payload contracts.
 #   - compiler_world_stub_actions: scaffold actions in the compiler world that
@@ -474,6 +475,10 @@ compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerS
     src/self_hosted/compiler/stage_artifact_owner.pgy)
 typed_ast_contract=$(count_lines_in_files 'func[[:space:]]+TypedAstArenaPayloadContractReady' \
     src/self_hosted/hir/typed_ast_arena_owner.pgy)
+compiler_world_entry_imports=$(count_lines_in_files '^import[[:space:]]+"world\.pgy";' \
+    src/self_hosted/compiler/driver_bootstrap_main.pgy)
+compiler_world_entry_refs=$(count_lines_in_files 'PgyCompilerWorld|CompilePergyraProgram' \
+    src/self_hosted/compiler/driver_bootstrap_main.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  core_string_munge  : $core_string_munge_sig  (max $CORE_STRING_MUNGE_SIG_MAX)   <- core text->text functions; linchpin"
@@ -492,6 +497,9 @@ echo "  payload_consumers  : $stage_payload_consumers  (exact $STAGE_PAYLOAD_CON
 echo "  world_stub_actions : $compiler_world_stub_actions  (max $COMPILER_WORLD_STUB_ACTIONS_MAX)     <- compiler-world scaffold actions"
 echo "  stage_envelope_only: $compiler_stage_envelope_only  (max $COMPILER_STAGE_ENVELOPE_ONLY_MAX)     <- stage readiness only proves envelope facts"
 echo "  typed_ast_contract : $typed_ast_contract  (min $TYPED_AST_CONTRACT_MIN)     <- typed AST arena migration owner"
+echo "  world_entry_imports: $compiler_world_entry_imports  (info)      <- production bootstrap imports world.pgy"
+echo "  world_entry_refs   : $compiler_world_entry_refs  (info)      <- production bootstrap references world/root intent"
+echo "  dogfood_contract   : docs/self_hosted/17_pergyra_native_dogfood_contract.md"
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$core_string_munge_sig" -gt "$CORE_STRING_MUNGE_SIG_MAX" ]; then
@@ -509,7 +517,7 @@ if [ "$result_use" -lt "$RESULT_USE_MIN" ]; then
     fail "result_use fell to $result_use (< $RESULT_USE_MIN). The self-host compiler must not shed errors-as-data idioms."
 fi
 if [ "$compiler_world_surface" -lt "$COMPILER_WORLD_SURFACE_MIN" ]; then
-    fail "compiler_world fell to $compiler_world_surface (< $COMPILER_WORLD_SURFACE_MIN). The self-host compiler must stay rooted in PgyCompilerWorld."
+    fail "compiler_world fell to $compiler_world_surface (< $COMPILER_WORLD_SURFACE_MIN). The target self-host topology must retain PgyCompilerWorld while executable reachability is gated separately."
 fi
 if [ "$compiler_resource_zones" -ne "$COMPILER_RESOURCE_ZONES_EXACT" ]; then
     fail "resource_zones is $compiler_resource_zones (!= $COMPILER_RESOURCE_ZONES_EXACT). Resource boundaries must be an owned zone set, not a cosmetic zone count."
@@ -527,7 +535,7 @@ if [ "$compiler_stage_bindings" -ne "$COMPILER_STAGE_BINDINGS_EXACT" ]; then
     fail "stage_bindings is $compiler_stage_bindings (!= $COMPILER_STAGE_BINDINGS_EXACT). Active stages must publish their compiler-world binding row in intent.md."
 fi
 if [ "$compiler_world_fact_consumers" -lt "$COMPILER_WORLD_FACT_CONSUMERS_MIN" ]; then
-    fail "compiler_world_fact_consumers fell to $compiler_world_fact_consumers (< $COMPILER_WORLD_FACT_CONSUMERS_MIN). World/zone/intent syntax must stay load-bearing by consuming named owner facts."
+    fail "compiler_world_fact_consumers fell to $compiler_world_fact_consumers (< $COMPILER_WORLD_FACT_CONSUMERS_MIN). Declared world/zone/intent topology must consume named owner readiness facts; production reachability remains a separate gate."
 fi
 if [ "$stage_payload_consumers" -ne "$STAGE_PAYLOAD_CONSUMERS_EXACT" ]; then
     fail "stage_payload_consumers is $stage_payload_consumers (!= $STAGE_PAYLOAD_CONSUMERS_EXACT). Active stage readiness must consume payload contracts, not only world-placement rows."
@@ -560,6 +568,13 @@ require_compiler_world_zone "artifacts" "ArtifactZone"
 require_compiler_world_zone "harness" "TestHarnessZone"
 require_compiler_world_zone "subprocess" "SubprocessRunnerZone"
 require_compiler_world_zone "parity" "ParityZone"
+
+require_file_text "AGENTS.md" "## Hard Pergyra-Native Dogfood Guard"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "Status: `BRIDGE`"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `SURFACE` |"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `REACHABLE` |"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `SUBSTITUTING` |"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "CompileMirJsonToDirectBackendVerified"
 
 require_file_text "src/self_hosted/compiler/world.pgy" "step Frontend"
 require_file_text "src/self_hosted/compiler/world.pgy" "on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);"

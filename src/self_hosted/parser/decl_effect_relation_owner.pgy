@@ -8,16 +8,16 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
-    i = i + 6;
+    i = LanguageWordEnd(i, LanguageWordId.WordEffect);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let eff_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     i = SkipWhitespaceAndComments(content, i);
-    if !MatchKeyword(content, i, "for") {
+    if !MatchLanguageWord(content, i, LanguageWordId.WordFor) {
         Exit(1);
     }
-    i = i + 3;
+    i = LanguageWordEnd(i, LanguageWordId.WordFor);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let eff_param_name: String = ReadIdent(content, i, cursor_out);
@@ -43,11 +43,11 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             break;
         }
         let is_shared_eff: Bool = false;
-        if MatchKeyword(content, i, "let") {
-            i = i + 3;
+        if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
+            i = LanguageWordEnd(i, LanguageWordId.WordLet);
             i = SkipWhitespaceAndComments(content, i);
-        } else if MatchKeyword(content, i, "shared") {
-            i = i + 6;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            i = LanguageWordEnd(i, LanguageWordId.WordShared);
             i = SkipWhitespaceAndComments(content, i);
             is_shared_eff = true;
         }
@@ -81,14 +81,14 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
-    i = i + 8;
+    i = LanguageWordEnd(i, LanguageWordId.WordRelation);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let rel_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     i = SkipWhitespaceAndComments(content, i);
-    if !MatchKeyword(content, i, "for") { Exit(1); }
-    i = i + 3;
+    if !MatchLanguageWord(content, i, LanguageWordId.WordFor) { Exit(1); }
+    i = LanguageWordEnd(i, LanguageWordId.WordFor);
 
     // Param 1
     i = SkipWhitespaceAndComments(content, i);
@@ -129,11 +129,11 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
             break;
         }
         let is_shared_rel: Bool = false;
-        if MatchKeyword(content, i, "let") {
-            i = i + 3;
+        if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
+            i = LanguageWordEnd(i, LanguageWordId.WordLet);
             i = SkipWhitespaceAndComments(content, i);
-        } else if MatchKeyword(content, i, "shared") {
-            i = i + 6;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            i = LanguageWordEnd(i, LanguageWordId.WordShared);
             i = SkipWhitespaceAndComments(content, i);
             is_shared_rel = true;
         }

@@ -31,6 +31,12 @@ This document is for future agents working on self-hosting.
 12. Do not let detached `async { ... }` capture local storage by pointer,
     including `Channel<T>`. Use `parallel`, `async func`, or an explicit
     handoff boundary.
+13. Apply `17_pergyra_native_dogfood_contract.md`: distinguish declared
+    `SURFACE`, production-entrypoint `REACHABLE`, and C-path-replacing
+    `SUBSTITUTING` evidence. Only the last counts as hard replacement.
+14. Do not count keyword density, fixtures, generated projections,
+    readiness-only actions, or an unimported compiler world as executable
+    dogfood.
 
 ## Default Work Loop
 
@@ -45,6 +51,12 @@ The implementation is still released as C with C and LLVM backends. Hard
 self-hosting is active only as staged substitution rungs under
 `src/self_hosted/`: Pergyra code may replace a bounded tool or pass only after
 its parity gate agrees with the C oracle and, when available, the LLVM oracle.
+
+The declared `PgyCompilerWorld` is currently a `BRIDGE` target shape. The
+production bootstrap does not import it or call an action/intent, and
+`world.pgy --emit-c` is RED on missing authority bindings. The next executable
+dogfood rung is the direct-MIR target-admission/artifact-write action described
+in `17_pergyra_native_dogfood_contract.md`, not a whole-world import.
 
 ## Agent Work Unit
 

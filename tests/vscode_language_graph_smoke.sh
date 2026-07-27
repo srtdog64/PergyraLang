@@ -5,6 +5,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REGISTRY="$ROOT_DIR/src/lexer/language_keyword_registry.def"
+PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
+GRAMMAR="$ROOT_DIR/editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
@@ -14,6 +17,10 @@ if [[ -z "$PYTHON_BIN" ]]; then
         PYTHON_BIN="$(command -v python)"
     fi
 fi
+
+PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
+    "$ROOT_DIR/scripts/render_language_keyword_registry.py" \
+    "$REGISTRY" "$PROJECTION" --check --textmate-grammar "$GRAMMAR"
 if [[ -z "$PYTHON_BIN" ]]; then
     echo "[vscode-language-graph] python3/python is required" >&2
     exit 1
@@ -122,16 +129,16 @@ except (OSError, UnicodeDecodeError) as exc:
 registry_rows = []
 for row_index, body in enumerate(macro_bodies(registry_source), start=1):
     fields = split_fields(body)
-    if len(fields) != 8:
-        fail(f"registry row {row_index} has {len(fields)} fields, expected 8")
+    if len(fields) != 9:
+        fail(f"registry row {row_index} has {len(fields)} fields, expected 9")
     spelling_match = re.fullmatch(r'"([a-z][a-z0-9_]*)"', fields[0])
     if spelling_match is None:
         fail(f"registry row {row_index} has invalid spelling {fields[0]!r}")
-    registry_rows.append((spelling_match.group(1), fields[7]))
+    registry_rows.append((spelling_match.group(1), fields[7], fields[8]))
 
 if len(registry_rows) != 145:
     fail(f"registry closure is incomplete: {len(registry_rows)} rows, expected 145")
-registry_spellings = [spelling for spelling, _ in registry_rows]
+registry_spellings = [spelling for spelling, _, _ in registry_rows]
 if len(registry_spellings) != len(set(registry_spellings)):
     duplicates = sorted(
         spelling for spelling in set(registry_spellings)
@@ -139,11 +146,27 @@ if len(registry_spellings) != len(set(registry_spellings)):
     )
     fail(f"registry contains duplicate spellings: {', '.join(duplicates)}")
 
-highlighted = {
-    spelling
-    for spelling, tooling_flags in registry_rows
-    if "PGY_KEYWORD_TOOLING_HIGHLIGHT" in tooling_flags
+scope_names = {
+    "PGY_KEYWORD_HIGHLIGHT_NONE": None,
+    "PGY_KEYWORD_HIGHLIGHT_CONTROL": "keyword.control.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_DECLARATION": "keyword.declaration.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_MODIFIER": "storage.modifier.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_CONSTANT": "constant.language.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_TYPE": "storage.type.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_DOMAIN": "keyword.other.domain.pergyra",
+    "PGY_KEYWORD_HIGHLIGHT_INTENT": "keyword.other.intent.pergyra",
 }
+registry_scopes = {}
+for spelling, tooling_flags, scope_identity in registry_rows:
+    if scope_identity not in scope_names:
+        fail(f"registry row {spelling} has unknown highlight scope {scope_identity}")
+    is_highlighted = "PGY_KEYWORD_TOOLING_HIGHLIGHT" in tooling_flags
+    if is_highlighted != (scope_identity != "PGY_KEYWORD_HIGHLIGHT_NONE"):
+        fail(f"registry row {spelling} HIGHLIGHT/scope ownership disagrees")
+    if is_highlighted:
+        registry_scopes[spelling] = scope_names[scope_identity]
+
+highlighted = set(registry_scopes)
 
 grammar = load_json(grammar_path)
 repository = grammar.get("repository")
@@ -151,6 +174,7 @@ if not isinstance(repository, dict):
     fail("TextMate grammar repository is missing")
 
 textmate_words: list[str] = []
+textmate_scopes: dict[str, str] = {}
 for owner in ("keywords", "domain-keywords", "intent-keywords"):
     owner_value = repository.get(owner)
     if not isinstance(owner_value, dict):
@@ -161,13 +185,18 @@ for owner in ("keywords", "domain-keywords", "intent-keywords"):
     for pattern_index, pattern in enumerate(patterns):
         if not isinstance(pattern, dict) or not isinstance(pattern.get("match"), str):
             fail(f"TextMate owner {owner} pattern {pattern_index} has no match")
-        match = re.fullmatch(r"\\b\(([^()]*)\)\\b", pattern["match"])
+        scope_name = pattern.get("name")
+        if not isinstance(scope_name, str):
+            fail(f"TextMate owner {owner} pattern {pattern_index} has no scope name")
+        match = re.fullmatch(r"\\b\(\?:([^()]*)\)\\b", pattern["match"])
         if match is None:
             fail(f"TextMate owner {owner} pattern {pattern_index} is not a word list")
         words = match.group(1).split("|")
         if not words or any(re.fullmatch(r"[a-z][a-z0-9_]*", word) is None for word in words):
             fail(f"TextMate owner {owner} pattern {pattern_index} has a non-lowercase word")
         textmate_words.extend(words)
+        for word in words:
+            textmate_scopes[word] = scope_name
 
 duplicate_textmate_words = sorted(
     word for word in set(textmate_words) if textmate_words.count(word) > 1
@@ -189,6 +218,13 @@ if missing_in_textmate or unowned_in_textmate:
     if unowned_in_textmate:
         details.append("not registry-highlight-owned: " + ", ".join(unowned_in_textmate))
     fail("highlight projection drift; " + "; ".join(details))
+scope_drift = sorted(
+    spelling
+    for spelling, expected_scope in registry_scopes.items()
+    if textmate_scopes.get(spelling) != expected_scope
+)
+if scope_drift:
+    fail("highlight scope projection drift: " + ", ".join(scope_drift))
 
 canonical_package = load_json(canonical_package_path)
 canonical_grammars = canonical_package.get("contributes", {}).get("grammars")

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Proves the 145-row grammar registry and its reserved 71-word lexer projection
-# remain one source-of-truth chain, including parser-selector negative ratchets.
+# Proves the 145-row language-word registry, full self-host metadata projection,
+# reserved lexer compatibility view, editor scope projection, and generated
+# implementation inventory remain one source-of-truth chain.
 # SoT fallback IDs covered here or by the companion enforcement refs in the
 # owner registry: native_keyword_table, token_debug_keyword_switch,
 # selfhost_handwritten_keyword_map, parser_unregistered_contextual_selector,
@@ -13,6 +14,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REGISTRY="$ROOT_DIR/src/lexer/language_keyword_registry.def"
 PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
+PROJECTION_PARTS=(
+    language_word_identity_projection_owner.pgy
+    language_word_index_projection_owner.pgy
+    language_word_class_projection_owner.pgy
+    language_word_axis_projection_owner.pgy
+    language_word_semantic_projection_owner.pgy
+    language_word_tooling_projection_owner.pgy
+    language_keyword_compatibility_projection_owner.pgy
+)
+GRAMMAR="$ROOT_DIR/editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
+INVENTORY="$ROOT_DIR/docs/semantics/language_word_implementation_inventory.generated.md"
 FIXTURE_SOURCE="$ROOT_DIR/src/self_hosted/lexer/fixture/all_keywords.pgy"
 FIXTURE_EXPECTED="$ROOT_DIR/src/self_hosted/lexer/fixture/all_keywords_tokens.txt"
 NATIVE_PROBE="$ROOT_DIR/tests/language_keyword_registry_probe.c"
@@ -36,15 +48,29 @@ fi
 for path in \
     "$REGISTRY" \
     "$PROJECTION" \
+    "$GRAMMAR" \
+    "$INVENTORY" \
     "$FIXTURE_SOURCE" \
     "$FIXTURE_EXPECTED" \
     "$NATIVE_PROBE"; do
     [[ -f "$path" ]] || fail "missing ${path#"$ROOT_DIR/"}"
 done
+for part in "${PROJECTION_PARTS[@]}"; do
+    part_path="$ROOT_DIR/src/self_hosted/lexer/$part"
+    [[ -f "$part_path" ]] || fail "missing ${part_path#"$ROOT_DIR/"}"
+    [[ "$(wc -l < "$part_path")" -le 600 ]] ||
+        fail "generated projection exceeds 600 lines: $part"
+    grep -Fq "import \"$part\";" "$PROJECTION" ||
+        fail "projection hub does not import $part"
+done
+[[ "$(wc -l < "$PROJECTION")" -le 600 ]] ||
+    fail "generated projection hub exceeds 600 lines"
 
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
     "$ROOT_DIR/scripts/render_language_keyword_registry.py" \
-    "$REGISTRY" "$PROJECTION" --check
+    "$REGISTRY" "$PROJECTION" --check \
+    --textmate-grammar "$GRAMMAR" \
+    --implementation-inventory "$INVENTORY"
 
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B - \
     "$ROOT_DIR" "$FIXTURE_SOURCE" "$FIXTURE_EXPECTED" <<'PY'

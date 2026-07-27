@@ -8,7 +8,7 @@ Pergyra의 **언어 단어(language word) 레지스트리**와, Pergyra를 Pergy
 
 ## 1. 언어 단어 레지스트리 (단일 권위)
 
-**SoT: `src/lexer/language_keyword_registry.def`** (746줄, 145개 단어)
+**SoT: `src/lexer/language_keyword_registry.def`** (145개 단어)
 
 X-macro 한 줄이 단어 하나의 **9개 사실**을 동시에 선언한다:
 
@@ -74,19 +74,23 @@ DOMAIN 46개가 이 언어를 구별짓는 지점이다. 다른 언어에 대응
 
 ### 1.4 자체호스팅 프런티어
 
-**네이티브 145 / self-host 112** → **33개가 네이티브 전용**:
+레지스트리의 `SUPPORT_SELF_HOST` 비트만 세면 112개지만, 이것은 선언된
+지원 의도이지 parser 구현 증거가 아니다. 생성 inventory가 현재 source의
+native selector, typed self-host selector, raw direct selector를 따로 센 결과는
+다음과 같다.
 
-```
-activate all backoff capacity current deactivate detach forbids full give
-invariant involves is layer lifecycle maintain max min none objects pin pool
-pre priority product projection relations rollback subjects sum timeout
-tobjects unlink
-```
+| 구현 증거 | 단어 수 |
+|---|---:|
+| native + typed self-host selector | 80 |
+| native + self-host direct-string selector만 존재 | 18 |
+| native selector만 존재 | 46 |
+| 양쪽 parser selector 없음 | 1 (`channel`) |
 
-미지원이 EXECUTION(14)·DOMAIN(13)에 몰려 있다. 특히 복수형 짝
-(`object`는 되고 `objects`는 안 됨, `tobject`/`tobjects`, `subject`/`subjects`,
-`relation`/`relations`)과 예산·정책 어휘(`timeout` `priority` `backoff` `capacity`
-`max` `min` `sum` `product`)가 통째로 남아 있다.
+self-host direct-string selector는 34개 단어에 37회 남아 있다. 이는 구현
+진척이 아니라 typed identity로 옮겨야 할 migration debt다. 정확한 행별
+상태는 생성물
+`docs/semantics/language_word_implementation_inventory.generated.md`가 소유하며,
+이 fact family는 계속 `BRIDGE`다.
 
 재현:
 ```bash
@@ -98,7 +102,7 @@ grep -oE "PGY_KEYWORD_(CLASS|AXIS|SUPPORT)_[A-Z_]+" src/lexer/language_keyword_r
 
 ## 2. 도그푸딩 문법 — Pergyra로 쓴 Pergyra
 
-`src/self_hosted/` 아래 **.pgy 1019개** (`_owner.pgy` 463, `main.pgy` 41).
+`src/self_hosted/` 아래 **.pgy 1026개** (`_owner.pgy` 470, `main.pgy` 41).
 
 ### 2.1 기본 문법 규율
 
@@ -125,10 +129,12 @@ func CharAt(s: String, i: Int) -> String {
 - **함수 PascalCase, 지역 snake_case.**
 - 주석은 *무엇*이 아니라 **왜**를 적는다.
 
-### 2.2 고유 표면도 실제로 도그푸딩된다
+### 2.2 고유 표면은 선언됐지만 production bootstrap에는 아직 도달하지 않는다
 
-이게 중요하다 — 컴파일러가 범용 부분집합으로만 쓰인 게 아니다.
-**컴파일러 자신의 파이프라인이 world/zone/subject/object/authority로 선언돼 있다.**
+컴파일러 파이프라인의 목표 토폴로지는
+world/zone/subject/object/authority로 선언돼 있다. 그러나 “선언이
+컴파일된다”와 “실제 bootstrap entrypoint가 그 책임을 호출한다”는 다른
+증거다.
 
 `src/self_hosted/compiler/world.pgy`:
 ```pergyra
@@ -158,18 +164,26 @@ intent FrontendPipeline(intake: SourceIntakeZone, ...) {
 }
 ```
 
-`step`의 `where/using/who/on/expect`가 곧 docs/198의 포지셔닝
-**"의도·권한·수명·예산 없이 효과 없음"**의 문법적 구현체다. 선언은 장식이 아니라
-검사 대상이다.
+`step`의 `where/using/who/on/expect`는 docs/198의 포지셔닝
+**"의도·권한·수명·예산 없이 효과 없음"**을 표현할 수 있는 문법이다. 현재는
+아키텍처/파서 표면 검사 대상이지 load-bearing bootstrap 실행 증거가 아니다.
 
-측정된 사용량 (선언형, `grep -rE "^\s*<kw>\s+[A-Za-z_]"`):
-`intent` 32, `role` 17, `tobject` 15, `vessel` 10, `world` 2, `party` 1.
-`zone`은 `zone SourceIntakeZone {` 형태로 컴파일러 스테이지마다 선언된다.
+canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
+같다.
 
-**정직한 규모 감각**: `let` 13008 / `func` 5172 대비 고유 어휘는 두 자릿수다.
-고유 표면은 **아키텍처 골격**(스테이지 = zone, 스테이지 계약 = intent)에
-집중적으로 쓰이고, 본문 로직은 보수적 부분집합으로 쓴다. "쓰이지 않는다"는
-틀렸고, "전면적으로 쓰인다"도 틀렸다.
+- import closure 395개, missing import 0;
+- fixture/generated/probe 제외 reachable source 394개;
+- reachable 선언은 `func` 2,641, `struct` 174, `enum` 1;
+- reachable `world/zone/subject/action/intent/role/ability/effect` 선언은 전부 0;
+- 비-fixture Pergyra-native syntax는 unreachable한 `compiler/world.pgy`,
+  `compiler/stage_intents.pgy`, `compiler/authority_owner.pgy` 세 파일에만 존재;
+- `world.pgy`의 action 16개는 19개 `Compiler*Ready()` 결합만 반환하며 실제
+  source/MIR/backend artifact 경로를 호출하지 않는다.
+
+따라서 현재 bootstrap은 99.96% `func + struct` 선언으로 구성된 실행
+그래프이고, Pergyra 고유 표면은 목표 골격이다. 이를 실행 dogfood로 바꾸는
+규칙과 첫 takeover rung은
+`docs/self_hosted/17_pergyra_native_dogfood_contract.md`가 소유한다.
 
 ---
 
@@ -218,11 +232,16 @@ intent FrontendPipeline(intake: SourceIntakeZone, ...) {
 
 ## 4. 미해결 / 주의
 
-- **33개 네이티브 전용 단어**가 자체호스팅 프런티어다. 예산·정책 어휘
-  (`timeout` `priority` `backoff` `capacity`)가 여기 몰려 있는데, 이는 docs/198이
-  안전 주장의 축으로 내세우는 **budget** 축과 겹친다 — 즉 그 축은 아직
-  자체호스팅으로 실증되지 않았다.
+- 실제 parser selector 증거는 typed 80 / direct-only 18 / native-only 46 /
+  양쪽 없음 1이다. `SUPPORT_SELF_HOST` 비트로 계산한 112개를 구현 완료로
+  인용하지 않는다.
+- 예산·정책 어휘(`timeout`, `priority`, `backoff`, `capacity`)는 native-only
+  집합에 남아 있으므로 docs/198의 budget 축은 아직 self-host parser로
+  실증되지 않았다.
 - context/support/tooling 필드는 **선언**이다. 구현 완료와 동일시하지 말 것.
   대조는 생성 인벤토리가 한다.
 - 위 사용량 수치는 선언형 grep 기준이다. 문자열 리터럴(`"zone"` 34회 등)은
   컴파일러가 그 단어를 *파싱*하기 때문에 등장하는 것이므로 사용량이 아니다.
+- 선언형 raw count도 production reachability가 아니다. fixture/generated/probe를
+  제외한 entrypoint import/call graph로 `SURFACE`, `REACHABLE`,
+  `SUBSTITUTING`을 구분한다.

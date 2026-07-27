@@ -100,3 +100,25 @@ cosmetic reshuffling.
 - Budget the edit loop: 60 seconds for static owner gates, 5 minutes for focused
   parity, and 30 minutes for an integration shard. Full matrices belong at
   scheduled or merge boundaries.
+
+## Hard Pergyra-Native Dogfood Guard
+
+- Follow `docs/self_hosted/17_pergyra_native_dogfood_contract.md`. A parsed or
+  statically gated `world`, `zone`, `subject`, `action`, or `intent` is only
+  surface support until a production self-host entrypoint reaches it.
+- Record Pergyra-native evidence as `SURFACE`, `REACHABLE`, or `SUBSTITUTING`.
+  Only `SUBSTITUTING` counts as hard self-host replacement progress.
+- Do not use keyword counts, fixtures, generated projections, parser probes,
+  readiness-only actions, or an unimported `world.pgy` as executable dogfood
+  evidence.
+- Keep pure computation and value facts in `func`/`struct` when that is their
+  responsibility. Use `subject/action` for identity-bearing authority or
+  state/stage transitions, `zone` for real resource boundaries, and `intent`
+  for a multi-action purpose with explicit success/failure semantics.
+- Each migration rung names the production entrypoint, the direct bypass being
+  deleted, the existing fact owner, the last orchestration consumer, and one
+  execution/parity/negative gate. Do not leave `Main -> old function` as a
+  fallback beside the Pergyra-native path.
+- `PgyCompilerWorld` is the target root, not the current executable root, until
+  `driver_bootstrap_main.pgy` reaches it through the observed import/call graph.
+  Correct docs and gates that confuse declared topology with reachability.

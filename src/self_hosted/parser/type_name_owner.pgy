@@ -53,8 +53,8 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
         let args: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
-            if MatchKeyword(content, i, "any") {
-                i = i + 3;
+            if MatchLanguageWord(content, i, LanguageWordId.WordAny) {
+                i = LanguageWordEnd(i, LanguageWordId.WordAny);
                 i = SkipWhitespaceAndComments(content, i);
             }
             ArraySet(cursor_out, 0, i);

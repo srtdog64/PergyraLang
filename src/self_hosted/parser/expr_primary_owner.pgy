@@ -333,7 +333,7 @@ func ParsePrimaryFact(
                 }
             }
             i = SkipWhitespaceAndComments(content, i);
-            if MatchKeyword(content, i, "join") {
+            if MatchLanguageWord(content, i, LanguageWordId.WordJoin) {
                 while i < StringLength(content) && ParserCharAt(content, i) != "{" {
                     i = i + 1;
                 }

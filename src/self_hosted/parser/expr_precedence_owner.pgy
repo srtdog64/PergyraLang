@@ -36,17 +36,17 @@ func ParseUnaryFact(
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         return ParserExpressionLeaf(Concat("<-", operand.text));
     }
-    if MatchKeyword(content, i, "spawn") {
-        i = i + 5;
+    if MatchLanguageWord(content, i, LanguageWordId.WordSpawn) {
+        i = LanguageWordEnd(i, LanguageWordId.WordSpawn);
         let after_spawn: Int = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, after_spawn, "blocking") { i = after_spawn + 8; }
+        if MatchLanguageWord(content, after_spawn, LanguageWordId.WordBlocking) { i = LanguageWordEnd(after_spawn, LanguageWordId.WordBlocking); }
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeSpawn(), Concat("spawn ", operand.text), operand
         );
     }
-    if MatchKeyword(content, i, "await") {
-        i = i + 5;
+    if MatchLanguageWord(content, i, LanguageWordId.WordAwait) {
+        i = LanguageWordEnd(i, LanguageWordId.WordAwait);
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeAwait(),
@@ -68,11 +68,11 @@ func ParseCastFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
-        if !MatchKeyword(content, i, "as") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordAs) {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
-        i = i + 2;
+        i = LanguageWordEnd(i, LanguageWordId.WordAs);
         ArraySet(cursor_out, 0, i);
         let target_type: String = ReadType(content, i, cursor_out);
         i = cursor_out[0];

@@ -15,7 +15,7 @@ func ParseAbilityDecl(
     decl_prefix: String,
     inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
-    let i: Int = start + 7;
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordAbility);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -34,7 +34,7 @@ func ParseAbilityDecl(
     }
     let constraint_clause: String = "";
     i = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, i, "where") {
+    if MatchLanguageWord(content, i, LanguageWordId.WordWhere) {
         let where_start: Int = i;
         while i < n && ParserCharAt(content, i) != "{" {
             i = i + 1;
@@ -57,8 +57,8 @@ func ParseAbilityDecl(
             i = i + 1;
             break;
         }
-        if MatchKeyword(content, i, "fields") {
-            i = i + 6;
+        if MatchLanguageWord(content, i, LanguageWordId.WordFields) {
+            i = LanguageWordEnd(i, LanguageWordId.WordFields);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let req_name: String = ReadIdent(content, i, cursor_out);
@@ -83,7 +83,7 @@ func ParseAbilityDecl(
             sig_blocks = AppendLine(sig_blocks, Concat("    Require: ", Concat(req_name, Concat(": ", req_type))));
             continue;
         }
-        if !MatchKeyword(content, i, "func") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             Exit(1);
         }
         ArraySet(cursor_out, 0, i);

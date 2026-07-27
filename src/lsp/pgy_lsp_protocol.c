@@ -92,7 +92,7 @@ lsp_completion_row_valid(const PgyLanguageKeywordRow *row)
         PGY_KEYWORD_CONTEXT_EXPRESSION | PGY_KEYWORD_CONTEXT_TYPE |
         PGY_KEYWORD_CONTEXT_CLAUSE | PGY_KEYWORD_CONTEXT_MODULE |
         PGY_KEYWORD_CONTEXT_INTENT_STEP | PGY_KEYWORD_CONTEXT_ZONE_BODY |
-        PGY_KEYWORD_CONTEXT_NAME;
+        PGY_KEYWORD_CONTEXT_NAME | PGY_KEYWORD_CONTEXT_PARAMETER;
     const uint32_t known_support =
         PGY_KEYWORD_SUPPORT_NATIVE | PGY_KEYWORD_SUPPORT_SELF_HOST;
     const uint32_t known_tooling =
@@ -105,7 +105,11 @@ lsp_completion_row_valid(const PgyLanguageKeywordRow *row)
         || lsp_completion_axis_name(row->axis) == NULL
         || row->context_mask == 0 || (row->context_mask & ~known_contexts) != 0
         || (row->implementation_support & ~known_support) != 0
-        || (row->tooling_flags & ~known_tooling) != 0)
+        || (row->tooling_flags & ~known_tooling) != 0
+        || row->highlight_scope < PGY_KEYWORD_HIGHLIGHT_NONE
+        || row->highlight_scope > PGY_KEYWORD_HIGHLIGHT_INTENT
+        || ((row->tooling_flags & PGY_KEYWORD_TOOLING_HIGHLIGHT) != 0)
+            != (row->highlight_scope != PGY_KEYWORD_HIGHLIGHT_NONE))
         return false;
 
     if (row->keyword_class == PGY_KEYWORD_CLASS_RESERVED)

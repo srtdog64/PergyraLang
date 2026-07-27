@@ -153,9 +153,9 @@ def load_hover_exposure(path: Path) -> set[str]:
     spellings: set[str] = set()
     for row_index, body in enumerate(_macro_bodies(source, REGISTRY_MACRO), start=1):
         fields = _split_fields(body)
-        if len(fields) != 8:
+        if len(fields) != 9:
             raise ValueError(
-                f"keyword registry row {row_index} has {len(fields)} fields; expected 8"
+                f"keyword registry row {row_index} has {len(fields)} fields; expected 9"
             )
         spelling = _string_field(fields[0], f"keyword registry row {row_index} spelling")
         if spelling in spellings:

@@ -37,12 +37,27 @@ owner, and the named executable gate.
   permutation is byte-identical and all break/topology/SSA/graph/plan negatives
   reject before artifact acceptance.
 - `src/lexer/language_keyword_registry.def` owns 145 sorted identities and
-  native `impl/ref/own/type` token/debug output is correct, but the registry row
-  is now accurately `BRIDGE`, not `CLOSED`. The self-host parser still owns raw
-  keyword selectors in 17 files, accepts unregistered `systemic`, self-host
-  completion advertises an empty independent list, granular grammar roles are
-  not carried, and TextMate scope identity is not registry-derived or exact-
-  gated. Current registry counts are `CLOSED=31 BRIDGE=21 ACTIVE=0`.
+  all native/self-host stable IDs and metadata projections. Native lexer/debug,
+  generated self-host projection, 27-row native/self-host completion, hover,
+  and exact 92-row TextMate spelling/scope are registry-directed. The row stays
+  `BRIDGE`: generated implementation census records typed native+self-host
+  selectors for 80 words, direct-string-only self-host selectors for 18,
+  native-only selectors for 46, no parser selector for `channel`, and 37 raw
+  direct selectors across 34 words. Support flags, fixtures, and tooling do not
+  promote implementation status.
+- Pergyra-native dogfood status is now explicit. The bootstrap import closure
+  has 395 files with no missing import; its non-fixture/generated/probe
+  reachable declaration set has 2,641 `func`, 174 `struct`, one `enum`, and
+  zero `world`/`zone`/`subject`/`action`/`intent`/`role`/`ability`/`effect`.
+  `world.pgy`, `stage_intents.pgy`, and `authority_owner.pgy` are unreachable;
+  the 16 declared compiler-world actions consume readiness facts only.
+  `docs/self_hosted/17_pergyra_native_dogfood_contract.md` and project
+  `AGENTS.md` therefore classify the world as `SURFACE`/`BRIDGE`, not the
+  executable root.
+- The combined action ABI prerequisite is green on C and LLVM: subject action,
+  aggregate request, enum-bearing aggregate result, capabilities, and action-
+  internal `WriteFile`/`ReadFile` produced `ok / artifact-written / 17` and the
+  same `driver-action-abi` file. This is enabling evidence, not substitution.
 - The historical 20+ GiB / 3 GiB symptom came from cumulative graph copying
   and repeated whole-arena/readiness validation. The accepted direct CFG path
   keeps one typed admission/certificate issuance followed by fixed-size
@@ -55,9 +70,10 @@ owner, and the named executable gate.
 
 ## Exact dirty state at this handoff
 
-At the observed v74 executable checkpoint, local `main` is one revision ahead
-of `origin/main` at `bce4ae6f`. After this documentation-only correction and
-push, local and remote must again resolve to the same revision.
+At the committed checkpoint containing this handoff, use `git rev-parse HEAD`
+and `git rev-parse origin/main` to verify the exact revision. The v74 executable
+boundary remains `bce4ae6f`; the later language-word/dogfood work is a supporting
+SoT/contract checkpoint and does not change released/default replacement.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
@@ -65,46 +81,39 @@ unmodified and excluded from task commits:
 - `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`;
 - `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`.
 
-No v74 implementation, gate, or documentation file should remain dirty.
+No registry, dogfood-contract, ABI-probe, v74 implementation, gate, or
+documentation file should remain dirty.
 
-## Active language-word registry BRIDGE objective card
+## Active Pergyra-native direct-MIR action objective card
 
-- Objective: make the 145-row language-word registry the actual identity and
-  grammatical-role source for native and self-host parser/tooling consumers,
-  rather than merely a correct native lexer/debug and membership projection.
-- Priority: stable word/token identity; granular grammar-role facts; native and
-  self-host parser parity; missing-word fail-closed behavior; completion and
-  hover parity; TextMate word+scope projection; negative ratchet; then patch
-  size. Contextual and soft words must remain lexer identifiers.
-- Fact owner: `src/lexer/language_keyword_registry.def` owns spelling, lexical
-  class, stable word/token identity, grammar-role mask, stage support, and
-  tooling exposure. Parsers continue to own grammatical validity but consume a
-  typed word/role query. Hover prose remains a presentation table keyed by the
-  registry identity rather than becoming lexical authority.
-- Last legitimate consumers: native lexer/debug and parser selectors, the
-  generated full-row self-host projection and parser role query, native and
-  self-host completion/hover, and generated TextMate word+scope groups.
-- Forbidden fallback: raw self-host `MatchKeyword(..., "word")` selectors,
-  unregistered parser-only words, a provider that advertises completion while
-  returning an independent empty list, token/debug tables outside the owner,
-  boolean highlight membership without a scope identity, or docs as authority.
-- First falsifying fixture: `world W { systemic slot actors: Int; }`. The
-  current self-host parser accepts `systemic`, while the registry and native
-  parser have no row/consumer for it. A closure must either register one exact
-  role supported by both parsers or make both reject the unregistered word with
-  the same owned diagnostic.
-- Additional fixture: type alias + role `impl` + function parameters using
-  `ref`, `own`, and `impl`, with role-bit/token-ID mutations checked across
-  lexer, parser, completion/hover, and TextMate projections.
-- Acceptance gate: generated full 145-row self-host projection; no raw keyword
-  selector outside the typed adapter; native/self-host parser role parity;
-  exact completion parity; hover flag/prose foreign-key parity; exact TextMate
-  spelling+scope projection; semantic-token capability absent while unsupported;
-  and old independent tables rejected by static negative gates.
-- After this SoT closure, the next smallest executable rung is the one-block
-  `tests/cases/backend_compare/basic/main.pgy` `Log(42)` path. It currently
-  falls into the implicit string-hello shape; replace that guess with one typed
-  literal-Log fact before attempting multi-routine `nested_loop_cfg.pgy`.
+- Objective: move the actual direct-MIR C/LLVM target admission and artifact
+  write transition from `driver_bootstrap_main.pgy` into one production-
+  reachable Pergyra subject action.
+- Priority: stable target identity; requested -> target-admitted -> artifact-
+  written/rejected state; actual bootstrap reachability; direct bypass deletion;
+  unchanged MIR/certificate/plan facts; C/LLVM/native parity; then world/zone
+  attachment.
+- Fact owner: current MIR, semantic, ABI, target-projection, certificate, plan,
+  and emitter owners remain authoritative. The new execution owner owns only
+  CLI request-to-target admission, action state, failure, and the final output-
+  write handoff.
+- Last legitimate consumer: bootstrap execution action immediately before the
+  artifact sink. `Main` owns argument spelling only; the direct backend owner
+  continues to own artifact generation.
+- Forbidden fallback: `Main` calling
+  `CompilerTargetProjectionFactFromOwner` or
+  `CompileMirJsonToDirectBackendVerified`; action failure re-entering the old
+  path; target strings re-owned outside current owner; separate C/LLVM action
+  or world graphs; semantic/MIR/ABI reconstruction inside the action.
+- First falsifying fixture: unknown or corrupted direct-MIR target admission
+  reaching `WriteFile`, or a rejected action still producing an artifact.
+- Acceptance gate: the production import/call graph reaches the action; the two
+  direct `Main` calls are statically forbidden; fixed MIR identity and all
+  target/graph/certificate/plan negatives still reject before artifact; C,
+  LLVM, and native outputs remain equal.
+- Root-intent follow-up is blocked on six missing `authorized by` bindings:
+  `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` currently exits 1
+  with 6 errors/5 warnings. Do not import the whole world to fake progress.
 
 ## Current measured evidence
 
@@ -163,15 +172,26 @@ Green:
 - `tests/self_host_preparation_smoke.sh`;
 - `tests/self_hosted_component_contract_smoke.sh`;
 - `tests/language_keyword_registry_smoke.sh`: 145 registry rows, 71 reserved
-  lexer rows, 74 exact parser selectors, native lookup/debug probe, and the
-  generated 9-fixture self-host projection;
+  lexer rows, stable native/self-host word identity and metadata, native
+  lookup/debug probe, eight generated projection owners below 600 lines, and
+  exact generated-inventory drift checks;
+- `tests/self_hosted/parity/parser_language_word_registry_parity.sh`: 80 typed
+  word IDs reached by the current selectors, `action/impl/ref/own/type` native-
+  selfhost AST parity, and matching rejection of unregistered `systemic`;
 - `tests/self_hosted/parity/lexer_parity.sh`: all 9 sources byte-equal on C,
   LLVM, and live-native comparison;
-- `tests/lsp_completion_registry_smoke.sh`: 27 registry-owned completion rows;
+- `tests/lsp_completion_registry_smoke.sh`: 27 registry-owned native/self-host
+  completion rows; the old independent `items:[]` path is rejected;
 - `tests/lsp_hover_registry_smoke.sh`: 25 lowercase language rows plus 7
   builtins, with C/self-host runtime parity and decoded multiline Markdown;
 - `tests/vscode_language_graph_smoke.sh`: 92 exact highlighted rows, one full
   grammar, and no grammar ownership in the thin client;
+- `tests/self_hosted/parity/driver_execution_action_abi_parity.sh`: C/LLVM
+  subject/action aggregate ABI, enum result, capabilities, `WriteFile`/`ReadFile`,
+  stdout, and artifact byte parity;
+- current `driver_bootstrap_main.pgy` native C build: 0 errors/0 warnings;
+  compiled driver emitted a 414-byte hello C artifact with SHA-256
+  `0e32ec703f3b1237fc8c147bd8f395d89a53106d649f3e8f1ab4c608fc0ff25b`;
 - `tests/tooling_conformance_smoke.sh` and `make -j2 test`;
 - `python scripts/sot_registry_gate.py`: 52 authorities, 54 derived carriers,
   `CLOSED=31 BRIDGE=21 ACTIVE=0`;
@@ -196,7 +216,16 @@ Environment omission:
   not executable. Its full-fixpoint runner body was invoked directly with the
   same environment and pressure contract; do not claim the wrapper passed.
 
-Known unrelated RED, unchanged and not weakened:
+Known RED, unchanged and not weakened:
+
+- `tests/self_host_pergyra_likeness_smoke.sh` reports the newly explicit
+  production reachability facts (`world_entry_imports=0`,
+  `world_entry_refs=0`) but still fails its pre-existing smell baseline:
+  `core_string_munge=79 > 72` and `sentinel=11 > 0`. The same 79 string-munge
+  matches exist at the pre-task `HEAD`; this work did not loosen the ratchet.
+- `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` exits 1 with 6
+  errors/5 warnings because six authority-bearing intent steps omit required
+  `authorized by` actors. AST/topology gates do not supersede this RED.
 
 - `tests/self_host_hard_contract_smoke.sh` stops only because
   `driver_rung2_owner.pgy` lacks the pre-existing literal

@@ -29,23 +29,23 @@
       "patterns": [
         {
           "name": "keyword.control.pergyra",
-          "match": "\\b(if|else|while|for|in|return|break|continue|match|case|default|spawn|await|select|parallel|defer|with|as|fail|compensate|collapse|transaction)\\b"
+          "match": "\\b(?:as|await|break|case|collapse|compensate|continue|default|defer|else|fail|for|if|in|match|parallel|return|select|spawn|transaction|while|with)\\b"
         },
         {
           "name": "keyword.declaration.pergyra",
-          "match": "\\b(let|func|action|use|import|include|type|enum|namespace|impl|extends|extern|export)\\b"
+          "match": "\\b(?:action|enum|export|extends|extern|func|impl|import|include|let|namespace|type|use)\\b"
         },
         {
           "name": "storage.modifier.pergyra",
-          "match": "\\b(mut|ref|dyn|own|unsafe|secure|innate|override|public|private|local|async|remote|nondeterministic|reflect)\\b"
+          "match": "\\b(?:async|dyn|innate|local|mut|nondeterministic|override|own|private|public|ref|reflect|remote|secure|unsafe)\\b"
         },
         {
           "name": "constant.language.pergyra",
-          "match": "\\b(true|false)\\b"
+          "match": "\\b(?:false|true)\\b"
         },
         {
           "name": "storage.type.pergyra",
-          "match": "\\b(subject|class|struct|vessel|object|tobject|ability|role|relation|effect|zone|world|party|roster|channel)\\b"
+          "match": "\\b(?:ability|channel|class|effect|object|party|relation|role|roster|struct|subject|tobject|vessel|world|zone)\\b"
         }
       ]
     },
@@ -53,7 +53,7 @@
       "patterns": [
         {
           "name": "keyword.other.domain.pergyra",
-          "match": "\\b(requires|within|causes|authorized|by|slot|shared|event|state|projection|bind)\\b"
+          "match": "\\b(?:authorized|bind|by|causes|event|projection|requires|shared|slot|state|within)\\b"
         }
       ]
     },
@@ -61,7 +61,7 @@
       "patterns": [
         {
           "name": "keyword.other.intent.pergyra",
-          "match": "\\b(intent|step|involves|exclusive|concurrent|on|pre|post|guard|invariant|success|failure|where|who)\\b"
+          "match": "\\b(?:concurrent|exclusive|failure|guard|intent|invariant|involves|on|post|pre|step|success|where|who)\\b"
         }
       ]
     },

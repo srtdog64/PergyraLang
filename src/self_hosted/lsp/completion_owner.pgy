@@ -1,0 +1,123 @@
+// Registry-owned self-host LSP completion projection.
+//
+// The generated language-word projection owns spelling, class, axis, and
+// completion exposure. This owner validates the complete ordered registry
+// before emitting the selected rows; it never carries an independent word
+// list and never falls back to an advertised empty completion result.
+
+import "../lexer/language_keyword_registry_projection_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func LspCompletionOwnedItemCount() -> Int {
+    let count: Int = 0;
+    let index: Int = 0;
+    while index < LanguageWordRegistryCount() {
+        if LanguageWordCompletionOwnedAt(index) {
+            count = count + 1;
+        }
+        index = index + 1;
+    }
+    return count;
+}
+
+func LspCompletionInvariantFailure(reason: String) -> String {
+    let missing: Option<String> = None;
+    return UnwrapOption(missing);
+}
+
+func LspCompletionClassNameReady(name: String) -> Bool {
+    return name == "reserved" || name == "contextual" || name == "soft";
+}
+
+func LspCompletionAxisNameReady(name: String) -> Bool {
+    return name == "general" || name == "resource" ||
+        name == "execution" || name == "domain" ||
+        name == "type-contract";
+}
+
+func LspCompletionSpellingStrictlyAfter(
+    previous: String,
+    current: String
+) -> Bool {
+    let previous_length: Int = StringLength(previous);
+    let current_length: Int = StringLength(current);
+    let shared_length: Int = previous_length;
+    if current_length < shared_length {
+        shared_length = current_length;
+    }
+    let index: Int = 0;
+    while index < shared_length {
+        let previous_code: Int = CharCode(previous, previous_length, index);
+        let current_code: Int = CharCode(current, current_length, index);
+        if previous_code < current_code { return true; }
+        if previous_code > current_code { return false; }
+        index = index + 1;
+    }
+    return previous_length < current_length;
+}
+
+func LspCompletionItemJson(
+    spelling: String,
+    class_name: String,
+    axis_name: String
+) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("label", spelling));
+    ArrayPush(fields, JsonEmitFieldNumber("kind", "14"));
+    let detail: String = Concat(
+        "Pergyra ",
+        Concat(class_name, Concat(" ", Concat(axis_name, " keyword")))
+    );
+    ArrayPush(fields, JsonEmitFieldString("detail", detail));
+    return JsonEmitObject(fields);
+}
+
+func LspCompletionItemsJson() -> String {
+    let registry_count: Int = LanguageWordRegistryCount();
+    if registry_count <= 0 || !LanguageWordRegistryProjectionReady() {
+        return LspCompletionInvariantFailure(
+            "self-host LSP completion registry count is invalid"
+        );
+    }
+    let items: Array<String> = [];
+    let previous: String = "";
+    let index: Int = 0;
+    while index < registry_count {
+        let spelling: String = LanguageWordSpellingAt(index);
+        let class_name: String = LanguageWordClassNameAt(index);
+        let axis_name: String = LanguageWordAxisNameAt(index);
+        if StringLength(spelling) == 0 ||
+            !LspCompletionClassNameReady(class_name) ||
+            !LspCompletionAxisNameReady(axis_name) ||
+            (index > 0 &&
+                !LspCompletionSpellingStrictlyAfter(previous, spelling)) {
+            return LspCompletionInvariantFailure(
+                "self-host LSP completion registry ordering or row is invalid"
+            );
+        }
+        // Tooling completion exposure is registry policy, not evidence that
+        // every selected word already has complete parser support.
+        if LanguageWordCompletionEnabledAt(index) {
+            ArrayPush(
+                items,
+                LspCompletionItemJson(spelling, class_name, axis_name)
+            );
+        }
+        previous = spelling;
+        index = index + 1;
+    }
+    if ArrayLength(items) != LspCompletionOwnedItemCount() {
+        return LspCompletionInvariantFailure(
+            "self-host LSP completion item count is invalid"
+        );
+    }
+    return JsonEmitArray(items);
+}
+
+func LspCompletionContractReady() -> Bool {
+    let items: String = LspCompletionItemsJson();
+    return StringLength(items) > 2 &&
+        StringIndexOf(items, "\"label\":") >= 0 &&
+        StringIndexOf(items, "\"kind\":14") >= 0 &&
+        StringIndexOf(items, "\"detail\":\"Pergyra ") >= 0;
+}

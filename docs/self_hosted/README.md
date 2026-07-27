@@ -51,10 +51,12 @@ The executable self-hosted Pergyra sources live in `src/self_hosted/`. This
 `tests/self_hosted/` owns oracle harnesses plus long-lived parity fixtures. The
 self-host source tree must not become a dumping ground for shell harnesses or
 golden-output payloads; those are test artifacts, not compiler source owners.
-It must also not become a Pergyra spelling of the C folder graph: the
+It must also not become a Pergyra spelling of the C folder graph. The target
 self-hosted compiler flow is owned by `PgyCompilerWorld` under
-`src/self_hosted/compiler/world.pgy`, while individual stage directories own the
-facts consumed by that flow.
+`src/self_hosted/compiler/world.pgy`, while individual stage directories own
+the facts consumed by that flow. As of 2026-07-27 the production bootstrap
+entrypoint does not import or call that world; it remains a `BRIDGE` target
+shape, not the current executable root.
 
 ## Architecture Migration Judgement
 
@@ -71,8 +73,9 @@ Self-host is the right point to recover the cleaner architecture:
 - split by responsibility and evidence owner, not by line count;
 - keep Pergyra source owners under `src/self_hosted/`, and keep oracle/parity
   machinery under `tests/self_hosted/`;
-- make the hard compiler flow visible through `PgyCompilerWorld` in
-  `src/self_hosted/compiler/world.pgy` rather than a C-style driver mirror;
+- migrate the hard compiler flow into a production-reachable
+  `PgyCompilerWorld` in `src/self_hosted/compiler/world.pgy` rather than merely
+  declaring it beside a C-style driver mirror;
 - keep C as the oracle while each Pergyra-written tool or pass proves parity;
 - prefer small compiler-adjacent tools before moving frontend/backend core.
 
@@ -123,6 +126,9 @@ The target compiler-world projection shape is recorded in
 [`14_target_compiler_world.md`](14_target_compiler_world.md).
 The pre-self-host expansion ledger is recorded in
 [`15_pre_self_host_expansion_ledger.md`](15_pre_self_host_expansion_ledger.md).
+The executable dogfood meaning and Pergyra-native syntax/ownership rules are
+recorded in
+[`17_pergyra_native_dogfood_contract.md`](17_pergyra_native_dogfood_contract.md).
 The short version: `intent` owns compiler flow, `zone` owns distinct compiler
 resources, stage files remain fact owners rather than fake zones, and compiler
 substrates such as imports, deterministic collections, diagnostics, MIR facts,
@@ -172,9 +178,9 @@ its own ecosystem.
   substitution.
 - `10_hard_self_host_contract.md` - active hard substitution contract, oracle
   rule, bridge/fallback split, and CI owner.
-- `11_compiler_world_architecture.md` - hard self-host source shape: the
-  compiler flow is owned by `PgyCompilerWorld`, while stage directories own
-  facts.
+- `11_compiler_world_architecture.md` - hard self-host target shape: the
+  compiler flow is to be owned by a production-reachable `PgyCompilerWorld`,
+  while stage directories keep owning facts.
 - `12_intent_zone_self_host_architecture.md` - intent/zone architecture for
   compiler flow, codegen resources, and path/source-intake facts.
 - `13_compiler_substrate_architecture.md` - self-hosted compiler architecture
@@ -189,3 +195,7 @@ its own ecosystem.
 - `16_hard_substitution_velocity_process.md` - finite SoT closure per active
   rung, executable-progress definition, WIP limit, effort split, and validation
   budgets that prevent owner/gate work from indefinitely delaying replacement.
+- `17_pergyra_native_dogfood_contract.md` - distinguishes parsed syntax,
+  reachable Pergyra-native execution, and actual substitution; fixes the
+  implementation rules for world/zone/subject/action/intent and the next
+  executable takeover rung.

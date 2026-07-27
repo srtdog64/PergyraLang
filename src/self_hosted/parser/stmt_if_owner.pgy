@@ -39,8 +39,8 @@ func ParseIfStmt(
 ) -> String {
     let i: Int = after_head;
     let if_probe: Int = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, if_probe, "let") {
-        i = if_probe + 3;
+    if MatchLanguageWord(content, if_probe, LanguageWordId.WordLet) {
+        i = LanguageWordEnd(if_probe, LanguageWordId.WordLet);
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         let variant_name: String = ReadIdent(content, i, cursor_out);
@@ -106,15 +106,15 @@ func ParseIfStmt(
     }
     let saved_i: Int = i;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, after_ws, "else") {
-        i = after_ws + 4;
+    if MatchLanguageWord(content, after_ws, LanguageWordId.WordElse) {
+        i = LanguageWordEnd(after_ws, LanguageWordId.WordElse);
         i = SkipWhitespaceAndComments(content, i);
         // `else if` chains: emit the nested `If:` directly under
         // `Else:` with no intermediate `Block:`. The nested If's
         // column equals the Block: column of a plain else
         // (`stmt_indent + 4`), so ParseOneStmt is invoked with that
         // as its stmt_indent.
-        if MatchKeyword(content, i, "if") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordIf) {
             out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Else:")));
             ArraySet(cursor_out, 0, i);
             let nested_if: String = ParseOneStmt(

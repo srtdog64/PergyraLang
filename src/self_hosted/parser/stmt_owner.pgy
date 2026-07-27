@@ -76,10 +76,10 @@ func ParseOneStmt(
         //     Block:
         //       <body at stmt_indent + 4>
         i = SkipWhitespaceAndComments(content, i);
-        if !MatchKeyword(content, i, "slot") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
             Exit(1);
         }
-        i = i + 4;
+        i = LanguageWordEnd(i, LanguageWordId.WordSlot);
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) != "<" {
             Exit(1);
@@ -93,10 +93,10 @@ func ParseOneStmt(
         }
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
-        if !MatchKeyword(content, i, "as") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordAs) {
             Exit(1);
         }
-        i = i + 2;
+        i = LanguageWordEnd(i, LanguageWordId.WordAs);
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         let as_name: String = ReadIdent(content, i, cursor_out);
@@ -144,8 +144,8 @@ func ParseOneStmt(
                 i = i + 1;
                 break;
             }
-            if MatchKeyword(content, i, "compensate") {
-                i = i + 10;
+            if MatchLanguageWord(content, i, LanguageWordId.WordCompensate) {
+                i = LanguageWordEnd(i, LanguageWordId.WordCompensate);
                 ArraySet(cursor_out, 0, i);
                 let handler_expr: String = ParseExpr(content, i, cursor_out);
                 i = cursor_out[0];
@@ -288,8 +288,8 @@ func ParseOneStmt(
             );
         }
         ArraySet(cursor_out, 0, i);
-        if MatchKeyword(content, i, "mut") {
-            i = i + 3;
+        if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
+            i = LanguageWordEnd(i, LanguageWordId.WordMut);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
         }

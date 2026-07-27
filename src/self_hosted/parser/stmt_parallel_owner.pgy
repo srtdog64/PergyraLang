@@ -11,8 +11,8 @@ func ParseParallelStmt(
 ) -> String {
     let i: Int = after_head;
     let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, parallel_probe, "on") {
-        i = parallel_probe + 2;
+    if MatchLanguageWord(content, parallel_probe, LanguageWordId.WordOn) {
+        i = LanguageWordEnd(parallel_probe, LanguageWordId.WordOn);
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "(" {
             let on_depth: Int = 1;
@@ -40,11 +40,12 @@ func ParseParallelStmt(
         }
         i = SkipWhitespaceAndComments(content, i);
         let on_body: String = "";
-        if MatchKeyword(content, i, "every") || MatchKeyword(content, i, "continuous") {
-            let is_every_wrapper: Bool = MatchKeyword(content, i, "every");
-            i = i + 5;
-            if !is_every_wrapper {
-                i = i + 5;
+        if MatchLanguageWord(content, i, LanguageWordId.WordEvery) || MatchLanguageWord(content, i, LanguageWordId.WordContinuous) {
+            let is_every_wrapper: Bool = MatchLanguageWord(content, i, LanguageWordId.WordEvery);
+            if is_every_wrapper {
+                i = LanguageWordEnd(i, LanguageWordId.WordEvery);
+            } else {
+                i = LanguageWordEnd(i, LanguageWordId.WordContinuous);
             }
             i = SkipWhitespaceAndComments(content, i);
             if is_every_wrapper && ParserCharAt(content, i) == "(" {

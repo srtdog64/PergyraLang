@@ -5,7 +5,7 @@ import "type_name_owner.pgy";
 
 // `enum NAME { V1, V2(T), V3 }` single-line canonical emission.
 func ParseEnumDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
-    let i: Int = start + 4;
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordEnum);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);

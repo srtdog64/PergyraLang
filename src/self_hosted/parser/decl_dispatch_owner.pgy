@@ -94,8 +94,8 @@ func ParseDecls(
         // functions in an imported file as exported, so we pass
         // `force_export=true` into the recursive call so each emitted
         // function gets `[export] Function:`.
-        if MatchKeyword(content, i, "import") {
-            i = i + 6;
+        if MatchLanguageWord(content, i, LanguageWordId.WordImport) {
+            i = LanguageWordEnd(i, LanguageWordId.WordImport);
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "\"" {
                 Exit(1);
@@ -142,8 +142,8 @@ func ParseDecls(
         // `namespace NAME { ... }` recurses with a deeper prefix and
         // inlines the resulting decls; the namespace itself emits no
         // wrapper AST node.
-        if MatchKeyword(content, i, "namespace") {
-            i = i + 9;
+        if MatchLanguageWord(content, i, LanguageWordId.WordNamespace) {
+            i = LanguageWordEnd(i, LanguageWordId.WordNamespace);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let ns_name: String = ReadIdent(content, i, cursor_out);
@@ -179,8 +179,8 @@ func ParseDecls(
 
         // `within ZONE { ... }` parses the body recursively but binds
         // the zone name as `within_zone` for all nested actions/functions.
-        if MatchKeyword(content, i, "within") {
-            i = i + 6;
+        if MatchLanguageWord(content, i, LanguageWordId.WordWithin) {
+            i = LanguageWordEnd(i, LanguageWordId.WordWithin);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let wz_name: String = ReadIdent(content, i, cursor_out);
@@ -215,8 +215,8 @@ func ParseDecls(
 
         // Optional `export` prefix on the next declaration.
         let is_export: Bool = false;
-        if MatchKeyword(content, i, "export") {
-            i = i + 6;
+        if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
+            i = LanguageWordEnd(i, LanguageWordId.WordExport);
             i = SkipWhitespaceAndComments(content, i);
             is_export = true;
         }
@@ -239,7 +239,7 @@ func ParseDecls(
             decl_prefix = Concat("__imp0_", name_prefix);
         }
 
-        if MatchKeyword(content, i, "type") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordType) {
             let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -248,7 +248,7 @@ func ParseDecls(
             continue;
         }
 
-        if MatchKeyword(content, i, "ability") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
             let ability_block: String = ParseAbilityDecl(
                 content, i, cursor_out, decl_prefix, out_graphs
             );
@@ -259,7 +259,7 @@ func ParseDecls(
             continue;
         }
 
-        if MatchKeyword(content, i, "zone") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
             let zone_block: String = ParseZoneDecl(
                 content, i, cursor_out, decl_prefix, involve_types, out_graphs
             );
@@ -271,7 +271,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "effect") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
             let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -281,7 +281,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "relation") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordRelation) {
             let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -291,7 +291,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "role") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordRole) {
             let role_block: String = ParseRoleDecl(
                 content, i, cursor_out, decl_prefix, active_within_zone,
                 out_graphs
@@ -304,7 +304,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "intent") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordIntent) {
             let intent_block: String = ParseIntentDecl(content, i, cursor_out, decl_prefix, involve_types);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -314,7 +314,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "subject") || MatchKeyword(content, i, "class") || MatchKeyword(content, i, "vessel") || MatchKeyword(content, i, "struct") || MatchKeyword(content, i, "object") || MatchKeyword(content, i, "tobject") || MatchKeyword(content, i, "party") || MatchKeyword(content, i, "roster") || MatchKeyword(content, i, "world") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordSubject) || MatchLanguageWord(content, i, LanguageWordId.WordClass) || MatchLanguageWord(content, i, LanguageWordId.WordVessel) || MatchLanguageWord(content, i, LanguageWordId.WordStruct) || MatchLanguageWord(content, i, LanguageWordId.WordObject) || MatchLanguageWord(content, i, LanguageWordId.WordTobject) || MatchLanguageWord(content, i, LanguageWordId.WordParty) || MatchLanguageWord(content, i, LanguageWordId.WordRoster) || MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
             let nominal_block: String = ParseNominalDecl(
                 content, i, cursor_out, decl_prefix, active_within_zone,
                 involve_types, out_graphs
@@ -327,7 +327,7 @@ func ParseDecls(
         }
 
 
-        if MatchKeyword(content, i, "event") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordEvent) {
             let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -336,7 +336,7 @@ func ParseDecls(
             continue;
         }
 
-        if MatchKeyword(content, i, "enum") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordEnum) {
             let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -347,13 +347,13 @@ func ParseDecls(
 
         // Optional `async` modifier on the next `func` — the C printer
         // drops it from the AST output, so we just consume and ignore.
-        if MatchKeyword(content, i, "async") {
-            i = i + 5;
+        if MatchLanguageWord(content, i, LanguageWordId.WordAsync) {
+            i = LanguageWordEnd(i, LanguageWordId.WordAsync);
             i = SkipWhitespaceAndComments(content, i);
         }
 
         // `func NAME(params) -> Type { body }` at top level (base_indent=2).
-        if MatchKeyword(content, i, "func") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let fn_block: String = ParseFunction(
                 content, i, cursor_out, decl_prefix, effective_export, 2,

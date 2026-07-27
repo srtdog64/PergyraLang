@@ -51,8 +51,8 @@ func ParseMatchStmt(
             break;
         }
         let case_label: String = "";
-        if MatchKeyword(content, i, "case") {
-            i = i + 4;
+        if MatchLanguageWord(content, i, LanguageWordId.WordCase) {
+            i = LanguageWordEnd(i, LanguageWordId.WordCase);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let case_pattern: ParserExpressionFact = ParseExprFact(
@@ -74,8 +74,8 @@ func ParseMatchStmt(
                 Exit(1);
             }
             out = AppendLine(out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", case_label)));
-        } else if MatchKeyword(content, i, "default") {
-            i = i + 7;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordDefault) {
+            i = LanguageWordEnd(i, LanguageWordId.WordDefault);
             i = SkipWhitespaceAndComments(content, i);
             i = Expect(content, i, ":");
             if i < 0 {
@@ -91,7 +91,7 @@ func ParseMatchStmt(
             if i >= n_m {
                 Exit(1);
             }
-            if ParserCharAt(content, i) == "}" || MatchKeyword(content, i, "case") || MatchKeyword(content, i, "default") {
+            if ParserCharAt(content, i) == "}" || MatchLanguageWord(content, i, LanguageWordId.WordCase) || MatchLanguageWord(content, i, LanguageWordId.WordDefault) {
                 break;
             }
             ArraySet(cursor_out, 0, i);

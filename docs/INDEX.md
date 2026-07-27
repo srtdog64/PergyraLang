@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-19
+Last updated: 2026-07-27
 
 Anti-hype update: 2026-04-29
 
@@ -57,6 +57,7 @@ not own status, decisions, or completion claims.
 | [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler architecture stack: codegen resources, compiler-world fact owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
 | [`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md) | Target compiler world: fact zones -> single Codegen Projection intent -> C/LLVM/SelfHosted emission peers -> Artifact Zone parity sink |
 | [`self_hosted/15_pre_self_host_expansion_ledger.md`](self_hosted/15_pre_self_host_expansion_ledger.md) | Pre-self-host expansion ledger: READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces, and no-hidden-fallback rule |
+| [`self_hosted/17_pergyra_native_dogfood_contract.md`](self_hosted/17_pergyra_native_dogfood_contract.md) | Executable Pergyra-native dogfood contract: SURFACE/REACHABLE/SUBSTITUTING evidence, world/zone/subject/action/intent implementation rules, and direct-bypass takeover gate |
 | [`150_selfhost_driver_lsp_wiring.md`](150_selfhost_driver_lsp_wiring.md) | Self-host driver and LSP replacement ladders with honest planned/landed rung gates |
 | [`158_self_bootstrap_execution_blueprint.md`](158_self_bootstrap_execution_blueprint.md) | Self-eating bootstrap execution blueprint: M1 fixed-point, M2 whole-compiler path, critical rungs, and cost split |
 | [`160_m2_completeness_execution_plan.md`](160_m2_completeness_execution_plan.md) | Whole-compiler M2 completeness plan: source inventory, stage intersections, semantic rung map, typed-AST migration, and fixpoint expansion |
@@ -203,6 +204,7 @@ not own status, decisions, or completion claims.
 | [`196_content_instance_runtime_context.md`](196_content_instance_runtime_context.md) | Capability/budget `ContentInstance` context ABI, TLS binding, and remaining sandbox owners |
 | [`reviews/2026-07-19_production_review_checked.md`](reviews/2026-07-19_production_review_checked.md) | Current-head check of the production review at `2575f9a7`: landed runtime-state repairs, bounded memory evidence, remaining TSan/sandbox/projection blockers, and the next self-host rung |
 | [`170_keyword_lineage_cs_application_map.md`](170_keyword_lineage_cs_application_map.md) | Keyword, influenced-language, computer-science, and implementation-owner routing map |
+| [`199_language_word_and_dogfood_grammar.md`](199_language_word_and_dogfood_grammar.md) | Language-word SoT inventory and measured Pergyra dogfood grammar status; declared support and production reachability are reported separately |
 | [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |
 
 ## Implementation Guides

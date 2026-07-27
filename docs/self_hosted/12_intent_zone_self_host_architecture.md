@@ -1,11 +1,14 @@
 # Intent/Zone Self-Host Architecture
 
-Status: `self-host-architecture-shape`
+Status: `self-host-architecture-shape / executable BRIDGE`
 
 This document records how the self-hosted compiler should use Pergyra's own
 language model. The target is not "C compiler folders rewritten in Pergyra".
 The target is a compiler world whose visible flow is intent-owned and whose
-state is held by resource zones.
+state is held by resource zones. The current bootstrap has not reached this
+shape: its production import/call graph contains no action, intent, zone, or
+world declaration. See `17_pergyra_native_dogfood_contract.md` for the measured
+status and executable migration gate.
 
 ## Core Rule
 
@@ -142,4 +145,5 @@ The architecture is executable policy:
   evidence path.
 
 This document is a shape contract, not a release claim that the compiler is
-already fully self-hosted.
+already fully self-hosted or that the declared intent/zone graph is currently
+production-reachable.

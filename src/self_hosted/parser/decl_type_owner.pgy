@@ -7,7 +7,7 @@ import "type_name_owner.pgy";
 // `type NAME = { field: Type, ... }` is canonicalized by the C parser into a
 // nominal `Struct: NAME`; scalar aliases remain `TypeAlias` records.
 func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
-    let i: Int = start + 4;
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordType);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);

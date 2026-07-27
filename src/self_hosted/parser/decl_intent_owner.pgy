@@ -9,7 +9,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
-    i = i + 6;
+    i = LanguageWordEnd(i, LanguageWordId.WordIntent);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let intent_name: String = ReadIdent(content, i, cursor_out);
@@ -81,13 +81,13 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     }
     let intent_retry: String = "";
     i = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, i, "with") {
-        i = i + 4;
+    if MatchLanguageWord(content, i, LanguageWordId.WordWith) {
+        i = LanguageWordEnd(i, LanguageWordId.WordWith);
         i = SkipWhitespaceAndComments(content, i);
-        if !MatchKeyword(content, i, "retry") {
+        if !MatchLanguageWord(content, i, LanguageWordId.WordRetry) {
             Exit(1);
         }
-        i = i + 5;
+        i = LanguageWordEnd(i, LanguageWordId.WordRetry);
         i = Expect(content, i, "(");
         if i < 0 {
             Exit(1);
@@ -122,8 +122,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             i = i + 1;
             break;
         }
-        if MatchKeyword(content, i, "exclusive") {
-            i = i + 9;
+        if MatchLanguageWord(content, i, LanguageWordId.WordExclusive) {
+            i = LanguageWordEnd(i, LanguageWordId.WordExclusive);
             i = Expect(content, i, ";");
             if i < 0 {
                 Exit(1);
@@ -131,8 +131,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             intent_mode = "exclusive";
             continue;
         }
-        if MatchKeyword(content, i, "concurrent") {
-            i = i + 10;
+        if MatchLanguageWord(content, i, LanguageWordId.WordConcurrent) {
+            i = LanguageWordEnd(i, LanguageWordId.WordConcurrent);
             i = Expect(content, i, ";");
             if i < 0 {
                 Exit(1);
@@ -140,8 +140,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             intent_mode = "concurrent";
             continue;
         }
-        if MatchKeyword(content, i, "success") {
-            i = i + 7;
+        if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
+            i = LanguageWordEnd(i, LanguageWordId.WordSuccess);
             i = Expect(content, i, ":");
             if i < 0 {
                 Exit(1);
@@ -155,8 +155,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             }
             continue;
         }
-        if MatchKeyword(content, i, "failure") {
-            i = i + 7;
+        if MatchLanguageWord(content, i, LanguageWordId.WordFailure) {
+            i = LanguageWordEnd(i, LanguageWordId.WordFailure);
             i = Expect(content, i, ":");
             if i < 0 {
                 Exit(1);
@@ -170,8 +170,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             }
             continue;
         }
-        if MatchKeyword(content, i, "step") {
-            i = i + 4;
+        if MatchLanguageWord(content, i, LanguageWordId.WordStep) {
+            i = LanguageWordEnd(i, LanguageWordId.WordStep);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let step_name: String = ReadIdent(content, i, cursor_out);
@@ -227,10 +227,10 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     let t_from: String = ParseExpr(content, i, cursor_out);
                     i = cursor_out[0];
                     i = SkipWhitespaceAndComments(content, i);
-                    if !MatchKeyword(content, i, "to") {
+                    if !MatchLanguageWord(content, i, LanguageWordId.WordTo) {
                         Exit(1);
                     }
-                    i = i + 2;
+                    i = LanguageWordEnd(i, LanguageWordId.WordTo);
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
                     let t_to: String = ParseExpr(content, i, cursor_out);
@@ -245,8 +245,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
 
                 if clause == "authorized" {
                     let peek_by: Int = SkipWhitespaceAndComments(content, i);
-                    if MatchKeyword(content, peek_by, "by") {
-                        i = peek_by + 2;
+                    if MatchLanguageWord(content, peek_by, LanguageWordId.WordBy) {
+                        i = LanguageWordEnd(peek_by, LanguageWordId.WordBy);
                         clause = "authorized by";
                     }
                 }

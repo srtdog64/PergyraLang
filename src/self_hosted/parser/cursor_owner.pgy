@@ -2,6 +2,7 @@
 
 import "error_owner.pgy";
 import "../lib/source_scan_owner.pgy";
+import "../lexer/language_keyword_registry_projection_owner.pgy";
 
 func ParserCharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -41,6 +42,21 @@ func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
         return true;
     }
     return !SourceByteIsAlphaNum(SourceByteAt(content, n, i + kl));
+}
+
+// Parser owners select language words by registry identity. The spelling
+// projection stays centralized here so grammar code cannot recreate raw word
+// literals as a second source of truth.
+func MatchLanguageWord(
+    content: String,
+    i: Int,
+    id: LanguageWordId
+) -> Bool {
+    return MatchKeyword(content, i, LanguageWordSpelling(id));
+}
+
+func LanguageWordEnd(start: Int, id: LanguageWordId) -> Int {
+    return start + LanguageWordLength(id);
 }
 
 // Read a numeric literal (integer or float). Returns the text as the

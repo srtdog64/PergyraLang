@@ -1,16 +1,23 @@
 # Self-Hosted Compiler World Architecture
 
-Status: `hard-self-host-shape-contract`
+Status: `hard-self-host-shape-contract / executable BRIDGE`
 
 The self-hosted compiler must not become a Pergyra rewrite of the C folder
 layout. Pergyra's language surface is intent-first and world/zone-oriented, so
-the hard self-host shape is rooted in `PgyCompilerWorld`.
+the target hard self-host shape is rooted in `PgyCompilerWorld`.
+
+This is not the current production call graph. On 2026-07-27,
+`driver_bootstrap_main.pgy` imports neither `world.pgy` nor its root intent, and
+`world.pgy --emit-c` is RED on six missing authority bindings. The exact
+SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order are owned by
+`17_pergyra_native_dogfood_contract.md`.
 
 ## Rule
 
-`PgyCompilerWorld` is the self-host compiler owner. Stage directories own facts;
-resource zones own isolated compiler resources; the world owns the user-visible
-compiler flow.
+`PgyCompilerWorld` is the target self-host compiler orchestration owner. Stage
+directories own facts; resource zones own isolated compiler resources; the
+world must eventually own the user-visible compiler flow after the production
+entrypoint reaches it and the direct bypass is deleted.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
 - `PgyCompilerWorld` contains the resource zones directly.
@@ -49,9 +56,10 @@ compiler flow.
 - `lexer/`, `parser/`, `semantic/`, `mir_lower/`, and `codegen/` remain
   source-of-truth owners for their facts.
 
-This is not a claim that the released compiler is self-hosted. It is a shape
-constraint: new hard-substitution work should plug into `PgyCompilerWorld`
-instead of growing a second C-style tree.
+This is not a claim that the released compiler is self-hosted or that the
+current bootstrap executes the world. It is a shape constraint: new
+hard-substitution work should make one real action/intent reachable and remove
+its direct bypass, rather than grow a second C-style tree.
 
 ## Recursive Topology Rule
 
@@ -237,6 +245,12 @@ aggregate-zone prohibition, and this recursive-topology contract in one small
 pass. `PGY_SELFHOST_COMPILER_WORLD_TOPOLOGY_ONLY=1` selects it through the full
 gate entrypoint. The default gate remains the complete owner, artifact, path,
 and AST check required at integration boundaries.
+
+These are declared-topology and AST gates. They do not prove production import
+reachability, action/intent execution, or semantic C emission. The executable
+dogfood rung must additionally prove the entrypoint call path, forbid the old
+direct call, run C/LLVM/native parity, and make `world.pgy --emit-c` green before
+root-intent takeover.
 
 ## Growth Rule
 

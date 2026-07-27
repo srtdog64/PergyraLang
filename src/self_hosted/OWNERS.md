@@ -34,9 +34,24 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lexer/fixture_manifest_owner.pgy` -- lexer parity
   source/fixture manifest rows.
 - `src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy` --
-  generated spelling-to-debug-identity projection consumed by the self-host
-  lexer; `src/lexer/language_keyword_registry.def` remains the language-word
-  authority.
+  generated compatibility import hub and cross-projection readiness; the
+  existing consumer import path remains stable.
+- `src/self_hosted/lexer/language_word_identity_projection_owner.pgy` --
+  generated stable `LanguageWordId.Word*`, spelling, and length projection.
+- `src/self_hosted/lexer/language_word_index_projection_owner.pgy` --
+  generated ordered spelling and debug-identity index projection.
+- `src/self_hosted/lexer/language_word_class_projection_owner.pgy` --
+  generated lexical class metadata projection.
+- `src/self_hosted/lexer/language_word_axis_projection_owner.pgy` --
+  generated language-axis metadata projection.
+- `src/self_hosted/lexer/language_word_semantic_projection_owner.pgy` --
+  generated grammar-context and implementation-support projection.
+- `src/self_hosted/lexer/language_word_tooling_projection_owner.pgy` --
+  generated tooling, TextMate scope, and completion projection.
+- `src/self_hosted/lexer/language_keyword_compatibility_projection_owner.pgy` --
+  generated 71-row reserved lexer compatibility view. All generated lexer
+  projections derive from `src/lexer/language_keyword_registry.def`, which
+  remains the single language-word authority.
 - `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
   selection.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
@@ -88,6 +103,10 @@ inventory must not become a second fact-family owner registry.
   nodes instead of a desugared text leaf.
 - `src/self_hosted/parser/fixture_manifest_owner.pgy` -- parser parity
   source/fixture manifest rows.
+- `src/self_hosted/parser/fixture/language_word_roles.pgy` -- positive parser
+  fixture for registry-owned action/type/impl/ref/own roles.
+- `src/self_hosted/parser/reject_fixture/systemic_slot.pgy` -- negative parser
+  fixture proving unregistered `systemic` does not become a language word.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
 - `src/self_hosted/parser/match_pattern_graph_partition_owner.pgy` -- splits
@@ -1370,6 +1389,9 @@ inventory must not become a second fact-family owner registry.
 ## LSP
 
 - `src/self_hosted/lsp/main.pgy` -- LSP-0 runnable artifact boundary.
+- `src/self_hosted/lsp/completion_owner.pgy` -- registry-directed LSP completion
+  projection over all 145 language-word identities; exposure remains owned by
+  the language keyword registry flags.
 - `src/self_hosted/lsp/diagnostics_owner.pgy` -- semantic diagnostic block to
   `publishDiagnostics` JSON payload projection.
 - `src/self_hosted/lsp/document_store_owner.pgy` -- LSP-2f buffered

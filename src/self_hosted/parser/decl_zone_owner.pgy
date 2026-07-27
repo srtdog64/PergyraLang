@@ -17,7 +17,7 @@ func ParseZoneDecl(
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
-    i = i + 4;
+    i = LanguageWordEnd(i, LanguageWordId.WordZone);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let zone_name: String = ReadIdent(content, i, cursor_out);
@@ -53,41 +53,41 @@ func ParseZoneDecl(
         // with the same `NAME: TYPE` payload.
         let slot_label: String = "";
         let is_auth: Bool = false;
-        if MatchKeyword(content, i, "subject") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
             slot_label = "SubjectSlot";
-            i = i + 7;
-        } else if MatchKeyword(content, i, "object") {
+            i = LanguageWordEnd(i, LanguageWordId.WordSubject);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
             slot_label = "ObjectSlot";
-            i = i + 6;
-        } else if MatchKeyword(content, i, "tobject") {
+            i = LanguageWordEnd(i, LanguageWordId.WordObject);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
             slot_label = "TObjectSlot";
-            i = i + 7;
-        } else if MatchKeyword(content, i, "effect") {
+            i = LanguageWordEnd(i, LanguageWordId.WordTobject);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
             slot_label = "EffectSlot";
-            i = i + 6;
-        } else if MatchKeyword(content, i, "relation") {
+            i = LanguageWordEnd(i, LanguageWordId.WordEffect);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordRelation) {
             slot_label = "RelationSlot";
-            i = i + 8;
-        } else if MatchKeyword(content, i, "authority") {
+            i = LanguageWordEnd(i, LanguageWordId.WordRelation);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordAuthority) {
             is_auth = true;
-            i = i + 9;
-        } else if MatchKeyword(content, i, "apply") {
-            i = i + 5;
+            i = LanguageWordEnd(i, LanguageWordId.WordAuthority);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordApply) {
+            i = LanguageWordEnd(i, LanguageWordId.WordApply);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let a_eff: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchKeyword(content, i, "to") { Exit(1); }
-            i = i + 2;
+            if !MatchLanguageWord(content, i, LanguageWordId.WordTo) { Exit(1); }
+            i = LanguageWordEnd(i, LanguageWordId.WordTo);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
 	                    let a_dest: String = ReadIdent(content, i, cursor_out);
 	                    i = cursor_out[0];
 	                    i = SkipWhitespaceAndComments(content, i);
 	                    let a_by: String = "";
-	                    if MatchKeyword(content, i, "by") {
-	                        i = i + 2;
+	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
+	                        i = LanguageWordEnd(i, LanguageWordId.WordBy);
 	                        i = SkipWhitespaceAndComments(content, i);
 	                        ArraySet(cursor_out, 0, i);
 	                        a_by = ReadIdent(content, i, cursor_out);
@@ -101,15 +101,15 @@ func ParseZoneDecl(
 	                    }
 	                    apply_accum = AppendLine(apply_accum, apply_row);
 	                    continue;
-	                } else if MatchKeyword(content, i, "link") {
-            i = i + 4;
+	                } else if MatchLanguageWord(content, i, LanguageWordId.WordLink) {
+            i = LanguageWordEnd(i, LanguageWordId.WordLink);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let l_rel: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchKeyword(content, i, "between") { Exit(1); }
-            i = i + 7;
+            if !MatchLanguageWord(content, i, LanguageWordId.WordBetween) { Exit(1); }
+            i = LanguageWordEnd(i, LanguageWordId.WordBetween);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let l_p1: String = ReadIdent(content, i, cursor_out);
@@ -122,8 +122,8 @@ func ParseZoneDecl(
 	                    i = cursor_out[0];
 	                    i = SkipWhitespaceAndComments(content, i);
 	                    let l_by: String = "";
-	                    if MatchKeyword(content, i, "by") {
-	                        i = i + 2;
+	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
+	                        i = LanguageWordEnd(i, LanguageWordId.WordBy);
 	                        i = SkipWhitespaceAndComments(content, i);
 	                        ArraySet(cursor_out, 0, i);
 	                        l_by = ReadIdent(content, i, cursor_out);
@@ -137,8 +137,8 @@ func ParseZoneDecl(
 	                    }
 	                    link_accum = AppendLine(link_accum, link_row);
 	                    continue;
-        } else if MatchKeyword(content, i, "state") {
-            i = i + 5;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordState) {
+            i = LanguageWordEnd(i, LanguageWordId.WordState);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let st_name: String = ReadIdent(content, i, cursor_out);
@@ -155,8 +155,8 @@ func ParseZoneDecl(
             if i < 0 { Exit(1); }
             state_accum = AppendLine(state_accum, Concat("    State: ", Concat(st_name, Concat(": ", st_val))));
             continue;
-        } else if MatchKeyword(content, i, "bind") {
-            i = i + 4;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordBind) {
+            i = LanguageWordEnd(i, LanguageWordId.WordBind);
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
             if ParserCharAt(content, i) == "[" {
@@ -183,8 +183,8 @@ func ParseZoneDecl(
                 if StringLength(dummy) == 0 { Exit(1); }
             }
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchKeyword(content, i, "from") { Exit(1); }
-            i = i + 4;
+            if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) { Exit(1); }
+            i = LanguageWordEnd(i, LanguageWordId.WordFrom);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let from_name: String = ReadIdent(content, i, cursor_out);
@@ -218,13 +218,13 @@ func ParseZoneDecl(
             }
             ArraySet(cursor_out, 0, i);
             continue;
-        } else if MatchKeyword(content, i, "refresh") || MatchKeyword(content, i, "publish") {
-            let is_ref: Bool = MatchKeyword(content, i, "refresh");
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) || MatchLanguageWord(content, i, LanguageWordId.WordPublish) {
+            let is_ref: Bool = MatchLanguageWord(content, i, LanguageWordId.WordRefresh);
             let ref_pub_label: String = "Publish";
-            let ref_pub_kw_len: Int = 7;
+            let ref_pub_kw_len: Int = LanguageWordLength(LanguageWordId.WordPublish);
             if is_ref {
                 ref_pub_label = "Refresh";
-                ref_pub_kw_len = 7;
+                ref_pub_kw_len = LanguageWordLength(LanguageWordId.WordRefresh);
             }
             i = i + ref_pub_kw_len;
             i = SkipWhitespaceAndComments(content, i);
@@ -253,22 +253,22 @@ func ParseZoneDecl(
                 if StringLength(dummy) == 0 { Exit(1); }
             }
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchKeyword(content, i, "from") { Exit(1); }
-            i = i + 4;
+            if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) { Exit(1); }
+            i = LanguageWordEnd(i, LanguageWordId.WordFrom);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let from_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchKeyword(content, i, "by") { Exit(1); }
-            i = i + 2;
+            if !MatchLanguageWord(content, i, LanguageWordId.WordBy) { Exit(1); }
+            i = LanguageWordEnd(i, LanguageWordId.WordBy);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let by_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if MatchKeyword(content, i, "map") {
-                i = i + 3;
+            if MatchLanguageWord(content, i, LanguageWordId.WordMap) {
+                i = LanguageWordEnd(i, LanguageWordId.WordMap);
                 i = SkipWhitespaceAndComments(content, i);
                 i = Expect(content, i, "{");
                 if i < 0 { Exit(1); }
@@ -317,7 +317,7 @@ func ParseZoneDecl(
             }
             ArraySet(cursor_out, 0, i);
             continue;
-        } else if MatchKeyword(content, i, "func") {
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4, "func", "Function: ",
@@ -336,8 +336,8 @@ func ParseZoneDecl(
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
             let auth_req: String = "";
-            if MatchKeyword(content, i, "requires") {
-                i = i + 8;
+            if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
+                i = LanguageWordEnd(i, LanguageWordId.WordRequires);
                 i = SkipWhitespaceAndComments(content, i);
                 ArraySet(cursor_out, 0, i);
                 auth_req = ReadType(content, i, cursor_out);
@@ -365,10 +365,10 @@ func ParseZoneDecl(
                 auth_accum = AppendLine(auth_accum, Concat("      Requires: ", auth_req));
             }
         } else {
-            if !MatchKeyword(content, i, "slot") {
+            if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
                 Exit(1);
             }
-            i = i + 4;
+            i = LanguageWordEnd(i, LanguageWordId.WordSlot);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let s_name: String = ReadIdent(content, i, cursor_out);

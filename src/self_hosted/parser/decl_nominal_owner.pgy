@@ -21,33 +21,33 @@ func ParseNominalDecl(
     let out: String = "";
     let decl_label: String = "";
     let decl_kw_len: Int = 0;
-    if MatchKeyword(content, i, "subject") {
+    if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
         decl_label = "Subject";
-        decl_kw_len = 7;
-    } else if MatchKeyword(content, i, "class") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordSubject);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordClass) {
         decl_label = "Class";
-        decl_kw_len = 5;
-    } else if MatchKeyword(content, i, "vessel") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordClass);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordVessel) {
         decl_label = "Vessel";
-        decl_kw_len = 6;
-    } else if MatchKeyword(content, i, "struct") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordVessel);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordStruct) {
         decl_label = "Struct";
-        decl_kw_len = 6;
-    } else if MatchKeyword(content, i, "object") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordStruct);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
         decl_label = "Object";
-        decl_kw_len = 6;
-    } else if MatchKeyword(content, i, "tobject") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordObject);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
         decl_label = "TObject";
-        decl_kw_len = 7;
-    } else if MatchKeyword(content, i, "party") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordTobject);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordParty) {
         decl_label = "Party";
-        decl_kw_len = 5;
-    } else if MatchKeyword(content, i, "roster") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordParty);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordRoster) {
         decl_label = "Roster";
-        decl_kw_len = 6;
-    } else if MatchKeyword(content, i, "world") {
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordRoster);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
         decl_label = "World";
-        decl_kw_len = 5;
+        decl_kw_len = LanguageWordLength(LanguageWordId.WordWorld);
     }
     if decl_kw_len > 0 {
         i = i + decl_kw_len;
@@ -71,8 +71,8 @@ func ParseNominalDecl(
         i = cursor_out[0];
         let decl_suffix: String = "";
         i = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, i, "extends") {
-            i = i + 7;
+        if MatchLanguageWord(content, i, LanguageWordId.WordExtends) {
+            i = LanguageWordEnd(i, LanguageWordId.WordExtends);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let parent_name: String = ReadType(content, i, cursor_out);
@@ -83,7 +83,7 @@ func ParseNominalDecl(
             decl_suffix = Concat(" extends ", parent_name);
         }
         i = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, i, "where") {
+        if MatchLanguageWord(content, i, LanguageWordId.WordWhere) {
             while i < n && ParserCharAt(content, i) != "{" {
                 i = i + 1;
             }
@@ -113,14 +113,14 @@ func ParseNominalDecl(
                 i = i + 1;
                 break;
             }
-            if MatchKeyword(content, i, "public") {
-                i = i + 6;
+            if MatchLanguageWord(content, i, LanguageWordId.WordPublic) {
+                i = LanguageWordEnd(i, LanguageWordId.WordPublic);
                 i = SkipWhitespaceAndComments(content, i);
-            } else if MatchKeyword(content, i, "private") {
-                i = i + 7;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordPrivate) {
+                i = LanguageWordEnd(i, LanguageWordId.WordPrivate);
                 i = SkipWhitespaceAndComments(content, i);
             }
-            if MatchKeyword(content, i, "func") {
+            if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
                 ArraySet(cursor_out, 0, i);
                 let m_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
@@ -134,7 +134,7 @@ func ParseNominalDecl(
             // `action NAME(...) -> TYPE { body }` — emits `Action:`
             // instead of `Function:` but keeps the same shape and
             // base_indent.
-            if MatchKeyword(content, i, "action") {
+            if MatchLanguageWord(content, i, LanguageWordId.WordAction) {
                 ArraySet(cursor_out, 0, i);
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
@@ -155,61 +155,52 @@ func ParseNominalDecl(
             let is_shared: Bool = false;
             let is_world_zone: Bool = false;
             let is_systemic_slot: Bool = false;
-            if MatchKeyword(content, i, "let") {
-                i = i + 3;
+            if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
+                i = LanguageWordEnd(i, LanguageWordId.WordLet);
                 i = SkipWhitespaceAndComments(content, i);
-                if MatchKeyword(content, i, "mut") {
-                    i = i + 3;
+                if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
+                    i = LanguageWordEnd(i, LanguageWordId.WordMut);
                     i = SkipWhitespaceAndComments(content, i);
                 }
-            } else if MatchKeyword(content, i, "vessel") {
-                i = i + 6;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordVessel) {
+                i = LanguageWordEnd(i, LanguageWordId.WordVessel);
                 i = SkipWhitespaceAndComments(content, i);
-            } else if MatchKeyword(content, i, "zone") {
-                i = i + 4;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
+                i = LanguageWordEnd(i, LanguageWordId.WordZone);
                 i = SkipWhitespaceAndComments(content, i);
                 is_world_zone = true;
-            } else if MatchKeyword(content, i, "roster") {
-                i = i + 6;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordRoster) {
+                i = LanguageWordEnd(i, LanguageWordId.WordRoster);
                 i = SkipWhitespaceAndComments(content, i);
                 is_systemic_slot = true;
-            } else if MatchKeyword(content, i, "party") {
-                i = i + 5;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordParty) {
+                i = LanguageWordEnd(i, LanguageWordId.WordParty);
                 i = SkipWhitespaceAndComments(content, i);
-                if !MatchKeyword(content, i, "slot") {
+                if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
                     Exit(1);
                 }
-                i = i + 4;
+                i = LanguageWordEnd(i, LanguageWordId.WordSlot);
                 i = SkipWhitespaceAndComments(content, i);
                 is_systemic_slot = true;
-            } else if MatchKeyword(content, i, "systemic") {
-                i = i + 8;
-                i = SkipWhitespaceAndComments(content, i);
-                if !MatchKeyword(content, i, "slot") {
-                    Exit(1);
-                }
-                i = i + 4;
-                i = SkipWhitespaceAndComments(content, i);
-                is_systemic_slot = true;
-            } else if MatchKeyword(content, i, "role") {
-                let next_role_i: Int = SkipWhitespaceAndComments(content, i + 4);
-                if MatchKeyword(content, next_role_i, "slot") {
-                    i = next_role_i + 4;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordRole) {
+                let next_role_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordRole));
+                if MatchLanguageWord(content, next_role_i, LanguageWordId.WordSlot) {
+                    i = LanguageWordEnd(next_role_i, LanguageWordId.WordSlot);
                     i = SkipWhitespaceAndComments(content, i);
                     is_role_slot = true;
                 }
-            } else if MatchKeyword(content, i, "dyn") {
-                let next_i: Int = SkipWhitespaceAndComments(content, i + 3);
-                if MatchKeyword(content, next_i, "role") {
-                    let next_next_i: Int = SkipWhitespaceAndComments(content, next_i + 4);
-                    if MatchKeyword(content, next_next_i, "slot") {
-                        i = next_next_i + 4;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordDyn) {
+                let next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordDyn));
+                if MatchLanguageWord(content, next_i, LanguageWordId.WordRole) {
+                    let next_next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(next_i, LanguageWordId.WordRole));
+                    if MatchLanguageWord(content, next_next_i, LanguageWordId.WordSlot) {
+                        i = LanguageWordEnd(next_next_i, LanguageWordId.WordSlot);
                         i = SkipWhitespaceAndComments(content, i);
                         is_role_slot = true;
                     }
                 }
-            } else if MatchKeyword(content, i, "shared") {
-                i = i + 6;
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+                i = LanguageWordEnd(i, LanguageWordId.WordShared);
                 i = SkipWhitespaceAndComments(content, i);
                 is_shared = true;
             }

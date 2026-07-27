@@ -6,7 +6,7 @@ import "type_name_owner.pgy";
 
 // `event NAME(PNAME: PTYPE, ...);` top-level event signature.
 func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
-    let i: Int = start + 5;
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let ev_name: String = ReadIdent(content, i, cursor_out);

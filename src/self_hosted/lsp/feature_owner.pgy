@@ -5,16 +5,14 @@
 // live document/session replacement rung.
 
 import "../lib/json_emit.pgy";
+import "completion_owner.pgy";
 
 func LspFeatureHoverResultJson() -> String {
     return "null";
 }
 
 func LspFeatureCompletionResultJson() -> String {
-    let fields: Array<String> = [];
-    ArrayPush(fields, JsonEmitFieldBool("isIncomplete", false));
-    ArrayPush(fields, JsonEmitFieldRaw("items", "[]"));
-    return JsonEmitObject(fields);
+    return LspCompletionItemsJson();
 }
 
 func LspFeatureDocumentSymbolResultJson() -> String {
@@ -79,7 +77,8 @@ func LspFeatureContractReady() -> Bool {
         return false;
     }
     let completion_result: String = UnwrapOption(completion);
-    if StringIndexOf(completion_result, "\"items\":[]") < 0 {
+    if !LspCompletionContractReady() || StringLength(completion_result) <= 2 ||
+        StringIndexOf(completion_result, "\"label\":") < 0 {
         return false;
     }
     return !IsSome(LspFeatureResultForMethod("textDocument/semanticTokens/full"));

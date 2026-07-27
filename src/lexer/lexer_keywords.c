@@ -4,10 +4,12 @@
 
 #define PGY_LANGUAGE_KEYWORD(                                           \
     spelling_value, class_value, token_value, debug_value,              \
-    context_value, axis_value, support_value, tooling_value)            \
+    context_value, axis_value, support_value, tooling_value,             \
+    highlight_scope_value)                                              \
     {                                                                    \
-        spelling_value, class_value, token_value, debug_value,           \
-        context_value, axis_value, support_value, tooling_value          \
+        PGY_LANGUAGE_WORD_##debug_value, spelling_value, class_value,    \
+        token_value, #debug_value, context_value, axis_value,            \
+        support_value, tooling_value, highlight_scope_value              \
     },
 
 static const PgyLanguageKeywordRow kLanguageKeywordRegistry[] = {
@@ -27,6 +29,18 @@ const PgyLanguageKeywordRow *
 lexer_keyword_registry_row(size_t index)
 {
     if (index >= lexer_keyword_registry_count())
+        return NULL;
+    return &kLanguageKeywordRegistry[index];
+}
+
+const PgyLanguageKeywordRow *
+lexer_language_word_row(PgyLanguageWordId word_id)
+{
+    size_t index = (size_t)word_id;
+
+    if (word_id < 0 || word_id >= PGY_LANGUAGE_WORD_COUNT ||
+        index >= lexer_keyword_registry_count() ||
+        kLanguageKeywordRegistry[index].word_id != word_id)
         return NULL;
     return &kLanguageKeywordRegistry[index];
 }
@@ -63,28 +77,36 @@ keyword_compare_slice(const char *text, size_t length, const char *keyword)
     return 0;
 }
 
-PgyTokenType
-lexer_lookup_keyword(const char *text, size_t length)
+PgyLanguageWordId
+lexer_lookup_language_word(const char *text, size_t length)
 {
     size_t lo = 0;
     size_t hi = lexer_keyword_registry_count();
 
     if (text == NULL)
-        return TOKEN_IDENTIFIER;
+        return PGY_LANGUAGE_WORD_UNKNOWN;
 
     while (lo < hi) {
         size_t mid = lo + (hi - lo) / 2;
         const PgyLanguageKeywordRow *row = &kLanguageKeywordRegistry[mid];
         int cmp = keyword_compare_slice(text, length, row->spelling);
-        if (cmp == 0) {
-            if (row->keyword_class != PGY_KEYWORD_CLASS_RESERVED)
-                return TOKEN_IDENTIFIER;
-            return row->token_type;
-        }
+        if (cmp == 0)
+            return row->word_id;
         if (cmp < 0)
             hi = mid;
         else
             lo = mid + 1;
     }
-    return TOKEN_IDENTIFIER;
+    return PGY_LANGUAGE_WORD_UNKNOWN;
+}
+
+PgyTokenType
+lexer_lookup_keyword(const char *text, size_t length)
+{
+    PgyLanguageWordId word_id = lexer_lookup_language_word(text, length);
+    const PgyLanguageKeywordRow *row = lexer_language_word_row(word_id);
+
+    if (row == NULL || row->keyword_class != PGY_KEYWORD_CLASS_RESERVED)
+        return TOKEN_IDENTIFIER;
+    return row->token_type;
 }

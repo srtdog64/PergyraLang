@@ -1,0 +1,66 @@
+enum DriverExecutionActionAbiStage {
+    Requested,
+    ArtifactWritten,
+    Rejected,
+}
+
+struct DriverExecutionActionAbiRequest {
+    let output_path: String;
+    let payload: String;
+}
+
+struct DriverExecutionActionAbiResult {
+    let ok: Bool;
+    let stage: DriverExecutionActionAbiStage;
+    let observed_bytes: Int;
+}
+
+subject DriverExecutionActionAbiProbe {
+    let name: String;
+
+    action Execute(
+        self,
+        request: DriverExecutionActionAbiRequest
+    ) -> DriverExecutionActionAbiResult with caps io_read, io_write {
+        WriteFile(request.output_path, request.payload);
+        let observed: String = ReadFile(request.output_path);
+        if observed != request.payload {
+            return DriverExecutionActionAbiResult(
+                false,
+                Rejected,
+                StringLength(observed)
+            );
+        }
+        return DriverExecutionActionAbiResult(
+            true,
+            ArtifactWritten,
+            StringLength(observed)
+        );
+    }
+}
+
+func Main() -> Void with caps env, io_read, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 {
+        Log("invalid-args");
+        return;
+    }
+
+    let request: DriverExecutionActionAbiRequest =
+        DriverExecutionActionAbiRequest(args[0], "driver-action-abi");
+    let probe: DriverExecutionActionAbiProbe =
+        DriverExecutionActionAbiProbe("driver-execution");
+    let result: DriverExecutionActionAbiResult = probe.Execute(request);
+
+    if result.ok {
+        Log("ok");
+    } else {
+        Log("rejected");
+    }
+    match result.stage {
+        case Requested: Log("requested");
+        case ArtifactWritten: Log("artifact-written");
+        case Rejected: Log("rejected-stage");
+    }
+    Log(ToString(result.observed_bytes));
+}
