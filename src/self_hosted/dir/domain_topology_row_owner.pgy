@@ -1,0 +1,429 @@
+// Typed self-host DIR topology rows and their exact declaration-field joins.
+// The graph census consumes this owner; it does not reconstruct directive
+// payloads from provenance text or infer field identity from declaration order.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../mir/declaration_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct SelfDirDomainTopologyRows {
+    ok: Bool;
+    diagnostic_message: String;
+    owner_names: Array<String>;
+    owner_source_syntax_ids: Array<Int>;
+    source_syntax_ids: Array<Int>;
+    kinds: Array<String>;
+    projection_slot_names: Array<String>;
+    projection_slot_source_syntax_ids: Array<Int>;
+    source_slot_names: Array<String>;
+    source_slot_source_syntax_ids: Array<Int>;
+    layer_slot_names: Array<String>;
+    layer_slot_source_syntax_ids: Array<Int>;
+    target_slot_names: Array<String>;
+    target_slot_source_syntax_ids: Array<Int>;
+    left_slot_names: Array<String>;
+    left_slot_source_syntax_ids: Array<Int>;
+    right_slot_names: Array<String>;
+    right_slot_source_syntax_ids: Array<Int>;
+    participant_slot_names: Array<String>;
+    participant_slot_source_syntax_ids: Array<Int>;
+}
+
+func SelfDirDomainTopologyRowsEmpty() -> SelfDirDomainTopologyRows {
+    let names0: Array<String> = [];
+    let names1: Array<String> = [];
+    let names2: Array<String> = [];
+    let names3: Array<String> = [];
+    let names4: Array<String> = [];
+    let names5: Array<String> = [];
+    let names6: Array<String> = [];
+    let names7: Array<String> = [];
+    let names8: Array<String> = [];
+    let ids0: Array<Int> = [];
+    let ids1: Array<Int> = [];
+    let ids2: Array<Int> = [];
+    let ids3: Array<Int> = [];
+    let ids4: Array<Int> = [];
+    let ids5: Array<Int> = [];
+    let ids6: Array<Int> = [];
+    let ids7: Array<Int> = [];
+    let ids8: Array<Int> = [];
+    return SelfDirDomainTopologyRows(
+        true, "", names0, ids0, ids1, names1, names2, ids2,
+        names3, ids3, names4, ids4, names5, ids5, names6, ids6,
+        names7, ids7, names8, ids8
+    );
+}
+
+func SelfDirDomainTopologyRowsError(
+    message: String
+) -> SelfDirDomainTopologyRows {
+    let rows: SelfDirDomainTopologyRows = SelfDirDomainTopologyRowsEmpty();
+    rows.ok = false;
+    rows.diagnostic_message = message;
+    return rows;
+}
+
+func SelfDirDeclarationIndexForName(
+    rows: SelfMirDeclarationRows,
+    name: String
+) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(rows.names) {
+        if rows.names[i] == name { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+func SelfDirFieldKindPresent(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int,
+    field_name: String,
+    expected_kind: String
+) -> Bool {
+    if declaration_index < 0 ||
+        declaration_index >= ArrayLength(rows.names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < rows.field_counts[declaration_index] {
+        let row: Int = rows.field_starts[declaration_index] + i;
+        if rows.field_names[row] == field_name &&
+            rows.field_kinds[row] == expected_kind {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SelfDirFieldSourceSyntaxId(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int,
+    field_name: String,
+    expected_kind: String
+) -> Int {
+    if declaration_index < 0 ||
+        declaration_index >= ArrayLength(rows.names) {
+        return 0;
+    }
+    let i: Int = 0;
+    while i < rows.field_counts[declaration_index] {
+        let row: Int = rows.field_starts[declaration_index] + i;
+        if rows.field_names[row] == field_name &&
+            rows.field_kinds[row] == expected_kind {
+            return rows.field_source_syntax_ids[row];
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
+func SelfDirProjectionFieldSourceSyntaxId(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int,
+    field_name: String,
+    topology_kind: String
+) -> Int {
+    if topology_kind == "refresh" {
+        return SelfDirFieldSourceSyntaxId(
+            rows, declaration_index, field_name,
+            NominalFieldKindObjectSlot()
+        );
+    }
+    if topology_kind == "publish" {
+        return SelfDirFieldSourceSyntaxId(
+            rows, declaration_index, field_name,
+            NominalFieldKindTObjectSlot()
+        );
+    }
+    if topology_kind != "bind" { return 0; }
+    let source_id: Int = SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindObjectSlot()
+    );
+    if source_id > 0 { return source_id; }
+    return SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindTObjectSlot()
+    );
+}
+
+func SelfDirProjectionSourceFieldSyntaxId(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int,
+    field_name: String
+) -> Int {
+    let source_id: Int = SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindSubjectSlot()
+    );
+    if source_id > 0 { return source_id; }
+    source_id = SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindObjectSlot()
+    );
+    if source_id > 0 { return source_id; }
+    return SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindTObjectSlot()
+    );
+}
+
+func SelfDirDomainTopologyRowsFromArtifact(
+    artifact: AstTreeArtifact,
+    declarations: SelfMirDeclarationRows
+) -> SelfDirDomainTopologyRows {
+    let owner_names: Array<String> = [];
+    let owner_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    let kinds: Array<String> = [];
+    let projection_names: Array<String> = [];
+    let projection_ids: Array<Int> = [];
+    let source_names: Array<String> = [];
+    let source_slot_ids: Array<Int> = [];
+    let layer_names: Array<String> = [];
+    let layer_ids: Array<Int> = [];
+    let target_names: Array<String> = [];
+    let target_ids: Array<Int> = [];
+    let left_names: Array<String> = [];
+    let left_ids: Array<Int> = [];
+    let right_names: Array<String> = [];
+    let right_ids: Array<Int> = [];
+    let participant_names: Array<String> = [];
+    let participant_ids: Array<Int> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, node_id
+        );
+        if !IsSome(kind_opt) ||
+            !TypedAstKindIsDomainTopologyDirective(UnwrapOption(kind_opt)) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        let parent_opt: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        if !IsSome(parent_opt) || node_id <= 0 {
+            return SelfDirDomainTopologyRowsError(
+                "self-host DIR topology directive is missing its typed owner"
+            );
+        }
+        let owner_id: Int = UnwrapOption(parent_opt);
+        let owner_name_opt: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, owner_id
+        );
+        let owner_subkind_opt: Option<Int> = TypedAstArenaNominalSubkind(
+            artifact.arena, owner_id
+        );
+        if owner_id <= 0 || !IsSome(owner_name_opt) ||
+            !IsSome(owner_subkind_opt) {
+            return SelfDirDomainTopologyRowsError(
+                "self-host DIR topology owner identity is missing"
+            );
+        }
+        let owner_name: String = UnwrapOption(owner_name_opt);
+        let owner_index: Int = SelfDirDeclarationIndexForName(
+            declarations, owner_name
+        );
+        if owner_index < 0 ||
+            declarations.nominal_kinds[owner_index] !=
+                TypedAstNominalSubkindName(UnwrapOption(owner_subkind_opt)) {
+            return SelfDirDomainTopologyRowsError(
+                "self-host DIR topology owner does not join its declaration"
+            );
+        }
+        let primary_opt: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        let secondary_opt: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, node_id
+        );
+        let tertiary_opt: Option<String> = TypedAstArenaValueText(
+            artifact.arena, node_id
+        );
+        let participant_opt: Option<String> = TypedAstArenaAuxValueText(
+            artifact.arena, node_id
+        );
+        let participant_name: String = "";
+        let participant_id: Int = 0;
+        if IsSome(participant_opt) {
+            participant_name = UnwrapOption(participant_opt);
+            participant_id = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, participant_name,
+                NominalFieldKindSubjectSlot()
+            );
+            if participant_id <= 0 {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR topology participant does not join a subject slot"
+                );
+            }
+        }
+        if kind == TypedAstKindDomainRefreshTag() ||
+            kind == TypedAstKindDomainPublishTag() ||
+            kind == TypedAstKindDomainProjectionBindTag() {
+            if !IsSome(primary_opt) || !IsSome(secondary_opt) ||
+                (declarations.nominal_kinds[owner_index] != "effect" &&
+                 declarations.nominal_kinds[owner_index] != "relation" &&
+                 declarations.nominal_kinds[owner_index] != "zone") {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR projection topology shape is incomplete"
+                );
+            }
+            let projection_name: String = UnwrapOption(primary_opt);
+            let source_name: String = UnwrapOption(secondary_opt);
+            let topology_kind: String = "bind";
+            if kind == TypedAstKindDomainRefreshTag() {
+                topology_kind = "refresh";
+            } else if kind == TypedAstKindDomainPublishTag() {
+                topology_kind = "publish";
+            }
+            let projection_id: Int = SelfDirProjectionFieldSourceSyntaxId(
+                declarations, owner_index, projection_name, topology_kind
+            );
+            let source_id: Int = SelfDirProjectionSourceFieldSyntaxId(
+                declarations, owner_index, source_name
+            );
+            if projection_id <= 0 || source_id <= 0 {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR projection topology field identity is missing"
+                );
+            }
+            ArrayPush(owner_names, owner_name);
+            ArrayPush(owner_ids, owner_id);
+            ArrayPush(source_ids, node_id);
+            ArrayPush(kinds, topology_kind);
+            ArrayPush(projection_names, projection_name);
+            ArrayPush(projection_ids, projection_id);
+            ArrayPush(source_names, source_name);
+            ArrayPush(source_slot_ids, source_id);
+            ArrayPush(layer_names, "");
+            ArrayPush(layer_ids, 0);
+            ArrayPush(target_names, "");
+            ArrayPush(target_ids, 0);
+            ArrayPush(left_names, "");
+            ArrayPush(left_ids, 0);
+            ArrayPush(right_names, "");
+            ArrayPush(right_ids, 0);
+            ArrayPush(participant_names, participant_name);
+            ArrayPush(participant_ids, participant_id);
+        } else if kind == TypedAstKindDomainLinkTag() {
+            if declarations.nominal_kinds[owner_index] != "zone" ||
+                !IsSome(primary_opt) || !IsSome(secondary_opt) ||
+                !IsSome(tertiary_opt) {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR link topology shape is incomplete"
+                );
+            }
+            let layer_name: String = UnwrapOption(primary_opt);
+            let left_name: String = UnwrapOption(secondary_opt);
+            let right_name: String = UnwrapOption(tertiary_opt);
+            let layer_id: Int = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, layer_name,
+                NominalFieldKindRelationSlot()
+            );
+            let left_id: Int = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, left_name,
+                NominalFieldKindSubjectSlot()
+            );
+            let right_id: Int = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, right_name,
+                NominalFieldKindSubjectSlot()
+            );
+            if layer_id <= 0 || left_id <= 0 || right_id <= 0 {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR link topology field identity is missing"
+                );
+            }
+            ArrayPush(owner_names, owner_name);
+            ArrayPush(owner_ids, owner_id);
+            ArrayPush(source_ids, node_id);
+            ArrayPush(kinds, "link-relation");
+            ArrayPush(projection_names, "");
+            ArrayPush(projection_ids, 0);
+            ArrayPush(source_names, "");
+            ArrayPush(source_slot_ids, 0);
+            ArrayPush(layer_names, layer_name);
+            ArrayPush(layer_ids, layer_id);
+            ArrayPush(target_names, "");
+            ArrayPush(target_ids, 0);
+            ArrayPush(left_names, left_name);
+            ArrayPush(left_ids, left_id);
+            ArrayPush(right_names, right_name);
+            ArrayPush(right_ids, right_id);
+            ArrayPush(participant_names, participant_name);
+            ArrayPush(participant_ids, participant_id);
+        } else if kind == TypedAstKindDomainApplyTag() {
+            if declarations.nominal_kinds[owner_index] != "zone" ||
+                !IsSome(primary_opt) || !IsSome(secondary_opt) ||
+                SelfDirFieldSourceSyntaxId(
+                    declarations, owner_index, UnwrapOption(primary_opt),
+                    NominalFieldKindEffectSlot()
+                ) <= 0 || SelfDirFieldSourceSyntaxId(
+                    declarations, owner_index, UnwrapOption(secondary_opt),
+                    NominalFieldKindSubjectSlot()
+                ) <= 0 {
+                return SelfDirDomainTopologyRowsError(
+                    "self-host DIR apply directive field identity is missing"
+                );
+            }
+        } else {
+            return SelfDirDomainTopologyRowsError(
+                "self-host DIR bounded topology directive is unsupported"
+            );
+        }
+        node_id = node_id + 1;
+    }
+    return SelfDirDomainTopologyRows(
+        true, "", owner_names, owner_ids, source_ids, kinds,
+        projection_names, projection_ids, source_names, source_slot_ids,
+        layer_names, layer_ids, target_names, target_ids,
+        left_names, left_ids, right_names, right_ids,
+        participant_names, participant_ids
+    );
+}
+
+func SelfDirDomainTopologyRowsReady(
+    rows: SelfDirDomainTopologyRows
+) -> Bool {
+    if !rows.ok || rows.diagnostic_message != "" { return false; }
+    let count: Int = ArrayLength(rows.kinds);
+    if ArrayLength(rows.owner_names) != count ||
+        ArrayLength(rows.owner_source_syntax_ids) != count ||
+        ArrayLength(rows.source_syntax_ids) != count ||
+        ArrayLength(rows.projection_slot_names) != count ||
+        ArrayLength(rows.projection_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.source_slot_names) != count ||
+        ArrayLength(rows.source_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.layer_slot_names) != count ||
+        ArrayLength(rows.layer_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.target_slot_names) != count ||
+        ArrayLength(rows.target_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.left_slot_names) != count ||
+        ArrayLength(rows.left_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.right_slot_names) != count ||
+        ArrayLength(rows.right_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.participant_slot_names) != count ||
+        ArrayLength(rows.participant_slot_source_syntax_ids) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if rows.owner_names[i] == "" ||
+            rows.owner_source_syntax_ids[i] <= 0 ||
+            rows.source_syntax_ids[i] <= 0 ||
+            (rows.kinds[i] != "refresh" && rows.kinds[i] != "publish" &&
+             rows.kinds[i] != "bind" &&
+             rows.kinds[i] != "maintain-effect" &&
+             rows.kinds[i] != "link-relation") {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if rows.source_syntax_ids[prior] == rows.source_syntax_ids[i] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}

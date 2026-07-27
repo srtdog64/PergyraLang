@@ -1,0 +1,271 @@
+// Target-neutral dependency graph storage and SCC-weighted schedule.  This
+// owner receives already-admitted stable field identities and never reads MIR,
+// AST, source, or backend data.
+
+import "domain_topology_fact_owner.pgy";
+
+struct MirDomainTopologyOwnerGraph {
+    let valid: Bool;
+    let node_names: Array<String>;
+    let node_source_syntax_ids: Array<String>;
+    let edge_from_node_indexes: Array<Int>;
+    let edge_to_node_indexes: Array<Int>;
+    let schedule_node_indexes: Array<Int>;
+    let mut chain_depth: Int;
+    let mut pass_limit: Int;
+    let mut max_scc_size: Int;
+    let mut has_cycle: Bool;
+}
+
+func EmptyMirDomainTopologyOwnerGraph(valid: Bool) -> MirDomainTopologyOwnerGraph {
+    let strings0: Array<String> = [];
+    let strings1: Array<String> = [];
+    let ints0: Array<Int> = [];
+    let ints1: Array<Int> = [];
+    let ints2: Array<Int> = [];
+    return MirDomainTopologyOwnerGraph(
+        valid, strings0, strings1, ints0, ints1, ints2, 0, 0, 0, false
+    );
+}
+
+func MirDomainTopologyOwnerGraphNodeIndexOrAppend(
+    inout node_names: Array<String>,
+    inout node_source_syntax_ids: Array<String>,
+    name: String,
+    source_syntax_id: String
+) -> Int {
+    let node: Int = 0;
+    while node < ArrayLength(node_names) {
+        if node_source_syntax_ids[node] == source_syntax_id {
+            if node_names[node] != name { return 0 - 2; }
+            return node;
+        }
+        if node_names[node] == name { return 0 - 2; }
+        node = node + 1;
+    }
+    if StringLength(name) == 0 ||
+        !MirDomainTopologyPositiveDecimal(source_syntax_id) {
+        return 0 - 2;
+    }
+    ArrayPush(node_names, name);
+    ArrayPush(node_source_syntax_ids, source_syntax_id);
+    return ArrayLength(node_names) - 1;
+}
+
+func MirDomainTopologyOwnerGraphAddEdge(
+    inout node_names: Array<String>,
+    inout node_source_syntax_ids: Array<String>,
+    inout edge_from_node_indexes: Array<Int>,
+    inout edge_to_node_indexes: Array<Int>,
+    from_name: String,
+    from_source_syntax_id: String,
+    to_name: String,
+    to_source_syntax_id: String
+) -> Bool {
+    let from_node: Int = MirDomainTopologyOwnerGraphNodeIndexOrAppend(
+        node_names, node_source_syntax_ids, from_name, from_source_syntax_id
+    );
+    let to_node: Int = MirDomainTopologyOwnerGraphNodeIndexOrAppend(
+        node_names, node_source_syntax_ids, to_name, to_source_syntax_id
+    );
+    if from_node < 0 || to_node < 0 { return false; }
+    if from_node == to_node { return true; }
+    let edge: Int = 0;
+    while edge < ArrayLength(edge_from_node_indexes) {
+        if edge_from_node_indexes[edge] == from_node &&
+            edge_to_node_indexes[edge] == to_node {
+            return true;
+        }
+        edge = edge + 1;
+    }
+    ArrayPush(edge_from_node_indexes, from_node);
+    ArrayPush(edge_to_node_indexes, to_node);
+    return true;
+}
+
+func MirDomainTopologyOwnerGraphReachable(
+    ref graph: MirDomainTopologyOwnerGraph,
+    root: Int,
+    reverse: Bool
+) -> Array<Bool> {
+    let seen: Array<Bool> = [];
+    let node: Int = 0;
+    while node < ArrayLength(graph.node_names) {
+        ArrayPush(seen, false);
+        node = node + 1;
+    }
+    let frontier: Array<Int> = [];
+    ArrayPush(frontier, root);
+    ArraySet(seen, root, true);
+    let cursor: Int = 0;
+    while cursor < ArrayLength(frontier) {
+        let current: Int = frontier[cursor];
+        cursor = cursor + 1;
+        let edge: Int = 0;
+        while edge < ArrayLength(graph.edge_from_node_indexes) {
+            let from_node: Int = graph.edge_from_node_indexes[edge];
+            let to_node: Int = graph.edge_to_node_indexes[edge];
+            if reverse {
+                let swap: Int = from_node;
+                from_node = to_node;
+                to_node = swap;
+            }
+            if from_node == current && !seen[to_node] {
+                ArraySet(seen, to_node, true);
+                ArrayPush(frontier, to_node);
+            }
+            edge = edge + 1;
+        }
+    }
+    return seen;
+}
+
+func MirDomainTopologyOwnerGraphSchedule(
+    own graph: MirDomainTopologyOwnerGraph
+) -> MirDomainTopologyOwnerGraph {
+    let node_count: Int = ArrayLength(graph.node_names);
+    let scc_ids: Array<Int> = [];
+    let node: Int = 0;
+    while node < node_count {
+        ArrayPush(scc_ids, 0 - 1);
+        node = node + 1;
+    }
+    let scc_count: Int = 0;
+    let root: Int = 0;
+    while root < node_count {
+        if scc_ids[root] < 0 {
+            let forward: Array<Bool> =
+                MirDomainTopologyOwnerGraphReachable(graph, root, false);
+            let reverse: Array<Bool> =
+                MirDomainTopologyOwnerGraphReachable(graph, root, true);
+            let member: Int = 0;
+            while member < node_count {
+                if forward[member] && reverse[member] {
+                    ArraySet(scc_ids, member, scc_count);
+                }
+                member = member + 1;
+            }
+            scc_count = scc_count + 1;
+        }
+        root = root + 1;
+    }
+    let scc_sizes: Array<Int> = [];
+    let scc: Int = 0;
+    while scc < scc_count {
+        ArrayPush(scc_sizes, 0);
+        scc = scc + 1;
+    }
+    node = 0;
+    while node < node_count {
+        ArraySet(scc_sizes, scc_ids[node], scc_sizes[scc_ids[node]] + 1);
+        node = node + 1;
+    }
+    let scc_froms: Array<Int> = [];
+    let scc_tos: Array<Int> = [];
+    let edge: Int = 0;
+    while edge < ArrayLength(graph.edge_from_node_indexes) {
+        let from_scc: Int = scc_ids[graph.edge_from_node_indexes[edge]];
+        let to_scc: Int = scc_ids[graph.edge_to_node_indexes[edge]];
+        if from_scc != to_scc {
+            let duplicate: Bool = false;
+            let prior: Int = 0;
+            while prior < ArrayLength(scc_froms) {
+                if scc_froms[prior] == from_scc && scc_tos[prior] == to_scc {
+                    duplicate = true;
+                }
+                prior = prior + 1;
+            }
+            if !duplicate {
+                ArrayPush(scc_froms, from_scc);
+                ArrayPush(scc_tos, to_scc);
+            }
+        }
+        edge = edge + 1;
+    }
+    let indegrees: Array<Int> = [];
+    let longest: Array<Int> = [];
+    let depths: Array<Int> = [];
+    scc = 0;
+    while scc < scc_count {
+        ArrayPush(indegrees, 0);
+        ArrayPush(longest, scc_sizes[scc]);
+        ArrayPush(depths, 1);
+        scc = scc + 1;
+    }
+    edge = 0;
+    while edge < ArrayLength(scc_froms) {
+        ArraySet(indegrees, scc_tos[edge], indegrees[scc_tos[edge]] + 1);
+        edge = edge + 1;
+    }
+    let frontier: Array<Int> = [];
+    scc = 0;
+    while scc < scc_count {
+        if indegrees[scc] == 0 { ArrayPush(frontier, scc); }
+        scc = scc + 1;
+    }
+    let topo: Array<Int> = [];
+    let cursor: Int = 0;
+    while cursor < ArrayLength(frontier) {
+        let current: Int = frontier[cursor];
+        cursor = cursor + 1;
+        ArrayPush(topo, current);
+        edge = 0;
+        while edge < ArrayLength(scc_froms) {
+            if scc_froms[edge] == current {
+                let next: Int = scc_tos[edge];
+                let candidate_limit: Int = longest[current] + scc_sizes[next];
+                let candidate_depth: Int = depths[current] + 1;
+                if candidate_limit > longest[next] {
+                    ArraySet(longest, next, candidate_limit);
+                }
+                if candidate_depth > depths[next] {
+                    ArraySet(depths, next, candidate_depth);
+                }
+                ArraySet(indegrees, next, indegrees[next] - 1);
+                if indegrees[next] == 0 { ArrayPush(frontier, next); }
+            }
+            edge = edge + 1;
+        }
+    }
+    if ArrayLength(topo) != scc_count {
+        return EmptyMirDomainTopologyOwnerGraph(false);
+    }
+    let chain_depth: Int = 0;
+    let pass_limit: Int = 0;
+    let max_scc_size: Int = 0;
+    let has_cycle: Bool = false;
+    scc = 0;
+    while scc < scc_count {
+        if depths[scc] > chain_depth {
+            chain_depth = depths[scc];
+        }
+        if longest[scc] > pass_limit {
+            pass_limit = longest[scc];
+        }
+        if scc_sizes[scc] > max_scc_size {
+            max_scc_size = scc_sizes[scc];
+        }
+        if scc_sizes[scc] > 1 { has_cycle = true; }
+        scc = scc + 1;
+    }
+    let schedule_node_indexes: Array<Int> = [];
+    let topo_index: Int = 0;
+    while topo_index < ArrayLength(topo) {
+        node = 0;
+        while node < node_count {
+            if scc_ids[node] == topo[topo_index] {
+                ArrayPush(schedule_node_indexes, node);
+            }
+            node = node + 1;
+        }
+        topo_index = topo_index + 1;
+    }
+    if ArrayLength(schedule_node_indexes) != node_count {
+        return EmptyMirDomainTopologyOwnerGraph(false);
+    }
+    return MirDomainTopologyOwnerGraph(
+        true, graph.node_names, graph.node_source_syntax_ids,
+        graph.edge_from_node_indexes, graph.edge_to_node_indexes,
+        schedule_node_indexes, chain_depth, pass_limit, max_scc_size, has_cycle
+    );
+}

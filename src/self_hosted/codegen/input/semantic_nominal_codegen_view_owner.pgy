@@ -1,6 +1,7 @@
 // Fail-closed codegen view over semantic-owned nominal declaration rows.
 
 import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "../../semantic/nominal_constructor_argument_policy_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenSemanticNominalIs(
@@ -62,6 +63,24 @@ func CodegenSemanticNominalFieldTypeOrDie(
         Die("semantic nominal declaration field-type fact missing");
     }
     return UnwrapOption(type_name);
+}
+
+func CodegenSemanticNominalFieldIsConstructorArgumentOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> Bool {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 ||
+        field_index >= CodegenSemanticNominalFieldCountOrDie(
+            facts, constructor_index
+        ) {
+        Die("semantic nominal constructor-argument field index is invalid");
+    }
+    return SemanticAstNominalConstructorFieldIsArgument(
+        facts, constructor_index, field_index
+    );
 }
 
 func CodegenSemanticNominalRoleSlotCountOrDie(

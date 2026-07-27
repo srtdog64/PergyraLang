@@ -120,11 +120,21 @@ func DirectMirProgramBaseEnvelopeReady(
     let json: String = admitted.routines.source_json;
     let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         admitted.document.root, "generic_method_specializations");
+    let declaration_count: Int =
+        JsonArrayObjectFactCount(admitted.document.declarations);
+    let plain_envelope: Bool = !admitted.domain_topology_plan.present &&
+        JsonObjectFactCount(admitted.document.root) == 5 &&
+        declaration_count == 0;
+    let topology_envelope: Bool = admitted.domain_topology_plan.present &&
+        admitted.domain_topology_plan.valid &&
+        admitted.domain_topology_plan.plan_digest != 0 &&
+        ArrayLength(admitted.domain_topology_plan.node_names) > 0 &&
+        JsonObjectFactCount(admitted.document.root) == 6 &&
+        declaration_count > 0;
     if !admitted.document.valid || admitted.document.routines.json != json ||
-        JsonObjectFactCount(admitted.document.root) != 5 ||
+        (!plain_envelope && !topology_envelope) ||
         !MirProgramRoutineIndexStructureReady(admitted.routines) ||
         !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
-        JsonArrayObjectFactCount(admitted.document.declarations) != 0 ||
         !JsonArrayObjectFactTableReady(
             admitted.document.parallel_capture_boundaries) ||
         JsonArrayObjectFactCount(

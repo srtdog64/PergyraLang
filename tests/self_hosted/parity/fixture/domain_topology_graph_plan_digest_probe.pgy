@@ -1,0 +1,37 @@
+// Gate-only negative probe. Production never runs mutation self-tests.
+
+import "../../../../src/self_hosted/compiler/domain_topology_graph_plan_consumer_owner.pgy";
+import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 {
+        Die("domain topology graph plan digest probe requires one MIR path");
+    }
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            args[0], SelfHostMachineLayerDeclarationEmpty()
+        );
+    let receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    if !MirDomainTopologyGraphPlanConsumptionReady(
+        receipt, admitted.domain_topology_plan
+    ) || !MirDomainTopologyGraphPlanConsumptionMutationRejected(
+        receipt, admitted.domain_topology_plan
+    ) {
+        Die("domain topology graph plan digest mutation was not rejected");
+    }
+    let absent: MirDomainTopologyGraphPlan =
+        EmptyMirDomainTopologyGraphPlan(true, false, "");
+    if !MirDomainTopologyGraphPlanReady(absent) {
+        Die("canonical absent domain topology graph plan was rejected");
+    }
+    ArrayPush(absent.owner_source_syntax_ids, "1");
+    absent.plan_digest = MirDomainTopologyGraphPlanDigest(absent);
+    if MirDomainTopologyGraphPlanReady(absent) {
+        Die("absent domain topology graph plan admitted residual arrays");
+    }
+    Log("domain topology graph plan digest mutation rejected");
+    Log("absent domain topology graph plan residual arrays rejected");
+}

@@ -2366,8 +2366,51 @@ authority yet, while authority contributes one DIR node and six edges in
 `function_clause_order_minimal`. Recomputing after that lossy round-trip would
 turn the exact native `9 nodes / 16 edges` anchor into a different graph. The
 source producer independently derives the 9/16 census; only MIR-input
-canonicalization carries the already-admitted identity. A non-empty topology
-still fails closed at this bridge until its typed row projection lands.
+canonicalization carries the already-admitted identity.
+
+The non-empty projection now has the same rule. The self-host source producer
+emits typed `refresh`, `publish`, and `link-relation` rows; canonicalization
+reissues owner, directive, and field identities in one reconstructed epoch.
+Restoring an old raw field ID or pairing `player` with the canonical `enemy`
+ID fails before output. It does not repair IDs by offset and does not parse the
+original source or provenance text.
+
+The target-neutral topology plan is built and fully validated exactly once in
+`MirMachineLayerAdmitDocumentWithTopologyObserved`. Production C/LLVM
+consumers receive a bounded receipt containing the graph identity, digest, and
+cardinalities; they do not call the full plan readiness walk again. Digest
+mutation is exercised only by the dedicated gate probe, never as a production
+self-test. This distinction is important: putting a negative witness or a
+whole-plan verifier in every emission call would recreate the repeated-graph
+work pattern behind the earlier 3 GiB/20+ GiB incident.
+
+Do not confuse plan consumption with runtime materialization. The current
+self-host plan can project the exact `BattleZone` 3-node/2-edge schedule to C
+and LLVM, but it does not yet create `.poison`/`.trust` storage or execute the
+`apply` plus refresh/publish synchronization needed for runtime output
+`7`/`dst`. The source producer validates `apply` field identity but does not
+carry an apply row. Generic zero-fill, a native topology graft, or claiming the
+correct plan trace as the runtime result would hide the missing fact rather
+than fix it.
+
+2026-07-28 fresh pressure evidence after the non-empty topology producer and
+one-plan change is green. `build-pressure-self-host-compiler` completed the
+seed generations, installed `bin/pgy-self-driver.exe`, and passed its smoke in
+2,138,300 ms. Peak sampled working set was 1,038.0 MiB, peak private memory was
+1,132.4 MiB, and the largest single process was `gen2.exe` at 1,119.4 MiB.
+The unchanged 3,072 MiB stop-on-limit boundary was not crossed. This rejects a
+20+ GiB recurrence for the current bounded full build, but the 35-minute fresh
+bootstrap remains explicit CPU/time optimization debt.
+
+The first run exposed two non-memory dogfood defects before that green result.
+The graph builder passed growable struct-member arrays directly to `ArrayPush`,
+which the self-host semantic/codegen path correctly could not prove as a local
+binding. The fixed owner builds local arrays and publishes one immutable graph
+or plan. The emitted driver then collided with the canonical runtime's
+`pgy_args` symbol and compiled atomics under an unspecified C language mode.
+The self-host-only argv helper now has a distinct internal identity, and both
+driver installer compile paths pin `-std=c11`. Do not raise the memory cap or
+patch generated C for either failure.
 
 ### Array-only emitted C loses runtime headers
 

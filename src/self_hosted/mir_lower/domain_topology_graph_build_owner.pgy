@@ -1,0 +1,68 @@
+// Maps admitted directive rows to stable-ID dependency edges for one owner.
+
+import "domain_topology_fact_owner.pgy";
+import "domain_topology_graph_schedule_owner.pgy";
+
+func MirDomainTopologyOwnerGraphFromFacts(
+    ref facts: MirDomainTopologyFacts,
+    owner_name: String
+) -> MirDomainTopologyOwnerGraph {
+    let node_names: Array<String> = [];
+    let node_source_syntax_ids: Array<String> = [];
+    let edge_from_node_indexes: Array<Int> = [];
+    let edge_to_node_indexes: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(facts.kinds) {
+        if facts.owner_names[row] == owner_name {
+            let kind: String = facts.kinds[row];
+            let edge_ok: Bool = false;
+            if kind == "refresh" || kind == "publish" || kind == "bind" {
+                edge_ok = MirDomainTopologyOwnerGraphAddEdge(
+                    node_names, node_source_syntax_ids,
+                    edge_from_node_indexes, edge_to_node_indexes,
+                    facts.source_slot_names[row],
+                    facts.source_slot_source_syntax_ids[row],
+                    facts.projection_slot_names[row],
+                    facts.projection_slot_source_syntax_ids[row]
+                );
+            } else if kind == "maintain-effect" {
+                edge_ok = MirDomainTopologyOwnerGraphAddEdge(
+                    node_names, node_source_syntax_ids,
+                    edge_from_node_indexes, edge_to_node_indexes,
+                    facts.layer_slot_names[row],
+                    facts.layer_slot_source_syntax_ids[row],
+                    facts.target_slot_names[row],
+                    facts.target_slot_source_syntax_ids[row]
+                );
+            } else if kind == "link-relation" {
+                edge_ok = MirDomainTopologyOwnerGraphAddEdge(
+                    node_names, node_source_syntax_ids,
+                    edge_from_node_indexes, edge_to_node_indexes,
+                    facts.left_slot_names[row],
+                    facts.left_slot_source_syntax_ids[row],
+                    facts.layer_slot_names[row],
+                    facts.layer_slot_source_syntax_ids[row]
+                );
+                if edge_ok {
+                    edge_ok = MirDomainTopologyOwnerGraphAddEdge(
+                        node_names, node_source_syntax_ids,
+                        edge_from_node_indexes, edge_to_node_indexes,
+                        facts.right_slot_names[row],
+                        facts.right_slot_source_syntax_ids[row],
+                        facts.layer_slot_names[row],
+                        facts.layer_slot_source_syntax_ids[row]
+                    );
+                }
+            }
+            if !edge_ok { return EmptyMirDomainTopologyOwnerGraph(false); }
+        }
+        row = row + 1;
+    }
+    let schedule: Array<Int> = [];
+    let graph: MirDomainTopologyOwnerGraph = MirDomainTopologyOwnerGraph(
+        true, node_names, node_source_syntax_ids,
+        edge_from_node_indexes, edge_to_node_indexes,
+        schedule, 0, 0, 0, false
+    );
+    return MirDomainTopologyOwnerGraphSchedule(graph);
+}

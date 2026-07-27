@@ -1,0 +1,32 @@
+// Semantic owner of the distinction between nominal storage fields and
+// caller-supplied constructor arguments. Domain layer storage remains part of
+// the nominal layout and must be materialized by the domain topology/runtime
+// owner; the constructor does not accept it from the caller.
+
+import "ast_nominal_constructor_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+func SemanticAstNominalConstructorFieldIsArgument(
+    constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> Bool {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(constructors) ||
+        field_index < 0 ||
+        field_index >= constructors.param_counts[constructor_index] {
+        return false;
+    }
+    if constructors.nominal_kinds[constructor_index] != "zone" {
+        return true;
+    }
+    let kind_opt: Option<String> = SemanticAstNominalConstructorFieldKindAt(
+        constructors, constructor_index, field_index
+    );
+    if !IsSome(kind_opt) { return false; }
+    let kind: String = UnwrapOption(kind_opt);
+    return kind == NominalFieldKindSubjectSlot() ||
+        kind == NominalFieldKindObjectSlot() ||
+        kind == NominalFieldKindTObjectSlot() ||
+        kind == NominalFieldKindBindingSlot();
+}

@@ -1,0 +1,162 @@
+// Canonical MIR declaration-field identity epoch owner.
+//
+// Source-epoch field identities are resolved only inside the admitted
+// declaration index. Canonical identities are then joined by the exact
+// (owner, name, field_kind) tuple. Numeric equality, offsets, declaration
+// order, and name-only recovery are not identity evidence.
+
+import "../mir/declaration_fact_owner.pgy";
+import "../mir_lower/program_declaration_field_identity_index_owner.pgy";
+import "../semantic/ast_nominal_constructor_fact_owner.pgy";
+
+struct CanonicalMirIdentityEpochFieldRemap {
+    ok: Bool;
+    source_syntax_id: String;
+}
+
+struct CanonicalMirDeclarationIdentityEpoch {
+    ok: Bool;
+    declarations: SelfMirDeclarationRows;
+}
+
+func CanonicalMirIdentityEpochSourceFieldKind(
+    ref index: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String
+) -> String {
+    let owner_index: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(index, owner_name);
+    if owner_index < 0 || field_name == "" ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
+        return "";
+    }
+    let found_kind: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(index.field_names) {
+        if index.field_owner_indices[i] == owner_index &&
+            index.field_names[i] == field_name &&
+            index.field_source_syntax_ids[i] == source_syntax_id {
+            if found_kind != "" { return ""; }
+            found_kind = index.field_kinds[i];
+        }
+        i = i + 1;
+    }
+    return found_kind;
+}
+
+func CanonicalMirIdentityEpochCanonicalFieldId(
+    ref declarations: SelfMirDeclarationRows,
+    owner_name: String,
+    field_name: String,
+    field_kind: String
+) -> String {
+    let found_id: Int = 0 - 1;
+    let declaration_index: Int = 0;
+    while declaration_index < ArrayLength(declarations.names) {
+        if declarations.names[declaration_index] == owner_name {
+            let field_offset: Int = 0;
+            while field_offset < declarations.field_counts[declaration_index] {
+                let field_index: Int =
+                    declarations.field_starts[declaration_index] + field_offset;
+                if declarations.field_names[field_index] == field_name &&
+                    declarations.field_kinds[field_index] == field_kind {
+                    if found_id >= 0 { return ""; }
+                    found_id = declarations.field_source_syntax_ids[field_index];
+                }
+                field_offset = field_offset + 1;
+            }
+        }
+        declaration_index = declaration_index + 1;
+    }
+    if found_id <= 0 { return ""; }
+    return ToString(found_id);
+}
+
+func CanonicalMirIdentityEpochArtifactFieldId(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    owner_name: String,
+    nominal_kind: String,
+    field_name: String,
+    field_kind: String
+) -> Int {
+    let found_id: Int = 0 - 1;
+    let constructor_index: Int = 0;
+    while constructor_index < ArrayLength(constructors.names) {
+        if constructors.names[constructor_index] == owner_name &&
+            constructors.nominal_kinds[constructor_index] == nominal_kind {
+            let field_offset: Int = 0;
+            while field_offset < constructors.param_counts[constructor_index] {
+                let field_index: Int =
+                    constructors.param_starts[constructor_index] + field_offset;
+                if constructors.field_names[field_index] == field_name &&
+                    constructors.field_kinds[field_index] == field_kind {
+                    if found_id >= 0 { return 0 - 1; }
+                    found_id = constructors.field_source_syntax_ids[field_index];
+                }
+                field_offset = field_offset + 1;
+            }
+        }
+        constructor_index = constructor_index + 1;
+    }
+    return found_id;
+}
+
+func CanonicalMirIdentityEpochBindDeclarationFields(
+    declarations: SelfMirDeclarationRows,
+    ref constructors: SemanticAstNominalConstructorFacts
+) -> CanonicalMirDeclarationIdentityEpoch {
+    if !SemanticAstNominalConstructorRowsReady(constructors) {
+        return CanonicalMirDeclarationIdentityEpoch(false, declarations);
+    }
+    let field_ids: Array<Int> = declarations.field_source_syntax_ids;
+    let declaration_index: Int = 0;
+    while declaration_index < ArrayLength(declarations.names) {
+        let field_offset: Int = 0;
+        while field_offset < declarations.field_counts[declaration_index] {
+            let field_index: Int =
+                declarations.field_starts[declaration_index] + field_offset;
+            let canonical_id: Int = CanonicalMirIdentityEpochArtifactFieldId(
+                constructors, declarations.names[declaration_index],
+                declarations.nominal_kinds[declaration_index],
+                declarations.field_names[field_index],
+                declarations.field_kinds[field_index]
+            );
+            if canonical_id <= 0 {
+                return CanonicalMirDeclarationIdentityEpoch(
+                    false, declarations
+                );
+            }
+            ArraySet(field_ids, field_index, canonical_id);
+            field_offset = field_offset + 1;
+        }
+        declaration_index = declaration_index + 1;
+    }
+    return CanonicalMirDeclarationIdentityEpoch(true, declarations);
+}
+
+func CanonicalMirIdentityEpochRemapField(
+    ref source_index: MirProgramDeclarationFieldIdentityIndex,
+    ref canonical_declarations: SelfMirDeclarationRows,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String
+) -> CanonicalMirIdentityEpochFieldRemap {
+    if field_name == "" {
+        return CanonicalMirIdentityEpochFieldRemap(
+            source_syntax_id == "0", "0"
+        );
+    }
+    let field_kind: String = CanonicalMirIdentityEpochSourceFieldKind(
+        source_index, owner_name, field_name, source_syntax_id
+    );
+    if field_kind == "" {
+        return CanonicalMirIdentityEpochFieldRemap(false, "");
+    }
+    let canonical_id: String = CanonicalMirIdentityEpochCanonicalFieldId(
+        canonical_declarations, owner_name, field_name, field_kind
+    );
+    return CanonicalMirIdentityEpochFieldRemap(
+        canonical_id != "", canonical_id
+    );
+}

@@ -2,6 +2,35 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 self-host non-empty topology executable checkpoint
+
+- `zone_layer_projection_runtime`의 production DRV-2 source 경로가 이제 native
+  topology JSON을 빌리지 않고 self source -> typed AST/DIR -> MIR로 non-empty
+  topology를 생산한다. Exact graph ID는 `14937235025281185444`이고 row는
+  `Poisoned.refresh`, `TrustedLink.publish`, `BattleZone.link-relation` 세 개다.
+- 각 row는 같은 canonical identity epoch에서 declaration의
+  `(owner, field name, source_syntax_id, field_kind)`에 exact join한다. 과거 raw
+  field ID, `player` 이름 + canonical `enemy` ID, refresh의 tobject slot,
+  publish의 object slot, caller가 layer storage를 세 번째 zone constructor
+  인자로 넘기는 경우는 모두 fail closed다.
+- 이 좁은 non-empty DIR/MIR producer는 기존 C-owned producer 결정을 실제로
+  대체하므로 `SUBSTITUTING`이다. Machine admission은 같은 MIR에서 ID-keyed
+  target-neutral plan을 한 번 만들고 한 번만 전체 검증한다. 이후 C/LLVM은
+  graph identity/digest/cardinality receipt만 소비하며 plan 전체를 재검증하지
+  않는다. 이 plan 소비 단계는 현재 `REACHABLE`이다.
+- `BattleZone` plan은 exact `nodes=3`, `edges=2`, `depth=2`, `pass_limit=2`와
+  `trust <- player`, `trust <- enemy`를 C/LLVM 모두에 투영한다. Forged edge와
+  gate-only digest mutation은 artifact 생성 전에 거부된다.
+- 실제 zone runtime은 아직 RED다. `apply poison to player`가 MIR topology row로
+  운반되지 않고, `.poison`/`.trust` storage materialization 및 refresh/publish
+  value sync owner가 없다. 따라서 generic zero-fill이나 native graft로
+  `7`/`dst`를 꾸미지 않는다. 이 owner chain과 실행 결과가 다음 substitution
+  rung이다.
+- Fresh pressure-owned self-host compiler build는 2,138,300 ms에 설치/smoke까지
+  green이었다. Peak working set 1,038.0 MiB, private 1,132.4 MiB,
+  top process `gen2.exe` 1,119.4 MiB로 3,072 MiB cap 이하다. 20GB 재발은 없지만
+  35분 fresh bootstrap 시간은 별도 최적화 부채다.
+
 ## 2026-07-28 declaration field exact-identity checkpoint
 
 - Native와 self-host `pgy.mir.v1`의 topology-addressable

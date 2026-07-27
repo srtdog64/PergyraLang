@@ -123,6 +123,48 @@ production call, 삭제된 bypass, 소비되는 result, negative gate가 있을 
 구성체가 `SUBSTITUTING`이다. 그 전에는 정확히 `SURFACE` 또는 `REACHABLE`로
 기록한다.
 
+### 2.2 재사용 가능한 다섯 경계 패턴
+
+`tobject`에서 `action`까지를 하나의 승격 사다리로 구현하지 않는다. 실제 코드는
+아래 패턴 가운데 필요한 행만 조합한다. 한 행의 출력이 다음 행의 입력이 될 수는
+있지만, 타입이 자동으로 다른 구성체가 되거나 앞 구성체의 owner가 뒤 의미까지
+소유하지는 않는다.
+
+| 패턴 | canonical 흐름 | 최종 fact owner | 금지되는 축약 |
+| --- | --- | --- | --- |
+| local observation | `subject source -> object slot -> refresh -> query` | source identity는 subject, projection freshness/topology는 effect/relation/zone의 DIR row | object 직접 수정, object를 외부 DTO로 재사용, backend의 refresh 문자열 재탐색 |
+| boundary publication | `subject source -> tobject slot -> publish -> transfer/receipt` | snapshot 값과 source 분리는 tobject/publish fact, 전송 성공은 action/transaction result | borrowed pointer·live slot·authority를 tobject에 싣기, mutable DTO, publish 없는 암묵 복사 |
+| encapsulated state | `subject -> owned vessel -> hosted func` | actor identity/승인은 subject, 내부 state/resource는 vessel | vessel이 action/authority를 소유, free-function parameter ABI를 hosted receiver ABI에서 추정 |
+| observable transition | `typed input fact -> subject.action -> Result/stage/tobject receipt` | action contract와 transition result, 하위 계산은 기존 typed owner | `*Ready()`/`return true` wrapper, action body의 semantic 재계산, 실패 시 old path 재진입 |
+| domain orchestration | `action causes effect`; `zone apply/link/refresh/publish`; 여러 action이면 `intent` | effect/relation identity는 각 declaration, membership/lifetime/topology는 zone, 목적·보상은 intent | clause를 장식으로 추가, zone이 subject 내부를 직접 수정, 단일 action용 intent, backend별 world |
+
+이 표에서 `object`와 `tobject`는 subject의 약한 버전이 아니고, `vessel`은 subject로
+승격되기 전 단계가 아니다. `action`도 effect/relation/zone을 포괄하는 상위 타입이
+아니다. 각 구성체는 identity, freshness, transfer, internal state, authority,
+transition, orchestration 중 정확히 한 경계 질문에 답한다.
+
+Self-host 구현도 같은 판정법을 사용한다. 올바른 Pergyra 컴파일러 파일 대부분이
+`func`와 `struct`로 남는 것은 정상이다. 실제 source lifecycle 분리에는
+`tobject`, identity-bearing 승인에는 `subject/action`, resource/lifetime frontier에는
+`zone`, 여러 production action의 성공·실패·보상에는 `intent`를 쓴다. 단어가
+import되거나 parser fixture에 나온다는 사실은 이 패턴이 실행된 증거가 아니다.
+
+각 패턴의 구현 순서는 다음으로 고정한다.
+
+1. 언어-word registry는 spelling/class/stable word identity만 선택한다.
+2. owning parser는 해당 문맥에서 distinct typed node와 source identity를 만든다.
+3. semantic/DIR owner는 field kind, action contract, projection/topology처럼 소비자가
+   필요한 fact를 한 번 결정한다.
+4. MIR은 owner fact와 그 identity를 lossless하게 운반하고, 새 identity epoch을
+   만들면 declaration과 모든 dependent reference를 원자적으로 재발급한다.
+5. target-neutral plan이 C/LLVM의 마지막 소비자 앞에서 한 번 만들어진다.
+6. production entrypoint를 연결하고 옛 bypass를 삭제한 뒤, stale ID·name-only
+   join·missing fact·zero-artifact failure를 negative gate로 고정한다.
+
+이 여섯 단계 중 parser/문서/fixture까지만 있으면 `SURFACE`, production caller가
+실제로 호출하고 결과를 소비하면 `REACHABLE`, C-owned 결정을 대신하고 우회가
+삭제됐을 때만 `SUBSTITUTING`이다.
+
 ### 구현 근거
 
 - parser는 여섯 nominal을 서로 다른 `NOMINAL_DECL_*`으로 만든다.
@@ -543,6 +585,31 @@ canonical `enemy` ID를 붙인 row가 첫 negative다. 이 fixture의 native run
 전체를 대체하려면 graph 외에도 `apply poison to player`, zone state count, hidden
 layer layout와 sync operation fact가 필요하다. 그때도 `MIR if present, otherwise
 AST` fallback은 두지 않는다.
+
+2026-07-28 producer checkpoint에서 `zone_layer_projection_runtime`은 production
+DRV-2의 self source -> typed AST/DIR -> MIR 경로로 non-empty topology를 직접
+생산한다. `domain_graph_id=14937235025281185444`와 exact 3 rows
+`[refresh, publish, link-relation]`가 declaration의 `(owner, field name,
+source_syntax_id, field_kind)`에 같은 identity epoch 안에서 join된다. 이 좁은
+producer 경로만 `SUBSTITUTING`이다. Target-neutral graph plan은 이 MIR을 실제로
+읽는 `REACHABLE` 단계이며 runtime substitution은 아직 아니다.
+
+남은 runtime blocker는 다음처럼 정확히 기록한다.
+
+- `apply poison to player`는 DIR에서 shape와 field identity를 검증하지만 MIR
+  topology row로 운반되지 않는다.
+- plan/runtime owner는 zone storage `.poison`/`.trust`의 materialization을 아직
+  소유하지 않는다.
+- `refresh view from bearer`와 `publish packet from target`의 값 sync operation도
+  runtime owner가 아직 구현하지 않았다.
+- 따라서 constructor는 caller가 subject/object/tobject/binding input만 넘기게
+  하되, 누락된 layer storage를 generic compound-literal zero-fill로 성공 처리하면
+  안 된다. Native MIR/JSON graft도 금지한다.
+
+이 blocker가 닫히기 전 self MIR -> C의 `7`/`dst` runtime 요구는 RED로 남는다.
+다음 rung은 `apply` identity row, layer materialization plan, refresh/publish sync를
+한 owner chain으로 운반하고, `.poison` 또는 `.trust`가 zero-fill된 C를 negative로
+거부해야 한다.
 
 ### 4.3 Artifact action의 commit 조건
 

@@ -93,8 +93,9 @@ func ParseZoneDecl(
 	                        a_by = ReadIdent(content, i, cursor_out);
 	                        i = cursor_out[0];
 	                    }
-	                    i = Expect(content, i, ";");
-	                    if i < 0 { Exit(1); }
+	                    if i < n && ParserCharAt(content, i) == ";" {
+	                        i = i + 1;
+	                    }
 	                    let apply_row: String = Concat("    Apply: ", Concat(a_eff, Concat(" -> ", a_dest)));
 	                    if StringLength(a_by) > 0 {
 	                        apply_row = Concat(apply_row, Concat(" by ", a_by));
@@ -129,8 +130,9 @@ func ParseZoneDecl(
 	                        l_by = ReadIdent(content, i, cursor_out);
 	                        i = cursor_out[0];
 	                    }
-	                    i = Expect(content, i, ";");
-	                    if i < 0 { Exit(1); }
+	                    if i < n && ParserCharAt(content, i) == ";" {
+	                        i = i + 1;
+	                    }
 	                    let link_row: String = Concat("    Link: ", Concat(l_rel, Concat(" between ", Concat(l_p1, Concat(", ", l_p2)))));
 	                    if StringLength(l_by) > 0 {
 	                        link_row = Concat(link_row, Concat(" by ", l_by));

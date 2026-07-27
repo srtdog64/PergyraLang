@@ -172,6 +172,9 @@ inventory must not become a second fact-family owner registry.
   artifact-bound nominal constructor name, return type, and ordered effective
   field-type rows after generic-default substitution, consumed by expression
   typing and declaration routing; source constructor scans are forbidden.
+- `src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy` --
+  semantic distinction between caller-supplied nominal constructor arguments
+  and domain storage fields that require a topology/runtime materializer.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, initializer
   payload, and per-name ordinal facts, including array-literal body and `Let`
@@ -687,11 +690,31 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
+- `src/self_hosted/dir/domain_graph_fact_owner.pgy` -- bounded DIR census,
+  graph-anchor identity, and topology-producer orchestration.
+- `src/self_hosted/dir/domain_topology_row_owner.pgy` -- typed domain
+  directive rows, exact declaration-field identity joins, and non-empty row
+  validation. It is the self-host producer-side `dir.domain_graph` authority;
+  MIR carries its facts without reconstructing them.
+- `src/self_hosted/mir/domain_topology_fact_owner.pgy` -- MIR carrier for the
+  DIR-owned graph identity and complete typed topology row arrays; projects
+  integer producer syntax IDs to the MIR wire representation without changing
+  their producer epoch.
 - `src/self_hosted/mir_lower/domain_topology_fact_owner.pgy` -- derived typed
   admission view of the program-global DIR-owned topology carrier,
   relation/field-kind joins, stable row identity checks, and
   missing/unknown/duplicate fail-closed policy. `dir.domain_graph` remains the
   semantic authority.
+- `src/self_hosted/mir_lower/domain_topology_graph_schedule_owner.pgy` --
+  stable-field-ID node/edge storage and SCC-weighted target-neutral schedule;
+  it consumes admitted identities and owns no MIR/AST/source read path.
+- `src/self_hosted/mir_lower/domain_topology_graph_build_owner.pgy` -- exact
+  directive-kind to dependency-edge mapping for one topology owner. Names are
+  diagnostic payload only; stable field IDs retain edge identity.
+- `src/self_hosted/mir_lower/domain_topology_graph_plan_owner.pgy` -- one
+  program plan joining owner-local schedules, graph-derived depth/pass-limit,
+  stable-ID edges, and a mutation-detecting digest. Machine admission is its
+  sole full-plan validation boundary.
 - `src/self_hosted/mir_lower/loop_flow_fact_owner.pgy` -- native
   LoopFlowSummary and stable-indexed entry/exit state fact parsing.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
@@ -1336,6 +1359,11 @@ inventory must not become a second fact-family owner registry.
   graph, selects the bounded scalar or verified-CFG path, and creates one C or
   LLVM artifact without rebuilding AST/semantic artifacts or creating
   backend-specific MIR readers.
+- `src/self_hosted/compiler/domain_topology_graph_plan_consumer_owner.pgy` --
+  bounded production receipt plus C/LLVM projections of the one admitted
+  target-neutral domain topology plan. It serializes exact ID edges and
+  graph-derived bounds without revalidating or rebuilding the plan; digest
+  mutation self-tests remain gate-only.
 - `src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy` -- one text
   emission dispatch responsibility containing both C and LLVM consumers. It
   is the last artifact-producing `DirectMirCfgPlan` consumer and passes only
@@ -1413,6 +1441,16 @@ inventory must not become a second fact-family owner registry.
   semantic source/MIR-to-C owner; joins initializer, iteration, assignment,
   expression-use, call, return, and condition evidence after source and MIR
   JSON inputs converge on one `AstTreeArtifact` verifier.
+- `src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy` --
+  canonical MIR tree/directive identity adapter and program-level atomic
+  composition boundary; rebinds nominal owners and topology directives into
+  one reconstructed `AstTreeArtifact` epoch, then consumes the field identity
+  epoch owner before publishing program facts.
+- `src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy` --
+  declaration-field identity epoch owner; rebinds declaration fields and
+  topology field references by exact `(owner, name, field_kind)` joins.
+  Numeric equality, offsets, declaration order, and name-only fallback are
+  forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- DRV-2 command-line
   mode selection and argument routing; consumes compiler-stage operations but
   owns no semantic or MIR facts.

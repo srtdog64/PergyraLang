@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Owns the first self-host DIR->MIR executable producer rung: the exact
 # effect/zone/role/authority census for a domain document with no topology
-# rows.  Non-empty directives remain fail-closed until their typed row owner
-# and runtime plan land.
+# rows. Non-empty topology has its own typed producer owner/gate.
 
 domain_graph_owner="$ROOT_DIR/src/self_hosted/dir/domain_graph_fact_owner.pgy"
 kind_owner="$ROOT_DIR/src/self_hosted/hir/ast_node_kind_owner.pgy"
@@ -47,26 +46,4 @@ pgy_selfhost_verify_driver_rung2_domain_graph_producer() {
         return 1
     }
 
-    local rejected_source="$ROOT_DIR/tests/self_hosted/parity/fixture/domain_topology_nonempty_rejected.pgy"
-    local rejected_out="$BUILD_DIR/${base}_${backend}.nonempty-topology.out"
-    local rejected_err="$BUILD_DIR/${base}_${backend}.nonempty-topology.err"
-    if (cd "$ROOT_DIR" && "$driver_bin" --emit-mir-json-verified \
-        "tests/self_hosted/parity/fixture/domain_topology_nonempty_rejected.pgy" \
-        >"$rejected_out" 2>"$rejected_err"); then
-        echo "[self-host-parity:driver-rung2] $backend non-empty domain directive was downgraded to empty topology" >&2
-        return 1
-    fi
-    [[ -f "$rejected_source" ]] || {
-        echo "[self-host-parity:driver-rung2] missing non-empty topology falsifier" >&2
-        return 1
-    }
-    grep -Fq 'self-host DIR topology directive or authority shape is unsupported' \
-        "$rejected_out" "$rejected_err" || {
-        echo "[self-host-parity:driver-rung2] $backend non-empty topology failed outside its DIR owner" >&2
-        return 1
-    }
-    if grep -Fq '"schema":"pgy.mir.v1"' "$rejected_out"; then
-        echo "[self-host-parity:driver-rung2] $backend rejected directive still emitted MIR" >&2
-        return 1
-    fi
 }

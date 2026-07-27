@@ -102,7 +102,7 @@ compile_c() {
     local source="$2"
     local output="$3"
     local log="$BUILD_DIR/${label}.compile.log"
-    local -a compile_command=("$CC" "$source")
+    local -a compile_command=("$CC" -x c -std=c11 "$source")
     # Shared emitted-C runtime-header classifier owner (same fact as the hard installer).
     if pgy_selfhost_emitted_c_uses_runtime_headers "$source"; then
         compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)

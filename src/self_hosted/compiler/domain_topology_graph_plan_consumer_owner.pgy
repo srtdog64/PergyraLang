@@ -1,0 +1,237 @@
+// Production consumption boundary for the one admitted, target-neutral domain
+// topology graph plan.  C and LLVM receive projections of this same receipt;
+// neither backend builds a graph, looks up an edge by name, or substitutes a
+// declaration-count frontier bound.
+
+import "../mir_lower/machine_layer_fact_owner.pgy";
+
+struct MirDomainTopologyGraphPlanConsumptionReceipt {
+    let valid: Bool;
+    let schema: String;
+    let domain_graph_id: String;
+    let plan_digest: Int;
+    let owner_count: Int;
+    let node_count: Int;
+    let edge_count: Int;
+}
+
+func MirDomainTopologyGraphPlanConsumptionSchema() -> String {
+    return "pgy.selfhost.mir-domain-topology-consumption.v1";
+}
+
+func MirDomainTopologyGraphPlanConsumptionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> MirDomainTopologyGraphPlanConsumptionReceipt {
+    // Admission already performed the one full graph validation.  The
+    // production receipt snapshots only bounded identity/cardinality facts.
+    let valid: Bool = admitted.domain_topology_plan.valid &&
+        admitted.domain_topology_plan.plan_digest != 0 &&
+        admitted.domain_topology_plan.present ==
+            admitted.domain_topology.present &&
+        (!admitted.domain_topology_plan.present ||
+            admitted.domain_topology_plan.domain_graph_id ==
+                admitted.domain_topology.domain_graph_id);
+    return MirDomainTopologyGraphPlanConsumptionReceipt(
+        valid, MirDomainTopologyGraphPlanConsumptionSchema(),
+        admitted.domain_topology_plan.domain_graph_id,
+        admitted.domain_topology_plan.plan_digest,
+        ArrayLength(admitted.domain_topology_plan.owner_names),
+        ArrayLength(admitted.domain_topology_plan.node_names),
+        ArrayLength(admitted.domain_topology_plan.edge_from_node_indexes)
+    );
+}
+
+func MirDomainTopologyGraphPlanConsumptionReady(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan
+) -> Bool {
+    return receipt.valid &&
+        receipt.schema == MirDomainTopologyGraphPlanConsumptionSchema() &&
+        plan.valid && plan.schema == MirDomainTopologyGraphPlanSchema() &&
+        receipt.domain_graph_id == plan.domain_graph_id &&
+        receipt.plan_digest == plan.plan_digest &&
+        receipt.owner_count == ArrayLength(plan.owner_names) &&
+        receipt.node_count == ArrayLength(plan.node_names) &&
+        receipt.edge_count == ArrayLength(plan.edge_from_node_indexes);
+}
+
+func MirDomainTopologyGraphPlanConsumptionWithDigest(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    plan_digest: Int
+) -> MirDomainTopologyGraphPlanConsumptionReceipt {
+    return MirDomainTopologyGraphPlanConsumptionReceipt(
+        receipt.valid, receipt.schema, receipt.domain_graph_id, plan_digest,
+        receipt.owner_count, receipt.node_count, receipt.edge_count
+    );
+}
+
+func MirDomainTopologyGraphPlanConsumptionMutationRejected(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan
+) -> Bool {
+    let mutated_digest: Int = receipt.plan_digest + 1;
+    if mutated_digest == 0 { mutated_digest = receipt.plan_digest - 1; }
+    let mutated: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionWithDigest(
+            receipt, mutated_digest
+        );
+    return MirDomainTopologyGraphPlanConsumptionReady(receipt, plan) &&
+        !MirDomainTopologyGraphPlanConsumptionReady(mutated, plan);
+}
+
+func MirDomainTopologyGraphPlanTraceProjection(
+    ref plan: MirDomainTopologyGraphPlan,
+    line_prefix: String
+) -> String {
+    let output: String = "";
+    let owner: Int = 0;
+    while owner < ArrayLength(plan.owner_names) {
+        output = Concat(output, line_prefix);
+        output = Concat(output, "[domain-topology-plan] owner=");
+        output = Concat(output, plan.owner_names[owner]);
+        output = Concat(output, " nodes=");
+        output = Concat(output, ToString(plan.owner_node_counts[owner]));
+        output = Concat(output, " edges=");
+        output = Concat(output, ToString(plan.owner_edge_counts[owner]));
+        output = Concat(output, " depth=");
+        output = Concat(output, ToString(plan.owner_chain_depths[owner]));
+        output = Concat(output, " pass_limit=");
+        output = Concat(output, ToString(plan.owner_pass_limits[owner]));
+        if plan.owner_has_cycles[owner] {
+            output = Concat(output, " cyclic\n");
+        } else {
+            output = Concat(output, " acyclic\n");
+        }
+        let edge: Int = plan.owner_edge_starts[owner];
+        let edge_end: Int = edge + plan.owner_edge_counts[owner];
+        while edge < edge_end {
+            let from_node: Int = plan.edge_from_node_indexes[edge];
+            let to_node: Int = plan.edge_to_node_indexes[edge];
+            output = Concat(output, line_prefix);
+            output = Concat(output, "dep: ");
+            output = Concat(output, plan.node_names[to_node]);
+            output = Concat(output, " <- ");
+            output = Concat(output, plan.node_names[from_node]);
+            output = Concat(output, " [to_id=");
+            output = Concat(output, plan.edge_to_source_syntax_ids[edge]);
+            output = Concat(output, " from_id=");
+            output = Concat(output, plan.edge_from_source_syntax_ids[edge]);
+            output = Concat(output, "]\n");
+            edge = edge + 1;
+        }
+        owner = owner + 1;
+    }
+    return output;
+}
+
+func MirDomainTopologyGraphPlanCProjection(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan
+) -> String {
+    if !MirDomainTopologyGraphPlanConsumptionReady(receipt, plan) {
+        Die("production C consumer rejected the domain topology graph plan");
+    }
+    if receipt.node_count == 0 { return ""; }
+    let output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "// ");
+    output = Concat(output,
+        "enum { _pgy_mir_domain_topology_plan_digest = ");
+    output = Concat(output, ToString(receipt.plan_digest));
+    output = Concat(output, " };\n");
+    let owner: Int = 0;
+    while owner < receipt.owner_count {
+        output = Concat(output,
+            "enum { _pgy_mir_domain_topology_owner_");
+        output = Concat(output, ToString(owner));
+        output = Concat(output, "_nodes = ");
+        output = Concat(output, ToString(plan.owner_node_counts[owner]));
+        output = Concat(output, ", _pgy_mir_domain_topology_owner_");
+        output = Concat(output, ToString(owner));
+        output = Concat(output, "_edges = ");
+        output = Concat(output, ToString(plan.owner_edge_counts[owner]));
+        output = Concat(output, ", _pgy_mir_domain_topology_owner_");
+        output = Concat(output, ToString(owner));
+        output = Concat(output, "_depth = ");
+        output = Concat(output, ToString(plan.owner_chain_depths[owner]));
+        output = Concat(output, ", _pgy_mir_domain_topology_owner_");
+        output = Concat(output, ToString(owner));
+        output = Concat(output, "_pass_limit = ");
+        output = Concat(output, ToString(plan.owner_pass_limits[owner]));
+        output = Concat(output, " };\n");
+        owner = owner + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func MirDomainTopologyGraphPlanLlvmProjection(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan
+) -> String {
+    if !MirDomainTopologyGraphPlanConsumptionReady(receipt, plan) {
+        Die("production LLVM consumer rejected the domain topology graph plan");
+    }
+    if receipt.node_count == 0 { return ""; }
+    let output: String = MirDomainTopologyGraphPlanTraceProjection(plan, "; ");
+    output = Concat(output,
+        "@_pgy.mir.domain.topology.plan.digest = private constant i64 ");
+    output = Concat(output, ToString(receipt.plan_digest));
+    output = Concat(output, "\n");
+    let owner: Int = 0;
+    while owner < receipt.owner_count {
+        output = Concat(output, "@_pgy.mir.domain.topology.owner.");
+        output = Concat(output, ToString(owner));
+        output = Concat(output,
+            " = private constant [4 x i64] [i64 ");
+        output = Concat(output, ToString(plan.owner_node_counts[owner]));
+        output = Concat(output, ", i64 ");
+        output = Concat(output, ToString(plan.owner_edge_counts[owner]));
+        output = Concat(output, ", i64 ");
+        output = Concat(output, ToString(plan.owner_chain_depths[owner]));
+        output = Concat(output, ", i64 ");
+        output = Concat(output, ToString(plan.owner_pass_limits[owner]));
+        output = Concat(output, "]\n");
+        owner = owner + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func MirDomainTopologyGraphPlanAttachToC(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan,
+    payload: String
+) -> String {
+    return Concat(
+        MirDomainTopologyGraphPlanCProjection(receipt, plan), payload
+    );
+}
+
+func MirDomainTopologyGraphPlanAttachToLlvm(
+    ref receipt: MirDomainTopologyGraphPlanConsumptionReceipt,
+    ref plan: MirDomainTopologyGraphPlan,
+    payload: String
+) -> String {
+    return Concat(
+        MirDomainTopologyGraphPlanLlvmProjection(receipt, plan), payload
+    );
+}
+
+func MirDomainTopologyGraphPlanAttachAdmittedToC(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    payload: String
+) -> String {
+    let receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    return MirDomainTopologyGraphPlanAttachToC(
+        receipt, admitted.domain_topology_plan, payload
+    );
+}
+
+func MirDomainTopologyGraphPlanAttachAdmittedToLlvm(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    payload: String
+) -> String {
+    let receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    return MirDomainTopologyGraphPlanAttachToLlvm(
+        receipt, admitted.domain_topology_plan, payload
+    );
+}

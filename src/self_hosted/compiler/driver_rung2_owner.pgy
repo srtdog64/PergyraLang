@@ -24,6 +24,8 @@ import "../mir/program_assignment_parameter_use_contract_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
 import "driver_rung2_readiness_owner.pgy";
 import "driver_rung2_semantic_fixture_manifest_owner.pgy";
+import "canonical_mir_identity_epoch_owner.pgy";
+import "domain_topology_graph_plan_consumer_owner.pgy";
 
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
@@ -253,7 +255,6 @@ func CanonicalizeMirJsonVerified(
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
     let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
-    let json: String = admitted.routines.source_json;
     let routines: MirProgramRoutineIndex = admitted.routines;
     if !MirProgramRoutineIndexStructureReady(routines) {
         Die("MIR routine inventory is missing or invalid");
@@ -263,6 +264,9 @@ func CanonicalizeMirJsonVerified(
     if !emission.ok {
         Die("MIR program tree emission projection is invalid");
     }
+    let identity_epoch: CanonicalMirIdentityEpochArtifact =
+        CanonicalMirIdentityEpochArtifactFromTreeText(emission.text, admitted);
+    if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(emission.text);
     let graph: SemanticExpressionGraphFacts =
         MirExpressionGraphFactsForArtifact(
@@ -281,31 +285,27 @@ func CanonicalizeMirJsonVerified(
     ) {
         Die("MIR assignment binding-mode fact is missing or invalid");
     }
-    return CanonicalizeMirArtifactWithAdmittedTopology(
-        artifact, verified.analysis, admitted, machine_declaration);
+    return CanonicalizeMirArtifactWithAdmittedTopology(artifact,
+        verified.analysis, admitted, machine_declaration, identity_epoch);
 }
 
 func CanonicalizeMirArtifactWithAdmittedTopology(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    identity_epoch: CanonicalMirIdentityEpochArtifact
 ) -> String {
     let projection: DriverRung2MirProjection = DriverRung2MirProjectionFromAnalysisObserved(
         artifact, analysis, machine_declaration, false);
     let facts: SelfMirProgramFacts = projection.facts;
-    if admitted.domain_topology.present {
-        if ArrayLength(admitted.domain_topology.kinds) != 0 {
-            DriverRung2MirProjectionRelease(projection);
-            Die("canonical MIR bridge cannot reconstruct non-empty domain topology");
-        }
-        facts = SelfMirProgramFactsWithDomainTopology(
-            facts,
-            SelfMirDomainTopologyFacts(
-                true, true, admitted.domain_topology.domain_graph_id, 0
-            )
-        );
+    let rebound: CanonicalMirProgramIdentityEpoch =
+        CanonicalMirIdentityEpochRebindProgramFacts(facts, admitted, identity_epoch);
+    if !rebound.ok {
+        DriverRung2MirProjectionRelease(projection);
+        Die("canonical MIR identity epoch remap is invalid");
     }
+    facts = rebound.facts;
     if !SelfMirProgramFactsReady(facts) {
         DriverRung2MirProjectionRelease(projection);
         Die(SelfMirProgramFactsValidationError(facts));
@@ -321,15 +321,14 @@ func CanonicalizeOracleMirJsonBridge(
 ) -> String with caps io_read {
     let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
     let json: String = admitted.routines.source_json;
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTree(json)
-    );
-    return CanonicalizeMirArtifactWithAdmittedTopology(
-        artifact,
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true),
-        admitted,
-        machine_declaration
-    );
+    let tree_text: String = EmitMirProgramTree(json);
+    let identity_epoch: CanonicalMirIdentityEpochArtifact =
+        CanonicalMirIdentityEpochArtifactFromTreeText(tree_text, admitted);
+    if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    return CanonicalizeMirArtifactWithAdmittedTopology(artifact,
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true), admitted,
+        machine_declaration, identity_epoch);
 }
 
 func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
@@ -433,10 +432,11 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     );
     let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
-        GenerateCFromVerifiedSemanticArtifact(
-            artifact, verified.analysis, body_types,
-            admitted.machine_declaration,
-            target_projection
+        MirDomainTopologyGraphPlanAttachAdmittedToC(
+            admitted, GenerateCFromVerifiedSemanticArtifact(
+                artifact, verified.analysis, body_types,
+                admitted.machine_declaration, target_projection
+            )
         ),
         target_projection.schema,
         target_projection.projection,

@@ -12,6 +12,7 @@ import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "nominal_constructor_argument_policy_owner.pgy";
 
 func SemanticAstExpressionMemberRootNames(
     constructors: SemanticAstNominalConstructorFacts,
@@ -133,6 +134,12 @@ func SemanticAstExpressionFunctionTables(
         let constructor_params: String = "";
         let param_index: Int = 0;
         while param_index < constructors.param_counts[constructor_index] {
+            if !SemanticAstNominalConstructorFieldIsArgument(
+                constructors, constructor_index, param_index
+            ) {
+                param_index = param_index + 1;
+                continue;
+            }
             let param_type: Option<String> =
                 SemanticAstNominalConstructorParamTypeAt(
                     constructors, constructor_index, param_index

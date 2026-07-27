@@ -1,0 +1,461 @@
+// Canonical MIR identity-epoch owner.
+//
+// The admitted topology rows are typed input facts, not AST-text provenance.
+// This adapter projects those rows into the reconstructed canonical tree so
+// owner declarations, directives, and fields all receive identities from one
+// AstTreeArtifact arena.  Remapping then joins fields by the exact
+// (owner, name, field_kind) identity; producer-scoped numeric IDs are never
+// compared with canonical IDs and no numeric offset is inferred.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../mir/domain_topology_fact_owner.pgy";
+import "../mir/program_fact_owner.pgy";
+import "../mir_lower/domain_topology_fact_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "../parser/tree_text_owner.pgy";
+import "../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "canonical_mir_field_identity_epoch_owner.pgy";
+
+struct CanonicalMirIdentityEpochArtifact {
+    ok: Bool;
+    artifact: AstTreeArtifact;
+    directive_node_ids: Array<Int>;
+}
+
+struct CanonicalMirProgramIdentityEpoch {
+    ok: Bool;
+    facts: SelfMirProgramFacts;
+}
+
+func CanonicalMirIdentityEpochTopologyOwnerHasRows(
+    ref topology: MirDomainTopologyFacts, owner_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(topology.owner_names) {
+        if topology.owner_names[i] == owner_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CanonicalMirIdentityEpochOwnerNameForLine(
+    line: String,
+    ref topology: MirDomainTopologyFacts,
+    ref declarations: MirProgramDeclarationIndex
+) -> String {
+    let trimmed: String = StringTrim(line);
+    let i: Int = 0;
+    while i < ArrayLength(declarations.names) {
+        let nominal_kind: String = declarations.nominal_kinds[i];
+        let prefix: String = "";
+        if nominal_kind == "effect" {
+            prefix = "Effect: ";
+        } else if nominal_kind == "relation" {
+            prefix = "Relation: ";
+        } else if nominal_kind == "zone" {
+            prefix = "Zone: ";
+        }
+        if prefix != "" && trimmed == Concat(prefix, declarations.names[i]) &&
+            CanonicalMirIdentityEpochTopologyOwnerHasRows(
+                topology, declarations.names[i]
+            ) {
+            return declarations.names[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func CanonicalMirIdentityEpochDirectSlotRow(line: String) -> Bool {
+    let trimmed: String = StringTrim(line);
+    return StartsWith(trimmed, "SubjectSlot: ") ||
+        StartsWith(trimmed, "ObjectSlot: ") ||
+        StartsWith(trimmed, "TObjectSlot: ") ||
+        StartsWith(trimmed, "VesselSlot: ") ||
+        StartsWith(trimmed, "EffectSlot: ") ||
+        StartsWith(trimmed, "RelationSlot: ") ||
+        StartsWith(trimmed, "EffectPool: ") ||
+        StartsWith(trimmed, "RelationPool: ");
+}
+
+func CanonicalMirIdentityEpochDirectiveText(
+    ref topology: MirDomainTopologyFacts, row: Int
+) -> String {
+    let kind: String = topology.kinds[row];
+    let text: String = "";
+    if kind == "refresh" || kind == "publish" || kind == "bind" {
+        let label: String = "Refresh";
+        if kind == "publish" { label = "Publish"; }
+        if kind == "bind" { label = "Bind"; }
+        text = Concat(
+            label,
+            Concat(
+                ": ",
+                Concat(
+                    topology.projection_slot_names[row],
+                    Concat(" from ", topology.source_slot_names[row])
+                )
+            )
+        );
+    } else if kind == "maintain-effect" {
+        text = Concat(
+            "MaintainEffect: ",
+            Concat(
+                topology.layer_slot_names[row],
+                Concat(" on ", topology.target_slot_names[row])
+            )
+        );
+    } else if kind == "link-relation" {
+        text = Concat(
+            "Link: ",
+            Concat(
+                topology.layer_slot_names[row],
+                Concat(
+                    " between ",
+                    Concat(
+                        topology.left_slot_names[row],
+                        Concat(", ", topology.right_slot_names[row])
+                    )
+                )
+            )
+        );
+    }
+    if text != "" && topology.participant_slot_names[row] != "" {
+        text = Concat(
+            text, Concat(" by ", topology.participant_slot_names[row])
+        );
+    }
+    return text;
+}
+
+func CanonicalMirIdentityEpochAppendOwnerTopology(
+    owner_name: String,
+    indent: Int,
+    ref topology: MirDomainTopologyFacts,
+    inout output: String,
+    inout node_count: Int,
+    inout directive_node_ids: Array<Int>
+) -> Bool {
+    let matched: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(topology.kinds) {
+        if topology.owner_names[row] == owner_name {
+            let directive: String = CanonicalMirIdentityEpochDirectiveText(
+                topology, row
+            );
+            if directive == "" || directive_node_ids[row] >= 0 {
+                return false;
+            }
+            output = AppendLine(
+                output, Concat(IndentStr(indent + 2), directive)
+            );
+            ArraySet(directive_node_ids, row, node_count);
+            node_count = node_count + 1;
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched > 0;
+}
+
+func CanonicalMirIdentityEpochArtifactFromTreeText(
+    tree_text: String,
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> CanonicalMirIdentityEpochArtifact {
+    let empty_ids: Array<Int> = [];
+    let base_artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    if !admitted.domain_topology.present ||
+        ArrayLength(admitted.domain_topology.kinds) == 0 {
+        return CanonicalMirIdentityEpochArtifact(
+            AstTreeArtifactReady(base_artifact), base_artifact, empty_ids
+        );
+    }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(admitted.routines.source_json);
+    if !admitted.domain_topology.valid || !declarations.valid ||
+        !declarations.field_identities.valid {
+        return CanonicalMirIdentityEpochArtifact(false, base_artifact, empty_ids);
+    }
+    let directive_node_ids: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(admitted.domain_topology.kinds) {
+        ArrayPush(directive_node_ids, 0 - 1);
+        row = row + 1;
+    }
+    let output: String = "";
+    let node_count: Int = 0;
+    let active_owner: String = "";
+    let active_indent: Int = 0;
+    let inserted: Bool = false;
+    let lines: Array<String> = Split(tree_text, "\n");
+    let line_index: Int = 0;
+    while line_index < ArrayLength(lines) {
+        let line: String = lines[line_index];
+        let trimmed: String = StringTrim(line);
+        let indent: Int = CodegenAstTextIndentOf(line);
+        if active_owner != "" && !inserted && trimmed != "" &&
+            (indent <= active_indent ||
+             (indent == active_indent + 2 &&
+              !CanonicalMirIdentityEpochDirectSlotRow(line))) {
+            if !CanonicalMirIdentityEpochAppendOwnerTopology(
+                active_owner, active_indent, admitted.domain_topology,
+                output, node_count, directive_node_ids
+            ) {
+                return CanonicalMirIdentityEpochArtifact(
+                    false, base_artifact, empty_ids
+                );
+            }
+            inserted = true;
+        }
+        if trimmed != "" {
+            output = AppendLine(output, line);
+            node_count = node_count + 1;
+        }
+        if active_owner != "" && indent <= active_indent &&
+            CanonicalMirIdentityEpochOwnerNameForLine(
+                line, admitted.domain_topology, declarations
+            ) == "" {
+            active_owner = "";
+            inserted = false;
+        }
+        let owner: String = CanonicalMirIdentityEpochOwnerNameForLine(
+            line, admitted.domain_topology, declarations
+        );
+        if owner != "" {
+            active_owner = owner;
+            active_indent = indent;
+            inserted = false;
+        }
+        line_index = line_index + 1;
+    }
+    if active_owner != "" && !inserted {
+        if !CanonicalMirIdentityEpochAppendOwnerTopology(
+            active_owner, active_indent, admitted.domain_topology,
+            output, node_count, directive_node_ids
+        ) {
+            return CanonicalMirIdentityEpochArtifact(
+                false, base_artifact, empty_ids
+            );
+        }
+    }
+    let id_index: Int = 0;
+    while id_index < ArrayLength(directive_node_ids) {
+        if directive_node_ids[id_index] <= 0 {
+            return CanonicalMirIdentityEpochArtifact(
+                false, base_artifact, empty_ids
+            );
+        }
+        id_index = id_index + 1;
+    }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(output);
+    return CanonicalMirIdentityEpochArtifact(
+        AstTreeArtifactReady(artifact) && artifact.count == node_count,
+        artifact, directive_node_ids
+    );
+}
+
+func CanonicalMirIdentityEpochOwnerId(
+    ref source_index: MirProgramDeclarationFieldIdentityIndex,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    owner_name: String
+) -> String {
+    let source_owner: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(
+            source_index, owner_name
+        );
+    if source_owner < 0 { return ""; }
+    let nominal_kind: String =
+        source_index.declaration_nominal_kinds[source_owner];
+    let found_id: Int = 0 - 1;
+    let i: Int = 0;
+    while i < ArrayLength(constructors.names) {
+        if constructors.names[i] == owner_name &&
+            constructors.nominal_kinds[i] == nominal_kind {
+            if found_id >= 0 { return ""; }
+            found_id = constructors.node_ids[i];
+        }
+        i = i + 1;
+    }
+    if found_id <= 0 { return ""; }
+    return ToString(found_id);
+}
+
+func CanonicalMirIdentityEpochRemapTopology(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref canonical_declarations: SelfMirDeclarationRows,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    directive_node_ids: Array<Int>
+) -> SelfMirDomainTopologyFacts {
+    if !admitted.domain_topology.present {
+        return SelfMirDomainTopologyFactsAbsent();
+    }
+    if !admitted.domain_topology.valid ||
+        !SemanticAstNominalConstructorRowsReady(constructors) {
+        return SelfMirDomainTopologyFactsInvalid(true);
+    }
+    let source_declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(admitted.routines.source_json);
+    let count: Int = ArrayLength(admitted.domain_topology.kinds);
+    if !source_declarations.valid ||
+        !source_declarations.field_identities.valid ||
+        ArrayLength(directive_node_ids) != count {
+        return SelfMirDomainTopologyFactsInvalid(true);
+    }
+    let owner_ids: Array<String> = [];
+    let directive_ids: Array<String> = [];
+    let owner_names: Array<String> = [];
+    let kinds: Array<String> = [];
+    let projection_names: Array<String> = [];
+    let projection_ids: Array<String> = [];
+    let source_names: Array<String> = [];
+    let source_ids: Array<String> = [];
+    let layer_names: Array<String> = [];
+    let layer_ids: Array<String> = [];
+    let target_names: Array<String> = [];
+    let target_ids: Array<String> = [];
+    let left_names: Array<String> = [];
+    let left_ids: Array<String> = [];
+    let right_names: Array<String> = [];
+    let right_ids: Array<String> = [];
+    let participant_names: Array<String> = [];
+    let participant_ids: Array<String> = [];
+    let row: Int = 0;
+    while row < count {
+        let owner_id: String = CanonicalMirIdentityEpochOwnerId(
+            source_declarations.field_identities, constructors,
+            admitted.domain_topology.owner_names[row]
+        );
+        let projection: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.projection_slot_names[row],
+                admitted.domain_topology.projection_slot_source_syntax_ids[row]
+            );
+        let source: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.source_slot_names[row],
+                admitted.domain_topology.source_slot_source_syntax_ids[row]
+            );
+        let layer: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.layer_slot_names[row],
+                admitted.domain_topology.layer_slot_source_syntax_ids[row]
+            );
+        let target: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.target_slot_names[row],
+                admitted.domain_topology.target_slot_source_syntax_ids[row]
+            );
+        let left: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.left_slot_names[row],
+                admitted.domain_topology.left_slot_source_syntax_ids[row]
+            );
+        let right: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.right_slot_names[row],
+                admitted.domain_topology.right_slot_source_syntax_ids[row]
+            );
+        let participant: CanonicalMirIdentityEpochFieldRemap =
+            CanonicalMirIdentityEpochRemapField(
+                source_declarations.field_identities, canonical_declarations,
+                admitted.domain_topology.owner_names[row],
+                admitted.domain_topology.participant_slot_names[row],
+                admitted.domain_topology.participant_slot_source_syntax_ids[row]
+            );
+        if owner_id == "" || directive_node_ids[row] <= 0 ||
+            !projection.ok || !source.ok || !layer.ok || !target.ok ||
+            !left.ok || !right.ok || !participant.ok {
+            return SelfMirDomainTopologyFactsInvalid(true);
+        }
+        ArrayPush(owner_names, admitted.domain_topology.owner_names[row]);
+        ArrayPush(owner_ids, owner_id);
+        ArrayPush(directive_ids, ToString(directive_node_ids[row]));
+        ArrayPush(kinds, admitted.domain_topology.kinds[row]);
+        ArrayPush(
+            projection_names,
+            admitted.domain_topology.projection_slot_names[row]
+        );
+        ArrayPush(projection_ids, projection.source_syntax_id);
+        ArrayPush(source_names, admitted.domain_topology.source_slot_names[row]);
+        ArrayPush(source_ids, source.source_syntax_id);
+        ArrayPush(layer_names, admitted.domain_topology.layer_slot_names[row]);
+        ArrayPush(layer_ids, layer.source_syntax_id);
+        ArrayPush(target_names, admitted.domain_topology.target_slot_names[row]);
+        ArrayPush(target_ids, target.source_syntax_id);
+        ArrayPush(left_names, admitted.domain_topology.left_slot_names[row]);
+        ArrayPush(left_ids, left.source_syntax_id);
+        ArrayPush(right_names, admitted.domain_topology.right_slot_names[row]);
+        ArrayPush(right_ids, right.source_syntax_id);
+        ArrayPush(
+            participant_names,
+            admitted.domain_topology.participant_slot_names[row]
+        );
+        ArrayPush(participant_ids, participant.source_syntax_id);
+        row = row + 1;
+    }
+    let facts: SelfMirDomainTopologyFacts = SelfMirDomainTopologyFacts(
+        true, true, admitted.domain_topology.domain_graph_id, count,
+        owner_names, owner_ids, directive_ids, kinds,
+        projection_names, projection_ids, source_names, source_ids,
+        layer_names, layer_ids, target_names, target_ids,
+        left_names, left_ids, right_names, right_ids,
+        participant_names, participant_ids
+    );
+    if !SelfMirDomainTopologyFactsReady(facts) {
+        return SelfMirDomainTopologyFactsInvalid(true);
+    }
+    return facts;
+}
+
+func CanonicalMirIdentityEpochRebindProgramFacts(
+    facts: SelfMirProgramFacts,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    identity_epoch: CanonicalMirIdentityEpochArtifact
+) -> CanonicalMirProgramIdentityEpoch {
+    if !admitted.domain_topology.present {
+        return CanonicalMirProgramIdentityEpoch(true, facts);
+    }
+    if !identity_epoch.ok {
+        return CanonicalMirProgramIdentityEpoch(false, facts);
+    }
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(
+            identity_epoch.artifact
+        );
+    let declarations: CanonicalMirDeclarationIdentityEpoch =
+        CanonicalMirIdentityEpochBindDeclarationFields(
+            facts.declarations, constructors
+        );
+    if !declarations.ok {
+        return CanonicalMirProgramIdentityEpoch(false, facts);
+    }
+    let topology: SelfMirDomainTopologyFacts =
+        CanonicalMirIdentityEpochRemapTopology(
+            admitted, declarations.declarations, constructors,
+            identity_epoch.directive_node_ids
+        );
+    if !SelfMirDomainTopologyFactsReady(topology) {
+        return CanonicalMirProgramIdentityEpoch(false, facts);
+    }
+    let rebound: SelfMirProgramFacts = SelfMirProgramFacts(
+        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.artifact_node_count, declarations.declarations,
+        topology, facts.generic_specializations, facts.parallel_captures,
+        facts.routines, facts.cfg
+    );
+    return CanonicalMirProgramIdentityEpoch(
+        SelfMirProgramFactsReady(rebound), rebound
+    );
+}

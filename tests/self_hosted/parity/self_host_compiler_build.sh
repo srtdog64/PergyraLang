@@ -128,7 +128,7 @@ fi
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"
-compile_command=("$CC")
+compile_command=("$CC" -x c -std=c11)
 if pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE"; then
     compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
 fi

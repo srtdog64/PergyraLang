@@ -85,7 +85,9 @@ func HostIORuntimeCStringCompareFn() -> String {
 }
 
 func HostIORuntimeCArgsFn() -> String {
-    return "pgy_args";
+    // The canonical runtime header already owns pgy_args with a different
+    // aggregate ABI. Keep the standalone self-host helper identity distinct.
+    return "pgy_selfhost_args";
 }
 
 func HostIORuntimeCExitFn() -> String {

@@ -27,9 +27,9 @@ func RewriteSemanticStructCall(
     type_name: String,
     env: CodegenTypeEnv
 ) -> String {
-    let fields: String = LookupKindType(env, type_name, "fields");
-    if !LookupKindTypeRowPresent(env, type_name, "fields") {
-        Die(Concat("struct call field inventory is missing: ", type_name));
+    let fields: String = LookupKindType(env, type_name, "constructor_fields");
+    if !LookupKindTypeRowPresent(env, type_name, "constructor_fields") {
+        Die(Concat("struct call constructor-field inventory is missing: ", type_name));
     }
     if ArrayLength(view.argument_nodes) == 0 {
         if fields != "" {

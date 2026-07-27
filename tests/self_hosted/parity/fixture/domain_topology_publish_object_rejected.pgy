@@ -1,0 +1,16 @@
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    publish view from bearer
+}
+
+func Main() -> Void {
+    Log(0);
+}

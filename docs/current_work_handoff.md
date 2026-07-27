@@ -6,6 +6,76 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - non-empty topology producer and one graph plan
+
+- Checkout base before this executable slice is
+  `09e00d29a82584e912534ed1e4cb8eefafe23ab0` on `main`, aligned with
+  `origin/main`. The landing commit contains this handoff; after landing, use
+  `git rev-parse HEAD` for the exact executable revision.
+- Objective card:
+  - objective: replace the first non-empty native C topology producer decision
+    with self-host typed DIR/MIR facts, then let one ID-keyed target-neutral plan
+    reach both production backends;
+  - priority: exact producer identity, atomic canonical epoch, one admitted
+    plan, bounded backend receipts, runtime blocker honesty, then patch size;
+  - fact owner: `SelfDirDomainTopologyRows` and `SelfMirDomainTopologyFacts`
+    for source production, `MirDomainTopologyGraphPlan` for the admitted plan;
+  - last legitimate consumer: self-host C/LLVM plan attachment immediately
+    before target projection;
+  - forbidden fallback: native topology graft, source/provenance reparse,
+    name-only or offset identity repair, non-empty-to-empty downgrade,
+    backend plan rebuild, repeated whole-plan readiness, generic zero-fill of
+    layer storage, or plan trace claimed as runtime execution;
+  - gates: focused non-empty producer, canonical identity epoch, one-plan
+    C/LLVM consumer, component contract, object/action boundary contract, and
+    the unchanged 3 GiB pressure owner.
+- Production DRV-2 now produces `zone_layer_projection_runtime` topology from
+  self source through typed AST/DIR/MIR. Exact identity is
+  `domain_graph_id=14937235025281185444` with three rows:
+  `Poisoned.refresh(bearer -> view)`,
+  `TrustedLink.publish(target -> packet)`, and
+  `BattleZone.link-relation(player, enemy -> trust)`. This bounded non-empty
+  producer is `SUBSTITUTING`; it replaces the native C-owned producer decision.
+- Canonical reconstruction issues nominal owner, directive, and declaration
+  field identities in one epoch. Restoring a stale raw ID or pairing the
+  canonical `player` name with the canonical `enemy` ID fails. Numeric equality
+  across native/self epochs, ordinal repair, and name-only joins are absent.
+- Machine admission creates and fully validates exactly one
+  `MirDomainTopologyGraphPlan`. Production C/LLVM consumers check only its
+  bounded graph/digest/cardinality receipt. The exact BattleZone plan is
+  `nodes=3 edges=2 depth=2 pass_limit=2` with `trust <- player` and
+  `trust <- enemy`; forged edges and a gate-only digest mutation fail closed.
+  This plan path is `REACHABLE`, not yet runtime `SUBSTITUTING`.
+- Zone constructor policy now distinguishes caller-supplied
+  subject/object/tobject/binding slots from effect/relation layer storage.
+  Caller arity remains two for BattleZone; the layer fields remain in layout
+  and must be materialized by the topology/runtime owner.
+- Exact runtime blocker: `apply poison to player` is identity-checked in DIR
+  but is not carried as a MIR topology row; no runtime owner materializes
+  `.poison`/`.trust` or executes refresh/publish value synchronization.
+  Therefore self MIR -> general C output `7`/`dst` remains RED and is the next
+  executable falsifier. A zero-filled layer field must be rejected rather than
+  accepted as a successful runtime result.
+- Last observed focused gates are green: non-empty producer hard DRV-2,
+  canonical identity epoch, one target-neutral C/LLVM plan, component contract,
+  language-word registry, object/action boundary contract, and `git diff
+  --check`. The fresh pressure-owned self-host compiler build also installed
+  `bin/pgy-self-driver.exe` and passed its smoke in 2,138,300 ms, with peak
+  working set 1,038.0 MiB and private memory 1,132.4 MiB under the unchanged
+  3,072 MiB cap. The one-plan gate compiles and runs the C and LLVM
+  artifacts with `Hello, Pergyra!`; it intentionally does not claim the open
+  zone runtime result. After that pressure run, the focused plan rebuild also
+  proved the final `own` graph-schedule transfer and absent-plan residual-array
+  rejection. The 35-minute full pressure build was not repeated for those two
+  bounded owner/gate changes.
+- Hard self-host guard accounting resets here: this is the executable
+  replacement required after the two supporting commits. Documentation,
+  registries, tests, and the plan are supporting evidence around the actual
+  non-empty self producer substitution.
+- The only protected concurrent user files remain the three unstaged parity
+  owners for indexed assignment, match, and owner field. Do not stage or edit
+  them.
+
 ## Current resume checkpoint - declaration field exact identity
 
 - Checkout base before this supporting slice is

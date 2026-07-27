@@ -1,12 +1,11 @@
-// Bounded self-host owner for the DIR graph census carried by empty-topology
-// MIR documents.  It mirrors the native DIR node/edge inventory for the
-// currently executable effect/zone/role/authority subset.  A topology
-// directive is never downgraded to an empty row set: unsupported shapes fail
-// before MIR projection.
+// Bounded self-host owner for the DIR graph census and anchor identity. It
+// mirrors the native inventory for the currently executable domain subset and
+// delegates typed directive rows to domain_topology_row_owner.pgy.
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
+import "domain_topology_row_owner.pgy";
 
 struct SelfDirDomainGraphFacts {
     required: Bool;
@@ -17,14 +16,21 @@ struct SelfDirDomainGraphFacts {
     edge_count: Int;
     domain_graph_id: String;
     topology_row_count: Int;
+    topology: SelfDirDomainTopologyRows;
 }
 
 func SelfDirDomainGraphFactsAbsent() -> SelfDirDomainGraphFacts {
-    return SelfDirDomainGraphFacts(false, true, "", 0, 0, 0, "", 0);
+    return SelfDirDomainGraphFacts(
+        false, true, "", 0, 0, 0, "", 0,
+        SelfDirDomainTopologyRowsEmpty()
+    );
 }
 
 func SelfDirDomainGraphFactsError(message: String) -> SelfDirDomainGraphFacts {
-    return SelfDirDomainGraphFacts(true, false, message, 0, 0, 0, "", 0);
+    return SelfDirDomainGraphFacts(
+        true, false, message, 0, 0, 0, "", 0,
+        SelfDirDomainTopologyRowsEmpty()
+    );
 }
 
 func SelfDirU32Xor(left: Long, right: Long) -> Long {
@@ -75,40 +81,6 @@ func SelfDirDomainGraphAnchor(node_count: Int, edge_count: Int) -> String {
     return SelfDirU64Decimal(high, low);
 }
 
-func SelfDirDeclarationIndexForName(
-    rows: SelfMirDeclarationRows,
-    name: String
-) -> Int {
-    let i: Int = 0;
-    while i < ArrayLength(rows.names) {
-        if rows.names[i] == name { return i; }
-        i = i + 1;
-    }
-    return 0 - 1;
-}
-
-func SelfDirFieldKindPresent(
-    rows: SelfMirDeclarationRows,
-    declaration_index: Int,
-    field_name: String,
-    expected_kind: String
-) -> Bool {
-    if declaration_index < 0 ||
-        declaration_index >= ArrayLength(rows.names) {
-        return false;
-    }
-    let i: Int = 0;
-    while i < rows.field_counts[declaration_index] {
-        let row: Int = rows.field_starts[declaration_index] + i;
-        if rows.field_names[row] == field_name &&
-            rows.field_kinds[row] == expected_kind {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
 func SelfDirAbilityMethodCount(
     rows: SelfMirDeclarationRows,
     ability_name: String
@@ -128,11 +100,6 @@ func SelfDirDomainAuthorityEdges(
         let node_kind: Option<Int> = TypedAstArenaNodeKind(
             artifact.arena, node_id
         );
-        if IsSome(node_kind) && TypedAstKindIsDomainTopologyDirective(
-            UnwrapOption(node_kind)
-        ) {
-            return None;
-        }
         if IsSome(node_kind) &&
             (UnwrapOption(node_kind) == TypedAstKindIntentDeclTag() ||
              UnwrapOption(node_kind) == TypedAstKindRosterDeclTag()) {
@@ -279,18 +246,26 @@ func SelfDirDomainGraphFactsFromArtifact(
                 edge_count = edge_count + 2;
                 impl_i = impl_i + 1;
             }
-        } else if rows.nominal_kinds[i] == "effect" {
+        } else if rows.nominal_kinds[i] == "effect" ||
+            rows.nominal_kinds[i] == "relation" {
             let field_i: Int = 0;
             while field_i < rows.field_counts[i] {
                 let field_row: Int = rows.field_starts[i] + field_i;
-                if rows.field_kinds[field_row] !=
+                if rows.field_kinds[field_row] ==
                     NominalFieldKindSubjectSlot() {
+                    node_count = node_count + 1;
+                    edge_count = edge_count + 1;
+                } else if rows.field_kinds[field_row] ==
+                        NominalFieldKindObjectSlot() ||
+                    rows.field_kinds[field_row] ==
+                        NominalFieldKindTObjectSlot() {
+                    node_count = node_count + 1;
+                    edge_count = edge_count + 2;
+                } else {
                     return SelfDirDomainGraphFactsError(
-                        "self-host DIR bounded effect subset supports subject slots only"
+                        "self-host DIR bounded effect/relation field kind is unsupported"
                     );
                 }
-                node_count = node_count + 1;
-                edge_count = edge_count + 1;
                 field_i = field_i + 1;
             }
         } else if rows.nominal_kinds[i] == "zone" {
@@ -302,20 +277,21 @@ func SelfDirDomainGraphFactsFromArtifact(
                     node_count = node_count + 1;
                     edge_count = edge_count + 3;
                 } else if rows.field_kinds[field_row] ==
-                    NominalFieldKindEffectSlot() {
+                        NominalFieldKindEffectSlot() ||
+                    rows.field_kinds[field_row] ==
+                        NominalFieldKindRelationSlot() {
                     edge_count = edge_count + 1;
                 } else {
                     return SelfDirDomainGraphFactsError(
-                        "self-host DIR bounded zone subset supports subject/effect slots only"
+                        "self-host DIR bounded zone field kind is unsupported"
                     );
                 }
                 field_i = field_i + 1;
             }
-        } else if rows.nominal_kinds[i] == "relation" ||
-            rows.nominal_kinds[i] == "party" ||
+        } else if rows.nominal_kinds[i] == "party" ||
             rows.nominal_kinds[i] == "world" || rows.kinds[i] == "event" {
             return SelfDirDomainGraphFactsError(
-                "self-host DIR relation/party/world/event production is not implemented"
+                "self-host DIR party/world/event production is not implemented"
             );
         }
         i = i + 1;
@@ -325,8 +301,22 @@ func SelfDirDomainGraphFactsFromArtifact(
     );
     if !IsSome(authority_edges) {
         return SelfDirDomainGraphFactsError(
-            "self-host DIR topology directive or authority shape is unsupported"
+            "self-host DIR authority shape is unsupported"
         );
+    }
+    let topology: SelfDirDomainTopologyRows =
+        SelfDirDomainTopologyRowsFromArtifact(artifact, rows);
+    if !SelfDirDomainTopologyRowsReady(topology) {
+        return SelfDirDomainGraphFactsError(topology.diagnostic_message);
+    }
+    let topology_i: Int = 0;
+    while topology_i < ArrayLength(topology.kinds) {
+        if topology.kinds[topology_i] == "refresh" ||
+            topology.kinds[topology_i] == "publish" ||
+            topology.kinds[topology_i] == "bind" {
+            edge_count = edge_count + 2;
+        }
+        topology_i = topology_i + 1;
     }
     let authority_node_count: Int = 0;
     let node_id: Int = 0;
@@ -342,7 +332,8 @@ func SelfDirDomainGraphFactsFromArtifact(
     edge_count = edge_count + UnwrapOption(authority_edges);
     return SelfDirDomainGraphFacts(
         true, true, "", 1, node_count, edge_count,
-        SelfDirDomainGraphAnchor(node_count, edge_count), 0
+        SelfDirDomainGraphAnchor(node_count, edge_count),
+        ArrayLength(topology.kinds), topology
     );
 }
 
@@ -350,10 +341,13 @@ func SelfDirDomainGraphFactsReady(facts: SelfDirDomainGraphFacts) -> Bool {
     if !facts.required {
         return facts.ok && facts.source_program_syntax_id == 0 &&
             facts.node_count == 0 && facts.edge_count == 0 &&
-            facts.domain_graph_id == "" && facts.topology_row_count == 0;
+            facts.domain_graph_id == "" && facts.topology_row_count == 0 &&
+            SelfDirDomainTopologyRowsReady(facts.topology) &&
+            ArrayLength(facts.topology.kinds) == 0;
     }
     return facts.ok && facts.source_program_syntax_id == 1 &&
         facts.node_count > 0 && facts.edge_count >= 0 &&
         facts.domain_graph_id != "" && facts.domain_graph_id != "0" &&
-        facts.topology_row_count == 0;
+        SelfDirDomainTopologyRowsReady(facts.topology) &&
+        facts.topology_row_count == ArrayLength(facts.topology.kinds);
 }

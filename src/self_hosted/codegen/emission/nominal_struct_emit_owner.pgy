@@ -28,6 +28,7 @@ func CollectStructsSelected(
         let c_sname: String = AbiLayoutCStructTypeName(sname);
         let fields_c: Array<String> = [];
         let field_names: Array<String> = [];
+        let constructor_field_names: Array<String> = [];
         let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
         let role_slot_count: Int = CodegenSemanticNominalRoleSlotCountOrDie(
             facts, i
@@ -45,6 +46,11 @@ func CollectStructsSelected(
             );
             let c_fname: String = CompilerSymbolCFieldName(fname);
             ArrayPush(field_names, fname);
+            if CodegenSemanticNominalFieldIsConstructorArgumentOrDie(
+                facts, i, field_index
+            ) {
+                ArrayPush(constructor_field_names, fname);
+            }
             ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
             ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
             field_index = field_index + 1;
@@ -99,6 +105,11 @@ func CollectStructsSelected(
         ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
         ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
         ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
+        ArrayPush(struct_env_rows, Concat(
+            sname, Concat("=constructor_fields:", Concat(
+                StringJoin(constructor_field_names, ","), "|"
+            ))
+        ));
         ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
         i = i + 1;
     }

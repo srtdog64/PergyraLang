@@ -3374,6 +3374,18 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSo
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
+require_file "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy"
+require_max_lines "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" 600
+require_file "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy"
+require_max_lines "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" 600
+require_text "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
+    'import "canonical_mir_field_identity_epoch_owner.pgy";'
+require_text "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" \
+    "func CanonicalMirIdentityEpochBindDeclarationFields("
+require_text "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" \
+    "func CanonicalMirIdentityEpochRemapField("
+reject_text "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
+    "func CanonicalMirIdentityEpochBindDeclarationFields("
 require_file "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" 100
 require_file "src/self_hosted/compiler/driver_rung2_semantic_fixture_manifest_owner.pgy"
@@ -4397,9 +4409,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 281;"
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 282;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 281'
+    'mir_fixture_rows[@]}" -ne 282'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -4660,7 +4672,13 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
     "func AbiLayoutCFieldlessNominalInitializer()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    'LookupKindTypeRowPresent(env, type_name, "fields")'
+    'LookupKindTypeRowPresent(env, type_name, "constructor_fields")'
+require_file "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy"
+require_max_lines "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" 100
+require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorFieldIsArgument("
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    '"=constructor_fields:"'
 require_file "tests/self_hosted/parity/driver_rung2_fieldless_class_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_fieldless_class_parity_owner.sh" 140
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -5001,11 +5019,11 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 281;"
+    "return 282;"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 281'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 282'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -5083,7 +5101,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/loop_collect_distinct_set/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 281;"
+    "return 282;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -7745,6 +7763,12 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCEmp
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static int pgy_argc"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static char **pgy_argv"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_as pgy_args"
+require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" \
+    'return "pgy_selfhost_args";'
+reject_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" \
+    'return "pgy_args";'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'compile_command=("$CC" -x c -std=c11)'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "pgy_argc = argc"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "pgy_argv = argv"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "int main(int argc, char **argv)"

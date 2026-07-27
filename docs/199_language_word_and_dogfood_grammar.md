@@ -136,6 +136,17 @@ func CharAt(s: String, i: Int) -> String {
 소유한다. 이 절은 그 구성체가 self-host 실행 그래프에서 실제로 도달하는지만
 판정한다.
 
+도그푸딩의 기본 단위도 키워드 하나가 아니라 그 문서의 다섯 경계 패턴이다.
+`subject -> object -> refresh`는 local observation, `subject -> tobject -> publish`는
+boundary publication, `subject -> vessel -> hosted func`는 encapsulated state,
+`typed fact -> subject.action -> Result/receipt`는 observable transition,
+`action/effect/relation -> zone -> intent/world`는 domain orchestration이다. 이들은
+승격 단계가 아니며 한 구성체가 다음 구성체의 identity·authority·lifetime까지
+대신 소유하면 안 된다. Self-host 구현은 각 패턴마다 typed parser identity,
+semantic/DIR fact, lossless MIR carriage, target-neutral plan, production consumer를
+끊김 없이 증명해야 한다. 마지막 consumer가 없으면 Pergyra다운 표면이어도
+`SURFACE` 또는 `REACHABLE`일 뿐이다.
+
 컴파일러 파이프라인의 목표 토폴로지는
 world/zone/subject/object/authority로 선언돼 있다. 그러나 “선언이
 컴파일된다”와 “실제 bootstrap entrypoint가 그 책임을 호출한다”는 다른
@@ -217,6 +228,20 @@ requires/within/causes/authorized/caps/effects declaration contract를 운반한
 subject/action 한 쌍은 `INVOKED`와 terminal result consumption까지다. 마지막
 `SUBSTITUTING`만 기존 C-owned path 삭제와 executable negative가 함께 있을 때
 hard self-host 진척으로 센다.
+
+별도의 non-empty domain producer slice는 이제 이 마지막 조건을 좁게 만족한다.
+Production self-host driver가 `zone_layer_projection_runtime` source를 직접 읽어
+`effect.refresh`, `relation.publish`, `zone.link` topology 3행과 exact field identity를
+MIR에 방출한다. Native topology JSON을 붙이지 않으며 refresh→tobject,
+publish→object, foreign valid field ID, zone layer storage의 constructor-argument
+재진입을 모두 fail closed로 거부한다. 따라서 이 `source -> typed DIR -> MIR`
+producer 대체는 `SUBSTITUTING`이다.
+
+반면 ID-keyed topology plan은 admission에서 한 번 검증돼 C/LLVM artifact에 exact
+schedule을 투영하는 `REACHABLE` consumer일 뿐이다. `apply` row와 `.poison`/`.trust`
+storage materialization, refresh/publish runtime sync가 없으므로 self-emitted zone
+runtime의 `7`/`dst`는 아직 RED다. 계획 trace나 generic zero-fill을 실행 결과로
+세지 않는다.
 
 ---
 

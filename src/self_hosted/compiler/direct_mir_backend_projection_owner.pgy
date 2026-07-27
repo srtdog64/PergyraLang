@@ -7,6 +7,7 @@ import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_backend_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "domain_topology_graph_plan_consumer_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 
 func CompileAdmittedDirectMirForTarget(
@@ -98,6 +99,15 @@ func CompileAdmittedDirectMirForTarget(
         }
     } else {
         Die("direct MIR backend projection rejected unsupported CFG shape");
+    }
+    if is_llvm {
+        payload = MirDomainTopologyGraphPlanAttachAdmittedToLlvm(
+            admitted, payload
+        );
+    } else {
+        payload = MirDomainTopologyGraphPlanAttachAdmittedToC(
+            admitted, payload
+        );
     }
     let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact(
         kind,

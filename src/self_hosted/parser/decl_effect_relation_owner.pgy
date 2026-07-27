@@ -4,6 +4,106 @@ import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 
+func ParseEffectRelationProjectionDirective(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> String {
+    let i: Int = start;
+    let label: String = "";
+    if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) {
+        label = "Refresh";
+        i = LanguageWordEnd(i, LanguageWordId.WordRefresh);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordPublish) {
+        label = "Publish";
+        i = LanguageWordEnd(i, LanguageWordId.WordPublish);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordBind) {
+        label = "Bind";
+        i = LanguageWordEnd(i, LanguageWordId.WordBind);
+    } else {
+        Exit(1);
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let projection_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
+    if projection_name == "" ||
+        !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
+        Exit(1);
+    }
+    i = LanguageWordEnd(i, LanguageWordId.WordFrom);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let source_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
+    let participant_name: String = "";
+    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
+        i = LanguageWordEnd(i, LanguageWordId.WordBy);
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        participant_name = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        i = SkipWhitespaceAndComments(content, i);
+    }
+    if i < StringLength(content) && ParserCharAt(content, i) == ";" {
+        i = i + 1;
+    }
+    if source_name == "" { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    let row: String = Concat(
+        "    ", Concat(label, Concat(": ", Concat(
+            projection_name, Concat(" from ", source_name)
+        )))
+    );
+    if participant_name != "" {
+        row = Concat(row, Concat(" by ", participant_name));
+    }
+    return row;
+}
+
+func ParseEffectRelationProjectionSlot(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> String {
+    let i: Int = start;
+    let label: String = "";
+    if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
+        label = "ObjectSlot";
+        i = LanguageWordEnd(i, LanguageWordId.WordObject);
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
+        label = "TObjectSlot";
+        i = LanguageWordEnd(i, LanguageWordId.WordTobject);
+    } else {
+        Exit(1);
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) { Exit(1); }
+    i = LanguageWordEnd(i, LanguageWordId.WordSlot);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let slot_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, ":");
+    if i < 0 || slot_name == "" { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    let slot_type: String = ReadType(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
+    if i < StringLength(content) && ParserCharAt(content, i) == ";" {
+        i = i + 1;
+    }
+    if slot_type == "" { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    return Concat(
+        "    ", Concat(label, Concat(": ", Concat(
+            slot_name, Concat(": ", slot_type)
+        )))
+    );
+}
+
 func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -41,6 +141,27 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordObject) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
+            ArraySet(cursor_out, 0, i);
+            eff_fields = AppendLine(
+                eff_fields,
+                ParseEffectRelationProjectionSlot(content, i, cursor_out)
+            );
+            i = cursor_out[0];
+            continue;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordPublish) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordBind) {
+            ArraySet(cursor_out, 0, i);
+            eff_fields = AppendLine(
+                eff_fields,
+                ParseEffectRelationProjectionDirective(content, i, cursor_out)
+            );
+            i = cursor_out[0];
+            continue;
         }
         let is_shared_eff: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
@@ -127,6 +248,27 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordObject) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
+            ArraySet(cursor_out, 0, i);
+            rel_fields = AppendLine(
+                rel_fields,
+                ParseEffectRelationProjectionSlot(content, i, cursor_out)
+            );
+            i = cursor_out[0];
+            continue;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordPublish) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordBind) {
+            ArraySet(cursor_out, 0, i);
+            rel_fields = AppendLine(
+                rel_fields,
+                ParseEffectRelationProjectionDirective(content, i, cursor_out)
+            );
+            i = cursor_out[0];
+            continue;
         }
         let is_shared_rel: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordLet) {

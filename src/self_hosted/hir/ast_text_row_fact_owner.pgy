@@ -137,6 +137,29 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == TypedAstKindDomainRefreshTag() ||
+        kind == TypedAstKindDomainPublishTag() ||
+        kind == TypedAstKindDomainProjectionBindTag() {
+        let from_pos: Int = StringIndexOf(payload, " from ");
+        if from_pos > 0 {
+            return StringTrim(Substring(payload, 0, from_pos));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainLinkTag() {
+        let between_pos: Int = StringIndexOf(payload, " between ");
+        if between_pos > 0 {
+            return StringTrim(Substring(payload, 0, between_pos));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainApplyTag() {
+        let arrow_pos: Int = StringIndexOf(payload, " -> ");
+        if arrow_pos > 0 {
+            return StringTrim(Substring(payload, 0, arrow_pos));
+        }
+        return "";
+    }
     return "";
 }
 
@@ -202,6 +225,17 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == TypedAstKindDomainLinkTag() {
+        let between_pos: Int = StringIndexOf(payload, " between ");
+        let comma_pos: Int = StringIndexOf(payload, ", ");
+        if between_pos > 0 && comma_pos > between_pos + 9 {
+            let start: Int = comma_pos + 2;
+            let end: Int = StringIndexOf(payload, " by ");
+            if end < start { end = StringLength(payload); }
+            return StringTrim(Substring(payload, start, end - start));
+        }
+        return "";
+    }
     return "";
 }
 
@@ -260,6 +294,20 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
                 let end_start: Int = UnwrapOption(dot_pos) + 2;
                 return StringTrim(Substring(iterable, end_start, StringLength(iterable) - end_start));
             }
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainRefreshTag() ||
+        kind == TypedAstKindDomainPublishTag() ||
+        kind == TypedAstKindDomainProjectionBindTag() ||
+        kind == TypedAstKindDomainLinkTag() ||
+        kind == TypedAstKindDomainApplyTag() {
+        let by_pos: Int = StringIndexOf(payload, " by ");
+        if by_pos >= 0 {
+            let start: Int = by_pos + 4;
+            return StringTrim(Substring(
+                payload, start, StringLength(payload) - start
+            ));
         }
         return "";
     }
@@ -327,6 +375,37 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
             return StringTrim(Substring(
                 payload, start, StringLength(payload) - start
             ));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainRefreshTag() ||
+        kind == TypedAstKindDomainPublishTag() ||
+        kind == TypedAstKindDomainProjectionBindTag() {
+        let from_pos: Int = StringIndexOf(payload, " from ");
+        if from_pos > 0 {
+            let start: Int = from_pos + 6;
+            let end: Int = StringIndexOf(payload, " by ");
+            if end < start { end = StringLength(payload); }
+            return StringTrim(Substring(payload, start, end - start));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainLinkTag() {
+        let between_pos: Int = StringIndexOf(payload, " between ");
+        let comma_pos: Int = StringIndexOf(payload, ", ");
+        if between_pos > 0 && comma_pos > between_pos + 9 {
+            let start: Int = between_pos + 9;
+            return StringTrim(Substring(payload, start, comma_pos - start));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainApplyTag() {
+        let arrow_pos: Int = StringIndexOf(payload, " -> ");
+        if arrow_pos > 0 {
+            let start: Int = arrow_pos + 4;
+            let end: Int = StringIndexOf(payload, " by ");
+            if end < start { end = StringLength(payload); }
+            return StringTrim(Substring(payload, start, end - start));
         }
         return "";
     }

@@ -1,50 +1,346 @@
 // MIR carrier for the DIR-owned domain graph identity and topology rows.
-// The source producer derives this from SelfDirDomainGraphFacts; MIR-input
-// canonicalization may carry an already-admitted empty projection without
-// reconstructing the graph from its lossy declaration tree.
+// Canonicalization may replace producer-scoped declaration identities, but it
+// must carry every admitted topology row in the same canonical identity epoch.
 
 import "../dir/domain_graph_fact_owner.pgy";
+import "../lib/json_emit.pgy";
 
 struct SelfMirDomainTopologyFacts {
     present: Bool;
     ok: Bool;
     domain_graph_id: String;
     row_count: Int;
+    owner_names: Array<String>;
+    owner_source_syntax_ids: Array<String>;
+    source_syntax_ids: Array<String>;
+    kinds: Array<String>;
+    projection_slot_names: Array<String>;
+    projection_slot_source_syntax_ids: Array<String>;
+    source_slot_names: Array<String>;
+    source_slot_source_syntax_ids: Array<String>;
+    layer_slot_names: Array<String>;
+    layer_slot_source_syntax_ids: Array<String>;
+    target_slot_names: Array<String>;
+    target_slot_source_syntax_ids: Array<String>;
+    left_slot_names: Array<String>;
+    left_slot_source_syntax_ids: Array<String>;
+    right_slot_names: Array<String>;
+    right_slot_source_syntax_ids: Array<String>;
+    participant_slot_names: Array<String>;
+    participant_slot_source_syntax_ids: Array<String>;
+}
+
+func SelfMirDomainTopologyFactsEmptyWithStatus(
+    present: Bool, ok: Bool, domain_graph_id: String
+) -> SelfMirDomainTopologyFacts {
+    let strings0: Array<String> = [];
+    let strings1: Array<String> = [];
+    let strings2: Array<String> = [];
+    let strings3: Array<String> = [];
+    let strings4: Array<String> = [];
+    let strings5: Array<String> = [];
+    let strings6: Array<String> = [];
+    let strings7: Array<String> = [];
+    let strings8: Array<String> = [];
+    let strings9: Array<String> = [];
+    let strings10: Array<String> = [];
+    let strings11: Array<String> = [];
+    let strings12: Array<String> = [];
+    let strings13: Array<String> = [];
+    let strings14: Array<String> = [];
+    let strings15: Array<String> = [];
+    let strings16: Array<String> = [];
+    let strings17: Array<String> = [];
+    return SelfMirDomainTopologyFacts(
+        present, ok, domain_graph_id, 0,
+        strings0, strings1, strings2, strings3, strings4, strings5,
+        strings6, strings7, strings8, strings9, strings10, strings11,
+        strings12, strings13, strings14, strings15, strings16, strings17
+    );
 }
 
 func SelfMirDomainTopologyFactsAbsent() -> SelfMirDomainTopologyFacts {
-    return SelfMirDomainTopologyFacts(false, true, "", 0);
+    return SelfMirDomainTopologyFactsEmptyWithStatus(false, true, "");
+}
+
+func SelfMirDomainTopologyFactsInvalid(
+    present: Bool
+) -> SelfMirDomainTopologyFacts {
+    return SelfMirDomainTopologyFactsEmptyWithStatus(present, false, "");
+}
+
+func SelfMirDomainTopologySyntaxIdRows(ids: Array<Int>) -> Array<String> {
+    let projected: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(ids) {
+        ArrayPush(projected, ToString(ids[i]));
+        i = i + 1;
+    }
+    return projected;
 }
 
 func SelfMirDomainTopologyFactsFromSelfDir(
     graph: SelfDirDomainGraphFacts
 ) -> SelfMirDomainTopologyFacts {
     if !graph.required { return SelfMirDomainTopologyFactsAbsent(); }
-    if !SelfDirDomainGraphFactsReady(graph) {
-        return SelfMirDomainTopologyFacts(true, false, "", 0);
+    if !SelfDirDomainGraphFactsReady(graph) ||
+        !SelfDirDomainTopologyRowsReady(graph.topology) ||
+        graph.topology_row_count != ArrayLength(graph.topology.kinds) {
+        return SelfMirDomainTopologyFactsInvalid(true);
     }
     return SelfMirDomainTopologyFacts(
-        true, true, graph.domain_graph_id, graph.topology_row_count
+        true, true, graph.domain_graph_id, graph.topology_row_count,
+        graph.topology.owner_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.owner_source_syntax_ids
+        ),
+        SelfMirDomainTopologySyntaxIdRows(graph.topology.source_syntax_ids),
+        graph.topology.kinds,
+        graph.topology.projection_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.projection_slot_source_syntax_ids
+        ),
+        graph.topology.source_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.source_slot_source_syntax_ids
+        ),
+        graph.topology.layer_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.layer_slot_source_syntax_ids
+        ),
+        graph.topology.target_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.target_slot_source_syntax_ids
+        ),
+        graph.topology.left_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.left_slot_source_syntax_ids
+        ),
+        graph.topology.right_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.right_slot_source_syntax_ids
+        ),
+        graph.topology.participant_slot_names,
+        SelfMirDomainTopologySyntaxIdRows(
+            graph.topology.participant_slot_source_syntax_ids
+        )
     );
+}
+
+func SelfMirDomainTopologyPositiveDecimal(value: String) -> Bool {
+    let n: Int = StringLength(value);
+    if n <= 0 || CharCode(value, n, 0) == CharCode("0", 1, 0) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        let code: Int = CharCode(value, n, i);
+        if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirDomainTopologyKnownKind(kind: String) -> Bool {
+    return kind == "refresh" || kind == "publish" || kind == "bind" ||
+        kind == "maintain-effect" || kind == "link-relation";
+}
+
+func SelfMirDomainTopologyNameIdReady(name: String, id: String) -> Bool {
+    if name == "" { return id == "0"; }
+    return SelfMirDomainTopologyPositiveDecimal(id);
 }
 
 func SelfMirDomainTopologyFactsReady(
     facts: SelfMirDomainTopologyFacts
 ) -> Bool {
+    let count: Int = facts.row_count;
     if !facts.present {
-        return facts.ok && facts.domain_graph_id == "" &&
-            facts.row_count == 0;
+        return facts.ok && facts.domain_graph_id == "" && count == 0 &&
+            ArrayLength(facts.owner_names) == 0 &&
+            ArrayLength(facts.owner_source_syntax_ids) == 0 &&
+            ArrayLength(facts.source_syntax_ids) == 0 &&
+            ArrayLength(facts.kinds) == 0 &&
+            ArrayLength(facts.projection_slot_names) == 0 &&
+            ArrayLength(facts.projection_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.source_slot_names) == 0 &&
+            ArrayLength(facts.source_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.layer_slot_names) == 0 &&
+            ArrayLength(facts.layer_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.target_slot_names) == 0 &&
+            ArrayLength(facts.target_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.left_slot_names) == 0 &&
+            ArrayLength(facts.left_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.right_slot_names) == 0 &&
+            ArrayLength(facts.right_slot_source_syntax_ids) == 0 &&
+            ArrayLength(facts.participant_slot_names) == 0 &&
+            ArrayLength(facts.participant_slot_source_syntax_ids) == 0;
     }
-    return facts.ok && facts.domain_graph_id != "" &&
-        facts.domain_graph_id != "0" && facts.row_count == 0;
+    if !facts.ok || !SelfMirDomainTopologyPositiveDecimal(
+            facts.domain_graph_id
+        ) || count < 0 ||
+        ArrayLength(facts.owner_names) != count ||
+        ArrayLength(facts.owner_source_syntax_ids) != count ||
+        ArrayLength(facts.source_syntax_ids) != count ||
+        ArrayLength(facts.kinds) != count ||
+        ArrayLength(facts.projection_slot_names) != count ||
+        ArrayLength(facts.projection_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.source_slot_names) != count ||
+        ArrayLength(facts.source_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.layer_slot_names) != count ||
+        ArrayLength(facts.layer_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.target_slot_names) != count ||
+        ArrayLength(facts.target_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.left_slot_names) != count ||
+        ArrayLength(facts.left_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.right_slot_names) != count ||
+        ArrayLength(facts.right_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.participant_slot_names) != count ||
+        ArrayLength(facts.participant_slot_source_syntax_ids) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.owner_names[i] == "" ||
+            !SelfMirDomainTopologyPositiveDecimal(
+                facts.owner_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyPositiveDecimal(
+                facts.source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyKnownKind(facts.kinds[i]) ||
+            !SelfMirDomainTopologyNameIdReady(
+                facts.projection_slot_names[i],
+                facts.projection_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.source_slot_names[i],
+                facts.source_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.layer_slot_names[i],
+                facts.layer_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.target_slot_names[i],
+                facts.target_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.left_slot_names[i],
+                facts.left_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.right_slot_names[i],
+                facts.right_slot_source_syntax_ids[i]
+            ) || !SelfMirDomainTopologyNameIdReady(
+                facts.participant_slot_names[i],
+                facts.participant_slot_source_syntax_ids[i]
+            ) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if facts.source_syntax_ids[prior] == facts.source_syntax_ids[i] ||
+                ((facts.owner_names[prior] == facts.owner_names[i]) !=
+                 (facts.owner_source_syntax_ids[prior] ==
+                    facts.owner_source_syntax_ids[i])) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirDomainTopologyNullableNameJson(name: String) -> String {
+    if name == "" { return "null"; }
+    return JsonStringLiteral(name);
+}
+
+func SelfMirDomainTopologyJsonRow(
+    facts: SelfMirDomainTopologyFacts, row: Int
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("owner_name", facts.owner_names[row]),
+        JsonEmitFieldNumber(
+            "owner_source_syntax_id", facts.owner_source_syntax_ids[row]
+        ),
+        JsonEmitFieldNumber("source_syntax_id", facts.source_syntax_ids[row]),
+        JsonEmitFieldString("kind", facts.kinds[row]),
+        JsonEmitFieldRaw(
+            "projection_slot_name",
+            SelfMirDomainTopologyNullableNameJson(
+                facts.projection_slot_names[row]
+            )
+        ),
+        JsonEmitFieldNumber(
+            "projection_slot_source_syntax_id",
+            facts.projection_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "source_slot_name",
+            SelfMirDomainTopologyNullableNameJson(facts.source_slot_names[row])
+        ),
+        JsonEmitFieldNumber(
+            "source_slot_source_syntax_id",
+            facts.source_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "layer_slot_name",
+            SelfMirDomainTopologyNullableNameJson(facts.layer_slot_names[row])
+        ),
+        JsonEmitFieldNumber(
+            "layer_slot_source_syntax_id",
+            facts.layer_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "target_slot_name",
+            SelfMirDomainTopologyNullableNameJson(facts.target_slot_names[row])
+        ),
+        JsonEmitFieldNumber(
+            "target_slot_source_syntax_id",
+            facts.target_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "left_slot_name",
+            SelfMirDomainTopologyNullableNameJson(facts.left_slot_names[row])
+        ),
+        JsonEmitFieldNumber(
+            "left_slot_source_syntax_id",
+            facts.left_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "right_slot_name",
+            SelfMirDomainTopologyNullableNameJson(facts.right_slot_names[row])
+        ),
+        JsonEmitFieldNumber(
+            "right_slot_source_syntax_id",
+            facts.right_slot_source_syntax_ids[row]
+        ),
+        JsonEmitFieldRaw(
+            "participant_slot_name",
+            SelfMirDomainTopologyNullableNameJson(
+                facts.participant_slot_names[row]
+            )
+        ),
+        JsonEmitFieldNumber(
+            "participant_slot_source_syntax_id",
+            facts.participant_slot_source_syntax_ids[row]
+        )
+    ]);
 }
 
 func SelfMirDomainTopologyJsonPrefix(
     facts: SelfMirDomainTopologyFacts
 ) -> String {
     if !facts.present { return ""; }
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < facts.row_count {
+        ArrayPush(rows, SelfMirDomainTopologyJsonRow(facts, i));
+        i = i + 1;
+    }
     return Concat(
         ",\"domain_topology\":{\"domain_graph_id\":",
-        Concat(facts.domain_graph_id, ",\"rows\":[]}")
+        Concat(
+            facts.domain_graph_id,
+            Concat(",\"rows\":", Concat(JsonEmitArray(rows), "}"))
+        )
     );
 }

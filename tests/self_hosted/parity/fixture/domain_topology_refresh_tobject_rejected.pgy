@@ -1,0 +1,16 @@
+subject Player {
+    let hp: Int;
+}
+
+tobject PlayerPacket {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+    tobject slot packet: PlayerPacket
+    refresh packet from bearer
+}
+
+func Main() -> Void {
+    Log(0);
+}
