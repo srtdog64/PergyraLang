@@ -84,9 +84,10 @@ owner, and the named executable gate.
 
 ## Exact dirty state at this handoff
 
-At the committed checkpoint containing this handoff, use `git rev-parse HEAD`
-and `git rev-parse origin/main` to verify the exact revision. The v74 executable
-boundary remains `bce4ae6f`; the later language-word/dogfood work is a supporting
+The exact executable/dogfood implementation checkpoint for this handoff is
+`62d601f5e296aa88ecdbce9bbc88edad7b595c21`; the handoff-only refresh commit
+follows it without changing compiler semantics. The v74 executable boundary
+remains `bce4ae6f`; the later language-word/dogfood work is a supporting
 SoT/contract checkpoint, and the direct-MIR production action is a reachable
 dogfood boundary. Neither changes released/default replacement.
 The following unstaged files are concurrent user work and must remain
