@@ -1,0 +1,24 @@
+/*
+ * Canonical MIR declaration-field vocabulary.
+ * Registry producer identity: PGY_MIR_DECL_FIELD_KIND_ROWS.
+ *
+ * PGY_MIR_DECL_FIELD_KIND(identity, stable_id, wire_spelling, ast_label)
+ *
+ * The empty AST label is intentional for storage fields: their projection is
+ * nested below `Fields:` rather than emitted as a direct declaration row.
+ */
+
+PGY_MIR_DECL_FIELD_KIND(FIELD, 0, "field", "")
+PGY_MIR_DECL_FIELD_KIND(SHARED_FIELD, 1, "shared_field", "Shared")
+PGY_MIR_DECL_FIELD_KIND(SUBJECT_SLOT, 2, "subject_slot", "SubjectSlot")
+PGY_MIR_DECL_FIELD_KIND(OBJECT_SLOT, 3, "object_slot", "ObjectSlot")
+PGY_MIR_DECL_FIELD_KIND(TOBJECT_SLOT, 4, "tobject_slot", "TObjectSlot")
+PGY_MIR_DECL_FIELD_KIND(BINDING_SLOT, 5, "binding_slot", "")
+PGY_MIR_DECL_FIELD_KIND(EFFECT_SLOT, 6, "effect_slot", "EffectSlot")
+PGY_MIR_DECL_FIELD_KIND(RELATION_SLOT, 7, "relation_slot", "RelationSlot")
+PGY_MIR_DECL_FIELD_KIND(EFFECT_POOL, 8, "effect_pool", "EffectPool")
+PGY_MIR_DECL_FIELD_KIND(RELATION_POOL, 9, "relation_pool", "RelationPool")
+PGY_MIR_DECL_FIELD_KIND(ROSTER_SLOT, 10, "roster_slot", "SystemicSlot")
+PGY_MIR_DECL_FIELD_KIND(WORLD_ROSTER, 11, "world_roster", "WorldSystemic")
+PGY_MIR_DECL_FIELD_KIND(WORLD_ZONE, 12, "world_zone", "WorldZone")
+PGY_MIR_DECL_FIELD_KIND(ROLE_SLOT, 13, "role_slot", "RoleSlot")

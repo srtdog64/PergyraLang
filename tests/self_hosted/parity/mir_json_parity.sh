@@ -85,12 +85,12 @@ compile_c_to_exe() {
             log_native="$(pgy_path_for_windows_tool "$log")"
 
             powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-                "\$env:PATH=$(pgy_powershell_quote "$PGY_WINDOWS_PS_PATH_PREFIX") + \$env:PATH; & $(pgy_powershell_quote "$CC") $(pgy_powershell_quote "$src_native") '-o' $(pgy_powershell_quote "$out_native") 2> $(pgy_powershell_quote "$log_native"); exit \$LASTEXITCODE"
+                "\$env:PATH=$(pgy_powershell_quote "$PGY_WINDOWS_PS_PATH_PREFIX") + \$env:PATH; & $(pgy_powershell_quote "$CC") $(pgy_powershell_quote "$src_native") '-I$(pgy_path_for_windows_tool "$ROOT_DIR/src/runtime")' '-o' $(pgy_powershell_quote "$out_native") 2> $(pgy_powershell_quote "$log_native"); exit \$LASTEXITCODE"
             return $?
             ;;
     esac
 
-    "$CC" "$src" -o "$out" 2>"$log"
+    "$CC" "$src" -I"$ROOT_DIR/src/runtime" -o "$out" 2>"$log"
 }
 
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
@@ -370,7 +370,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "class_decl" ]]; then
         for required in \
             '"decls":[{"kind":"class","nominal_kind":"class","name":"Vec2"' \
-            '"fields":[{"name":"x","type":"Int"},{"name":"y","type":"Int"}]'; do
+            '"fields":[{"name":"x","type":"Int","field_kind":"field"},{"name":"y","type":"Int","field_kind":"field"}]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_decl: missing MIR class declaration fact: $required" >&2
                 exit 1
@@ -379,7 +379,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
     fi
     if [[ "$base" == "class_method" ]]; then
         for required in \
-            '"methods":[{"name":"LengthPlus","return":"Int"}]' \
+            '"methods":[{"name":"LengthPlus","return":"Int","callable_kind":"function"' \
             '"name":"LengthPlus","kind":"method"' \
             '"owner":"Vec2","generics"'; do
             if ! grep -Fq "$required" "$mj"; then
@@ -416,7 +416,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
         esac
         for required in \
             "\"decls\":[{\"kind\":\"class\",\"nominal_kind\":\"$nominal_kind\",\"name\":\"$nominal_name\"" \
-            "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\"}]"; do
+            "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\",\"field_kind\":\"field\"}]"; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] $base: missing MIR nominal declaration fact: $required" >&2
                 exit 1
@@ -426,7 +426,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "nominal_record_array" ]]; then
         for required in \
             '"decls":[{"kind":"struct","nominal_kind":"struct","name":"AstExpressionGraphRows"' \
-            '"fields":[{"name":"ok","type":"Bool"},{"name":"roots","type":"Array<Int>"}]'; do
+            '"fields":[{"name":"ok","type":"Bool","field_kind":"field"},{"name":"roots","type":"Array<Int>","field_kind":"field"}]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] nominal_record_array: missing MIR struct declaration fact: $required" >&2
                 exit 1
@@ -436,7 +436,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "ability_decl" ]]; then
         for required in \
             '"decls":[{"kind":"ability","name":"Arithmetic"' \
-            '"methods":[{"name":"Add","return":"Int","params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]}]'; do
+            '"methods":[{"name":"Add","return":"Int","callable_kind":"function"' \
+            '"params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] ability_decl: missing MIR ability declaration fact: $required" >&2
                 exit 1
@@ -446,7 +447,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "enum_simple" ]]; then
         for required in \
             '"decls":[{"kind":"enum","name":"Direction"' \
-            '"variants":[{"name":"North","param_count":0},{"name":"East","param_count":0},{"name":"South","param_count":0},{"name":"West","param_count":0}]'; do
+            '"variants":[{"name":"North","param_count":0,"param_types":[]},{"name":"East","param_count":0,"param_types":[]},{"name":"South","param_count":0,"param_types":[]},{"name":"West","param_count":0,"param_types":[]}]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] enum_simple: missing MIR enum declaration fact: $required" >&2
                 exit 1
@@ -531,7 +532,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
         for required in \
             '"kind":"role","name":"IntMath","for_type":"Int"' \
             '"impls":[{"ability":{"base":"Arithmetic","actuals":[]},"method_start":0,"method_count":1}]' \
-            '"methods":[{"name":"Add","return":"Int","params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]}]'; do
+            '"methods":[{"name":"Add","return":"Int","callable_kind":"function"' \
+            '"params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] $base: missing role declaration fact: $required" >&2
                 exit 1

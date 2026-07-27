@@ -2779,6 +2779,7 @@ self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-s
 self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
 	"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
+	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
@@ -3327,6 +3328,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 
 .PHONY: language-keyword-registry-test-smoke \
 	callable-contract-vocabulary-test-smoke \
+	mir-decl-field-kind-vocabulary-test-smoke \
 	lsp-completion-registry-test-smoke \
 	lsp-hover-registry-test-smoke \
 	vscode-language-graph-test-smoke
@@ -3336,6 +3338,9 @@ language-keyword-registry-test-smoke:
 callable-contract-vocabulary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
+
+mir-decl-field-kind-vocabulary-test-smoke:
+	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
 
 lsp-completion-registry-test-smoke:
 	"$(BASH)" tests/lsp_completion_registry_smoke.sh

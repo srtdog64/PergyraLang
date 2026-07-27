@@ -66,7 +66,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
-        pgy_selfhost_verify_driver_rung2_action_contract "$backend" "$base" "$mir_json" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_action_contract "$backend" "$base" "$mir_json" "$self_mir_json" "$driver_bin"; pgy_selfhost_verify_driver_rung2_effect_declaration "$backend" "$base" "$mir_json" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_machine_facts \
             "$machine_fixture" "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative "$machine_fixture" "$backend" "$base" "$self_mir_json" "$driver_bin" "$DRIVER_RUNG2_MACHINE_MANIFEST_REL"
@@ -256,7 +256,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_string_concat_alias_emitted_c \
             "$backend" "$base" "$self_actual"
-        pgy_selfhost_verify_driver_rung2_fieldless_class_emitted_c "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_fieldless_class_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_role_implicit_self_emitted_c "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_spawn_await_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_spawn_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_string_spawn_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_spawn_mixed_emitted_c "$backend" "$base" "$self_actual"; pgy_selfhost_verify_driver_rung2_generic_default_contract_emitted_c "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c \
             "$backend" "$base" "$self_actual"

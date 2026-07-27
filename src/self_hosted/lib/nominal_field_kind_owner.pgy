@@ -1,0 +1,93 @@
+// Declaration-family compatibility policy for MIR field kinds.
+// Wire identities and spellings are generated from the compiler-owned
+// mir_decl_field_kind_vocabulary.def registry.
+
+import "mir_decl_field_kind_vocabulary_projection_owner.pgy";
+
+func NominalFieldKindField() -> String { return MirDeclFieldKindField(); }
+func NominalFieldKindSharedField() -> String {
+    return MirDeclFieldKindSharedField();
+}
+func NominalFieldKindSubjectSlot() -> String {
+    return MirDeclFieldKindSubjectSlot();
+}
+func NominalFieldKindObjectSlot() -> String {
+    return MirDeclFieldKindObjectSlot();
+}
+func NominalFieldKindTObjectSlot() -> String {
+    return MirDeclFieldKindTobjectSlot();
+}
+func NominalFieldKindBindingSlot() -> String {
+    return MirDeclFieldKindBindingSlot();
+}
+func NominalFieldKindEffectSlot() -> String {
+    return MirDeclFieldKindEffectSlot();
+}
+func NominalFieldKindRelationSlot() -> String {
+    return MirDeclFieldKindRelationSlot();
+}
+func NominalFieldKindEffectPool() -> String {
+    return MirDeclFieldKindEffectPool();
+}
+func NominalFieldKindRelationPool() -> String {
+    return MirDeclFieldKindRelationPool();
+}
+func NominalFieldKindRosterSlot() -> String {
+    return MirDeclFieldKindRosterSlot();
+}
+func NominalFieldKindWorldRoster() -> String {
+    return MirDeclFieldKindWorldRoster();
+}
+func NominalFieldKindWorldZone() -> String {
+    return MirDeclFieldKindWorldZone();
+}
+func NominalFieldKindRoleSlot() -> String {
+    return MirDeclFieldKindRoleSlot();
+}
+func NominalFieldKindKnown(kind: String) -> Bool {
+    return MirDeclFieldKindKnown(kind);
+}
+
+func NominalFieldKindAllowedForDeclaration(
+    nominal_kind: String, field_kind: String
+) -> Bool {
+    if !NominalFieldKindKnown(field_kind) ||
+        field_kind == NominalFieldKindRoleSlot() {
+        return false;
+    }
+    if nominal_kind == "zone" {
+        return field_kind == NominalFieldKindSubjectSlot() ||
+            field_kind == NominalFieldKindObjectSlot() ||
+            field_kind == NominalFieldKindTObjectSlot() ||
+            field_kind == NominalFieldKindBindingSlot() ||
+            field_kind == NominalFieldKindEffectSlot() ||
+            field_kind == NominalFieldKindRelationSlot() ||
+            field_kind == NominalFieldKindEffectPool() ||
+            field_kind == NominalFieldKindRelationPool() ||
+            field_kind == NominalFieldKindSharedField();
+    }
+    if nominal_kind == "effect" || nominal_kind == "relation" {
+        return field_kind == NominalFieldKindSubjectSlot() ||
+            field_kind == NominalFieldKindObjectSlot() ||
+            field_kind == NominalFieldKindTObjectSlot() ||
+            field_kind == NominalFieldKindField() ||
+            field_kind == NominalFieldKindSharedField();
+    }
+    if nominal_kind == "world" {
+        return field_kind == NominalFieldKindWorldRoster() ||
+            field_kind == NominalFieldKindWorldZone() ||
+            field_kind == NominalFieldKindSharedField();
+    }
+    if nominal_kind == "roster" {
+        return field_kind == NominalFieldKindRosterSlot() ||
+            field_kind == NominalFieldKindSharedField();
+    }
+    if nominal_kind == "party" {
+        return field_kind == NominalFieldKindSharedField();
+    }
+    return field_kind == NominalFieldKindField();
+}
+
+func NominalFieldKindAstLabel(field_kind: String) -> String {
+    return MirDeclFieldKindAstLabel(field_kind);
+}

@@ -75,8 +75,8 @@ pgy_selfhost_verify_driver_rung2_action_contract() {
         "action contract references an unknown zone"
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
-        "non-subject-owner" '"nominal_kind":"subject"' \
-        '"nominal_kind":"object"' \
+        "non-subject-owner" '"kind":"subject","nominal_kind":"subject"' \
+        '"kind":"object","nominal_kind":"object"' \
         "action method requires a subject owner"
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
@@ -118,4 +118,22 @@ pgy_selfhost_verify_driver_rung2_action_contract() {
         "local-mixed-last" '"effects":["secure","remote"]' \
         '"effects":["secure","local"]' \
         "invalid or noncanonical effect"
+}
+
+pgy_selfhost_verify_driver_rung2_role_implicit_self_emitted_c() {
+    local backend="$1" base="$2" emitted_c="$3"
+    [[ "$base" == "function_clause_order_minimal" ]] || return 0
+
+    for signature in \
+        'long long HeroCombat_Ping(void *_pgy_raw_self)' \
+        'void HeroCombat_Move(void *_pgy_raw_self)'; do
+        grep -Fq "$signature" "$emitted_c" || {
+            echo "[self-host-parity:driver-rung2] $backend implicit role-self ABI drifted: $signature" >&2
+            return 1
+        }
+    done
+    if grep -Eq 'HeroCombat_(Ping|Move)\(void\)' "$emitted_c"; then
+        echo "[self-host-parity:driver-rung2] $backend role method reopened a receiver-free C ABI" >&2
+        return 1
+    fi
 }

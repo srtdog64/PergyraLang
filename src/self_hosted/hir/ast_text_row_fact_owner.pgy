@@ -211,6 +211,9 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
     if kind == TypedAstKindEnumDeclTag() {
         return input.aux_payload;
     }
+    if kind == TypedAstKindFieldTag() {
+        return input.aux_payload;
+    }
     if kind == TypedAstKindAssignStmtTag() {
         let target: String = CodegenAstTextNameFactFor(input);
         let open: Int = StringIndexOf(target, "[");
@@ -303,6 +306,11 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         if colon2 >= 0 {
             let type_start: Int = colon2 + 2;
             let type_end: Int = StringIndexOf(payload, " = ");
+            let capacity_start: Int = StringIndexOf(payload, " capacity ");
+            if capacity_start >= type_start &&
+                (type_end < type_start || capacity_start < type_end) {
+                type_end = capacity_start;
+            }
             if type_end < type_start {
                 type_end = StringLength(payload);
             }

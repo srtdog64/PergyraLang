@@ -8,6 +8,7 @@ struct SelfMirDeclarationRows {
     field_starts: Array<Int>;
     field_counts: Array<Int>;
     field_names: Array<String>;
+    field_kinds: Array<String>;
     field_types: Array<String>;
     method_starts: Array<Int>;
     method_counts: Array<Int>;
@@ -61,6 +62,7 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let strings: Array<String> = [];
     return SelfMirDeclarationRows(
         strings, strings, strings, strings, ints, ints, strings, strings,
+        strings,
         ints, ints, strings, strings,
         ints, ints, ints, strings, strings, strings,
         ints, ints, strings, ints, ints, ints, strings,

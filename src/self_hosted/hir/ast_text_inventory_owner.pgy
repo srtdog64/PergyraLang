@@ -5,6 +5,7 @@
 import "ast_text_scan_owner.pgy";
 import "ast_text_row_fact_owner.pgy";
 import "ast_node_kind_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
 
 struct CodegenAstTextNode {
     let indent: Int;
@@ -47,10 +48,13 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Fields:" {
         return TypedAstKindFieldsHeaderTag();
     }
-    if StartsWith(text, "Field:") || StartsWith(text, "SubjectSlot:") ||
+    if StartsWith(text, "Field:") || StartsWith(text, "Shared:") ||
+        StartsWith(text, "SubjectSlot:") ||
         StartsWith(text, "ObjectSlot:") || StartsWith(text, "TObjectSlot:") ||
         StartsWith(text, "EffectSlot:") ||
-        StartsWith(text, "RelationSlot:") || StartsWith(text, "WorldZone:") {
+        StartsWith(text, "RelationSlot:") || StartsWith(text, "EffectPool:") ||
+        StartsWith(text, "RelationPool:") || StartsWith(text, "SystemicSlot:") ||
+        StartsWith(text, "WorldSystemic:") || StartsWith(text, "WorldZone:") {
         return TypedAstKindFieldTag();
     }
     if StartsWith(text, "RoleSlot:") {
@@ -89,7 +93,8 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
         StartsWith(text, "Vessel:") || StartsWith(text, "Zone:") ||
-        StartsWith(text, "World:") || StartsWith(text, "Party:") {
+        StartsWith(text, "World:") || StartsWith(text, "Party:") ||
+        StartsWith(text, "Effect:") {
         return TypedAstKindNominalDeclTag();
     }
     if StartsWith(text, "Enum:") {
@@ -200,8 +205,10 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 7, StringLength(text) - 7);
         }
         let labels: Array<String> = [
-            "SubjectSlot: ", "ObjectSlot: ", "TObjectSlot: ",
-            "EffectSlot: ", "RelationSlot: ", "WorldZone: "
+            "Shared: ", "SubjectSlot: ", "ObjectSlot: ", "TObjectSlot: ",
+            "EffectSlot: ", "RelationSlot: ", "EffectPool: ",
+            "RelationPool: ", "SystemicSlot: ", "WorldSystemic: ",
+            "WorldZone: "
         ];
         let label_i: Int = 0;
         while label_i < ArrayLength(labels) {
@@ -257,6 +264,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         if StartsWith(text, "Party: ") {
             return Substring(text, 7, StringLength(text) - 7);
+        }
+        if StartsWith(text, "Effect: ") {
+            return Substring(text, 8, StringLength(text) - 8);
         }
     }
     if kind == TypedAstKindEnumDeclTag() {
@@ -338,6 +348,20 @@ func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
         if brace >= 0 && CodegenCharCodeAt(text, n, n - 1) == 125 {
             return StringTrim(Substring(text, brace + 3, StringLength(text) - (brace + 4)));
         }
+    }
+    if kind == TypedAstKindFieldTag() {
+        if StartsWith(text, "Shared: ") { return NominalFieldKindSharedField(); }
+        if StartsWith(text, "SubjectSlot: ") { return NominalFieldKindSubjectSlot(); }
+        if StartsWith(text, "ObjectSlot: ") { return NominalFieldKindObjectSlot(); }
+        if StartsWith(text, "TObjectSlot: ") { return NominalFieldKindTObjectSlot(); }
+        if StartsWith(text, "EffectSlot: ") { return NominalFieldKindEffectSlot(); }
+        if StartsWith(text, "RelationSlot: ") { return NominalFieldKindRelationSlot(); }
+        if StartsWith(text, "EffectPool: ") { return NominalFieldKindEffectPool(); }
+        if StartsWith(text, "RelationPool: ") { return NominalFieldKindRelationPool(); }
+        if StartsWith(text, "SystemicSlot: ") { return NominalFieldKindRosterSlot(); }
+        if StartsWith(text, "WorldSystemic: ") { return NominalFieldKindWorldRoster(); }
+        if StartsWith(text, "WorldZone: ") { return NominalFieldKindWorldZone(); }
+        return NominalFieldKindField();
     }
     return "";
 }

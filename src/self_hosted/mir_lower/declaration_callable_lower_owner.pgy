@@ -60,6 +60,15 @@ func EmitClassMethods(
                 contract.within_zone
             ));
         }
+        if StringLength(contract.causes_name) > 0 &&
+            !MirProgramDeclarationIndexContains(
+                declarations, "effect", contract.causes_name
+            ) {
+            MirLowerFailClosed(Concat(
+                "action contract references an unknown effect: ",
+                contract.causes_name
+            ));
+        }
         let routine_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
             routines, owner_name, mname
         );

@@ -175,12 +175,19 @@ seam이다. production source-mode action의 직접 우회 삭제가 남아 있�
 - role이 여러 `impl ability`를 소유할 때 선언 전체를 비우는 임시 제한은 허용하지
   않는다. 각 impl의 method span은 이름 추측이 아니라 ability semantic owner의
   method count로 분할하고, 전체 role method span을 정확히 덮지 못하면 실패한다.
-- zone의 `subject/object/tobject/effect/relation slot`은 문자열 장식이 아니라 zone이
-  소유하는 typed field fact다. 특히 effect/relation slot을 AST-text inventory에서
-  누락하면 action contract는 살아 있어도 zone resource graph가 끊긴다.
-- 현재 canonical native/self MIR은 이 두 경계를 통과한다. 다음 RED는 C consumer의
-  `Damage` effect nominal admission이다. 이를 알 수 없는 struct로 추측해서 통과시키지
-  말고, effect declaration identity와 zone runtime ABI를 MIR에 실어야 한다.
+- zone의 `subject/object/tobject/effect/relation slot`은 문자열 장식이나 일반
+  field가 아니라 semantic `field_kind`를 가진 typed edge다. `field_kind`는 field
+  이름이나 참조 타입에서 복원하지 않으며, 선언 종류별 허용 행렬을 한 owner가
+  판정한다.
+- 현재 `mir_decl_field_kind_vocabulary.def`가 14개 wire identity의 spelling과 AST
+  projection label을 소유한다. Native C와 self-host는 직접/생성 projection을
+  소비하며 `Damage.bearer=subject_slot`, `BattleZone.damage=effect_slot`을 MIR
+  wire와 canonical AST까지 보존한다. 누락, unknown, 선언-host 불일치, effect의
+  required participant cardinality 손실은 backend output 전에 실패한다.
+- 이 증거는 effect declaration kind와 slot-role carriage의 부분 closure다. Stable
+  field identity, pool capacity, vessel/binding slot, relation declaration,
+  zone refresh/state/lifecycle metadata와 C/LLVM runtime ABI는 열린 층이다. 따라서
+  전체 domain declaration 또는 runtime ABI를 `CLOSED`로 기록하지 않는다.
 
 ### MatchCase 패턴 그래프 통합
 
@@ -306,7 +313,42 @@ parser clause nodes
 붙이거나 모든 compiler stage를 subject/action으로 감싸는 것은 이 패턴에
 해당하지 않는다.
 
-### 4.2 Artifact action의 commit 조건
+### 4.2 Nominal declaration과 field-kind SoT 패턴
+
+권장 파이프라인은 다음 하나다.
+
+```text
+parser field node + SyntaxNodeId
+  -> SemanticAstNominalConstructorFacts
+       (nominal_kind, field_kind, referenced type identity)
+  -> SelfMirDeclarationRows
+  -> pgy.mir.v1 declarations[].fields[]
+  -> exact SubjectSlot/ObjectSlot/TObjectSlot/EffectSlot/RelationSlot reconstruction
+  -> DIR domain edge와 ABI/runtime projection
+```
+
+`field_kind`는 출력 label이 아니라 semantic discriminant다. 일반/shared storage,
+subject/object/tobject participant slot, effect/relation slot과 pool, world/roster
+slot을 구별한다. Consumer는 declaration name, field name, type spelling 또는
+대문자 여부로 이를 다시 판정하지 않는다.
+
+`subject_slot`은 subject identity를, `object_slot`은 local projection을,
+`tobject_slot`은 detached transfer를 참조한다. `effect_slot/effect_pool`은 effect
+declaration만, `relation_slot/relation_pool`은 relation declaration만 참조해야
+한다. `action`은 field kind가 아니며 subject-owned method contract로 남는다.
+`within`과 `causes`는 각각 zone/effect declaration identity에 결속한다.
+
+누락·unknown kind, host-kind 불일치, effect/relation 교환, required participant
+cardinality 손실, pool capacity 누락, 이름-only declaration join은 모두 fail
+closed한다. Native/self MIR byte parity는 필요하지만 exact AST reconstruction과
+C/LLVM runtime layout/operation parity가 없으면 domain runtime closure가 아니다.
+
+현재 focused `function_clause_order_minimal` C shard는 effect/zone field kind와
+effect participant shape를 포함한 native/self MIR parity, canonical reconstruction,
+생성 C compile/run을 증명한다. 이는 `BRIDGE`/`SURFACE` 증거이며 production
+call graph를 바꾸지 않았으므로 hard substitution 진척으로 세지 않는다.
+
+### 4.3 Artifact action의 commit 조건
 
 파일 artifact를 만드는 action은 `FileOpen -> FileWrite* -> FileClose`를 성공
 전이라고 부르면 안 된다. 이 raw `Int` handle 표면은 open mode, write failure,
@@ -474,10 +516,10 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
     native의 struct hosted-`func` 금지는 아직 같은 self-host semantic negative로
     닫히지 않았다. grammar fixture 통과를 이 nominal semantic parity의 대체로
     해석하지 않는다.
-12. self-host function parser는 모든 action clause와 caps/effects를 typed AST와
-    semantic ActionContract에 보존한다. 남은 부채는 이 vocabulary가 parser,
-    semantic, mir_lower, native debug/dump의 독립 문자열 목록으로 반복되는 점이다.
-    shared registry가 spelling과 mask identity를 소유하고 각 consumer가 파생해야 한다.
+12. callable contract vocabulary는 shared registry와 projection으로 닫혔다. 현재
+    domain declaration의 `field_kind` spelling도 compiler-owned registry와 생성
+    self-host projection으로 단일화됐다. 남은 부채는 stable field identity,
+    pool capacity, vessel/binding slot, relation admission과 zone runtime topology다.
 13. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인
@@ -485,9 +527,9 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
 14. compiler artifact transaction은 shared C/LLVM runtime core, self-host typed
     receipt, generated runtime include, old-final 보존 fault gate까지 닫혔다.
     일반 raw file handle의 MIR/AIR mode fact와 checked close 표면은 별도 호환성
-    부채다. source -> MIR의 완전한 action substitution은 item 12의 vocabulary
-    closure, production action reachability, `Main -> CompileSourceTo*` 직접 경로
-    삭제에 계속 막혀 있다.
+    부채다. source -> MIR의 완전한 action substitution은 domain
+    declaration/field-kind/runtime ABI closure, production action reachability,
+    `Main -> CompileSourceTo*` 직접 경로 삭제에 계속 막혀 있다.
 15. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
     identity/target처럼 action이 직접 반환하는 실패와, 하위 `Die`/`Exit`가
     중단시키는 fatal 실패를 gate와 문서에서 분리한다.

@@ -77,6 +77,7 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | artifact receipt/failure가 production commit 경계에서 실제 생성·소비됨 |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
+| `effect`, `relation` | `SURFACE` | focused fixture와 syntax surface뿐이며 bootstrap closure 선언/production call은 0; field-kind carriage도 hard substitution 증거가 아님 |
 
 production declaration과 composition은 다음처럼 나뉜다.
 
@@ -108,10 +109,13 @@ semantic compile 성공 역시 production call-site나 대체 증거를 대신�
    projection이 native/self/runtime의 membership, mask, canonical order와
    `local` 배타성을 함께 고정하고 field/unknown/duplicate/noncanonical/
    local-mix 변조를 fail closed로 거부한다. 이 declaration 층은 `CLOSED`다.
-   다중 `impl ability` method partition과 zone effect/relation slot도 이제
-   canonical native/self MIR까지 운반된다. 그러나 `Damage` 같은 effect nominal의
-   C ABI/runtime declaration은 다음 층의 RED이므로 이 성공을 runtime action
-   대체로 올려 기록하지 않는다.
+   다중 `impl ability` method partition, explicit `Damage` effect nominal과
+   zone effect/relation slot의 `field_kind`도 canonical native/self MIR과 exact
+   AST reconstruction까지 운반된다. Shared field는 일반 field와 구별되며
+   field-kind registry projection drift와 required effect participant 손실은
+   fail closed한다. 그러나 stable field identity, pool capacity,
+   relation declaration, zone refresh/state/lifecycle와 effect/relation runtime
+   ABI는 다음 층의 RED이므로 이 성공을 runtime action 대체로 올려 기록하지 않는다.
 2. **Call binding**: 현재 C/LLVM hook은 direct world -> zone -> subject
    receiver와 `authorized by self` 단일 항목만 exact zone authority slot에
    결속한다. named participant, 복수 authority, indirect/direct-subject receiver의
@@ -147,10 +151,11 @@ action-as-function, empty explicit caps/effects를 backend output 전에 거부�
 clause를 건너뛰어 `Body:`를 찾는 fallback은 없다.
 
 이 작업은 기존 production action을 정확히 운반하는 supporting semantic seam이며
-C-owned compiler path를 새로 대체하지 않는다. caps/effects vocabulary의 단일
-owner와 production source-mode action의 실행 대체가 남아 있다. 따라서 direct-MIR
-world/zone/subject/action은 계속 `REACHABLE`, not `SUBSTITUTING`이고 전체 상태도
-`BRIDGE`다. Source-to-MIR을 `SUBSTITUTING`으로 올리려면 production entrypoint가
+C-owned compiler path를 새로 대체하지 않는다. Callable contract vocabulary는
+이미 닫혔고, 현재 인접 blocker는 domain declaration/field-kind/runtime ABI와
+production source-mode action의 직접 우회다. 따라서 direct-MIR
+world/zone/subject/action은 계속 `REACHABLE`, not `SUBSTITUTING`이고 effect/relation은
+`SURFACE`다. Source-to-MIR을 `SUBSTITUTING`으로 올리려면 production entrypoint가
 새 action을 실제 호출하는 변경과 같은 rung에서 `Main -> CompileSourceTo*`
 직접 우회를 삭제하고 실행/parity/negative gate를 통과해야 한다.
 
@@ -266,7 +271,16 @@ parser probe, readiness shell의 단어 수는 실행 개사료율로 세지 않
 
 ### `effect`, `relation`, `party`, `roster`, projection 구성체
 
-- domain/state/evidence에 실제 해당 관계가 있을 때만 사용한다.
+- `effect`는 action이 `causes`로 참조하는 typed domain state/evidence이고, zone이
+  effect slot/pool로 materialize한다. Callable `with effects` mask와 다른 fact
+  family다.
+- `relation`은 typed participant endpoint 사이의 지속 관계이며 effect의 별칭이
+  아니다. Endpoint identity와 순서, layer kind를 별도 fact로 보존한다.
+- zone은 participant slot과 effect/relation layer의 membership/lifetime을
+  소유하지만 participant nominal identity나 action transition을 다시 판단하지
+  않는다.
+- declaration name/type spelling만 같다는 이유로 slot kind, layer kind 또는 ABI
+  layout을 추론하지 않는다.
 - compiler stage 이름을 Pergyra 단어로 바꾸기 위한 동의어가 아니다.
 - 기존 MIR/AIR/ABI fact를 다시 serialize/scan하는 두 번째 그래프를 만들지
   않는다.

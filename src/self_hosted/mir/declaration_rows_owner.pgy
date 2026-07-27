@@ -180,6 +180,7 @@ func SelfMirDeclarationsFromAnalysis(
     let field_starts: Array<Int> = rows.field_starts;
     let field_counts: Array<Int> = rows.field_counts;
     let field_names: Array<String> = rows.field_names;
+    let field_kinds: Array<String> = rows.field_kinds;
     let field_types: Array<String> = rows.field_types;
     let method_starts: Array<Int> = rows.method_starts;
     let method_counts: Array<Int> = rows.method_counts;
@@ -253,8 +254,13 @@ func SelfMirDeclarationsFromAnalysis(
                 SemanticAstNominalConstructorParamTypeAt(
                     analysis.constructors, i, field_i
                 );
-            if IsSome(field_name) && IsSome(field_type) {
+            let field_kind: Option<String> =
+                SemanticAstNominalConstructorFieldKindAt(
+                    analysis.constructors, i, field_i
+                );
+            if IsSome(field_name) && IsSome(field_kind) && IsSome(field_type) {
                 ArrayPush(field_names, UnwrapOption(field_name));
+                ArrayPush(field_kinds, UnwrapOption(field_kind));
                 ArrayPush(field_types, UnwrapOption(field_type));
             }
             field_i = field_i + 1;
@@ -571,7 +577,7 @@ func SelfMirDeclarationsFromAnalysis(
     }
     return SelfMirDeclarationRows(
         kinds, nominal_kinds, names, target_types, field_starts, field_counts,
-        field_names, field_types, method_starts, method_counts,
+        field_names, field_kinds, field_types, method_starts, method_counts,
         method_names, method_returns,
         method_is_actions,
         method_requires_starts, method_requires_counts, method_requires_names,

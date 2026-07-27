@@ -3,6 +3,7 @@
 import "declaration_fact_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
 
 func SelfMirDeclarationParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
@@ -73,6 +74,7 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirDeclarationParallelCount(count, rows.role_slot_counts) ||
         !SelfMirDeclarationParallelCount(count, rows.role_impl_starts) ||
         !SelfMirDeclarationParallelCount(count, rows.role_impl_counts) ||
+        ArrayLength(rows.field_names) != ArrayLength(rows.field_kinds) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_is_actions) ||
@@ -141,6 +143,27 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
             rows.role_slot_counts[i] < 0 ||
             rows.role_impl_starts[i] != role_impl_cursor ||
             rows.role_impl_counts[i] < 0 {
+            return false;
+        }
+        let subject_slot_count: Int = 0;
+        let field_i: Int = 0;
+        while field_i < rows.field_counts[i] {
+            let field_row: Int = field_cursor + field_i;
+            if rows.field_names[field_row] == "" ||
+                rows.field_types[field_row] == "" ||
+                !NominalFieldKindAllowedForDeclaration(
+                    rows.nominal_kinds[i], rows.field_kinds[field_row]
+                ) {
+                return false;
+            }
+            if rows.field_kinds[field_row] == NominalFieldKindSubjectSlot() {
+                subject_slot_count = subject_slot_count + 1;
+            }
+            field_i = field_i + 1;
+        }
+        if (rows.nominal_kinds[i] == "effect" && subject_slot_count != 1) ||
+            (rows.nominal_kinds[i] == "relation" &&
+                subject_slot_count != 2) {
             return false;
         }
         field_cursor = field_cursor + rows.field_counts[i];

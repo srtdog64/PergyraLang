@@ -80,6 +80,7 @@ func TypedAstNominalSubkindVessel() -> Int { return 6; }
 func TypedAstNominalSubkindZone() -> Int { return 7; }
 func TypedAstNominalSubkindWorld() -> Int { return 8; }
 func TypedAstNominalSubkindParty() -> Int { return 9; }
+func TypedAstNominalSubkindEffect() -> Int { return 10; }
 
 func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindStruct() { return "struct"; }
@@ -91,6 +92,7 @@ func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindZone() { return "zone"; }
     if subkind == TypedAstNominalSubkindWorld() { return "world"; }
     if subkind == TypedAstNominalSubkindParty() { return "party"; }
+    if subkind == TypedAstNominalSubkindEffect() { return "effect"; }
     return "";
 }
 
@@ -170,6 +172,8 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstNominalSubkindName(TypedAstNominalSubkindZone()) == "zone" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindWorld()) == "world" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindParty()) == "party" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindEffect()) ==
+            "effect" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "" &&
         TypedAstCallStatementKindForCallee("Log") ==
             TypedAstKindLogStmtTag() &&

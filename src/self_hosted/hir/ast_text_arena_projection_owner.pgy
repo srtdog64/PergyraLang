@@ -65,6 +65,9 @@ func CodegenAstTextNominalSubkindFor(node: CodegenAstTextNode) -> Int {
     if StartsWith(node.text, "Party: ") {
         return TypedAstNominalSubkindParty();
     }
+    if StartsWith(node.text, "Effect: ") {
+        return TypedAstNominalSubkindEffect();
+    }
     return TypedAstNominalSubkindNone();
 }
 

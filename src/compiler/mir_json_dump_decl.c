@@ -30,6 +30,49 @@ mir_json_nominal_kind_name(NominalDeclKind kind)
 static void
 mir_json_emit_ability_ref(FILE *out, const MIRAbilityRef *ref);
 
+#define PGY_MIR_DECL_FIELD_KIND(identity, stable_id, spelling_value,          \
+                                ast_label_value)                              \
+    static const char kMirDeclFieldKind##identity[] = spelling_value;
+#include "mir_decl_field_kind_vocabulary.def"
+#undef PGY_MIR_DECL_FIELD_KIND
+
+static const char *
+mir_json_decl_field_kind_name(const MIRDeclField *field)
+{
+    switch (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)) {
+    case MIR_DECL_FIELD_CLASS:
+        return kMirDeclFieldKindFIELD;
+    case MIR_DECL_FIELD_SHARED:
+        return kMirDeclFieldKindSHARED_FIELD;
+    case MIR_DECL_FIELD_ROSTER_SLOT:
+        return kMirDeclFieldKindROSTER_SLOT;
+    case MIR_DECL_FIELD_WORLD_ROSTER_SLOT:
+        return kMirDeclFieldKindWORLD_ROSTER;
+    case MIR_DECL_FIELD_WORLD_ZONE_SLOT:
+        return kMirDeclFieldKindWORLD_ZONE;
+    case MIR_DECL_FIELD_DOMAIN_SLOT:
+        if (mir_decl_field_is_subject_like(field))
+            return kMirDeclFieldKindSUBJECT_SLOT;
+        if (mir_decl_field_is_tobject_like(field))
+            return kMirDeclFieldKindTOBJECT_SLOT;
+        if (mir_decl_field_is_binding_like(field))
+            return kMirDeclFieldKindBINDING_SLOT;
+        return kMirDeclFieldKindOBJECT_SLOT;
+    case MIR_DECL_FIELD_ZONE_LAYER_SLOT:
+        if (mir_decl_field_is_relation_layer(field))
+            return mir_decl_field_is_pool_layer(field)
+                ? kMirDeclFieldKindRELATION_POOL
+                : kMirDeclFieldKindRELATION_SLOT;
+        return mir_decl_field_is_pool_layer(field)
+            ? kMirDeclFieldKindEFFECT_POOL : kMirDeclFieldKindEFFECT_SLOT;
+    case MIR_DECL_FIELD_ROLE_SLOT:
+        return kMirDeclFieldKindROLE_SLOT;
+    case MIR_DECL_FIELD_UNKNOWN:
+    default:
+        return "unknown";
+    }
+}
+
 static void
 mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
 {
@@ -46,6 +89,8 @@ mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_field_name(field));
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out, mir_decl_field_type_name(field));
+        fputs(",\"field_kind\":", out);
+        mir_json_emit_str(out, mir_json_decl_field_kind_name(field));
         fputc('}', out);
         emitted++;
     }
@@ -298,6 +343,7 @@ mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
                                    NominalDeclKind nominal_kind)
 {
     return ast_type == AST_ZONE_DECL
+        || ast_type == AST_EFFECT_DECL
         || ast_type == AST_PARTY_DECL
         || (ast_type == AST_CLASS_DECL
         && (nominal_kind == NOMINAL_DECL_STRUCT
@@ -330,10 +376,13 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
             && nominal_kind == NOMINAL_DECL_STRUCT;
         const char *json_nominal_kind = ast_type == AST_ZONE_DECL
             ? "zone" : mir_json_nominal_kind_name(nominal_kind);
+        if (ast_type == AST_EFFECT_DECL)
+            json_nominal_kind = "effect";
         if (ast_type == AST_PARTY_DECL)
             json_nominal_kind = "party";
         fputs("{\"kind\":", out);
-        mir_json_emit_str(out, is_struct_decl ? "struct" : "class");
+        mir_json_emit_str(out, is_struct_decl ? "struct"
+            : ast_type == AST_EFFECT_DECL ? "effect" : "class");
         fputs(",\"nominal_kind\":", out);
         mir_json_emit_str(out, json_nominal_kind);
         fputs(",\"name\":", out);

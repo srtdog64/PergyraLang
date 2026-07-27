@@ -11,11 +11,24 @@ import "program_declaration_index_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "declaration_callable_lower_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
 
-func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: String) -> String {
-    let out: String = "";
+func EmitDeclFields(
+    json: String,
+    decl_start: Int,
+    decl_end: Int,
+    owner_name: String,
+    nominal_kind: String,
+    inout storage_rows: Array<String>,
+    inout slot_rows: Array<String>
+) -> Int {
+    let subject_slot_count: Int = 0;
     let fields_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(json, decl_start, decl_end, "fields", fields_bounds) { return out; }
+    if !MirObjectArrayBoundsAtBounds(
+        json, decl_start, decl_end, "fields", fields_bounds
+    ) {
+        return 0;
+    }
     let field_bounds: Array<Int> = [0, 0];
     let cursor: Int = fields_bounds[0] + 1;
     while JsonArrayNextObjectBounds(json, cursor, fields_bounds[1], field_bounds) {
@@ -27,10 +40,45 @@ func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: St
         if StringLength(ftype) == 0 {
             MirLowerFailClosed(Concat("field is missing type fact: ", fname));
         }
-        out = Concat(out, Concat("      ", Concat(fname, Concat(": ", Concat(ftype, "\n")))));
+        let field_kind: String = MirObjectStringFactAtBounds(
+            json, field_bounds[0], field_bounds[1], "field_kind"
+        );
+        if !NominalFieldKindAllowedForDeclaration(nominal_kind, field_kind) {
+            MirLowerFailClosed(Concat(
+                "field kind is invalid for nominal declaration: ",
+                Concat(owner_name, Concat(".", fname))
+            ));
+        }
+        if field_kind == NominalFieldKindField() {
+            ArrayPush(storage_rows, Concat(
+                "      ", Concat(fname, Concat(": ", Concat(ftype, "\n")))
+            ));
+        } else {
+            if field_kind == NominalFieldKindSubjectSlot() {
+                subject_slot_count = subject_slot_count + 1;
+            }
+            if field_kind == NominalFieldKindEffectPool() ||
+                field_kind == NominalFieldKindRelationPool() {
+                MirLowerFailClosed(Concat(
+                    "pool field is missing capacity fact: ",
+                    Concat(owner_name, Concat(".", fname))
+                ));
+            }
+            let label: String = NominalFieldKindAstLabel(field_kind);
+            if label == "" {
+                MirLowerFailClosed(Concat(
+                    "field kind has no canonical AST projection: ", field_kind
+                ));
+            }
+            ArrayPush(slot_rows, Concat(
+                "    ", Concat(label, Concat(
+                    ": ", Concat(fname, Concat(": ", Concat(ftype, "\n")))
+                ))
+            ));
+        }
         cursor = field_bounds[1];
     }
-    return out;
+    return subject_slot_count;
 }
 func EmitDeclRoleSlots(
     json: String, decl_start: Int, decl_end: Int, owner_name: String
@@ -279,13 +327,17 @@ func NominalAstLabel(nominal_kind: String) -> String {
     if nominal_kind == "party" {
         return "Party";
     }
+    if nominal_kind == "effect" {
+        return "Effect";
+    }
     return "Class";
 }
 
 func MirCanonicalDeclarationPhase(kind: String) -> Int {
     if kind == "struct" || kind == "class" || kind == "subject" ||
         kind == "object" || kind == "tobject" || kind == "vessel" ||
-        kind == "zone" || kind == "world" || kind == "party" {
+        kind == "zone" || kind == "world" || kind == "party" ||
+        kind == "effect" {
         return 0;
     }
     if kind == "role" { return 1; }
@@ -305,18 +357,36 @@ func EmitCanonicalNominalDecl(
     let chunks: Array<String> = [];
     if kind == "struct" {
         ArrayPush(chunks, Concat("  Struct: ", Concat(name, "\n")));
-        let fields: String = EmitDeclFields(
-            json, decl_start, decl_end, name
+        let storage_rows: Array<String> = [];
+        let slot_rows: Array<String> = [];
+        let subject_slot_count: Int = EmitDeclFields(
+            json, decl_start, decl_end, name, "struct",
+            storage_rows, slot_rows
         );
-        if StringLength(fields) > 0 {
+        if ArrayLength(slot_rows) > 0 || subject_slot_count != 0 {
+            MirLowerFailClosed(Concat(
+                "struct declaration contains a domain slot: ", name
+            ));
+        }
+        if ArrayLength(storage_rows) > 0 {
             ArrayPush(chunks, "    Fields:\n");
-            ArrayPush(chunks, fields);
+            ArrayPush(chunks, StringJoin(storage_rows, ""));
         }
         return StringJoin(chunks, "");
     }
     let nominal_kind: String = MirObjectStringFact(
         json, decl_start, decl_end, "nominal_kind"
     );
+    let direct_kind: Bool = kind == "struct" || kind == "subject" ||
+        kind == "object" || kind == "tobject" || kind == "vessel" ||
+        kind == "zone" || kind == "world" || kind == "party" ||
+        kind == "effect";
+    if (direct_kind && nominal_kind != kind) ||
+        (kind == "class" && nominal_kind == "effect") {
+        MirLowerFailClosed(Concat(
+            "nominal declaration identity drifted: ", name
+        ));
+    }
     ArrayPush(chunks, Concat(
         "  ", Concat(
             NominalAstLabel(nominal_kind), Concat(": ", Concat(name, "\n"))
@@ -328,10 +398,24 @@ func EmitCanonicalNominalDecl(
     ArrayPush(chunks, EmitDeclGenericConstraints(
         json, decl_start, decl_end, name
     ));
-    let fields: String = EmitDeclFields(json, decl_start, decl_end, name);
-    if StringLength(fields) > 0 {
+    let storage_rows: Array<String> = [];
+    let slot_rows: Array<String> = [];
+    let subject_slot_count: Int = EmitDeclFields(
+        json, decl_start, decl_end, name, nominal_kind,
+        storage_rows, slot_rows
+    );
+    if (nominal_kind == "effect" && subject_slot_count != 1) ||
+        (nominal_kind == "relation" && subject_slot_count != 2) {
+        MirLowerFailClosed(Concat(
+            "nominal declaration participant shape is invalid: ", name
+        ));
+    }
+    if ArrayLength(storage_rows) > 0 {
         ArrayPush(chunks, "    Fields:\n");
-        ArrayPush(chunks, fields);
+        ArrayPush(chunks, StringJoin(storage_rows, ""));
+    }
+    if ArrayLength(slot_rows) > 0 {
+        ArrayPush(chunks, StringJoin(slot_rows, ""));
     }
     if nominal_kind == "party" {
         ArrayPush(chunks, EmitDeclRoleSlots(

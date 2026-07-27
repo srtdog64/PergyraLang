@@ -214,7 +214,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         }
     } else {
         let param_list: String = params;
-        if param_n == 0 {
+        if params == "" {
             param_list = AbiLayoutCEmptyParameterList();
         }
         signature = Concat(
@@ -455,7 +455,7 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 signatures, i
             );
             let plist: String = params;
-            if pn == 0 {
+            if params == "" {
                 plist = AbiLayoutCEmptyParameterList();
             }
             let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));

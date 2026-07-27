@@ -2264,17 +2264,38 @@ nominal fields but omitted `EffectSlot:` and `RelationSlot:`. That erased
 typed nominal field stream. The focused action subgate and canonical native/self
 MIR parity are green after these fixes.
 
-The shard then reaches a later, distinct RED:
+The shard then reached a later, distinct historical RED:
 
 ```text
 CODEGEN ERROR: unsupported C ABI value type ...: Damage
 ```
 
-Do not fix this by accepting any unknown capitalized type as a struct. Native
-MIR owns an `AST_EFFECT_DECL` header, but the admitted JSON/self-host C type
-universe does not yet carry the effect declaration and its zone runtime ABI.
-The next rung must carry that identity, teach the MIR consumer its explicit
-effect declaration kind, and preserve native zone-layer layout/operations.
+The fix did not accept an unknown capitalized type as a struct. Native MIR now
+projects `AST_EFFECT_DECL` explicitly as `kind=effect, nominal_kind=effect`, the
+self-host typed arena and semantic constructor facts preserve that identity,
+and `causes Damage` must resolve to an actual effect declaration. The same
+focused C shard now compiles and runs through the explicit `Damage` value ABI.
+It also exposed a role ABI defect: an impl method with zero explicit parameters
+was emitted once as `HeroCombat_Ping(void *self)` and once as
+`HeroCombat_Ping(void)`. The emitter now preserves the implicit role receiver;
+the emitted-C gate rejects the receiver-free signature.
+
+The adjacent slot loss is closed only as a carriage bridge. A compiler-owned
+`mir_decl_field_kind_vocabulary.def` registry defines 14 stable wire spellings
+and AST projection labels; the self-host projection is generated and checked
+for drift. Native/self declarations now carry `field_kind` and reconstruct
+`SubjectSlot`, `ObjectSlot`, `TObjectSlot`, `EffectSlot`, `RelationSlot`, shared
+fields and current world/roster labels without guessing from field name/type.
+The focused gate rejects effect/class identity drift, a missing effect,
+unknown `causes`, missing/flattened field kind, a flattened zone effect slot,
+and loss of the effect's exactly-one subject participant before backend output.
+
+Do not interpret that green shard as zone runtime closure. Pool capacity,
+vessel/binding distinction, relation declaration admission, stable field
+identity, refresh/authority/state/lifecycle topology and the C/LLVM runtime
+operations remain open. The next executable falsifier is
+`zone_layer_projection_runtime`; its topology must be derived once from typed
+facts rather than rebuilt from AST text in each backend.
 
 During the observed runs, large seed generation remained in the hundreds of
 MiB and integrated gen2 emission peaked around 1.33 GiB private, below the
@@ -2298,5 +2319,7 @@ entire `pgy_runtime.h`. `RuntimeCHeaderOwnsCheckedArithmetic` deliberately passe
 `uses_array=false`, because the panic contract alone does not own checked
 arithmetic helpers. The focused lifetime/component gates reject old call arity
 and missing header relationships; `valid_array_builtins` emitted C compile/run
-is the executable witness. Removing either header must make the C11 negative
-compile fail.
+is the executable witness. The MIR JSON parity harness must compile temporary C
+with `src/runtime` on its include path; otherwise the correct narrow header is
+misreported as a generated-code failure. Removing either header must make the
+C11 negative compile fail.

@@ -1,6 +1,31 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-07-27
+마지막 업데이트: 2026-07-28
+
+## 2026-07-28 nominal field-kind bridge checkpoint
+
+- `AST_EFFECT_DECL -> pgy.mir.v1 -> self-host mir_lower -> C`가 explicit
+  `effect/effect` identity로 연결됐고, `causes Damage`는 실제 effect declaration을
+  요구한다. `function_clause_order_minimal` focused C shard는 native/self MIR,
+  canonical reconstruction, emitted C compile/run까지 green이다.
+- `mir_decl_field_kind_vocabulary.def`가 일반/shared field와 domain/zone/world/roster
+  slot 14개의 wire spelling/AST label을 소유하며 self-host projection은 생성된다.
+  `Damage.bearer=subject_slot`, `BattleZone.damage=effect_slot`과 effect participant
+  cardinality의 누락/평탄화 변조는 backend output 전에 실패한다.
+- 이 상태는 `BRIDGE`/`SURFACE`다. Stable field identity, pool capacity,
+  vessel/binding slot, relation declaration, zone refresh/authority/state/lifecycle,
+  runtime C/LLVM topology가 열려 있다. 다음 executable fixture는
+  `zone_layer_projection_runtime`이며 production call graph는 아직 바뀌지 않았다.
+- Hard-substitution accounting은 `BLOCKED`로 기록한다. 정확한 missing fact는
+  `dir.domain_graph`가 소유해야 할 typed `DomainRuntimeTopology`(stable field/layer
+  identity, relation endpoints, pool capacity, refresh/authority/state/lifecycle,
+  action transition binding)다. 현재 native carrier는 `MIRDeclHeader`이고 마지막
+  합법 consumer는 target-neutral topology plan을 거쳐야 할 self-host C/LLVM
+  runtime emitter다. 금지된 직접 우회는 backend의 AST/source topology 재조회이며,
+  다음 falsifying fixture는 `zone_layer_projection_runtime`이다. 이 사실이 없어서
+  현재 commit은 supporting SoT seam이지 executable C-path substitution이 아니다.
+- zero-explicit-parameter role impl도 implicit `self` C ABI를 보존한다. focused
+  emitted-C gate가 receiver-free duplicate signature 재도입을 거부한다.
 
 ## 2026-07-27 self-host closure checkpoint
 
@@ -13,10 +38,8 @@
 - The same focused source now preserves two `impl ability` partitions instead
   of dropping every declaration when a role owns more than one impl. Zone
   `effect slot` and `relation slot` rows also enter the nominal field fact.
-  Canonical native/self MIR parity is green through that boundary. The next
-  executable seam is separate: the self-host C consumer still rejects the
-  carried `Damage` effect nominal because effect declaration/runtime ABI facts
-  are not yet present in its admitted MIR type universe.
+  This was the historical predecessor of the 2026-07-28 explicit effect and
+  field-kind bridge above; use the newer checkpoint for continuation.
 - `semantic.callable_contract_vocabulary` owns the 9 capability and 9 effect
   closed values. Native, self-host, MIR, diagnostic, manifest, and runtime
   grant consumers use one direct/generated projection. Duplicate,

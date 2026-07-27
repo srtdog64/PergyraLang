@@ -1016,6 +1016,7 @@ Inductive SpineFact : Type :=
   | SFTokenStream
   | SFLanguageWordRegistry
   | SFCallableContractVocabulary
+  | SFNominalFieldKind
   | SFSyntaxProvenanceTree
   | SFMatchCasePattern
   | SFSemanticSymbolTypeGraph
@@ -1074,6 +1075,7 @@ Inductive SpineOwner : Type :=
   | SOLexer
   | SOLanguageLexicon
   | SOCallableContractVocabulary
+  | SONominalFieldKind
   | SOParserAst
   | SOAstMatchCasePattern
   | SOSemanticAnalyzer
@@ -1126,6 +1128,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTokenStream => SOLexer
   | SFLanguageWordRegistry => SOLanguageLexicon
   | SFCallableContractVocabulary => SOCallableContractVocabulary
+  | SFNominalFieldKind => SONominalFieldKind
   | SFSyntaxProvenanceTree => SOParserAst
   | SFMatchCasePattern => SOAstMatchCasePattern
   | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer

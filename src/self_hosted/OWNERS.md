@@ -26,6 +26,10 @@ inventory must not become a second fact-family owner registry.
   and recursive scalar-field facts over bounded JSON spans.
 - `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
+- `src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy` --
+  generated stable MIR declaration-field wire spelling and AST-label projection.
+- `src/self_hosted/lib/nominal_field_kind_owner.pgy` -- declaration-family
+  compatibility and shape policy over the generated field-kind vocabulary.
 
 ## Lexer
 
