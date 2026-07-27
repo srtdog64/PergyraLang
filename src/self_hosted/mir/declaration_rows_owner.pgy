@@ -1,20 +1,14 @@
 // MIR declaration rows projected from the semantic declaration owners.
-
 import "program_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
-
 func SelfMirDeclarationSignatureIndexForNode(
     signatures: SemanticAstFunctionSignatureFacts,
     method_node_id: Int
 ) -> Option<Int> {
-    return SemanticAstFunctionSignatureIndexForNode(
-        signatures, method_node_id
-    );
+    return SemanticAstFunctionSignatureIndexForNode(signatures, method_node_id);
 }
-
 func SelfMirDeclarationRawReturnType(
-    artifact: AstTreeArtifact,
-    method_node_id: Int
+    artifact: AstTreeArtifact, method_node_id: Int
 ) -> String {
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(
@@ -38,7 +32,6 @@ func SelfMirDeclarationRawReturnType(
     }
     return "";
 }
-
 func SelfMirDeclarationAppendMethodParams(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -72,10 +65,8 @@ func SelfMirDeclarationAppendMethodParams(
     ArrayPush(method_param_counts, ArrayLength(method_param_names) - start);
     return true;
 }
-
 func SelfMirDeclarationCopyStringRange(
-    source: Array<String>, start: Int, count: Int,
-    inout target: Array<String>
+    source: Array<String>, start: Int, count: Int, inout target: Array<String>
 ) -> Bool {
     if start < 0 || count < 0 || start + count > ArrayLength(source) {
         return false;
@@ -87,7 +78,6 @@ func SelfMirDeclarationCopyStringRange(
     }
     return true;
 }
-
 func SelfMirDeclarationAppendMethodContract(
     signatures: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
@@ -166,10 +156,8 @@ func SelfMirDeclarationAppendMethodContract(
     );
     return true;
 }
-
 func SelfMirDeclarationsFromAnalysis(
-    artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis,
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
     enum_facts: SemanticAstEnumFacts
 ) -> SelfMirDeclarationRows {
     let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
@@ -182,6 +170,7 @@ func SelfMirDeclarationsFromAnalysis(
     let field_names: Array<String> = rows.field_names;
     let field_kinds: Array<String> = rows.field_kinds;
     let field_types: Array<String> = rows.field_types;
+    let field_source_syntax_ids: Array<Int> = rows.field_source_syntax_ids;
     let method_starts: Array<Int> = rows.method_starts;
     let method_counts: Array<Int> = rows.method_counts;
     let method_names: Array<String> = rows.method_names;
@@ -258,11 +247,19 @@ func SelfMirDeclarationsFromAnalysis(
                 SemanticAstNominalConstructorFieldKindAt(
                     analysis.constructors, i, field_i
                 );
-            if IsSome(field_name) && IsSome(field_kind) && IsSome(field_type) {
-                ArrayPush(field_names, UnwrapOption(field_name));
-                ArrayPush(field_kinds, UnwrapOption(field_kind));
-                ArrayPush(field_types, UnwrapOption(field_type));
+            let field_source_id: Option<Int> =
+                SemanticAstNominalConstructorFieldSourceSyntaxIdAt(
+                    analysis.constructors, i, field_i
+                );
+            if !IsSome(field_name) || !IsSome(field_kind) ||
+                !IsSome(field_type) || !IsSome(field_source_id) ||
+                UnwrapOption(field_source_id) <= 0 {
+                return SelfMirDeclarationRowsEmpty();
             }
+            ArrayPush(field_names, UnwrapOption(field_name));
+            ArrayPush(field_kinds, UnwrapOption(field_kind));
+            ArrayPush(field_types, UnwrapOption(field_type));
+            ArrayPush(field_source_syntax_ids, UnwrapOption(field_source_id));
             field_i = field_i + 1;
         }
         ArrayPush(method_starts, ArrayLength(method_names));
@@ -577,7 +574,8 @@ func SelfMirDeclarationsFromAnalysis(
     }
     return SelfMirDeclarationRows(
         kinds, nominal_kinds, names, target_types, field_starts, field_counts,
-        field_names, field_kinds, field_types, method_starts, method_counts,
+        field_names, field_kinds, field_types, field_source_syntax_ids,
+        method_starts, method_counts,
         method_names, method_returns,
         method_is_actions,
         method_requires_starts, method_requires_counts, method_requires_names,

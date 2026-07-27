@@ -76,6 +76,8 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirDeclarationParallelCount(count, rows.role_impl_counts) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_kinds) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
+        ArrayLength(rows.field_names) !=
+            ArrayLength(rows.field_source_syntax_ids) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_is_actions) ||
         ArrayLength(rows.method_names) !=
@@ -151,10 +153,17 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
             let field_row: Int = field_cursor + field_i;
             if rows.field_names[field_row] == "" ||
                 rows.field_types[field_row] == "" ||
+                rows.field_source_syntax_ids[field_row] <= 0 ||
                 !NominalFieldKindAllowedForDeclaration(
                     rows.nominal_kinds[i], rows.field_kinds[field_row]
                 ) {
                 return false;
+            }
+            let prior_field_row: Int = 0;
+            while prior_field_row < field_row {
+                if rows.field_source_syntax_ids[prior_field_row] ==
+                    rows.field_source_syntax_ids[field_row] { return false; }
+                prior_field_row = prior_field_row + 1;
             }
             if rows.field_kinds[field_row] == NominalFieldKindSubjectSlot() {
                 subject_slot_count = subject_slot_count + 1;

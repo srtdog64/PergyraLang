@@ -3099,6 +3099,8 @@ require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArena
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func CodegenAstTextNominalSubkindFor"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "field_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFieldNameAt"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "field_source_syntax_ids: Array<Int>;"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFieldSourceSyntaxIdAt"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactEntrypointVerdict"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeCompactBridge"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeTyped"
@@ -4024,6 +4026,11 @@ require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, merge_local_i, 0
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'let false_block: Int = merge_block;'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, branch_block, then_block, false_block'
 require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" 'JsonEmitFieldRaw("variants", JsonEmitArray(variants))'
+require_text "src/self_hosted/mir/declaration_fact_owner.pgy" 'field_source_syntax_ids: Array<Int>;'
+require_text "src/self_hosted/mir/declaration_rows_owner.pgy" 'SemanticAstNominalConstructorFieldSourceSyntaxIdAt('
+require_text "src/self_hosted/mir/declaration_verify_owner.pgy" 'rows.field_source_syntax_ids[field_row] <= 0'
+require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" '"source_syntax_id", ToString(rows.field_source_syntax_ids[row])'
+reject_text "src/self_hosted/mir/declaration_rows_owner.pgy" 'ArrayPush(field_source_syntax_ids, field_i'
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'

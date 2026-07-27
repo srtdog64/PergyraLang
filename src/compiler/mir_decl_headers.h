@@ -122,6 +122,7 @@ const char *mir_decl_method_projection_call_method_name(
     const MIRDeclMethod *method, size_t index);
 const char *mir_decl_field_owner_name(const MIRDeclField *field);
 const char *mir_decl_field_name(const MIRDeclField *field);
+uint32_t mir_decl_field_source_syntax_id(const MIRDeclField *field);
 ASTNode *mir_decl_field_type(const MIRDeclField *field);
 ASTNode *mir_decl_field_initializer(const MIRDeclField *field);
 const char *mir_decl_field_type_name(const MIRDeclField *field);

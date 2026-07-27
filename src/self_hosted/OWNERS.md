@@ -707,7 +707,13 @@ inventory must not become a second fact-family owner registry.
   capture boundary/kind/writer fact validation for MIR JSON input.
 - `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one
   document-order declaration identity/span inventory shared across canonical
-  declaration-family projection phases.
+  declaration-family projection phases; it composes the field identity index
+  from those already-discovered spans rather than reopening the declaration
+  array.
+- `src/self_hosted/mir_lower/program_declaration_field_identity_index_owner.pgy`
+  -- one flattened owner/name/source-ID/field-kind identity index built from
+  program declaration spans; topology consumers must use its exact join and
+  fail closed on missing, non-positive, or duplicate field identities.
 - `src/self_hosted/lib/json_bounded_fact_read.pgy` -- exact-bound JSON object
   fact reads that consume structure-owner spans without rediscovering the full
   document length.

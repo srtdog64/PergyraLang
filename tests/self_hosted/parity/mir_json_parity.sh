@@ -370,7 +370,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "class_decl" ]]; then
         for required in \
             '"decls":[{"kind":"class","nominal_kind":"class","name":"Vec2"' \
-            '"fields":[{"name":"x","type":"Int","field_kind":"field"},{"name":"y","type":"Int","field_kind":"field"}]'; do
+            '"fields":[{"name":"x","type":"Int","field_kind":"field","source_syntax_id":' \
+            '"name":"y","type":"Int","field_kind":"field","source_syntax_id":'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_decl: missing MIR class declaration fact: $required" >&2
                 exit 1
@@ -416,7 +417,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
         esac
         for required in \
             "\"decls\":[{\"kind\":\"class\",\"nominal_kind\":\"$nominal_kind\",\"name\":\"$nominal_name\"" \
-            "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\",\"field_kind\":\"field\"}]"; do
+            "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\",\"field_kind\":\"field\",\"source_syntax_id\":"; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] $base: missing MIR nominal declaration fact: $required" >&2
                 exit 1
@@ -426,7 +427,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "nominal_record_array" ]]; then
         for required in \
             '"decls":[{"kind":"struct","nominal_kind":"struct","name":"AstExpressionGraphRows"' \
-            '"fields":[{"name":"ok","type":"Bool","field_kind":"field"},{"name":"roots","type":"Array<Int>","field_kind":"field"}]'; do
+            '"fields":[{"name":"ok","type":"Bool","field_kind":"field","source_syntax_id":' \
+            '"name":"roots","type":"Array<Int>","field_kind":"field","source_syntax_id":'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] nominal_record_array: missing MIR struct declaration fact: $required" >&2
                 exit 1

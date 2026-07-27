@@ -5,6 +5,7 @@
 // identity and spans so each policy phase does not rediscover JSON rows.
 
 import "json_fact_read.pgy";
+import "program_declaration_field_identity_index_owner.pgy";
 
 struct MirProgramDeclarationIndex {
     let valid: Bool;
@@ -13,6 +14,7 @@ struct MirProgramDeclarationIndex {
     let kinds: Array<String>;
     let nominal_kinds: Array<String>;
     let names: Array<String>;
+    let field_identities: MirProgramDeclarationFieldIdentityIndex;
 }
 
 func MirProgramDeclarationIndexCursorAtEnd(
@@ -33,10 +35,12 @@ func BuildMirProgramDeclarationIndex(
     let kinds: Array<String> = [];
     let nominal_kinds: Array<String> = [];
     let names: Array<String> = [];
+    let field_identities: MirProgramDeclarationFieldIdentityIndex =
+        EmptyMirProgramDeclarationFieldIdentityIndex();
     let array_bounds: Array<Int> = [0, 0];
     if !MirDeclArrayBounds(json, array_bounds) {
         return MirProgramDeclarationIndex(
-            false, starts, ends, kinds, nominal_kinds, names
+            false, starts, ends, kinds, nominal_kinds, names, field_identities
         );
     }
 
@@ -64,8 +68,12 @@ func BuildMirProgramDeclarationIndex(
         ArrayLength(starts) == ArrayLength(kinds) &&
         ArrayLength(starts) == ArrayLength(nominal_kinds) &&
         ArrayLength(starts) == ArrayLength(names);
+    field_identities =
+        BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
+            json, starts, ends, names, kinds, nominal_kinds
+        );
     return MirProgramDeclarationIndex(
-        valid, starts, ends, kinds, nominal_kinds, names
+        valid, starts, ends, kinds, nominal_kinds, names, field_identities
     );
 }
 

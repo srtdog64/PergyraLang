@@ -419,7 +419,7 @@ parser clause nodes
 ```text
 parser field node + SyntaxNodeId
   -> SemanticAstNominalConstructorFacts
-       (nominal_kind, field_kind, referenced type identity)
+       (nominal_kind, field_kind, source_syntax_id, referenced type identity)
   -> SelfMirDeclarationRows
   -> pgy.mir.v1 declarations[].fields[]
   -> exact SubjectSlot/ObjectSlot/TObjectSlot/EffectSlot/RelationSlot reconstruction
@@ -437,10 +437,20 @@ declaration만, `relation_slot/relation_pool`은 relation declaration만 참조�
 한다. `action`은 field kind가 아니며 subject-owned method contract로 남는다.
 `within`과 `causes`는 각각 zone/effect declaration identity에 결속한다.
 
+Field reference의 최소 join key는 `(owner declaration, field name,
+source_syntax_id, field_kind)`다. 이름은 진단과 authoring identity이고 ID는 같은
+revision 안의 구조 identity이며 kind는 그 field가 맡을 수 있는 역할을 제한한다.
+셋 중 하나라도 생략하면 `player` 이름에 `enemy`의 유효한 ID를 붙이거나,
+subject slot을 object slot로 바꾼 forged row를 구별할 수 없다. Declaration field
+index는 문서당 한 번 만들고 topology/action consumer가 공유한다. Edge마다
+`declarations[]`를 다시 순회하거나 name-only lookup을 복원하지 않는다.
+
 누락·unknown kind, host-kind 불일치, effect/relation 교환, required participant
 cardinality 손실, pool capacity 누락, 이름-only declaration join은 모두 fail
-closed한다. Native/self MIR byte parity는 필요하지만 exact AST reconstruction과
-C/LLVM runtime layout/operation parity가 없으면 domain runtime closure가 아니다.
+closed한다. Identity-insensitive payload parity와 canonicalized same-epoch MIR
+parity는 필요하지만 raw producer ID 숫자 equality는 요구하지 않는다. Exact AST
+reconstruction과 C/LLVM runtime layout/operation parity가 없으면 domain runtime
+closure가 아니다.
 
 현재 focused `function_clause_order_minimal` C shard는 effect/zone field kind와
 effect participant shape를 포함한 native/self MIR parity, canonical reconstruction,
@@ -489,11 +499,22 @@ optional `domain_topology` object에 stable-ID 값을 운반한다. Self-host `m
 relation participant cardinality, null/name-ID shape, directive uniqueness를 fail
 closed로 검사한다. `TrustedLink` relation도 typed declaration으로 복원된다.
 
-그러나 현재 declaration JSON field에는 그 field의 `source_syntax_id`가 없어서
-self-host admission은 `player`라는 이름과 전달된 ID가 실제 같은 field를
-가리키는지 증명하지 못한다. 이름은 `player`로 둔 채 `enemy` ID를 붙인 forged
-row도 현재 구조상 통과할 수 있다. 따라서 이 carrier를 “exact stable identity
-admission”이라고 부르거나 ID-keyed graph plan을 만들면 안 된다.
+Declaration JSON field는 이제 nonzero `source_syntax_id`와 `field_kind`를 함께
+운반한다. Native validator와 self-host `MirProgramDeclarationFieldIdentityIndex`는
+owner 안에서 `(name, ID, kind)`를 exact join하고, 문서 전체 duplicate field ID,
+owner 내부 duplicate name, missing/zero ID를 거부한다. 따라서 이름은 `player`로
+둔 채 `enemy`의 유효한 ID를 붙인 row와, 같은 name/ID를 잘못된 field kind로
+바꾼 row가 backend 전에 실패한다. 이 admission delta는 production C path를
+대체하지 않으므로 증거 등급은 `REACHABLE` supporting이다.
+
+Raw ID 숫자의 native/self equality는 계약이 아니다. Native parser의 preorder
+`SyntaxNodeId`와 현재 self-host compact typed-arena identity는 서로 다른 producer와
+revision의 identity epoch다. 유효한 join은 한 MIR 문서와 그 문서에서 파생된
+consumer 안에서만 한다. MIR-to-AST canonicalization처럼 새 프로그램을 만들면
+declaration field와 이를 참조하는 topology row의 ID를 한 번에 재발급해야 한다.
+숫자 offset, AST text row ordinal, name hash로 native ID를 흉내 내지 않는다. 현재
+canonicalizer가 non-empty topology를 거부하는 것은 이 atomic remap owner가 아직
+없기 때문이며 올바른 fail-closed 경계다.
 
 JSON/admission slice 자체의 판정은 계속 `REACHABLE`이다. 다만 그다음 bounded
 executable rung으로 self-host source producer가 “topology row는 없지만 DIR graph는
@@ -512,14 +533,16 @@ MIR canonical bridge도 이미 admit된 empty topology를 그대로 운반한다
 source producer에 붙이지 않는다.
 
 Pergyra graph plan과 production runtime consumer는 아직 없으므로 전체
-domain/action runtime은 계속 `BRIDGE`다. 다음 rung은 declaration field
-`source_syntax_id` exact join을 닫고 non-empty directive row를 self-host가 생산한 뒤,
-admitted row로 하나의 ID-keyed target-neutral graph plan을 만드는 것이다. 일반
-DRV-2 C/LLVM production path가 `zone_layer_projection_runtime`의 exact
-3-node/2-edge trace를 소비해야 한다. 이 fixture의 native runtime 전체를
-대체하려면 graph 외에도 `apply poison to player`, zone state count, hidden layer
-layout와 sync operation fact가 필요하다. 그때도 `MIR if present, otherwise AST`
-fallback은 두지 않는다.
+domain/action runtime은 계속 `BRIDGE`다. 다음 executable rung은 self-host가
+non-empty directive row를 생산하고, canonicalization이 새 identity epoch에서
+declaration/topology ID를 함께 remap한 뒤, admitted row로 하나의 ID-keyed
+target-neutral graph plan을 만드는 것이다. 일반 DRV-2 C/LLVM production path가
+`zone_layer_projection_runtime`의 exact 3-node/2-edge trace를 소비해야 한다.
+canonical topology ID 하나만 과거 raw native ID로 되돌린 row와 `player` 이름에
+canonical `enemy` ID를 붙인 row가 첫 negative다. 이 fixture의 native runtime
+전체를 대체하려면 graph 외에도 `apply poison to player`, zone state count, hidden
+layer layout와 sync operation fact가 필요하다. 그때도 `MIR if present, otherwise
+AST` fallback은 두지 않는다.
 
 ### 4.3 Artifact action의 commit 조건
 
@@ -704,9 +727,11 @@ subject CompilerExecution {
     domain declaration의 `field_kind` spelling도 compiler-owned registry와 생성
     self-host projection으로 단일화됐다. DIR zone-frontier slice는 stable
     directive/slot identity를 운반한다. MIR JSON relation/topology carriage와
-    self-host typed admission은 `REACHABLE`로 닫혔지만 전체 stable field identity,
-    pool capacity, vessel/binding slot, self-host producer emission,
-    graph plan/runtime consumer와 나머지 zone runtime topology는 열려 있다.
+    self-host typed admission은 declaration field `(owner, name, ID, kind)` exact
+    join까지 `REACHABLE`로 닫혔다. Native/self raw ID 숫자 수렴, owner declaration
+    ID join, non-empty canonical identity remap, pool capacity, vessel/binding slot,
+    self-host producer emission, graph plan/runtime consumer와 나머지 zone runtime
+    topology는 열려 있다.
 15. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인
@@ -741,6 +766,12 @@ subject CompilerExecution {
 24. `ToObject`/`ToTObject`는 현재 둘 다 value projection ABI이고 tobject 전용
     channel/API/IPC transport 정책은 아직 없다. API/IPC/persistence는 canonical
     사용 의도이지 구현된 별도 wire/transport 보장으로 과장하지 않는다.
+25. Native AST printer는 domain vessel field를 `VesselSlot:`으로 출력할 수 있지만
+    self-host typed-AST inventory는 아직 이 label을 field row로 분류하지 않는다.
+    현재 MIR field vocabulary에도 vessel 전용 wire kind가 없어 object slot로 접힐
+    수 있다. `subject-owned vessel`은 storage spelling이 아니라 별도 field-role
+    fact여야 하며, native/self negative와 carriage fixture가 생기기 전까지 이
+    경계를 구현 완료로 세지 않는다.
 
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
 `object`/`tobject` bare·nested-field mutation, class/subject의 bare/`self.` mutability

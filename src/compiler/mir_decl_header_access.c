@@ -565,6 +565,12 @@ mir_decl_field_name(const MIRDeclField *field)
     return field != NULL ? field->name : NULL;
 }
 
+uint32_t
+mir_decl_field_source_syntax_id(const MIRDeclField *field)
+{
+    return field != NULL ? field->source_syntax_id : 0;
+}
+
 ASTNode *
 mir_decl_field_type(const MIRDeclField *field)
 {

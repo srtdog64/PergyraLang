@@ -37,7 +37,7 @@ pgy_selfhost_verify_driver_rung2_generic_default_contract() {
     [[ "$base" == "generic_default_contracts" ]] || return 0
 
     for fact in \
-        '"kind":"class","nominal_kind":"class","name":"Box","fields":[{"name":"value","type":"Int","field_kind":"field"}]' \
+        '"kind":"class","nominal_kind":"class","name":"Box","fields":[{"name":"value","type":"Int","field_kind":"field","source_syntax_id":' \
         '"name":"Put","kind":"method","owner":"IntBuffer"' \
         '"call_target_kind":"member","call_target_name":"Bag_Save"'; do
         grep -Fq "$fact" "$self_mir_json" || {

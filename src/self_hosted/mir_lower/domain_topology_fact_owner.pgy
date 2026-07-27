@@ -5,6 +5,7 @@
 // refresh/link policy from source or AST text.
 
 import "json_fact_read.pgy";
+import "program_declaration_index_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 
 struct MirDomainTopologyFacts {
@@ -113,23 +114,6 @@ func MirDomainTopologyNullableNameId(
     return true;
 }
 
-func MirDomainTopologyDeclarationIndex(
-    ref document: MirDocumentFactIndex, name: String
-) -> Int {
-    let count: Int = JsonArrayObjectFactCount(document.declarations);
-    let i: Int = 0;
-    while i < count {
-        let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
-            document.declarations, i
-        );
-        if JsonObjectFactStringFieldEquals(declaration, "name", name) {
-            return i;
-        }
-        i = i + 1;
-    }
-    return 0 - 1;
-}
-
 func MirDomainTopologyRequiredForDocument(
     ref document: MirDocumentFactIndex
 ) -> Bool {
@@ -153,155 +137,141 @@ func MirDomainTopologyRequiredForDocument(
     return false;
 }
 
-func MirDomainTopologyDeclarationNominalKind(
-    ref document: MirDocumentFactIndex, name: String
-) -> String {
-    let index: Int = MirDomainTopologyDeclarationIndex(document, name);
-    if index < 0 { return ""; }
-    let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
-        document.declarations, index
-    );
-    let nominal_opt: Option<String> = JsonObjectFactStringFieldOpt(
-        declaration, "nominal_kind"
-    );
-    if !IsSome(nominal_opt) { return ""; }
-    return UnwrapOption(nominal_opt);
-}
-
-func MirDomainTopologyDeclarationFieldKind(
-    ref document: MirDocumentFactIndex,
-    owner_name: String,
-    field_name: String
-) -> String {
-    let index: Int = MirDomainTopologyDeclarationIndex(document, owner_name);
-    if index < 0 { return ""; }
-    let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
-        document.declarations, index
-    );
-    let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
-        declaration, "fields"
-    );
-    let count: Int = JsonArrayObjectFactCount(fields);
-    let i: Int = 0;
-    while i < count {
-        let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, i);
-        if JsonObjectFactStringFieldEquals(field, "name", field_name) {
-            let kind_opt: Option<String> = JsonObjectFactStringFieldOpt(
-                field, "field_kind"
-            );
-            if IsSome(kind_opt) { return UnwrapOption(kind_opt); }
-            return "";
-        }
-        i = i + 1;
-    }
-    return "";
-}
-
 func MirDomainTopologyRelationDeclarationReady(
-    ref document: MirDocumentFactIndex, owner_name: String
+    ref identities: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String
 ) -> Bool {
-    let index: Int = MirDomainTopologyDeclarationIndex(document, owner_name);
-    if index < 0 { return false; }
-    let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
-        document.declarations, index
-    );
-    if !JsonObjectFactStringFieldEquals(declaration, "kind", "relation") ||
-        !JsonObjectFactStringFieldEquals(
-            declaration, "nominal_kind", "relation"
-        ) {
+    if !MirProgramDeclarationFieldIdentityDeclarationIs(
+        identities, owner_name, "relation", "relation"
+    ) {
         return false;
     }
-    let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
-        declaration, "fields"
-    );
-    let subject_count: Int = 0;
-    let i: Int = 0;
-    while i < JsonArrayObjectFactCount(fields) {
-        let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, i);
-        let kind_opt: Option<String> = JsonObjectFactStringFieldOpt(
-            field, "field_kind"
-        );
-        if !IsSome(kind_opt) { return false; }
-        if UnwrapOption(kind_opt) == NominalFieldKindSubjectSlot() {
-            subject_count = subject_count + 1;
-        }
-        i = i + 1;
-    }
-    return subject_count == 2;
+    return MirProgramDeclarationFieldIdentityKindCount(
+        identities, owner_name, NominalFieldKindSubjectSlot()
+    ) == 2;
 }
 
-func MirDomainTopologyProjectionSourceFieldKind(kind: String) -> Bool {
-    return kind == NominalFieldKindSubjectSlot() ||
-        kind == NominalFieldKindObjectSlot() ||
-        kind == NominalFieldKindTObjectSlot() ||
-        kind == NominalFieldKindBindingSlot();
+func MirDomainTopologyProjectionSourceIdentityReady(
+    ref identities: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String
+) -> Bool {
+    return MirProgramDeclarationFieldIdentityMatches(
+            identities, owner_name, field_name, source_syntax_id,
+            NominalFieldKindSubjectSlot()
+        ) || MirProgramDeclarationFieldIdentityMatches(
+            identities, owner_name, field_name, source_syntax_id,
+            NominalFieldKindObjectSlot()
+        ) || MirProgramDeclarationFieldIdentityMatches(
+            identities, owner_name, field_name, source_syntax_id,
+            NominalFieldKindTObjectSlot()
+        ) || MirProgramDeclarationFieldIdentityMatches(
+            identities, owner_name, field_name, source_syntax_id,
+            NominalFieldKindBindingSlot()
+        );
+}
+
+func MirDomainTopologyOptionalSubjectIdentityReady(
+    ref identities: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String
+) -> Bool {
+    if field_name == "" { return source_syntax_id == "0"; }
+    return MirProgramDeclarationFieldIdentityMatches(
+        identities, owner_name, field_name, source_syntax_id,
+        NominalFieldKindSubjectSlot()
+    );
 }
 
 func MirDomainTopologyRowDeclarationJoinReady(
-    ref document: MirDocumentFactIndex,
+    ref identities: MirProgramDeclarationFieldIdentityIndex,
     owner_name: String,
     kind: String,
     projection_name: String,
+    projection_id: String,
     source_name: String,
+    source_id: String,
     layer_name: String,
+    layer_id: String,
     target_name: String,
+    target_id: String,
     left_name: String,
+    left_id: String,
     right_name: String,
-    participant_name: String
+    right_id: String,
+    participant_name: String,
+    participant_id: String
 ) -> Bool {
-    let owner_kind: String = MirDomainTopologyDeclarationNominalKind(
-        document, owner_name
-    );
+    let owner_kind: String =
+        MirProgramDeclarationFieldIdentityNominalKind(
+            identities, owner_name
+        );
+    if !MirDomainTopologyOptionalSubjectIdentityReady(
+        identities, owner_name, participant_name, participant_id
+    ) {
+        return false;
+    }
     if kind == "refresh" || kind == "publish" || kind == "bind" {
         if owner_kind != "effect" && owner_kind != "relation" &&
             owner_kind != "zone" {
             return false;
         }
-        let projection_kind: String = MirDomainTopologyDeclarationFieldKind(
-            document, owner_name, projection_name
-        );
-        let source_kind: String = MirDomainTopologyDeclarationFieldKind(
-            document, owner_name, source_name
-        );
-        if projection_kind != NominalFieldKindObjectSlot() &&
-            projection_kind != NominalFieldKindTObjectSlot() {
+        if !MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, projection_name, projection_id,
+                NominalFieldKindObjectSlot()
+            ) && !MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, projection_name, projection_id,
+                NominalFieldKindTObjectSlot()
+            ) {
             return false;
         }
-        if !MirDomainTopologyProjectionSourceFieldKind(source_kind) {
+        if !MirDomainTopologyProjectionSourceIdentityReady(
+            identities, owner_name, source_name, source_id
+        ) {
             return false;
         }
-        if participant_name != "" && MirDomainTopologyDeclarationFieldKind(
-            document, owner_name, participant_name
-        ) != NominalFieldKindSubjectSlot() {
-            return false;
-        }
-        return layer_name == "" && target_name == "" && left_name == "" &&
-            right_name == "";
+        return layer_name == "" && layer_id == "0" &&
+            target_name == "" && target_id == "0" &&
+            left_name == "" && left_id == "0" &&
+            right_name == "" && right_id == "0";
     }
-    if owner_kind != "zone" || projection_name != "" || source_name != "" {
+    if owner_kind != "zone" || projection_name != "" ||
+        projection_id != "0" || source_name != "" || source_id != "0" {
         return false;
     }
     if kind == "maintain-effect" {
-        return MirDomainTopologyDeclarationFieldKind(
-                document, owner_name, layer_name
-            ) == NominalFieldKindEffectSlot() &&
-            MirDomainTopologyDeclarationFieldKind(
-                document, owner_name, target_name
-            ) == NominalFieldKindSubjectSlot() &&
-            left_name == "" && right_name == "";
+        return MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, layer_name, layer_id,
+                NominalFieldKindEffectSlot()
+            ) && MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, target_name, target_id,
+                NominalFieldKindSubjectSlot()
+            ) && left_name == "" && left_id == "0" &&
+            right_name == "" && right_id == "0";
     }
     if kind == "link-relation" {
-        return MirDomainTopologyDeclarationFieldKind(
-                document, owner_name, layer_name
-            ) == NominalFieldKindRelationSlot() &&
-            MirDomainTopologyDeclarationFieldKind(
-                document, owner_name, left_name
-            ) == NominalFieldKindSubjectSlot() &&
-            MirDomainTopologyDeclarationFieldKind(
-                document, owner_name, right_name
-            ) == NominalFieldKindSubjectSlot() && target_name == "";
+        return MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, layer_name, layer_id,
+                NominalFieldKindRelationSlot()
+            ) && MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, left_name, left_id,
+                NominalFieldKindSubjectSlot()
+            ) && MirProgramDeclarationFieldIdentityMatches(
+                identities, owner_name, right_name, right_id,
+                NominalFieldKindSubjectSlot()
+            ) && target_name == "" && target_id == "0";
     }
     return false;
+}
+
+func MirDomainTopologyDeclarationIndexReady(
+    ref declarations: MirProgramDeclarationIndex
+) -> Bool {
+    return declarations.valid && declarations.field_identities.valid &&
+        MirProgramDeclarationIndexCount(declarations) ==
+            ArrayLength(declarations.field_identities.declaration_names);
 }
 
 func MirDomainTopologyFactsFromDocument(
@@ -320,6 +290,11 @@ func MirDomainTopologyFactsFromDocument(
         !IsSome(graph_id_opt) ||
         !MirDomainTopologyPositiveDecimal(UnwrapOption(graph_id_opt)) ||
         !JsonArrayObjectFactTableReady(rows) {
+        return EmptyMirDomainTopologyFacts(true);
+    }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    if !MirDomainTopologyDeclarationIndexReady(declarations) {
         return EmptyMirDomainTopologyFacts(true);
     }
 
@@ -395,11 +370,15 @@ func MirDomainTopologyFactsFromDocument(
             return EmptyMirDomainTopologyFacts(true);
         }
         if !MirDomainTopologyRowDeclarationJoinReady(
-            document, owner_names[row_index], kinds[row_index],
-            projection_names[row_index], source_names[row_index],
-            layer_names[row_index], target_names[row_index],
-            left_names[row_index], right_names[row_index],
-            participant_names[row_index]
+            declarations.field_identities,
+            owner_names[row_index], kinds[row_index],
+            projection_names[row_index], projection_ids[row_index],
+            source_names[row_index], source_slot_ids[row_index],
+            layer_names[row_index], layer_ids[row_index],
+            target_names[row_index], target_ids[row_index],
+            left_names[row_index], left_ids[row_index],
+            right_names[row_index], right_ids[row_index],
+            participant_names[row_index], participant_ids[row_index]
         ) {
             return EmptyMirDomainTopologyFacts(true);
         }
@@ -415,19 +394,15 @@ func MirDomainTopologyFactsFromDocument(
         row_index = row_index + 1;
     }
     let relation_index: Int = 0;
-    while relation_index < JsonArrayObjectFactCount(document.declarations) {
-        let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
-            document.declarations, relation_index
-        );
-        let nominal_opt: Option<String> = JsonObjectFactStringFieldOpt(
-            declaration, "nominal_kind"
-        );
-        if IsSome(nominal_opt) && UnwrapOption(nominal_opt) == "relation" {
-            let name_opt: Option<String> = JsonObjectFactStringFieldOpt(
-                declaration, "name"
-            );
-            if !IsSome(name_opt) || !MirDomainTopologyRelationDeclarationReady(
-                document, UnwrapOption(name_opt)
+    while relation_index < ArrayLength(
+        declarations.field_identities.declaration_names
+    ) {
+        if declarations.field_identities.declaration_nominal_kinds[
+                relation_index
+            ] == "relation" {
+            if !MirDomainTopologyRelationDeclarationReady(
+                declarations.field_identities,
+                declarations.field_identities.declaration_names[relation_index]
             ) {
                 return EmptyMirDomainTopologyFacts(true);
             }

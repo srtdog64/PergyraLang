@@ -91,6 +91,9 @@ mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_field_type_name(field));
         fputs(",\"field_kind\":", out);
         mir_json_emit_str(out, mir_json_decl_field_kind_name(field));
+        /* pgy.mir.v1 declaration-field identity key: "source_syntax_id". */
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_field_source_syntax_id(field));
         fputc('}', out);
         emitted++;
     }

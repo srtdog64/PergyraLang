@@ -269,6 +269,31 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
+        if (field->source_syntax_id == 0) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] field[%zu] has no source syntax identity",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t h = 0; h <= header_index; h++) {
+            const MIRDeclHeader *other_header = &mir->decl_headers[h];
+            size_t field_limit = h == header_index
+                ? i
+                : other_header->field_metadata_count;
+            for (size_t f = 0; f < field_limit; f++) {
+                if (other_header->field_metadata[f].source_syntax_id
+                    == field->source_syntax_id) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] field[%zu] duplicates source syntax identity %u",
+                            header_index, i, field->source_syntax_id);
+                    }
+                    return false;
+                }
+            }
+        }
         {
             char *expected_type_name =
                 mir_decl_field_expected_type_name(field);

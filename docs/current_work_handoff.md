@@ -6,7 +6,75 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - self-host empty DIR graph substitution
+## Current resume checkpoint - declaration field exact identity
+
+- Checkout base before this supporting slice is
+  `d6fb4a61328394329fbf71ca736bedfb70a305ae` on `main`, aligned with
+  `origin/main`. The landing commit contains this handoff; use
+  `git rev-parse HEAD` for its exact revision. The last executable
+  substitution checkpoint remains `0ac210261d199f5b188fbc66d5dfdcbdec4c223d`.
+- Objective card:
+  - objective: make every domain-topology field reference prove the exact
+    declaration field `(owner, name, source_syntax_id, field_kind)` before a
+    backend can consume it;
+  - priority: field identity carriage, one declaration index, forged valid-ID
+    rejection, producer-local identity honesty, then patch size;
+  - fact owner: native `MIRDeclField` and self-host
+    `MirProgramDeclarationFieldIdentityIndex`, scoped to one MIR revision;
+  - last legitimate consumer: native MIR topology validation and self-host
+    `MirDomainTopologyFacts` admission;
+  - forbidden fallback: name-only lookup, declaration rescans per edge,
+    native/self raw-ID equality, numeric offset repair, AST-text reparse, or
+    non-empty canonicalization with stale topology IDs;
+  - gates: MIR unit mutation, `domain_runtime_topology_smoke.sh`,
+    `domain_topology_admission_owner.sh`, and focused hard DRV-2
+    `function_clause_order_minimal`.
+- Native MIR declaration fields capture their parser-assigned stable ID and
+  serialize it in `pgy.mir.v1`. Validation rejects missing/global-duplicate
+  field IDs and exact-joins topology fields by name, ID, and expected semantic
+  kind. The unit mutation with `player` name + valid `enemy` ID fails; the
+  same name/ID with subject kind changed to object kind also fails.
+- The self-host semantic/MIR producer carries field IDs through constructor
+  facts, declaration rows, validation, and JSON projection. `mir_lower` builds
+  one declaration index with one flattened field-identity child index, then
+  topology admission consumes it without reopening `declarations[]` for every
+  row. Missing/zero/duplicate IDs, duplicate owner/name, wrong kind, and the
+  forged `player`/`enemy` join fail closed.
+- Raw native and self ID numbers are not compared. Native preorder identity
+  and the current self-host compact typed-arena identity are different
+  producer/revision epochs. A future lossless self parser identity graph must
+  close that convergence; constant offsets and provenance-string parsing are
+  forbidden. MIR-to-AST canonicalization must regenerate declaration IDs and
+  every dependent topology ID atomically. Non-empty topology remains rejected
+  until that remap exists.
+- Evidence status is `REACHABLE` supporting, not a new `SUBSTITUTING` slice.
+  The last observed focused hard DRV-2 gate passed one producer-first MIR
+  fixture through self MIR, canonical reconstruction, emitted-C compile and
+  execution. Native MIR 155/0, native C/LLVM topology, self topology admission,
+  component contract, object-to-action contract, and six focused MIR-JSON
+  declaration fixtures were also observed green during this slice.
+- The dedicated `generic_default_contracts` gate rebuilt its driver but is RED
+  before MIR emission at the existing bounded self DIR error
+  `relation/party/world/event production is not implemented` because the
+  fixture declares `StorageParty`. Its field JSON expectation was updated and
+  shell/component checks are green, but this gate is not claimed green. Do not
+  weaken the self DIR fail-close merely to exercise the downstream assertion.
+- Hard self-host guard accounting: the documentation refresh `d6fb4a61` was
+  supporting commit one after executable `0ac21026`; this exact-identity slice
+  is supporting commit two. The next commit must land executable replacement
+  evidence, not another SoT-only cleanup.
+- Next executable falsifier: produce non-empty
+  `zone_layer_projection_runtime` topology in self-host, canonicalize it into
+  a new identity epoch by remapping declaration/topology IDs together, and
+  feed one ID-keyed graph plan to the production C/LLVM path. Replacing one
+  canonical topology ID with the old raw native ID and pairing `player` with
+  canonical `enemy` ID must both fail. Owner declaration ID, vessel-slot
+  carriage, apply/state/layout/sync facts remain open.
+- The only protected concurrent user files remain the three unstaged parity
+  owners for indexed assignment, match, and owner field. Do not stage or edit
+  them.
+
+## Previous resume checkpoint - self-host empty DIR graph substitution
 
 - Exact executable checkpoint is
   `0ac210261d199f5b188fbc66d5dfdcbdec4c223d` on `main`, pushed to

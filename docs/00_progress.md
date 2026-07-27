@@ -2,6 +2,30 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 declaration field exact-identity checkpoint
+
+- Native와 self-host `pgy.mir.v1`의 topology-addressable
+  `decls[].fields[]` row가 이제 nonzero `source_syntax_id`와 `field_kind`를 함께
+  운반한다. Native MIR validator와
+  self-host declaration index는 topology reference를 같은 owner의
+  `(field name, source_syntax_id, field_kind)`에 exact join한다.
+- Self-host는 `declarations[]`를 한 번만 index하고 field identity를 그 index의
+  하위 fact로 소유한다. Topology edge마다 declaration JSON을 재탐색하던 name-only
+  lookup은 삭제됐다. Missing/zero/duplicate field ID, duplicate owner/name,
+  `player` 이름에 유효한 `enemy` ID를 붙인 row, field-kind drift가 fail closed다.
+- Native parser ID와 self-host compact typed-arena ID는 서로 다른 producer/revision
+  epoch이므로 raw 숫자 equality를 요구하지 않는다. Offset 보정도 금지한다.
+  Canonicalization은 새 declaration/topology ID를 함께 remap해야 하며, 이 owner가
+  생기기 전 non-empty topology는 계속 명시적으로 거부한다.
+- 관측된 focused hard DRV-2 gate는 `function_clause_order_minimal` self-produced MIR,
+  canonical reconstruction, emitted C까지 green이다. Native MIR unit은 exact
+  field-kind mutation까지 거부하도록 강화됐다. 이 변경은 다음 executable
+  non-empty graph rung의 supporting seam이며 독립 `SUBSTITUTING` 진척은 아니다.
+- 다음 falsifier는 `zone_layer_projection_runtime` canonical 문서의 declaration과
+  topology ID를 같은 epoch으로 재발급한 뒤, row 하나만 과거 raw ID로 되돌린
+  mutation과 `player` 이름 + canonical `enemy` ID mutation을 거부하는 것이다.
+  그다음 한 ID-keyed graph plan이 C/LLVM의 exact 3-node/2-edge 실행을 소유한다.
+
 ## 2026-07-28 self-host empty DIR graph executable checkpoint
 
 - Self-host production MIR가 `function_clause_order_minimal`의 DIR graph

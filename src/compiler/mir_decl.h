@@ -86,6 +86,7 @@ typedef struct
 {
     const char      *owner_name;
     const char      *name;
+    uint32_t         source_syntax_id;
     ASTNode         *type;
     ASTNode         *initializer;
     char            *type_name;

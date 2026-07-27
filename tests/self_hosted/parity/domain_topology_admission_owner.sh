@@ -27,6 +27,8 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 OWNER="$ROOT_DIR/src/self_hosted/mir_lower/domain_topology_fact_owner.pgy"
+DECL_INDEX="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_index_owner.pgy"
+FIELD_INDEX="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_field_identity_index_owner.pgy"
 INPUT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
 MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
@@ -42,6 +44,21 @@ for term in 'struct MirDomainTopologyFacts' \
     'MirDomainTopologyRelationDeclarationReady'; do
     grep -Fq -- "$term" "$OWNER" || fail "missing typed topology owner term: $term"
 done
+for term in 'struct MirProgramDeclarationFieldIdentityIndex' \
+    'BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans' \
+    'MirProgramDeclarationFieldIdentityMatches'; do
+    grep -Fq -- "$term" "$FIELD_INDEX" \
+        || fail "missing declaration field identity term: $term"
+done
+grep -Fq -- 'BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans' \
+    "$DECL_INDEX" || fail "program declaration index does not compose field identity spans"
+if grep -Eq 'BuildMirDocumentFactIndex|MirDeclArrayBounds|MirDeclArrayObjectFactTable' \
+    "$FIELD_INDEX"; then
+    fail "field identity index reopened declaration-array discovery"
+fi
+if grep -Fq -- 'MirDomainTopologyDeclarationFieldKind' "$OWNER"; then
+    fail "topology admission retained name-only declaration field lookup"
+fi
 grep -Fq -- 'MIR domain topology facts are missing or invalid' "$INPUT_OWNER" \
     || fail "MIR input boundary does not fail closed on topology"
 if grep -Eq 'AstTree|source_path|ReadFile\(' "$OWNER"; then
@@ -116,6 +133,67 @@ for row in doc["decls"]:
         row["kind"] = "class"
 mutations["relation-kind-drift"] = doc
 
+declarations = {row.get("name"): row for row in base["decls"]}
+battle = declarations.get("BattleZone")
+assert isinstance(battle, dict), battle
+battle_fields = {field.get("name"): field for field in battle.get("fields", [])}
+player = battle_fields.get("player")
+enemy = battle_fields.get("enemy")
+assert isinstance(player, dict) and isinstance(enemy, dict), battle_fields
+player_id = player.get("source_syntax_id")
+enemy_id = enemy.get("source_syntax_id")
+assert isinstance(player_id, int) and player_id > 0, player
+assert isinstance(enemy_id, int) and enemy_id > 0, enemy
+assert player_id != enemy_id, (player_id, enemy_id)
+link_rows = [
+    row for row in base["domain_topology"]["rows"]
+    if row.get("kind") == "link-relation" and row.get("owner_name") == "BattleZone"
+]
+assert len(link_rows) == 1, link_rows
+assert link_rows[0]["left_slot_name"] == "player", link_rows[0]
+assert link_rows[0]["left_slot_source_syntax_id"] == player_id, link_rows[0]
+
+doc = copy.deepcopy(base)
+link = next(
+    row for row in doc["domain_topology"]["rows"]
+    if row.get("kind") == "link-relation" and row.get("owner_name") == "BattleZone"
+)
+link["left_slot_name"] = "player"
+link["left_slot_source_syntax_id"] = enemy_id
+mutations["forged-player-name-enemy-id"] = doc
+
+doc = copy.deepcopy(base)
+field = next(
+    field for row in doc["decls"] if row.get("name") == "BattleZone"
+    for field in row.get("fields", []) if field.get("name") == "player"
+)
+field.pop("source_syntax_id")
+mutations["missing-declaration-field-id"] = doc
+
+doc = copy.deepcopy(base)
+field = next(
+    field for row in doc["decls"] if row.get("name") == "BattleZone"
+    for field in row.get("fields", []) if field.get("name") == "player"
+)
+field["source_syntax_id"] = 0
+mutations["non-positive-declaration-field-id"] = doc
+
+doc = copy.deepcopy(base)
+field = next(
+    field for row in doc["decls"] if row.get("name") == "BattleZone"
+    for field in row.get("fields", []) if field.get("name") == "player"
+)
+field["source_syntax_id"] = enemy_id
+mutations["duplicate-declaration-field-id"] = doc
+
+doc = copy.deepcopy(base)
+field = next(
+    field for row in doc["decls"] if row.get("name") == "BattleZone"
+    for field in row.get("fields", []) if field.get("name") == "player"
+)
+field["field_kind"] = "object_slot"
+mutations["declaration-field-kind-drift"] = doc
+
 for name, payload in mutations.items():
     path = os.path.join(output_dir, name + ".mir.json")
     with open(path, "w", encoding="utf-8", newline="\n") as stream:
@@ -134,4 +212,4 @@ for bad in "$BUILD_DIR"/*.mir.json; do
         || fail "mutation did not fail at topology boundary: $(basename "$bad")"
 done
 
-echo "[self-host-parity:domain-topology-admission] relation + 3-row topology admission and mutations are fail-closed"
+echo "[self-host-parity:domain-topology-admission] exact declaration field identity joins and topology mutations are fail-closed"

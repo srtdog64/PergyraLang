@@ -45,28 +45,36 @@ pgy_selfhost_driver_rung2_effect_declaration_reject() {
 pgy_selfhost_verify_driver_rung2_effect_declaration() {
     local backend="$1" base="$2" native_mir_json="$3"
     local self_mir_json="$4" driver_bin="$5"
-    local effect_row effect_prefix effect_field zone_effect_field
+    local effect_row effect_prefix effect_field effect_field_identity
+    local zone_effect_field zone_effect_field_identity field_identity
     if [[ "$base" != "function_clause_order_minimal" ]]; then
         return 0
     fi
 
-    effect_row='{"kind":"effect","nominal_kind":"effect","name":"Damage","fields":[{"name":"bearer","type":"Hero","field_kind":"subject_slot"}],"methods":[]}'
+    effect_row="$("$PYTHON_BIN" - "$self_mir_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    document = json.load(stream)
+rows = [row for row in document["decls"] if row.get("name") == "Damage"]
+assert len(rows) == 1, rows
+print(json.dumps(rows[0], separators=(",", ":")))
+PY
+)"
     effect_prefix='"kind":"effect","nominal_kind":"effect","name":"Damage"'
     effect_field='"name":"bearer","type":"Hero","field_kind":"subject_slot"'
+    effect_field_identity='"name":"bearer","type":"Hero","field_kind":"subject_slot","source_syntax_id":'
     zone_effect_field='"name":"damage","type":"Damage","field_kind":"effect_slot"'
-    grep -Fq "$effect_row" "$native_mir_json" || {
-        echo "[self-host-parity:driver-rung2] native Effect declaration carriage drifted" >&2
-        return 1
-    }
-    grep -Fq "$effect_row" "$self_mir_json" || {
-        echo "[self-host-parity:driver-rung2] $backend self Effect declaration carriage drifted" >&2
-        return 1
-    }
+    zone_effect_field_identity='"name":"damage","type":"Damage","field_kind":"effect_slot","source_syntax_id":'
     for mir_json in "$native_mir_json" "$self_mir_json"; do
-        grep -Fq "$zone_effect_field" "$mir_json" || {
-            echo "[self-host-parity:driver-rung2] $backend zone EffectSlot carriage drifted" >&2
-            return 1
-        }
+        for field_identity in "$effect_prefix" "$effect_field_identity" \
+            "$zone_effect_field_identity"; do
+            grep -Fq "$field_identity" "$mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Effect declaration identity carriage drifted: $field_identity" >&2
+                return 1
+            }
+        done
     done
 
     pgy_selfhost_driver_rung2_effect_declaration_reject \
@@ -93,7 +101,7 @@ pgy_selfhost_verify_driver_rung2_effect_declaration() {
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "effect-field-kind-missing" "$effect_field" \
         '"name":"bearer","type":"Hero"' \
-        "field kind is invalid for nominal declaration: Damage.bearer"
+        "MIR domain topology facts are missing or invalid"
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "zone-effect-slot-flattened" "$zone_effect_field" \

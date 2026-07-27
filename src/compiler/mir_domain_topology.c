@@ -188,10 +188,74 @@ mir_domain_topology_is_projection(MIRDomainTopologyKind kind)
         || kind == MIR_DOMAIN_TOPOLOGY_PROJECTION_BIND;
 }
 
+enum {
+    MIR_TOPOLOGY_FIELD_SUBJECT = 1u << 0,
+    MIR_TOPOLOGY_FIELD_OBJECT = 1u << 1,
+    MIR_TOPOLOGY_FIELD_TOBJECT = 1u << 2,
+    MIR_TOPOLOGY_FIELD_BINDING = 1u << 3,
+    MIR_TOPOLOGY_FIELD_EFFECT = 1u << 4,
+    MIR_TOPOLOGY_FIELD_RELATION = 1u << 5
+};
+
 static bool
-mir_domain_topology_name_id_pair_ready(const char *name, uint32_t source_id)
+mir_domain_topology_field_kind_matches(const MIRDeclField *field,
+                                       unsigned allowed_kinds)
 {
-    return (name == NULL) == (source_id == 0);
+    MIRDeclFieldKind kind = mir_decl_field_kind_or(
+        field, MIR_DECL_FIELD_UNKNOWN);
+
+    if (kind == MIR_DECL_FIELD_DOMAIN_SLOT) {
+        unsigned actual_kind = mir_decl_field_is_subject_like(field)
+            ? MIR_TOPOLOGY_FIELD_SUBJECT
+            : mir_decl_field_is_tobject_like(field)
+                ? MIR_TOPOLOGY_FIELD_TOBJECT
+                : mir_decl_field_is_binding_like(field)
+                    ? MIR_TOPOLOGY_FIELD_BINDING
+                    : MIR_TOPOLOGY_FIELD_OBJECT;
+        return (allowed_kinds & actual_kind) != 0;
+    }
+    if (kind == MIR_DECL_FIELD_ZONE_LAYER_SLOT) {
+        unsigned actual_kind = mir_decl_field_is_relation_layer(field)
+            ? MIR_TOPOLOGY_FIELD_RELATION : MIR_TOPOLOGY_FIELD_EFFECT;
+        return !mir_decl_field_is_pool_layer(field)
+            && (allowed_kinds & actual_kind) != 0;
+    }
+    return false;
+}
+
+static bool
+mir_domain_topology_field_identity_matches(const MIRDeclHeader *owner,
+                                           const char *name,
+                                           uint32_t source_id,
+                                           unsigned allowed_kinds)
+{
+    if (owner == NULL || name == NULL || source_id == 0)
+        return false;
+    for (size_t i = 0; i < mir_decl_header_field_count(owner); i++) {
+        const MIRDeclField *field = mir_decl_header_field(owner, i);
+        const char *field_name = mir_decl_field_name(field);
+        if (field_name != NULL
+            && strcmp(field_name, name) == 0
+            && mir_decl_field_source_syntax_id(field) == source_id
+            && mir_domain_topology_field_kind_matches(
+                field, allowed_kinds)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+mir_domain_topology_optional_field_identity_matches(
+    const MIRDeclHeader *owner,
+    const char *name,
+    uint32_t source_id,
+    unsigned allowed_kinds)
+{
+    if (name == NULL || source_id == 0)
+        return name == NULL && source_id == 0;
+    return mir_domain_topology_field_identity_matches(
+        owner, name, source_id, allowed_kinds);
 }
 
 bool
@@ -214,63 +278,81 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
             && row->source_syntax_id != 0
             && row->owner_name != NULL
             && owner_header != NULL
-            && mir_domain_topology_name_id_pair_ready(
-                row->projection_slot_name,
-                row->projection_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
-                row->source_slot_name,
-                row->source_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
-                row->layer_slot_name,
-                row->layer_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
-                row->target_slot_name,
-                row->target_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
-                row->left_slot_name,
-                row->left_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
-                row->right_slot_name,
-                row->right_slot_source_syntax_id)
-            && mir_domain_topology_name_id_pair_ready(
+            && mir_domain_topology_optional_field_identity_matches(
+                owner_header,
                 row->participant_slot_name,
-                row->participant_slot_source_syntax_id);
+                row->participant_slot_source_syntax_id,
+                MIR_TOPOLOGY_FIELD_SUBJECT);
         if (mir_domain_topology_is_projection(row->kind)) {
             shape_ok = shape_ok
                 && (owner_header->ast_type == AST_ZONE_DECL
                     || owner_header->ast_type == AST_RELATION_DECL
                     || owner_header->ast_type == AST_EFFECT_DECL)
-                && row->projection_slot_name != NULL
-                && row->projection_slot_source_syntax_id != 0
-                && row->source_slot_name != NULL
-                && row->source_slot_source_syntax_id != 0
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->projection_slot_name,
+                    row->projection_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_OBJECT | MIR_TOPOLOGY_FIELD_TOBJECT)
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->source_slot_name,
+                    row->source_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_OBJECT
+                        | MIR_TOPOLOGY_FIELD_TOBJECT
+                        | MIR_TOPOLOGY_FIELD_BINDING)
                 && row->layer_slot_name == NULL
+                && row->layer_slot_source_syntax_id == 0
                 && row->target_slot_name == NULL
+                && row->target_slot_source_syntax_id == 0
                 && row->left_slot_name == NULL
-                && row->right_slot_name == NULL;
+                && row->left_slot_source_syntax_id == 0
+                && row->right_slot_name == NULL
+                && row->right_slot_source_syntax_id == 0;
         } else if (row->kind == MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
             shape_ok = shape_ok
                 && owner_header->ast_type == AST_ZONE_DECL
-                && row->layer_slot_name != NULL
-                && row->layer_slot_source_syntax_id != 0
-                && row->target_slot_name != NULL
-                && row->target_slot_source_syntax_id != 0
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->layer_slot_name,
+                    row->layer_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_EFFECT)
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->target_slot_name,
+                    row->target_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_SUBJECT)
                 && row->projection_slot_name == NULL
+                && row->projection_slot_source_syntax_id == 0
                 && row->source_slot_name == NULL
+                && row->source_slot_source_syntax_id == 0
                 && row->left_slot_name == NULL
-                && row->right_slot_name == NULL;
+                && row->left_slot_source_syntax_id == 0
+                && row->right_slot_name == NULL
+                && row->right_slot_source_syntax_id == 0;
         } else if (row->kind == MIR_DOMAIN_TOPOLOGY_LINK_RELATION) {
             shape_ok = shape_ok
                 && owner_header->ast_type == AST_ZONE_DECL
-                && row->layer_slot_name != NULL
-                && row->layer_slot_source_syntax_id != 0
-                && row->left_slot_name != NULL
-                && row->left_slot_source_syntax_id != 0
-                && row->right_slot_name != NULL
-                && row->right_slot_source_syntax_id != 0
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->layer_slot_name,
+                    row->layer_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_RELATION)
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->left_slot_name,
+                    row->left_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_SUBJECT)
+                && mir_domain_topology_field_identity_matches(
+                    owner_header,
+                    row->right_slot_name,
+                    row->right_slot_source_syntax_id,
+                    MIR_TOPOLOGY_FIELD_SUBJECT)
                 && row->projection_slot_name == NULL
+                && row->projection_slot_source_syntax_id == 0
                 && row->source_slot_name == NULL
-                && row->target_slot_name == NULL;
+                && row->source_slot_source_syntax_id == 0
+                && row->target_slot_name == NULL
+                && row->target_slot_source_syntax_id == 0;
         } else {
             shape_ok = false;
         }

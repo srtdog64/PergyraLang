@@ -107,11 +107,17 @@ test_mir_carries_dir_domain_topology(void)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     MIRDomainTopologyRow *row = NULL;
+    const MIRDeclHeader *zone_header = NULL;
+    const MIRDeclField *player_field = NULL;
+    MIRDeclField *mutable_player_field = NULL;
+    const MIRDeclField *enemy_field = NULL;
     char *error = NULL;
     uint32_t saved_left_id = 0;
     char *saved_owner_name = NULL;
     bool carried = false;
     bool rejected_bad_identity = false;
+    bool rejected_foreign_valid_identity = false;
+    bool rejected_wrong_field_kind = false;
     bool rejected_stray_unused_identity = false;
     bool rejected_unknown_owner = false;
     bool rejected_missing_dir = false;
@@ -182,6 +188,20 @@ test_mir_carries_dir_domain_topology(void)
     if (lower_mir_from_source(source, &hir, &rir, &mir)
         && mir->domain_topology_row_count == 1) {
         row = &mir->domain_topology_rows[0];
+        zone_header = mir_find_decl_header(mir, "BattleZone");
+        for (size_t i = 0;
+             zone_header != NULL && i < mir_decl_header_field_count(zone_header);
+             i++) {
+            const MIRDeclField *field = mir_decl_header_field(zone_header, i);
+            if (field != NULL && mir_decl_field_name(field) != NULL
+                && strcmp(mir_decl_field_name(field), "player") == 0) {
+                player_field = field;
+                mutable_player_field = (MIRDeclField *)field;
+            } else if (field != NULL && mir_decl_field_name(field) != NULL
+                       && strcmp(mir_decl_field_name(field), "enemy") == 0) {
+                enemy_field = field;
+            }
+        }
         carried = mir->has_domain_topology
             && mir->domain_graph_id != 0
             && row->kind == MIR_DOMAIN_TOPOLOGY_LINK_RELATION
@@ -189,11 +209,36 @@ test_mir_carries_dir_domain_topology(void)
             && strcmp(row->layer_slot_name, "trust") == 0
             && strcmp(row->left_slot_name, "player") == 0
             && strcmp(row->right_slot_name, "enemy") == 0
+            && player_field != NULL
+            && enemy_field != NULL
+            && mir_decl_field_source_syntax_id(player_field)
+                == row->left_slot_source_syntax_id
+            && mir_decl_field_source_syntax_id(enemy_field)
+                == row->right_slot_source_syntax_id
             && mir_validate(mir, &error);
         free(error);
         error = NULL;
 
         saved_left_id = row->left_slot_source_syntax_id;
+        row->left_slot_source_syntax_id =
+            mir_decl_field_source_syntax_id(enemy_field);
+        rejected_foreign_valid_identity = !mir_validate(mir, &error)
+            && error != NULL
+            && strstr(error, "domain topology row") != NULL;
+        row->left_slot_source_syntax_id = saved_left_id;
+        free(error);
+        error = NULL;
+
+        if (mutable_player_field != NULL) {
+            mutable_player_field->is_subject_like = false;
+            rejected_wrong_field_kind = !mir_validate(mir, &error)
+                && error != NULL
+                && strstr(error, "domain topology row") != NULL;
+            mutable_player_field->is_subject_like = true;
+        }
+        free(error);
+        error = NULL;
+
         row->left_slot_source_syntax_id = 0;
         rejected_bad_identity = !mir_validate(mir, &error)
             && error != NULL
@@ -221,7 +266,8 @@ test_mir_carries_dir_domain_topology(void)
     TEST("MIR requires DIR and carries its zone topology by stable identity");
     EXPECT(rejected_missing_dir && rejected_wrong_dir && carried);
     TEST("MIR rejects damaged, stray, and unknown topology identities");
-    EXPECT(rejected_bad_identity && rejected_stray_unused_identity
+    EXPECT(rejected_bad_identity && rejected_foreign_valid_identity
+        && rejected_wrong_field_kind && rejected_stray_unused_identity
         && rejected_unknown_owner);
     free(error);
     mir_destroy(mir);

@@ -22,6 +22,8 @@ require_term "src/compiler/mir.c" "mir_domain_topology_project_from_dir"
 require_term "src/compiler/mir_json_dump.c" \
     "mir_json_emit_domain_topology(out, mir)"
 require_term "src/compiler/mir_json_dump_decl.c" "AST_RELATION_DECL"
+require_term "src/compiler/mir_json_dump_decl.c" \
+    'mir_decl_field_source_syntax_id(field)'
 require_term "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "MIR domain topology facts are missing or invalid"
 require_term "src/compiler/driver_app.c" \
@@ -94,6 +96,24 @@ assert field_kinds == {
     "packet": "tobject_slot",
 }, field_kinds
 
+declarations = {row.get("name"): row for row in doc.get("decls", [])}
+field_identities = {}
+source_field_ids = set()
+for owner_name, declaration in declarations.items():
+    assert isinstance(owner_name, str) and owner_name, declaration
+    for field in declaration.get("fields", []):
+        field_name = field.get("name")
+        field_kind = field.get("field_kind")
+        source_id = field.get("source_syntax_id")
+        assert isinstance(field_name, str) and field_name, field
+        assert isinstance(field_kind, str) and field_kind, field
+        assert isinstance(source_id, int) and source_id > 0, field
+        assert source_id not in source_field_ids, (owner_name, field)
+        source_field_ids.add(source_id)
+        key = (owner_name, field_name)
+        assert key not in field_identities, key
+        field_identities[key] = (source_id, field_kind)
+
 topology = doc.get("domain_topology")
 assert isinstance(topology, dict), topology
 assert isinstance(topology.get("domain_graph_id"), int)
@@ -125,6 +145,10 @@ for row in rows:
         assert (name is None and source_id == 0) or (
             isinstance(name, str) and name and isinstance(source_id, int) and source_id > 0
         ), (field, name, source_id)
+        if name is not None:
+            exact = field_identities.get((row["owner_name"], name))
+            assert exact is not None, (row["owner_name"], field, name)
+            assert exact[0] == source_id, (row["owner_name"], field, name, source_id, exact)
 PY
 
 run_projection() {

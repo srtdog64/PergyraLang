@@ -2152,6 +2152,31 @@ retired AST entrypoint 부재를 함께 고정한다. 전체 graph를 backend마
 `MIR row가 없으면 AST` fallback을 추가하면 과거의 중복 graph 비용과 dual SoT를
 동시에 되살린다.
 
+## Native와 self-host의 `source_syntax_id` 숫자가 다른 경우
+
+같은 source를 native와 self-host가 MIR로 만들었는데 declaration field ID가 서로
+다른 현상은 그 자체로 메모리 손상이나 identity collision이 아니다. Native는
+lossless AST의 canonical preorder에서 ID를 배정하고, 현재 self-host는 compact
+typed-AST arena의 producer-local identity를 사용한다. Compact text는 type,
+expression, generic bound 같은 hidden identity node를 평탄화하므로 row ordinal에
+상수를 더해 native 번호를 일반적으로 복원할 수 없다.
+
+판정할 때는 raw 숫자 equality 대신 다음을 확인한다.
+
+1. 각 MIR 문서 안에서 field ID가 nonzero이며 중복되지 않는가.
+2. topology reference가 같은 문서의 `(owner, field name, ID, field_kind)`와 exact
+   join되는가.
+3. canonicalization이 새 declaration ID와 모든 dependent topology ID를 같은
+   identity epoch에서 함께 재발급하는가.
+4. `player` 이름에 유효한 `enemy` ID를 붙이거나 canonical row 하나만 이전 raw
+   ID로 되돌린 mutation이 backend 전에 실패하는가.
+
+숫자 차이를 맞추려고 offset, name hash, AST-text 재파싱을 넣지 않는다. 그것들은
+provenance를 복원하지 못하고 fixture별 우연을 두 번째 SoT로 만든다. 현재
+non-empty topology의 MIR-to-AST canonicalization은 atomic remap owner가 없으므로
+명시적으로 거부한다. 이 실패는 compatibility fallback을 추가할 신호가 아니라
+다음 executable rung의 정확한 missing fact다.
+
 ## Self-host codegen exits with `0xC00000FD` while reading `main_ast.txt`
 
 The Bash wrapper may report exit 127, while the Windows process exit is

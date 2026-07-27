@@ -215,7 +215,10 @@ func SelfMirJsonDeclaration(
         ArrayPush(fields_rows, JsonEmitObject([
             JsonEmitFieldString("name", rows.field_names[row]),
             JsonEmitFieldString("type", rows.field_types[row]),
-            JsonEmitFieldString("field_kind", rows.field_kinds[row])
+            JsonEmitFieldString("field_kind", rows.field_kinds[row]),
+            JsonEmitFieldNumber(
+                "source_syntax_id", ToString(rows.field_source_syntax_ids[row])
+            )
         ]));
         field_i = field_i + 1;
     }

@@ -20,6 +20,7 @@ struct SemanticAstNominalConstructorFacts {
     return_type_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
+    field_source_syntax_ids: Array<Int>;
     field_names: Array<String>;
     field_kinds: Array<String>;
     param_type_names: Array<String>;
@@ -37,6 +38,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     let return_types: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
+    let field_source_syntax_ids: Array<Int> = [];
     let field_names: Array<String> = [];
     let field_kinds: Array<String> = [];
     let param_types: Array<String> = [];
@@ -185,6 +187,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                         );
                         continue;
                     }
+                    ArrayPush(field_source_syntax_ids, field_id);
                     ArrayPush(field_names, UnwrapOption(field_name_opt));
                     ArrayPush(field_kinds, UnwrapOption(field_kind_opt));
                     let field_type: String = SemanticCanonicalTypeName(
@@ -247,6 +250,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                     );
                     continue;
                 }
+                ArrayPush(field_source_syntax_ids, child_id);
                 ArrayPush(field_names, UnwrapOption(field_name_opt));
                 ArrayPush(field_kinds, UnwrapOption(field_kind_opt));
                 ArrayPush(
@@ -320,16 +324,12 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count,
         node_ids, nominal_kinds, names, return_types, param_starts,
-        param_counts, field_names, field_kinds, param_types, role_slot_starts,
-        role_slot_counts, role_slot_names, role_slot_type_names
+        param_counts, field_source_syntax_ids, field_names, field_kinds,
+        param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names
     );
 }
-func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int {
-    return ArrayLength(facts.node_ids);
-}
-func SemanticAstNominalConstructorIndexForNode(
-    facts: SemanticAstNominalConstructorFacts, node_id: Int
-) -> Option<Int> {
+func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
+func SemanticAstNominalConstructorIndexForNode(facts: SemanticAstNominalConstructorFacts, node_id: Int) -> Option<Int> {
     if !facts.ok { return None; }
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(facts) {
@@ -339,8 +339,7 @@ func SemanticAstNominalConstructorIndexForNode(
     return None;
 }
 func SemanticAstNominalConstructorNameAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int
 ) -> Option<String> {
     if !facts.ok || constructor_index < 0 ||
         constructor_index >= SemanticAstNominalConstructorCount(facts) {
@@ -348,18 +347,14 @@ func SemanticAstNominalConstructorNameAt(
     }
     return Some(facts.names[constructor_index]);
 }
-func SemanticAstNominalConstructorFieldCountAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int
-) -> Option<Int> {
+func SemanticAstNominalConstructorFieldCountAt(facts: SemanticAstNominalConstructorFacts, constructor_index: Int) -> Option<Int> {
     if !facts.ok || constructor_index < 0 ||
         constructor_index >= SemanticAstNominalConstructorCount(facts) {
         return None;
     }
     return Some(facts.param_counts[constructor_index]);
 }
-func SemanticAstNominalConstructorRowsReady(
-    ref facts: SemanticAstNominalConstructorFacts
-) -> Bool {
+func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstructorFacts) -> Bool {
     let count: Int = SemanticAstNominalConstructorCount(facts);
     if !facts.ok || ArrayLength(facts.nominal_kinds) != count ||
         ArrayLength(facts.names) != count ||
@@ -382,19 +377,29 @@ func SemanticAstNominalConstructorRowsReady(
             return false;
         }
         expected_param_count = expected_param_count + facts.param_counts[i];
-        expected_role_slot_count = expected_role_slot_count +
-            facts.role_slot_counts[i];
+        expected_role_slot_count = expected_role_slot_count + facts.role_slot_counts[i];
         i = i + 1;
     }
-    return expected_param_count == ArrayLength(facts.field_names) &&
+    let field_i: Int = 0;
+    while field_i < ArrayLength(facts.field_source_syntax_ids) {
+        if facts.field_source_syntax_ids[field_i] <= 0 { return false; }
+        let prior_i: Int = 0;
+        while prior_i < field_i {
+            if facts.field_source_syntax_ids[prior_i] ==
+                facts.field_source_syntax_ids[field_i] { return false; }
+            prior_i = prior_i + 1;
+        }
+        field_i = field_i + 1;
+    }
+    return expected_param_count == ArrayLength(facts.field_source_syntax_ids) &&
+        expected_param_count == ArrayLength(facts.field_names) &&
         expected_param_count == ArrayLength(facts.field_kinds) &&
         expected_param_count == ArrayLength(facts.param_type_names) &&
         expected_role_slot_count == ArrayLength(facts.role_slot_names) &&
         expected_role_slot_count == ArrayLength(facts.role_slot_type_names);
 }
 func SemanticAstNominalConstructorParamTypeAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int,
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     param_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||
@@ -402,15 +407,12 @@ func SemanticAstNominalConstructorParamTypeAt(
         param_index < 0 || param_index >= facts.param_counts[constructor_index] {
         return None;
     }
-    return Some(
-        facts.param_type_names[
-            facts.param_starts[constructor_index] + param_index
-        ]
-    );
+    return Some(facts.param_type_names[
+        facts.param_starts[constructor_index] + param_index
+    ]);
 }
 func SemanticAstNominalRoleSlotCountAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int
 ) -> Option<Int> {
     if !facts.ok || constructor_index < 0 ||
         constructor_index >= SemanticAstNominalConstructorCount(facts) {
@@ -419,8 +421,7 @@ func SemanticAstNominalRoleSlotCountAt(
     return Some(facts.role_slot_counts[constructor_index]);
 }
 func SemanticAstNominalRoleSlotNameAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int,
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     slot_index: Int
 ) -> Option<String> {
     if !facts.ok || constructor_index < 0 ||
@@ -429,13 +430,10 @@ func SemanticAstNominalRoleSlotNameAt(
         slot_index >= facts.role_slot_counts[constructor_index] {
         return None;
     }
-    return Some(facts.role_slot_names[
-        facts.role_slot_starts[constructor_index] + slot_index
-    ]);
+    return Some(facts.role_slot_names[facts.role_slot_starts[constructor_index] + slot_index]);
 }
 func SemanticAstNominalRoleSlotTypeAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int,
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     slot_index: Int
 ) -> Option<String> {
     if !facts.ok || constructor_index < 0 ||
@@ -444,22 +442,16 @@ func SemanticAstNominalRoleSlotTypeAt(
         slot_index >= facts.role_slot_counts[constructor_index] {
         return None;
     }
-    return Some(facts.role_slot_type_names[
-        facts.role_slot_starts[constructor_index] + slot_index
-    ]);
+    return Some(facts.role_slot_type_names[facts.role_slot_starts[constructor_index] + slot_index]);
 }
 func SemanticAstNominalConstructorFieldTypeAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int,
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
-    return SemanticAstNominalConstructorParamTypeAt(
-        facts, constructor_index, field_index
-    );
+    return SemanticAstNominalConstructorParamTypeAt(facts, constructor_index, field_index);
 }
 func SemanticAstNominalConstructorFieldNameAt(
-    facts: SemanticAstNominalConstructorFacts,
-    constructor_index: Int,
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||
@@ -467,9 +459,7 @@ func SemanticAstNominalConstructorFieldNameAt(
         field_index < 0 || field_index >= facts.param_counts[constructor_index] {
         return None;
     }
-    return Some(
-        facts.field_names[facts.param_starts[constructor_index] + field_index]
-    );
+    return Some(facts.field_names[facts.param_starts[constructor_index] + field_index]);
 }
 func SemanticAstNominalConstructorFieldKindAt(
     facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
@@ -480,13 +470,21 @@ func SemanticAstNominalConstructorFieldKindAt(
         field_index < 0 || field_index >= facts.param_counts[constructor_index] {
         return None;
     }
-    return Some(facts.field_kinds[
-        facts.param_starts[constructor_index] + field_index
-    ]);
+    return Some(facts.field_kinds[facts.param_starts[constructor_index] + field_index]);
+}
+func SemanticAstNominalConstructorFieldSourceSyntaxIdAt(
+    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    field_index: Int
+) -> Option<Int> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 || field_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(facts.field_source_syntax_ids[facts.param_starts[constructor_index] + field_index]);
 }
 func SemanticAstNominalFieldType(
-    ref facts: SemanticAstNominalConstructorFacts,
-    nominal_name: String,
+    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
     field_name: String
 ) -> Option<String> {
     let constructor_index: Int = 0;
@@ -517,11 +515,9 @@ func SemanticAstNominalFieldType(
     return None;
 }
 func SemanticAstNominalConstructorFactsMatchArtifact(
-    artifact: AstTreeArtifact,
-    facts: SemanticAstNominalConstructorFacts
+    artifact: AstTreeArtifact, facts: SemanticAstNominalConstructorFacts
 ) -> Bool {
-    let rebuilt: SemanticAstNominalConstructorFacts =
-        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let rebuilt: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let count: Int = SemanticAstNominalConstructorCount(facts);
     if !SemanticAstNominalConstructorRowsReady(facts) || !rebuilt.ok ||
         facts.artifact_node_count != artifact.count ||
@@ -532,6 +528,8 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
         ArrayLength(facts.param_counts) != count ||
         ArrayLength(facts.role_slot_starts) != count ||
         ArrayLength(facts.role_slot_counts) != count ||
+        ArrayLength(facts.field_source_syntax_ids) !=
+            ArrayLength(rebuilt.field_source_syntax_ids) ||
         ArrayLength(facts.field_names) != ArrayLength(rebuilt.field_names) ||
         ArrayLength(facts.field_kinds) != ArrayLength(rebuilt.field_kinds) ||
         ArrayLength(facts.param_type_names) !=
@@ -558,7 +556,9 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
     }
     let p: Int = 0;
     while p < ArrayLength(facts.param_type_names) {
-        if facts.field_names[p] != rebuilt.field_names[p] ||
+        if facts.field_source_syntax_ids[p] !=
+                rebuilt.field_source_syntax_ids[p] ||
+            facts.field_names[p] != rebuilt.field_names[p] ||
             facts.field_kinds[p] != rebuilt.field_kinds[p] ||
             facts.param_type_names[p] != rebuilt.param_type_names[p] {
             return false;
@@ -577,18 +577,14 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
 }
 func SemanticAstNominalConstructorFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Class: Box\n    Fields:\n      value: String\n      count: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: String\n        Body:\n          Block:\n            Return: self.value\n"
-    );
-    let facts: SemanticAstNominalConstructorFacts =
-        SemanticAstNominalConstructorFactsFromArtifact(artifact);
-    let first: Option<String> =
-        SemanticAstNominalConstructorParamTypeAt(facts, 0, 0);
-    let second: Option<String> =
-        SemanticAstNominalConstructorParamTypeAt(facts, 0, 1);
-    let first_name: Option<String> =
-        SemanticAstNominalConstructorFieldNameAt(facts, 0, 0);
-    let first_kind: Option<String> =
-        SemanticAstNominalConstructorFieldKindAt(facts, 0, 0);
+        "Program:\n  Class: Box\n    Fields:\n      value: String\n      count: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: String\n        Body:\n          Block:\n            Return: self.value\n");
+    let facts: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let first: Option<String> = SemanticAstNominalConstructorParamTypeAt(facts, 0, 0);
+    let second: Option<String> = SemanticAstNominalConstructorParamTypeAt(facts, 0, 1);
+    let first_name: Option<String> = SemanticAstNominalConstructorFieldNameAt(facts, 0, 0);
+    let first_kind: Option<String> = SemanticAstNominalConstructorFieldKindAt(facts, 0, 0);
+    let first_source_id: Option<Int> = SemanticAstNominalConstructorFieldSourceSyntaxIdAt(facts, 0, 0);
+    let second_source_id: Option<Int> = SemanticAstNominalConstructorFieldSourceSyntaxIdAt(facts, 0, 1);
     return SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts) &&
         SemanticAstNominalConstructorCount(facts) == 1 &&
         facts.nominal_kinds[0] == "class" && facts.names[0] == "Box" &&
@@ -596,5 +592,8 @@ func SemanticAstNominalConstructorFactsContractReady() -> Bool {
         facts.param_counts[0] == 2 && IsSome(first) && IsSome(second) &&
         IsSome(first_name) && UnwrapOption(first_name) == "value" &&
         IsSome(first_kind) && UnwrapOption(first_kind) == NominalFieldKindField() &&
+        IsSome(first_source_id) && IsSome(second_source_id) &&
+        UnwrapOption(first_source_id) > 0 &&
+        UnwrapOption(first_source_id) != UnwrapOption(second_source_id) &&
         UnwrapOption(first) == "String" && UnwrapOption(second) == "Int";
 }
