@@ -8,11 +8,11 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint
 
-- Latest exact committed parent: `b0150891` on `main`, which closes the v72
-  single-header while rung. The v73 executable replacement is the commit
-  containing this handoff; use
-  `git rev-parse HEAD` after checkout to resolve its exact self-referential
-  commit boundary.
+- Exact v73 executable revision: `ed9fd17913ba23d90c4c99728eb6f37a6ae3b82a`
+  on `main`. Its direct parent is concurrent emitted-code sanitizer measurement
+  revision `f90e539b`; v72 remains `b0150891`. This handoff correction is a
+  documentation-only follow-up, so use `git rev-parse HEAD` for the checkout
+  revision while retaining `ed9fd179` as the executable range-rung boundary.
 - `src/lexer/language_keyword_registry.def` now owns 145 sorted identities:
   71 reserved, 71 contextual, and 3 soft. Lexer classification/debug, the
   generated self-host reserved projection, parser-selector coverage, LSP
@@ -51,7 +51,9 @@ owner, and the named executable gate.
 
 ## Exact dirty state at this handoff
 
-After the v73 commit is pushed, `main` and `origin/main` should be synchronized.
+At the observed v73 checkpoint, `main` and `origin/main` are synchronized at
+`ed9fd179`. After this documentation-only correction is pushed, they must again
+resolve to the same revision.
 The following unstaged files are concurrent user work and must remain
 unmodified and excluded from task commits:
 
