@@ -13,7 +13,7 @@ func ParserFixtureExpectedPath(base: String) -> String {
 }
 
 func ParserFixtureManifestCount() -> Int {
-    return 188;
+    return 189;
 }
 
 func ParserFixtureDuplicateCoverageCount() -> Int {
@@ -65,6 +65,10 @@ func ParserFixtureManifestRows() -> Array<String> {
     let i: Int = 0;
 
     ArrayPush(rows, "examples/hello.pgy:hello");
+    ArrayPush(
+        rows,
+        "tests/cases/backend_compare/top_level_visibility_decl/main.pgy:top_level_visibility_decl"
+    );
 
     while i < ArrayLength(entries) {
         let path: String = entries[i];

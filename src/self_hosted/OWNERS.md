@@ -109,9 +109,9 @@ inventory must not become a second fact-family owner registry.
   fixture proving unregistered `systemic` does not become a language word.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
-- `src/self_hosted/parser/match_pattern_graph_partition_owner.pgy` -- splits
-  pattern syntax graphs from executable expression graph rows without text
-  recovery.
+- `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
+  canonical typed `MatchCase` AST atom as one bounded pattern fact for semantic
+  and MIR consumers; no parallel match-pattern graph may own the same identity.
 - `src/self_hosted/parser/run_owner.pgy` -- parser CLI run boundary and mode
   selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.

@@ -9,12 +9,10 @@ import "../hir/ast_expression_owner_kind_binding.pgy";
 import "../hir/ast_destructure_graph_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
-import "match_pattern_graph_partition_owner.pgy";
 
 struct ParserProgramBuild {
     tree_text: String;
     expression_graphs: AstExpressionGraphRows;
-    match_pattern_graphs: AstExpressionGraphRows;
 }
 
 func ParserProgramGraphFail(reason: String) -> Void {
@@ -51,25 +49,15 @@ func ParseProgramBuildWithImportPolicy(
             "import composition produced invalid expression graph rows"
         );
     }
-    let graph_rows: AstExpressionGraphRows =
-        ParserExpressionGraphsSelectMatchCases(composed_rows, false);
-    let match_pattern_rows: AstExpressionGraphRows =
-        ParserExpressionGraphsSelectMatchCases(composed_rows, true);
-    if !AstExpressionGraphRowsReady(graph_rows) {
-        ParserProgramGraphFail("expression graph partition is invalid");
-    }
-    if !AstExpressionGraphRowsReady(match_pattern_rows) {
-        ParserProgramGraphFail("match-pattern graph partition is invalid");
-    }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
         return ParserProgramBuild(
-            Concat(empty_program, "\n"), graph_rows, match_pattern_rows
+            Concat(empty_program, "\n"), composed_rows
         );
     }
     let program_text: String = Concat("Program:\n", decls);
     return ParserProgramBuild(
-        Concat(program_text, "\n"), graph_rows, match_pattern_rows
+        Concat(program_text, "\n"), composed_rows
     );
 }
 
@@ -86,7 +74,7 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
     let typed: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.expression_graphs, build.match_pattern_graphs
+        build.expression_graphs
     );
     let owner_bound: AstTreeArtifact =
         AstTreeArtifactBindExpressionOwnerKinds(typed);

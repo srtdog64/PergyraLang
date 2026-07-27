@@ -55,7 +55,7 @@ awk '
     /step[[:space:]]+SelfProof[[:space:]]*\{/ { self_proof++ }
     /SelfHostCompiler/ { duplicate_aggregate++ }
     END {
-        if (zones != 19 || worlds != 1 || members != 19 ||
+        if (zones != 19 || worlds != 1 || members != 1 ||
             direct_zone != 1 || direct_member != 1 ||
             direct_member_is_first != 1 ||
             compile_intent != 1 || frontend != 1 || middle_end != 1 ||
@@ -100,7 +100,7 @@ for owner_term in \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
-    "$COMPOSITION|let compiler_world = PgyCompilerWorld(" \
+    "$COMPOSITION|let compiler_world: PgyCompilerWorld = PgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
     "$MAIN|import \"compiler_world_direct_mir_owner.pgy\";" \
@@ -164,7 +164,7 @@ awk '
     /^\| `BackendResources\.Artifact` \| `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` \|$/ { artifact++ }
     /^\| `BackendResources\.DirectMIR` \| `DriverRung2DirectMirZone` \|$/ { direct_mir++ }
     /driver_bootstrap_main\.Main -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
-    /exactly 19 concrete resource zones and 19 world members/ { exact_topology++ }
+    /exactly 19 concrete resource zones and one executable world member/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
         projection++
     }

@@ -5,6 +5,7 @@
 // driver_rung0_owner.pgy.
 
 import "driver_rung0_owner.pgy";
+import "../mir/artifact_transaction_owner.pgy";
 
 func DriverCliDefaultMode() -> String {
     return "--emit-c";
@@ -85,12 +86,17 @@ func DriverCliArtifact(source_path: String, mode: String) -> String with caps io
     return "";
 }
 
-func DriverCliWriteArtifact(out_path: String, mode: String, artifact: String) -> Void {
+func DriverCliWriteArtifact(
+    out_path: String,
+    mode: String,
+    artifact: String
+) -> SelfMirArtifactCommitOutcome {
     if mode == "--emit-ast" {
-        WriteFile(out_path, Concat(artifact, "\n"));
-        return;
+        return SelfMirArtifactCommitPayload(
+            out_path, Concat(artifact, "\n")
+        );
     }
-    WriteFile(out_path, artifact);
+    return SelfMirArtifactCommitPayload(out_path, artifact);
 }
 
 func RunDriverRung1FromArgs(args: Array<String>) -> Void with caps io_read, io_write {
@@ -103,7 +109,11 @@ func RunDriverRung1FromArgs(args: Array<String>) -> Void with caps io_read, io_w
     let out_path: String = DriverCliOutputPath(args);
     let artifact: String = DriverCliArtifact(source_path, mode);
     if out_path != "" {
-        DriverCliWriteArtifact(out_path, mode, artifact);
+        let committed: SelfMirArtifactCommitOutcome =
+            DriverCliWriteArtifact(out_path, mode, artifact);
+        if !SelfMirArtifactCommitOutcomeReady(committed) {
+            Die("driver artifact transaction commit failed");
+        }
         return;
     }
     if mode == "--emit-ast" {

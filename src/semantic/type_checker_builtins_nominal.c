@@ -110,6 +110,40 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_has_zone_state_builtin(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
+    case BUILTIN_COMPILER_ARTIFACT_ABORT:
+        if (check_call_arity(call, 1, "CompilerArtifactAbort", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_INT, ast_call_argument(call, 0), ctx);
+        }
+        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        return TYPE_INT;
+    case BUILTIN_COMPILER_ARTIFACT_BEGIN:
+        if (check_call_arity(call, 1, "CompilerArtifactBegin", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_STRING, ast_call_argument(call, 0), ctx);
+        }
+        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        return TYPE_INT;
+    case BUILTIN_COMPILER_ARTIFACT_COMMIT:
+        if (check_call_arity(call, 1, "CompilerArtifactCommit", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_INT, ast_call_argument(call, 0), ctx);
+        }
+        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        return TYPE_INT;
+    case BUILTIN_COMPILER_ARTIFACT_WRITE:
+        if (check_call_arity(call, 2, "CompilerArtifactWrite", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_INT, ast_call_argument(call, 0), ctx);
+            require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
+                TYPE_STRING, ast_call_argument(call, 1), ctx);
+        }
+        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        return TYPE_BOOL;
     case BUILTIN_DIR_WALK:
         if (check_call_arity(call, 1, "DirWalk", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),

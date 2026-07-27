@@ -19,7 +19,13 @@ typedef enum
     PGY_RUNTIME_IO_STATUS_TOO_LARGE,
     PGY_RUNTIME_IO_STATUS_ALLOC_FAILED,
     PGY_RUNTIME_IO_STATUS_READ_FAILED,
-    PGY_RUNTIME_IO_STATUS_WRITE_FAILED
+    PGY_RUNTIME_IO_STATUS_WRITE_FAILED,
+    PGY_RUNTIME_IO_STATUS_FLUSH_FAILED,
+    PGY_RUNTIME_IO_STATUS_CLOSE_FAILED,
+    PGY_RUNTIME_IO_STATUS_TEMP_CREATE_FAILED,
+    PGY_RUNTIME_IO_STATUS_PUBLISH_FAILED,
+    PGY_RUNTIME_IO_STATUS_CLEANUP_FAILED,
+    PGY_RUNTIME_IO_STATUS_INVALID_STATE
 } PgyRuntimeIoStatus;
 
 typedef struct
@@ -93,6 +99,18 @@ pgy_runtime_io_status_name(PgyRuntimeIoStatus status)
         return "read-failed";
     case PGY_RUNTIME_IO_STATUS_WRITE_FAILED:
         return "write-failed";
+    case PGY_RUNTIME_IO_STATUS_FLUSH_FAILED:
+        return "flush-failed";
+    case PGY_RUNTIME_IO_STATUS_CLOSE_FAILED:
+        return "close-failed";
+    case PGY_RUNTIME_IO_STATUS_TEMP_CREATE_FAILED:
+        return "temp-create-failed";
+    case PGY_RUNTIME_IO_STATUS_PUBLISH_FAILED:
+        return "publish-failed";
+    case PGY_RUNTIME_IO_STATUS_CLEANUP_FAILED:
+        return "cleanup-failed";
+    case PGY_RUNTIME_IO_STATUS_INVALID_STATE:
+        return "invalid-state";
     default:
         return "unknown";
     }
@@ -112,6 +130,12 @@ pgy_runtime_io_status_boundary_recoverable(PgyRuntimeIoStatus status)
     case PGY_RUNTIME_IO_STATUS_TOO_LARGE:
     case PGY_RUNTIME_IO_STATUS_READ_FAILED:
     case PGY_RUNTIME_IO_STATUS_WRITE_FAILED:
+    case PGY_RUNTIME_IO_STATUS_FLUSH_FAILED:
+    case PGY_RUNTIME_IO_STATUS_CLOSE_FAILED:
+    case PGY_RUNTIME_IO_STATUS_TEMP_CREATE_FAILED:
+    case PGY_RUNTIME_IO_STATUS_PUBLISH_FAILED:
+    case PGY_RUNTIME_IO_STATUS_CLEANUP_FAILED:
+    case PGY_RUNTIME_IO_STATUS_INVALID_STATE:
         return true;
     case PGY_RUNTIME_IO_STATUS_OK:
     case PGY_RUNTIME_IO_STATUS_NULL_PATH:

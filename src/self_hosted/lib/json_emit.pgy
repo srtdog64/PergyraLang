@@ -91,7 +91,7 @@ func JsonStringLiteralWriteFile(
     let literal: String = JsonStringLiteralWithAllocator(
         value, transient_allocator
     );
-    FileWrite(output, literal);
+    CompilerArtifactWrite(output, literal);
     AllocatorDestroy(transient_allocator);
     return true;
 }

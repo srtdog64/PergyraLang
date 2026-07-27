@@ -13,7 +13,7 @@ func SelfMirJsonOptionalStringWriteFile(
     value: String
 ) -> Bool {
     if value == "" {
-        FileWrite(output, "null");
+        CompilerArtifactWrite(output, "null");
         return true;
     }
     return JsonStringLiteralWriteFile(output, value);
@@ -29,15 +29,15 @@ func SelfMirJsonExpressionGraphWriteFile(
         return false;
     }
     if rows.has_roots[instruction_index] != 1 {
-        FileWrite(output, "null");
+        CompilerArtifactWrite(output, "null");
         return true;
     }
 
     let start: Int = rows.node_starts[instruction_index];
     let count: Int = rows.node_counts[instruction_index];
-    FileWrite(output, "{\"root\":");
-    FileWrite(output, ToString(rows.roots[instruction_index] - start));
-    FileWrite(output, ",\"nodes\":[");
+    CompilerArtifactWrite(output, "{\"root\":");
+    CompilerArtifactWrite(output, ToString(rows.roots[instruction_index] - start));
+    CompilerArtifactWrite(output, ",\"nodes\":[");
     let i: Int = 0;
     while i < count {
         let node: Int = start + i;
@@ -75,41 +75,41 @@ func SelfMirJsonExpressionGraphWriteFile(
             right = UnwrapOption(right_opt) - start;
         }
 
-        if i > 0 { FileWrite(output, ","); }
-        FileWrite(output, "{\"kind\":");
+        if i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, "{\"kind\":");
         if !JsonStringLiteralWriteFile(output,
             SelfMirExpressionGraphKindName(kind)
         ) { return false; }
-        FileWrite(output, ",\"text\":");
+        CompilerArtifactWrite(output, ",\"text\":");
         if !JsonStringLiteralWriteFile(
             output, UnwrapOption(text_opt)
         ) { return false; }
-        FileWrite(output, ",\"call_target_kind\":");
+        CompilerArtifactWrite(output, ",\"call_target_kind\":");
         if !JsonStringLiteralWriteFile(output,
             SelfMirExpressionCallTargetKindName(
                 UnwrapOption(call_target_kind_opt)
             )
         ) { return false; }
-        FileWrite(output, ",\"call_target_name\":");
+        CompilerArtifactWrite(output, ",\"call_target_name\":");
         if !JsonStringLiteralWriteFile(output,
             UnwrapOption(call_target_name_opt)
         ) { return false; }
-        FileWrite(output, ",\"left\":");
+        CompilerArtifactWrite(output, ",\"left\":");
         if arity == 0 {
-            FileWrite(output, "null");
+            CompilerArtifactWrite(output, "null");
         } else {
-            FileWrite(output, ToString(left));
+            CompilerArtifactWrite(output, ToString(left));
         }
-        FileWrite(output, ",\"right\":");
+        CompilerArtifactWrite(output, ",\"right\":");
         if arity == 2 {
-            FileWrite(output, ToString(right));
+            CompilerArtifactWrite(output, ToString(right));
         } else {
-            FileWrite(output, "null");
+            CompilerArtifactWrite(output, "null");
         }
-        FileWrite(output, "}");
+        CompilerArtifactWrite(output, "}");
         i = i + 1;
     }
-    FileWrite(output, "]}");
+    CompilerArtifactWrite(output, "]}");
     return true;
 }
 
@@ -121,12 +121,12 @@ func SelfMirJsonMatchFieldsWriteFile(
     let fact_index: Option<Int> = SelfMirMatchFactIndexForInstruction(
         rows.match_facts, instruction_index
     );
-    FileWrite(output, ",\"match_patterns\":[");
+    CompilerArtifactWrite(output, ",\"match_patterns\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
         let pattern_i: Int = 0;
         while pattern_i < rows.match_facts.pattern_counts[row] {
-            if pattern_i > 0 { FileWrite(output, ","); }
+            if pattern_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(
                 output, rows.match_facts.patterns[
                 rows.match_facts.pattern_starts[row] + pattern_i
@@ -135,21 +135,21 @@ func SelfMirJsonMatchFieldsWriteFile(
             pattern_i = pattern_i + 1;
         }
     }
-    FileWrite(output, "],\"match_variant\":");
+    CompilerArtifactWrite(output, "],\"match_variant\":");
     if IsSome(fact_index) &&
         rows.match_facts.variants[UnwrapOption(fact_index)] != "" {
         if !JsonStringLiteralWriteFile(
             output, rows.match_facts.variants[UnwrapOption(fact_index)]
         ) { return false; }
     } else {
-        FileWrite(output, "null");
+        CompilerArtifactWrite(output, "null");
     }
-    FileWrite(output, ",\"match_bindings\":[");
+    CompilerArtifactWrite(output, ",\"match_bindings\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
         let binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
-            if binding_i > 0 { FileWrite(output, ","); }
+            if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(
                 output, rows.match_facts.bindings[
                     rows.match_facts.binding_starts[row] + binding_i
@@ -158,12 +158,12 @@ func SelfMirJsonMatchFieldsWriteFile(
             binding_i = binding_i + 1;
         }
     }
-    FileWrite(output, "],\"match_binding_types\":[");
+    CompilerArtifactWrite(output, "],\"match_binding_types\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
         let binding_i: Int = 0;
         while binding_i < rows.match_facts.binding_counts[row] {
-            if binding_i > 0 { FileWrite(output, ","); }
+            if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(output,
                 rows.match_facts.binding_types[
                     rows.match_facts.binding_starts[row] + binding_i
@@ -172,7 +172,7 @@ func SelfMirJsonMatchFieldsWriteFile(
             binding_i = binding_i + 1;
         }
     }
-    FileWrite(output, "]");
+    CompilerArtifactWrite(output, "]");
     return true;
 }
 
@@ -184,20 +184,20 @@ func SelfMirJsonDestructureFieldsWriteFile(
     let fact_index: Option<Int> = SelfMirDestructureFactIndexForInstruction(
         rows.destructure_facts, instruction_index
     );
-    FileWrite(output, ",\"destructure_element_type\":");
+    CompilerArtifactWrite(output, ",\"destructure_element_type\":");
     if IsSome(fact_index) {
         if !JsonStringLiteralWriteFile(output,
             rows.destructure_facts.element_types[UnwrapOption(fact_index)]
         ) { return false; }
     } else {
-        FileWrite(output, "null");
+        CompilerArtifactWrite(output, "null");
     }
-    FileWrite(output, ",\"destructure_bindings\":[");
+    CompilerArtifactWrite(output, ",\"destructure_bindings\":[");
     if IsSome(fact_index) {
         let row: Int = UnwrapOption(fact_index);
         let binding_i: Int = 0;
         while binding_i < rows.destructure_facts.binding_counts[row] {
-            if binding_i > 0 { FileWrite(output, ","); }
+            if binding_i > 0 { CompilerArtifactWrite(output, ","); }
             if !JsonStringLiteralWriteFile(output,
                 rows.destructure_facts.bindings[
                     rows.destructure_facts.binding_starts[row] + binding_i
@@ -206,7 +206,7 @@ func SelfMirJsonDestructureFieldsWriteFile(
             binding_i = binding_i + 1;
         }
     }
-    FileWrite(output, "]");
+    CompilerArtifactWrite(output, "]");
     return true;
 }
 
@@ -216,45 +216,45 @@ func SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
     output: Int
 ) -> Bool {
     if rows.runtime_call_abi.present[instruction_index] != 1 { return true; }
-    FileWrite(output,
+    CompilerArtifactWrite(output,
         ",\"runtime_call_abi_required\":true,\"runtime_call_abi\":{");
-    FileWrite(output, "\"owner\":");
+    CompilerArtifactWrite(output, "\"owner\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.owners[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"id\":");
-    FileWrite(output, ToString(
+    CompilerArtifactWrite(output, ",\"id\":");
+    CompilerArtifactWrite(output, ToString(
         rows.runtime_call_abi.runtime_call_abi_ids[instruction_index]
     ));
-    FileWrite(output, ",\"domain\":");
+    CompilerArtifactWrite(output, ",\"domain\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.domains[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"type\":");
+    CompilerArtifactWrite(output, ",\"type\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.type_names[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"operation\":");
+    CompilerArtifactWrite(output, ",\"operation\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.operations[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"symbol\":");
+    CompilerArtifactWrite(output, ",\"symbol\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.symbols[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"target_kind\":");
+    CompilerArtifactWrite(output, ",\"target_kind\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.target_kinds[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"materialization\":");
+    CompilerArtifactWrite(output, ",\"materialization\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.materializations[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"call_shape\":");
+    CompilerArtifactWrite(output, ",\"call_shape\":");
     if !JsonStringLiteralWriteFile(output,
         rows.runtime_call_abi.call_shapes[instruction_index]
     ) { return false; }
-    FileWrite(output, "}");
+    CompilerArtifactWrite(output, "}");
     return true;
 }
 
@@ -269,52 +269,52 @@ func SelfMirJsonRuntimeCallAbiAuxWriteFile(
         if rows.runtime_call_abi.aux_instruction_indices[i] ==
             instruction_index {
             if !wrote {
-                FileWrite(output, ",\"runtime_call_abi_aux\":[");
+                CompilerArtifactWrite(output, ",\"runtime_call_abi_aux\":[");
                 wrote = true;
             } else {
-                FileWrite(output, ",");
+                CompilerArtifactWrite(output, ",");
             }
-            FileWrite(output, "{\"owner\":");
+            CompilerArtifactWrite(output, "{\"owner\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_owners[i]
             ) { return false; }
-            FileWrite(output, ",\"id\":");
-            FileWrite(output, ToString(
+            CompilerArtifactWrite(output, ",\"id\":");
+            CompilerArtifactWrite(output, ToString(
                 rows.runtime_call_abi.aux_runtime_call_abi_ids[i]
             ));
-            FileWrite(output, ",\"domain\":");
+            CompilerArtifactWrite(output, ",\"domain\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_domains[i]
             ) { return false; }
-            FileWrite(output, ",\"type\":");
+            CompilerArtifactWrite(output, ",\"type\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_type_names[i]
             ) { return false; }
-            FileWrite(output, ",\"operation\":");
+            CompilerArtifactWrite(output, ",\"operation\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_operations[i]
             ) { return false; }
-            FileWrite(output, ",\"symbol\":");
+            CompilerArtifactWrite(output, ",\"symbol\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_symbols[i]
             ) { return false; }
-            FileWrite(output, ",\"target_kind\":");
+            CompilerArtifactWrite(output, ",\"target_kind\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_target_kinds[i]
             ) { return false; }
-            FileWrite(output, ",\"materialization\":");
+            CompilerArtifactWrite(output, ",\"materialization\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_materializations[i]
             ) { return false; }
-            FileWrite(output, ",\"call_shape\":");
+            CompilerArtifactWrite(output, ",\"call_shape\":");
             if !JsonStringLiteralWriteFile(output,
                 rows.runtime_call_abi.aux_call_shapes[i]
             ) { return false; }
-            FileWrite(output, "}");
+            CompilerArtifactWrite(output, "}");
         }
         i = i + 1;
     }
-    if wrote { FileWrite(output, "]"); }
+    if wrote { CompilerArtifactWrite(output, "]"); }
     return true;
 }
 
@@ -349,98 +349,98 @@ func SelfMirJsonInstructionWriteFile(
             rows.machine_layer_live_lease_required[instruction_index]
         );
 
-    FileWrite(output, "{\"id\":");
-    FileWrite(output, ToString(rows.ids[instruction_index]));
-    FileWrite(output, ",\"kind\":");
+    CompilerArtifactWrite(output, "{\"id\":");
+    CompilerArtifactWrite(output, ToString(rows.ids[instruction_index]));
+    CompilerArtifactWrite(output, ",\"kind\":");
     if !JsonStringLiteralWriteFile(
         output, rows.kinds[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"name\":");
+    CompilerArtifactWrite(output, ",\"name\":");
     if !JsonStringLiteralWriteFile(
         output, rows.names[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"result\":");
+    CompilerArtifactWrite(output, ",\"result\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.results[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"arg0\":");
+    CompilerArtifactWrite(output, ",\"arg0\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.arg0s[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"arg1\":");
+    CompilerArtifactWrite(output, ",\"arg1\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.arg1s[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"slot_anchor\":");
+    CompilerArtifactWrite(output, ",\"slot_anchor\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.slot_anchors[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"abi_type_name\":");
+    CompilerArtifactWrite(output, ",\"abi_type_name\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, abi_type_name
     ) { return false; }
-    FileWrite(output, ",\"abi_layout_id\":");
-    FileWrite(output, SelfMirJsonAbiLayoutId(abi_layout));
-    FileWrite(output, ",\"abi_layout_required\":");
+    CompilerArtifactWrite(output, ",\"abi_layout_id\":");
+    CompilerArtifactWrite(output, SelfMirJsonAbiLayoutId(abi_layout));
+    CompilerArtifactWrite(output, ",\"abi_layout_required\":");
     if abi_layout_required {
-        FileWrite(output, "true");
+        CompilerArtifactWrite(output, "true");
     } else {
-        FileWrite(output, "false");
+        CompilerArtifactWrite(output, "false");
     }
-    FileWrite(output, ",\"abi_layout\":");
+    CompilerArtifactWrite(output, ",\"abi_layout\":");
     if abi_layout_required {
-        FileWrite(output, abi_layout);
+        CompilerArtifactWrite(output, abi_layout);
     } else {
-        FileWrite(output, "null");
+        CompilerArtifactWrite(output, "null");
     }
-    FileWrite(output, ",\"expr0\":");
+    CompilerArtifactWrite(output, ",\"expr0\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.expr0s[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"expr0_graph\":");
+    CompilerArtifactWrite(output, ",\"expr0_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr0_graphs, instruction_index, output
     ) { return false; }
-    FileWrite(output, ",\"expr1\":");
+    CompilerArtifactWrite(output, ",\"expr1\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.expr1s[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"expr1_graph\":");
+    CompilerArtifactWrite(output, ",\"expr1_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr1_graphs, instruction_index, output
     ) { return false; }
-    FileWrite(output, ",\"source_type\":");
+    CompilerArtifactWrite(output, ",\"source_type\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.source_types[instruction_index]
     ) { return false; }
-    FileWrite(output, ",\"machine_contact_kind\":");
+    CompilerArtifactWrite(output, ",\"machine_contact_kind\":");
     if !JsonStringLiteralWriteFile(
         output, machine.contact_kind
     ) { return false; }
-    FileWrite(output, ",\"machine_layer\":");
-    FileWrite(output, SelfMirJsonMachineLayer(machine));
+    CompilerArtifactWrite(output, ",\"machine_layer\":");
+    CompilerArtifactWrite(output, SelfMirJsonMachineLayer(machine));
     if !SelfMirJsonMatchFieldsWriteFile(
         rows, instruction_index, output
     ) { return false; }
     if !SelfMirJsonDestructureFieldsWriteFile(
         rows, instruction_index, output
     ) { return false; }
-    FileWrite(output, ",\"uses\":[");
+    CompilerArtifactWrite(output, ",\"uses\":[");
     let use_i: Int = 0;
     while use_i < rows.use_counts[instruction_index] {
-        if use_i > 0 { FileWrite(output, ","); }
+        if use_i > 0 { CompilerArtifactWrite(output, ","); }
         if !JsonStringLiteralWriteFile(output,
             rows.uses[rows.use_starts[instruction_index] + use_i]
         ) { return false; }
         use_i = use_i + 1;
     }
-    FileWrite(output, "]");
+    CompilerArtifactWrite(output, "]");
     if !SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
         rows, instruction_index, output
     ) { return false; }
     if !SelfMirJsonRuntimeCallAbiAuxWriteFile(
         rows, instruction_index, output
     ) { return false; }
-    FileWrite(output, "}");
+    CompilerArtifactWrite(output, "}");
     return true;
 }

@@ -219,7 +219,9 @@ require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliArti
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliOutputPath"
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliWriteArtifact"
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func RunDriverRung1FromArgs"
-require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'WriteFile(out_path, Concat(artifact, "\n"))'
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'SelfMirArtifactCommitPayload('
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'SelfMirArtifactCommitOutcomeReady(committed)'
+forbid_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'WriteFile('
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "DriverCliWriteArtifact(out_path, mode, artifact)"
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" 'import "driver_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "func Main()"
@@ -442,16 +444,6 @@ for term in \
     "object slot envelope: SubprocessCapabilityEnvelope" \
     "subject slot oracle: OraclePair" \
     "tobject slot verdict: ParityVerdict" \
-    "zone abi_layout: AbiLayoutZone" \
-    "zone target_capability: TargetCapabilityZone" \
-    "zone sandbox_capability: SandboxCapabilityZone" \
-    "zone compatibility: CompatibilityEvolutionZone" \
-    "zone air_evidence: AirEvidenceZone" \
-    "zone symbols: SymbolFactTableZone" \
-    "zone abi_rows: AbiRowProjectionZone" \
-    "zone artifacts: ArtifactZone" \
-    "zone harness: TestHarnessZone" \
-    "zone subprocess: SubprocessRunnerZone" \
     "BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter)"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done

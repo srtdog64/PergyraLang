@@ -147,6 +147,7 @@ pgy_file_close(int32_t fd)
         return;
     fclose(fp);
 }
+#include "pgy_runtime_artifact_transaction_core.h"
 static inline PgyRuntimeIoStringResult
 pgy_try_read_file_result(const char *path)
 {

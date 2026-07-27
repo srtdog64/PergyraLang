@@ -523,6 +523,12 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'func SelfMirProgramJsonWriteFile('
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'func SelfMirProgramJsonWriteArtifactVerified('
+require_text "src/self_hosted/mir/artifact_transaction_owner.pgy" \
+    'tobject SelfMirArtifactReceipt'
+require_text "src/self_hosted/mir/artifact_transaction_owner.pgy" \
+    'SelfMirArtifactCommitted(SelfMirArtifactReceipt)'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'SelfMirJsonRoutineWriteFile(facts, routine_i, output)'
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'SelfMirJsonBlockWriteFile('
@@ -569,7 +575,9 @@ reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
 reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'SelfMirJsonBlock(facts,'
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
-    'if output < 0 { return false; }'
+    'if output < 0 {'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'return SelfMirArtifactCommit(output, output_path);'
 reject_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     'let routines: Array<String>'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);'
@@ -3025,9 +3033,10 @@ require_max_lines "src/self_hosted/hir/ast_expression_graph_owner.pgy" 600
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "struct AstExpressionGraphRows"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionGraphRowsReady"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "if !seen[i] { return false; }"
-require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v2"
+require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v3"
+reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v2"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "expression_graphs: AstExpressionGraphRows;"
-require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "match_pattern_graphs: AstExpressionGraphRows;"
+reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "match_pattern_graphs"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "ArrayPush(provenance_texts, nodes[i].text)"
 reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "nodes: Array<CodegenAstTextNode>;"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'let lines: Array<String> = Split(tree_text, "\n");'
@@ -3052,10 +3061,8 @@ reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelComm
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/ast_text_arena_projection_owner.pgy";'
 require_file "src/self_hosted/parser/expression_graph_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_graph_owner.pgy" 600
-require_file "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy"
-require_max_lines "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy" 120
-require_text "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy" \
-    "func ParserExpressionGraphsSelectMatchCases("
+reject_file "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy"
+reject_regex_under "src/self_hosted" 'match_pattern_graphs|ParserExpressionGraphsSelectMatchCases'
 require_file "src/self_hosted/parser/expression_fact_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_fact_owner.pgy" 100
 require_text "src/self_hosted/parser/expression_fact_owner.pgy" "struct ParserExpressionFact"
@@ -3157,6 +3164,39 @@ reject_function_text \
     "func SemanticAstAnalysisResolveCallTargetsFromBody(" \
     "while ArrayLength(names) > 0"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "if ArrayLength(pattern.bindings) == 0 { return true; }"
+reject_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "compact_pattern"
+reject_function_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+    'TypedAstArenaAtomText('
+reject_function_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+    'AstMatchCasePatternFactFromText('
+reject_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "match-binding-debug"
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    "func SemanticBuiltinSignatureProjectionPrefixReady("
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "SemanticBuiltinSignatureProjectionPrefixReady("
+reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "function_names[120]"
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    "names[120]"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "LanguageWordId.WordPublic"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "LanguageWordId.WordPrivate"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    'Native AST identity maps both `export` and `public` to `[export]`'
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "content, i, cursor_out, decl_prefix, is_export,"
+require_text "src/self_hosted/parser/decl_nominal_owner.pgy" \
+    'Concat(decl_label, Concat(": ", decl_display_name))'
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" \
+    "tests/cases/backend_compare/top_level_visibility_decl/main.pgy:top_level_visibility_decl"
+require_file "src/self_hosted/parser/fixture/top_level_visibility_decl_ast.txt"
 require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
     "func SemanticOuterCastTargetType("
 require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
@@ -3718,6 +3758,8 @@ require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
 require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "AstExpressionLaneAtom(), scrutinee"
 require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
+    "let case_pattern: ParserExpressionFact = ParseExprFact("
+reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "AstExpressionLaneAtom(), case_pattern"
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     "func SemanticAstMatchStatementGraphContractReady"
@@ -4203,11 +4245,11 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set)"
+    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy"
@@ -4565,7 +4607,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     '"StringConcat^String^String|String"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
-    'names[101] == "StringConcat"'
+    "SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params)"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
     'source_name == "Concat" || source_name == "StringConcat"'
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -5170,12 +5212,21 @@ require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
     'func SelfMirMatchCaseFactFromArtifact('
 require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
     'AstMatchCasePatternFactFromArtifact(artifact, case_node_id)'
+# typed MatchCase atom owner; parallel pattern graph and semantic local parse forbidden
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact('
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'bindings: Array<String>;'
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
-    'while rows.arena.node_kinds[call] == AstExpressionNodeCallArgument()'
+    'TypedAstArenaAtomText('
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'AstMatchCasePatternFactFromText(UnwrapOption(pattern))'
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactContractReady()'
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'AstMatchCasePatternFactFromText("0 | 1")'
+reject_function_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactFromArtifact(' 'expression_graphs'
 reject_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'binding: String;'
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
@@ -5300,12 +5351,10 @@ require_file "src/compiler/self_host_driver.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "let composed_rows: AstExpressionGraphRows = expression_graphs[0];"
-require_text "src/self_hosted/parser/program_parse_owner.pgy" \
-    "ParserExpressionGraphsSelectMatchCases(composed_rows, false)"
-require_text "src/self_hosted/parser/program_parse_owner.pgy" \
-    "ParserExpressionGraphsSelectMatchCases(composed_rows, true)"
 reject_text "src/self_hosted/parser/program_parse_owner.pgy" \
-    "ParserExpressionGraphsSelectMatchCases(expression_graphs[0]"
+    "ParserExpressionGraphsSelectMatchCases"
+reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
+    "TypedAstKindMatchCaseStmtTag()"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 200
@@ -11524,7 +11573,7 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
-    'let compiler_world = PgyCompilerWorld('
+    'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'import "compiler_world_direct_mir_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \

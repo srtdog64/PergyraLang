@@ -10,21 +10,29 @@ func RuntimeCHeaderRequired(
     uses_spawn: Bool,
     uses_list: Bool,
     uses_queue: Bool,
-    uses_set: Bool
+    uses_set: Bool,
+    uses_artifact_transaction: Bool
 ) -> Bool {
     return uses_allocator || uses_text_builder || uses_box_array ||
-        uses_spawn || uses_list || uses_queue || uses_set;
+        uses_spawn || uses_list || uses_queue || uses_set || uses_artifact_transaction;
 }
 
 func RuntimeCHeaderIncludeBlock(
+    uses_allocator: Bool, uses_text_builder: Bool,
     uses_box_array: Bool, uses_spawn: Bool, uses_list: Bool,
-    uses_queue: Bool, uses_set: Bool
+    uses_queue: Bool, uses_set: Bool, uses_artifact_transaction: Bool
 ) -> String {
+    if uses_artifact_transaction {
+        return "#include \"pgy_runtime_artifact_transaction_inline.h\"\n";
+    }
     if uses_box_array || uses_list || uses_queue || uses_set {
         return "#include \"pgy_runtime.h\"\n";
     }
+    let block: String = "";
     if uses_spawn {
-        return "#include <stdint.h>\n#include <time.h>\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_parallel.h\"\n#include \"pgy_lane_scheduler.h\"\n";
+        block = "#include <stdint.h>\n#include <time.h>\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_parallel.h\"\n#include \"pgy_lane_scheduler.h\"\n";
+    } else if uses_allocator || uses_text_builder {
+        block = "#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_allocator_inline.h\"\n#include \"pgy_runtime_text_builder_inline.h\"\n";
     }
-    return "#include \"pgy_runtime_panic_contract.h\"\n#include \"pgy_runtime_panic_checked_inline.h\"\n#include \"pgy_runtime_allocator_inline.h\"\n#include \"pgy_runtime_text_builder_inline.h\"\n";
+    return block;
 }

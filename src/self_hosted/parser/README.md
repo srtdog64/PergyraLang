@@ -11,9 +11,8 @@ inventing a second AST serialization format.
   vs `--fixture-manifest`, then delegates source selection and parsing.
 - `program_parse_owner.pgy` - root Program SoT. Owns root source reads, root
   cursor initialization, top-level declaration parse invocation, and final
-  compact AST `Program:` assembly. It returns the text projection and typed
-  executable expression graph plus non-executable match-pattern graph together
-  as one `ParserProgramBuild`.
+  compact AST `Program:` assembly. It returns the typed AST projection and its
+  executable expression graph as one `ParserProgramBuild`.
 - `source_path_owner.pgy` - parser input/import-path SoT. Owns the argv/default
   source path, imported-source read marker, and import graph membership fact.
   Source dirname and import joins consume `SelfHostPath` instead of
@@ -32,10 +31,10 @@ inventing a second AST serialization format.
   precedence walk emits stable node kinds and child edges while it parses;
   semantic analysis must not reparse the compact expression projection on the
   DRV-2 hard path.
-- `match_pattern_graph_partition_owner.pgy` - separates parser-owned
-  `MatchCase` pattern roots from executable expression roots. The HIR pattern
-  fact consumes this lane; semantic and MIR owners may not recover a pattern
-  from compact AST or source text.
+- `stmt_match_owner.pgy` - validates case pattern syntax while parsing and
+  records the canonical spelling on the typed `MatchCase` AST atom. HIR owns
+  bounded pattern interpretation from that atom; there is no parallel pattern
+  graph or ordinal join.
 - `expression_generic_actual_owner.pgy` - ordered explicit generic actual
   nodes and generic-callee spine construction.
 - `stmt_owner.pgy` - statement dispatch and block parsing owner. It delegates

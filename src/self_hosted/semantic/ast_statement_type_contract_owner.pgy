@@ -5,17 +5,9 @@ func SemanticAstStatementFunctionTables(artifact: AstTreeArtifact, signatures: S
     return SemanticAstExpressionFunctionTableFactsFromArtifact(signatures, constructors, SemanticAstEnumFactsFromArtifact(artifact));
 }
 func SemanticAstScalarMatchContractArtifact(
-    tree_text: String, pattern: String
+    tree_text: String
 ) -> AstTreeArtifact {
-    let base: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
-    let patterns: AstExpressionGraphRows = AstExpressionGraphRows(
-        true, [TypedAstKindMatchCaseStmtTag()],
-        [AstExpressionLaneAtom()], [0],
-        AstExpressionArena([AstExpressionNodeIntegerLiteral()], [pattern], [0], [0])
-    );
-    return AstTreeArtifact(
-        base.tree_text, base.arena, base.count, base.expression_graphs, patterns
-    );
+    return AstTreeArtifactFromText(tree_text);
 }
 func SemanticAstStatementTypeFactsForContract(
     artifact: AstTreeArtifact
@@ -102,7 +94,6 @@ func SemanticAstCollectionStatementGraphContractReady() -> Bool {
 func SemanticAstMatchStatementGraphContractReady() -> Bool {
     let artifact: AstTreeArtifact = SemanticAstScalarMatchContractArtifact(
         "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: box : Box = Box(1)\n        Match: box.value\n          Case: 1\n            Block:\n              Return: 1\n"
-        , "1"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -163,7 +154,6 @@ func SemanticAstMatchStatementGraphContractReady() -> Bool {
 func SemanticAstStatementTypeFactsContractReady() -> Bool {
     let valid: AstTreeArtifact = SemanticAstScalarMatchContractArtifact(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Match: x\n          Case: 1\n            Block:\n              Log(x)\n        Return: x\n"
-        , "1"
     );
     let facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsForContract(valid);
@@ -195,6 +185,7 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         bad_exit_facts.inferred_type_names[0] == "String" &&
         SemanticAstStatementFirstDiagnosticCode(bad_exit_facts) ==
             "call_arg_type_mismatch" &&
+        AstMatchCasePatternFactContractReady() &&
         SemanticAstCollectionStatementGraphContractReady() &&
         SemanticAstMatchStatementGraphContractReady();
 }

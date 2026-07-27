@@ -5,6 +5,10 @@
 #include <string.h>
 
 static const char *kPgyCompilerIOBoundaryBuiltinNames[] = {
+    "CompilerArtifactAbort",
+    "CompilerArtifactBegin",
+    "CompilerArtifactCommit",
+    "CompilerArtifactWrite",
     "FileClose",
     "FileExists",
     "FileOpen",

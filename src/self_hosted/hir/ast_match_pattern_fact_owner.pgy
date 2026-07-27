@@ -1,4 +1,4 @@
-// Canonical bounded match-pattern facts from parser-owned graph rows.
+// Canonical bounded match-pattern facts from the typed MatchCase AST atom.
 
 import "ast_text_arena_projection_owner.pgy";
 
@@ -18,7 +18,9 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
     let text: String = StringTrim(pattern);
     let open: Int = StringIndexOf(text, "(");
     if open < 0 {
-        if text == "" { return AstMatchCasePatternFactInvalid(); }
+        if !IsIdentifier(text) && ToString(ToInt(text)) != text {
+            return AstMatchCasePatternFactInvalid();
+        }
         let bindings: Array<String> = [];
         if text == "None" {
             return AstMatchCasePatternFact(true, text, "None", bindings);
@@ -33,7 +35,7 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
     let payload: String = StringTrim(Substring(
         text, open + 1, close - open - 1
     ));
-    if variant == "" || payload == "" {
+    if !IsIdentifier(variant) || payload == "" {
         return AstMatchCasePatternFactInvalid();
     }
     let parts: Array<String> = Split(payload, ",");
@@ -57,6 +59,27 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
     return AstMatchCasePatternFact(true, text, variant, bindings);
 }
 
+func AstMatchCasePatternFactContractReady() -> Bool {
+    let scalar: AstMatchCasePatternFact =
+        AstMatchCasePatternFactFromText("1");
+    let leaf: AstMatchCasePatternFact =
+        AstMatchCasePatternFactFromText("Ready");
+    let payload: AstMatchCasePatternFact =
+        AstMatchCasePatternFactFromText("Pair(left, right)");
+    return scalar.ok && scalar.variant == "" &&
+        ArrayLength(scalar.bindings) == 0 &&
+        leaf.ok && leaf.pattern == "Ready" &&
+        payload.ok && payload.variant == "Pair" &&
+        ArrayLength(payload.bindings) == 2 &&
+        payload.bindings[0] == "left" && payload.bindings[1] == "right" &&
+        !AstMatchCasePatternFactFromText("").ok &&
+        !AstMatchCasePatternFactFromText("0 | 1").ok &&
+        !AstMatchCasePatternFactFromText("\"text\"").ok &&
+        !AstMatchCasePatternFactFromText("Pair(left, left)").ok &&
+        !AstMatchCasePatternFactFromText("Pair(1)").ok &&
+        !AstMatchCasePatternFactFromText("Pair()").ok;
+}
+
 func AstMatchCasePatternFactFromArtifact(
     artifact: AstTreeArtifact,
     case_node_id: Int
@@ -67,76 +90,11 @@ func AstMatchCasePatternFactFromArtifact(
         ) {
         return AstMatchCasePatternFactInvalid();
     }
-    let ordinal: Int = 0;
-    let node_id: Int = 0;
-    while node_id < case_node_id {
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindMatchCaseStmtTag()
-        ) {
-            ordinal = ordinal + 1;
-        }
-        node_id = node_id + 1;
-    }
-    let rows: AstExpressionGraphRows = artifact.match_pattern_graphs;
-    if ordinal >= ArrayLength(rows.roots) ||
-        rows.root_owner_kinds[ordinal] != TypedAstKindMatchCaseStmtTag() ||
-        rows.root_lanes[ordinal] != AstExpressionLaneAtom() {
+    let pattern: Option<String> = TypedAstArenaAtomText(
+        artifact.arena, case_node_id
+    );
+    if !IsSome(pattern) {
         return AstMatchCasePatternFactInvalid();
     }
-    let root: Int = rows.roots[ordinal];
-    let root_kind: Int = rows.arena.node_kinds[root];
-    let pattern: String = rows.arena.node_texts[root];
-    if root_kind == AstExpressionNodeIntegerLiteral() {
-        let bindings: Array<String> = [];
-        return AstMatchCasePatternFact(true, pattern, "", bindings);
-    }
-    if root_kind == AstExpressionNodeLeaf() {
-        if pattern == "" {
-            return AstMatchCasePatternFactInvalid();
-        }
-        let bindings: Array<String> = [];
-        if pattern == "None" {
-            return AstMatchCasePatternFact(true, pattern, "None", bindings);
-        }
-        return AstMatchCasePatternFact(true, pattern, "", bindings);
-    }
-    if root_kind != AstExpressionNodeCallArgument() {
-        return AstMatchCasePatternFactInvalid();
-    }
-    let reversed: Array<String> = [];
-    let call: Int = root;
-    while rows.arena.node_kinds[call] == AstExpressionNodeCallArgument() {
-        let argument: Int = rows.arena.right_children[call];
-        if rows.arena.node_kinds[argument] != AstExpressionNodeLeaf() ||
-            !IsIdentifier(rows.arena.node_texts[argument]) {
-            return AstMatchCasePatternFactInvalid();
-        }
-        ArrayPush(reversed, rows.arena.node_texts[argument]);
-        call = rows.arena.left_children[call];
-    }
-    if rows.arena.node_kinds[call] != AstExpressionNodeCall() {
-        return AstMatchCasePatternFactInvalid();
-    }
-    let callee: Int = rows.arena.left_children[call];
-    if rows.arena.node_kinds[callee] != AstExpressionNodeLeaf() {
-        return AstMatchCasePatternFactInvalid();
-    }
-    let variant: String = rows.arena.node_texts[callee];
-    let bindings: Array<String> = [];
-    let i: Int = ArrayLength(reversed) - 1;
-    while i >= 0 {
-        let prior: Int = 0;
-        while prior < ArrayLength(bindings) {
-            if bindings[prior] == reversed[i] {
-                return AstMatchCasePatternFactInvalid();
-            }
-            prior = prior + 1;
-        }
-        ArrayPush(bindings, reversed[i]);
-        i = i - 1;
-    }
-    if variant == "" || ArrayLength(bindings) == 0 {
-        return AstMatchCasePatternFactInvalid();
-    }
-    return AstMatchCasePatternFact(true, pattern, variant, bindings);
+    return AstMatchCasePatternFactFromText(UnwrapOption(pattern));
 }

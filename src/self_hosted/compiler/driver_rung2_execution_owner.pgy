@@ -6,6 +6,7 @@
 
 import "direct_mir_backend_projection_owner.pgy";
 import "target_projection_fact_owner.pgy";
+import "../mir/artifact_transaction_owner.pgy";
 
 enum DriverRung2DirectMirRequest {
     DirectMirC,
@@ -15,7 +16,7 @@ enum DriverRung2DirectMirRequest {
 enum DriverRung2ExecutionStage {
     Requested,
     TargetAdmitted,
-    ArtifactWritten,
+    ArtifactCommitted,
     Rejected,
 }
 
@@ -41,7 +42,7 @@ func DriverRung2ExecutionResultReady(
         return false;
     }
     match result.stage {
-        case ArtifactWritten: return true;
+        case ArtifactCommitted: return true;
         case Requested: return false;
         case TargetAdmitted: return false;
         case Rejected: return false;
@@ -103,8 +104,15 @@ subject DriverRung2Execution {
             );
         }
 
-        WriteFile(output_path, artifact.payload);
-        stage = ArtifactWritten;
+        let committed: SelfMirArtifactCommitOutcome =
+            SelfMirArtifactCommitPayload(output_path, artifact.payload);
+        if !SelfMirArtifactCommitOutcomeReady(committed) {
+            return DriverRung2ExecutionResult(
+                false, Rejected, self.identity, projection_name,
+                "direct MIR artifact transaction commit failed"
+            );
+        }
+        stage = ArtifactCommitted;
         return DriverRung2ExecutionResult(
             true, stage, self.identity, projection_name, ""
         );

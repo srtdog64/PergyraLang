@@ -213,12 +213,22 @@ func ParseDecls(
             continue;
         }
 
-        // Optional `export` prefix on the next declaration.
+        // Optional top-level visibility prefix on the next declaration.
+        // Native AST identity maps both `export` and `public` to `[export]`;
+        // `private` is explicit but carries the ordinary non-export shape.
         let is_export: Bool = false;
-        if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
-            i = LanguageWordEnd(i, LanguageWordId.WordExport);
+        if MatchLanguageWord(content, i, LanguageWordId.WordExport) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordPublic) {
+            if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
+                i = LanguageWordEnd(i, LanguageWordId.WordExport);
+            } else {
+                i = LanguageWordEnd(i, LanguageWordId.WordPublic);
+            }
             i = SkipWhitespaceAndComments(content, i);
             is_export = true;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordPrivate) {
+            i = LanguageWordEnd(i, LanguageWordId.WordPrivate);
+            i = SkipWhitespaceAndComments(content, i);
         }
 
         let effective_export: Bool = is_export;
@@ -316,7 +326,8 @@ func ParseDecls(
 
         if MatchLanguageWord(content, i, LanguageWordId.WordSubject) || MatchLanguageWord(content, i, LanguageWordId.WordClass) || MatchLanguageWord(content, i, LanguageWordId.WordVessel) || MatchLanguageWord(content, i, LanguageWordId.WordStruct) || MatchLanguageWord(content, i, LanguageWordId.WordObject) || MatchLanguageWord(content, i, LanguageWordId.WordTobject) || MatchLanguageWord(content, i, LanguageWordId.WordParty) || MatchLanguageWord(content, i, LanguageWordId.WordRoster) || MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
             let nominal_block: String = ParseNominalDecl(
-                content, i, cursor_out, decl_prefix, active_within_zone,
+                content, i, cursor_out, decl_prefix, is_export,
+                active_within_zone,
                 involve_types, out_graphs
             );
             i = cursor_out[0];

@@ -1016,6 +1016,7 @@ Inductive SpineFact : Type :=
   | SFTokenStream
   | SFLanguageWordRegistry
   | SFSyntaxProvenanceTree
+  | SFMatchCasePattern
   | SFSemanticSymbolTypeGraph
   | SFSemanticDestructureBindingType
   | SFSemanticMatchBindingType
@@ -1038,6 +1039,7 @@ Inductive SpineFact : Type :=
   | SFProjectionPlan
   | SFDiagnosticCatalog
   | SFBackendArtifact
+  | SFCompilerArtifactCommit
   | SFCompatibilityEvolution
   | SFExpressionGraph
   | SFCollectionMutationStatement
@@ -1070,6 +1072,7 @@ Inductive SpineOwner : Type :=
   | SOLexer
   | SOLanguageLexicon
   | SOParserAst
+  | SOAstMatchCasePattern
   | SOSemanticAnalyzer
   | SOSemanticDestructureType
   | SOSemanticMatchBindingType
@@ -1088,6 +1091,7 @@ Inductive SpineOwner : Type :=
   | SOProjectionPlanner
   | SODiagnosticCatalog
   | SOArtifactZone
+  | SOCompilerArtifactCommit
   | SOCompatibilityEvolution
   | SOSemanticLocalBinding
   | SOParserExpressionGraph
@@ -1118,6 +1122,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTokenStream => SOLexer
   | SFLanguageWordRegistry => SOLanguageLexicon
   | SFSyntaxProvenanceTree => SOParserAst
+  | SFMatchCasePattern => SOAstMatchCasePattern
   | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer
   | SFSemanticDestructureBindingType => SOSemanticDestructureType
   | SFSemanticMatchBindingType => SOSemanticMatchBindingType
@@ -1140,6 +1145,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFProjectionPlan => SOProjectionPlanner
   | SFDiagnosticCatalog => SODiagnosticCatalog
   | SFBackendArtifact => SOArtifactZone
+  | SFCompilerArtifactCommit => SOCompilerArtifactCommit
   | SFCompatibilityEvolution => SOCompatibilityEvolution
   | SFExpressionGraph => SOParserExpressionGraph
   | SFCollectionMutationStatement => SOSemanticStatement

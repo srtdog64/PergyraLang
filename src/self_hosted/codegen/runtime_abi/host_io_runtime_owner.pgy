@@ -16,6 +16,22 @@ func HostIORuntimeCWriteFileFn() -> String {
     return "pgy_writefile";
 }
 
+func HostIORuntimeCCompilerArtifactAbortFn() -> String {
+    return "pgy_compiler_artifact_abort";
+}
+
+func HostIORuntimeCCompilerArtifactBeginFn() -> String {
+    return "pgy_compiler_artifact_begin";
+}
+
+func HostIORuntimeCCompilerArtifactCommitFn() -> String {
+    return "pgy_compiler_artifact_commit";
+}
+
+func HostIORuntimeCCompilerArtifactWriteFn() -> String {
+    return "pgy_compiler_artifact_write";
+}
+
 func HostIORuntimeCFileOpenFn() -> String {
     return "pgy_fopen";
 }

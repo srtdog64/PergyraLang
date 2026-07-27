@@ -263,27 +263,10 @@ zone ParityZone {
 }
 
 world PgyCompilerWorld {
-    // Keep the active executable slice first so the beta positional
-    // constructor can initialize it without fabricating dormant zone facts.
+    // Only executable zones are world members. The remaining declared zones
+    // stay target topology until their production bypass is deleted; missing
+    // required world facts may not be supplied by aggregate zero-fill.
     zone direct_mir: DriverRung2DirectMirZone
-    zone source_intake: SourceIntakeZone
-    zone tokens: TokenStreamZone
-    zone ast: AstTreeZone
-    zone semantic: SemanticVerdictZone
-    zone mir: MirFactGraphZone
-    zone type_env: TypeEnvZone
-    zone abi_layout: AbiLayoutZone
-    zone target_capability: TargetCapabilityZone
-    zone compatibility: CompatibilityEvolutionZone
-    zone air_evidence: AirEvidenceZone
-    zone sandbox_capability: SandboxCapabilityZone
-    zone symbols: SymbolFactTableZone
-    zone abi_rows: AbiRowProjectionZone
-    zone emission: EmissionZone
-    zone artifacts: ArtifactZone
-    zone harness: TestHarnessZone
-    zone subprocess: SubprocessRunnerZone
-    zone parity: ParityZone
 
     func EmitDirectMir(
         self,

@@ -34,17 +34,19 @@ struct SemanticAstAssignmentTypeFacts {
     diagnostic_messages: Array<String>;
 }
 func SemanticAstAssignmentTypeStructuralError(
-    artifact: AstTreeArtifact
+    artifact: AstTreeArtifact,
+    dependency: String
 ) -> SemanticAstAssignmentTypeFacts {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
     return SemanticAstAssignmentTypeFacts(
         false,
         "ast_artifact_invalid",
-        SemanticError2(
+        SemanticError3(
             "ast_artifact_invalid",
             "node_count", ToString(artifact.count),
-            "owner", "SemanticAstAssignmentTypeFacts"
+            "owner", "SemanticAstAssignmentTypeFacts",
+            "dependency", dependency
         ),
         artifact.count,
         empty_ints, empty_strings, empty_strings, empty_strings,
@@ -114,29 +116,17 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     enum_facts: SemanticAstEnumFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstAssignmentTypeFacts {
-    if !AstTreeArtifactReady(artifact) ||
-        !SemanticAstFunctionSignatureFactsMatchArtifact(
-            artifact, signatures
-        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
-            artifact, constructors
-        ) || !SemanticAstLocalBindingFactsMatchArtifact(
-            artifact, signatures, locals
-        ) || !SemanticAstInitializerTypeFactsReadyProjection(
-            artifact, locals, initializer_types
-        ) || !SemanticAstIterationTypeFactsMatchArtifact(
-            artifact, signatures, constructors, locals, initializer_types,
-            statements, expression_surfaces, iteration_types
-        ) || !SemanticAstAssignmentFactsMatchArtifact(
-            artifact, signatures, assignments
-        ) || !SemanticAstEnumFactsMatchArtifact(
-            artifact, enum_facts
-        ) || !SemanticAstExpressionSurfaceBorrowReady(
-            artifact, expression_surfaces
-        ) {
-        return SemanticAstAssignmentTypeStructuralError(artifact);
-    }
+    if !AstTreeArtifactReady(artifact) { return SemanticAstAssignmentTypeStructuralError(artifact, "AstTreeArtifact"); }
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) { return SemanticAstAssignmentTypeStructuralError(artifact, "FunctionSignatureFacts"); }
+    if !SemanticAstNominalConstructorFactsMatchArtifact(artifact, constructors) { return SemanticAstAssignmentTypeStructuralError(artifact, "NominalConstructorFacts"); }
+    if !SemanticAstLocalBindingFactsMatchArtifact(artifact, signatures, locals) { return SemanticAstAssignmentTypeStructuralError(artifact, "LocalBindingFacts"); }
+    if !SemanticAstInitializerTypeFactsReadyProjection(artifact, locals, initializer_types) { return SemanticAstAssignmentTypeStructuralError(artifact, "InitializerTypeFacts"); }
+    if !SemanticAstIterationTypeFactsMatchArtifact(artifact, signatures, constructors, locals, initializer_types, statements, expression_surfaces, iteration_types) { return SemanticAstAssignmentTypeStructuralError(artifact, "IterationTypeFacts"); }
+    if !SemanticAstAssignmentFactsMatchArtifact(artifact, signatures, assignments) { return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentFacts"); }
+    if !SemanticAstEnumFactsMatchArtifact(artifact, enum_facts) { return SemanticAstAssignmentTypeStructuralError(artifact, "EnumFacts"); }
+    if !SemanticAstExpressionSurfaceBorrowReady(artifact, expression_surfaces) { return SemanticAstAssignmentTypeStructuralError(artifact, "ExpressionSurfaceFacts"); }
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
-        return SemanticAstAssignmentTypeStructuralError(artifact);
+        return SemanticAstAssignmentTypeStructuralError(artifact, "ExpressionFunctionTableFacts");
     }
     let node_ids: Array<Int> = [];
     let target_binding_modes: Array<String> = [];
@@ -151,47 +141,29 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
     ) {
-        return SemanticAstAssignmentTypeStructuralError(artifact);
+        return SemanticAstAssignmentTypeStructuralError(artifact, "MemberRootNames");
     }
     let i: Int = 0;
     while i < SemanticAstAssignmentCount(assignments) {
         let names: Array<String> = [];
         let types: Array<String> = [];
         let modes: Array<String> = [];
-        if !SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        ) || !SemanticAstExpressionSeedOwnerFields(
-            signatures, constructors, assignments.function_node_ids[i],
-            names, types, modes
-        ) || !SemanticAstExpressionSeedParameters(
-            signatures, assignments.function_node_ids[i], names, types
-        ) || !SemanticAstExpressionSeedParameterModes(
-            signatures, assignments.function_node_ids[i], modes
-        ) || !SemanticAstExpressionSeedVisibleLocals(
-            artifact, locals, initializer_types.inferred_type_names,
-            assignments.function_node_ids[i], assignments.node_ids[i],
-            names, types
-        ) || !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, assignments.function_node_ids[i],
-            assignments.node_ids[i], modes
-        ) || !SemanticAstIterationSeedVisibleBindings(
-            artifact, statements, iteration_types,
-            assignments.function_node_ids[i], assignments.node_ids[i],
-            names, types, modes
-        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-            artifact, expression_surfaces, signatures, constructors,
-            assignments.function_node_ids[i], assignments.node_ids[i],
-            names, types, modes, function_tables
-        ) || ArrayLength(names) != ArrayLength(modes) {
-            return SemanticAstAssignmentTypeStructuralError(artifact);
-        }
+        if !SemanticAstExpressionSeedEnumValues(enum_facts, names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedEnumValues@", ToString(i))); }
+        if !SemanticAstExpressionSeedOwnerFields(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedOwnerFields@", ToString(i))); }
+        if !SemanticAstExpressionSeedParameters(signatures, assignments.function_node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameters@", ToString(i))); }
+        if !SemanticAstExpressionSeedParameterModes(signatures, assignments.function_node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameterModes@", ToString(i))); }
+        if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocals@", ToString(i))); }
+        if !SemanticAstExpressionSeedVisibleLocalModes(artifact, locals, assignments.function_node_ids[i], assignments.node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocalModes@", ToString(i))); }
+        if !SemanticAstIterationSeedVisibleBindings(artifact, statements, iteration_types, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedIterationBindings@", ToString(i))); }
+        if !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(artifact, expression_surfaces, signatures, constructors, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes, function_tables) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedMatchBindings@", ToString(i))); }
+        if ArrayLength(names) != ArrayLength(modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("EnvironmentModeCount@", ToString(i))); }
         let target_graph_root: Option<Int> =
             SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, assignments.node_ids[i],
                 AstExpressionLaneAtom()
             );
         if !IsSome(target_graph_root) {
-            return SemanticAstAssignmentTypeStructuralError(artifact);
+            return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentTargetGraphRoot");
         }
         let target_base_root: Option<Int> =
             SemanticAstAssignmentTargetBaseRoot(
@@ -204,7 +176,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 UnwrapOption(target_graph_root)
             );
         if !IsSome(target_base_root) || !IsSome(target_binding_name) {
-            return SemanticAstAssignmentTypeStructuralError(artifact);
+            return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentTargetBinding");
         }
         let target_root: String = UnwrapOption(target_binding_name);
         let target_binding_mode: String = EnvMode(names, modes, target_root);
@@ -244,7 +216,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     UnwrapOption(target_graph_root)
                 );
                 if !IsSome(index_root) {
-                    return SemanticAstAssignmentTypeStructuralError(artifact);
+                    return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentIndexGraphRoot");
                 }
                 let index_verdict: SemanticAstExpressionVerdict =
                     SemanticAstExpressionVerdictFromGraph(
@@ -288,7 +260,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         AstExpressionLaneValue()
                     );
                 if !IsSome(value_root) {
-                    return SemanticAstAssignmentTypeStructuralError(artifact);
+                    return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentValueGraphRoot");
                 }
                 let value_verdict: SemanticAstExpressionVerdict =
                     SemanticAstExpressionVerdictFromGraph(

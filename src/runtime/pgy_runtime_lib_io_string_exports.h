@@ -157,6 +157,8 @@ void pgy_file_close(int32_t fd)
         return;
     fclose(fp);
 }
+#define PGY_COMPILER_ARTIFACT_TXN_API
+#include "pgy_runtime_artifact_transaction_core.h"
 PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
 {
     char *resolved;

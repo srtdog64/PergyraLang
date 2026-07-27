@@ -2658,6 +2658,19 @@ grammar-cheatsheet-contract-test-smoke:
 object-action-boundary-contract-test-smoke:
 	"$(BASH)" tests/object_action_boundary_contract_smoke.sh
 
+# Compiler artifacts are committed through one temp-to-final transaction owner.
+# The static ratchet prevents raw-final writers and repeated MIR validation;
+# the runtime gate injects every pre-publish failure into both backend twins.
+artifact-atomic-transaction-contract-test-smoke:
+	"$(BASH)" tests/artifact_atomic_transaction_contract_smoke.sh
+
+artifact-atomic-runtime-test-smoke:
+	"$(BASH)" tests/runtime_artifact_atomic_transaction_smoke.sh
+
+artifact-atomic-transaction-test-smoke: \
+		artifact-atomic-transaction-contract-test-smoke \
+		artifact-atomic-runtime-test-smoke
+
 ifeq ($(OS),Windows_NT)
 grammar-examples-compile-test-smoke: $(PGY)
 	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/grammar_examples_compile_smoke.ps1 -PgyBin "$(abspath $(PGY))"
@@ -3811,6 +3824,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: runtime-cache-identity-test-smoke arena-ledger-test-smoke runtime-context-test-smoke
 .PHONY: grammar-self-driver-test-smoke
 .PHONY: object-action-boundary-contract-test-smoke
+.PHONY: artifact-atomic-transaction-contract-test-smoke artifact-atomic-runtime-test-smoke artifact-atomic-transaction-test-smoke
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke

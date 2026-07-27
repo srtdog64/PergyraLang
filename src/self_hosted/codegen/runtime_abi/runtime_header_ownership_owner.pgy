@@ -13,11 +13,12 @@ func RuntimeCHeaderOwnsCheckedArithmetic(
     uses_box_array: Bool,
     uses_list: Bool,
     uses_queue: Bool,
-    uses_set: Bool
+    uses_set: Bool,
+    uses_artifact_transaction: Bool
 ) -> Bool {
     return RuntimeCHeaderRequired(
         uses_allocator, uses_text_builder, uses_box_array, false,
-        uses_list, uses_queue, uses_set
+        uses_list, uses_queue, uses_set, uses_artifact_transaction
     );
 }
 
@@ -25,15 +26,19 @@ func RuntimeCHeaderOwnsScalarLog(
     uses_box_array: Bool,
     uses_list: Bool,
     uses_queue: Bool,
-    uses_set: Bool
+    uses_set: Bool,
+    uses_artifact_transaction: Bool
 ) -> Bool {
-    return uses_box_array || uses_list || uses_queue || uses_set;
+    return uses_box_array || uses_list || uses_queue || uses_set ||
+        uses_artifact_transaction;
 }
 
 func RuntimeCHeaderOwnsBoolToString(
-    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool
+    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool,
+    uses_artifact_transaction: Bool
 ) -> Bool {
     return RuntimeCHeaderOwnsScalarLog(
-        uses_box_array, uses_list, uses_queue, uses_set
+        uses_box_array, uses_list, uses_queue, uses_set,
+        uses_artifact_transaction
     );
 }

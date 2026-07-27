@@ -2082,11 +2082,162 @@ PGY_BIN=bin/pgy.exe bash tests/capability/run_manifest.sh
 PGY_BIN=bin/pgy.exe bash tests/capability/run_runtime_enforce.sh
 ```
 
-이 수정이 artifact commit을 완성한 것은 아니다. `FileWrite`/`FileClose`의
-Pergyra 반환형은 여전히 `Void`, self-host generated C helper는 별도 unchecked
-구현, `FileOpen`의 mode-derived capability는 MIR/AIR call-site fact에 아직 없다.
-또한 final path를 먼저 truncate하므로 short-write/close failure나 process abort
-뒤 기존 artifact 보존을 보장하지 못한다. compiler artifact action에는 raw
-handle API를 더 늘리지 말고 checked same-directory transaction + atomic replace +
-typed receipt를 사용해야 한다. 그 owner가 없으면 `ArtifactCommitted`를 성공
-stage로 기록하지 않는다.
+이 수정만으로 artifact commit이 완성된 것은 아니었고, 일반
+`FileWrite`/`FileClose`는 지금도 `Void`인 호환성 표면이다. compiler artifact는
+이 raw handle을 사용하지 않는다. 아래 전용 transaction owner가 same-directory
+temp, checked write/flush/close, atomic replace, typed receipt를 소유한다.
+
+## compiler artifact writer가 MIR graph를 다시 검증해 수 GiB를 쓰는 경우
+
+증상은 source-to-MIR projection 자체가 성공한 뒤 JSON 파일을 쓰는 단계에서
+메모리가 다시 급증하거나, 같은 graph를 한 번 출력하는 데 검증 시간이 거의 두
+배로 보이는 것이다. 원인은 production caller가 이미
+`SelfMirProgramFactsReady(facts)`를 통과했는데 compatibility writer가 같은
+whole-program facts를 다시 검증한 것이었다. graph 전체 검증은 산출물 한 번마다
+다시 지불할 local guard가 아니라 generation이 바뀔 때 한 번만 지불하는 owner
+경계다.
+
+현재 production 경로는 다음을 고정한다.
+
+```text
+DriverRung2MirProjectionFromAnalysisObserved
+  -> SelfMirProgramFactsReady(facts)          # exactly once
+  -> SelfMirProgramJsonWriteArtifactVerified # no second graph validation
+  -> CompilerArtifactBegin/Write/Commit
+```
+
+raw/외부 facts를 받는 compatibility entrypoint
+`SelfMirProgramJsonWriteArtifact`는 계속 정확히 한 번 검증한다. 반대로 이미
+검증된 production caller만 `...Verified`를 호출한다. 검증을 없앤 것이 아니라
+증거 lifetime을 소비자에게 운반해 같은 graph를 매번 재검증하던 중복을 없앤
+것이다. `tests/artifact_atomic_transaction_contract_smoke.sh`는 production caller가
+다시 validating wrapper를 호출하거나 writer 내부에 두 번째 readiness 검사가
+생기면 실패한다.
+
+파일 공개도 같은 단일 경계 원칙을 따른다. C-inline과 LLVM-linked runtime은
+`pgy_runtime_artifact_transaction_core.h` 하나를 소비하고, 최종 경로는
+write/flush/close가 모두 성공한 뒤 한 번만 atomic replace한다. test-only fault
+injection은 open/write/flush/close/publish 각각에서 기존 sentinel final이 그대로고
+temp가 0개이며 success receipt가 없음을 확인한다. 이 계약은 **atomic
+visibility**이지 **crash durability**가 아니다. file/directory sync가 없으므로
+전원 손실 이후의 영속성을 주장하지 않는다.
+
+회귀는 다음 gate로 확인한다.
+
+```sh
+make artifact-atomic-transaction-test-smoke
+make self-host-mir-json-instruction-writer-parity-test-smoke
+```
+
+## Self-host codegen exits with `0xC00000FD` while reading `main_ast.txt`
+
+The Bash wrapper may report exit 127, while the Windows process exit is
+`-1073741571` (`0xC00000FD`, stack overflow). In the observed failure the
+current 2.46 MiB `main_ast.txt` was valid and `gen0.exe` retained the normal
+2 MiB PE stack reserve. GDB showed 123 nested `ParsePrimaryFact` / expression
+precedence frames. The nesting came from a manually duplicated
+`SemanticBuiltinSignatureContractReady` expression: every builtin row added
+another parenthesized `&&` term, so growing the language registry also grew the
+parser call stack.
+
+Do not raise the executable stack reserve or delete the contract checks. The
+signature registry is the fact owner, so it must validate its projection with
+one bounded loop. `SemanticBuiltinSignatureProjectionPrefixReady` walks
+`SemanticBuiltinSignatureRows()` once and compares the consumer arrays. Exact
+registry length and a consumer-owned tail row are checked separately. The
+expression-environment contract consumes that verifier instead of reproducing
+all builtin indexes. This keeps the contract proportional in work but constant
+in source-expression nesting and prevents a second keyword/builtin authority.
+
+The component gate rejects restoration of the observed high-index manual
+projection chain. Verify the executable boundary with:
+
+```sh
+make self-host-component-contract-test-smoke
+make self-host-codegen-bootstrap-seed-test-smoke
+```
+
+A normal run reaches `seed artifacts ready: gen2 codegen and parser AST
+producer`. During the fixed-input witness, `gen0` stayed near 490 MiB private
+and `gen1` near 560 MiB; those values are diagnostic observations, not new
+memory allowances. Diagnose them separately from repeated whole-MIR graph
+validation and native type-resolution scratch retention.
+
+If seed readiness succeeds but the integrated driver then reports `expected
+statement terminator` at `public zone`, inspect top-level visibility dispatch.
+The self-host parser must consume `public`/`private` through `LanguageWordId`,
+and must carry `public`/`export` into the nominal AST as `[export]`. Skipping the
+word without carrying the fact merely moves the failure: parsing may continue,
+but native/self-host AST parity is still false. The committed
+`top_level_visibility_decl` parser fixture covers both private class and public
+subject; the integrated `public zone DriverRung2DirectMirZone` is the production
+falsifier.
+
+## Integrated self-host semantic fails at match binding after parser parity passes
+
+If the diagnostic points to `match_binding_environment` or
+`SeedMatchBindings@...`, compare how the AST artifact was constructed. The old
+parser artifact carried a typed `Case:` atom **and** a separate
+`match_pattern_graphs` row joined by ordinal. `AstTreeArtifactFromText`, used by
+the native/compact bootstrap bridge, had the atom but an empty pattern graph.
+The same case therefore succeeded through the self-host parser artifact and
+failed through the compact bridge.
+
+Do not add `graph if present, otherwise parse atom` fallback. Match pattern
+identity now belongs to the typed `MatchCase` atom and
+`AstMatchCasePatternFactFromArtifact` is the only semantic/MIR interpretation
+boundary. `AstTreeArtifact` payload schema v3 has no `match_pattern_graphs`;
+the parser partition owner and ordinal join are removed. Unsupported
+`or`/guard/string patterns plus malformed, duplicate, or non-identifier
+bindings fail closed at the bounded fact owner.
+
+Verify with:
+
+```sh
+make self-host-component-contract-test-smoke
+make self-host-parser-parity-test-smoke
+make self-host-one-mir-dual-backend-projection-test-smoke
+```
+
+The first gate rejects return of the retired graph and consumer-local semantic
+atom parsing. The parser parity gate proves 189 native/self-host AST projections
+remain byte-equal. The integrated gate is required because byte-equal text alone
+does not prove semantic reachability through the compact artifact path.
+
+## Integrated driver reaches `Action:` but codegen expects `Body:`
+
+The 2026-07-27 one-MIR integration first exposed two invalid shortcuts before
+reaching the action clause itself. `compiler_world_direct_mir_owner.pgy` had an
+untyped `compiler_world` local, then called the 19-member world constructor
+with one argument and depended on native aggregate zero-fill. The self-host
+semantic correctly rejected these as an unresolved local and `expected 19 /
+actual 1`. The fix is an explicitly typed local and an exact-arity world:
+`PgyCompilerWorld` contains only the production-reachable `direct_mir` member;
+the other 18 declared zone types remain target topology until their direct
+production bypass is deleted. Do not fill them with fake subjects/schema facts
+or weaken constructor arity.
+
+After those fixes, the same integration reaches typed AST node 88972:
+
+```text
+Action: EmitDirectMir
+  Returns: DriverRung2ExecutionResult
+  Within: DriverRung2DirectMirZone
+  Authorized by: self
+  Body:
+```
+
+and fails closed with `expected Body:` at `Within:`. This is the executable
+falsifier for the `ActionContract` gap: the self-host declaration/codegen path
+still treats action like an ordinary function and does not carry
+`requires`/`within`/`causes`/`authorized by`/caps/effects as one typed fact.
+Do not fix it by skipping clause lines. The next rung must preserve the action
+identity and clause fact through typed AST, semantic validation, MIR
+declaration/wire, and both backends, with a negative gate for any missing or
+mutated field.
+
+During the observed runs, large seed generation remained in the hundreds of
+MiB and integrated gen2 emission peaked around 1.33 GiB private, below the
+unchanged 3 GiB cap. This is separate from the fixed 20 GiB/3.5 GiB repeated
+graph-validation defect; the runtime is still expensive but the old memory
+growth pattern did not recur.

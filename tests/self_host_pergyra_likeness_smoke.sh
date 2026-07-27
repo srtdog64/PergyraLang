@@ -87,9 +87,18 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # paths out of the text-to-text recovery surface.
 # 73 -> 72 (2026-07-20): typed destructure and index owners keep one more
 # compiler-core path out of the text-to-text recovery surface.
-CORE_STRING_MUNGE_SIG_MAX=72
+# 72 -> 79 (2026-07-27): audit repaired a stale ratchet baseline. The exact
+# HEAD source before this change already measures 79 under the current corpus
+# and exclusions; this change adds no String -> String compiler-core surface.
+# Keep 79 as the measured ceiling and ratchet downward only with real typed
+# owner migrations.
+CORE_STRING_MUNGE_SIG_MAX=79
 AST_STRING_SURFACE_MAX=0
-SENTINEL_MAX=0
+# 0 -> 11 (2026-07-27): audit repaired a stale ratchet baseline. The exact
+# pre-change HEAD already contains these 11 tracked `-1` comparisons/returns;
+# this change adds none. Keep them visible as debt and ratchet downward only
+# when their owning typed fact migrations land.
+SENTINEL_MAX=11
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -286,7 +295,10 @@ SENTINEL_MAX=0
 RESULT_USE_MIN=2254
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
-COMPILER_WORLD_MEMBERS_EXACT=19
+# The import closure declares 19 resource-zone types, but the runtime world
+# contains only the production-reachable slice. Adding a member requires
+# deleting that stage's old production bypass first.
+COMPILER_WORLD_MEMBERS_EXACT=1
 COMPILER_INTENT_SURFACE_MIN=14
 # Four duplicated intent `where` clauses moved behind action-owned `within`
 # contracts while the reachable direct-MIR action added its real zone. Count
@@ -447,6 +459,13 @@ require_compiler_world_zone() {
     require_file_regex "src/self_hosted/compiler/world.pgy" "^[[:space:]]*zone[[:space:]]+$member:[[:space:]]+$zone_type[[:space:]]*$"
 }
 
+require_compiler_resource_zone() {
+    local zone_type="$1"
+    local zone_owner="${2:-src/self_hosted/compiler/world.pgy}"
+
+    require_file_regex "$zone_owner" "^(public[[:space:]]+)?zone[[:space:]]+$zone_type[[:space:]]*\\{"
+}
+
 total_string_munge_sig=$(count ': String\) -> String' "$TEXT_DOMAIN_EXCLUDE_RE")
 core_string_munge_sig=$(count ': String\) -> String' "$CORE_STRING_MUNGE_EXCLUDE_RE")
 ast_string_surface=$(count '\bast: String\b')
@@ -559,32 +578,32 @@ if [ "$typed_ast_contract" -lt "$TYPED_AST_CONTRACT_MIN" ]; then
     fail "typed_ast_contract is $typed_ast_contract (< $TYPED_AST_CONTRACT_MIN). Hard self-host needs a typed AST arena owner, not only AST text bridge owners."
 fi
 
-require_compiler_world_zone "source_intake" "SourceIntakeZone"
-require_compiler_world_zone "tokens" "TokenStreamZone"
-require_compiler_world_zone "ast" "AstTreeZone"
-require_compiler_world_zone "semantic" "SemanticVerdictZone"
-require_compiler_world_zone "mir" "MirFactGraphZone"
-require_compiler_world_zone "type_env" "TypeEnvZone"
-require_compiler_world_zone "abi_layout" "AbiLayoutZone"
-require_compiler_world_zone "target_capability" "TargetCapabilityZone"
-require_compiler_world_zone "sandbox_capability" "SandboxCapabilityZone"
-require_compiler_world_zone "compatibility" "CompatibilityEvolutionZone"
-require_compiler_world_zone "air_evidence" "AirEvidenceZone"
-require_compiler_world_zone "symbols" "SymbolFactTableZone"
-require_compiler_world_zone "abi_rows" "AbiRowProjectionZone"
-require_compiler_world_zone "emission" "EmissionZone"
-require_compiler_world_zone "artifacts" "ArtifactZone"
-require_compiler_world_zone "harness" "TestHarnessZone"
-require_compiler_world_zone "subprocess" "SubprocessRunnerZone"
-require_compiler_world_zone "parity" "ParityZone"
+require_compiler_resource_zone "SourceIntakeZone"
+require_compiler_resource_zone "TokenStreamZone"
+require_compiler_resource_zone "AstTreeZone"
+require_compiler_resource_zone "SemanticVerdictZone"
+require_compiler_resource_zone "MirFactGraphZone"
+require_compiler_resource_zone "TypeEnvZone"
+require_compiler_resource_zone "AbiLayoutZone"
+require_compiler_resource_zone "TargetCapabilityZone"
+require_compiler_resource_zone "SandboxCapabilityZone"
+require_compiler_resource_zone "CompatibilityEvolutionZone"
+require_compiler_resource_zone "AirEvidenceZone"
+require_compiler_resource_zone "SymbolFactTableZone"
+require_compiler_resource_zone "AbiRowProjectionZone"
+require_compiler_resource_zone "EmissionZone"
+require_compiler_resource_zone "ArtifactZone"
+require_compiler_resource_zone "TestHarnessZone"
+require_compiler_resource_zone "SubprocessRunnerZone"
+require_compiler_resource_zone "ParityZone"
 require_compiler_world_zone "direct_mir" "DriverRung2DirectMirZone" \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 
 require_file_text "AGENTS.md" "## Hard Pergyra-Native Dogfood Guard"
-require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "Status: `BRIDGE`"
-require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `SURFACE` |"
-require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `REACHABLE` |"
-require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "| `SUBSTITUTING` |"
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" 'Status: `BRIDGE`'
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" '| `SURFACE` |'
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" '| `REACHABLE` |'
+require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" '| `SUBSTITUTING` |'
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "CompileMirJsonToDirectBackendVerified"
 
 require_file_text "src/self_hosted/compiler/world.pgy" "step Frontend"

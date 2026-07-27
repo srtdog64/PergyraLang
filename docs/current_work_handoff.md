@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - compiler world/action boundary
 
-- Checkout base before this work: `c8dfcf61c776a4ebd91214624e03906dc6ae1ee8` on `main`, equal to the observed
+- Checkout base before this work: `8321f8d31c20f86385520c6b0c4e39543f0b5b54` on `main`, equal to the observed
   `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
   revision. The three protected parity-owner files named below remain separate
   concurrent user work and are not part of this change.
@@ -23,8 +23,9 @@ owner, and the named executable gate.
   This removes Main's direct action/backend bypass but does not yet replace a
   C-owned compiler semantic path.
 - The production import closure is 443 files with no missing import. Reachable
-  Pergyra-native declarations include object 18, tobject 1, subject 17, action
-  17, zone 19, world 1, and intent 14. Keyword/declaration counts are topology
+  Pergyra-native declarations include func 3,495, struct 176, enum 6, object
+  18, tobject 3, subject 17, action 17, zone 19, world 1, and intent 14.
+  Keyword/declaration counts are topology
   evidence only; only the direct-MIR world/zone/subject/action call chain is a
   production execution witness.
 - `docs/200_object_to_action_boundary_patterns.md` is the canonical authoring
@@ -32,9 +33,10 @@ owner, and the named executable gate.
   `object` / `tobject`; identity-bearing state belongs to `subject`; an
   `action` owns the public authority/state/effect transition; the current
   direct-MIR `zone` owns its authority/lifetime boundary; the compiler `world`
-  delegates once. The full audit now grades `struct` as substituting in the
-  supported computation slice; `class/object/tobject/vessel/intent` remain
-  surface; only one subject/action/zone/world slice is reachable. The next
+  delegates once. The full audit grades `struct` as a reachable supporting
+  construct, not an independently substituting feature; `class/object/vessel/intent`
+  remain surface; artifact receipt/failure `tobject` values and only one
+  subject/action/zone/world slice are reachable. The next
   source-to-MIR action must reuse/generalize the active execution boundary
   rather than mechanically add a zone per compiler stage. Root `intent`
   takeover follows only after a real multi-action graph is executable.
@@ -45,18 +47,50 @@ owner, and the named executable gate.
   runtime. Shell and PowerShell manifest gates cover read/write
   under-declaration; the runtime gate covers grant/deny and denied-write
   zero-artifact behavior.
-- This capability fix does not make raw handles a Pergyra-native artifact
-  transaction. `FileWrite`/`FileClose` are still `Void`, checked errors are not
-  exposed to Pergyra, final paths are truncated before success, self-host
-  generated C has a separate unchecked helper, and FileOpen mode is not yet a
-  MIR/AIR call-site fact. Therefore source-to-MIR `ArtifactCommitted` is
-  explicitly BLOCKED on checked same-directory temp write/flush/close, atomic
-  replace, cleanup, and typed `tobject ArtifactReceipt` evidence.
+- Compiler artifacts no longer use those raw handles. One shared runtime core
+  now owns same-directory exclusive temp creation, checked write/flush/close,
+  atomic replace, cleanup, and generation-tagged transaction handles for both
+  C-inline and LLVM-linked output. The Pergyra owner maps scalar status
+  immediately to `tobject SelfMirArtifactReceipt`/`SelfMirArtifactFailure`;
+  `ArtifactCommitted` requires the receipt. It claims atomic visibility only,
+  never crash durability. Production MIR JSON, direct-MIR action, bootstrap
+  outputs, and rung-1 CLI outputs have no raw-final writer fallback.
+- The source-to-MIR production path validates `SelfMirProgramFacts` once and
+  calls `SelfMirProgramJsonWriteArtifactVerified`; the writer no longer repeats
+  the whole graph validation that contributed to the multi-GiB symptom. The
+  raw compatibility writer retains exactly one validation at its boundary.
+- The codegen bootstrap's independent `0xC00000FD` failure was parser stack
+  depth, not another multi-GiB graph allocation. A manually duplicated 123-row
+  builtin-signature `&&` contract produced 123 nested precedence frames while
+  reading the 2.46 MiB `main_ast.txt`. The signature registry now verifies its
+  projection with one bounded owner loop, and the expression environment
+  consumes that verifier. `make self-host-codegen-bootstrap-seed-test-smoke`
+  is green through gen2 seed readiness with the normal 2 MiB PE stack reserve;
+  the observed gen0/gen1 private-memory range was about 490/560 MiB.
+- The next integrated-driver failure exposed a real self-host grammar gap:
+  top-level dispatch recognized `export` but not native `public`/`private`, and
+  nominal AST emission did not carry explicit visibility. It now maps
+  `public`/`export` to the same `[export]` fact and `private` to non-export via
+  `LanguageWordId`. Native/self-host AST is byte-equal for the committed
+  `top_level_visibility_decl` witness, and the production `public zone
+  DriverRung2DirectMirZone` parses through the self-host parser.
 - A second completeness blocker is action-contract carriage. The self-host
   nominal parser does not own the native subject-only action/struct-method
   negatives, drops action caps/effects after parsing, and current `pgy.mir.v1`
   declaration JSON omits the action contract. Native ABI parity does not prove
-  self-host source -> MIR action-contract preservation.
+  self-host source -> MIR action-contract preservation. The current one-MIR
+  integration now reaches this exact falsifier: after passing the typed world
+  local and exact one-member world constructor, gen2 reaches AST node 88972
+  (`DriverRung2Execution.EmitDirectMir`) and rejects `Within:` with `expected
+  Body:`. Clause skipping is forbidden; the next rung is typed
+  `ActionContract` carriage.
+- Match-case pattern identity no longer has a second physical graph. Typed
+  `MatchCase` AST atoms feed one bounded HIR fact; `AstTreeArtifact` payload v3
+  carries executable expression graphs only. The parser partition owner,
+  `match_pattern_graphs`, and ordinal join are deleted, and the component gate
+  rejects their return. Malformed/or-pattern/string/duplicate-binding patterns
+  fail closed. The owner row remains `BRIDGE` only because four codegen helpers
+  still structure a passed pattern string instead of receiving the typed fact.
 - Authority evidence is deliberately bounded. `MIRDeclMethod` owns declaration
   clauses and `MIRDeclZoneAuthority` owns zone topology. The current C/LLVM
   world hook supports only the exact direct `world -> zone -> subject` receiver
@@ -69,7 +103,10 @@ owner, and the named executable gate.
 - Nested construction is owner-preserving inline materialization with no
   surviving source alias. It is not a physical zero-copy/stable-address proof.
   Likewise one compiler world declaration/composition graph is not a runtime
-  singleton; each composition call materializes a value aggregate.
+  singleton; each composition call materializes a value aggregate. The world
+  has one executable `direct_mir` member, while the other 18 declared zone
+  types remain target topology. This removes the former 19-argument aggregate
+  zero-fill fallback and keeps construction exact-arity.
 - Hosted method scheduling is declaration-inventory owned. C emits nominal
   forwards/layouts, then domain value layouts, then nominal hosted bodies.
   LLVM registers nominal/domain layouts, then method signatures, then bodies.
@@ -101,15 +138,18 @@ owner, and the named executable gate.
 - Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
   pre-existing Option/Result match-destructuring direct unit cases. The graph
   cycle/provenance cases pass; the full `type_resolution_dag_smoke.sh` wrapper
-  inherits the same two failures. `self_host_pergyra_likeness_smoke.sh` also
-  remains RED on the pre-existing `core_string_munge=79 > 72` debt; its new
-  19-zone/19-member/14-intent topology counters are correct. Existing MIR
+  inherits the same two failures. The likeness ratchet's stale
+  `core_string_munge=72` and `sentinel=0` ceilings were audited against the
+  exact pre-change HEAD, which already measured 79 and 11. The gate records
+  those existing debts without adding a new String-to-String function or
+  sentinel, and requires 19 declared zone types but only one
+  production-reachable world member. Existing MIR
   inventory/link gates retain their separately documented pre-existing
-  failures; do not weaken any of these gates for this rung.
-- Next falsifying fixture: an artifact transaction must preserve a pre-existing
-  sentinel byte/hash under injected open/write/flush/close/publish failure,
-  leave no temp, and return no success receipt; C and LLVM must agree. Then a
-  single `ActionContract` fact must carry subject-only action identity,
+  failures; do not weaken any semantic gate for this rung.
+- The artifact falsifier is now green: a pre-existing sentinel is preserved
+  under injected open/write/flush/close/publish failure, no temp remains, no
+  success receipt is issued, and C-inline/LLVM-export status agrees. The next
+  falsifying fixture is a single `ActionContract` fact carrying subject-only action identity,
   requires/within/causes/authority/caps/effects through self-host source ->
   `pgy.mir.v1` -> both backends. Only after those blockers close may the
   source-to-MIR action delete `Main -> CompileSourceTo*` and claim a committed

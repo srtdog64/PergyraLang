@@ -159,6 +159,64 @@ emit_builtin_file_close(ASTNode *call, TranspilerCtx *ctx)
 }
 
 static char *
+emit_builtin_compiler_artifact(ASTNode *call, BuiltinKind kind,
+                               TranspilerCtx *ctx)
+{
+    const char *source_name = NULL;
+    const char *runtime_name = NULL;
+    size_t expected_args = 1;
+    char *arg0;
+    char *arg1 = NULL;
+    char *result;
+
+    switch (kind) {
+    case BUILTIN_COMPILER_ARTIFACT_ABORT:
+        source_name = "CompilerArtifactAbort";
+        runtime_name = "pgy_compiler_artifact_abort";
+        break;
+    case BUILTIN_COMPILER_ARTIFACT_BEGIN:
+        source_name = "CompilerArtifactBegin";
+        runtime_name = "pgy_compiler_artifact_begin";
+        break;
+    case BUILTIN_COMPILER_ARTIFACT_COMMIT:
+        source_name = "CompilerArtifactCommit";
+        runtime_name = "pgy_compiler_artifact_commit";
+        break;
+    case BUILTIN_COMPILER_ARTIFACT_WRITE:
+        source_name = "CompilerArtifactWrite";
+        runtime_name = "pgy_compiler_artifact_write";
+        expected_args = 2;
+        break;
+    default:
+        return io_builtin_unsupported(ctx,
+            "C backend: unsupported compiler artifact transaction operation");
+    }
+    if (ast_call_arg_count(call) != expected_args)
+        return io_builtin_unsupported(ctx,
+            "C backend: compiler artifact transaction arity mismatch");
+
+    arg0 = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        source_name, kind == BUILTIN_COMPILER_ARTIFACT_BEGIN ? "path" : "handle");
+    if (arg0 == NULL)
+        return NULL;
+    if (expected_args == 2) {
+        arg1 = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
+            source_name, "chunk");
+        if (arg1 == NULL) {
+            free(arg0);
+            return NULL;
+        }
+        result = io_builtin_heap_fmt(ctx, "%s(%s, %s)",
+            runtime_name, arg0, arg1);
+    } else {
+        result = io_builtin_heap_fmt(ctx, "%s(%s)", runtime_name, arg0);
+    }
+    free(arg1);
+    free(arg0);
+    return result;
+}
+
+static char *
 emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 1)
@@ -294,6 +352,11 @@ char *
 emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
 {
     switch (bk) {
+    case BUILTIN_COMPILER_ARTIFACT_ABORT:
+    case BUILTIN_COMPILER_ARTIFACT_BEGIN:
+    case BUILTIN_COMPILER_ARTIFACT_COMMIT:
+    case BUILTIN_COMPILER_ARTIFACT_WRITE:
+        return emit_builtin_compiler_artifact(call, bk, ctx);
     case BUILTIN_DIR_WALK:
         return emit_builtin_dir_walk(call, ctx);
     case BUILTIN_FILE_EXISTS:

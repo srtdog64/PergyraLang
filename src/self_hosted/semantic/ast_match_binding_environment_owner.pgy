@@ -32,6 +32,9 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         UnwrapOption(case_function) != function_node_id {
         return false;
     }
+    // This owner seeds bindings; payload-free pattern validity belongs to the
+    // match semantic owner and must not trigger a second subject-type proof.
+    if ArrayLength(pattern.bindings) == 0 { return true; }
     if pattern.variant == "None" {
         return ArrayLength(pattern.bindings) == 0;
     }

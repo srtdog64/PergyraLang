@@ -292,11 +292,10 @@ struct AstTreeArtifact {
     arena: AstArena;
     count: Int;
     expression_graphs: AstExpressionGraphRows;
-    match_pattern_graphs: AstExpressionGraphRows;
 }
 
 func AstTreeArtifactPayloadSchema() -> String {
-    return "pgy.selfhost.ast-tree-artifact.v2";
+    return "pgy.selfhost.ast-tree-artifact.v3";
 }
 
 func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
@@ -306,22 +305,20 @@ func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
     let count: Int = count_box[0];
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     return AstTreeArtifact(
-        tree_text, arena, count, AstExpressionGraphRowsEmpty(),
-        AstExpressionGraphRowsEmpty()
+        tree_text, arena, count, AstExpressionGraphRowsEmpty()
     );
 }
 
 func AstTreeArtifactReady(artifact: AstTreeArtifact) -> Bool {
     return TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
-        AstExpressionGraphRowsReady(artifact.expression_graphs) &&
-        AstExpressionGraphRowsReady(artifact.match_pattern_graphs);
+        AstExpressionGraphRowsReady(artifact.expression_graphs);
 }
 
 func AstTreeArtifactPayloadContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
     let root_kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, 0);
-    return AstTreeArtifactPayloadSchema() == "pgy.selfhost.ast-tree-artifact.v2" &&
+    return AstTreeArtifactPayloadSchema() == "pgy.selfhost.ast-tree-artifact.v3" &&
         AstTreeArtifactReady(artifact) && artifact.count == 1 &&
         IsSome(root_kind) && UnwrapOption(root_kind) == TypedAstTextKindOf("Program:");
 }

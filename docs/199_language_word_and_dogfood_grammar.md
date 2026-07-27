@@ -102,7 +102,7 @@ grep -oE "PGY_KEYWORD_(CLASS|AXIS|SUPPORT)_[A-Z_]+" src/lexer/language_keyword_r
 
 ## 2. 도그푸딩 문법 — Pergyra로 쓴 Pergyra
 
-`src/self_hosted/` 아래 **.pgy 1026개** (`_owner.pgy` 470, `main.pgy` 41).
+`src/self_hosted/` 아래 **.pgy 1028개** (`_owner.pgy` 472, `main.pgy` 45).
 
 ### 2.1 기본 문법 규율
 
@@ -181,20 +181,27 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 같다.
 
 - import closure 443개, missing import 0;
-- import-reachable 선언은 `func` 3,473개, `struct` 176개, `enum` 4개,
-  `object` 18개, `tobject` 1개, `subject` 17개, `action` 17개, `zone` 19개,
+- import-reachable 선언은 `func` 3,495개, `struct` 176개, `enum` 6개,
+  `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개, `zone` 19개,
   `world` 1개, `intent` 14개, `role` 4개, `ability` 4개;
 - `class`/`vessel`/`effect`/`relation`/`party`/`roster` 선언은 0개;
 - direct-MIR subject/action/zone과 world composition slice는 production mode에서
   `REACHABLE`이고 `Main`의 direct action/backend bypass는 삭제됐다;
+- top-level `public`/`private`은 self-host declaration dispatcher가
+  `LanguageWordId`로 소비한다. `public`과 `export`는 native AST의 동일한
+  `[export]` visibility fact로 투영되고, `private`은 명시적 non-export로
+  남는다. 이 fact를 단순히 스킵하면 `public zone`이 일반 statement로
+  오인되므로 visibility도 dogfood 문법의 의미 일부다;
 - `world.pgy`의 나머지 subject/action 16개는 `Compiler*Ready()` 결합만
   반환하고 production artifact 경로에서 호출되지 않는다;
-- intent 14개와 object/tobject projection schema도 import-reachable하지만
-  active call-site가 없으므로 `SURFACE`다.
+- intent 14개와 object projection schema는 import-reachable하지만 active
+  call-site가 없어 `SURFACE`다. tobject 중 artifact receipt/failure는 active
+  commit에서 `REACHABLE`이며 기존 `ParityVerdict`만 surface다.
 
 따라서 현재 bootstrap에는 subject/action/zone/world를 잇는 첫
-Pergyra-native orchestration slice가 생겼지만 root intent와 source-to-MIR
-artifact action은 아직 목표 골격이다. 이 direct-MIR slice는 `REACHABLE`이며
+Pergyra-native orchestration slice가 생겼고 direct-MIR artifact action은
+atomic-visibility receipt까지 실행된다. root intent와 source-to-MIR 전체 action
+takeover는 아직 목표 골격이다. 이 direct-MIR slice는 `REACHABLE`이며
 C-owned 구현을 대체하지 않았으므로 `SUBSTITUTING` 진척으로 세지 않는다.
 또한 self-host parser가 action contract의 caps/effects를 보존하지 않고
 `pgy.mir.v1`도 action 계약을 운반하지 않으므로 문법 fixture 통과를 full action

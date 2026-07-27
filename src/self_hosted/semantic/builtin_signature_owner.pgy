@@ -123,7 +123,11 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "SetHas^Bool^Unknown|Unknown",
         "SetSize^Int^Unknown",
         "ArrayPushOwnedString^Void^Array<String>|String",
-        "ArrayDropOwnedStrings^Void^Array<String>"
+        "ArrayDropOwnedStrings^Void^Array<String>",
+        "CompilerArtifactAbort^Int^Int",
+        "CompilerArtifactBegin^Int^String",
+        "CompilerArtifactCommit^Int^Int",
+        "CompilerArtifactWrite^Bool^Int|String"
     ];
     return rows;
 }
@@ -177,6 +181,35 @@ func SeedSemanticOwnedBuiltinSignatures(
     return SeedSemanticBuiltinSignaturesInto(
         names, returns, params, true
     );
+}
+
+// Verifies any consumer projection directly against the registry rows. A
+// caller may append owner-local functions after the builtin prefix, so only
+// the canonical prefix length is required here.
+func SemanticBuiltinSignatureProjectionPrefixReady(
+    names: Array<String>,
+    returns: Array<String>,
+    params: Array<String>
+) -> Bool {
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    if ArrayLength(names) < ArrayLength(rows) ||
+        ArrayLength(returns) < ArrayLength(rows) ||
+        ArrayLength(params) < ArrayLength(rows) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) != 3 { return false; }
+        let expected_params: String = parts[2];
+        if expected_params == "none" { expected_params = ""; }
+        if names[i] != parts[0] || returns[i] != parts[1] ||
+            params[i] != expected_params {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
 }
 
 func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
@@ -271,89 +304,43 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, Some("List<HashMap<String, Int>>")
         );
-    return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 120 && ArrayLength(returns) == 120 &&
-        ArrayLength(params) == 120 && names[0] == "StringLength" &&
-        returns[0] == "Int" && params[0] == "String" &&
-        names[47] == "Args" && params[47] == "" &&
-        names[51] == "StringJoin" &&
-        names[68] == "UnwrapErr" && params[68] == "Unknown" &&
-        names[70] == "AllocatorResult" && returns[70] == "Allocator" &&
-        names[75] == "TextBuilderDrop" && params[75] == "TextBuilder" &&
-        names[76] == "FileOpen" && returns[76] == "Int" &&
-        params[76] == "String|String" &&
-        names[79] == "FileClose" && params[79] == "Int" &&
-        names[80] == "ArraySort" && names[83] == "ArrayFilter" &&
-        names[84] == "ClaimDeviceSlot" &&
-        names[88] == "SubmitDeviceRead" &&
-        names[89] == "Clone" &&
-        names[90] == "ClaimSlot" && returns[90] == "Slot<Unknown>" &&
-        names[91] == "Read" && names[92] == "Write" &&
-        names[93] == "Release" &&
-        names[94] == "AllocatorSystem" && names[95] == "AllocatorTracing" &&
-        names[96] == "AllocatorDebug" && names[97] == "AllocatorScratch" &&
-        names[98] == "AllocatorPersistent" && names[99] == "AllocatorPool" &&
-        returns[99] == "Allocator" && names[100] == "BoxArray" &&
-        returns[100] == "Box<Unknown>" && params[100] == "Int|Allocator" &&
-        names[101] == "StringConcat" && returns[101] == "String" &&
-        params[101] == "String|String" && names[102] == "ListNew" &&
-        returns[102] == "List<Unknown>" && params[102] == "" &&
-        names[103] == "ListPush" && returns[103] == "Void" &&
-        params[103] == "Unknown|Unknown" && names[104] == "ListGet" &&
-        returns[104] == "Unknown" && params[104] == "Unknown|Int" &&
-        names[105] == "ListSet" && returns[105] == "Void" &&
-        params[105] == "Unknown|Int|Unknown" &&
-        names[106] == "ListRemove" && returns[106] == "Void" &&
-        params[106] == "Unknown|Int" && names[107] == "ListSize" &&
-        returns[107] == "Int" && params[107] == "Unknown" &&
-        names[108] == "QueueNew" && returns[108] == "Queue<Unknown>" &&
-        params[108] == "" && names[109] == "QueuePush" &&
-        returns[109] == "Void" && params[109] == "Unknown|Unknown" &&
-        names[110] == "QueuePop" && returns[110] == "Unknown" &&
-        params[110] == "Unknown" && names[111] == "QueueSize" &&
-        returns[111] == "Int" && params[111] == "Unknown" &&
-        names[112] == "QueueEmpty" && returns[112] == "Bool" &&
-        params[112] == "Unknown" &&
-        names[113] == "SetNew" && returns[113] == "Set<Unknown>" &&
-        params[113] == "" && names[114] == "SetAdd" &&
-        returns[114] == "Void" && params[114] == "Unknown|Unknown" &&
-        names[115] == "SetRemove" && returns[115] == "Void" &&
-        params[115] == "Unknown|Unknown" && names[116] == "SetHas" &&
-        returns[116] == "Bool" && params[116] == "Unknown|Unknown" &&
-        names[117] == "SetSize" && returns[117] == "Int" &&
-        params[117] == "Unknown" &&
-        names[118] == "ArrayPushOwnedString" && returns[118] == "Void" &&
-        params[118] == "Array<String>|String" &&
-        names[119] == "ArrayDropOwnedStrings" && returns[119] == "Void" &&
-        params[119] == "Array<String>" &&
-        IsSome(contextual_list) && UnwrapOption(contextual_list) ==
-            "List<HashMap<String, Int>>" &&
+    if !SeedSemanticBuiltinSignatures(names, returns, params) ||
+        !SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params) ||
+        ArrayLength(names) != 124 || ArrayLength(returns) != 124 ||
+        ArrayLength(params) != 124 {
+        return false;
+    }
+    if !IsSome(contextual_list) || UnwrapOption(contextual_list) !=
+        "List<HashMap<String, Int>>" {
+        return false;
+    }
+    let contextual_queue: Option<String> =
+        SemanticContextualBuiltinReturnTypeOpt(
+            "QueueNew", 0, Some("Queue<String>")
+        );
+    let contextual_set: Option<String> =
+        SemanticContextualBuiltinReturnTypeOpt(
+            "SetNew", 0, Some("Set<String>")
+        );
+    if !IsSome(contextual_queue) ||
+        UnwrapOption(contextual_queue) != "Queue<String>" ||
+        !IsSome(contextual_set) || UnwrapOption(contextual_set) != "Set<String>" {
+        return false;
+    }
+    if IsSome(SemanticContextualBuiltinReturnTypeOpt("ListNew", 0, None)) ||
         IsSome(SemanticContextualBuiltinReturnTypeOpt(
-            "QueueNew", 0, Some("Queue<String>")
-        )) && UnwrapOption(SemanticContextualBuiltinReturnTypeOpt(
-            "QueueNew", 0, Some("Queue<String>")
-        )) == "Queue<String>" &&
-        !IsSome(SemanticContextualBuiltinReturnTypeOpt(
-            "ListNew", 0, None
-        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 1, Some("List<Int>")
-        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, Some("HashMap<String, Int>")
-        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, Some("List<Unknown>")
-        )) && !IsSome(SemanticContextualBuiltinReturnTypeOpt(
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "QueueNew", 0, Some("List<Int>")
-        )) && IsSome(SemanticContextualBuiltinReturnTypeOpt(
-            "SetNew", 0, Some("Set<String>")
-        )) && UnwrapOption(SemanticContextualBuiltinReturnTypeOpt(
-            "SetNew", 0, Some("Set<String>")
-        )) == "Set<String>" && !IsSome(
-            SemanticContextualBuiltinReturnTypeOpt(
-                "SetNew", 0, Some("List<Int>")
-            )
-        ) &&
-        IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
-        !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
-            "Min", mixed_pair
-        ));
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "SetNew", 0, Some("List<Int>")
+        )) {
+        return false;
+    }
+    return IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
+        !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt("Min", mixed_pair));
 }

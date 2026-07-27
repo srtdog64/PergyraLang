@@ -85,8 +85,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let artifact: AstTreeArtifact = AstTreeArtifact(
-        tree_text, arena, count, AstExpressionGraphRowsEmpty(),
-        AstExpressionGraphRowsEmpty()
+        tree_text, arena, count, AstExpressionGraphRowsEmpty()
     );
     let semantic_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeCompactBridge(
@@ -415,14 +414,15 @@ func GenerateCUnitFromSemanticFacts(
     let uses_dirwalk: Bool = usage.uses_dirwalk;
     let uses_log: Bool = usage.uses_log;
     let uses_fhandle: Bool = usage.uses_fhandle;
+    let uses_artifact_transaction: Bool = usage.uses_artifact_transaction;
     let uses_print: Bool = usage.uses_print;
     let uses_float: Bool = usage.uses_float;
     let uses_random_value: Bool = usage.uses_random_value;
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
-    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set);
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
+    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction);
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_artifact_transaction || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "#include <stdio.h>\n");
@@ -436,7 +436,7 @@ func GenerateCUnitFromSemanticFacts(
     if uses_str || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
-    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set)); }
+    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction)); }
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
@@ -445,12 +445,12 @@ func GenerateCUnitFromSemanticFacts(
         TextBuilderAppend(output, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     TextBuilderAppend(output, "\n");
-    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
+    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
     if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(
-            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set),
-            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set)
+            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction),
+            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)
         ));
     }
     if uses_print {
@@ -518,7 +518,8 @@ func GenerateCUnitFromSemanticFacts(
     if uses_str {
         TextBuilderAppend(output, StringRuntimeCStringCoreBlock(
             RuntimeCHeaderOwnsBoolToString(
-                usage.uses_box_array, uses_list, uses_queue, uses_set
+                usage.uses_box_array, uses_list, uses_queue, uses_set,
+                uses_artifact_transaction
             )
         ));
     }

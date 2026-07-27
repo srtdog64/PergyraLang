@@ -183,6 +183,10 @@ static const LLVMStdlibRuntimeCallSpec *
 llvm_stdlib_runtime_io_call_lookup(const char *callee_name)
 {
     static const LLVMStdlibRuntimeCallSpec kLLVMStdlibRuntimeIoSpecs[] = {
+        { "CompilerArtifactAbort", "compiler artifact", "pgy_compiler_artifact_abort", 1 },
+        { "CompilerArtifactBegin", "compiler artifact", "pgy_compiler_artifact_begin", 1 },
+        { "CompilerArtifactCommit", "compiler artifact", "pgy_compiler_artifact_commit", 1 },
+        { "CompilerArtifactWrite", "compiler artifact", "pgy_compiler_artifact_write", 2 },
         { "FileClose", "stdlib file", "pgy_file_close", 1 },
         { "FileOpen", "stdlib file", "pgy_file_open", 2 },
         { "FileRead", "stdlib file", "pgy_file_read", 1 },

@@ -37,6 +37,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_dirwalk: Bool;
     let uses_log: Bool;
     let uses_fhandle: Bool;
+    let uses_artifact_transaction: Bool;
     let uses_print: Bool;
     let uses_float: Bool;
     let uses_random_value: Bool;
@@ -110,6 +111,9 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_log: Bool = kind_usage.has_log_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupLog());
     let uses_fhandle: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFileHandle());
+    let uses_artifact_transaction: Bool = CodegenExpressionUsageGroupPresent(
+        expr_usage, CodegenUsageBuiltinGroupArtifactTransaction()
+    );
     let uses_print: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupPrint());
     let uses_float: Bool = type_usage.has_float
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFloat());
@@ -152,6 +156,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_dirwalk,
         uses_log,
         uses_fhandle,
+        uses_artifact_transaction,
         uses_print,
         uses_float,
         uses_random_value,

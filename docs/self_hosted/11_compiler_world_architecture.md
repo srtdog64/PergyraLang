@@ -36,8 +36,10 @@ subject/action/zone slice; root-intent takeover follows only after that
 multi-action graph earns the same replacement evidence.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
-- `PgyCompilerWorld` contains exactly 19 concrete resource-zone members
-  directly, including the production-reachable `direct_mir` member.
+- The import closure declares exactly 19 concrete resource-zone types, while
+  `PgyCompilerWorld` contains only the production-reachable `direct_mir`
+  member. A declared target zone becomes a world member only in the rung that
+  deletes its old production bypass.
 - `DriverRung2DirectMirZone` owns only the execution subject's authority and
   lifetime boundary. Target selection, MIR, backend projection, artifact
   validation, and output writing remain with their existing owners and the
@@ -83,10 +85,10 @@ multi-action graph earns the same replacement evidence.
 
 This is not a claim that the released compiler is self-hosted or that the
 current bootstrap executes the whole root intent. The bootstrap executes the
-one `direct_mir` world member and its real action; the remaining world members
-are still declared topology. New hard-substitution work must extend that one
-graph and remove the corresponding direct bypass rather than grow a second
-C-style tree.
+one `direct_mir` world member and its real action; the remaining zone types and
+intents are target topology, not dormant members filled with zero values. New
+hard-substitution work must extend that one graph and remove the corresponding
+direct bypass rather than grow a second C-style tree.
 
 ## Recursive Topology Rule
 
@@ -108,9 +110,11 @@ does not increase Pergyra-likeness.
 The language-wide carriage decision remains positional by default. Compiler
 zones therefore stay explicit parameters at the orchestration boundary;
 packing them into a value-typed stage bundle would hide the boundary and reopen
-the value-carriage decision. Only a separately approved zone-bound handle may
-make that transition. The balance target is one owner and one visible path,
-not the literal golden ratio and not a shorter signature at any semantic cost.
+the value-carriage decision. Positional construction is exact-arity: it may
+not treat omitted world members or aggregate zero-fill as authority facts.
+Only a separately approved zone-bound handle may make that transition. The
+balance target is one owner and one visible path, not the literal golden ratio
+and not a shorter signature at any semantic cost.
 
 ## Target Resource Facade
 
@@ -276,7 +280,7 @@ drifts from `path_manifest_owner.pgy`. The same smoke is called by
 `make self-host-preparation-test-smoke`.
 
 For the owner-edit loop, `tests/self_host_compiler_topology_smoke.sh` checks the
-root world, exactly 19 concrete resource zones and 19 world members, the one
+root world, exactly 19 concrete resource zones and one executable world member, the one
 `direct_mir: DriverRung2DirectMirZone` binding, four derived stage clusters,
 aggregate-zone prohibition, and the absence of a second compiler world in one
 small pass. It also pins the production Main -> composition -> world -> zone

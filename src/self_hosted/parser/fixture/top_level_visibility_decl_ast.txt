@@ -1,0 +1,30 @@
+Program:
+  Class: InternalCounter
+    Fields:
+      value: Int
+    Methods:
+      Function: Next
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: (value + 1)
+  [export] Subject: VisibleRunner
+    Fields:
+      counter: InternalCounter
+    Methods:
+      Function: Run
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: counter.Next()
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: runner = VisibleRunner(InternalCounter(4))
+        Log(runner.Run())

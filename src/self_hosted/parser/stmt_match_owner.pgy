@@ -60,14 +60,6 @@ func ParseMatchStmt(
             );
             if !case_pattern.ok { Exit(1); }
             case_label = case_pattern.text;
-            ArraySet(
-                expression_graphs, 0,
-                ParserExpressionGraphsAppend(
-                    expression_graphs[0],
-                    TypedAstKindMatchCaseStmtTag(),
-                    AstExpressionLaneAtom(), case_pattern
-                )
-            );
             i = cursor_out[0];
             i = Expect(content, i, ":");
             if i < 0 {

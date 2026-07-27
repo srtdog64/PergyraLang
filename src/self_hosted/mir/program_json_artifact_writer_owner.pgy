@@ -4,6 +4,7 @@
 // boundary.
 
 import "instruction_json_artifact_writer_owner.pgy";
+import "artifact_transaction_owner.pgy";
 
 func SelfMirJsonBlockWriteFile(
     facts: SelfMirProgramFacts,
@@ -11,18 +12,18 @@ func SelfMirJsonBlockWriteFile(
     output: Int
 ) -> Bool {
     let blocks: SelfMirBlockRows = facts.cfg.blocks;
-    FileWrite(output, "{");
-    FileWrite(output, JsonEmitFieldNumber(
+    CompilerArtifactWrite(output, "{");
+    CompilerArtifactWrite(output, JsonEmitFieldNumber(
         "id", ToString(blocks.ids[block_index])
     ));
-    FileWrite(output, ",");
-    FileWrite(output, JsonEmitFieldBool(
+    CompilerArtifactWrite(output, ",");
+    CompilerArtifactWrite(output, JsonEmitFieldBool(
         "reachable", blocks.reachable[block_index] == 1
     ));
-    FileWrite(output, ",\"instructions\":[");
+    CompilerArtifactWrite(output, ",\"instructions\":[");
     let instruction_i: Int = 0;
     while instruction_i < blocks.instruction_counts[block_index] {
-        if instruction_i > 0 { FileWrite(output, ","); }
+        if instruction_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonInstructionWriteFile(
             facts,
             blocks.instruction_starts[block_index] + instruction_i,
@@ -30,20 +31,20 @@ func SelfMirJsonBlockWriteFile(
         ) { return false; }
         instruction_i = instruction_i + 1;
     }
-    FileWrite(output, "]");
+    CompilerArtifactWrite(output, "]");
     if blocks.has_succ_true[block_index] == 1 {
-        FileWrite(output, ",");
-        FileWrite(output, JsonEmitFieldNumber(
+        CompilerArtifactWrite(output, ",");
+        CompilerArtifactWrite(output, JsonEmitFieldNumber(
             "succ_true", ToString(blocks.succ_true[block_index])
         ));
     }
     if blocks.has_succ_false[block_index] == 1 {
-        FileWrite(output, ",");
-        FileWrite(output, JsonEmitFieldNumber(
+        CompilerArtifactWrite(output, ",");
+        CompilerArtifactWrite(output, JsonEmitFieldNumber(
             "succ_false", ToString(blocks.succ_false[block_index])
         ));
     }
-    FileWrite(output, "}");
+    CompilerArtifactWrite(output, "}");
     return true;
 }
 
@@ -53,37 +54,37 @@ func SelfMirJsonRoutineWriteFile(
     output: Int
 ) -> Bool {
     let rows: SelfMirRoutineRows = facts.routines;
-    FileWrite(output, "{");
-    FileWrite(output, JsonEmitFieldString("name", rows.names[routine_index]));
-    FileWrite(output, ",");
-    FileWrite(output, JsonEmitFieldString("kind", rows.kinds[routine_index]));
-    FileWrite(output, ",");
-    FileWrite(output, JsonEmitFieldNumber(
+    CompilerArtifactWrite(output, "{");
+    CompilerArtifactWrite(output, JsonEmitFieldString("name", rows.names[routine_index]));
+    CompilerArtifactWrite(output, ",");
+    CompilerArtifactWrite(output, JsonEmitFieldString("kind", rows.kinds[routine_index]));
+    CompilerArtifactWrite(output, ",");
+    CompilerArtifactWrite(output, JsonEmitFieldNumber(
         "source_syntax_id", ToString(rows.node_ids[routine_index])
     ));
     if rows.owners[routine_index] != "" {
-        FileWrite(output, ",");
-        FileWrite(output, JsonEmitFieldString(
+        CompilerArtifactWrite(output, ",");
+        CompilerArtifactWrite(output, JsonEmitFieldString(
             "owner", rows.owners[routine_index]
         ));
     }
 
-    FileWrite(output, ",\"generics\":[");
+    CompilerArtifactWrite(output, ",\"generics\":[");
     let generic_i: Int = 0;
     while generic_i < rows.generic_counts[routine_index] {
-        if generic_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, JsonStringLiteral(rows.generic_names[
+        if generic_i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, JsonStringLiteral(rows.generic_names[
             rows.generic_starts[routine_index] + generic_i
         ]));
         generic_i = generic_i + 1;
     }
 
-    FileWrite(output, "],\"params\":[");
+    CompilerArtifactWrite(output, "],\"params\":[");
     let param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
-        if param_i > 0 { FileWrite(output, ","); }
+        if param_i > 0 { CompilerArtifactWrite(output, ","); }
         let param_row: Int = rows.param_starts[routine_index] + param_i;
-        FileWrite(output, JsonEmitObject([
+        CompilerArtifactWrite(output, JsonEmitObject([
             JsonEmitFieldString("name", rows.param_names[param_row]),
             JsonEmitFieldRaw("type", SelfMirJsonOptionalString(
                 SelfMirOptionalString(rows.param_types[param_row])
@@ -104,28 +105,28 @@ func SelfMirJsonRoutineWriteFile(
         ]));
         param_i = param_i + 1;
     }
-    FileWrite(output, "],");
-    FileWrite(output, JsonEmitFieldString(
+    CompilerArtifactWrite(output, "],");
+    CompilerArtifactWrite(output, JsonEmitFieldString(
         "return", rows.return_types[routine_index]
     ));
-    FileWrite(output, ",\"resource_flow_symbol_count\":0");
-    FileWrite(output, ",\"resource_flow_symbols\":[]");
+    CompilerArtifactWrite(output, ",\"resource_flow_symbol_count\":0");
+    CompilerArtifactWrite(output, ",\"resource_flow_symbols\":[]");
 
     let loop_rows: SelfMirLoopFlowRows = rows.loop_flows;
     let summary_count: Int = loop_rows.routine_counts[routine_index];
-    FileWrite(output, ",\"loop_flow_summary_count\":");
-    FileWrite(output, ToString(summary_count));
-    FileWrite(output, ",\"loop_flow_summaries\":[");
+    CompilerArtifactWrite(output, ",\"loop_flow_summary_count\":");
+    CompilerArtifactWrite(output, ToString(summary_count));
+    CompilerArtifactWrite(output, ",\"loop_flow_summaries\":[");
     let summary_i: Int = 0;
     while summary_i < summary_count {
-        if summary_i > 0 { FileWrite(output, ","); }
+        if summary_i > 0 { CompilerArtifactWrite(output, ","); }
         let summary_row: Int =
             loop_rows.routine_starts[routine_index] + summary_i;
         let summary_kind: String = "while";
         if loop_rows.summaries.kinds[summary_row] == 1 {
             summary_kind = "for";
         }
-        FileWrite(output, JsonEmitObject([
+        CompilerArtifactWrite(output, JsonEmitObject([
             JsonEmitFieldNumber("loop_syntax_id", ToString(
                 loop_rows.summaries.loop_node_ids[summary_row]
             )),
@@ -156,13 +157,13 @@ func SelfMirJsonRoutineWriteFile(
     }
 
     let state_count: Int = ArrayLength(loop_rows.states.stable_indices);
-    FileWrite(output, "],\"loop_flow_state_count\":");
-    FileWrite(output, ToString(state_count));
-    FileWrite(output, ",\"loop_flow_states\":[");
+    CompilerArtifactWrite(output, "],\"loop_flow_state_count\":");
+    CompilerArtifactWrite(output, ToString(state_count));
+    CompilerArtifactWrite(output, ",\"loop_flow_states\":[");
     let state_i: Int = 0;
     while state_i < state_count {
-        if state_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, JsonEmitObject([
+        if state_i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, JsonEmitObject([
             JsonEmitFieldNumber("stable_index", ToString(
                 loop_rows.states.stable_indices[state_i]
             )),
@@ -189,15 +190,15 @@ func SelfMirJsonRoutineWriteFile(
     }
 
     let iteration_count: Int = rows.iteration_counts[routine_index];
-    FileWrite(output, "],\"iteration_type_fact_count\":");
-    FileWrite(output, ToString(iteration_count));
-    FileWrite(output, ",\"iteration_type_facts\":[");
+    CompilerArtifactWrite(output, "],\"iteration_type_fact_count\":");
+    CompilerArtifactWrite(output, ToString(iteration_count));
+    CompilerArtifactWrite(output, ",\"iteration_type_facts\":[");
     let iteration_i: Int = 0;
     while iteration_i < iteration_count {
-        if iteration_i > 0 { FileWrite(output, ","); }
+        if iteration_i > 0 { CompilerArtifactWrite(output, ","); }
         let iteration_row: Int =
             rows.iteration_starts[routine_index] + iteration_i;
-        FileWrite(output, JsonEmitObject([
+        CompilerArtifactWrite(output, JsonEmitObject([
             JsonEmitFieldNumber(
                 "function_syntax_id", ToString(rows.node_ids[routine_index])
             ),
@@ -216,88 +217,121 @@ func SelfMirJsonRoutineWriteFile(
         iteration_i = iteration_i + 1;
     }
 
-    FileWrite(output, "],\"destructure_type_fact_count\":");
-    FileWrite(output, ToString(
+    CompilerArtifactWrite(output, "],\"destructure_type_fact_count\":");
+    CompilerArtifactWrite(output, ToString(
         rows.destructure_type_facts.routine_counts[routine_index]
     ));
-    FileWrite(output, ",\"destructure_type_facts\":");
-    FileWrite(output, SelfMirJsonDestructureTypeFacts(rows, routine_index));
-    FileWrite(output, ",\"blocks\":[");
+    CompilerArtifactWrite(output, ",\"destructure_type_facts\":");
+    CompilerArtifactWrite(output, SelfMirJsonDestructureTypeFacts(rows, routine_index));
+    CompilerArtifactWrite(output, ",\"blocks\":[");
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
-        if block_i > 0 { FileWrite(output, ","); }
+        if block_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonBlockWriteFile(
             facts, rows.block_starts[routine_index] + block_i, output
         ) { return false; }
         block_i = block_i + 1;
     }
 
-    FileWrite(output, "],\"source_locals\":[");
+    CompilerArtifactWrite(output, "],\"source_locals\":[");
     let local_i: Int = 0;
     while local_i < rows.local_counts[routine_index] {
-        if local_i > 0 { FileWrite(output, ","); }
+        if local_i > 0 { CompilerArtifactWrite(output, ","); }
         let local_row: Int = rows.local_starts[routine_index] + local_i;
-        FileWrite(output, JsonEmitObject([
+        CompilerArtifactWrite(output, JsonEmitObject([
             JsonEmitFieldString("name", rows.local_names[local_row]),
             JsonEmitFieldString("type", rows.local_types[local_row])
         ]));
         local_i = local_i + 1;
     }
-    FileWrite(output, "]}");
+    CompilerArtifactWrite(output, "]}");
     return true;
+}
+
+func SelfMirProgramJsonWriteArtifactVerified(
+    facts: SelfMirProgramFacts,
+    output_path: String
+) -> SelfMirArtifactCommitOutcome {
+    let output: Int = SelfMirArtifactBegin(output_path);
+    if output < 0 {
+        return SelfMirArtifactRejectedOutcome(
+            output_path,
+            ArtifactBeginTemp,
+            SelfMirArtifactCommitInvalidHandleStatus(),
+            true
+        );
+    }
+
+    CompilerArtifactWrite(output, "{\"schema\":\"pgy.mir.v1\",\"decls\":[");
+    let declaration_i: Int = 0;
+    while declaration_i < ArrayLength(facts.declarations.names) {
+        if declaration_i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(
+            output, SelfMirJsonDeclaration(facts, declaration_i)
+        );
+        declaration_i = declaration_i + 1;
+    }
+
+    CompilerArtifactWrite(output, "],\"generic_method_specializations\":[");
+    let specialization_i: Int = 0;
+    while specialization_i <
+        SelfMirGenericSpecializationCount(facts.generic_specializations) {
+        if specialization_i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, SelfMirJsonGenericSpecialization(
+            facts.generic_specializations, specialization_i
+        ));
+        specialization_i = specialization_i + 1;
+    }
+
+    CompilerArtifactWrite(output, "],\"parallel_capture_boundaries\":[");
+    let parallel_i: Int = 0;
+    while parallel_i <
+        ArrayLength(facts.parallel_captures.source_stable_ids) {
+        if parallel_i > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, SelfMirJsonParallelCaptureBoundary(
+            facts.parallel_captures, parallel_i
+        ));
+        parallel_i = parallel_i + 1;
+    }
+
+    CompilerArtifactWrite(output, "],\"routines\":[");
+    let routine_i: Int = 0;
+    while routine_i < ArrayLength(facts.routines.names) {
+        if routine_i > 0 { CompilerArtifactWrite(output, ","); }
+        if !SelfMirJsonRoutineWriteFile(facts, routine_i, output) {
+            return SelfMirArtifactAbort(
+                output,
+                output_path,
+                ArtifactWriteChunks,
+                SelfMirArtifactCommitWriteFailedStatus()
+            );
+        }
+        routine_i = routine_i + 1;
+    }
+    CompilerArtifactWrite(output, "]}");
+    return SelfMirArtifactCommit(output, output_path);
+}
+
+func SelfMirProgramJsonWriteArtifact(
+    facts: SelfMirProgramFacts,
+    output_path: String
+) -> SelfMirArtifactCommitOutcome {
+    if !SelfMirProgramFactsReady(facts) {
+        return SelfMirArtifactRejectedOutcome(
+            output_path,
+            ArtifactBeginTemp,
+            SelfMirArtifactCommitInvalidHandleStatus(),
+            true
+        );
+    }
+    return SelfMirProgramJsonWriteArtifactVerified(facts, output_path);
 }
 
 func SelfMirProgramJsonWriteFile(
     facts: SelfMirProgramFacts,
     output_path: String
 ) -> Bool {
-    if !SelfMirProgramFactsReady(facts) { return false; }
-    let output: Int = FileOpen(output_path, "w");
-    if output < 0 { return false; }
-
-    FileWrite(output, "{\"schema\":\"pgy.mir.v1\",\"decls\":[");
-    let declaration_i: Int = 0;
-    while declaration_i < ArrayLength(facts.declarations.names) {
-        if declaration_i > 0 { FileWrite(output, ","); }
-        FileWrite(
-            output, SelfMirJsonDeclaration(facts, declaration_i)
-        );
-        declaration_i = declaration_i + 1;
-    }
-
-    FileWrite(output, "],\"generic_method_specializations\":[");
-    let specialization_i: Int = 0;
-    while specialization_i <
-        SelfMirGenericSpecializationCount(facts.generic_specializations) {
-        if specialization_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, SelfMirJsonGenericSpecialization(
-            facts.generic_specializations, specialization_i
-        ));
-        specialization_i = specialization_i + 1;
-    }
-
-    FileWrite(output, "],\"parallel_capture_boundaries\":[");
-    let parallel_i: Int = 0;
-    while parallel_i <
-        ArrayLength(facts.parallel_captures.source_stable_ids) {
-        if parallel_i > 0 { FileWrite(output, ","); }
-        FileWrite(output, SelfMirJsonParallelCaptureBoundary(
-            facts.parallel_captures, parallel_i
-        ));
-        parallel_i = parallel_i + 1;
-    }
-
-    FileWrite(output, "],\"routines\":[");
-    let routine_i: Int = 0;
-    while routine_i < ArrayLength(facts.routines.names) {
-        if routine_i > 0 { FileWrite(output, ","); }
-        if !SelfMirJsonRoutineWriteFile(facts, routine_i, output) {
-            FileClose(output);
-            return false;
-        }
-        routine_i = routine_i + 1;
-    }
-    FileWrite(output, "]}");
-    FileClose(output);
-    return true;
+    return SelfMirArtifactCommitOutcomeReady(
+        SelfMirProgramJsonWriteArtifact(facts, output_path)
+    );
 }

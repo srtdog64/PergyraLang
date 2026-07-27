@@ -95,12 +95,6 @@ func ParseAbilityDecl(
         sig_blocks = AppendLine(sig_blocks, sig);
     }
     let ability_out: String = Concat("  [export] Ability: ", Concat(decl_prefix, ab_name));
-    if generic_parameters != "" {
-        ability_out = AppendLine(
-            ability_out,
-            Concat("    Generic params: ", generic_parameters)
-        );
-    }
     if constraint_clause != "" {
         ability_out = AppendLine(
             ability_out,

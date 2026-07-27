@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 # Owns the reachable direct-MIR action boundary and its no-bypass ratchet.
-
 pgy_selfhost_assert_driver_rung2_execution_action() {
-    local root="$1"
-    local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy"
-    local execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
-    local world_owner="$root/src/self_hosted/compiler/world.pgy"
-    local composition_owner="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-    local term
-
+    local root="$1" term
+    local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy" execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+    local world_owner="$root/src/self_hosted/compiler/world.pgy" composition_owner="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
     for term in "$main_owner" "$execution_owner" "$world_owner" "$composition_owner"; do
         [[ -f "$term" ]] || {
             echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2
@@ -43,10 +38,9 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
         echo "[driver-rung2-execution-action] Main retained direct-MIR WriteFile" >&2
         return 1
     fi
-
     for term in 'enum DriverRung2DirectMirRequest' \
         'enum DriverRung2ExecutionStage' 'Requested,' 'TargetAdmitted,' \
-        'ArtifactWritten,' 'Rejected,' 'struct DriverRung2ExecutionResult' \
+        'ArtifactCommitted,' 'Rejected,' 'struct DriverRung2ExecutionResult' \
         'subject DriverRung2Execution' 'action EmitDirectMir(' \
         'within DriverRung2DirectMirZone' 'authorized by self' \
         'public zone DriverRung2DirectMirZone' \
@@ -55,7 +49,9 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
         'CompilerTargetProjectionFactFromOwner(projection_name)' \
         'CompilerTargetProjectionFactReadyFor(' \
         'CompilerEmissionArtifactReady(artifact)' \
-        'WriteFile(output_path, artifact.payload);'; do
+        'import "../mir/artifact_transaction_owner.pgy";' \
+        'SelfMirArtifactCommitPayload(output_path, artifact.payload)' \
+        'SelfMirArtifactCommitOutcomeReady(committed)'; do
         grep -Fq -- "$term" "$execution_owner" || {
             echo "[driver-rung2-execution-action] missing transition: $term" >&2
             return 1
@@ -69,10 +65,18 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
         echo "[driver-rung2-execution-action] exactly one action is required" >&2
         return 1
     }
-    [[ "$(grep -F -c -- 'WriteFile(' "$execution_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] exactly one action-owned write is required" >&2
+    [[ "$(grep -F -c -- 'SelfMirArtifactCommitPayload(output_path, artifact.payload)' "$execution_owner")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] exactly one action-owned commit is required" >&2
         return 1
     }
+    if grep -Eq -- '(SelfMirArtifactBegin|CompilerArtifactWrite|SelfMirArtifactCommit|SelfMirArtifactAbort)\(' "$execution_owner"; then
+        echo "[driver-rung2-execution-action] transaction mechanism escaped into action" >&2
+        return 1
+    fi
+    if grep -Eq -- '(^|[^[:alnum:]_])(WriteFile|FileOpen|FileWrite|FileClose)\(' "$execution_owner"; then
+        echo "[driver-rung2-execution-action] raw file writer bypass returned" >&2
+        return 1
+    fi
     [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+' "$execution_owner")" -eq 1 ]] || {
         echo "[driver-rung2-execution-action] execution owner must declare exactly one zone" >&2
         return 1
@@ -92,8 +96,5 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
             return 1
         fi
     done
-
-    # Exact world cardinality, field order, one-hop delegation and composition
-    # uniqueness are owned by self_host_compiler_topology_smoke.sh. Keep this
-    # gate focused on the action-owned transition and Main's no-bypass edge.
+    # World cardinality and composition are owned by the topology gate.
 }

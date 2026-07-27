@@ -38,10 +38,12 @@ require_text "$DOC" '현재 semantic은 passive `func`를 허용하지만 새 �
 require_text "$DOC" '`func == pure`, `action == impure`로 나누지'
 require_text "$DOC" '`causes DamageEffect` 같은 domain effect'
 require_text "$DOC" '`MakeSubject().Action()` 같은 temporary subject receiver'
-require_text "$DOC" '`REACHABLE`이지만 아직 C-owned compiler'
+require_text "$DOC" 'C-owned compiler path를 대체한 `SUBSTITUTING`은 아니다'
 require_text "$DOC" 'Artifact action의 commit 조건'
 require_text "$DOC" 'Begin(final path)'
-require_text "$DOC" '`ArtifactCommitted` stage는 현재 BLOCKED'
+require_text "$DOC" '`Requested -> TargetAdmitted -> ArtifactCommitted`'
+require_text "$DOC" '`tobject SelfMirArtifactReceipt`'
+require_text "$DOC" '`crash_durable`은 항상 `false`'
 require_text "$DOC" '`pgy.mir.v1` declaration JSON은'
 
 # The parser owns six distinct nominal identities; aliases may not collapse them.

@@ -56,6 +56,10 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "Random" { return Some(MathRuntimeCRandomFn()); }
     if source_name == "FileExists" { return Some(HostIORuntimeCFileExistsFn()); }
     if source_name == "WriteFile" { return Some(HostIORuntimeCWriteFileFn()); }
+    if source_name == "CompilerArtifactAbort" { return Some(HostIORuntimeCCompilerArtifactAbortFn()); }
+    if source_name == "CompilerArtifactBegin" { return Some(HostIORuntimeCCompilerArtifactBeginFn()); }
+    if source_name == "CompilerArtifactCommit" { return Some(HostIORuntimeCCompilerArtifactCommitFn()); }
+    if source_name == "CompilerArtifactWrite" { return Some(HostIORuntimeCCompilerArtifactWriteFn()); }
     if source_name == "FileOpen" { return Some(HostIORuntimeCFileOpenFn()); }
     if source_name == "FileWrite" { return Some(HostIORuntimeCFileWriteFn()); }
     if source_name == "FileClose" { return Some(HostIORuntimeCFileCloseFn()); }

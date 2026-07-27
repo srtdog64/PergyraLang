@@ -105,6 +105,10 @@ emit_call_builtin_dispatch(ASTNode *call,
     case BUILTIN_TEXT_BUILDER_FINISH:
     case BUILTIN_TEXT_BUILDER_DROP:
         return emit_builtin_text_builder(call, bk, ctx);
+    case BUILTIN_COMPILER_ARTIFACT_ABORT:
+    case BUILTIN_COMPILER_ARTIFACT_BEGIN:
+    case BUILTIN_COMPILER_ARTIFACT_COMMIT:
+    case BUILTIN_COMPILER_ARTIFACT_WRITE:
     case BUILTIN_DIR_WALK:
     case BUILTIN_FILE_EXISTS:
     case BUILTIN_FILE_OPEN:

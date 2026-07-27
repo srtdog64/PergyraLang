@@ -1,0 +1,166 @@
+// Pergyra-native compiler artifact transaction boundary.
+//
+// The runtime ABI is intentionally internal and scalar for bootstrap.  This
+// owner is the sole language-level mapper from that ABI to a typed receipt or
+// failure.  Raw file handles and temp paths never escape this boundary.
+
+enum SelfMirArtifactCommitStage {
+    ArtifactBeginTemp,
+    ArtifactWriteChunks,
+    ArtifactFlushTemp,
+    ArtifactCloseTemp,
+    ArtifactPublishFinal,
+    ArtifactCleanupTemp,
+}
+
+tobject SelfMirArtifactReceipt {
+    schema: String;
+    final_path: String;
+    atomic_visibility: Bool;
+    crash_durable: Bool;
+}
+
+tobject SelfMirArtifactFailure {
+    schema: String;
+    final_path: String;
+    stage: SelfMirArtifactCommitStage;
+    status: Int;
+    prior_final_preserved: Bool;
+    temp_removed: Bool;
+}
+
+enum SelfMirArtifactCommitOutcome {
+    SelfMirArtifactCommitted(SelfMirArtifactReceipt),
+    SelfMirArtifactRejected(SelfMirArtifactFailure),
+}
+
+func SelfMirArtifactTransactionSchema() -> String {
+    return "pgy.compiler-artifact-transaction.v1";
+}
+
+func SelfMirArtifactCommitOkStatus() -> Int { return 0; }
+func SelfMirArtifactCommitInvalidHandleStatus() -> Int { return 1; }
+func SelfMirArtifactCommitWriteFailedStatus() -> Int { return 2; }
+func SelfMirArtifactCommitFlushFailedStatus() -> Int { return 3; }
+func SelfMirArtifactCommitCloseFailedStatus() -> Int { return 4; }
+func SelfMirArtifactCommitPublishFailedStatus() -> Int { return 5; }
+func SelfMirArtifactCommitCleanupFailedStatus() -> Int { return 6; }
+
+func SelfMirArtifactCommitStageForStatus(
+    status: Int
+) -> SelfMirArtifactCommitStage {
+    if status == SelfMirArtifactCommitFlushFailedStatus() {
+        return ArtifactFlushTemp;
+    }
+    if status == SelfMirArtifactCommitCloseFailedStatus() {
+        return ArtifactCloseTemp;
+    }
+    if status == SelfMirArtifactCommitPublishFailedStatus() {
+        return ArtifactPublishFinal;
+    }
+    if status == SelfMirArtifactCommitCleanupFailedStatus() {
+        return ArtifactCleanupTemp;
+    }
+    if status == SelfMirArtifactCommitWriteFailedStatus() {
+        return ArtifactWriteChunks;
+    }
+    return ArtifactBeginTemp;
+}
+
+func SelfMirArtifactRejectedOutcome(
+    final_path: String,
+    stage: SelfMirArtifactCommitStage,
+    status: Int,
+    temp_removed: Bool
+) -> SelfMirArtifactCommitOutcome {
+    return SelfMirArtifactRejected(SelfMirArtifactFailure(
+        SelfMirArtifactTransactionSchema(),
+        final_path,
+        stage,
+        status,
+        true,
+        temp_removed
+    ));
+}
+
+func SelfMirArtifactBegin(final_path: String) -> Int {
+    return CompilerArtifactBegin(final_path);
+}
+
+func SelfMirArtifactAbort(
+    artifact_handle: Int,
+    final_path: String,
+    stage: SelfMirArtifactCommitStage,
+    status: Int
+) -> SelfMirArtifactCommitOutcome {
+    let abort_status: Int = CompilerArtifactAbort(artifact_handle);
+    if abort_status != SelfMirArtifactCommitOkStatus() {
+        return SelfMirArtifactRejectedOutcome(
+            final_path,
+            ArtifactCleanupTemp,
+            abort_status,
+            false
+        );
+    }
+    return SelfMirArtifactRejectedOutcome(
+        final_path, stage, status, true
+    );
+}
+
+func SelfMirArtifactCommit(
+    artifact_handle: Int,
+    final_path: String
+) -> SelfMirArtifactCommitOutcome {
+    let status: Int = CompilerArtifactCommit(artifact_handle);
+    if status == SelfMirArtifactCommitOkStatus() {
+        return SelfMirArtifactCommitted(SelfMirArtifactReceipt(
+            SelfMirArtifactTransactionSchema(),
+            final_path,
+            true,
+            false
+        ));
+    }
+    return SelfMirArtifactRejectedOutcome(
+        final_path,
+        SelfMirArtifactCommitStageForStatus(status),
+        status,
+        status != SelfMirArtifactCommitCleanupFailedStatus()
+    );
+}
+
+func SelfMirArtifactCommitPayload(
+    final_path: String,
+    payload: String
+) -> SelfMirArtifactCommitOutcome {
+    let artifact_handle: Int = SelfMirArtifactBegin(final_path);
+    if artifact_handle < 0 {
+        return SelfMirArtifactRejectedOutcome(
+            final_path,
+            ArtifactBeginTemp,
+            SelfMirArtifactCommitInvalidHandleStatus(),
+            true
+        );
+    }
+    if !CompilerArtifactWrite(artifact_handle, payload) {
+        return SelfMirArtifactAbort(
+            artifact_handle,
+            final_path,
+            ArtifactWriteChunks,
+            SelfMirArtifactCommitWriteFailedStatus()
+        );
+    }
+    return SelfMirArtifactCommit(artifact_handle, final_path);
+}
+
+func SelfMirArtifactCommitOutcomeReady(
+    outcome: SelfMirArtifactCommitOutcome
+) -> Bool {
+    match outcome {
+        case SelfMirArtifactCommitted(receipt):
+            return receipt.schema == SelfMirArtifactTransactionSchema() &&
+                receipt.final_path != "" && receipt.atomic_visibility &&
+                !receipt.crash_durable;
+        case SelfMirArtifactRejected(failure):
+            return false;
+    }
+}

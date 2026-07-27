@@ -134,7 +134,7 @@ func AstTreeArtifactBindDestructurePayloads(
             );
             return AstTreeArtifact(
                 artifact.tree_text, artifact.arena, artifact.count,
-                invalid_rows, artifact.match_pattern_graphs
+                invalid_rows
             );
         }
         ArrayPush(
@@ -164,7 +164,7 @@ func AstTreeArtifactBindDestructurePayloads(
         );
         return AstTreeArtifact(
             artifact.tree_text, artifact.arena, artifact.count,
-            invalid_rows2, artifact.match_pattern_graphs
+            invalid_rows2
         );
     }
     let bound_arena: AstArena = AstArena(
@@ -176,6 +176,6 @@ func AstTreeArtifactBindDestructurePayloads(
     );
     return AstTreeArtifact(
         artifact.tree_text, bound_arena, artifact.count,
-        artifact.expression_graphs, artifact.match_pattern_graphs
+        artifact.expression_graphs
     );
 }

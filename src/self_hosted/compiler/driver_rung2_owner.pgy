@@ -160,9 +160,13 @@ func CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
     let projection: DriverRung2MirProjection =
         DriverRung2MirProjectionFromAnalysisObserved(
             artifact, analysis, machine_declaration, observe_pressure
-        );
+    );
     DriverRung2PressureStage(observe_pressure, "json-write:start");
-    if !SelfMirProgramJsonWriteFile(projection.facts, output_path) {
+    let commit: SelfMirArtifactCommitOutcome =
+        SelfMirProgramJsonWriteArtifactVerified(
+            projection.facts, output_path
+        );
+    if !SelfMirArtifactCommitOutcomeReady(commit) {
         Log("self-host MIR JSON artifact projection failed closed");
         Exit(1);
     }

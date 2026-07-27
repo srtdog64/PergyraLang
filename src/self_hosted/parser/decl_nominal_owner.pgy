@@ -12,6 +12,7 @@ func ParseNominalDecl(
     start: Int,
     inout cursor_out: Array<Int>,
     decl_prefix: String,
+    exported: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>
@@ -326,7 +327,18 @@ func ParseNominalDecl(
         if decl_label == "Party" && StringLength(decl_generic) > 0 {
             decl_display_name = Concat(decl_prefix, Concat(decl_name, decl_generic));
         }
-        out = AppendLine(out, Concat("  ", Concat(decl_label, Concat(": ", decl_display_name))));
+        if exported {
+            out = AppendLine(out, Concat(
+                "  ", Concat(
+                    "[export] ",
+                    Concat(decl_label, Concat(": ", decl_display_name))
+                )
+            ));
+        } else {
+            out = AppendLine(out, Concat(
+                "  ", Concat(decl_label, Concat(": ", decl_display_name))
+            ));
+        }
         if StringLength(decl_generic) > 0 && decl_label != "Party" {
             out = AppendLine(out, Concat("    Generic params: ", decl_generic));
         }
