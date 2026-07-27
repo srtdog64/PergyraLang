@@ -8,9 +8,10 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - self-host empty DIR graph substitution
 
-- Checkout base before this executable slice is
-  `42fa995673d0f9f193b02efe18a101d9a8190f3a` on `main`. After landing the
-  slice, use `git rev-parse HEAD` for the exact executable checkpoint.
+- Exact executable checkpoint is
+  `0ac210261d199f5b188fbc66d5dfdcbdec4c223d` on `main`, pushed to
+  `origin/main`. The worktree is dirty only in the three protected concurrent
+  user parity owners named below; none belongs to this checkpoint.
 - Objective card:
   - objective: make the production self-host MIR producer replace the native
     C DIR census/anchor for the first proved-empty topology document;
