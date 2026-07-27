@@ -4,6 +4,7 @@ import "program_fact_owner.pgy";
 import "declaration_rows_owner.pgy";
 import "routine_entry_owner.pgy";
 import "routine_local_inventory_owner.pgy";
+import "../dir/domain_graph_fact_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 
@@ -352,6 +353,7 @@ func SelfMirAppendRoutine(
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations,
+        facts.domain_topology,
         facts.generic_specializations, facts.parallel_captures,
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, return_types,
@@ -415,6 +417,7 @@ func SelfMirCanonicalInstructionIds(
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations,
+        facts.domain_topology,
         facts.generic_specializations, facts.parallel_captures,
         facts.routines,
         SelfMirCfgRows(
@@ -492,12 +495,15 @@ func SelfMirProgramFactsFromReadyArtifact(
             "MIR producer requires stable generic specialization rows"
         );
     }
+    let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
+    let domain_graph: SelfDirDomainGraphFacts = SelfDirDomainGraphFactsFromArtifact(artifact, declarations);
+    if !SelfDirDomainGraphFactsReady(domain_graph) {
+        return SelfMirProgramFactsError(facts, "mir_domain_graph_invalid", domain_graph.diagnostic_message);
+    }
     facts = SelfMirProgramFacts(
-        true, "", "", artifact.count,
-        SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts),
-        generic_rows,
-        facts.parallel_captures, facts.routines, facts.cfg
-    );
+        true, "", "", artifact.count, declarations,
+        SelfMirDomainTopologyFactsFromSelfDir(domain_graph), generic_rows,
+        facts.parallel_captures, facts.routines, facts.cfg);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         artifact, analysis,
         SelfMirInitializerRowsFromSemantic(initializer_types),

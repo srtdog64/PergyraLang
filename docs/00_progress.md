@@ -2,6 +2,28 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 self-host empty DIR graph executable checkpoint
+
+- Self-host production MIR가 `function_clause_order_minimal`의 DIR graph
+  census를 직접 소유한다. Typed `Authority`와 declaration/role/ability/slot
+  facts를 한 번 join해 native와 같은 `nodes=9`, `edges=16`,
+  `domain_graph_id=14937235029576152731`을 계산하고 empty topology row를
+  방출한다.
+- `Refresh`/`Publish`/projection `Bind`/`Maintain`/`Link`/`Apply`/`Detach`/
+  `Unlink`/`State`는 서로 다른 typed kind다. 현재 bounded owner는 이 중
+  하나라도 있으면 empty로 낮추지 않고 fail closed한다.
+- Focused hard DRV-2 gate에서 self-produced MIR, canonical native/self MIR,
+  MIR consumer, emitted C compile/run이 green이며 결과는
+  `clause-order-minimal`이다. 이 empty-topology producer slice만
+  `SUBSTITUTING`; non-empty graph plan/runtime과 전체 `dir.domain_graph`는
+  계속 `BRIDGE`다.
+- Canonical bridge는 MIR 문서를 한 번만 admit하고 이미 admit된 empty
+  topology를 운반한다. authority가 빠지는 MIR-to-AST projection에서 graph를
+  재계산하거나 같은 문서 graph를 두 번 검증하지 않는다.
+- 다음 rung은 declaration/field `source_syntax_id` exact join과 non-empty
+  typed directive row, ID-keyed target-neutral graph plan이다. `player` 이름에
+  `enemy` ID를 붙인 row가 첫 falsifier다.
+
 ## 2026-07-28 object-to-action boundary audit
 
 - Canonical 구현 단위는 keyword 하나가 아니라 `NominalKind`, `FieldRole`,

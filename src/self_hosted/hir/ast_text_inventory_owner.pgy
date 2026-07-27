@@ -63,6 +63,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Impl ability:") {
         return TypedAstKindImplAbilityTag();
     }
+    if StartsWith(text, "Include role ") {
+        return TypedAstKindRoleIncludeTag();
+    }
     if StartsWith(text, "Function:") {
         return TypedAstKindFuncDeclTag();
     }
@@ -87,8 +90,28 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Effects:") {
         return TypedAstKindCallableEffectsTag();
     }
+    if StartsWith(text, "Authority:") {
+        return TypedAstKindZoneAuthorityTag();
+    }
+    if StartsWith(text, "Refresh:") { return TypedAstKindDomainRefreshTag(); }
+    if StartsWith(text, "Publish:") { return TypedAstKindDomainPublishTag(); }
+    if StartsWith(text, "Bind:") {
+        return TypedAstKindDomainProjectionBindTag();
+    }
+    if StartsWith(text, "Maintain:") { return TypedAstKindDomainMaintainTag(); }
+    if StartsWith(text, "Link:") { return TypedAstKindDomainLinkTag(); }
+    if StartsWith(text, "Apply:") { return TypedAstKindDomainApplyTag(); }
+    if StartsWith(text, "Detach:") { return TypedAstKindDomainDetachTag(); }
+    if StartsWith(text, "Unlink:") { return TypedAstKindDomainUnlinkTag(); }
+    if StartsWith(text, "State:") { return TypedAstKindDomainStateTag(); }
     if StartsWith(text, "Role:") {
         return TypedAstKindRoleDeclTag();
+    }
+    if StartsWith(text, "Intent:") {
+        return TypedAstKindIntentDeclTag();
+    }
+    if StartsWith(text, "Roster:") {
+        return TypedAstKindRosterDeclTag();
     }
     if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
@@ -200,6 +223,18 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindCallableEffectsTag() {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
+    if kind == TypedAstKindZoneAuthorityTag() {
+        return StringTrim(Substring(text, 10, StringLength(text) - 10));
+    }
+    if TypedAstKindIsDomainTopologyDirective(kind) {
+        let colon: Int = StringIndexOf(text, ":");
+        if colon >= 0 {
+            return StringTrim(Substring(
+                text, colon + 1, StringLength(text) - colon - 1
+            ));
+        }
+        return "";
+    }
     if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Field: ") {
             return Substring(text, 7, StringLength(text) - 7);
@@ -228,11 +263,20 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindImplAbilityTag() {
         return StringTrim(Substring(text, 13, StringLength(text) - 13));
     }
+    if kind == TypedAstKindRoleIncludeTag() {
+        return StringTrim(Substring(text, 13, StringLength(text) - 13));
+    }
     if kind == TypedAstKindParamTag() {
         return text;
     }
     if kind == TypedAstKindRoleDeclTag() {
         return Substring(text, 6, StringLength(text) - 6);
+    }
+    if kind == TypedAstKindIntentDeclTag() {
+        return Substring(text, 8, StringLength(text) - 8);
+    }
+    if kind == TypedAstKindRosterDeclTag() {
+        return Substring(text, 8, StringLength(text) - 8);
     }
     if kind == TypedAstKindAbilityDeclTag() {
         return Substring(text, 9, StringLength(text) - 9);

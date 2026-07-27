@@ -1,0 +1,359 @@
+// Bounded self-host owner for the DIR graph census carried by empty-topology
+// MIR documents.  It mirrors the native DIR node/edge inventory for the
+// currently executable effect/zone/role/authority subset.  A topology
+// directive is never downgraded to an empty row set: unsupported shapes fail
+// before MIR projection.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../mir/declaration_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct SelfDirDomainGraphFacts {
+    required: Bool;
+    ok: Bool;
+    diagnostic_message: String;
+    source_program_syntax_id: Int;
+    node_count: Int;
+    edge_count: Int;
+    domain_graph_id: String;
+    topology_row_count: Int;
+}
+
+func SelfDirDomainGraphFactsAbsent() -> SelfDirDomainGraphFacts {
+    return SelfDirDomainGraphFacts(false, true, "", 0, 0, 0, "", 0);
+}
+
+func SelfDirDomainGraphFactsError(message: String) -> SelfDirDomainGraphFacts {
+    return SelfDirDomainGraphFacts(true, false, message, 0, 0, 0, "", 0);
+}
+
+func SelfDirU32Xor(left: Long, right: Long) -> Long {
+    let out: Long = 0L;
+    let bit: Long = 1L;
+    let i: Int = 0;
+    while i < 32 {
+        if ((left / bit) % 2L) != ((right / bit) % 2L) {
+            out = out + bit;
+        }
+        bit = bit * 2L;
+        i = i + 1;
+    }
+    return out;
+}
+
+func SelfDirU64Decimal(high: Long, low: Long) -> String {
+    if high == 0L && low == 0L { return "0"; }
+    let upper: Long = high;
+    let lower: Long = low;
+    let digits: String = "";
+    while upper > 0L || lower > 0L {
+        let combined: Long = (upper % 10L) * 4294967296L + lower;
+        let digit: Int = (combined % 10L) as Int;
+        digits = Concat(ToString(digit), digits);
+        lower = combined / 10L;
+        upper = upper / 10L;
+    }
+    return digits;
+}
+
+func SelfDirDomainGraphAnchor(node_count: Int, edge_count: Int) -> String {
+    // Native AST stable IDs are one-based, so the Program root identity is 1.
+    // Split the native uint64 formula into two u32 limbs to avoid signed-Long
+    // overflow while preserving the exact wire identity.
+    let low_sum: Long = 656542357L + (node_count as Long);
+    let carry: Long = low_sum / 4294967296L;
+    let second_low: Long = low_sum % 4294967296L;
+    let second_high: Long = 1367130551L + carry;
+    let edge_limb: Long = edge_count as Long;
+    let high: Long = SelfDirU32Xor(
+        SelfDirU32Xor(2654435769L, second_high), edge_limb
+    );
+    let low: Long = SelfDirU32Xor(
+        SelfDirU32Xor(2135587861L, second_low), edge_limb
+    );
+    if high == 0L && low == 0L { return "1"; }
+    return SelfDirU64Decimal(high, low);
+}
+
+func SelfDirDeclarationIndexForName(
+    rows: SelfMirDeclarationRows,
+    name: String
+) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(rows.names) {
+        if rows.names[i] == name { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+func SelfDirFieldKindPresent(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int,
+    field_name: String,
+    expected_kind: String
+) -> Bool {
+    if declaration_index < 0 ||
+        declaration_index >= ArrayLength(rows.names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < rows.field_counts[declaration_index] {
+        let row: Int = rows.field_starts[declaration_index] + i;
+        if rows.field_names[row] == field_name &&
+            rows.field_kinds[row] == expected_kind {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SelfDirAbilityMethodCount(
+    rows: SelfMirDeclarationRows,
+    ability_name: String
+) -> Int {
+    let index: Int = SelfDirDeclarationIndexForName(rows, ability_name);
+    if index < 0 || rows.kinds[index] != "ability" { return 0 - 1; }
+    return rows.method_counts[index];
+}
+
+func SelfDirDomainAuthorityEdges(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows
+) -> Option<Int> {
+    let edge_count: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        let node_kind: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, node_id
+        );
+        if IsSome(node_kind) && TypedAstKindIsDomainTopologyDirective(
+            UnwrapOption(node_kind)
+        ) {
+            return None;
+        }
+        if IsSome(node_kind) &&
+            (UnwrapOption(node_kind) == TypedAstKindIntentDeclTag() ||
+             UnwrapOption(node_kind) == TypedAstKindRosterDeclTag()) {
+            return None;
+        }
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindRoleIncludeTag()
+        ) {
+            let parent: Option<Int> = TypedAstArenaParentId(
+                artifact.arena, node_id
+            );
+            let included_name: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            if !IsSome(parent) || !IsSome(included_name) ||
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, UnwrapOption(parent),
+                    TypedAstKindRoleDeclTag()
+                ) {
+                return None;
+            }
+            let included_index: Int = SelfDirDeclarationIndexForName(
+                rows, UnwrapOption(included_name)
+            );
+            if included_index < 0 || rows.kinds[included_index] != "role" {
+                return None;
+            }
+            edge_count = edge_count + 1;
+        }
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
+        ) {
+            let parent: Option<Int> = TypedAstArenaParentId(
+                artifact.arena, node_id
+            );
+            let slot: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            if !IsSome(parent) || !IsSome(slot) ||
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, UnwrapOption(parent),
+                    TypedAstKindNominalDeclTag()
+                ) {
+                return None;
+            }
+            let parent_subkind: Option<Int> = TypedAstArenaNominalSubkind(
+                artifact.arena, UnwrapOption(parent)
+            );
+            let owner_name: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, UnwrapOption(parent)
+            );
+            if !IsSome(parent_subkind) ||
+                UnwrapOption(parent_subkind) != TypedAstNominalSubkindZone() ||
+                !IsSome(owner_name) {
+                return None;
+            }
+            let owner_index: Int = SelfDirDeclarationIndexForName(
+                rows, UnwrapOption(owner_name)
+            );
+            if !SelfDirFieldKindPresent(
+                rows, owner_index, UnwrapOption(slot),
+                NominalFieldKindSubjectSlot()
+            ) || artifact.arena.child_counts[node_id] != 1 {
+                return None;
+            }
+            let requires_node: Option<Int> = TypedAstArenaChildAt(
+                artifact.arena, node_id, 0
+            );
+            if !IsSome(requires_node) || !TypedAstArenaNodeKindIs(
+                artifact.arena, UnwrapOption(requires_node),
+                TypedAstKindActionRequiresTag()
+            ) {
+                return None;
+            }
+            let required: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, UnwrapOption(requires_node)
+            );
+            if !IsSome(required) { return None; }
+            let abilities: Array<String> = Split(UnwrapOption(required), ",");
+            if ArrayLength(abilities) == 0 { return None; }
+            let ability_i: Int = 0;
+            while ability_i < ArrayLength(abilities) {
+                let ability_name: String = StringTrim(abilities[ability_i]);
+                if ability_name == "" ||
+                    SelfDirAbilityMethodCount(rows, ability_name) < 0 {
+                    return None;
+                }
+                ability_i = ability_i + 1;
+            }
+            // owner->authority-slot, authority-slot->subject-slot, and two
+            // ability edges per requirement (zone owner plus authority slot).
+            edge_count = edge_count + 2 + 2 * ArrayLength(abilities);
+        }
+        node_id = node_id + 1;
+    }
+    return Some(edge_count);
+}
+
+func SelfDirDomainGraphFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows
+) -> SelfDirDomainGraphFacts {
+    let required: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(rows.names) {
+        if rows.nominal_kinds[i] == "effect" ||
+            rows.nominal_kinds[i] == "zone" ||
+            rows.nominal_kinds[i] == "relation" {
+            required = true;
+        }
+        i = i + 1;
+    }
+    if !required { return SelfDirDomainGraphFactsAbsent(); }
+    if !AstTreeArtifactReady(artifact) || artifact.count <= 0 ||
+        !TypedAstArenaNodeKindIs(
+            artifact.arena, 0, TypedAstKindProgramTag()
+        ) {
+        return SelfDirDomainGraphFactsError(
+            "self-host DIR graph requires a typed Program root"
+        );
+    }
+
+    let node_count: Int = ArrayLength(rows.names);
+    let edge_count: Int = 0;
+    i = 0;
+    while i < ArrayLength(rows.names) {
+        if rows.kinds[i] == "role" {
+            if rows.target_types[i] == "" { return SelfDirDomainGraphFactsError(
+                "self-host DIR role is missing its target type"
+            ); }
+            edge_count = edge_count + 1;
+            let impl_i: Int = 0;
+            while impl_i < rows.role_impl_counts[i] {
+                let impl_row: Int = rows.role_impl_starts[i] + impl_i;
+                let ability_methods: Int = SelfDirAbilityMethodCount(
+                    rows, rows.role_impl_ability_names[impl_row]
+                );
+                if ability_methods < 0 ||
+                    rows.role_impl_method_counts[impl_row] != ability_methods {
+                    return SelfDirDomainGraphFactsError(
+                        "self-host DIR bounded role subset requires a complete ability impl"
+                    );
+                }
+                edge_count = edge_count + 2;
+                impl_i = impl_i + 1;
+            }
+        } else if rows.nominal_kinds[i] == "effect" {
+            let field_i: Int = 0;
+            while field_i < rows.field_counts[i] {
+                let field_row: Int = rows.field_starts[i] + field_i;
+                if rows.field_kinds[field_row] !=
+                    NominalFieldKindSubjectSlot() {
+                    return SelfDirDomainGraphFactsError(
+                        "self-host DIR bounded effect subset supports subject slots only"
+                    );
+                }
+                node_count = node_count + 1;
+                edge_count = edge_count + 1;
+                field_i = field_i + 1;
+            }
+        } else if rows.nominal_kinds[i] == "zone" {
+            let field_i: Int = 0;
+            while field_i < rows.field_counts[i] {
+                let field_row: Int = rows.field_starts[i] + field_i;
+                if rows.field_kinds[field_row] ==
+                    NominalFieldKindSubjectSlot() {
+                    node_count = node_count + 1;
+                    edge_count = edge_count + 3;
+                } else if rows.field_kinds[field_row] ==
+                    NominalFieldKindEffectSlot() {
+                    edge_count = edge_count + 1;
+                } else {
+                    return SelfDirDomainGraphFactsError(
+                        "self-host DIR bounded zone subset supports subject/effect slots only"
+                    );
+                }
+                field_i = field_i + 1;
+            }
+        } else if rows.nominal_kinds[i] == "relation" ||
+            rows.nominal_kinds[i] == "party" ||
+            rows.nominal_kinds[i] == "world" || rows.kinds[i] == "event" {
+            return SelfDirDomainGraphFactsError(
+                "self-host DIR relation/party/world/event production is not implemented"
+            );
+        }
+        i = i + 1;
+    }
+    let authority_edges: Option<Int> = SelfDirDomainAuthorityEdges(
+        artifact, rows
+    );
+    if !IsSome(authority_edges) {
+        return SelfDirDomainGraphFactsError(
+            "self-host DIR topology directive or authority shape is unsupported"
+        );
+    }
+    let authority_node_count: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
+        ) {
+            authority_node_count = authority_node_count + 1;
+        }
+        node_id = node_id + 1;
+    }
+    node_count = node_count + authority_node_count;
+    edge_count = edge_count + UnwrapOption(authority_edges);
+    return SelfDirDomainGraphFacts(
+        true, true, "", 1, node_count, edge_count,
+        SelfDirDomainGraphAnchor(node_count, edge_count), 0
+    );
+}
+
+func SelfDirDomainGraphFactsReady(facts: SelfDirDomainGraphFacts) -> Bool {
+    if !facts.required {
+        return facts.ok && facts.source_program_syntax_id == 0 &&
+            facts.node_count == 0 && facts.edge_count == 0 &&
+            facts.domain_graph_id == "" && facts.topology_row_count == 0;
+    }
+    return facts.ok && facts.source_program_syntax_id == 1 &&
+        facts.node_count > 0 && facts.edge_count >= 0 &&
+        facts.domain_graph_id != "" && facts.domain_graph_id != "0" &&
+        facts.topology_row_count == 0;
+}

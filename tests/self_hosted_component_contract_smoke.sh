@@ -3807,7 +3807,10 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "self-host C e
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "target_projection.target_capability_fingerprint"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "target_projection.target_capability_fingerprint"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompilerEmissionArtifactReady(emission)"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "MirJsonReadMachineAdmittedInput("
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "MirJsonReadInput("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonToCVerifiedObserved("

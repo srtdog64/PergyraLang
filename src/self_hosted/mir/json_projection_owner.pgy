@@ -546,7 +546,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     let prefix: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":";
     let generic_prefix: String = ",\"generic_method_specializations\":";
     let capture_prefix: String = ",\"parallel_capture_boundaries\":";
-    let routine_prefix: String = ",\"routines\":";
+    let routine_prefix: String = Concat(SelfMirDomainTopologyJsonPrefix(facts.domain_topology), ",\"routines\":");
     let capacity: Int = StringLength(prefix) +
         SelfMirJsonTextArrayWireLength(declarations) +
         StringLength(generic_prefix) +

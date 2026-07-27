@@ -495,16 +495,31 @@ self-host admission은 `player`라는 이름과 전달된 ID가 실제 같은 fi
 row도 현재 구조상 통과할 수 있다. 따라서 이 carrier를 “exact stable identity
 admission”이라고 부르거나 ID-keyed graph plan을 만들면 안 된다.
 
-이 새 JSON/admission slice의 판정은 `REACHABLE`이지 `SUBSTITUTING`이 아니다.
-Pergyra graph plan과 production runtime consumer가 아직 없기 때문이다. 전체
-domain/action runtime도 닫히지 않았다. `apply`/detach/unlink, pool capacity,
-authority/state/lifecycle, action transition emission은 여전히 row owner 범위 밖이다.
-다음 executable rung은 먼저 declaration field identity join을 닫고, self-host
-producer가 typed topology를 방출하며, admitted row로 하나의 target-neutral graph
-plan을 만든 뒤 일반 DRV-2 C production path가 exact 3-node/2-edge trace를
-소비하게 해야 한다. 이 fixture의 native runtime 전체를 대체하려면 graph 외에도
-`apply poison to player`, zone state count, hidden layer layout와 sync operation fact가
-필요하다. 그때도 `MIR if present, otherwise AST` fallback은 두지 않는다.
+JSON/admission slice 자체의 판정은 계속 `REACHABLE`이다. 다만 그다음 bounded
+executable rung으로 self-host source producer가 “topology row는 없지만 DIR graph는
+존재하는” 문서를 직접 소유하게 되었다. `function_clause_order_minimal`에서 typed
+`Authority`와 declaration/role/ability/slot facts를 join해 native와 같은
+`nodes=9`, `edges=16`, `domain_graph_id=14937235029576152731`을 계산하고,
+self-produced MIR을 다시 소비한 C가 `clause-order-minimal`을 출력한다. 이 좁은
+empty-topology producer만 `SUBSTITUTING`이다.
+
+여기서 empty는 declaration 수나 topology row 수를 뜻하지 않는다. DIR census를
+완성한 결과 row가 0개임을 뜻한다. `Refresh`/`Publish`/projection `Bind`/
+`Maintain`/`Link`/`Apply`/`Detach`/`Unlink`/`State`는 서로 다른 typed kind로
+보존되며, 현재 owner는 하나라도 발견하면 빈 graph로 낮추지 않고 fail closed한다.
+MIR canonical bridge도 이미 admit된 empty topology를 그대로 운반한다. authority가
+빠지는 MIR-to-AST projection에서 graph를 재계산하거나 native oracle 값을 self
+source producer에 붙이지 않는다.
+
+Pergyra graph plan과 production runtime consumer는 아직 없으므로 전체
+domain/action runtime은 계속 `BRIDGE`다. 다음 rung은 declaration field
+`source_syntax_id` exact join을 닫고 non-empty directive row를 self-host가 생산한 뒤,
+admitted row로 하나의 ID-keyed target-neutral graph plan을 만드는 것이다. 일반
+DRV-2 C/LLVM production path가 `zone_layer_projection_runtime`의 exact
+3-node/2-edge trace를 소비해야 한다. 이 fixture의 native runtime 전체를
+대체하려면 graph 외에도 `apply poison to player`, zone state count, hidden layer
+layout와 sync operation fact가 필요하다. 그때도 `MIR if present, otherwise AST`
+fallback은 두지 않는다.
 
 ### 4.3 Artifact action의 commit 조건
 

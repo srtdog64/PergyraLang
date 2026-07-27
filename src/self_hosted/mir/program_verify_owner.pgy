@@ -525,6 +525,9 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     if !SelfMirDeclarationRowsReady(facts.declarations) {
         return "MIR declaration rows are invalid";
     }
+    if !SelfMirDomainTopologyFactsReady(facts.domain_topology) {
+        return "MIR domain topology facts are invalid";
+    }
     if !SelfMirGenericSpecializationRowsReady(
         facts.generic_specializations
     ) {

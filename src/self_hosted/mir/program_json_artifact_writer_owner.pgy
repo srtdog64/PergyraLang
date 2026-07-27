@@ -294,7 +294,11 @@ func SelfMirProgramJsonWriteArtifactVerified(
         parallel_i = parallel_i + 1;
     }
 
-    CompilerArtifactWrite(output, "],\"routines\":[");
+    CompilerArtifactWrite(output, "]");
+    CompilerArtifactWrite(
+        output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology)
+    );
+    CompilerArtifactWrite(output, ",\"routines\":[");
     let routine_i: Int = 0;
     while routine_i < ArrayLength(facts.routines.names) {
         if routine_i > 0 { CompilerArtifactWrite(output, ","); }

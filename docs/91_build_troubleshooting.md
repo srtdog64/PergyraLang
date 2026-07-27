@@ -2326,6 +2326,24 @@ unchanged 3 GiB cap. This is separate from the fixed 20 GiB/3.5 GiB repeated
 graph-validation defect; the runtime is still expensive but the old memory
 growth pattern did not recur.
 
+#### MIR canonicalization repeats admission or recomputes a lossy domain graph
+
+The first self-host empty-topology producer exposed another place where a
+seemingly harmless bridge could repeat graph work. `MirJsonReadInput` already
+returns data from a fully admitted `MirMachineLayerAdmittedJsonInput`; calling
+`MirMachineLayerAdmitJsonInput` again in the canonicalizer would index and
+validate the same document twice. Canonicalization now calls
+`MirJsonReadMachineAdmittedInput` once and carries that typed result.
+
+It must also preserve the admitted empty topology instead of recomputing it
+from `EmitMirProgramTree`. The declaration tree projection does not carry zone
+authority yet, while authority contributes one DIR node and six edges in
+`function_clause_order_minimal`. Recomputing after that lossy round-trip would
+turn the exact native `9 nodes / 16 edges` anchor into a different graph. The
+source producer independently derives the 9/16 census; only MIR-input
+canonicalization carries the already-admitted identity. A non-empty topology
+still fails closed at this bridge until its typed row projection lands.
+
 ### Array-only emitted C loses runtime headers
 
 An Array program can use the collection runtime without otherwise using

@@ -1,0 +1,50 @@
+// MIR carrier for the DIR-owned domain graph identity and topology rows.
+// The source producer derives this from SelfDirDomainGraphFacts; MIR-input
+// canonicalization may carry an already-admitted empty projection without
+// reconstructing the graph from its lossy declaration tree.
+
+import "../dir/domain_graph_fact_owner.pgy";
+
+struct SelfMirDomainTopologyFacts {
+    present: Bool;
+    ok: Bool;
+    domain_graph_id: String;
+    row_count: Int;
+}
+
+func SelfMirDomainTopologyFactsAbsent() -> SelfMirDomainTopologyFacts {
+    return SelfMirDomainTopologyFacts(false, true, "", 0);
+}
+
+func SelfMirDomainTopologyFactsFromSelfDir(
+    graph: SelfDirDomainGraphFacts
+) -> SelfMirDomainTopologyFacts {
+    if !graph.required { return SelfMirDomainTopologyFactsAbsent(); }
+    if !SelfDirDomainGraphFactsReady(graph) {
+        return SelfMirDomainTopologyFacts(true, false, "", 0);
+    }
+    return SelfMirDomainTopologyFacts(
+        true, true, graph.domain_graph_id, graph.topology_row_count
+    );
+}
+
+func SelfMirDomainTopologyFactsReady(
+    facts: SelfMirDomainTopologyFacts
+) -> Bool {
+    if !facts.present {
+        return facts.ok && facts.domain_graph_id == "" &&
+            facts.row_count == 0;
+    }
+    return facts.ok && facts.domain_graph_id != "" &&
+        facts.domain_graph_id != "0" && facts.row_count == 0;
+}
+
+func SelfMirDomainTopologyJsonPrefix(
+    facts: SelfMirDomainTopologyFacts
+) -> String {
+    if !facts.present { return ""; }
+    return Concat(
+        ",\"domain_topology\":{\"domain_graph_id\":",
+        Concat(facts.domain_graph_id, ",\"rows\":[]}")
+    );
+}

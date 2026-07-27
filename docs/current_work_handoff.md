@@ -6,7 +6,64 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - MIR JSON topology admission
+## Current resume checkpoint - self-host empty DIR graph substitution
+
+- Checkout base before this executable slice is
+  `42fa995673d0f9f193b02efe18a101d9a8190f3a` on `main`. After landing the
+  slice, use `git rev-parse HEAD` for the exact executable checkpoint.
+- Objective card:
+  - objective: make the production self-host MIR producer replace the native
+    C DIR census/anchor for the first proved-empty topology document;
+  - priority: exact graph identity, typed authority, non-empty fail-close,
+    one-shot admission, then patch size;
+  - fact owner: `SelfDirDomainGraphFacts`, projected once into
+    `SelfMirDomainTopologyFacts`;
+  - last legitimate consumer: the DRV-2 MIR writer and admitted MIR consumer;
+  - forbidden fallback: declaration-count ID, constant graph ID, native-oracle
+    grafting, provenance-text directive recovery, or non-empty-to-empty
+    downgrade;
+  - gate: focused `function_clause_order_minimal` hard producer/consumer parity
+    plus `domain_topology_nonempty_rejected`.
+- Production self-host source-to-MIR now classifies zone `Authority` and nine
+  distinct domain directive kinds in the typed arena. The bounded DIR owner
+  joins declarations, role/ability completion, effect/zone slots and ordered
+  authority abilities. For `function_clause_order_minimal` it independently
+  reproduces the native census `nodes=9, edges=16` and exact uint64 decimal
+  anchor `14937235029576152731`, then emits `domain_topology.rows=[]`.
+- The same self-produced MIR passes admission, canonical native/self parity,
+  emitted-C compilation and execution; the observed program output is
+  `clause-order-minimal`. This bounded empty-topology producer is
+  `SUBSTITUTING`: its production source path no longer needs native C DIR to
+  create the graph identity. It does **not** make non-empty topology, the graph
+  plan/runtime consumer, or the whole `dir.domain_graph` family `CLOSED`.
+- `Refresh`, `Publish`, projection `Bind`, `Maintain`, `Link`, `Apply`,
+  `Detach`, `Unlink`, and `State` retain distinct typed identities. The current
+  bounded producer rejects every one rather than claiming an empty row set.
+  The committed negative `apply layer to actor` fixture fails at the self DIR
+  owner and emits no MIR document.
+- MIR canonicalization now reads one `MirMachineLayerAdmittedJsonInput` and
+  carries its already-admitted empty topology into the reconstructed MIR. It
+  does not run a second document/graph admission, and it does not recompute a
+  graph from the lossy MIR-to-AST declaration projection (which omits zone
+  authority today).
+- Last observed green gate:
+  `PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER=function_clause_order_minimal` with
+  the Pergyra-built hard driver, reporting one producer-first source/MIR
+  parity fixture. A direct emitted-C compile/run also printed
+  `clause-order-minimal`. The broad `test-transpile` RED remains the independent
+  expression `identifier -> same name` null/`strcmp` failure from the previous
+  checkpoint and was not rerun here.
+- The only protected concurrent user files remain the three unstaged parity
+  owners for indexed assignment, match, and owner field. Do not stage or edit
+  them.
+- Next falsifier is still the declaration-field exact join: a topology row
+  with name `player` and the valid `enemy` field ID must fail. Then add typed
+  non-empty directive rows and the ID-keyed target-neutral graph/runtime plan
+  for `zone_layer_projection_runtime`. Owner declaration stable identity,
+  apply/state/layout/sync facts remain open; no AST/source compatibility path
+  is permitted.
+
+## Previous resume checkpoint - MIR JSON topology admission (superseded)
 
 - Checkout base before this supporting slice is
   `da26dc09d0ad5c04ee94b122bb23e18f6073a611` on `main`. The last hard

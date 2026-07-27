@@ -1,0 +1,16 @@
+subject TopologyActor {
+    let value: Int;
+}
+
+effect TopologyEffect for bearer: TopologyActor {
+}
+
+zone TopologyZone {
+    subject slot actor: TopologyActor
+    effect slot layer: TopologyEffect
+    apply layer to actor;
+}
+
+func Main() -> Void {
+    Log("unreachable-domain-topology");
+}

@@ -252,10 +252,9 @@ func CanonicalizeMirJsonVerified(
     mir_json_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
-    let json: String = MirJsonReadInput(
-        mir_json_path, machine_declaration
-    );
-    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
+    let json: String = admitted.routines.source_json;
+    let routines: MirProgramRoutineIndex = admitted.routines;
     if !MirProgramRoutineIndexStructureReady(routines) {
         Die("MIR routine inventory is missing or invalid");
     }
@@ -282,25 +281,53 @@ func CanonicalizeMirJsonVerified(
     ) {
         Die("MIR assignment binding-mode fact is missing or invalid");
     }
-    return CompileArtifactAnalysisToMirJsonVerified(
-        artifact, verified.analysis,
-        machine_declaration
-    );
+    return CanonicalizeMirArtifactWithAdmittedTopology(
+        artifact, verified.analysis, admitted, machine_declaration);
+}
+
+func CanonicalizeMirArtifactWithAdmittedTopology(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    let projection: DriverRung2MirProjection = DriverRung2MirProjectionFromAnalysisObserved(
+        artifact, analysis, machine_declaration, false);
+    let facts: SelfMirProgramFacts = projection.facts;
+    if admitted.domain_topology.present {
+        if ArrayLength(admitted.domain_topology.kinds) != 0 {
+            DriverRung2MirProjectionRelease(projection);
+            Die("canonical MIR bridge cannot reconstruct non-empty domain topology");
+        }
+        facts = SelfMirProgramFactsWithDomainTopology(
+            facts,
+            SelfMirDomainTopologyFacts(
+                true, true, admitted.domain_topology.domain_graph_id, 0
+            )
+        );
+    }
+    if !SelfMirProgramFactsReady(facts) {
+        DriverRung2MirProjectionRelease(projection);
+        Die(SelfMirProgramFactsValidationError(facts));
+    }
+    let result: String = SelfMirProgramJson(facts);
+    DriverRung2MirProjectionRelease(projection);
+    return result;
 }
 
 func CanonicalizeOracleMirJsonBridge(
     mir_json_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
-    let json: String = MirJsonReadInput(
-        mir_json_path, machine_declaration
-    );
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
+    let json: String = admitted.routines.source_json;
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTree(json)
     );
-    return CompileArtifactAnalysisToMirJsonVerified(
+    return CanonicalizeMirArtifactWithAdmittedTopology(
         artifact,
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true),
+        admitted,
         machine_declaration
     );
 }

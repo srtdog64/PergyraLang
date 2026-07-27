@@ -49,6 +49,24 @@ func TypedAstKindActionCausesTag() -> Int { return 46; }
 func TypedAstKindActionAuthorizedByTag() -> Int { return 47; }
 func TypedAstKindCallableCapsTag() -> Int { return 48; }
 func TypedAstKindCallableEffectsTag() -> Int { return 49; }
+func TypedAstKindZoneAuthorityTag() -> Int { return 50; }
+func TypedAstKindDomainRefreshTag() -> Int { return 51; }
+func TypedAstKindDomainPublishTag() -> Int { return 52; }
+func TypedAstKindDomainProjectionBindTag() -> Int { return 53; }
+func TypedAstKindDomainMaintainTag() -> Int { return 54; }
+func TypedAstKindDomainLinkTag() -> Int { return 55; }
+func TypedAstKindDomainApplyTag() -> Int { return 56; }
+func TypedAstKindDomainDetachTag() -> Int { return 57; }
+func TypedAstKindDomainUnlinkTag() -> Int { return 58; }
+func TypedAstKindDomainStateTag() -> Int { return 59; }
+func TypedAstKindRoleIncludeTag() -> Int { return 60; }
+func TypedAstKindIntentDeclTag() -> Int { return 61; }
+func TypedAstKindRosterDeclTag() -> Int { return 62; }
+
+func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
+    return kind >= TypedAstKindDomainRefreshTag() &&
+        kind <= TypedAstKindDomainStateTag();
+}
 
 func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
     return kind == TypedAstKindFuncDeclTag() ||
@@ -57,7 +75,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindCallableEffectsTag();
+        kind <= TypedAstKindRosterDeclTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -123,14 +141,21 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindGenericConstraintsTag(), TypedAstKindActionDeclTag(),
         TypedAstKindActionRequiresTag(), TypedAstKindActionWithinTag(),
         TypedAstKindActionCausesTag(), TypedAstKindActionAuthorizedByTag(),
-        TypedAstKindCallableCapsTag(), TypedAstKindCallableEffectsTag()
+        TypedAstKindCallableCapsTag(), TypedAstKindCallableEffectsTag(),
+        TypedAstKindZoneAuthorityTag(),
+        TypedAstKindDomainRefreshTag(), TypedAstKindDomainPublishTag(),
+        TypedAstKindDomainProjectionBindTag(), TypedAstKindDomainMaintainTag(),
+        TypedAstKindDomainLinkTag(), TypedAstKindDomainApplyTag(),
+        TypedAstKindDomainDetachTag(), TypedAstKindDomainUnlinkTag(),
+        TypedAstKindDomainStateTag(), TypedAstKindRoleIncludeTag(),
+        TypedAstKindIntentDeclTag(), TypedAstKindRosterDeclTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 49 {
+    if ArrayLength(tags) != 62 {
         return false;
     }
     let i: Int = 0;
@@ -155,11 +180,22 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindGenericConstraintsTag()) &&
         TypedAstKindKnown(TypedAstKindActionDeclTag()) &&
         TypedAstKindKnown(TypedAstKindCallableEffectsTag()) &&
+        TypedAstKindKnown(TypedAstKindZoneAuthorityTag()) &&
+        TypedAstKindKnown(TypedAstKindDomainStateTag()) &&
+        TypedAstKindKnown(TypedAstKindRoleIncludeTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentDeclTag()) &&
+        TypedAstKindKnown(TypedAstKindRosterDeclTag()) &&
+        TypedAstKindIsDomainTopologyDirective(
+            TypedAstKindDomainRefreshTag()
+        ) &&
+        !TypedAstKindIsDomainTopologyDirective(
+            TypedAstKindZoneAuthorityTag()
+        ) &&
         TypedAstKindIsCallableDecl(TypedAstKindFuncDeclTag()) &&
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindCallableEffectsTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindRosterDeclTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&
