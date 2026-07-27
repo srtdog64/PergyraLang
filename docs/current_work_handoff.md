@@ -12,7 +12,7 @@ owner, and the named executable gate.
   `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
   revision. The three protected parity-owner files named below remain separate
   concurrent user work and are not part of this change.
-- Exact executable/capability checkpoint: `cc31ac2666061234bd8d09b04f13d64c26cf3a53`.
+- Exact executable/capability checkpoint: `0c85b74e7f25da9774f016faa98f5610b046f3d5`.
   The handoff refresh that records this checkpoint follows it without changing
   compiler semantics; use `git rev-parse HEAD` for the exact checkout revision.
 - Active executable rung: `REACHABLE`, not `SUBSTITUTING`. Production direct
