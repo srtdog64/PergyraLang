@@ -165,3 +165,4 @@ expect_rejected_without_artifact range_invented_phi "$mutation" \
     'range|phi|CFG|instruction'
 
 echo "[$LABEL] ifelse + if_else_assign + reassign_block + nestedif + whileloop + forloop one-MIR CFG/AIR-plan gate ok (sha256=$mir_digest)"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_break_case.sh"

@@ -9,7 +9,8 @@ func DirectMirCfgCertificateMutationRejected(
     let expected_evidence_count: Int = 1;
     if DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
         DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) ||
-        DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
+        DirectMirRangeCfgCertificateFactReady(certificate.range_fact) ||
+        DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
         expected_evidence_count = 2;
     }
     let bad_digest: DirectMirCfgCertificate =
@@ -102,9 +103,31 @@ func DirectMirCfgCertificateMutationRejected(
                 range_for_negative
             );
     }
+    let bad_break_rejected: Bool = true;
+    if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
+        let break_for_mutation: DirectMirBreakCfgCertificateFact =
+            certificate.break_fact;
+        let bad_break: DirectMirBreakCfgCertificateFact =
+            DirectMirBreakCfgCertificateFactInvalidExitSelection(
+                break_for_mutation
+            );
+        let bad_break_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithBreak(certificate, bad_break);
+        bad_break_certificate = DirectMirCfgCertificateWithDigest(
+            bad_break_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_break_certificate)
+        );
+        let break_for_negative: DirectMirBreakCfgCertificateFact =
+            certificate.break_fact;
+        bad_break_rejected =
+            !DirectMirCfgCertificateReady(bad_break_certificate) &&
+            DirectMirBreakCfgCertificateFactMutationRejected(
+                break_for_negative
+            );
+    }
     return !DirectMirCfgCertificateReady(bad_digest) &&
         !DirectMirCfgCertificateReady(missing_evidence) &&
         !DirectMirCfgCertificateReady(fallback) &&
         !DirectMirCfgCertificateReady(drift) && bad_nested_rejected &&
-        bad_loop_rejected && bad_range_rejected;
+        bad_loop_rejected && bad_range_rejected && bad_break_rejected;
 }

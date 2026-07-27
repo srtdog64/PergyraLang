@@ -63,7 +63,8 @@ func CompileAdmittedDirectMirForTarget(
                 scalar, formatted_print, line_format, int_c_type
             );
         }
-    } else if block_count == 3 || block_count == 4 || block_count == 5 {
+    } else if block_count == 3 || block_count == 4 || block_count == 5 ||
+            block_count == 6 {
         let formatted_print: CompilerRuntimeCallAbiFact =
             CompilerRuntimeCallAbiFormattedPrintFact();
         if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
@@ -77,6 +78,7 @@ func CompileAdmittedDirectMirForTarget(
         let line_format: String = StringRuntimeCStringLineFormat();
         if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
             DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
+            DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
             plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
             line_format = StringRuntimeCIntLineFormat();
         } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One admitted MIR identity -> one MIR-bound AIR/CFG plan -> both backends.
-# one admitted ifelse/reassign/nested/while/range CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; typed Int line format drives the loop emitter; direct CFG plan target mutation rejects before output
+# one admitted ifelse/reassign/nested/while/range/break CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; typed Int line format drives the loop emitter; direct CFG plan target mutation rejects before output
 
 set -euo pipefail
 if ! command -v dirname >/dev/null 2>&1 \
@@ -27,12 +27,12 @@ DIRECT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_o
 EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 CFG_OWNER_REL="${PGY_SELFHOST_ONE_MIR_CFG_OWNER:-src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy}"
 CFG_OWNER="$ROOT_DIR/$CFG_OWNER_REL"
-AIR_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_owner.pgy"
+PLAN_VALUE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy"; PLAN_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy"
+AIR_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_owner.pgy"; AIR_READY_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy"
 AIR_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
 SHAPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 SCALAR_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
 CC="${PGY_SELFHOST_CC:-gcc}"
-
 MIR_ARTIFACT="$WORK_DIR/ifelse.one.mir.json"
 C_ARTIFACT="$WORK_DIR/ifelse.one.c"
 LLVM_ARTIFACT="$WORK_DIR/ifelse.one.ll"
@@ -67,14 +67,14 @@ assert_shared_plan_ratchet() {
     # backend_mir_or_air_read, backend_specific_cfg_plan, full_certificate_plan_retention,
     # second_shape_plan, unbound_target_fingerprint, post_verification_plan_mutation.
     require_file "$DIRECT_OWNER"; require_file "$EMISSION_OWNER"
-    require_file "$CFG_OWNER"; require_file "$AIR_OWNER"
+    require_file "$CFG_OWNER"; require_file "$PLAN_VALUE_OWNER"; require_file "$PLAN_MUTATION_OWNER"; require_file "$AIR_OWNER"; require_file "$AIR_READY_OWNER"
     require_file "$AIR_MUTATION_OWNER"; require_file "$SHAPE_OWNER"
-    for term in DirectMirCfgPlanFromAdmitted DirectMirCfgPlanReady \
-        DirectMirCfgPlanMutationRejected; do
+    for term in DirectMirCfgPlanFromAdmitted DirectMirCfgPlanReady; do
         grep -Fq -- "$term" "$CFG_OWNER" ||
             fail "shared CFG/AIR owner is missing $term"
     done
-    grep -Fq -- 'DirectMirCfgCertificateReady' "$AIR_OWNER" ||
+    grep -Fq -- 'DirectMirCfgPlanMutationRejected' "$PLAN_MUTATION_OWNER" || fail "shared CFG plan lacks repaired-digest mutation negatives"
+    grep -Fq -- 'DirectMirCfgCertificateReady' "$AIR_READY_OWNER" ||
         fail "MIR-bound AIR owner is missing DirectMirCfgCertificateReady"
     grep -Fq -- 'DirectMirCfgCertificateMutationRejected' "$AIR_MUTATION_OWNER" ||
         fail "MIR-bound AIR owner lacks certificate mutation negatives"
@@ -89,7 +89,7 @@ assert_shared_plan_ratchet() {
     for term in 'let bad_digest:' 'let fallback:' 'let drift:'; do
         grep -Fq -- "$term" "$AIR_MUTATION_OWNER" || fail "AIR certificate negative is missing: $term"
     done
-    for term in 'let bad_digest:' 'let bad_phi_binding:'; do grep -Fq -- "$term" "$CFG_OWNER" || fail "plan mutation negative is missing: $term"; done
+    for term in 'let bad_digest:' 'let bad_phi_binding:'; do grep -Fq -- "$term" "$PLAN_MUTATION_OWNER" || fail "plan mutation negative is missing: $term"; done
     grep -Fq -- 'import "../air/mir_cfg_certificate_owner.pgy";' "$CFG_OWNER" ||
         fail "shared CFG plan does not import its AIR certificate owner"
     grep -Fq -- 'import "direct_mir_cfg_plan_owner.pgy";' "$DIRECT_OWNER" ||

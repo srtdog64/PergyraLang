@@ -1,0 +1,96 @@
+// Immutable replacement constructors for the fixed target-neutral CFG plan.
+
+import "direct_mir_cfg_plan_fact_owner.pgy";
+
+func DirectMirCfgPlanWithDigest(
+    plan: DirectMirCfgPlan, digest: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, plan.nested, plan.loop_fact, plan.range_fact,
+        plan.break_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithTargetFingerprint(
+    plan: DirectMirCfgPlan, fingerprint: Int
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema, fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
+        plan.range_fact, plan.break_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithNested(
+    plan: DirectMirCfgPlan, nested: DirectMirNestedCfgCertificateFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, nested, plan.loop_fact, plan.range_fact,
+        plan.break_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithLoop(
+    plan: DirectMirCfgPlan, loop_fact: DirectMirLoopCfgPlanFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.phi_count, plan.nested, loop_fact,
+        plan.range_fact, plan.break_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithRange(
+    plan: DirectMirCfgPlan, range_fact: DirectMirRangeCfgPlanFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, plan.nested, plan.loop_fact, range_fact,
+        plan.break_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithBreak(
+    plan: DirectMirCfgPlan, break_fact: DirectMirBreakCfgPlanFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
+        plan.range_fact, break_fact, plan.shape
+    );
+}

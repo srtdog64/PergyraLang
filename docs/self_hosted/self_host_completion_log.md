@@ -6,6 +6,43 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Loop break CFG reaches both backends (v74)
+
+- Admitted the unchanged 7,054-byte `break_after_stmt.pgy` MIR with SHA-256
+  `cb2d4f9fad6411ae9ce54e2d072d038735c29d2499a960909a09fae8eb59efbf`.
+  Its six reachable blocks separate the while header, inner decision, break
+  block, empty continuation forwarder, and shared exit. C and LLVM compile
+  from that identity and match normalized native output `3`, `3`.
+- Advanced the common certificate and target-neutral plan to v6. One break
+  fact binds the actual `b4` continuation predecessor separately from the
+  `i.4` definition in `b2`, the header phi, exact break row, two Log uses, and
+  the distinct normal-exit `i.2` versus break-exit `i.4` value lanes.
+- Kept the split by Pergyra responsibility: fixed certificate identity,
+  loop-break topology/SSA fact, target-neutral shape, fixed break plan, and one
+  break text emitter containing both C and LLVM. LLVM's exit value phi is
+  explicitly backend-only materialization and is not represented as a second
+  MIR fact.
+- Original, late-break (`i == 9`), and zero-trip (`i = 5`) executions match
+  native output. Phi storage permutation is byte-identical. Summary, block,
+  edge, forwarded predecessor, SSA definition/use, break row, graph/operator,
+  Log target, and repaired certificate/plan mutations all reject before an
+  artifact is accepted.
+- The native-current integrated driver compiled with 0 errors and 0 warnings.
+  Its final r5 focused gate kept every scalar and CFG predecessor through
+  `forloop` green before admitting `break_after_stmt`.
+- The fresh Pergyra-built bounded seed matched the native oracle for sample C,
+  MIR production, and bounded MIR consumption. That seed then passed
+  hello/`let_log`/`multilet`, every earlier CFG rung, all three break execution
+  variants, and the strengthened assignment-target/break-row/backend-phi
+  negatives.
+- A follow-up audit found that the language-word registry's `CLOSED` label is
+  too strong even though native `impl/ref/own/type` token/debug output is now
+  correct. The self-host parser still owns raw keyword selectors, `systemic`
+  is accepted only there, self-host completion advertises an empty provider,
+  and TextMate scope identity is not registry-derived. Reopen that row as a
+  bridge and use `world W { systemic slot actors: Int; }` as the first
+  falsifier. This is the next SoT closure after the executable v74 delta.
+
 ## 2026-07-27 - Phi-free integer range reaches both backends (v73)
 
 - Admitted the unchanged 3,197-byte `forloop.pgy` MIR with SHA-256

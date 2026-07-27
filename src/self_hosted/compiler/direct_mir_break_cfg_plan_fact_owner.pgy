@@ -1,0 +1,106 @@
+// Fixed break-loop binding carried by one target-neutral direct CFG plan.
+
+import "direct_mir_break_cfg_shape_owner.pgy";
+
+struct DirectMirBreakCfgPlanFact {
+    let valid: Bool;
+    let digest: Int;
+    let certificate: DirectMirBreakCfgCertificateFact;
+    let shape: DirectMirBreakCfgShapeFact;
+}
+
+func DirectMirBreakCfgPlanFactEmpty() -> DirectMirBreakCfgPlanFact {
+    return DirectMirBreakCfgPlanFact(
+        false, 0, DirectMirBreakCfgCertificateFactEmpty(),
+        DirectMirBreakCfgShapeFactEmpty()
+    );
+}
+
+func DirectMirBreakCfgPlanFactDigest(
+    ref fact: DirectMirBreakCfgPlanFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        83L, DirectMirBreakCfgCertificateFactDigest(fact.certificate)
+    );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirBreakCfgShapeFactDigest(fact.shape)
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirBreakCfgPlanFactWithDigest(
+    fact: DirectMirBreakCfgPlanFact, digest: Int
+) -> DirectMirBreakCfgPlanFact {
+    return DirectMirBreakCfgPlanFact(
+        fact.valid, digest, fact.certificate, fact.shape
+    );
+}
+
+func DirectMirBreakCfgPlanFactAbsent(
+    ref fact: DirectMirBreakCfgPlanFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 &&
+        DirectMirBreakCfgCertificateFactAbsent(fact.certificate) &&
+        DirectMirBreakCfgShapeFactAbsent(fact.shape);
+}
+
+func DirectMirBreakCfgPlanFactReady(
+    ref fact: DirectMirBreakCfgPlanFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirBreakCfgPlanFactDigest(fact) &&
+        DirectMirBreakCfgCertificateFactReady(fact.certificate) &&
+        DirectMirBreakCfgShapeFactReady(fact.shape) &&
+        fact.shape.local_name == fact.certificate.local_name &&
+        fact.shape.entry_result_name ==
+            fact.certificate.preheader_incoming &&
+        fact.shape.phi_result_name ==
+            fact.certificate.phi_result_name &&
+        fact.shape.backedge_result_name ==
+            fact.certificate.backedge_incoming &&
+        fact.shape.normal_exit_result_name ==
+            fact.certificate.phi_result_name &&
+        fact.shape.break_exit_result_name ==
+            fact.certificate.backedge_incoming &&
+        fact.shape.exit_log_result_name ==
+            fact.certificate.backedge_incoming;
+}
+
+func DirectMirBreakCfgPlanFactFromOwners(
+    break_fact: DirectMirBreakCfgCertificateFact,
+    shape: DirectMirBreakCfgShapeFact
+) -> DirectMirBreakCfgPlanFact {
+    let fact: DirectMirBreakCfgPlanFact = DirectMirBreakCfgPlanFact(
+        true, 0, break_fact, shape
+    );
+    if !DirectMirBreakCfgCertificateFactReady(break_fact) ||
+        !DirectMirBreakCfgShapeFactReady(shape) {
+        return DirectMirBreakCfgPlanFactEmpty();
+    }
+    return DirectMirBreakCfgPlanFactWithDigest(
+        fact, DirectMirBreakCfgPlanFactDigest(fact)
+    );
+}
+
+func DirectMirBreakCfgPlanFactInvalidExitSelection(
+    fact: DirectMirBreakCfgPlanFact
+) -> DirectMirBreakCfgPlanFact {
+    let invalid_shape: DirectMirBreakCfgShapeFact =
+        DirectMirBreakCfgShapeFactInvalidExitSelection(fact.shape);
+    let invalid: DirectMirBreakCfgPlanFact = DirectMirBreakCfgPlanFact(
+        fact.valid, 0, fact.certificate, invalid_shape
+    );
+    return DirectMirBreakCfgPlanFactWithDigest(
+        invalid, DirectMirBreakCfgPlanFactDigest(invalid)
+    );
+}
+
+func DirectMirBreakCfgPlanFactMutationRejected(
+    own fact: DirectMirBreakCfgPlanFact
+) -> Bool {
+    if !DirectMirBreakCfgPlanFactReady(fact) { return false; }
+    let invalid: DirectMirBreakCfgPlanFact =
+        DirectMirBreakCfgPlanFactInvalidExitSelection(fact);
+    return !DirectMirBreakCfgPlanFactReady(invalid);
+}

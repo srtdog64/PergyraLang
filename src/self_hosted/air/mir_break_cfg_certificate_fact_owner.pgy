@@ -1,0 +1,627 @@
+// Fixed-size AIR fact binding the six-block break-after-statement CFG.
+//
+// The routine index owns topology and loop-flow facts, the phi owner binds
+// predecessor values to their unique definitions, the use owner binds SSA
+// lanes. The sibling shape owner is the only consumer of expression and Log
+// graphs; this certificate does not reopen them. Backend consumers receive the
+// two facts and never rediscover a control-flow role from instruction text.
+
+import "mir_cfg_identity_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/phi_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirBreakCfgCertificateFact {
+    let valid: Bool;
+    let digest: Int;
+    let block_count: Int;
+    let preheader_block: Int;
+    let header_block: Int;
+    let decision_block: Int;
+    let break_block: Int;
+    let continue_block: Int;
+    let exit_block: Int;
+    let loop_syntax_id: Int;
+    let loop_kind: Int;
+    let effect_base: Int;
+    let effect_delta: Int;
+    let loop_flags: Int;
+    let entry_state_start: Int;
+    let entry_state_count: Int;
+    let exit_state_start: Int;
+    let exit_state_count: Int;
+    let state_count: Int;
+    let init_global_row: Int;
+    let phi_global_row: Int;
+    let branch_global_row: Int;
+    let increment_global_row: Int;
+    let decision_global_row: Int;
+    let break_log_global_row: Int;
+    let break_global_row: Int;
+    let exit_log_global_row: Int;
+    let local_name: String;
+    let preheader_incoming: String;
+    let phi_result_name: String;
+    let backedge_incoming: String;
+}
+
+func DirectMirBreakCfgCertificateFactEmpty()
+    -> DirectMirBreakCfgCertificateFact {
+    return DirectMirBreakCfgCertificateFact(
+        false, 0, 0,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1,
+        "", "", "", ""
+    );
+}
+
+func DirectMirBreakCfgCertificateFactDigest(
+    ref fact: DirectMirBreakCfgCertificateFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(73L, fact.block_count);
+    hash = DirectMirCfgHashInt(hash, fact.preheader_block);
+    hash = DirectMirCfgHashInt(hash, fact.header_block);
+    hash = DirectMirCfgHashInt(hash, fact.decision_block);
+    hash = DirectMirCfgHashInt(hash, fact.break_block);
+    hash = DirectMirCfgHashInt(hash, fact.continue_block);
+    hash = DirectMirCfgHashInt(hash, fact.exit_block);
+    hash = DirectMirCfgHashInt(hash, fact.loop_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.loop_kind);
+    hash = DirectMirCfgHashInt(hash, fact.effect_base);
+    hash = DirectMirCfgHashInt(hash, fact.effect_delta);
+    hash = DirectMirCfgHashInt(hash, fact.loop_flags);
+    hash = DirectMirCfgHashInt(hash, fact.entry_state_start);
+    hash = DirectMirCfgHashInt(hash, fact.entry_state_count);
+    hash = DirectMirCfgHashInt(hash, fact.exit_state_start);
+    hash = DirectMirCfgHashInt(hash, fact.exit_state_count);
+    hash = DirectMirCfgHashInt(hash, fact.state_count);
+    hash = DirectMirCfgHashInt(hash, fact.init_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.phi_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.branch_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.increment_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.decision_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.break_log_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.break_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.exit_log_global_row);
+    hash = DirectMirCfgHashString(hash, fact.local_name);
+    hash = DirectMirCfgHashString(hash, fact.preheader_incoming);
+    hash = DirectMirCfgHashString(hash, fact.phi_result_name);
+    hash = DirectMirCfgHashString(hash, fact.backedge_incoming);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirBreakCfgCertificateFactWithDigest(
+    fact: DirectMirBreakCfgCertificateFact, digest: Int
+) -> DirectMirBreakCfgCertificateFact {
+    return DirectMirBreakCfgCertificateFact(
+        fact.valid, digest, fact.block_count,
+        fact.preheader_block, fact.header_block, fact.decision_block,
+        fact.break_block, fact.continue_block, fact.exit_block,
+        fact.loop_syntax_id, fact.loop_kind, fact.effect_base,
+        fact.effect_delta, fact.loop_flags, fact.entry_state_start,
+        fact.entry_state_count, fact.exit_state_start,
+        fact.exit_state_count, fact.state_count,
+        fact.init_global_row, fact.phi_global_row,
+        fact.branch_global_row, fact.increment_global_row,
+        fact.decision_global_row, fact.break_log_global_row,
+        fact.break_global_row, fact.exit_log_global_row,
+        fact.local_name, fact.preheader_incoming,
+        fact.phi_result_name, fact.backedge_incoming
+    );
+}
+
+func DirectMirBreakCfgCertificateFactAbsent(
+    ref fact: DirectMirBreakCfgCertificateFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.block_count == 0 &&
+        fact.preheader_block < 0 && fact.header_block < 0 &&
+        fact.decision_block < 0 && fact.break_block < 0 &&
+        fact.continue_block < 0 && fact.exit_block < 0 &&
+        fact.loop_syntax_id < 0 && fact.loop_kind < 0 &&
+        fact.effect_base < 0 && fact.effect_delta < 0 &&
+        fact.loop_flags < 0 && fact.entry_state_start < 0 &&
+        fact.entry_state_count < 0 && fact.exit_state_start < 0 &&
+        fact.exit_state_count < 0 && fact.state_count < 0 &&
+        fact.init_global_row < 0 && fact.phi_global_row < 0 &&
+        fact.branch_global_row < 0 && fact.increment_global_row < 0 &&
+        fact.decision_global_row < 0 && fact.break_log_global_row < 0 &&
+        fact.break_global_row < 0 && fact.exit_log_global_row < 0 &&
+        fact.local_name == "" && fact.preheader_incoming == "" &&
+        fact.phi_result_name == "" && fact.backedge_incoming == "";
+}
+
+func DirectMirBreakCfgCertificateFactReady(
+    ref fact: DirectMirBreakCfgCertificateFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.block_count != 6 ||
+        fact.digest != DirectMirBreakCfgCertificateFactDigest(fact) ||
+        fact.loop_syntax_id <= 0 || fact.loop_kind != 0 ||
+        fact.effect_base != 0 || fact.effect_delta != 0 ||
+        fact.loop_flags != 1 || fact.entry_state_start != 0 ||
+        fact.entry_state_count != 0 || fact.exit_state_start != 0 ||
+        fact.exit_state_count != 0 || fact.state_count != 0 ||
+        StringLength(fact.local_name) == 0 ||
+        !MirSsaNameMatches(
+            fact.preheader_incoming, fact.local_name, false
+        ) || !MirSsaNameMatches(
+            fact.phi_result_name, fact.local_name, false
+        ) || !MirSsaNameMatches(
+            fact.backedge_incoming, fact.local_name, false
+        ) || fact.preheader_incoming == fact.phi_result_name ||
+        fact.preheader_incoming == fact.backedge_incoming ||
+        fact.phi_result_name == fact.backedge_incoming {
+        return false;
+    }
+    let blocks: Array<Int> = [
+        fact.preheader_block, fact.header_block, fact.decision_block,
+        fact.break_block, fact.continue_block, fact.exit_block
+    ];
+    let block_i: Int = 0;
+    while block_i < ArrayLength(blocks) {
+        if blocks[block_i] < 0 || blocks[block_i] >= fact.block_count {
+            return false;
+        }
+        let prior_block: Int = 0;
+        while prior_block < block_i {
+            if blocks[prior_block] == blocks[block_i] { return false; }
+            prior_block = prior_block + 1;
+        }
+        block_i = block_i + 1;
+    }
+    let rows: Array<Int> = [
+        fact.init_global_row, fact.phi_global_row,
+        fact.branch_global_row, fact.increment_global_row,
+        fact.decision_global_row, fact.break_log_global_row,
+        fact.break_global_row, fact.exit_log_global_row
+    ];
+    let row_i: Int = 0;
+    while row_i < ArrayLength(rows) {
+        if rows[row_i] < 0 { return false; }
+        let prior_row: Int = 0;
+        while prior_row < row_i {
+            if rows[prior_row] == rows[row_i] { return false; }
+            prior_row = prior_row + 1;
+        }
+        row_i = row_i + 1;
+    }
+    return true;
+}
+
+func DirectMirBreakCfgCertificateFactFromIndex(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts
+) -> DirectMirBreakCfgCertificateFact {
+    let block_count: Int = ArrayLength(index.block_starts);
+    if !index.valid || block_count != 6 ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.backedge_headers) ||
+        block_count != ArrayLength(index.block_has_conditional_branch) ||
+        block_count != ArrayLength(index.block_structural_merges) ||
+        block_count != ArrayLength(index.block_instruction_counts) ||
+        block_count != ArrayLength(
+            index.instruction_facts.block_phi_prefix_counts
+        ) || ArrayLength(index.instruction_facts.starts) != 8 ||
+        !MirRoutineFactIndexLoopFlowFactsValid(index) ||
+        ArrayLength(index.loop_flow_summary_loop_ids) != 1 ||
+        ArrayLength(index.loop_flow_summary_kinds) != 1 ||
+        index.loop_flow_summary_kinds[0] != 0 ||
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 ||
+        !MirRoutineInstructionUseFactsReady(use_facts, 8) {
+        Die("direct MIR break CFG inventory or loop-flow owner is invalid");
+    }
+
+    let header: Int = 0 - 1;
+    let header_candidate: Int = 0;
+    while header_candidate < block_count {
+        if index.backedge_headers[header_candidate] == 1 {
+            if header >= 0 {
+                Die("direct MIR break CFG header is ambiguous");
+            }
+            header = header_candidate;
+        }
+        header_candidate = header_candidate + 1;
+    }
+    if header < 0 {
+        Die("direct MIR break CFG header is missing");
+    }
+
+    let preheader: Int = 0 - 1;
+    let predecessor: Int = 0;
+    while predecessor < block_count {
+        if index.block_succ_true[predecessor] == header &&
+            index.block_succ_false[predecessor] < 0 &&
+            index.block_instruction_counts[predecessor] == 1 {
+            if preheader >= 0 {
+                Die("direct MIR break CFG preheader is ambiguous");
+            }
+            preheader = predecessor;
+        }
+        predecessor = predecessor + 1;
+    }
+    if preheader < 0 {
+        Die("direct MIR break CFG preheader is missing");
+    }
+
+    let continue_block: Int = 0 - 1;
+    predecessor = 0;
+    while predecessor < block_count {
+        if predecessor != preheader &&
+            index.block_succ_true[predecessor] == header &&
+            index.block_succ_false[predecessor] < 0 &&
+            index.block_instruction_counts[predecessor] == 0 {
+            if continue_block >= 0 {
+                Die("direct MIR break CFG forwarder is ambiguous");
+            }
+            continue_block = predecessor;
+        }
+        predecessor = predecessor + 1;
+    }
+    if continue_block < 0 {
+        Die("direct MIR break CFG forwarder is missing");
+    }
+
+    let decision: Int = index.block_succ_true[header];
+    let exit: Int = index.block_succ_false[header];
+    if decision < 0 || decision >= block_count ||
+        exit < 0 || exit >= block_count {
+        Die("direct MIR break CFG header exits are invalid");
+    }
+    let break_block: Int = index.block_succ_true[decision];
+    if break_block < 0 || break_block >= block_count ||
+        index.block_succ_false[decision] != continue_block ||
+        index.block_succ_true[break_block] != exit ||
+        index.block_succ_false[break_block] >= 0 ||
+        index.block_succ_true[exit] >= 0 ||
+        index.block_succ_false[exit] >= 0 ||
+        index.block_structural_merges[header] != exit ||
+        index.block_structural_merges[decision] != exit {
+        Die("direct MIR break CFG split, forwarder, or exit is invalid");
+    }
+
+    let roles: Array<Int> = [
+        preheader, header, decision, break_block, continue_block, exit
+    ];
+    let role_i: Int = 0;
+    while role_i < ArrayLength(roles) {
+        let prior_role: Int = 0;
+        while prior_role < role_i {
+            if roles[prior_role] == roles[role_i] {
+                Die("direct MIR break CFG block roles overlap");
+            }
+            prior_role = prior_role + 1;
+        }
+        role_i = role_i + 1;
+    }
+
+    let block: Int = 0;
+    while block < block_count {
+        let expected_count: Int = 0;
+        let expected_branch: Int = 0;
+        let expected_phi: Int = 0;
+        let expected_backedge_header: Int = 0;
+        let expected_merge: Int = 0 - 1;
+        if block == preheader || block == exit { expected_count = 1; }
+        if block == header || block == decision || block == break_block {
+            expected_count = 2;
+        }
+        if block == header || block == decision {
+            expected_branch = 1;
+            expected_merge = exit;
+        }
+        if block == header {
+            expected_phi = 1;
+            expected_backedge_header = 1;
+        }
+        if !index.block_reachable[block] ||
+            index.block_instruction_counts[block] != expected_count ||
+            index.block_has_conditional_branch[block] != expected_branch ||
+            index.instruction_facts.block_phi_prefix_counts[block] !=
+                expected_phi ||
+            index.backedge_headers[block] != expected_backedge_header ||
+            index.block_structural_merges[block] != expected_merge {
+            Die("direct MIR break CFG block inventory is invalid");
+        }
+        block = block + 1;
+    }
+
+    let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+        index, admitted.routines, use_facts, 0, header, 0
+    );
+    if !phi.valid || phi.predecessor_count != 2 ||
+        MirPhiPredecessorCount(index, header) != 2 ||
+        ArrayLength(phi.incoming_results) != 2 ||
+        ArrayLength(phi.incoming_definition_blocks) != 2 ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, phi.global_row
+        ) != 2 {
+        Die("direct MIR break CFG header phi is invalid");
+    }
+    let preheader_incoming: String = "";
+    let backedge_incoming: String = "";
+    let incoming: Int = 0;
+    while incoming < 2 {
+        let definition_block: Int =
+            phi.incoming_definition_blocks[incoming];
+        if definition_block == preheader && preheader_incoming == "" {
+            preheader_incoming = phi.incoming_results[incoming];
+        } else if definition_block == decision &&
+            backedge_incoming == "" {
+            backedge_incoming = phi.incoming_results[incoming];
+        } else {
+            Die("direct MIR break CFG phi definition coverage is invalid");
+        }
+        incoming = incoming + 1;
+    }
+    if preheader_incoming == "" || backedge_incoming == "" ||
+        ArrayLength(index.source_local_names) != 1 ||
+        ArrayLength(index.source_local_types) != 1 ||
+        index.source_local_names[0] != phi.local_name ||
+        index.source_local_types[0] != "Int" {
+        Die("direct MIR break CFG entry or forwarded phi lane is invalid");
+    }
+
+    let phi_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(index, phi.result_name);
+    let entry_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, preheader_incoming
+        );
+    let backedge_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, backedge_incoming
+        );
+    if !MirRoutineResultDefinitionFactReady(phi_definition) ||
+        phi_definition.global_row != phi.global_row ||
+        phi_definition.block_id != header ||
+        phi_definition.block_instruction_row != 0 ||
+        !MirRoutineResultDefinitionFactReady(entry_definition) ||
+        entry_definition.block_id != preheader ||
+        entry_definition.block_instruction_row != 0 ||
+        !MirRoutineResultDefinitionFactReady(backedge_definition) ||
+        backedge_definition.block_id != decision ||
+        backedge_definition.block_instruction_row != 0 {
+        Die("direct MIR break CFG unique SSA definition is invalid");
+    }
+
+    let header_branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, admitted.routines, 0, header
+        );
+    let decision_branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, admitted.routines, 0, decision
+        );
+    let break_branch: MirRoutineInstructionSelection =
+        MirRoutineFactIndexBranchAtBlock(
+            index, admitted.routines, 0, break_block
+        );
+    let init_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, preheader, 0
+    );
+    let increment_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, decision, 0
+    );
+    let break_log_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, break_block, 0
+    );
+    let exit_log_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, exit, 0
+    );
+    if !header_branch.valid || !header_branch.found ||
+        header_branch.instruction.source_type != "AST_BINARY" ||
+        !decision_branch.valid || !decision_branch.found ||
+        decision_branch.instruction.source_type != "AST_BINARY" ||
+        !break_branch.valid || !break_branch.found ||
+        break_branch.instruction.source_type != "AST_BREAK" ||
+        init_row != entry_definition.global_row ||
+        increment_row != backedge_definition.global_row ||
+        header_branch.instruction.global_row !=
+            MirProgramRoutineIndexGlobalInstructionRow(
+                admitted.routines, 0, header, 1
+            ) || decision_branch.instruction.global_row !=
+            MirProgramRoutineIndexGlobalInstructionRow(
+                admitted.routines, 0, decision, 1
+            ) || break_branch.instruction.global_row !=
+            MirProgramRoutineIndexGlobalInstructionRow(
+                admitted.routines, 0, break_block, 1
+            ) {
+        Die("direct MIR break CFG instruction placement is invalid");
+    }
+
+    if admitted.routines.instruction_kinds[init_row] != "def" ||
+        admitted.routines.instruction_source_types[init_row] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_kinds[increment_row] != "def" ||
+        admitted.routines.instruction_source_types[increment_row] !=
+            "AST_ASSIGNMENT" ||
+        admitted.routines.instruction_kinds[break_log_row] != "stmt" ||
+        admitted.routines.instruction_source_types[break_log_row] !=
+            "AST_CALL" ||
+        admitted.routines.instruction_kinds[exit_log_row] != "stmt" ||
+        admitted.routines.instruction_source_types[exit_log_row] !=
+            "AST_CALL" {
+        Die("direct MIR break CFG instruction identity is invalid");
+    }
+
+    let header_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, header_branch.instruction.global_row, 0
+    );
+    let increment_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, increment_row, 0
+    );
+    let decision_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, decision_branch.instruction.global_row, 0
+    );
+    let break_log_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, break_log_row, 0
+    );
+    let exit_log_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, exit_log_row, 0
+    );
+    if MirRoutineInstructionUseCountAtGlobal(
+            use_facts, init_row
+        ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, header_branch.instruction.global_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, increment_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, decision_branch.instruction.global_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, break_log_row
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, break_branch.instruction.global_row
+        ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+            use_facts, exit_log_row
+        ) != 1 || !IsSome(header_use) || !IsSome(increment_use) ||
+        !IsSome(decision_use) || !IsSome(break_log_use) ||
+        !IsSome(exit_log_use) ||
+        UnwrapOption(header_use) != phi.result_name ||
+        UnwrapOption(increment_use) != phi.result_name ||
+        UnwrapOption(decision_use) != backedge_incoming ||
+        UnwrapOption(break_log_use) != backedge_incoming ||
+        UnwrapOption(exit_log_use) != backedge_incoming {
+        Die("direct MIR break CFG SSA lane selection is invalid");
+    }
+
+    let init_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, init_row
+        );
+    let header_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts,
+            header_branch.instruction.global_row
+        );
+    let increment_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, increment_row
+        );
+    let decision_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts,
+            decision_branch.instruction.global_row
+        );
+    let break_log_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, break_log_row
+        );
+    let break_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, break_branch.instruction.global_row
+        );
+    let exit_log_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, exit_log_row
+        );
+    if !init_scalar.valid || init_scalar.name != "ssa-def" ||
+        init_scalar.result != preheader_incoming ||
+        init_scalar.arg0 != phi.local_name || init_scalar.arg1 != "" ||
+        init_scalar.slot_anchor != "" ||
+        !init_scalar.abi_type_value_ready ||
+        init_scalar.abi_type_name != "Int" ||
+        !header_scalar.valid || header_scalar.name != "branch" ||
+        header_scalar.result != "" || header_scalar.arg0 != "" ||
+        header_scalar.arg1 != "" || header_scalar.slot_anchor != "" ||
+        !header_scalar.abi_type_value_ready ||
+        header_scalar.abi_type_name != "" ||
+        !increment_scalar.valid || increment_scalar.name != "ssa-def" ||
+        increment_scalar.result != backedge_incoming ||
+        increment_scalar.arg0 != phi.local_name ||
+        increment_scalar.arg1 != "local" ||
+        increment_scalar.expr1 != phi.local_name ||
+        increment_scalar.slot_anchor != "" ||
+        !increment_scalar.abi_type_value_ready ||
+        increment_scalar.abi_type_name != "" ||
+        !decision_scalar.valid || decision_scalar.name != "branch" ||
+        decision_scalar.result != "" || decision_scalar.arg0 != "" ||
+        decision_scalar.arg1 != "" ||
+        decision_scalar.slot_anchor != "" ||
+        !decision_scalar.abi_type_value_ready ||
+        decision_scalar.abi_type_name != "" ||
+        !break_log_scalar.valid || break_log_scalar.name != "stmt" ||
+        break_log_scalar.result != "" || break_log_scalar.arg0 != "Log" ||
+        break_log_scalar.arg1 != "" || break_log_scalar.slot_anchor != "" ||
+        !break_log_scalar.abi_type_value_ready ||
+        break_log_scalar.abi_type_name != "" ||
+        !break_scalar.valid || break_scalar.name != "break" ||
+        break_scalar.result != "" || break_scalar.arg0 != "" ||
+        break_scalar.arg1 != "" || break_scalar.expr0 != "break" ||
+        break_scalar.expr1 != "" || break_scalar.slot_anchor != "" ||
+        !break_scalar.abi_type_value_ready ||
+        break_scalar.abi_type_name != "" ||
+        !exit_log_scalar.valid || exit_log_scalar.name != "stmt" ||
+        exit_log_scalar.result != "" || exit_log_scalar.arg0 != "Log" ||
+        exit_log_scalar.arg1 != "" || exit_log_scalar.slot_anchor != "" ||
+        !exit_log_scalar.abi_type_value_ready ||
+        exit_log_scalar.abi_type_name != "" {
+        Die("direct MIR break CFG increment or break scalar is invalid");
+    }
+
+    let fact: DirectMirBreakCfgCertificateFact =
+        DirectMirBreakCfgCertificateFact(
+            true, 0, block_count,
+            preheader, header, decision, break_block, continue_block, exit,
+            index.loop_flow_summary_loop_ids[0],
+            index.loop_flow_summary_kinds[0],
+            index.loop_flow_summary_effect_bases[0],
+            index.loop_flow_summary_effect_deltas[0],
+            index.loop_flow_summary_flags[0],
+            index.loop_flow_summary_entry_starts[0],
+            index.loop_flow_summary_entry_counts[0],
+            index.loop_flow_summary_exit_starts[0],
+            index.loop_flow_summary_exit_counts[0],
+            ArrayLength(index.loop_flow_state_stable_indices),
+            init_row, phi.global_row,
+            header_branch.instruction.global_row, increment_row,
+            decision_branch.instruction.global_row, break_log_row,
+            break_branch.instruction.global_row, exit_log_row,
+            phi.local_name, preheader_incoming,
+            phi.result_name, backedge_incoming
+        );
+    return DirectMirBreakCfgCertificateFactWithDigest(
+        fact, DirectMirBreakCfgCertificateFactDigest(fact)
+    );
+}
+
+func DirectMirBreakCfgCertificateFactInvalidExitSelection(
+    fact: DirectMirBreakCfgCertificateFact
+) -> DirectMirBreakCfgCertificateFact {
+    // A digest repair cannot make the normal header exit and the taken-break
+    // exit share one SSA identity: the two lanes are semantically distinct.
+    let invalid: DirectMirBreakCfgCertificateFact =
+        DirectMirBreakCfgCertificateFact(
+            fact.valid, 0, fact.block_count,
+            fact.preheader_block, fact.header_block, fact.decision_block,
+            fact.break_block, fact.continue_block, fact.exit_block,
+            fact.loop_syntax_id, fact.loop_kind, fact.effect_base,
+            fact.effect_delta, fact.loop_flags, fact.entry_state_start,
+            fact.entry_state_count, fact.exit_state_start,
+            fact.exit_state_count, fact.state_count,
+            fact.init_global_row, fact.phi_global_row,
+            fact.branch_global_row, fact.increment_global_row,
+            fact.decision_global_row, fact.break_log_global_row,
+            fact.break_global_row, fact.exit_log_global_row,
+            fact.local_name, fact.preheader_incoming,
+            fact.backedge_incoming, fact.backedge_incoming
+        );
+    return DirectMirBreakCfgCertificateFactWithDigest(
+        invalid, DirectMirBreakCfgCertificateFactDigest(invalid)
+    );
+}
+
+func DirectMirBreakCfgCertificateFactMutationRejected(
+    own fact: DirectMirBreakCfgCertificateFact
+) -> Bool {
+    if !DirectMirBreakCfgCertificateFactReady(fact) { return false; }
+    let invalid: DirectMirBreakCfgCertificateFact =
+        DirectMirBreakCfgCertificateFactInvalidExitSelection(fact);
+    return !DirectMirBreakCfgCertificateFactReady(invalid);
+}

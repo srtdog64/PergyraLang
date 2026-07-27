@@ -641,6 +641,24 @@ The filtered `dir_walk,break_after_stmt` broad parity attempt currently fails
 earlier when the reconstructed C lacks `PGY_RUNTIME_PANIC` declarations. Keep
 that compile RED separate from CFG analysis. It is neither proof against this
 optimization nor a successful runtime parity result.
+
+The later v74 direct-CFG gate isolates `break_after_stmt` from that unrelated
+runtime-header RED. Its first implementation failed because the common
+certificate assumed that every phi-bearing merge block used the earlier
+`AST_IDENTIFIER` branch anchor. A loop-break header owns an `AST_BINARY`
+condition instead. The repair does not weaken all phi checks: it admits that
+anchor only when the separately issued six-block break fact is ready. The
+break fact still fixes the exact header/decision/break/continuation/exit roles,
+one phi, one while summary, and eight instructions.
+
+Two negative mutations can fail at the earlier machine-layer admission before
+the break-specific diagnostic: changing the break block identity invalidates
+the admitted CFG, and injecting a partial statement row invalidates the typed
+instruction envelope. That is a valid pre-artifact rejection, not evidence
+that the break owner consumed the mutation. Keep owner-specific mutations for
+the remaining break row, edge, forwarded predecessor, SSA use, graph, and
+repaired-digest cases; do not force an earlier invalid artifact past its real
+owner merely to obtain a later diagnostic.
 The current focused body-gate attempt similarly stops at
 `valid_array_builtins`: emitted C lacks `<string.h>` plus the runtime panic
 declarations. A separately isolated current-driver `nested_if_in_loop` MIR

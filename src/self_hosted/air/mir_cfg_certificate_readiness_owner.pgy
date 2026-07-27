@@ -1,0 +1,160 @@
+// Fixed-size readiness checks for an issued CFG certificate.
+// This owner never reopens MIR, JSON, AST, or expression graphs.
+
+import "mir_cfg_certificate_fact_owner.pgy";
+import "../compiler/air_evidence_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+func DirectMirCfgCertificateReady(
+    ref certificate: DirectMirCfgCertificate
+) -> Bool {
+    let expected_instruction_count: Int = 4;
+    if certificate.phi_count == 1 { expected_instruction_count = 6; }
+    let loop_ready: Bool = certificate.block_count == 4 &&
+        DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) &&
+        certificate.entry_block == certificate.loop_fact.preheader_block &&
+        certificate.true_block == certificate.loop_fact.body_block &&
+        certificate.false_block == certificate.loop_fact.exit_block &&
+        certificate.merge_block == certificate.loop_fact.header_block &&
+        certificate.branch_global_row ==
+            certificate.loop_fact.branch_global_row &&
+        certificate.phi_local_name == certificate.loop_fact.local_name &&
+        certificate.phi_result_name == certificate.loop_fact.phi_result_name &&
+        certificate.phi_true_incoming ==
+            certificate.loop_fact.backedge_incoming &&
+        certificate.phi_false_incoming ==
+            certificate.loop_fact.preheader_incoming;
+    if loop_ready { expected_instruction_count = 5; }
+    let range_ready: Bool = certificate.block_count == 4 &&
+        DirectMirRangeCfgCertificateFactReady(certificate.range_fact) &&
+        certificate.entry_block == certificate.range_fact.preheader_block &&
+        certificate.true_block == certificate.range_fact.body_block &&
+        certificate.false_block == certificate.range_fact.exit_block &&
+        certificate.merge_block == certificate.range_fact.header_block &&
+        certificate.branch_global_row ==
+            certificate.range_fact.branch_global_row &&
+        ToInt(certificate.source_syntax_id) ==
+            certificate.range_fact.iteration_function_id &&
+        certificate.phi_count == 0;
+    if range_ready { expected_instruction_count = 3; }
+    let break_ready: Bool = certificate.block_count == 6 &&
+        DirectMirBreakCfgCertificateFactReady(certificate.break_fact) &&
+        certificate.entry_block == certificate.break_fact.preheader_block &&
+        certificate.true_block == certificate.break_fact.decision_block &&
+        certificate.false_block == certificate.break_fact.exit_block &&
+        certificate.merge_block == certificate.break_fact.header_block &&
+        certificate.branch_global_row ==
+            certificate.break_fact.branch_global_row &&
+        certificate.phi_local_name == certificate.break_fact.local_name &&
+        certificate.phi_result_name ==
+            certificate.break_fact.phi_result_name &&
+        certificate.phi_true_incoming ==
+            certificate.break_fact.backedge_incoming &&
+        certificate.phi_false_incoming ==
+            certificate.break_fact.preheader_incoming &&
+        certificate.phi_count == 1;
+    if break_ready { expected_instruction_count = 8; }
+    let nested_ready: Bool = certificate.block_count == 5 &&
+        DirectMirNestedCfgCertificateFactReady(certificate.nested) &&
+        certificate.true_block == certificate.nested.branch_block &&
+        certificate.false_block == certificate.nested.outer_merge_block &&
+        certificate.merge_block == certificate.nested.outer_merge_block &&
+        certificate.branch_global_row !=
+            certificate.nested.branch_global_row;
+    let nested_binding_ready: Bool = nested_ready;
+    if certificate.block_count != 5 {
+        nested_binding_ready =
+            DirectMirNestedCfgCertificateFactAbsent(certificate.nested);
+    }
+    let loop_binding_ready: Bool = loop_ready;
+    if !loop_ready {
+        loop_binding_ready =
+            DirectMirLoopCfgCertificateFactAbsent(certificate.loop_fact);
+    }
+    let range_binding_ready: Bool = range_ready;
+    if !range_ready {
+        range_binding_ready =
+            DirectMirRangeCfgCertificateFactAbsent(certificate.range_fact);
+    }
+    let break_binding_ready: Bool = break_ready;
+    if !break_ready {
+        break_binding_ready =
+            DirectMirBreakCfgCertificateFactAbsent(certificate.break_fact);
+    }
+    let direct_false_edge: Bool =
+        !loop_ready && !range_ready && !break_ready &&
+        (certificate.block_count == 3 || nested_ready) &&
+        certificate.phi_count == 1 &&
+        certificate.false_block == certificate.merge_block;
+    if nested_ready { direct_false_edge = true; }
+    if certificate.block_count == 3 && direct_false_edge {
+        expected_instruction_count = 5;
+    }
+    let expected_phi_digest: Int = DirectMirCfgPhiBindingDigest(
+        certificate.phi_count, certificate.phi_local_name,
+        certificate.phi_result_name, certificate.phi_true_incoming,
+        certificate.phi_false_incoming
+    );
+    let phi_fields_ready: Bool = certificate.phi_count == 0 &&
+        certificate.phi_digest == 0 && certificate.phi_local_name == "" &&
+        certificate.phi_result_name == "" &&
+        certificate.phi_true_incoming == "" &&
+        certificate.phi_false_incoming == "";
+    if certificate.phi_count == 1 {
+        phi_fields_ready = expected_phi_digest != 0 &&
+            MirSsaNameMatches(
+                certificate.phi_result_name,
+                certificate.phi_local_name, false
+            ) && MirSsaNameMatches(
+                certificate.phi_true_incoming,
+                certificate.phi_local_name, false
+            ) && MirSsaNameMatches(
+                certificate.phi_false_incoming,
+                certificate.phi_local_name, false
+            ) && certificate.phi_result_name !=
+                certificate.phi_true_incoming &&
+            certificate.phi_result_name !=
+                certificate.phi_false_incoming &&
+            certificate.phi_true_incoming !=
+                certificate.phi_false_incoming;
+    }
+    return certificate.valid &&
+        certificate.schema == DirectMirCfgCertificateSchema() &&
+        certificate.revision == DirectMirCfgCertificateRevision() &&
+        certificate.certificate_digest != 0 &&
+        certificate.certificate_digest ==
+            DirectMirCfgCertificateIdentityDigest(certificate) &&
+        certificate.mir_digest != 0 && certificate.source_length > 0 &&
+        certificate.routine_start >= 0 &&
+        certificate.routine_end > certificate.routine_start &&
+        StringLength(certificate.source_syntax_id) > 0 &&
+        certificate.cfg_digest != 0 &&
+        (certificate.block_count == 4 || direct_false_edge || nested_ready ||
+            break_ready) &&
+        (certificate.phi_count == 0 || certificate.phi_count == 1) &&
+        certificate.instruction_count == expected_instruction_count &&
+        certificate.phi_digest == expected_phi_digest && phi_fields_ready &&
+        nested_binding_ready && loop_binding_ready && range_binding_ready &&
+        break_binding_ready &&
+        !((loop_ready && range_ready) || (loop_ready && break_ready) ||
+            (range_ready && break_ready)) &&
+        certificate.entry_block >= 0 &&
+        certificate.true_block >= 0 && certificate.false_block >= 0 &&
+        certificate.merge_block >= 0 &&
+        certificate.entry_block != certificate.true_block &&
+        certificate.entry_block != certificate.false_block &&
+        certificate.entry_block != certificate.merge_block &&
+        certificate.true_block != certificate.false_block &&
+        certificate.true_block != certificate.merge_block &&
+        (direct_false_edge ||
+            certificate.false_block != certificate.merge_block) &&
+        certificate.evidence_kind ==
+            CompilerAirEvidenceMirTerminatorFact() &&
+        ((!nested_ready && !loop_ready && !range_ready && !break_ready &&
+            certificate.evidence_fact_count == 1) ||
+            ((nested_ready || loop_ready || range_ready || break_ready) &&
+                certificate.evidence_fact_count == 2)) &&
+        certificate.fallback_count == 0 &&
+        certificate.drift_count == 0 && certificate.strict_evidence &&
+        certificate.mir_evidence_bound;
+}

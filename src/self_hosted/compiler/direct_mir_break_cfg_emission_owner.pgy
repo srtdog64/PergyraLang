@@ -1,0 +1,137 @@
+// C and LLVM text for one certified loop-break responsibility. Both backends
+// consume the same fixed facts; the LLVM exit selection is backend-only
+// materialization and does not add a MIR fact.
+
+import "direct_mir_break_cfg_shape_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirBreakCfgEmissionFactsReady(
+    ref shape: DirectMirBreakCfgShapeFact,
+    ref break_fact: DirectMirBreakCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> Bool {
+    return DirectMirBreakCfgShapeFactReady(shape) &&
+        DirectMirBreakCfgCertificateFactReady(break_fact) &&
+        shape.local_name == break_fact.local_name &&
+        shape.entry_result_name == break_fact.preheader_incoming &&
+        shape.phi_result_name == break_fact.phi_result_name &&
+        shape.backedge_result_name == break_fact.backedge_incoming &&
+        shape.normal_exit_result_name == break_fact.phi_result_name &&
+        shape.break_exit_result_name == break_fact.backedge_incoming &&
+        shape.exit_log_result_name == break_fact.backedge_incoming &&
+        formatted_print.ok && StringLength(formatted_print.symbol) > 0 &&
+        formatted_print.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") &&
+        StringLength(line_format) > 0;
+}
+
+func DirectMirBreakCfgEmitC(
+    ref shape: DirectMirBreakCfgShapeFact,
+    ref break_fact: DirectMirBreakCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirBreakCfgEmissionFactsReady(
+        shape, break_fact, formatted_print, line_format
+    ) || StringLength(int_c_type) == 0 {
+        Die("direct MIR break CFG C facts are invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+    output = Concat(output, int_c_type);
+    output = Concat(output, " pgy_local_0 = ");
+    output = Concat(output, shape.initial_literal);
+    output = Concat(output, ";\n    while (pgy_local_0 < ");
+    output = Concat(output, shape.limit_literal);
+    output = Concat(output, ") {\n        pgy_local_0 = pgy_local_0 + ");
+    output = Concat(output, shape.increment_literal);
+    output = Concat(output, ";\n        if (pgy_local_0 == ");
+    output = Concat(output, shape.decision_literal);
+    output = Concat(output, ") {\n            ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, int_c_type);
+    output = Concat(output, ")pgy_local_0);\n            break;\n        }\n    }\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, int_c_type);
+    output = Concat(output, ")pgy_local_0);\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirBreakCfgEmitLlvm(
+    ref shape: DirectMirBreakCfgShapeFact,
+    ref break_fact: DirectMirBreakCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirBreakCfgEmissionFactsReady(
+        shape, break_fact, formatted_print, line_format
+    ) {
+        Die("direct MIR break CFG LLVM facts are invalid");
+    }
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output, "  %pgy.local.entry = add i64 0, ");
+    output = Concat(output, shape.initial_literal);
+    output = Concat(output, "\n  br label %pgy.block.");
+    output = Concat(output, ToString(break_fact.header_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(break_fact.header_block));
+    output = Concat(
+        output, ":\n  %pgy.local.loop = phi i64 [ %pgy.local.entry, %entry ], "
+    );
+    output = Concat(output, "[ %pgy.local.next, %pgy.block.");
+    output = Concat(output, ToString(break_fact.continue_block));
+    output = Concat(output, " ]\n  %pgy.condition.loop = icmp slt i64 %pgy.local.loop, ");
+    output = Concat(output, shape.limit_literal);
+    output = Concat(output, "\n  br i1 %pgy.condition.loop, label %pgy.block.");
+    output = Concat(output, ToString(break_fact.decision_block));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(break_fact.exit_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(break_fact.decision_block));
+    output = Concat(output, ":\n  %pgy.local.next = add i64 %pgy.local.loop, ");
+    output = Concat(output, shape.increment_literal);
+    output = Concat(output, "\n  %pgy.condition.break = icmp eq i64 %pgy.local.next, ");
+    output = Concat(output, shape.decision_literal);
+    output = Concat(output, "\n  br i1 %pgy.condition.break, label %pgy.block.");
+    output = Concat(output, ToString(break_fact.break_block));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(break_fact.continue_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(break_fact.break_block));
+    output = Concat(output, ":\n  %pgy.logged.break = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.local.next)\n");
+    output = Concat(output, "  br label %pgy.block.");
+    output = Concat(output, ToString(break_fact.exit_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(break_fact.continue_block));
+    output = Concat(output, ":\n  br label %pgy.block.");
+    output = Concat(output, ToString(break_fact.header_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(break_fact.exit_block));
+    output = Concat(output, ":\n  ; backend-only exit value selection; not MIR evidence\n");
+    output = Concat(output, "  %pgy.backend.exit.value = phi i64 [ %pgy.local.loop, %pgy.block.");
+    output = Concat(output, ToString(break_fact.header_block));
+    output = Concat(output, " ], [ %pgy.local.next, %pgy.block.");
+    output = Concat(output, ToString(break_fact.break_block));
+    output = Concat(output, " ]\n  %pgy.logged.exit = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.backend.exit.value)\n");
+    output = Concat(output, "  ret i32 0\n}\n");
+    return output;
+}

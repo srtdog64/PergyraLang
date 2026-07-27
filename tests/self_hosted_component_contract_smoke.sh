@@ -11367,13 +11367,19 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
 require_file "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 380
+    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 400
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 260
+require_file "src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy" 130
+require_file "src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy" 140
 require_file "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
@@ -11391,9 +11397,15 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" 60
 require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
+require_file "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy" 180
 require_file "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 230
+require_file "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy" 170
 require_file "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 140
@@ -11429,6 +11441,18 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" 130
+require_file "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
+require_file "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy" 300
+require_file "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy" 130
+require_file "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" 160
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
@@ -11438,6 +11462,8 @@ require_file "tests/self_hosted/parity/one_mir_cfg_loop_case.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_cfg_loop_case.sh" 150
 require_file "tests/self_hosted/parity/one_mir_cfg_range_case.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_cfg_range_case.sh" 180
+require_file "tests/self_hosted/parity/one_mir_cfg_break_case.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_cfg_break_case.sh" 240
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
@@ -11476,7 +11502,7 @@ require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "../air/mir_cfg_certificate_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "direct_mir_cfg_plan_fact_owner.pgy";'
-require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy" \
     'func DirectMirCfgPlanMutationRejected('
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
     'let shape: DirectMirCfgShapeFacts;'
@@ -11534,6 +11560,18 @@ require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" 
     'func DirectMirRangeCfgEmitC('
 require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
     'func DirectMirRangeCfgEmitLlvm('
+require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirBreakCfgCertificateFactFromIndex('
+require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirBreakCfgCertificateFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy" \
+    'func DirectMirBreakCfgShapeFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy" \
+    'func DirectMirBreakCfgPlanFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
+    'func DirectMirBreakCfgEmitC('
+require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
+    'func DirectMirBreakCfgEmitLlvm('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
     'BuildMirRoutineFactIndex('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
@@ -11603,6 +11641,48 @@ for range_single_issuer_term in \
     [[ "$range_single_issuer_count" == 2 ]] ||
         fail "$range_single_issuer_term must have one definition and one caller"
 done
+for break_single_issuer_term in \
+    DirectMirBreakCfgCertificateFactFromIndex \
+    DirectMirBreakCfgShapeFactFromOwners \
+    DirectMirBreakCfgPlanFactFromOwners \
+    DirectMirBreakCfgEmitC DirectMirBreakCfgEmitLlvm; do
+    break_single_issuer_count="$(grep -R -F --include='*.pgy' \
+        "$break_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
+    [[ "$break_single_issuer_count" == 2 ]] ||
+        fail "$break_single_issuer_term must have one definition and one caller"
+done
+for break_cfg_owner in \
+    src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy \
+    src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy; do
+    reject_text "$break_cfg_owner" 'break_after_stmt.pgy'
+    reject_text "$break_cfg_owner" 'BuildMirDocumentFactIndex('
+    reject_text "$break_cfg_owner" 'BuildMirRoutineFactIndex('
+    reject_text "$break_cfg_owner" 'BuildMirRoutineInstructionUseFacts('
+    reject_text "$break_cfg_owner" 'DirectMirCfgCertificateFromIndex('
+    reject_text "$break_cfg_owner" 'DirectMirCfgPlanFromAdmitted('
+    reject_text "$break_cfg_owner" 'MirJsonRead'
+    reject_text "$break_cfg_owner" '"succ_true"'
+    reject_text "$break_cfg_owner" '"succ_false"'
+    reject_text "$break_cfg_owner" 'air_json'
+    reject_text "$break_cfg_owner" 'AirJson'
+done
+for break_certificate_graph_term in expr0_graph ExpressionGraph \
+    DirectMirCfgLogToStringGraphReady; do
+    reject_text \
+        "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
+        "$break_certificate_graph_term"
+done
+for break_emission_raw_term in JsonObject JsonArray ExpressionGraph \
+    MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
+    MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
+        "$break_emission_raw_term"
+done
+require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
+    'backend-only exit value selection; not MIR evidence'
 for range_emission_raw_term in JsonObject JsonArray ExpressionGraph \
     MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
     MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do

@@ -45,17 +45,20 @@ hello/let_log/multilet gate is green. The final r3 Pergyra-built bounded
 bootstrap and the same direct C/LLVM positive/negative gate passed with the
 final source.
 
-Focused v73 evidence adds the distinct phi-free integer range rung. The one
-3,197-byte `forloop.pgy` MIR has SHA-256
-`02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`.
-One v5 certificate/plan binds its typed preheader/header/body/exit roles,
-`for` summary, `Int` iteration verdict, graph-owned start/exclusive-stop, and
-zero-use Log local. C and LLVM compile and match native `0`, `1`, `2`; LLVM
-uses backend-local alloca/load/add/store materialization without claiming a
-MIR phi. Consistent `2..5` and zero-trip `3..3` also execute correctly, while
-fact/topology/graph/policy mutations reject pre-artifact. The fresh
-Pergyra-built bounded driver passed the full scalar/CFG predecessor chain
-through this rung. Released/default replacement remains 0%.
+Focused v74 evidence adds the distinct loop-break rung after the v73 phi-free
+range rung. The one 7,054-byte `break_after_stmt.pgy` MIR has SHA-256
+`cb2d4f9fad6411ae9ce54e2d072d038735c29d2499a960909a09fae8eb59efbf`.
+One v6 certificate/plan binds six typed block roles, the actual empty
+continuation predecessor, the forwarded header-phi definition, exact break
+row, two Log uses, and distinct normal/break exit values. C and LLVM compile
+and match native `3`, `3`; LLVM's backend-only exit phi is not claimed as a
+second MIR fact. Late-break and zero-trip variants execute correctly, phi
+storage permutation is byte-identical, and topology/SSA/graph/break/plan
+mutations reject pre-artifact. The native-current r5 driver passed the full
+scalar/CFG predecessor chain through this rung. A fresh Pergyra-built bounded
+seed also matched the native oracle for sample C, MIR production, and bounded
+MIR consumption, then passed the complete scalar/CFG chain through v74.
+Released/default replacement remains 0%.
 
 ## Verified
 
