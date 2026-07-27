@@ -47,6 +47,13 @@ jobs:
       - name: Calibrate ASan and run the bounded compiler battery
         run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan
 
+      - name: Run EMITTED programs under ASan+UBSan
+        # The step above sanitizes the compiler; this sanitizes what it emits.
+        # backend_compare cannot see this surface -- it checks the C lowering
+        # against the LLVM lowering, so UB present in both passes unnoticed. A
+        # sanitizer is the independent judge that comparison lacks.
+        run: make LLVM_ENABLED=0 PGY_EMITTED_SAN_CASES=40 emitted-c-sanitizer-test-smoke
+
   tsan-linux:
     runs-on: ubuntu-latest
     # TSan is separate from ASan/UBSan and from the broad Linux matrix. The

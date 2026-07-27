@@ -2266,6 +2266,15 @@ test-asan: asan-uaf-witness-test-smoke
 	done
 	@echo "=== Sanitizer gate: clean ==="
 
+# The other half of the sanitizer question. test-asan asks whether the COMPILER
+# commits UB while compiling; this asks whether the code it EMITS commits UB
+# when it runs -- a surface backend_compare cannot see, because comparing the C
+# lowering against the LLVM lowering passes UB that is present in both. Uses the
+# ordinary $(PGY): the program under the sanitizer is the emitted one, not pgy.
+emitted-c-sanitizer-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" PGY_SAN_CC="$(CC)" \
+	    "$(BASH)" tests/emitted_c_sanitizer_smoke.sh
+
 tsan-race-witness-test-smoke:
 	CC="$(CC)" "$(BASH)" tests/tsan_race_witness_smoke.sh
 
@@ -3803,7 +3812,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: lexer-token-stream-anchor-test-smoke source-module-graph-test-smoke iteration-type-fact-test-smoke compatibility-evolution-native-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
-.PHONY: test-asan asan-uaf-witness-test-smoke test-tsan tsan-race-witness-test-smoke
+.PHONY: test-asan asan-uaf-witness-test-smoke test-tsan tsan-race-witness-test-smoke emitted-c-sanitizer-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 # Explicit empty rule for the generated .d files. Without it GNU make runs
