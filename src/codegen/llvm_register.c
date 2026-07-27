@@ -440,8 +440,31 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     /* field_types is ctx->scratch-owned. */
 
-    LLVMHostedMethodView class_method_view =
-        llvm_hosted_method_view_from_decl(ctx, cls_name, stmt);
+}
+
+static void
+llvm_register_nominal_method_decls(LLVMGenCtx *ctx, ASTNode *stmt)
+{
+    const char *cls_name;
+    LLVMClassTypeEntry *entry;
+    LLVMTypeRef struct_ty;
+    bool is_pointer_self_host;
+    LLVMHostedMethodView class_method_view;
+
+    if (ctx == NULL || stmt == NULL || stmt->type != AST_CLASS_DECL)
+        return;
+    cls_name = llvm_decl_node_name(stmt);
+    entry = cls_name != NULL ? llvm_lookup_class(ctx, cls_name) : NULL;
+    if (entry == NULL || entry->struct_type == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path class method schedule requires registered nominal type '%s'",
+            cls_name != NULL ? cls_name : "(anonymous-class)");
+        return;
+    }
+    struct_ty = entry->struct_type;
+    is_pointer_self_host = entry->is_pointer_self_host;
+    class_method_view = llvm_hosted_method_view_from_decl(
+        ctx, cls_name, stmt);
     if (llvm_hosted_method_view_missing_mir_metadata(&class_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class method declaration metadata");
@@ -460,21 +483,20 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     for (size_t j = 0; j < class_method_view.count; j++) {
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(&class_method_view, j);
-        const char *method_name = NULL;
-        size_t pc = 0;
-        const char *return_type_name = NULL;
-        bool method_is_action = false;
-        const MIRRoutine *method_routine = NULL;
-        const MIRCallableSig *return_callable_sig = NULL;
-
-        method_name = llvm_mir_decl_method_name(method_meta);
-        pc = llvm_mir_decl_method_param_count(method_meta);
-        return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
-        method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
-        method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
-        return_callable_sig = method_routine != NULL
+        const char *method_name = llvm_mir_decl_method_name(method_meta);
+        size_t pc = llvm_mir_decl_method_param_count(method_meta);
+        const char *return_type_name =
+            llvm_mir_decl_method_return_type_name(method_meta);
+        bool method_is_action =
+            llvm_mir_decl_method_is_action_like(method_meta);
+        const MIRRoutine *method_routine =
+            llvm_mir_decl_method_routine(ctx, method_meta);
+        const MIRCallableSig *return_callable_sig = method_routine != NULL
             ? llvm_mir_routine_return_callable_sig(method_routine)
             : NULL;
+        LLVMTypeRef ret_type = NULL;
+        size_t user_pc = 0;
+
         if (method_name == NULL)
             continue;
         if (!llvm_mir_decl_method_metadata_complete_for(ctx,
@@ -490,12 +512,12 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             && llvm_mir_routine_generic_param_count(method_routine) > 0) {
             if (!llvm_register_generic_method_specializations(ctx, cls_name,
                     struct_ty, is_pointer_self_host, method_meta,
-                    method_routine))
+                    method_routine)) {
                 return;
+            }
             continue;
         }
 
-        LLVMTypeRef ret_type = NULL;
         if (return_callable_sig != NULL)
             ret_type = llvm_mir_callable_sig_to_llvm(ctx, return_callable_sig);
         else if (return_type_name != NULL)
@@ -507,15 +529,15 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         if (ctx->has_error || ret_type == NULL)
             return;
 
-        size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
-            if (llvm_param_is_implicit_self(p))
-                continue;
-            user_pc++;
+            if (!llvm_param_is_implicit_self(p))
+                user_pc++;
         }
 
-        /* Per-method param-type buffer: consumed by LLVMFunctionType. */
+        /* The domain pass has registered every zone/world type before this
+         * method-signature phase, so by-value parameters never rely on an
+         * unregistered scalar fallback. */
         LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));
         if (param_types == NULL) {
@@ -525,7 +547,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 method_name != NULL ? method_name : "<anonymous>");
             return;
         }
-        param_types[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
+        param_types[0] = is_pointer_self_host
+            ? LLVMPointerType(struct_ty, 0) : struct_ty;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
@@ -550,9 +573,6 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             }
             if (ctx->has_error || param_types[pidx] == NULL)
                 return;
-            /* Match the body emit (llvm_emit_func_from_mir): a subject-typed
-             * parameter is passed by pointer. Without this the registered
-             * forward signature drifts from the emitted body signature. */
             if (param_callable_sig == NULL && param_type_name != NULL
                 && llvm_type_name_uses_pointer_self(ctx, param_type_name)) {
                 param_types[pidx] = LLVMPointerType(param_types[pidx], 0);
@@ -560,7 +580,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             pidx++;
         }
 
-        LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
+        LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types,
+            (unsigned)(user_pc + 1), 0);
         char full_name[256];
         if (!llvm_register_join_name(ctx, full_name, sizeof(full_name),
                 cls_name, "_", method_name, "class method")) {
@@ -594,6 +615,25 @@ llvm_register_active_nominal_types(LLVMGenCtx *ctx)
             continue;
         }
         llvm_register_nominal_decl(ctx, stmt);
+    }
+}
+
+void
+llvm_register_active_nominal_methods(LLVMGenCtx *ctx)
+{
+    ASTNode **nominal_nodes = NULL;
+    size_t nominal_count = 0;
+
+    if (ctx == NULL)
+        return;
+    llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count);
+    for (size_t i = 0; i < nominal_count; i++) {
+        ASTNode *stmt = nominal_nodes != NULL ? nominal_nodes[i] : NULL;
+        if (stmt == NULL || stmt->type != AST_CLASS_DECL)
+            continue;
+        llvm_register_nominal_method_decls(ctx, stmt);
+        if (ctx->has_error)
+            return;
     }
 }
 

@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$invariantCulture = [Globalization.CultureInfo]::InvariantCulture
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
@@ -409,9 +410,13 @@ while (-not $process.HasExited) {
     }
 
     $elapsed = [int]((Get-Date) - $started).TotalMilliseconds
-    $line = "{0},{1},{2},{3},{4},{5:N1},{6:N1},{7},{8:N1}" -f `
+    # CSV is a machine-owned artifact. Locale-aware N1 formatting inserts a
+    # thousands comma on large builds and silently changes the column count.
+    $line = "{0},{1},{2},{3},{4},{5},{6},{7},{8}" -f `
         $elapsed, $phase, $procs.Count, $compileProcCount, $linkProcCount, `
-        $workingSet, $private, $topName, $topPrivate
+        $workingSet.ToString("F1", $invariantCulture), `
+        $private.ToString("F1", $invariantCulture), $topName, `
+        $topPrivate.ToString("F1", $invariantCulture)
     Add-Content -Encoding ASCII -Path $samplePath -Value $line
 
     if ($workingSet -gt $peakWorkingSet) {

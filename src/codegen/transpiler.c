@@ -33,6 +33,7 @@
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_decl_schedule.h"
+#include "transpiler_class_decl_emit.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
@@ -478,6 +479,14 @@ emit_program(TranspilerCtx *ctx)
         for (size_t i = 0; i < world_count; i++)
             emit_world_decl(worlds[i], ctx);
     }
+
+    /* Pass 3.95: class/subject layouts and forwards are emitted in the
+     * owner-scheduled type pass, but their MIR bodies wait until every domain
+     * value type is complete.  A hosted method may take a later object/zone
+     * by value, so defining it during the class layout pass would expose an
+     * incomplete C parameter type. */
+    if (!transpiler_emit_class_method_bodies_from_inventory(ctx))
+        return;
 
     for (size_t i = 0; i < event_count; i++)
         emit_event_decl(events[i], ctx);

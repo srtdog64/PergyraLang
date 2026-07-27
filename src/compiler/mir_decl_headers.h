@@ -97,6 +97,9 @@ bool mir_decl_method_is_async(const MIRDeclMethod *method);
 bool mir_decl_method_is_action_like(const MIRDeclMethod *method);
 const char *mir_decl_method_within_zone(const MIRDeclMethod *method);
 const char *mir_decl_method_causes_effect(const MIRDeclMethod *method);
+size_t mir_decl_method_authorized_by_count(const MIRDeclMethod *method);
+const char *mir_decl_method_authorized_by(const MIRDeclMethod *method,
+                                          size_t index);
 bool mir_decl_method_routine_index(const MIRDeclMethod *method,
                                    size_t *index_out);
 size_t mir_decl_method_projection_write_count(const MIRDeclMethod *method);

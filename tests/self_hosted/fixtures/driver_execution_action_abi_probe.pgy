@@ -15,13 +15,22 @@ struct DriverExecutionActionAbiResult {
     let observed_bytes: Int;
 }
 
+extern "C" {
+    func pgy_zone_authority_last_ok_rt_export() -> Bool;
+    func pgy_zone_authority_last_zone_rt_export() -> String;
+    func pgy_zone_authority_last_participant_rt_export() -> String;
+}
+
 subject DriverExecutionActionAbiProbe {
     let name: String;
 
     action Execute(
         self,
         request: DriverExecutionActionAbiRequest
-    ) -> DriverExecutionActionAbiResult with caps io_read, io_write {
+    ) -> DriverExecutionActionAbiResult
+        within DriverExecutionActionAbiZone
+        authorized by self
+        with caps io_read, io_write {
         WriteFile(request.output_path, request.payload);
         let observed: String = ReadFile(request.output_path);
         if observed != request.payload {
@@ -39,6 +48,27 @@ subject DriverExecutionActionAbiProbe {
     }
 }
 
+subject DriverExecutionActionAbiOther {
+    let name: String;
+}
+
+zone DriverExecutionActionAbiZone {
+    subject slot probe: DriverExecutionActionAbiProbe
+    subject slot other: DriverExecutionActionAbiOther
+    authority probe
+}
+
+world DriverExecutionActionAbiWorld {
+    zone execution: DriverExecutionActionAbiZone
+
+    func Execute(
+        self,
+        request: DriverExecutionActionAbiRequest
+    ) -> DriverExecutionActionAbiResult with caps io_read, io_write {
+        return self.execution.probe.Execute(request);
+    }
+}
+
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 {
@@ -48,9 +78,13 @@ func Main() -> Void with caps env, io_read, io_write {
 
     let request: DriverExecutionActionAbiRequest =
         DriverExecutionActionAbiRequest(args[0], "driver-action-abi");
-    let probe: DriverExecutionActionAbiProbe =
-        DriverExecutionActionAbiProbe("driver-execution");
-    let result: DriverExecutionActionAbiResult = probe.Execute(request);
+    let compiler_world = DriverExecutionActionAbiWorld(
+        DriverExecutionActionAbiZone(
+            DriverExecutionActionAbiProbe("driver-execution")
+        )
+    );
+    let result: DriverExecutionActionAbiResult =
+        compiler_world.Execute(request);
 
     if result.ok {
         Log("ok");
@@ -63,4 +97,7 @@ func Main() -> Void with caps env, io_read, io_write {
         case Rejected: Log("rejected-stage");
     }
     Log(ToString(result.observed_bytes));
+    Log(ToString(pgy_zone_authority_last_ok_rt_export()));
+    Log(pgy_zone_authority_last_zone_rt_export());
+    Log(pgy_zone_authority_last_participant_rt_export());
 }

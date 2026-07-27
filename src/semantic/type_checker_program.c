@@ -82,6 +82,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
 {
     size_t *topo_order = NULL;
     size_t topo_count = 0;
+    size_t validated_node_count = 0;
+    size_t validated_edge_count = 0;
     bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
     double t_mark = 0.0;
     double t_identity_host_index = 0.0;
@@ -449,6 +451,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
 
     if (!type_resolution_validate_graph(ctx))
         return false;
+    validated_node_count = ctx->type_resolution_graph.node_count;
+    validated_edge_count = ctx->type_resolution_graph.edge_count;
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,
                                           &topo_order,
                                           &topo_count)) {
@@ -502,7 +506,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         type_check_stmt_debug_visit_report();
     }
 
-    (void)type_resolution_validate_graph(ctx);
+    /* Pass 2 normally consumes the precollected graph.  If a legacy checker
+     * still adds a dependency, validate that new graph generation exactly
+     * once instead of unconditionally revalidating an unchanged graph. */
+    if ((ctx->type_resolution_graph.node_count != validated_node_count
+         || ctx->type_resolution_graph.edge_count != validated_edge_count)
+        && !type_resolution_validate_graph(ctx)) {
+        free(topo_order);
+        return false;
+    }
     semantic_maybe_print_type_resolution_stats(ctx);
 
     free(topo_order);

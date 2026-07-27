@@ -78,13 +78,6 @@ void type_resolution_add_edge(TypeResolutionGraph *graph,
                               size_t from,
                               size_t to,
                               const char *reason);
-bool type_resolution_find_path(TypeResolutionGraph *graph,
-                               size_t current,
-                               size_t goal,
-                               bool *visited,
-                               size_t *path,
-                               size_t *path_len,
-                               size_t path_cap);
 bool type_resolution_validate_graph(SemanticContext *ctx);
 bool type_resolution_build_topo_order(TypeResolutionGraph *graph,
                                       size_t **out_order,

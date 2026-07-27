@@ -1,0 +1,26 @@
+// Composition root for the production-reachable direct-MIR world slice.
+//
+// PgyCompilerWorld remains the only compiler-world declaration graph. This
+// owner materializes only the first positional direct-MIR slice; the current
+// world method exposes no call path into the zero-initialized omitted slices.
+// Inline nesting leaves no surviving origin binding or implicit identity fork.
+// The C/LLVM representation is still a by-value aggregate, not physical
+// no-copy, stable-address identity, or a process-wide runtime singleton.
+
+import "world.pgy";
+
+func EmitDirectMirThroughPgyCompilerWorld(
+    mir_json_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    request: DriverRung2DirectMirRequest
+) -> DriverRung2ExecutionResult with caps io_read, io_write {
+    let compiler_world = PgyCompilerWorld(
+        DriverRung2DirectMirZone(
+            DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
+        )
+    );
+    return compiler_world.EmitDirectMir(
+        mir_json_path, output_path, machine_declaration, request
+    );
+}

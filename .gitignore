@@ -102,6 +102,15 @@ src/self_hosted/parser/main.c
 src/self_hosted/parser/main.ll
 src/self_hosted/lib/*.c
 src/self_hosted/lib/*.ll
+# Compiler-world and bootstrap probes may also be emitted in place while
+# validating the production self-host graph. They are disposable projections,
+# never compiler source or semantic authority.
+src/self_hosted/compiler/*.c
+src/self_hosted/compiler/*.ll
+
+# Self-host ABI fixtures may leave backend projections beside their .pgy input.
+tests/self_hosted/fixtures/*.c
+tests/self_hosted/fixtures/*.ll
 
 # Backend-compare source fixtures are tracked as main.pgy. Generated C
 # sidecars can appear beside them during targeted local C/LLVM runs.

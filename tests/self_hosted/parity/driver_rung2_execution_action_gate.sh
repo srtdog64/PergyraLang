@@ -5,27 +5,37 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
     local root="$1"
     local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy"
     local execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+    local world_owner="$root/src/self_hosted/compiler/world.pgy"
+    local composition_owner="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
     local term
 
-    for term in "$main_owner" "$execution_owner"; do
+    for term in "$main_owner" "$execution_owner" "$world_owner" "$composition_owner"; do
         [[ -f "$term" ]] || {
             echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2
             return 1
         }
     done
-    for term in 'import "driver_rung2_execution_owner.pgy";' \
-        'DriverRung2DirectMirRequest' '.EmitDirectMir(' \
+    for term in 'import "compiler_world_direct_mir_owner.pgy";' \
+        'DriverRung2DirectMirRequest' 'EmitDirectMirThroughPgyCompilerWorld(' \
         'DriverRung2ExecutionResultReady(result)'; do
         grep -Fq -- "$term" "$main_owner" || {
-            echo "[driver-rung2-execution-action] Main bypasses action: $term" >&2
+            echo "[driver-rung2-execution-action] Main bypasses compiler world composition: $term" >&2
             return 1
         }
     done
-    for term in 'import "direct_mir_backend_projection_owner.pgy";' \
+    [[ "$(grep -F -c -- 'EmitDirectMirThroughPgyCompilerWorld(' "$main_owner")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] Main must consume compiler world composition exactly once" >&2
+        return 1
+    }
+    for term in 'import "driver_rung2_execution_owner.pgy";' \
+        'import "world.pgy";' '.EmitDirectMir(' \
+        'let compiler_world = PgyCompilerWorld(' \
+        'DriverRung2DirectMirZone(' 'DriverRung2Execution(' \
+        'import "direct_mir_backend_projection_owner.pgy";' \
         'CompilerTargetProjectionFactFromOwner(' \
         'CompileMirJsonToDirectBackendVerified('; do
         if grep -Fq -- "$term" "$main_owner"; then
-            echo "[driver-rung2-execution-action] Main retained direct call: $term" >&2
+            echo "[driver-rung2-execution-action] Main retained direct owner/world call: $term" >&2
             return 1
         fi
     done
@@ -38,6 +48,10 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
         'enum DriverRung2ExecutionStage' 'Requested,' 'TargetAdmitted,' \
         'ArtifactWritten,' 'Rejected,' 'struct DriverRung2ExecutionResult' \
         'subject DriverRung2Execution' 'action EmitDirectMir(' \
+        'within DriverRung2DirectMirZone' 'authorized by self' \
+        'public zone DriverRung2DirectMirZone' \
+        'subject slot execution: DriverRung2Execution' \
+        'authority execution' \
         'CompilerTargetProjectionFactFromOwner(projection_name)' \
         'CompilerTargetProjectionFactReadyFor(' \
         'CompilerEmissionArtifactReady(artifact)' \
@@ -59,13 +73,27 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
         echo "[driver-rung2-execution-action] exactly one action-owned write is required" >&2
         return 1
     }
+    [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+' "$execution_owner")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] execution owner must declare exactly one zone" >&2
+        return 1
+    }
+    [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?world[[:space:]]+' "$execution_owner")" -eq 0 ]] || {
+        echo "[driver-rung2-execution-action] execution owner must not declare an alternate world" >&2
+        return 1
+    }
     for term in '../parser/' '../semantic/' 'ParseRootProgramArtifact' \
         'SemanticAstArtifact' 'GenerateCFromVerifiedSemanticArtifact' \
         'CompileSourceTo' 'CompileMirJsonToCVerified' 'Fallback' \
-        '"cpu-c"' '"cpu-llvm"'; do
+        '"cpu-c"' '"cpu-llvm"' 'import "world.pgy";' \
+        'import "stage_intents.pgy";' 'import "authority_owner.pgy";' \
+        'world PgyCompilerWorld'; do
         if grep -Fq -- "$term" "$execution_owner"; then
             echo "[driver-rung2-execution-action] forbidden owner/fallback returned: $term" >&2
             return 1
         fi
     done
+
+    # Exact world cardinality, field order, one-hop delegation and composition
+    # uniqueness are owned by self_host_compiler_topology_smoke.sh. Keep this
+    # gate focused on the action-owned transition and Main's no-bypass edge.
 }

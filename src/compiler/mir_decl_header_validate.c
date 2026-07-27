@@ -545,6 +545,25 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
+        if (method->authorized_by_count > 0
+            && method->authorized_by_names == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has authorization count but no authorization storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t a = 0; a < method->authorized_by_count; a++) {
+            if (method->authorized_by_names[a] == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] authorization[%zu] has no subject metadata",
+                        header_index, i, a);
+                }
+                return false;
+            }
+        }
         if (method->projection_write_count > 0
             && (method->projection_write_root_names == NULL
                 || method->projection_write_member_names == NULL)) {

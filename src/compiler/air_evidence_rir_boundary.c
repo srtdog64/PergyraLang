@@ -12,8 +12,33 @@ air_append_rir_boundary_evidence(AIRProgram *air,
                                  const char *scope_name,
                                  char **error_message)
 {
-    if (air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY))
+    if (air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY)) {
+        /* Action authority can be proved by an intent-local Authorize op
+         * even when a zone scope supplied the first structural boundary
+         * fact.  Retain both named providers so the authority evidence stays
+         * paired with the scope that owns the exact operation. */
+        if (!boundary->authority_from_action
+            || air_boundary_has_evidence_kind_provider(
+                   air, boundary_index, AIR_EVIDENCE_RIR_BOUNDARY,
+                   scope_name)) {
+            return true;
+        }
+        if (!air_append_evidence_node(air,
+                                      AIR_EVIDENCE_RIR_BOUNDARY,
+                                      boundary_index,
+                                      scope_name,
+                                      boundary->source_name,
+                                      error_message)) {
+            return false;
+        }
+        if (!air_increment_evidence_summary_count(
+                air, AIR_EVIDENCE_RIR_BOUNDARY)) {
+            air_set_error(error_message,
+                          "AIR RIR boundary evidence counter overflow");
+            return false;
+        }
         return true;
+    }
     if (!air_assign_first_owned_name(air,
                                      &boundary->rir_boundary_evidence_scope,
                                      scope_name,
@@ -118,6 +143,12 @@ air_collect_rir_scope_op_authority(AIRProgram *air,
         const RIROp *op = rir_scope_op_at(scope, i);
         if (op == NULL || op->kind != RIR_OP_AUTHORIZE)
             continue;
+        if (scope->kind == RIR_SCOPE_INTENT
+            && boundary->ast != NULL
+            && op->ast != boundary->ast
+            && !air_ast_contains_node(boundary->ast, op->ast)) {
+            continue;
+        }
         if (!air_boundary_declares_authority_name(boundary, op->subject))
             continue;
         if (!air_append_rir_authority_evidence(air,

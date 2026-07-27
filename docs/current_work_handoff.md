@@ -6,7 +6,89 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint
+## Current resume checkpoint - compiler world/action boundary
+
+- Checkout base before this work: `738fefbd` on `main`, equal to the observed
+  `origin/main`. Use `git rev-parse HEAD` after landing for the exact resulting
+  revision. The three protected parity-owner files named below remain separate
+  concurrent user work and are not part of this change.
+- Active executable rung: `REACHABLE`, not `SUBSTITUTING`. Production direct
+  MIR now follows exactly one graph:
+  `driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld ->
+  PgyCompilerWorld.EmitDirectMir -> PgyCompilerWorld.direct_mir ->
+  DriverRung2DirectMirZone.execution -> DriverRung2Execution.EmitDirectMir`.
+  This removes Main's direct action/backend bypass but does not yet replace a
+  C-owned compiler semantic path.
+- The production import closure is 443 files with no missing import. Reachable
+  Pergyra-native declarations include object 18, tobject 1, subject 17, action
+  17, zone 19, world 1, and intent 14. Keyword/declaration counts are topology
+  evidence only; only the direct-MIR world/zone/subject/action call chain is a
+  production execution witness.
+- `docs/200_object_to_action_boundary_patterns.md` is the canonical authoring
+  contract for the value-to-authority boundary. Values remain in `struct` /
+  `object` / `tobject`; identity-bearing state belongs to `subject`; an
+  `action` owns the public authority/state/effect transition; the current
+  direct-MIR `zone` owns its authority/lifetime boundary; the compiler `world`
+  delegates once. The next executable rung is a second source-to-MIR
+  subject/action/zone slice; root `intent` takeover follows only after that
+  multi-action graph is executable.
+- Authority evidence is deliberately bounded. `MIRDeclMethod` owns declaration
+  clauses and `MIRDeclZoneAuthority` owns zone topology. The current C/LLVM
+  world hook supports only the exact direct `world -> zone -> subject` receiver
+  with one `authorized by self`; named, multiple, or indirect world-action
+  authority shapes fail closed. The C helper separates "no check applies" from
+  check-materialization failure with `bool + out`, so allocation failure cannot
+  silently emit an unchecked call. Runtime validation currently proves
+  non-null zone/participant presence, not identity-token or ability
+  authorization.
+- Nested construction is owner-preserving inline materialization with no
+  surviving source alias. It is not a physical zero-copy/stable-address proof.
+  Likewise one compiler world declaration/composition graph is not a runtime
+  singleton; each composition call materializes a value aggregate.
+- Hosted method scheduling is declaration-inventory owned. C emits nominal
+  forwards/layouts, then domain value layouts, then nominal hosted bodies.
+  LLVM registers nominal/domain layouts, then method signatures, then bodies.
+  A later-declared by-value object fixture is green on both backends; missing
+  metadata fails closed instead of guessing an opaque/scalar layout.
+- The 3+ GiB semantic spike was a real native compiler defect. Each of 28,233
+  dependency edges retained `bool[N] + size_t[N]` graph-sized scratch until
+  context destruction for a 27,807-node graph. Per-edge path probing is now
+  removed; the completed graph is validated once, and pass 2 revalidates only
+  when node/edge generation changes. Exact-source C peak private memory fell
+  from 3,522.4 MiB to 1,566.4 MiB; LLVM completed at 1,226.0 MiB under the
+  unchanged 3,072 MiB cap.
+- Last observed native build: full UCRT64 `make -j4` completed and linked both
+  `bin/pgy.exe` and `bin/pgy-lsp.exe`. Current `world.pgy --emit-c` completed in
+  28.1 seconds at 564.1 MiB peak private under the unchanged 3,072 MiB cap.
+  Current `driver_bootstrap_main.pgy --backend=c` completed in 104.2 seconds at
+  1,560.6 MiB peak private; `--backend=llvm` completed in 181.3 seconds at
+  1,225.0 MiB peak private under the same cap. Both fresh drivers passed the
+  hello/`let_log`/`multilet` one-MIR C/LLVM projection gate. Topology,
+  compiler-world/component contracts, object/action, execution-action, C/LLVM
+  authority ABI including unsupported named/multiple/indirect shapes, hosted
+  later-value-object parity, and AIR 144/0 are green.
+- Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
+  pre-existing Option/Result match-destructuring direct unit cases. The graph
+  cycle/provenance cases pass; the full `type_resolution_dag_smoke.sh` wrapper
+  inherits the same two failures. `self_host_pergyra_likeness_smoke.sh` also
+  remains RED on the pre-existing `core_string_munge=79 > 72` debt; its new
+  19-zone/19-member/14-intent topology counters are correct. Existing MIR
+  inventory/link gates retain their separately documented pre-existing
+  failures; do not weaken any of these gates for this rung.
+- Next falsifying fixture: a second source-to-MIR subject/action/zone slice must
+  join the same `PgyCompilerWorld`, reject invalid source/semantic verdicts
+  without leaving a MIR artifact, and delete the migrated `Main ->
+  CompileSourceTo*` direct edge. Root-intent takeover comes only after that
+  rung. Separately, a call-site authority-binding owner must prove identity and
+  ability before named, multiple, indirect, or generic direct-subject authority
+  shapes can be admitted.
+
+The remainder of this file preserves earlier v63-v74 evidence as history. If a
+historical statement below conflicts with this checkpoint, current source,
+registries, and executable gates win and the stale statement must not be used
+as a continuation fact.
+
+## Historical v74 resume checkpoint
 
 - Exact v74 executable revision: `bce4ae6f75a36dc014e19515732468a5de0de245`
   on `main`. Its direct parent is the v73 handoff correction `a9f5dfaa`; the

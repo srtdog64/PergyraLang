@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -15,6 +16,106 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_overlay_zone_bind.h"
 #include "transpiler_projection.h"
+
+bool
+emit_world_embedded_action_authority_check(
+    TranspilerCtx *ctx,
+    ASTNode *receiver,
+    const MIRDeclMethod *method_meta,
+    char **check_out)
+{
+    const MIRDeclHeader *zone_header;
+    const MIRDeclZoneAuthority *authority = NULL;
+    const char *zone_slot_name = NULL;
+    const char *zone_type_name = NULL;
+    const char *source_slot_name = NULL;
+    const char *source_type_name = NULL;
+    const char *method_within_zone;
+    const char *authorized_by;
+    ASTNode *host_decl;
+
+    if (check_out == NULL)
+        return false;
+    *check_out = NULL;
+    if (ctx == NULL || receiver == NULL || method_meta == NULL)
+        return false;
+    if (!transpiler_mir_decl_method_is_action_like(method_meta))
+        return true;
+    host_decl = transpiler_current_host_decl_local(ctx);
+    if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
+        return true;
+    if (transpiler_mir_decl_method_authorized_by_count(method_meta) == 0)
+        return true;
+    if (transpiler_mir_decl_method_authorized_by_count(method_meta) != 1) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path cannot bind multiple authorities for a world-embedded action");
+        return false;
+    }
+    authorized_by =
+        transpiler_mir_decl_method_authorized_by(method_meta, 0);
+    if (authorized_by == NULL || strcmp(authorized_by, "self") != 0) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path cannot bind named authority '%s' for a world-embedded action",
+            authorized_by != NULL ? authorized_by : "<missing>");
+        return false;
+    }
+
+    method_within_zone =
+        transpiler_mir_decl_method_within_zone(method_meta);
+    if (method_within_zone == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing within-zone metadata for self-authorized action");
+        return false;
+    }
+    if (!transpiler_resolve_world_zone_subject_receiver(ctx, receiver,
+            &zone_slot_name, &zone_type_name,
+            &source_slot_name, &source_type_name)
+        || zone_slot_name == NULL || zone_type_name == NULL
+        || source_slot_name == NULL || source_type_name == NULL
+        || strcmp(method_within_zone, zone_type_name) != 0) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path cannot bind indirect world action authority to exact zone/subject slots");
+        return false;
+    }
+
+    zone_header = transpiler_active_decl_header_of_type(
+        ctx, AST_ZONE_DECL, zone_type_name);
+    if (zone_header == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone declaration header for self-authorized action in '%s'",
+            zone_type_name);
+        return false;
+    }
+    for (size_t i = 0;
+         i < mir_decl_header_zone_authority_count(zone_header); i++) {
+        const MIRDeclZoneAuthority *candidate =
+            mir_decl_header_zone_authority(zone_header, i);
+        const char *candidate_slot =
+            mir_decl_zone_authority_subject_slot_name(candidate);
+        if (candidate_slot != NULL
+            && strcmp(candidate_slot, source_slot_name) == 0) {
+            authority = candidate;
+            break;
+        }
+    }
+    if (authority == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing exact zone authority for self-authorized action '%s.%s'",
+            zone_type_name, source_slot_name);
+        return false;
+    }
+
+    *check_out = pergyra_strdup_printf(
+        "PGY_ZONE_AUTHORITY_CHECK(&self->%s, &self->%s.%s, \"%s\", \"%s\"); ",
+        zone_slot_name, zone_slot_name, source_slot_name,
+        zone_type_name, source_slot_name);
+    if (*check_out == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path failed to materialize the world action authority check");
+        return false;
+    }
+    return true;
+}
 
 void
 emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)

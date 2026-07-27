@@ -154,6 +154,43 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve action authorization metadata");
+    {
+        const char *src =
+            "subject Runner {\n"
+            "    action Execute(self) -> Int within RunZone authorized by self {\n"
+            "        return 1;\n"
+            "    }\n"
+            "}\n"
+            "zone RunZone {\n"
+            "    subject slot runner: Runner\n"
+            "    authority runner\n"
+            "}\n"
+            "func Main() -> Void { }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *runner = NULL;
+        const MIRDeclMethod *execute = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            runner = mir_find_decl_header_of_type(
+                mir, AST_CLASS_DECL, "Runner");
+        if (runner != NULL)
+            execute = mir_decl_header_method(runner, 0);
+        EXPECT(ok
+               && execute != NULL
+               && mir_decl_method_is_action_like(execute)
+               && mir_decl_method_authorized_by_count(execute) == 1
+               && mir_decl_method_authorized_by(execute, 0) != NULL
+               && strcmp(mir_decl_method_authorized_by(execute, 0),
+                         "self") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve role impl method spans");
     {
         const char *src =

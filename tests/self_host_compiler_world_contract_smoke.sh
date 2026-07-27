@@ -190,9 +190,10 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSource
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[0], machine_declaration"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified(args[0])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonVerified("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonFileVerified("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonFilePressureObserved("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[1], machine_declaration"
-forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonVerified(args[1])"
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonFileVerified(args[1])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified("
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified(args[1])"
@@ -225,22 +226,27 @@ require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "func Main()"
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "Args()"
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "RunDriverRung1FromArgs(run_args)"
 
-# Authority skeleton locks: sensitive-boundary abilities/roles plus the zone
-# and intent-step clauses that consume them. These keep the authority axis
-# from silently rotting back into who-only provenance.
+# Authority locks: the action contract owns requires/within/authorized-by;
+# intents consume that contract instead of restating it as a second authority.
 require_text "src/self_hosted/compiler/world.pgy" 'import "authority_owner.pgy";'
 require_text "src/self_hosted/compiler/world.pgy" "authority checker requires FactProving"
 require_text "src/self_hosted/compiler/world.pgy" "authority emitter requires ArtifactEmission"
 require_text "src/self_hosted/compiler/world.pgy" "authority runner requires SubprocessDiscipline"
 require_text "src/self_hosted/compiler/world.pgy" "authority oracle requires ParityJudging"
-require_text "src/self_hosted/compiler/world.pgy" "requires: FactProving;"
+require_text "src/self_hosted/compiler/world.pgy" "requires FactProving"
+require_text "src/self_hosted/compiler/world.pgy" "within SemanticVerdictZone"
 require_text "src/self_hosted/compiler/world.pgy" "authorized by: checker;"
-require_text "src/self_hosted/compiler/world.pgy" "requires: ArtifactEmission;"
+require_text "src/self_hosted/compiler/world.pgy" "requires ArtifactEmission"
+require_text "src/self_hosted/compiler/world.pgy" "within EmissionZone"
 require_text "src/self_hosted/compiler/world.pgy" "authorized by: emitter;"
-require_text "src/self_hosted/compiler/world.pgy" "requires: SubprocessDiscipline;"
-require_text "src/self_hosted/compiler/world.pgy" "authorized by: subprocess_runner;"
-require_text "src/self_hosted/compiler/world.pgy" "requires: ParityJudging;"
+require_text "src/self_hosted/compiler/world.pgy" "requires SubprocessDiscipline"
+require_text "src/self_hosted/compiler/world.pgy" "within SubprocessRunnerZone"
+require_text "src/self_hosted/compiler/world.pgy" "requires ParityJudging"
+require_text "src/self_hosted/compiler/world.pgy" "within ParityZone"
 require_text "src/self_hosted/compiler/world.pgy" "authorized by: oracle;"
+if [[ "$(grep -F -c -- 'authorized by self' "$ROOT_DIR/src/self_hosted/compiler/world.pgy")" -ne 4 ]]; then
+    fail "compiler world authority must be owned by exactly four sensitive actions"
+fi
 require_text "src/self_hosted/compiler/authority_owner.pgy" "ability FactProving"
 require_text "src/self_hosted/compiler/authority_owner.pgy" "ability ArtifactEmission"
 require_text "src/self_hosted/compiler/authority_owner.pgy" "ability SubprocessDiscipline"
@@ -321,6 +327,8 @@ for term in \
     "zone TestHarnessZone" \
     "zone SubprocessRunnerZone" \
     "zone ParityZone" \
+    "zone direct_mir: DriverRung2DirectMirZone" \
+    "func EmitDirectMir(" \
     "intent CompilePergyraProgram" \
     "step Frontend" \
     "step MiddleEnd" \
@@ -447,6 +455,12 @@ for term in \
     "BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter)"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    "public zone DriverRung2DirectMirZone"
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    "subject slot execution: DriverRung2Execution"
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    "authority execution"
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "target_capability_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "sandbox_capability_owner.pgy"'
@@ -1272,6 +1286,8 @@ grep -Fq "Zone: TestHarnessZone" "$ast_out" ||
     fail "compiler world AST missing TestHarnessZone zone"
 grep -Fq "Zone: SubprocessRunnerZone" "$ast_out" ||
     fail "compiler world AST missing SubprocessRunnerZone zone"
+grep -Fq "Zone: DriverRung2DirectMirZone" "$ast_out" ||
+    fail "compiler world AST missing DriverRung2DirectMirZone zone"
 grep -Fq "Subject: LexerStage" "$ast_out" ||
     fail "compiler world AST missing LexerStage subject"
 grep -Fq "Subject: ParserStage" "$ast_out" ||

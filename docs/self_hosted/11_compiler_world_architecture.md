@@ -1,26 +1,49 @@
 # Self-Hosted Compiler World Architecture
 
-Status: `hard-self-host-shape-contract / executable BRIDGE`
+Status: `hard-self-host-shape-contract / direct-MIR REACHABLE BRIDGE`
 
 The self-hosted compiler must not become a Pergyra rewrite of the C folder
 layout. Pergyra's language surface is intent-first and world/zone-oriented, so
 the target hard self-host shape is rooted in `PgyCompilerWorld`.
 
-This is not the current production call graph. On 2026-07-27,
-`driver_bootstrap_main.pgy` imports neither `world.pgy` nor its root intent, and
-`world.pgy --emit-c` is RED on six missing authority bindings. The exact
-SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order are owned by
+The bounded direct-MIR slice is now part of the production call graph. On
+2026-07-27, its one reachable path is:
+
+```text
+driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld
+    -> PgyCompilerWorld.EmitDirectMir
+    -> PgyCompilerWorld.direct_mir
+    -> DriverRung2DirectMirZone.execution
+    -> DriverRung2Execution.EmitDirectMir
+```
+
+`bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` is also green with
+zero errors and zero warnings. This proves that the declared world is a valid
+compilation unit; it does not mean that `CompilePergyraProgram` is the
+production root or that a C-owned compiler path has been replaced. The exact
+SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by
 `17_pergyra_native_dogfood_contract.md`.
 
 ## Rule
 
-`PgyCompilerWorld` is the target self-host compiler orchestration owner. Stage
-directories own facts; resource zones own isolated compiler resources; the
-world must eventually own the user-visible compiler flow after the production
-entrypoint reaches it and the direct bypass is deleted.
+`PgyCompilerWorld` is the self-host compiler orchestration owner. Stage
+directories own facts; resource zones own isolated compiler resources. The
+production direct-MIR entrypoint now reaches one bounded world slice after its
+old direct subject call was deleted. The wider source-to-artifact modes still
+bypass the declared root intent through `Main -> CompileSourceTo*` calls. The
+next executable rung moves the source-to-MIR boundary into a second real
+subject/action/zone slice; root-intent takeover follows only after that
+multi-action graph earns the same replacement evidence.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
-- `PgyCompilerWorld` contains the resource zones directly.
+- `PgyCompilerWorld` contains exactly 19 concrete resource-zone members
+  directly, including the production-reachable `direct_mir` member.
+- `DriverRung2DirectMirZone` owns only the execution subject's authority and
+  lifetime boundary. Target selection, MIR, backend projection, artifact
+  validation, and output writing remain with their existing owners and the
+  action reached through that zone.
+- `compiler_world_direct_mir_owner.pgy` constructs the one active zone slice
+  and delegates through `PgyCompilerWorld`; it may not declare another world.
 - `CompilePergyraProgram` is the root compiler intent.
 - No aggregate compiler zone mirrors those resources. The former
   `SelfHostCompiler` aggregate duplicated every stage actor and artifact type
@@ -28,10 +51,12 @@ entrypoint reaches it and the direct bypass is deleted.
   unused; it is forbidden by the compiler-world gate.
 - `ProgramEmitter` is the current C-emission participant that drives writes
   into `EmissionZone`; it is not a resource zone.
-- `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
-  `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-  `TargetCapabilityZone`, `CompatibilityEvolutionZone`, `EmissionZone`, and `ParityZone` are the derived
-  resource zones.
+- `DriverRung2DirectMirZone`, `SourceIntakeZone`, `TokenStreamZone`,
+  `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`,
+  `AbiLayoutZone`, `TargetCapabilityZone`, `CompatibilityEvolutionZone`,
+  `AirEvidenceZone`, `SandboxCapabilityZone`, `SymbolFactTableZone`,
+  `AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
+  `SubprocessRunnerZone`, and `ParityZone` are the 19 concrete resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
@@ -43,12 +68,12 @@ entrypoint reaches it and the direct bypass is deleted.
   `LowerProgramFacts`, `PlanTargetProjection`, `EmitProgramArtifact`, and
   `ProveSelfHostedParity` are the derived stage intents.
 - Codegen is the projection nerve bundle from the compiler world into backend
-  artifacts. Today it is still represented by the generic `EmissionZone` and
-  the C-emission `ProgramEmitter`; target architecture splits that into peer
-  C, LLVM, and SelfHosted emission zones only after all three projections can
-  consume the same MIR/type/ABI rows. It is grouped by resource zones such as
-  `EmissionZone`, `TypeEnvZone`, and `AbiLayoutZone`, not by pretending every
-  emitter file owns a zone.
+  artifacts. The production direct-MIR action admits both C and LLVM requests
+  through the same `DriverRung2DirectMirZone` and the same target/MIR/artifact
+  facts; it does not create backend-specific worlds or execution zones. The
+  older root-intent surface still represents emission with `EmissionZone` and
+  `ProgramEmitter`. Any future resource split must prove a distinct owned
+  resource rather than mirror emitter files or backend folders.
 - `LexerStage`, `ParserStage`, `SemanticStage`, and `MirLowerStage` are
   distinct actors. The world does not use a generic `StageOwner.Consume()`
   alias because lexing, parsing, semantic checking, and MIR lowering own
@@ -57,9 +82,11 @@ entrypoint reaches it and the direct bypass is deleted.
   source-of-truth owners for their facts.
 
 This is not a claim that the released compiler is self-hosted or that the
-current bootstrap executes the world. It is a shape constraint: new
-hard-substitution work should make one real action/intent reachable and remove
-its direct bypass, rather than grow a second C-style tree.
+current bootstrap executes the whole root intent. The bootstrap executes the
+one `direct_mir` world member and its real action; the remaining world members
+are still declared topology. New hard-substitution work must extend that one
+graph and remove the corresponding direct bypass rather than grow a second
+C-style tree.
 
 ## Recursive Topology Rule
 
@@ -105,7 +132,8 @@ PgyCompilerWorld
 `-- BackendResources
     +-- Target
     +-- Emission
-    `-- Artifact
+    +-- Artifact
+    `-- DirectMIR
 ```
 
 This is a target facade projection, not a claim that four new aggregate zones
@@ -127,6 +155,7 @@ missing fact, or become a second authority.
 | `BackendResources.Target` | `TargetCapabilityZone`, `SandboxCapabilityZone` |
 | `BackendResources.Emission` | `SymbolFactTableZone`, `EmissionZone` |
 | `BackendResources.Artifact` | `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` |
+| `BackendResources.DirectMIR` | `DriverRung2DirectMirZone` |
 
 The facade is allowed to become visible in `world.pgy` only after all of the
 following are true:
@@ -170,6 +199,10 @@ For compiler self-hosting that means:
 - `AbiLayoutZone` owns ABI/layout facts consumed by backend emitters.
 - `TargetCapabilityZone` owns target acceptance, loss/fallback, and
   materialization-reason facts consumed before backend emission.
+- `DriverRung2DirectMirZone` owns the production direct-MIR execution
+  subject's authority and lifetime boundary. Its action consumes the existing
+  target projection and emitted-artifact facts and owns the final output
+  transition; the zone does not copy those facts or select a backend itself.
 - `CompatibilityEvolutionZone` owns source, ABI/binary, behavior, diagnostic,
   AIR evidence, MIR JSON, runtime trace, capability profile, stdlib module, and
   obsolete-migration metadata facts.
@@ -186,6 +219,9 @@ do not become zones unless they own a distinct resource.
 
 For current codegen this is the concrete split:
 
+- `DriverRung2DirectMirZone`: `subject slot execution:
+  DriverRung2Execution` with `authority execution`; C and LLVM requests enter
+  the same action through this member of `PgyCompilerWorld`.
 - `EmissionZone`: `object slot c_output: EmittedC`, driven by
   `subject slot emitter: ProgramEmitter`.
 - `TypeEnvZone`: `object slot bindings: TypeEnvironment`, consumed as
@@ -240,17 +276,21 @@ drifts from `path_manifest_owner.pgy`. The same smoke is called by
 `make self-host-preparation-test-smoke`.
 
 For the owner-edit loop, `tests/self_host_compiler_topology_smoke.sh` checks the
-root world, exact resource-zone membership, four derived stage clusters,
-aggregate-zone prohibition, and this recursive-topology contract in one small
-pass. `PGY_SELFHOST_COMPILER_WORLD_TOPOLOGY_ONLY=1` selects it through the full
-gate entrypoint. The default gate remains the complete owner, artifact, path,
-and AST check required at integration boundaries.
+root world, exactly 19 concrete resource zones and 19 world members, the one
+`direct_mir: DriverRung2DirectMirZone` binding, four derived stage clusters,
+aggregate-zone prohibition, and the absence of a second compiler world in one
+small pass. It also pins the production Main -> composition -> world -> zone
+path so Main cannot silently restore the direct subject call.
+`PGY_SELFHOST_COMPILER_WORLD_TOPOLOGY_ONLY=1` selects it through the full gate
+entrypoint. The default gate remains the complete owner, artifact, path, and
+AST check required at integration boundaries.
 
-These are declared-topology and AST gates. They do not prove production import
-reachability, action/intent execution, or semantic C emission. The executable
-dogfood rung must additionally prove the entrypoint call path, forbid the old
-direct call, run C/LLVM/native parity, and make `world.pgy --emit-c` green before
-root-intent takeover.
+The topology and AST gates prove declared ownership and compilation shape.
+The direct-MIR action/parity gates separately prove the production call,
+C/LLVM/native output parity, rejected identity behavior, one backend call, and
+one action-owned write. `world.pgy --emit-c` is green, but root-intent takeover
+still requires a later rung that makes `CompilePergyraProgram` executable and
+removes its corresponding old path.
 
 ## Growth Rule
 

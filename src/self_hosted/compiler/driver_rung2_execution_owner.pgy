@@ -57,7 +57,10 @@ subject DriverRung2Execution {
         output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration,
         request: DriverRung2DirectMirRequest
-    ) -> DriverRung2ExecutionResult with caps io_read, io_write {
+    ) -> DriverRung2ExecutionResult
+        within DriverRung2DirectMirZone
+        authorized by self
+        with caps io_read, io_write {
         let stage: DriverRung2ExecutionStage = Requested;
         let projection_name: String = "";
         match request {
@@ -106,4 +109,12 @@ subject DriverRung2Execution {
             true, stage, self.identity, projection_name, ""
         );
     }
+}
+
+// The direct-MIR execution boundary owns authority and lifetime only. Target
+// selection, typed projection facts, emission, and artifact validation remain
+// with their existing owners inside DriverRung2Execution.EmitDirectMir.
+public zone DriverRung2DirectMirZone {
+    subject slot execution: DriverRung2Execution
+    authority execution
 }

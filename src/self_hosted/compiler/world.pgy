@@ -9,6 +9,7 @@ import "subprocess_runner_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
+import "driver_rung2_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
     action Read(self, paths: StagePathManifest) -> Bool {
@@ -32,7 +33,10 @@ subject ParserStage {
 
 subject SemanticStage {
     let name: String;
-    action Check(self) -> Bool {
+    action Check(self) -> Bool
+        requires FactProving
+        within SemanticVerdictZone
+        authorized by self {
         return CompilerSemanticVerdictFactReady();
     }
 }
@@ -46,7 +50,10 @@ subject MirLowerStage {
 
 subject ProgramEmitter {
     let name: String;
-    action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool {
+    action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool
+        requires ArtifactEmission
+        within EmissionZone
+        authorized by self {
         return CompilerEmissionFactReady() &&
             CompilerAbiLayoutRowsReady() &&
             CompilerSymbolTableReady() &&
@@ -106,14 +113,22 @@ subject TestHarnessRunner {
 subject SubprocessRunner {
     let name: String;
 
-    action Plan(self) -> Bool { return CompilerSubprocessRunnerReady(); }
+    action Plan(self) -> Bool
+        requires SubprocessDiscipline
+        within SubprocessRunnerZone
+        authorized by self {
+        return CompilerSubprocessRunnerReady();
+    }
 }
 
 subject OraclePair {
     let c_backend: String;
     let llvm_backend: String;
 
-    action Compare(self) -> Bool {
+    action Compare(self) -> Bool
+        requires ParityJudging
+        within ParityZone
+        authorized by self {
         return CompilerArtifactZoneReady() && CompilerTestHarnessReady();
     }
 }
@@ -248,6 +263,9 @@ zone ParityZone {
 }
 
 world PgyCompilerWorld {
+    // Keep the active executable slice first so the beta positional
+    // constructor can initialize it without fabricating dormant zone facts.
+    zone direct_mir: DriverRung2DirectMirZone
     zone source_intake: SourceIntakeZone
     zone tokens: TokenStreamZone
     zone ast: AstTreeZone
@@ -266,6 +284,18 @@ world PgyCompilerWorld {
     zone harness: TestHarnessZone
     zone subprocess: SubprocessRunnerZone
     zone parity: ParityZone
+
+    func EmitDirectMir(
+        self,
+        mir_json_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverRung2DirectMirRequest
+    ) -> DriverRung2ExecutionResult with caps io_read, io_write {
+        return self.direct_mir.execution.EmitDirectMir(
+            mir_json_path, output_path, machine_declaration, request
+        );
+    }
 }
 
 intent IntakeSource(intake: SourceIntakeZone, source: SourceUnit, paths: StagePathManifest) {
@@ -289,7 +319,6 @@ intent LexSource(tokens: TokenStreamZone, lexer: LexerStage) {
     step Scan {
         where: TokenStreamZone;
         using: tokens;
-        who: lexer;
         on: lexer.Scan();
         expect: true;
     }
@@ -304,7 +333,6 @@ intent ParseTokens(ast: AstTreeZone, parser: ParserStage) {
     step BuildAst {
         where: AstTreeZone;
         using: ast;
-        who: parser;
         on: parser.BuildAst();
         expect: true;
     }
@@ -317,12 +345,9 @@ intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, checker: Semant
     exclusive;
 
     step ProveFacts {
-        where: SemanticVerdictZone;
         using: semantic_zone;
         who: checker;
         on: checker.Check();
-        requires: FactProving;
-        authorized by: checker;
         expect: true;
     }
 
@@ -349,12 +374,9 @@ intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layo
     exclusive;
 
     step EmitC {
-        where: EmissionZone;
         using: emit_zone;
         who: emitter;
         on: emitter.Emit(types, abi_layout, target_capability);
-        requires: ArtifactEmission;
-        authorized by: emitter;
         expect: true;
     }
 
@@ -444,12 +466,9 @@ intent ProveHardSelfHostEvidence(
     }
 
     step Subprocess {
-        where: SubprocessRunnerZone;
         using: subprocess;
         who: subprocess_runner;
         on: subprocess_runner.Plan();
-        requires: SubprocessDiscipline;
-        authorized by: subprocess_runner;
         expect: true;
     }
 
@@ -461,12 +480,9 @@ intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
     exclusive;
 
     step CompareArtifacts {
-        where: ParityZone;
         using: parity_zone;
         who: oracle;
         on: oracle.Compare();
-        requires: ParityJudging;
-        authorized by: oracle;
         expect: true;
     }
 
@@ -523,6 +539,7 @@ intent CompilePergyraProgram(
         where: SemanticVerdictZone;
         using: semantic_zone;
         who: checker;
+        authorized by: checker;
         on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);
         expect: true;
     }
@@ -543,6 +560,7 @@ intent CompilePergyraProgram(
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
+        authorized by: emitter;
         on: BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter);
         expect: true;
     }
@@ -551,6 +569,7 @@ intent CompilePergyraProgram(
         where: ParityZone;
         using: parity_zone;
         who: oracle;
+        authorized by: oracle;
         on: SelfProofPipeline(parity_zone, oracle);
         expect: true;
     }

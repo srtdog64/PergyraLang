@@ -256,8 +256,8 @@ Recently closed:
 `src/semantic/type_checker_ownership_destructure.c`,
 `src/semantic/type_checker_ownership_let.c`, and
 `src/semantic/type_checker_ownership_param_summary.c`. The old behavior-owning `.inc`
-files were deleted. Current `src/semantic/**/*.inc` total is 8,215 LOC, and
-`src/semantic/type_checker_ownership_*.inc` is zero.
+files were deleted. Current `src/semantic/**/*.inc` total is 0 files / 0 LOC;
+`src/semantic/type_checker_ownership_*.inc` is likewise zero.
 
 남은 semantic 800+ `.inc`:
 
@@ -300,11 +300,11 @@ Backend 진행:
 - `type_checker_decls_domain_helpers.c`의 projection/relation/effect contract type materialization은 slot/shared/named-ref seam 3개로 수렴했고, domain contract checks는 graph-backed resolved metadata를 먼저 재사용한다. Zone authority participant resolution also now treats exact/qualified-tail direct slot aliases as concrete before same-type ambiguity, and clears stale ambiguity when returning a direct match.
 - `type_checker_intent_helpers.c`의 transfer-derived using/where, ability generic arg, role-field checks는 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed metadata reader로 교체하는 것이다.
 - `type_checker_host_helpers.h`의 projection source field, hosted method return/param, zone authority/domain slot checks는 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 host helper header의 마지막 resolver seam을 `.c` owner로 추출한 뒤 graph-backed metadata reader로 교체하는 것이다.
-- `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. function body materialization은 graph-backed resolved metadata를 먼저 재사용한다.
+- `type_checker_program.c`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. 삭제된 `type_checker_program.inc`는 현재 owner가 아니다. function body materialization은 graph-backed resolved metadata를 먼저 재사용한다.
 - `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
 - `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
-- `type_checker_role_decl.c`, `type_checker_generic_contracts.c`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
-- `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.h`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
+- `type_checker_role_decl.c`, `type_checker_generic_contracts.c`, `type_checker_helpers_late.c`, `type_checker_expr.c`는 각각 local resolver seam으로 수렴했다. 다음 DAG slice는 role implementation, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
+- `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_expr_ops.c`, `type_checker_ownership_destructure.c`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
 - statement/type-alias, ability fields, projection/query builtins, flow with-slot, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다. zone domain-slot seam은 graph metadata-first 조회를 사용하며, `type-resolution-resolver-inventory-test-smoke`가 새 direct resolver 호출을 allowlist 밖에서 금지한다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
 - `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
@@ -326,7 +326,7 @@ Semantic stop condition:
   cleanup target is nominal/slotops ownership, not a cross-file dangling
   return-type boundary.
 - `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
-- 현재 상태: `type_checker_event.c`와 `type_checker_qubit.c` owner 추출 후 `type_checker.c`는 481 LOC다. 남은 include는 helper shims와 statement/program orchestration 경계다.
+- 현재 상태: 후속 owner 추출까지 반영한 `type_checker.c`는 121 LOC이며 `type_checker_internal.h`만 include한다. semantic helper shim이나 statement/program `.inc` 경계는 남아 있지 않다.
 - 현재 상태: DAG graph stats, graph-backed stage skip, stage metadata materialization inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 compatibility 호출량을 더 줄이는 것이다.
 - semantic 신규 기능은 `.inc` 수정 없이 해당 axis `.c`와 internal header만 수정해서 추가 가능해야 한다.
 
@@ -499,8 +499,8 @@ semantic_classify_ownership_type
 - cleanup: DONE — `type_checker_resolution_graph_core.h` implementation-header seam removed; graph validation/topo ownership now lives in `type_checker_resolution_graph_validate.c`.
 - cleanup: DONE — `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이의 dangling return-type seams 제거
 - cleanup: DONE — `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`를 standalone semantic TU로 빌드 가능하게 만들고 hidden helper 의존을 internal/header 계약으로 승격
-- cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격
-- 현재 크기: `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 136 LOC, `type_checker_resolution_graph_decl.c` 554 LOC, `type_checker_resolution_graph_world.c` 381 LOC, `type_checker_resolution_graph_inventory.c` 764 LOC, `type_checker_resolution_stage.c` 999 LOC, `type_checker_resolution_stage_domain.c` 520 LOC
+- historical cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격. **RETIRED (2026-07-27):** `type_resolution_find_path`의 internal API 승격과 dependency별 즉시 path probe는 폐기했다. 완성 graph validator가 cycle 진단의 단일 owner이며, per-edge whole-graph walk를 되살리지 않는다.
+- 현재 크기 (2026-07-27 tree census): `type_checker_resolution_graph_collect.c` 309 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 155 LOC, `type_checker_resolution_graph_decl.c` 292 LOC, `type_checker_resolution_graph_world.c` 408 LOC, `type_checker_resolution_graph_inventory.c` 98 LOC, `type_checker_resolution_stage.c` 96 LOC, `type_checker_resolution_stage_domain.c` 264 LOC
 - 예상 cascade: 10+ — full audit 필요
 
 ---

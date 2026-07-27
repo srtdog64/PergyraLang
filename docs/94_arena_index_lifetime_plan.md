@@ -220,9 +220,10 @@ Pergyra는 이미 다음 성격이 강하다.
     - per-task inner 배열은 `collect_slot_accesses` 가 여전히 heap-owned로 관리
     - outer pointer array / counter array 만 arena-owned
 - 다시 scratch-safe slice 2개 추가 흡수 (2026-04-22, 2차)
-  - `semantic_type_resolution_record_named_dependency` 의 cycle-detection 작업 배열 (`visited`, `path`) 을 `ctx->scratch_arena` 로 이동
-    - 배열은 `type_resolution_find_path` 호출에만 사용되고 함수 밖으로 탈출하지 않는다
-    - cycle diagnostic 포맷 경로의 `cycle_text` 는 return-contract helper (`type_resolution_format_cycle`) 가 반환하므로 기존 heap-owned 그대로 유지 (이번 slice 범위 밖)
+  - **HISTORICAL / RETIRED (2026-07-27):** `semantic_type_resolution_record_named_dependency`의 cycle-detection 작업 배열 (`visited`, `path`)을 `ctx->scratch_arena`로 옮긴 판단은 lifetime 분석 오류였다.
+    - 각 배열이 한 `type_resolution_find_path` 호출 밖으로 직접 escape하지 않는다는 사실만 확인했고, dependency마다 graph-sized 배열 두 개가 context 종료까지 누적된다는 arena lifetime을 놓쳤다.
+    - 27,807-node/28,233-edge compiler-world graph에서 이 설계는 3,522.4 MiB private peak를 만들었다. `type_resolution_find_path`와 per-edge 배열은 제거됐고, 완성 graph를 owner boundary에서 한 번 검증한다.
+    - `cycle_text`는 계속 `type_resolution_format_cycle`의 heap-owned return contract를 따른다. 이 항목은 context-lifetime scratch를 반복 임시값의 안전한 기본값으로 권장하지 않는다.
   - `check_match_redundancy` 의 variant coverage tracker (`seen` bool 배열) 을 `ctx->scratch_arena` 로 이동
     - 배열은 case 순회 동안만 쓰이고 함수 밖으로 탈출하지 않는다
 - HIR/MIR 쪽도 첫 slice 3개 흡수 (2026-04-22, 3차) — 이후 4차에서 routine-scope arena로 통합됨

@@ -285,10 +285,14 @@ SENTINEL_MAX=0
 # empty-string and -1 sentinels.
 RESULT_USE_MIN=2254
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=18
-COMPILER_WORLD_MEMBERS_EXACT=18
+COMPILER_RESOURCE_ZONES_EXACT=19
+COMPILER_WORLD_MEMBERS_EXACT=19
 COMPILER_INTENT_SURFACE_MIN=14
-COMPILER_ZONE_BOUND_STEPS_MIN=28
+# Four duplicated intent `where` clauses moved behind action-owned `within`
+# contracts while the reachable direct-MIR action added its real zone. Count
+# both spellings; the one-row drop is removal of duplicate authority prose,
+# not loss of a resource boundary.
+COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -437,8 +441,9 @@ require_file_regex() {
 require_compiler_world_zone() {
     local member="$1"
     local zone_type="$2"
+    local zone_owner="${3:-src/self_hosted/compiler/world.pgy}"
 
-    require_file_regex "src/self_hosted/compiler/world.pgy" "^zone[[:space:]]+$zone_type[[:space:]]*\\{"
+    require_file_regex "$zone_owner" "^(public[[:space:]]+)?zone[[:space:]]+$zone_type[[:space:]]*\\{"
     require_file_regex "src/self_hosted/compiler/world.pgy" "^[[:space:]]*zone[[:space:]]+$member:[[:space:]]+$zone_type[[:space:]]*$"
 }
 
@@ -455,15 +460,17 @@ sentinel=$(count 'return -1|== -1|!= -1' "$SENTINEL_EXCLUDE_RE")
 result_use=$(count '\bResult<|\bOption<|\bOk\(|\bErr\(|\bSome\(|\bNone\b|\)\?')
 compiler_world_surface=$(count_lines_in_files '^world[[:space:]]+PgyCompilerWorld' \
     src/self_hosted/compiler/world.pgy)
-compiler_resource_zones=$(count_lines_in_files '^zone[[:space:]]' \
-    src/self_hosted/compiler/world.pgy)
+compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:space:]]' \
+    src/self_hosted/compiler/world.pgy \
+    src/self_hosted/compiler/driver_rung2_execution_owner.pgy)
 compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
-compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;' \
+compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;|^[[:space:]]*within[[:space:]]+[A-Za-z0-9_]+Zone' \
     src/self_hosted/compiler/world.pgy \
-    src/self_hosted/compiler/stage_intents.pgy)
+    src/self_hosted/compiler/stage_intents.pgy \
+    src/self_hosted/compiler/driver_rung2_execution_owner.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
 compiler_world_fact_consumers=$(count_lines_in_files 'Compiler[A-Za-z0-9]+Ready\(' \
     src/self_hosted/compiler/world.pgy)
@@ -475,10 +482,12 @@ compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerS
     src/self_hosted/compiler/stage_artifact_owner.pgy)
 typed_ast_contract=$(count_lines_in_files 'func[[:space:]]+TypedAstArenaPayloadContractReady' \
     src/self_hosted/hir/typed_ast_arena_owner.pgy)
-compiler_world_entry_imports=$(count_lines_in_files '^import[[:space:]]+"world\.pgy";' \
-    src/self_hosted/compiler/driver_bootstrap_main.pgy)
+compiler_world_entry_imports=$(count_lines_in_files '^import[[:space:]]+"(compiler_world_direct_mir_owner|world)\.pgy";' \
+    src/self_hosted/compiler/driver_bootstrap_main.pgy \
+    src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy)
 compiler_world_entry_refs=$(count_lines_in_files 'PgyCompilerWorld|CompilePergyraProgram' \
-    src/self_hosted/compiler/driver_bootstrap_main.pgy)
+    src/self_hosted/compiler/driver_bootstrap_main.pgy \
+    src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  core_string_munge  : $core_string_munge_sig  (max $CORE_STRING_MUNGE_SIG_MAX)   <- core text->text functions; linchpin"
@@ -568,6 +577,8 @@ require_compiler_world_zone "artifacts" "ArtifactZone"
 require_compiler_world_zone "harness" "TestHarnessZone"
 require_compiler_world_zone "subprocess" "SubprocessRunnerZone"
 require_compiler_world_zone "parity" "ParityZone"
+require_compiler_world_zone "direct_mir" "DriverRung2DirectMirZone" \
+    "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 
 require_file_text "AGENTS.md" "## Hard Pergyra-Native Dogfood Guard"
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "Status: `BRIDGE`"

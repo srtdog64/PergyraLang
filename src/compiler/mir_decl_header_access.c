@@ -430,6 +430,22 @@ mir_decl_method_causes_effect(const MIRDeclMethod *method)
     return method != NULL ? method->causes_effect : NULL;
 }
 
+size_t
+mir_decl_method_authorized_by_count(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->authorized_by_count : 0;
+}
+
+const char *
+mir_decl_method_authorized_by(const MIRDeclMethod *method, size_t index)
+{
+    if (method == NULL || method->authorized_by_names == NULL
+        || index >= method->authorized_by_count) {
+        return NULL;
+    }
+    return method->authorized_by_names[index];
+}
+
 bool
 mir_decl_method_routine_index(const MIRDeclMethod *method, size_t *index_out)
 {

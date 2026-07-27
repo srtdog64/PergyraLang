@@ -462,6 +462,7 @@ bool llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 void llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
+void llvm_register_active_nominal_methods(LLVMGenCtx *ctx);
 void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
 bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
 const char *llvm_current_zone_slot_type_name(LLVMGenCtx *ctx,

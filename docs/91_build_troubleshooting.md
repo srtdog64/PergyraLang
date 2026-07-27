@@ -1936,3 +1936,124 @@ mingw32-make BUILD_DIR=/tmp/pgy-b-build BIN_DIR=/tmp/pgy-b-bin raw-escape-contra
 - `Makefile` — `rebuild` target (clean + all)
 - `tests/diagnostics_json_smoke.sh` — JSON 진단 회귀
 - `tests/compare_backends.sh` — C/LLVM parity 회귀
+## Self-host world에서 semantic 0/0 뒤 AIR authority evidence가 끊기는 경우
+
+증상은 semantic 진단이 `0 error(s), 0 warning(s)`인데 곧바로 다음 형태로
+중단되는 것이다.
+
+```text
+PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+expected authority participant(s): <participant>
+rir_boundary=<Zone> rir_authority=<none>
+```
+
+`authorized by`를 intent에 반복해서 붙이거나 임의 actor 이름을 추가하지
+않는다. matching subject action이 `requires`/`within`/`authorized by self`를
+소유하면 intent는 그 계약을 상속하는 것이 canonical이다.
+
+이번 원인은 action-inherited zone boundary의 첫 구조 증거를 zone RIR scope가
+제공한 뒤, 실제 `Authorize` op를 소유한 intent RIR scope가 같은 boundary의
+두 번째 provider로 보존되지 않은 것이었다. AIR는 exact intent provider와
+같은 step AST의 `Authorize` op를 함께 요구해야 한다. zone의 첫 authority
+row나 다른 step의 authorization을 호환 증거로 쓰면 안 된다.
+
+회귀 확인은 다음 세 층을 함께 본다.
+
+- AIR unit: participant alias가 zone slot 이름과 달라도 exact intent scope의
+  authority evidence가 남는다.
+- world compile: `world.pgy --emit-c`가 0 errors/0 warnings로 끝난다.
+- C/LLVM ABI: 실제 world→zone→subject action 호출 뒤 authority snapshot의
+  zone과 participant가 정확하며, authority 삭제/교체는 artifact 전에
+  거부된다.
+
+## Hosted method가 뒤에 선언된 object/zone/world 값을 인자로 받는 경우
+
+C의 `parameter has incomplete type`와 LLVM의
+`type is not registered in LLVM type map`이 같은 source에서 함께 나타나면
+source 선언 순서를 바꾸지 않는다. 이 문제는 사용자가 dependency 순서를
+맞춰야 하는 문법 문제가 아니라 declaration inventory scheduler 결함이다.
+
+C는 nominal layout/forward declaration과 hosted method body emission을
+분리하고, 모든 domain value type이 완성된 뒤 body를 방출한다. LLVM도 모든
+nominal layout과 zone/world layout을 등록한 뒤 hosted method signature를
+등록한다. 두 backend 모두 MIR declaration inventory를 소비하며 AST를 다시
+탐색하거나 unknown type을 scalar로 추측하지 않는다.
+
+최소 회귀는 “앞의 subject hosted method가 뒤의 object를 by-value parameter로
+받고 그 field를 읽어 `42`를 반환”하는 한 source를 C/LLVM으로 각각 compile,
+run하는 것이다. world source 재배치나 duplicate forward typedef는 허용되는
+수정이 아니다.
+
+## Native type-resolution dependency scratch can exceed the 3 GiB build cap
+
+The production-reachable `PgyCompilerWorld` build exposed a native compiler
+memory defect before either backend became the dominant process. The completed
+semantic graph had 27,807 nodes and 28,233 edges. Under the 4 GiB diagnostic
+ceiling, the C build completed with `pgy.exe` as the top process at 3,522.4 MiB
+peak private memory. A 3,072 MiB kill-on-limit run stopped the same compiler
+before any C compiler worker started. This is not normal oracle, C, LLVM, or
+self-host working-set cost.
+
+The exact owner was
+`semantic_type_resolution_record_named_dependency` in
+`src/semantic/type_checker_resolution_graph_core.c`. For every dependency it
+allocated both `bool visited[N]` and `size_t path[N]`, where `N` was the graph's
+current node count, from `SemanticContext.scratch_arena`. The arrays were local
+to one `type_resolution_find_path` probe, but arena ownership retained every
+pair until the entire semantic context was destroyed. On a 64-bit host this is
+at least `9 * N` bytes per dependency, accumulated while `N` grows. The
+triangular model for the observed graph is about 3,369.2 MiB before arena
+bookkeeping and the real graph/semantic state, which explains the measured
+3,522.4 MiB peak. The graph itself was not a 3.5 GiB object; repeated
+graph-sized scratch lifetime was the amplifier.
+
+The fix collects each dependency edge without an immediate whole-graph path
+probe and validates the completed graph once before building the topological
+worklist. The checker snapshots the validated node/edge generation; if pass 2
+adds a genuinely new node or edge, it validates that new generation once at
+the boundary. Duplicate edges do not change the generation. The existing
+cycle validator remains the diagnostic owner and preserves
+`PGY_SEM_TYPE_DEPENDENCY_CYCLE`, edge provenance, cycle path, and fail-closed
+behavior. The negative DAG gate rejects restoration of either the per-edge
+`type_resolution_find_path` call or graph-sized context-arena scratch.
+
+After this change, the same compiler-world source completed below the unchanged
+ceiling: the C build peaked at 1,566.4 MiB private and the LLVM build at
+1,226.0 MiB private. Treat these as fixed-input regression witnesses, not as a
+new general memory allowance.
+
+Use the pressure owner and graph stats together when diagnosing a recurrence:
+
+```powershell
+mingw32-make bin/pgy.exe
+New-Item -ItemType Directory -Force `
+  -Path '.tmp/self_hosted/world_driver' | Out-Null
+$env:PGY_TYPE_RES_STATS = '1'
+$env:PGY_DEBUG_SEMANTIC_TIMING = '1'
+
+.\scripts\measure_build_pressure.ps1 `
+  -Label 'driver-world-c-memory' `
+  -Command '.\bin\pgy.exe' `
+  -Arguments @('src\self_hosted\compiler\driver_bootstrap_main.pgy',
+               '--backend=c', '-o',
+               '.tmp\self_hosted\world_driver\driver_world_c.exe') `
+  -LimitMB 3072 -StopOnLimit -TimeoutSec 300
+
+.\scripts\measure_build_pressure.ps1 `
+  -Label 'driver-world-llvm-memory' `
+  -Command '.\bin\pgy.exe' `
+  -Arguments @('src\self_hosted\compiler\driver_bootstrap_main.pgy',
+               '--backend=llvm', '-o',
+               '.tmp\self_hosted\world_driver\driver_world_llvm.exe') `
+  -LimitMB 3072 -StopOnLimit -TimeoutSec 300
+```
+
+Inspect each summary's `top_private_process`, `peak_private_mb`, and phase
+breakdown, then correlate stderr's `[type-res-stats] nodes=... edges=...` with
+the semantic timing slots. Sample CSV numbers are emitted with invariant
+decimal formatting; locale-aware thousands separators must not be used because
+they change the CSV column count above 999.9 MiB. Keep the 3,072 MiB cap fixed.
+Raising the cap,
+removing compiler-world owners to shrink the input graph, splitting the world
+into backend-specific graphs, or hiding the graph in another process does not
+repair the lifetime defect and must not be accepted as the fix.

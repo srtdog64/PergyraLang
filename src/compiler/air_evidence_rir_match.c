@@ -39,6 +39,18 @@ air_rir_scope_matches_boundary(const RIRScope *scope,
           || scope->kind == RIR_SCOPE_WORLD)) {
         return false;
     }
+    /* An action-inherited authorization is evidenced by the intent-local
+     * Authorize operation.  A zone authority row names the zone slot, which
+     * need not equal the intent participant alias (runner vs runner_alias),
+     * so it must not become a compatibility authority for this boundary. */
+    if (boundary->authority_from_action) {
+        if (scope->kind == RIR_SCOPE_INTENT) {
+            return air_name_matches(scope->owner_name, boundary->owner_name)
+                || air_name_matches(scope->name, boundary->owner_name);
+        }
+        return scope->kind == RIR_SCOPE_ZONE
+            && air_name_matches(scope->name, boundary->source_name);
+    }
     if (boundary->kind == AIR_BOUNDARY_PARALLEL
         || boundary->kind == AIR_BOUNDARY_IO
         || boundary->kind == AIR_BOUNDARY_CHANNEL) {

@@ -161,6 +161,10 @@ const char *transpiler_mir_decl_method_within_zone(
     const MIRDeclMethod *method);
 const char *transpiler_mir_decl_method_causes_effect(
     const MIRDeclMethod *method);
+size_t transpiler_mir_decl_method_authorized_by_count(
+    const MIRDeclMethod *method);
+const char *transpiler_mir_decl_method_authorized_by(
+    const MIRDeclMethod *method, size_t index);
 const MIRRoutine *transpiler_mir_decl_method_routine(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);

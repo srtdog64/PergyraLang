@@ -4,7 +4,7 @@
 // gives the bootstrap runner deterministic source/MIR/output-file surfaces.
 
 import "driver_rung2_owner.pgy";
-import "driver_rung2_execution_owner.pgy";
+import "compiler_world_direct_mir_owner.pgy";
 
 func DriverBootstrapPathEndsWith(path: String, suffix: String) -> Bool {
     let path_length: Int = StringLength(path);
@@ -63,10 +63,8 @@ func Main() -> Void with caps env, io_read, io_write {
         if args[0] == "--mir-json-backend=llvm" {
             request = DirectMirLlvm;
         }
-        let execution: DriverRung2Execution = DriverRung2Execution(
-            DriverRung2ExecutionOwnerIdentity()
-        );
-        let result: DriverRung2ExecutionResult = execution.EmitDirectMir(
+        let result: DriverRung2ExecutionResult =
+            EmitDirectMirThroughPgyCompilerWorld(
             args[1], args[2], machine_declaration, request
         );
         if !DriverRung2ExecutionResultReady(result) {

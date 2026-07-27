@@ -11512,6 +11512,23 @@ require_text \
 require_file "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" 180
+require_file "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" 80
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    'within DriverRung2DirectMirZone'
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    'public zone DriverRung2DirectMirZone'
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'import "world.pgy";'
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'func EmitDirectMirThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'let compiler_world = PgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'import "compiler_world_direct_mir_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'args[0] == "--mir-json-backend=c"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \

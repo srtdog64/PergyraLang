@@ -5,12 +5,162 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
 #include "parser/ast_api.h"
+
+void
+llvm_emit_world_embedded_action_authority_check(
+    LLVMGenCtx *ctx,
+    ASTNode *receiver,
+    const MIRDeclMethod *method_meta)
+{
+    ASTNode *host_decl;
+    ASTNode *zone_decl = NULL;
+    const MIRDeclHeader *zone_header;
+    const MIRDeclZoneAuthority *authority = NULL;
+    const char *zone_slot_name = NULL;
+    const char *source_slot_name = NULL;
+    const char *zone_name;
+    const char *world_name;
+    const char *method_within_zone;
+    const char *authorized_by;
+    LLVMClassTypeEntry *world_cls;
+    LLVMClassTypeEntry *zone_cls;
+    LLVMFuncEntry *check_fn;
+    LLVMVarEntry self_var;
+    LLVMValueRef world_ptr;
+    LLVMValueRef zone_ptr;
+    LLVMValueRef participant_field_ptr;
+    LLVMValueRef participant_value;
+    LLVMValueRef args[4];
+    LLVMTypeRef participant_field_type;
+    int zone_index;
+    int participant_index;
+
+    if (ctx == NULL || receiver == NULL || method_meta == NULL
+        || !llvm_mir_decl_method_is_action_like(method_meta)) {
+        return;
+    }
+    host_decl = llvm_current_host_decl(ctx);
+    if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
+        return;
+    if (llvm_mir_decl_method_authorized_by_count(method_meta) == 0)
+        return;
+    if (llvm_mir_decl_method_authorized_by_count(method_meta) != 1) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path cannot bind multiple authorities for a world-embedded action");
+        return;
+    }
+    authorized_by = llvm_mir_decl_method_authorized_by(method_meta, 0);
+    if (authorized_by == NULL || strcmp(authorized_by, "self") != 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path cannot bind named authority '%s' for a world-embedded action",
+            authorized_by != NULL ? authorized_by : "<missing>");
+        return;
+    }
+
+    method_within_zone = llvm_mir_decl_method_within_zone(method_meta);
+    if (method_within_zone == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing within-zone metadata for self-authorized action");
+        return;
+    }
+    if (!llvm_world_embedded_projection_source_from_assignment(ctx, receiver,
+            &zone_slot_name, &zone_decl, &source_slot_name, NULL)
+        || zone_slot_name == NULL || zone_decl == NULL
+        || source_slot_name == NULL
+        || (zone_name = llvm_decl_node_name(zone_decl)) == NULL
+        || strcmp(method_within_zone, zone_name) != 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path cannot bind indirect world action authority to exact zone/subject slots");
+        return;
+    }
+
+    zone_header = llvm_find_decl_header_in_context_of_type(
+        ctx, AST_ZONE_DECL, zone_name);
+    if (zone_header == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone declaration header for self-authorized action in '%s'",
+            zone_name);
+        return;
+    }
+    for (size_t i = 0;
+         i < mir_decl_header_zone_authority_count(zone_header); i++) {
+        const MIRDeclZoneAuthority *candidate =
+            mir_decl_header_zone_authority(zone_header, i);
+        const char *candidate_slot =
+            mir_decl_zone_authority_subject_slot_name(candidate);
+        if (candidate_slot != NULL
+            && strcmp(candidate_slot, source_slot_name) == 0) {
+            authority = candidate;
+            break;
+        }
+    }
+    if (authority == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing exact zone authority for self-authorized action '%s.%s'",
+            zone_name, source_slot_name);
+        return;
+    }
+
+    world_name = llvm_decl_node_name(host_decl);
+    world_cls = world_name != NULL ? llvm_lookup_class(ctx, world_name) : NULL;
+    zone_cls = llvm_lookup_class(ctx, zone_name);
+    check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
+    if (world_cls == NULL || zone_cls == NULL
+        || !llvm_scope_lookup_snapshot(ctx, "self", &self_var)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world/zone layout or self binding for self-authorized action");
+        return;
+    }
+    if (check_fn == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM self-authorized action check runtime export is missing: pgy_zone_authority_check_export");
+        return;
+    }
+    zone_index = llvm_class_field_index(world_cls, zone_slot_name);
+    participant_index = llvm_class_field_index(zone_cls, source_slot_name);
+    if (zone_index < 0 || participant_index < 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone or authority subject field for '%s.%s'",
+            zone_name, source_slot_name);
+        return;
+    }
+
+    world_ptr = self_var.alloca;
+    if (self_var.type == LLVMPointerType(world_cls->struct_type, 0)) {
+        world_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
+            self_var.alloca, llvm_tmp_name(ctx));
+    }
+    zone_ptr = LLVMBuildStructGEP2(ctx->builder, world_cls->struct_type,
+        world_ptr, (unsigned)zone_index, llvm_tmp_name(ctx));
+    participant_field_ptr = LLVMBuildStructGEP2(ctx->builder,
+        zone_cls->struct_type, zone_ptr, (unsigned)participant_index,
+        llvm_tmp_name(ctx));
+    participant_field_type = LLVMStructGetTypeAtIndex(zone_cls->struct_type,
+        (unsigned)participant_index);
+    if (LLVMGetTypeKind(participant_field_type) == LLVMPointerTypeKind) {
+        participant_value = LLVMBuildLoad2(ctx->builder,
+            participant_field_type, participant_field_ptr, llvm_tmp_name(ctx));
+        args[1] = LLVMBuildBitCast(ctx->builder, participant_value,
+            ctx->type_i8ptr, llvm_tmp_name(ctx));
+    } else {
+        args[1] = LLVMBuildBitCast(ctx->builder, participant_field_ptr,
+            ctx->type_i8ptr, llvm_tmp_name(ctx));
+    }
+    args[0] = LLVMBuildBitCast(ctx->builder, zone_ptr, ctx->type_i8ptr,
+        llvm_tmp_name(ctx));
+    args[2] = LLVMBuildGlobalStringPtr(ctx->builder, zone_name,
+        llvm_tmp_name(ctx));
+    args[3] = LLVMBuildGlobalStringPtr(ctx->builder, source_slot_name,
+        llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, check_fn->fn_type, check_fn->fn, args, 4, "");
+}
 
 static ASTNode *
 llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)

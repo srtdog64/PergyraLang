@@ -382,118 +382,102 @@ emit_class_decl_impl(ASTNode *node,
             use_self_cell, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < method_view.count; i++) {
-        const MIRDeclMethod *method_meta =
-            transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method = NULL;
-        bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
-        const MIRRoutine *mir_method;
-        const char *method_name;
-        method_name = transpiler_mir_decl_method_name(method_meta);
-        mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
-        if (method_name == NULL && method != NULL)
-            method_name = ast_declaration_name(method);
-        if (transpiler_active_has_mir(ctx) && method_name == NULL) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path missing method name metadata for class method '%s.%s'",
-                name != NULL ? name : "(anonymous-class)",
-                "(anonymous)");
-            return;
-        }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+}
+
+bool
+transpiler_emit_class_method_bodies_from_inventory(TranspilerCtx *ctx)
+{
+    MIRDeclHeaderInventory inventory;
+
+    if (ctx == NULL)
+        return false;
+    if (transpiler_active_has_mir(ctx) == false) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C class method body schedule requires active MIR declaration inventory");
+        return false;
+    }
+
+    transpiler_active_decl_header_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRDeclHeader *header =
+            mir_decl_header_inventory_get(&inventory, i);
+        const char *name;
+        TranspilerHostedMethodView method_view;
+
+        if (header == NULL
+            || mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                != AST_CLASS_DECL) {
             continue;
         }
-        if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path missing routine for class method '%s.%s'",
-                name != NULL ? name : "(anonymous-class)",
-                method_name != NULL ? method_name : "(anonymous)");
-            return;
+        name = mir_decl_header_name(header);
+        if (name == NULL || name[0] == '\0') {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing class declaration header name during method body schedule");
+            return false;
         }
-        if (mir_method != NULL) {
+        method_view = transpiler_hosted_method_view_from_decl(
+            ctx, name, NULL);
+        if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing declaration metadata for class methods '%s'",
+                name);
+            return false;
+        }
+        if (!transpiler_require_hosted_method_view_rows(
+                ctx,
+                &method_view,
+                "MIR-only C path has invalid method declaration metadata row for class '%s'",
+                name)) {
+            return false;
+        }
+
+        for (size_t j = 0; j < method_view.count; j++) {
+            const MIRDeclMethod *method_meta =
+                transpiler_hosted_method_view_metadata(&method_view, j);
+            const MIRRoutine *mir_method;
+            const char *method_name;
+            char emitted_name[256];
+
+            if (method_meta == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing method body metadata row for class '%s'",
+                    name);
+                return false;
+            }
+            method_name = transpiler_mir_decl_method_name(method_meta);
+            mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
+            if (method_name == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing method name metadata for class method '%s.%s'",
+                    name, "(anonymous)");
+                return false;
+            }
+            if (mir_method == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing routine for class method '%s.%s'",
+                    name, method_name);
+                return false;
+            }
             if (transpiler_mir_routine_generic_param_count(mir_method) > 0) {
                 if (!transpiler_emit_generic_method_specialization_bodies(
-                        ctx, mir_method))
-                    return;
+                        ctx, mir_method)) {
+                    return false;
+                }
                 continue;
             }
-            char emitted_name[256];
             if (!transpiler_class_method_emit_name(emitted_name,
                     sizeof(emitted_name), name, method_name)) {
-                transpiler_class_format_too_long(ctx, "class method emitted name");
-                return;
+                transpiler_class_format_too_long(
+                    ctx, "class method emitted name");
+                return false;
             }
             emit_func_decl_from_mir_named(NULL, mir_method, emitted_name,
                                           ctx->out, ctx);
-            continue;
+            if (ctx->backend_error != NULL)
+                return false;
         }
-
-        char ret_type_buf[256];
-        const char *ret_type = "void";
-        if (ast_func_return_type(method) != NULL
-            && pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
-                ret_type_buf,
-                sizeof(ret_type_buf))) {
-            ret_type = ret_type_buf;
-        }
-
-        if (use_self_cell) {
-            codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                          ret_type, name, method_name, name);
-        } else {
-            codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
-                          ret_type, name, method_name, name);
-        }
-
-        for (size_t j = 0; j < ast_func_param_count(method); j++) {
-            FuncParam *p = ast_func_param(method, j);
-            if (p == NULL || p->name == NULL)
-                continue;
-            if (strcmp(p->name, "self") == 0)
-                continue;
-            char pt[256];
-            char surface_desc[256];
-            if (!transpiler_class_surface_desc(surface_desc,
-                    sizeof(surface_desc), "class method parameter", name,
-                    method_name, p != NULL ? p->name : NULL)) {
-                transpiler_class_format_too_long(
-                    ctx, "class method parameter diagnostic surface");
-                return;
-            }
-            if (!transpiler_require_ast_c_type_copy(ctx,
-                    p != NULL ? p->type : NULL,
-                    surface_desc,
-                    pt,
-                    sizeof(pt))) {
-                return;
-            }
-            {
-                char *ptn = (p->type != NULL)
-                    ? render_type_name_in_ctx(ctx, p->type) : NULL;
-                bool subj_param = ptn != NULL
-                    && is_pointer_self_host_type_name(ctx, ptn);
-                if (subj_param)
-                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
-                else
-                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
-                free(ptn);
-            }
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-
-        transpiler_emit_host_method_body_local(
-            ctx,
-            transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, name),
-            name,
-            method,
-            NULL,
-            true);
-
-        codebuf_write(ctx->out, "}\n");
     }
+    return true;
 }
 
 void

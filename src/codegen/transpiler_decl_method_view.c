@@ -266,6 +266,19 @@ transpiler_mir_decl_method_causes_effect(const MIRDeclMethod *method)
     return mir_decl_method_causes_effect(method);
 }
 
+size_t
+transpiler_mir_decl_method_authorized_by_count(const MIRDeclMethod *method)
+{
+    return mir_decl_method_authorized_by_count(method);
+}
+
+const char *
+transpiler_mir_decl_method_authorized_by(const MIRDeclMethod *method,
+                                         size_t index)
+{
+    return mir_decl_method_authorized_by(method, index);
+}
+
 const MIRRoutine *
 transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
                                    const MIRDeclMethod *method)

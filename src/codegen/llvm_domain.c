@@ -81,6 +81,15 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
 
     llvm_register_domain_structs(ctx, domain_groups, domain_group_counts,
                                  domain_group_count);
+    if (ctx->has_error)
+        return;
+
+    /* Nominal layouts are registered before domain layouts; hosted method
+     * signatures wait for both inventories because their by-value parameters
+     * may name a later object, zone, or world type. */
+    llvm_register_active_nominal_methods(ctx);
+    if (ctx->has_error)
+        return;
 
     llvm_emit_domain_ability_vtables(ctx, abilities, ability_count);
     llvm_emit_domain_role_forward_decls(ctx, roles, role_count);

@@ -68,6 +68,10 @@ bool llvm_mir_decl_method_is_async(const MIRDeclMethod *method);
 bool llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method);
 const char *llvm_mir_decl_method_within_zone(const MIRDeclMethod *method);
 const char *llvm_mir_decl_method_causes_effect(const MIRDeclMethod *method);
+size_t llvm_mir_decl_method_authorized_by_count(
+    const MIRDeclMethod *method);
+const char *llvm_mir_decl_method_authorized_by(
+    const MIRDeclMethod *method, size_t index);
 const MIRRoutine *llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
                                                const MIRDeclMethod *method);
 

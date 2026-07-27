@@ -78,18 +78,21 @@ storage sharing은 구현 세부사항이고 nominal kind가 의미 identity다.
 
 ### 실제 corpus 판정
 
-2026-07-27의 `driver_bootstrap_main.pgy` 재귀 import closure는 403개 파일이며
-missing import는 0이다. 그 실행 closure에서 이 문서의 domain 구성체는
-`subject` 1개와 `action` 1개만 도달한다. `object`/`tobject`/`vessel`/`world`/
-`zone`/`intent`는 0이다. 반대로 미도달 `compiler/world.pgy` 하나에는
-`object` 18개, `tobject` 1개, `subject` 16개, `zone` 18개, `world` 1개,
-`action` 16개가 선언돼 있다.
+2026-07-27의 `driver_bootstrap_main.pgy` 재귀 import closure는 443개 파일이며
+missing import는 0이다. 이 import-reachable 집합에는 `func` 3,473개,
+`struct` 176개, `enum` 4개, `object` 18개, `tobject` 1개, `subject` 17개,
+`action` 17개, `zone` 19개, `world` 1개, `intent` 14개, `role` 4개,
+`ability` 4개가 선언돼 있다. `class`/`vessel`/`effect`/`relation`/`party`/
+`roster` 선언은 0이다.
 
-도달한 `DriverRung2Execution.EmitDirectMir`는 identity와 target admission,
-artifact 검증, write/rejected transition을 실제로 소유한다. 미도달 action
-16개는 모두 `Compiler*Ready()`를 반환하고 subject field를 읽지 않는
-readiness facade다. 따라서 선언 수나 Pergyra다운 이름은 구조 적합성의
-참고 자료일 뿐, 실행 개사료 진척은 아니다.
+이 수치는 import 표면 census이지 모든 선언의 실행 call-site 증거가 아니다.
+실제 direct-MIR production call chain은 `PgyCompilerWorld`의 `direct_mir` zone과
+`DriverRung2Execution.EmitDirectMir` action 하나를 지난다. 이 action은
+identity admission, target admission, artifact 검증, write/rejected transition을
+실제로 소유한다. `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
+계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
+chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름은 구조
+적합성의 참고 자료일 뿐, 실행 개사료나 C-path 대체 진척은 아니다.
 
 corpus에서 반복되는 유효 패턴도 이 행렬과 일치한다.
 
@@ -255,23 +258,30 @@ local read model, `tobject`는 전달 receipt, `vessel`은 subject 내부 상태
 4. `class` hosted func는 value-self이므로 내부 mutation 결과가 호출자에 남지
    않는다. mutator처럼 보이는 이름은 피하고 새 class 값을 반환하는 형태를
    쓴다.
-5. production self-host import graph에서 이 계층 중 실제로 도달한
-   Pergyra-native 경계는 현재 subject/action 하나뿐이다. 다른 구성체의 fixture
-   수를 self-host substitution으로 세지 않는다.
+5. production self-host import graph에는 `PgyCompilerWorld`와 19개 zone을 포함한
+   domain 표면이 들어와 있다. 그러나 실제 direct-MIR call chain이 통과하는
+   Pergyra-native 경계는 world 1개, direct-MIR zone 1개, subject/action 1개다.
+   import-reachable 선언 수나 fixture 수를 self-host substitution으로 세지 않는다.
 6. `MakeSubject().Action()` 같은 temporary subject receiver는 C에서
    address-of-rvalue가 되고 LLVM에서는 임시 alloca로 보존될 가능성이 있다.
    두 backend가 다른 lifetime을 만들지 않도록 semantic에서 stable subject
    binding만 receiver로 허용하는 negative가 필요하다.
-7. MIR method metadata는 현재 action identity와 `within`을 운반하지만
-   `requires`/`authorized by`/capability/effect 계약 전체를 한 method fact로
-   닫지는 않는다. backend가 AST를 재조회하지 않도록 action contract carriage
-   owner를 명확히 해야 한다.
+7. `MIRDeclMethod`는 현재 action identity, `within`, `causes`,
+   `authorized by` 이름 목록을 운반한다. action `requires`, declared caps/effects,
+   zone authority ability와 호출별 participant binding은 아직 하나의 소비 가능한
+   method/call fact로 닫히지 않았다. backend가 AST를 재조회하거나 이름에서
+   binding을 추정하지 않도록 각 carriage owner를 분리해 명시해야 한다.
 8. action 후 projection/effect sync가 C와 LLVM에 별도로 구현돼 있다. 동일한
    검증 plan을 두 backend가 소비하도록 합쳐야 하며, 출력 parity만으로 중복
    정책 소유를 정당화하지 않는다.
 9. semantic helper `type_is_class_object_type()`은 이름과 달리 현재 subject만
    판정한다. 새 consumer를 붙이지 말고 subject identity 이름으로 바꿔
    오분류 가능성을 제거해야 한다.
+10. hosted method의 source declaration order는 사용자 ABI가 아니다. C는
+    MIR-owned value layout schedule 뒤 domain type을 완성한 후 nominal method
+    body를 방출하고, LLVM은 nominal/domain layout을 모두 등록한 뒤 method
+    signature와 body를 방출한다. 이 순서를 source 재배치나 opaque type 추정으로
+    우회하지 말고 declaration inventory와 later-declared value fixture로 고정한다.
 
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
 `object` bare-field mutation, `class` mutator persistence 오해, subject의
@@ -301,3 +311,124 @@ bare/`self.` mutability 불일치, temporary subject action receiver다. 이 작
 4. self-host 증거 등급: `docs/self_hosted/17_pergyra_native_dogfood_contract.md`.
 5. 과거 설계 문서가 이 행렬과 충돌하면 현재 source와 executable gate를
    먼저 따르고 과거 문서를 고친다.
+
+## 9. Compiler dogfood의 canonical 경계 패턴
+
+현재 direct-MIR rung에서 채택한 실행 패턴은 다음 하나다.
+
+```text
+struct/class/object/tobject value facts
+  -> identity-bearing subject
+  -> action (transition + explicit result)
+  -> direct-MIR zone (subject slot + authority/lifetime boundary)
+  -> the single PgyCompilerWorld declaration graph
+  -> intent only after multiple real actions form one purpose
+```
+
+구현 규칙은 다음과 같다.
+
+1. `action` 선언이 `requires`, `within`, `authorized by`, `causes`, caps/effects와
+   transition 계약의 source surface를 소유한다. intent step은 유일하게 matching한
+   action에서 `where`, `requires`, `causes`, `authorized by`를 상속한다. participant
+   alias mapping이 모호하면 상속하지 않으며, 같은 clause를 명시적으로 반복하는
+   현재 동작은 semantic error가 아니라 redundancy warning이다.
+2. **현재 `DriverRung2DirectMirZone`에 한해** zone은 subject slot과 authority/
+   lifetime 경계만 소유한다. 일반 zone은 projection의 실제 owner일 때
+   object/tobject slot, layer, state, refresh/publish를 정당하게 소유할 수 있다.
+   direct-MIR zone은 target, MIR, certificate, projection plan, artifact payload를
+   다시 복사하지 않는다.
+3. 현재 direct-MIR world method는 zone 내부 action으로 한 번 위임하는
+   composition boundary다. target 판정, backend 호출, `WriteFile`을 world나
+   `Main`으로 끌어올리지 않는다. 일반 world가 여러 실제 zone/action을 조정할
+   수 있다는 언어 규칙까지 단일 호출로 제한하지 않는다.
+4. compiler topology의 world 선언은 `PgyCompilerWorld` 하나다. 이는 C/LLVM별
+   world나 현재 rung 전용 mini-world를 금지하는 **단일 사실 그래프** 규칙이지,
+   프로세스 전체에 world aggregate가 하나만 존재한다는 runtime singleton
+   계약은 아니다.
+5. semantic은 이미 named live zone/subject binding의 world/zone 암묵 embedding을
+   거부하고 `Clone(...)`만 명시적 detached copy로 허용한다. composition root의
+   `World(Zone(Subject(...)))`는 surviving origin alias가 없는 inline
+   materialization이다. C/LLVM layout은 계속 by-value aggregate이므로 이를
+   physical no-copy, stable address, 또는 고유 runtime identity로 부르지 않는다.
+   `DriverRung2Execution.identity`의 고정 문자열도 admission label이지 고유
+   identity token은 아니다.
+6. 일반 world/zone call ABI는 named argument를 아직 구현하지 않았다. 따라서
+   `direct_mir`는 현재 world의 첫 positional field이고 composition owner는 그
+   slice만 명시적으로 초기화한다. 생략된 aggregate field의 zero 값이나
+   `__zone_active_*`를 일반적인 authority/presence 증거로 간주하지 않는다.
+   나머지 zone을 가짜 schema/subject로 채워 readiness를 가장하지 않는다.
+7. action contract는 semantic 검사에서 끝나지 않는다. declaration clause,
+   호출별 authority binding, runtime evidence의 owner가 분리돼야 하며 C/LLVM은
+   같은 binding fact를 소비해야 한다. inherited intent authority가 필요한
+   경로는 RIR/AIR evidence까지 운반된 뒤에만 닫힌 것으로 센다.
+
+현재 production 경로는 다음 모양이다.
+
+```text
+driver_bootstrap_main.Main
+  -> EmitDirectMirThroughPgyCompilerWorld
+  -> PgyCompilerWorld.EmitDirectMir
+  -> PgyCompilerWorld.direct_mir
+  -> DriverRung2DirectMirZone.execution
+  -> DriverRung2Execution.EmitDirectMir
+  -> existing target/projection/emission owners
+```
+
+이 연결은 기존 C-owned compiler 의미를 대체하지 않으므로 증거 등급은 계속
+`REACHABLE`이며 `SUBSTITUTING`이 아니다. 하지만 선언만 존재하던 world와 실제
+production action을 하나의 import/call graph로 합친 실행 경계다. 별도 world
+재도입과 migrated direct-MIR mode의 `Main` 직행은 negative gate가 금지한다.
+
+### 9.1 현재 action authority ABI 범위
+
+현재 action authority는 다음 세 층으로 나눠 판정한다.
+
+| 층 | 현재 owner와 증거 | 아직 닫히지 않은 것 |
+| --- | --- | --- |
+| declaration contract | `MIRDeclMethod`의 action/`within`/`causes`/`authorized_by_names`, `MIRDeclZoneAuthority`의 subject slot/required ability | action `requires`, caps/effects를 호출이 소비할 한 contract row로 결합 |
+| call binding | C/LLVM hook이 direct world -> zone -> subject receiver와 정확한 zone authority slot을 구조적으로 resolve | named participant, 복수 authority, indirect receiver를 나타내는 호출별 binding fact |
+| runtime evidence | 선택한 zone 주소와 participant 주소를 runtime에 전달하고 non-null presence snapshot 기록 | slot membership, subject identity/token, action/zone ability authorization |
+
+현재 C/LLVM member-call hook이 check를 방출하는 범위는 world의 직접
+zone/subject receiver와 `authorized by self` 단일 항목
+(`authorized_by_count == 1`) 조합뿐이다. 런타임의
+`pgy_zone_authority_check_export`/C macro는 현재 zone과 participant 주소의
+non-null만 검증한다. 따라서 positive snapshot은 정확한 정적 slot 선택과 주소
+전달 증거이지 identity/token/ability 권한 승인 증거가 아니다.
+
+`tests/self_hosted/parity/driver_execution_action_abi_parity.sh`는 C/LLVM positive
+snapshot/artifact parity와 missing/wrong zone authority의 **semantic compile
+negative**, named/multiple/indirect world-action authority의 **backend
+fail-close negative**를 고정한다. runtime identity/token mismatch와 generic
+direct-subject receiver negative는 아직 없다.
+
+semantic은 named participant authority와 복수 authority를 허용하지만 현재
+C/LLVM world hook은 호출별 binding fact가 없는 named/multiple/indirect shape를
+codegen boundary에서 명시적으로 거부한다. generic direct-subject receiver는
+아직 이 gate의 admission 또는 fail-close 증거가 아니다. 지원 범위를 넓히기
+전에는 해당 shape도 명시적 negative로 고정해야 한다. `self`로 추정하거나 첫
+authority/zone을 고르는 fallback, check 없는 성공 lowering은 금지한다. 확장할
+때 binding fact, 정확한 subject slot lookup, C/LLVM positive와 unsupported-shape/
+runtime negative를 같은 변경에서 닫는다.
+
+C emitter의 authority helper는 `bool + out` 계약을 사용한다. `out == null`인
+"적용할 check 없음"과 check 문자열 materialization 실패가 호출자에게 같은 값으로
+보이면 실패 시 unchecked action을 emit하는 silent fallback이 된다. 따라서
+materialization 실패는 진단 할당의 성공 여부와 무관하게 `false`로 전파되어
+호출 emission을 중단해야 한다.
+
+### 9.2 Hosted-method declaration scheduling
+
+source declaration order는 hosted method의 작성 제약이나 backend별 ABI가
+아니다. 현재 C는 nominal forward typedef와 MIR-owned enum/nominal by-value
+layout schedule을 먼저 실행하고, zone/world value type이 완성된 뒤 nominal
+hosted method body를 방출한다. LLVM은 nominal layout, domain layout, nominal
+method signature, method body 순서로 등록/방출한다. missing layout/type metadata는
+source를 재배치하거나 `i32`/opaque type으로 추정하지 않고 fail closed한다.
+
+`tests/cases/backend_compare/hosted_method_later_value_object/main.pgy`가 먼저
+선언된 subject method가 뒤에 선언된 object를 by-value parameter로 받는 C/LLVM
+회귀를 고정한다. 현재 증거는 이 nominal-host/later-object 범위다. zone/world
+host와 later zone/world value까지 일반 보장으로 넓히려면 해당 C/LLVM parity
+fixture를 먼저 추가하고 domain method body schedule도 같은 declaration inventory
+owner 아래에서 검증해야 한다.

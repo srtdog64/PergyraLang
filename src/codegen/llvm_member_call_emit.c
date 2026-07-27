@@ -219,6 +219,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             return NULL;
                     }
 
+                    llvm_emit_world_embedded_action_authority_check(ctx,
+                        obj_node, method_meta);
+                    if (ctx->has_error)
+                        return NULL;
                     LLVMValueRef result;
                     if (ret_type == ctx->type_void) {
                         LLVMBuildCall2(ctx->builder, fn_type,
@@ -368,6 +372,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         return NULL;
                 }
 
+                llvm_emit_world_embedded_action_authority_check(ctx,
+                    obj_node, method_meta);
+                if (ctx->has_error)
+                    return NULL;
                 if (ret_type == ctx->type_void) {
                     LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                         args, (unsigned)(argc + 1), "");

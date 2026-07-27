@@ -295,11 +295,28 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 }
 
                 {
-                    char *result = specialization != NULL
+                    char *authority_check = NULL;
+                    char *result;
+
+                    if (!emit_world_embedded_action_authority_check(
+                            ctx, obj, method_meta, &authority_check)
+                        || ctx->backend_error != NULL) {
+                        free(authority_check);
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
+                    result = specialization != NULL
                         ? strdup_fmt("%s(%s)", specialization->specialized_name,
                               args_buf->data)
                         : strdup_fmt("%s_%s(%s)",
                               owned_type_name, method, args_buf->data);
+                    if (authority_check != NULL && result != NULL) {
+                        char *authorized_result = strdup_fmt(
+                            "({ %s%s; })", authority_check, result);
+                        free(result);
+                        result = authorized_result;
+                    }
+                    free(authority_check);
                     const char *source_slot_name =
                         assignment_target_root_slot_name(obj);
                     char *invalidation = NULL;

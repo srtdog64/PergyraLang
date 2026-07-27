@@ -25,6 +25,14 @@ require 'ConvertTo-Json -Depth 4'
 require '$summaryPath'
 require '$stagePath'
 require 'observed_elapsed_ms,stream,stage'
+require '$invariantCulture = [Globalization.CultureInfo]::InvariantCulture'
+require '$workingSet.ToString("F1", $invariantCulture)'
+require '$private.ToString("F1", $invariantCulture)'
+require '$topPrivate.ToString("F1", $invariantCulture)'
+if grep -Fq '{5:N1},{6:N1}' "$PROBE"; then
+    echo "[build-pressure-contract] locale-aware numeric formatting can corrupt sample CSV columns" >&2
+    exit 1
+fi
 require 'BuildPressureOutputCapture'
 require 'ReadAsync('
 require '[driver-pressure-stage]'

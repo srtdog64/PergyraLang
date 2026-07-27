@@ -148,49 +148,6 @@ type_resolution_add_edge(TypeResolutionGraph *graph,
     graph->edge_count++;
 }
 
-bool
-type_resolution_find_path(TypeResolutionGraph *graph,
-                          size_t current,
-                          size_t goal,
-                          bool *visited,
-                          size_t *path,
-                          size_t *path_len,
-                          size_t path_cap)
-{
-    if (graph == NULL || visited == NULL || path == NULL || path_len == NULL)
-        return false;
-    if (current >= graph->node_count || goal >= graph->node_count)
-        return false;
-    if (*path_len >= path_cap)
-        return false;
-    if (visited[current])
-        return false;
-
-    visited[current] = true;
-    path[(*path_len)++] = current;
-    if (current == goal)
-        return true;
-
-    for (size_t i = 0; i < graph->edge_count; i++) {
-        TypeResolutionEdge *edge = &graph->edges[i];
-        if (edge->from != current)
-            continue;
-        if (type_resolution_find_path(graph,
-                                      edge->to,
-                                      goal,
-                                      visited,
-                                      path,
-                                      path_len,
-                                      path_cap)) {
-            return true;
-        }
-    }
-
-    if (*path_len > 0)
-        (*path_len)--;
-    return false;
-}
-
 static char *
 type_resolution_edge_reason(TypeResolutionGraph *graph,
                             size_t from,
@@ -270,9 +227,6 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
     TypeResolutionGraph *graph;
     size_t from;
     size_t to;
-    bool *visited = NULL;
-    size_t *path = NULL;
-    size_t path_len = 0;
 
     if (ctx == NULL)
         return;
@@ -286,51 +240,10 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                      provider_kind,
                                      provider_site,
                                      provider_name != NULL ? provider_name : "<provider>");
-
-    if (from != (size_t)-1 && to != (size_t)-1 && graph->node_count > 0) {
-        /* Scratch arrays are populated for the immediate cycle check and
-         * discarded with the semantic context scratch arena. */
-        if (graph->node_count <= SIZE_MAX / sizeof(bool)
-            && graph->node_count <= SIZE_MAX / sizeof(size_t)) {
-            visited = pgy_arena_calloc(&ctx->scratch_arena,
-                graph->node_count * sizeof(bool));
-            path = pgy_arena_calloc(&ctx->scratch_arena,
-                graph->node_count * sizeof(size_t));
-        }
-        if (visited != NULL && path != NULL) {
-            bool has_cycle = (from == to)
-                || type_resolution_find_path(graph,
-                                             to,
-                                             from,
-                                             visited,
-                                             path,
-                                             &path_len,
-                                             graph->node_count);
-            if (has_cycle && consumer_site != NULL) {
-                char *cycle_text = type_resolution_format_cycle(
-                    graph,
-                    path,
-                    path_len,
-                    from);
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE,
-                    PGY_CAUSE_TYPE_RESOLUTION_CYCLE,
-                    PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION,
-                    consumer_site,
-                    "Type resolution dependency cycle detected around '%s'.\n"
-                    "Reason:\n"
-                    "- resolving '%s' would feed back into itself through the current dependency graph\n"
-                    "- cycle path: %s\n"
-                    "Fix:\n"
-                    "- break the alias/default/bound dependency loop so one side becomes concrete first\n"
-                    "- or split the contract into acyclic declarations",
-                    consumer_name != NULL ? consumer_name : "<type-ref>",
-                    consumer_name != NULL ? consumer_name : "<type-ref>",
-                    cycle_text != NULL ? cycle_text : "<cycle>");
-                free(cycle_text);
-            }
-        }
-    }
-
+    /* Collect each dependency once.  The completed graph is cycle-checked by
+     * type_check_program before its topological worklist runs.  Per-edge path
+     * probes used to retain two graph-sized scratch arrays for every edge,
+     * turning a 28k-node compiler graph into multi-gigabyte semantic state. */
     type_resolution_add_edge(graph, from, to, reason);
 }
 

@@ -1063,6 +1063,7 @@ main() {
         "tests/cases/backend_compare/multi_method_class_slot"
         "tests/cases/backend_compare/triple_method_chain_slot"
         "tests/cases/backend_compare/method_with_params_slot"
+        "tests/cases/backend_compare/hosted_method_later_value_object"
         "tests/cases/backend_compare/break_continue_while_slot"
         "tests/cases/backend_compare/match_helper_chain_slot"
         "tests/cases/backend_compare/recursive_helper_pair_slot"

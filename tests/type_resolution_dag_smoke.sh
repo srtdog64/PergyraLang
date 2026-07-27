@@ -7,6 +7,25 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
+
+# Dependency collection is append-only. A completed graph is validated once
+# before the topological worklist; graph-sized scratch per edge recreates the
+# multi-gigabyte compiler-world memory defect.
+if grep -Fq 'type_resolution_find_path(' \
+    "$ROOT/src/semantic/type_checker_resolution_graph_core.c"; then
+  echo "type-resolution dependency collection reintroduced a per-edge graph walk" >&2
+  exit 1
+fi
+if grep -Fq 'pgy_arena_calloc(&ctx->scratch_arena' \
+    "$ROOT/src/semantic/type_checker_resolution_graph_core.c"; then
+  echo "type-resolution dependency collection retained graph-sized per-edge scratch" >&2
+  exit 1
+fi
+grep -Fq 'validated_edge_count = ctx->type_resolution_graph.edge_count;' \
+  "$ROOT/src/semantic/type_checker_program.c" || {
+  echo "type-resolution graph validation generation owner is missing" >&2
+  exit 1
+}
 if [ -z "$bin" ]; then
   if [ -x "$ROOT/bin/test_semantic" ]; then
     bin="$ROOT/bin/test_semantic"

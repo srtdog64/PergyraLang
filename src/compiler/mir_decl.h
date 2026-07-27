@@ -30,6 +30,8 @@ typedef struct
     bool        is_action_like;
     const char *within_zone;
     const char *causes_effect;
+    char      **authorized_by_names;
+    size_t      authorized_by_count;
     bool        has_routine;
     size_t      routine_index;
     char      **projection_write_root_names;

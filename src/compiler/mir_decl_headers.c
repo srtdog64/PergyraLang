@@ -74,9 +74,16 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
     }
     free(meta->param_type_names);
     free(meta->return_type_name);
+    if (meta->authorized_by_names != NULL) {
+        for (size_t i = 0; i < meta->authorized_by_count; i++)
+            free(meta->authorized_by_names[i]);
+    }
+    free(meta->authorized_by_names);
     mir_decl_method_projection_metadata_clear(meta);
     meta->param_type_names = NULL;
     meta->return_type_name = NULL;
+    meta->authorized_by_names = NULL;
+    meta->authorized_by_count = 0;
 }
 
 static void
@@ -188,6 +195,18 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     meta->is_action_like = ast_func_is_action(method);
     meta->within_zone = ast_func_within_zone(method);
     meta->causes_effect = ast_func_causes_effect(method);
+    meta->authorized_by_count = ast_func_authorized_by_count(method);
+    if (meta->authorized_by_count > 0) {
+        meta->authorized_by_names =
+            calloc(meta->authorized_by_count, sizeof(char *));
+        if (meta->authorized_by_names != NULL) {
+            for (size_t i = 0; i < meta->authorized_by_count; i++) {
+                const char *name = ast_func_authorized_by(method, i);
+                if (name != NULL)
+                    meta->authorized_by_names[i] = pergyra_strdup(name);
+            }
+        }
+    }
     (void)mir_decl_method_projection_metadata_capture(
         meta, ast_func_body(method));
 }

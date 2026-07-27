@@ -3,6 +3,10 @@
 
 #include "llvm_internal.h"
 
+void llvm_emit_world_embedded_action_authority_check(
+    LLVMGenCtx *ctx,
+    ASTNode *receiver,
+    const MIRDeclMethod *method_meta);
 void llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                                                  ASTNode *receiver,
                                                  const MIRDeclMethod *method_meta);

@@ -727,6 +727,9 @@ main(void)
     TEST("AIR parsed on-receiver action contract provenance");
     EXPECT(test_air_parsed_on_receiver_action_contract_provenance());
 
+    TEST("AIR action self authority uses exact intent RIR evidence");
+    EXPECT(test_air_parsed_action_self_authority_uses_intent_rir_evidence());
+
     printf("\nAIR tests: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

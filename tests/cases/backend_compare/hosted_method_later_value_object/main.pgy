@@ -1,0 +1,16 @@
+subject Reader {
+    let bias: Int;
+
+    func Read(self, facts: LaterValueFacts) -> Int {
+        return self.bias + facts.value;
+    }
+}
+
+object LaterValueFacts {
+    value: Int;
+}
+
+func Main() -> Void {
+    let reader = Reader(2);
+    Log(ToString(reader.Read(LaterValueFacts(40))));
+}
