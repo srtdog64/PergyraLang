@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-07-27 (Asia/Seoul)
+Updated: 2026-07-28 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -9,12 +9,12 @@ owner, and the named executable gate.
 ## Current resume checkpoint - compiler world/action boundary
 
 - Exact implementation checkpoint:
-  `dd7fee24daccc5a238b1404c742145fa5c77dcc4` on `main`, with parent
-  `a705f059f13c456b76b82d750d9f849aa3f1d391`. This handoff refresh follows as
+  `90ed9f82ae1b3af966739f2e324a989ccc3f4863` on `main`, with parent
+  `806d2eb1a861b50f4edd5c9302a1cb33a1f9b5a0`. This handoff refresh follows as
   a documentation-only commit; use `git rev-parse HEAD` for the checkout
-  revision while retaining `dd7fee24` as the executable boundary.
+  revision while retaining `90ed9f82` as the executable boundary.
 - Dirty state at the implementation checkpoint contains only three protected
-  concurrent user files, none staged or included in `dd7fee24`:
+  concurrent user files, none staged or included in `90ed9f82`:
   `driver_rung2_indexed_assignment_parity_owner.sh`,
   `driver_rung2_match_parity_owner.sh`, and
   `driver_rung2_owner_field_parity_owner.sh`.
@@ -25,6 +25,14 @@ owner, and the named executable gate.
   DriverRung2DirectMirZone.execution -> DriverRung2Execution.EmitDirectMir`.
   This removes Main's direct action/backend bypass but does not yet replace a
   C-owned compiler semantic path.
+- Hard-substitution accounting is `BLOCKED` at the next rung, not complete:
+  `dir.domain_graph` must own one typed `DomainRuntimeTopology` carrying stable
+  field/layer identity, relation endpoints, pool capacity,
+  refresh/authority/state/lifecycle and action transition binding. The current
+  native carrier is `MIRDeclHeader`; the last legitimate consumers are the
+  target-neutral topology plan and self-host C/LLVM runtime emitters. Backend
+  AST/source topology rereads are the forbidden fallback. The next falsifying
+  fixture is `zone_layer_projection_runtime`.
 - The production import closure is 443 files with no missing import. Reachable
   Pergyra-native declarations include func 3,495, struct 176, enum 6, object
   18, tobject 3, subject 17, action 17, zone 19, world 1, and intent 14.
@@ -94,14 +102,19 @@ owner, and the named executable gate.
   declaration-carriage fact family. This still does not replace a C-owned
   compiler path. Production direct-MIR remains `REACHABLE`, not `SUBSTITUTING`;
   source-mode `Main -> CompileSourceTo*` is not deleted.
-- The focused C shard exposed and closed two adjacent declaration holes before
-  reaching its next boundary: roles with multiple `impl ability` rows now
-  partition methods from the referenced ability owner instead of returning an
-  empty declaration table, and zone `EffectSlot:`/`RelationSlot:` rows now enter
-  nominal field facts. Action wire mutations and canonical native/self MIR are
-  green. Full C consumption then fails closed on `Damage`: effect declaration
-  identity and zone-layer runtime ABI are not yet admitted to the self-host MIR
-  type universe. Do not add an unknown-nominal-as-struct fallback.
+- The focused C shard now carries `Damage` as explicit `effect/effect` identity,
+  requires `causes Damage` to resolve to that declaration, preserves
+  `Damage.bearer=subject_slot` and `BattleZone.damage=effect_slot`, reconstructs
+  exact domain-slot AST rows, and completes emitted-C compile/run. Zero-explicit
+  parameter role impls also retain their implicit self ABI. This closes typed
+  effect declaration plus C value-ABI admission only; relation declaration,
+  stable field identity, pool capacity and zone runtime operations remain open.
+- `mir_decl_field_kind_vocabulary.def` owns 14 stable wire spellings and AST
+  labels, including distinct general/shared fields. Native C consumes the
+  registry directly and self-host consumes a checked generated projection.
+  Missing/unknown/invalid host kind, subject/effect-slot flattening and loss of
+  the effect's exactly-one subject participant fail before backend output.
+  `semantic.nominal_field_kind` remains `BRIDGE`, not `CLOSED`.
 - The unfiltered `valid_array_builtins` failure was a separate runtime-header
   SoT omission. Array runtime emission already owned `uses_array` but did not
   pass it to header selection, while emitted owned-String helpers require
@@ -159,15 +172,15 @@ owner, and the named executable gate.
   `FileExists`, host grant denial, and denied-write zero artifact. The
   object/action boundary, documentation-quality, and recursive compiler
   topology gates are also green.
-- Current ActionContract evidence: the isolated native compiler build and
-  bootstrap source compile are green. The focused C action subgate observes
-  exact native/self contract carriage and rejects all 11 field/vocabulary wire
-  mutations. After the multi-impl and zone-slot repairs, canonical native/self
-  MIR parity is also green. The containing DRV-2 shard then fails later while
-  consuming that MIR because `Damage` is not admitted to the self-host C ABI
-  type universe; emitted-C/runtime parity for this fixture is therefore not
-  claimed. Callable/language registries, self-host component contracts, runtime
-  header static gates, and SoT live/edge/single-owner gates are green. No Coq
+- Current declaration evidence: the isolated native compiler rebuild, field-kind
+  vocabulary projection, self-host component contract, semantic declaration
+  identity, documentation/object-action and SoT edge/single-owner gates are
+  green. Focused `function_clause_order_minimal` C DRV-2 observes native/self
+  canonical MIR, seven effect/field-kind negative mutations, implicit role-self
+  ABI, emitted C compile and runtime parity. The broad MIR JSON gate had three
+  stale schema/harness expectations repaired, then reached the unchanged
+  `for_continue` negative where a wrong-predecessor self phi is still accepted;
+  the full gate is therefore RED and must not be reported as passed. No Coq
   prover is installed, so `SoTAuthority.v` reports explicit `DECLARED SKIP` and
   was not theorem-checked on this runner.
 - Known unrelated RED: native semantic suite is 2,800 passed / 2 failed in the
@@ -180,7 +193,9 @@ owner, and the named executable gate.
   sentinel, and requires 19 declared zone types but only one
   production-reachable world member. Existing MIR
   inventory/link gates retain their separately documented pre-existing
-  failures; do not weaken any semantic gate for this rung.
+  failures. `mir_json_parity.sh` additionally remains RED at the pre-existing
+  `for_continue: wrong-slot self phi was accepted` negative. Do not weaken any
+  semantic gate for this rung.
 - The prior `valid_array_builtins` emitted-C failure has an owner-level fix:
   `uses_array` now reaches runtime-header selection and supplies `<string.h>`
   plus the panic contract. The focused emitted-C compile/run is green; the full
@@ -188,15 +203,15 @@ owner, and the named executable gate.
 - The artifact falsifier is now green: a pre-existing sentinel is preserved
   under injected open/write/flush/close/publish failure, no temp remains, no
   success receipt is issued, and C-inline/LLVM-export status agrees. The next
-  falsifying fixture for ActionContract carriage is now green through
-  self-host source -> native/self `pgy.mir.v1` -> `mir_lower` -> both C/LLVM
-  drivers plus field and vocabulary wire mutations. The shared caps/effects
-  vocabulary owner is now closed. The next executable rung remains a
-  typed effect declaration/runtime ABI row for `Damage`, with the focused
-  `function_clause_order_minimal` shard as falsifier. After that shard consumes
-  and runs the canonical MIR, resume the production source-to-MIR action that
-  deletes `Main -> CompileSourceTo*` in the same change. Root-intent takeover
-  comes after that rung.
+  falsifying fixture for ActionContract carriage and typed effect declaration
+  is now green through self-host source -> native/self `pgy.mir.v1` ->
+  `mir_lower` -> focused C compile/run plus field/vocabulary mutations. The
+  shared caps/effects and field-kind vocabularies have single owners, but only
+  the callable vocabulary is `CLOSED`. The next executable rung is typed
+  `DomainRuntimeTopology` on `zone_layer_projection_runtime`; it must remove
+  backend AST topology reads as its direct bypass. Production source-to-MIR
+  action substitution and `Main -> CompileSourceTo*` deletion follow only after
+  that runtime fact is executable. Root-intent takeover comes later.
 
 The remainder of this file preserves earlier v63-v74 evidence as history. If a
 historical statement below conflicts with this checkpoint, current source,
