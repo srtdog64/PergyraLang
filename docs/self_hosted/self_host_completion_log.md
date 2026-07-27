@@ -6,6 +6,43 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-27 - Phi-free integer range reaches both backends (v73)
+
+- Admitted the unchanged 3,197-byte `forloop.pgy` MIR with SHA-256
+  `02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`.
+  Its typed roles are one loop-init preheader, range header, Log body/backedge,
+  and terminal exit; there is no MIR phi or increment instruction. C and LLVM
+  compile from that identity and match native output `0`, `1`, `2`.
+- Advanced the outer certificate and target-neutral plan to v5. A distinct
+  range fact binds the `for` loop summary, `Int`/`Int` non-hoisted iteration
+  verdict, source local, zero-use contract, and roles discovered through typed
+  branch/init/index owners. It does not reuse or weaken the while fact.
+- Bound start to the loop-init value graph and exclusive stop to the branch
+  auxiliary graph. The normalized range shape owns less-than, stop-exclusive,
+  and step `+1` policy once. Both emitters live in one range responsibility;
+  LLVM materializes `alloca/load/add/store` and does not fabricate a MIR phi.
+- Added original, consistent `2..5`, and zero-trip `3..3` executions plus
+  summary, iteration, topology, graph-lane, raw cross-binding, local, Log,
+  unexpected-use, and invented-phi negatives. Repaired certificate and plan
+  mutations also fail closed before artifact creation.
+- The native-current driver compiled with 0 errors and 0 warnings. The final
+  r2 Pergyra-built bounded integrated seed matched the native oracle for sample
+  C, MIR production, and MIR consumption, then passed scalar and every CFG
+  predecessor through `forloop` for both backends.
+- The first bootstrap invocation accidentally selected the stale default
+  codegen cache and failed on the already-known `ArrayPushOwnedString` builtin.
+  Selecting the current verified `bootstrap_v64_formal` seed completed. During
+  the successful gen2 emission, observed samples rose from 886.2/791.0 MB to
+  988.4/887.8 MB private/working set; these are in-flight samples, not peaks,
+  and show no 20 GiB-class recurrence.
+- Fixed the next executable falsifier as `break_after_stmt.pgy`: 7,054-byte
+  MIR, SHA-256 `cb2d4f9f...9efbf`, six blocks, one header phi, explicit break
+  edge plus empty continuation backedge, and normalized native output `3`,
+  `3`. It currently rejects at the bounded block-count dispatcher. The next
+  fact must also bind normal-exit phi value versus break-exit increment value;
+  `nested_loop_cfg.pgy` is deferred because it additionally crosses the
+  program-level multi-routine/String-call plan boundary.
+
 ## 2026-07-27 - Single-header while CFG reaches both backends (v72)
 
 - Admitted the unchanged 4,692-byte `whileloop.pgy` MIR with SHA-256

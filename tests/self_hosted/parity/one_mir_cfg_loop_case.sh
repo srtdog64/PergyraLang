@@ -127,4 +127,4 @@ mutation="$(make_mutation tostring_target \
     '"call_target_name":"ToInt"')"
 expect_rejected_without_artifact tostring_target "$mutation" 'loop|Log|target|graph'
 
-echo "[$LABEL] ifelse + if_else_assign + reassign_block + nestedif + whileloop one-MIR CFG/AIR-plan gate ok (sha256=$mir_digest)"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_range_case.sh"

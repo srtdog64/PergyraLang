@@ -11373,7 +11373,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 220
+    "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" 260
 require_file "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" 580
@@ -11393,7 +11393,10 @@ require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
 require_file "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 210
+    "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 230
+require_file "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 140
 require_file "src/self_hosted/air/mir_cfg_identity_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
 require_file "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
@@ -11411,6 +11414,21 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" 130
+require_file "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" 400
+require_file "src/self_hosted/compiler/direct_mir_cfg_log_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_cfg_log_shape_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy" 230
+require_file "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" 130
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
@@ -11418,6 +11436,8 @@ require_file "tests/self_hosted/parity/one_mir_cfg_nested_case.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_cfg_nested_case.sh" 80
 require_file "tests/self_hosted/parity/one_mir_cfg_loop_case.sh"
 require_max_lines "tests/self_hosted/parity/one_mir_cfg_loop_case.sh" 150
+require_file "tests/self_hosted/parity/one_mir_cfg_range_case.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_cfg_range_case.sh" 180
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
@@ -11470,7 +11490,7 @@ reject_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
     'let certificate: DirectMirCfgCertificate;'
 reject_text "src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy" \
     'MirObjectArrayStringFactsAtBounds('
-require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
+require_text "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" \
     'func DirectMirCfgCertificateMutationRejected('
 require_text "src/self_hosted/air/mir_cfg_certificate_owner.pgy" \
     'CompilerAirEvidenceMirTerminatorFact()'
@@ -11502,6 +11522,18 @@ require_text "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" \
     'func DirectMirLoopCfgEmitC('
 require_text "src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy" \
     'func DirectMirLoopCfgEmitLlvm('
+require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirRangeCfgCertificateFactFromIndex('
+require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
+    'func DirectMirRangeCfgCertificateFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy" \
+    'func DirectMirRangeCfgShapeFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy" \
+    'func DirectMirRangeCfgPlanFactMutationRejected('
+require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
+    'func DirectMirRangeCfgEmitC('
+require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
+    'func DirectMirRangeCfgEmitLlvm('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
     'BuildMirRoutineFactIndex('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
@@ -11560,6 +11592,23 @@ for loop_single_issuer_term in \
         "$loop_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
     [[ "$loop_single_issuer_count" == 2 ]] ||
         fail "$loop_single_issuer_term must have one definition and one caller"
+done
+for range_single_issuer_term in \
+    DirectMirRangeCfgCertificateFactFromIndex \
+    DirectMirRangeCfgShapeFactFromOwners \
+    DirectMirRangeCfgPlanFactFromOwners \
+    DirectMirRangeCfgEmitC DirectMirRangeCfgEmitLlvm; do
+    range_single_issuer_count="$(grep -R -F --include='*.pgy' \
+        "$range_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
+    [[ "$range_single_issuer_count" == 2 ]] ||
+        fail "$range_single_issuer_term must have one definition and one caller"
+done
+for range_emission_raw_term in JsonObject JsonArray ExpressionGraph \
+    MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
+    MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
+        "$range_emission_raw_term"
 done
 for nested_emission_raw_term in JsonObject JsonArray MirRoutineFactIndex; do
     reject_text \

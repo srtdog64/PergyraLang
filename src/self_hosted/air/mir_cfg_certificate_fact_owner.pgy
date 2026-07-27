@@ -3,6 +3,7 @@
 import "mir_cfg_identity_owner.pgy";
 import "mir_nested_cfg_certificate_fact_owner.pgy";
 import "mir_loop_cfg_certificate_fact_owner.pgy";
+import "mir_range_cfg_certificate_fact_owner.pgy";
 
 struct DirectMirCfgCertificate {
     let valid: Bool;
@@ -24,6 +25,7 @@ struct DirectMirCfgCertificate {
     let branch_global_row: Int;
     let nested: DirectMirNestedCfgCertificateFact;
     let loop_fact: DirectMirLoopCfgCertificateFact;
+    let range_fact: DirectMirRangeCfgCertificateFact;
     let evidence_kind: String;
     let evidence_fact_count: Int;
     let fallback_count: Int;
@@ -39,16 +41,17 @@ struct DirectMirCfgCertificate {
 }
 
 func DirectMirCfgCertificateSchema() -> String {
-    return "pgy.selfhost.air.mir-cfg-certificate.v4";
+    return "pgy.selfhost.air.mir-cfg-certificate.v5";
 }
-func DirectMirCfgCertificateRevision() -> Int { return 4; }
+func DirectMirCfgCertificateRevision() -> Int { return 5; }
 
 func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
     return DirectMirCfgCertificate(
         false, "", 0, 0, 0, 0, 0, 0, "", 0, 0, 0,
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
         DirectMirNestedCfgCertificateFactEmpty(),
-        DirectMirLoopCfgCertificateFactEmpty(), "", 0, 0, 0,
+        DirectMirLoopCfgCertificateFactEmpty(),
+        DirectMirRangeCfgCertificateFactEmpty(), "", 0, 0, 0,
         false, false, 0, 0, "", "", "", ""
     );
 }
@@ -77,6 +80,9 @@ func DirectMirCfgCertificateIdentityDigest(
     );
     hash = DirectMirCfgHashInt(
         hash, DirectMirLoopCfgCertificateFactDigest(certificate.loop_fact)
+    );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirRangeCfgCertificateFactDigest(certificate.range_fact)
     );
     hash = DirectMirCfgHashString(hash, certificate.evidence_kind);
     hash = DirectMirCfgHashInt(hash, certificate.evidence_fact_count);
@@ -107,7 +113,8 @@ func DirectMirCfgCertificateWithDigest(
         certificate.block_count, certificate.instruction_count,
         certificate.entry_block, certificate.true_block,
         certificate.false_block, certificate.merge_block,
-        certificate.branch_global_row, certificate.nested, certificate.loop_fact,
+        certificate.branch_global_row, certificate.nested,
+        certificate.loop_fact, certificate.range_fact,
         certificate.evidence_kind,
         certificate.evidence_fact_count, certificate.fallback_count,
         certificate.drift_count, certificate.strict_evidence,
@@ -133,7 +140,8 @@ func DirectMirCfgCertificateWithEvidenceCounts(
         certificate.instruction_count, certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.branch_global_row,
-        certificate.nested, certificate.loop_fact, certificate.evidence_kind,
+        certificate.nested, certificate.loop_fact, certificate.range_fact,
+        certificate.evidence_kind,
         fact_count, fallback_count, drift_count,
         certificate.strict_evidence, certificate.mir_evidence_bound,
         certificate.phi_count, certificate.phi_digest,
@@ -155,7 +163,8 @@ func DirectMirCfgCertificateWithNested(
         certificate.instruction_count, certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.branch_global_row, nested,
-        certificate.loop_fact, certificate.evidence_kind,
+        certificate.loop_fact, certificate.range_fact,
+        certificate.evidence_kind,
         certificate.evidence_fact_count,
         certificate.fallback_count, certificate.drift_count,
         certificate.strict_evidence, certificate.mir_evidence_bound,
@@ -178,12 +187,36 @@ func DirectMirCfgCertificateWithLoop(
         certificate.instruction_count, certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.branch_global_row,
-        certificate.nested, loop_fact, certificate.evidence_kind,
+        certificate.nested, loop_fact, certificate.range_fact,
+        certificate.evidence_kind,
         certificate.evidence_fact_count, certificate.fallback_count,
         certificate.drift_count, certificate.strict_evidence,
         certificate.mir_evidence_bound, certificate.phi_count,
         certificate.phi_digest, certificate.phi_local_name,
         certificate.phi_result_name, certificate.phi_true_incoming,
         certificate.phi_false_incoming
+    );
+}
+
+func DirectMirCfgCertificateWithRange(
+    certificate: DirectMirCfgCertificate,
+    range_fact: DirectMirRangeCfgCertificateFact
+) -> DirectMirCfgCertificate {
+    return DirectMirCfgCertificate(
+        certificate.valid, certificate.schema, certificate.revision,
+        certificate.certificate_digest, certificate.mir_digest,
+        certificate.source_length, certificate.routine_start,
+        certificate.routine_end, certificate.source_syntax_id,
+        certificate.cfg_digest, certificate.block_count,
+        certificate.instruction_count, certificate.entry_block,
+        certificate.true_block, certificate.false_block,
+        certificate.merge_block, certificate.branch_global_row,
+        certificate.nested, certificate.loop_fact, range_fact,
+        certificate.evidence_kind, certificate.evidence_fact_count,
+        certificate.fallback_count, certificate.drift_count,
+        certificate.strict_evidence, certificate.mir_evidence_bound,
+        certificate.phi_count, certificate.phi_digest,
+        certificate.phi_local_name, certificate.phi_result_name,
+        certificate.phi_true_incoming, certificate.phi_false_incoming
     );
 }

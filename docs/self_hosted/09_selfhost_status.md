@@ -45,6 +45,18 @@ hello/let_log/multilet gate is green. The final r3 Pergyra-built bounded
 bootstrap and the same direct C/LLVM positive/negative gate passed with the
 final source.
 
+Focused v73 evidence adds the distinct phi-free integer range rung. The one
+3,197-byte `forloop.pgy` MIR has SHA-256
+`02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720`.
+One v5 certificate/plan binds its typed preheader/header/body/exit roles,
+`for` summary, `Int` iteration verdict, graph-owned start/exclusive-stop, and
+zero-use Log local. C and LLVM compile and match native `0`, `1`, `2`; LLVM
+uses backend-local alloca/load/add/store materialization without claiming a
+MIR phi. Consistent `2..5` and zero-trip `3..3` also execute correctly, while
+fact/topology/graph/policy mutations reject pre-artifact. The fresh
+Pergyra-built bounded driver passed the full scalar/CFG predecessor chain
+through this rung. Released/default replacement remains 0%.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

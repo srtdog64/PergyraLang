@@ -1,0 +1,94 @@
+// Fixed range binding carried by the single target-neutral direct CFG plan.
+
+import "direct_mir_range_cfg_shape_owner.pgy";
+
+struct DirectMirRangeCfgPlanFact {
+    let valid: Bool;
+    let digest: Int;
+    let certificate: DirectMirRangeCfgCertificateFact;
+    let shape: DirectMirRangeCfgShapeFact;
+}
+
+func DirectMirRangeCfgPlanFactEmpty() -> DirectMirRangeCfgPlanFact {
+    return DirectMirRangeCfgPlanFact(
+        false, 0, DirectMirRangeCfgCertificateFactEmpty(),
+        DirectMirRangeCfgShapeFactEmpty()
+    );
+}
+
+func DirectMirRangeCfgPlanFactDigest(
+    ref fact: DirectMirRangeCfgPlanFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        73L, DirectMirRangeCfgCertificateFactDigest(fact.certificate)
+    );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirRangeCfgShapeFactDigest(fact.shape)
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRangeCfgPlanFactWithDigest(
+    fact: DirectMirRangeCfgPlanFact, digest: Int
+) -> DirectMirRangeCfgPlanFact {
+    return DirectMirRangeCfgPlanFact(
+        fact.valid, digest, fact.certificate, fact.shape
+    );
+}
+
+func DirectMirRangeCfgPlanFactAbsent(
+    ref fact: DirectMirRangeCfgPlanFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 &&
+        DirectMirRangeCfgCertificateFactAbsent(fact.certificate) &&
+        DirectMirRangeCfgShapeFactAbsent(fact.shape);
+}
+
+func DirectMirRangeCfgPlanFactReady(
+    ref fact: DirectMirRangeCfgPlanFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirRangeCfgPlanFactDigest(fact) &&
+        DirectMirRangeCfgCertificateFactReady(fact.certificate) &&
+        DirectMirRangeCfgShapeFactReady(fact.shape) &&
+        fact.shape.local_name == fact.certificate.local_name;
+}
+
+func DirectMirRangeCfgPlanFactFromOwners(
+    range_fact: DirectMirRangeCfgCertificateFact,
+    shape: DirectMirRangeCfgShapeFact
+) -> DirectMirRangeCfgPlanFact {
+    let fact: DirectMirRangeCfgPlanFact = DirectMirRangeCfgPlanFact(
+        true, 0, range_fact, shape
+    );
+    if !DirectMirRangeCfgCertificateFactReady(range_fact) ||
+        !DirectMirRangeCfgShapeFactReady(shape) {
+        return DirectMirRangeCfgPlanFactEmpty();
+    }
+    return DirectMirRangeCfgPlanFactWithDigest(
+        fact, DirectMirRangeCfgPlanFactDigest(fact)
+    );
+}
+
+func DirectMirRangeCfgPlanFactInvalidPolicy(
+    fact: DirectMirRangeCfgPlanFact
+) -> DirectMirRangeCfgPlanFact {
+    let invalid_shape: DirectMirRangeCfgShapeFact =
+        DirectMirRangeCfgShapeFactInvalidPolicy(fact.shape);
+    let invalid: DirectMirRangeCfgPlanFact = DirectMirRangeCfgPlanFact(
+        fact.valid, 0, fact.certificate, invalid_shape
+    );
+    return DirectMirRangeCfgPlanFactWithDigest(
+        invalid, DirectMirRangeCfgPlanFactDigest(invalid)
+    );
+}
+
+func DirectMirRangeCfgPlanFactMutationRejected(
+    own fact: DirectMirRangeCfgPlanFact
+) -> Bool {
+    if !DirectMirRangeCfgPlanFactReady(fact) { return false; }
+    let invalid: DirectMirRangeCfgPlanFact =
+        DirectMirRangeCfgPlanFactInvalidPolicy(fact);
+    return !DirectMirRangeCfgPlanFactReady(invalid);
+}

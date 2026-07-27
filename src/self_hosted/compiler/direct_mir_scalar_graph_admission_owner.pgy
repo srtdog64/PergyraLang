@@ -94,12 +94,9 @@ func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
         !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
         !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
         DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
-        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
         DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
         DirectMirObjectNumberEquals(
             routine, "resource_flow_symbol_count", "0"
-        ) && DirectMirObjectNumberEquals(
-            routine, "iteration_type_fact_count", "0"
         ) && DirectMirObjectNumberEquals(
             routine, "destructure_type_fact_count", "0"
         );

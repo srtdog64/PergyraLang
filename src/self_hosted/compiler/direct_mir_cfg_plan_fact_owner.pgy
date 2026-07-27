@@ -4,6 +4,7 @@ import "direct_mir_cfg_shape_fact_owner.pgy";
 import "target_capability_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "direct_mir_loop_cfg_plan_fact_owner.pgy";
+import "direct_mir_range_cfg_plan_fact_owner.pgy";
 import "../air/mir_cfg_certificate_owner.pgy";
 
 struct DirectMirCfgPlan {
@@ -17,6 +18,7 @@ struct DirectMirCfgPlan {
     let phi_digest: Int;
     let nested_digest: Int;
     let loop_digest: Int;
+    let range_digest: Int;
     let target_capability_schema: String;
     let target_capability_fingerprint: Int;
     let entry_block: Int;
@@ -26,11 +28,12 @@ struct DirectMirCfgPlan {
     let phi_count: Int;
     let nested: DirectMirNestedCfgCertificateFact;
     let loop_fact: DirectMirLoopCfgPlanFact;
+    let range_fact: DirectMirRangeCfgPlanFact;
     let shape: DirectMirCfgShapeFacts;
 }
 
 func DirectMirCfgPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-cfg-plan.v4";
+    return "pgy.selfhost.direct-mir-cfg-plan.v5";
 }
 
 func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
@@ -43,6 +46,7 @@ func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
     hash = DirectMirCfgHashInt(hash, plan.phi_digest);
     hash = DirectMirCfgHashInt(hash, plan.nested_digest);
     hash = DirectMirCfgHashInt(hash, plan.loop_digest);
+    hash = DirectMirCfgHashInt(hash, plan.range_digest);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
     hash = DirectMirCfgHashInt(hash, plan.entry_block);
@@ -56,6 +60,9 @@ func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
     hash = DirectMirCfgHashInt(
         hash, DirectMirLoopCfgPlanFactDigest(plan.loop_fact)
     );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirRangeCfgPlanFactDigest(plan.range_fact)
+    );
     hash = DirectMirCfgHashInt(hash, DirectMirCfgShapeFactsDigest(plan.shape));
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -67,10 +74,12 @@ func DirectMirCfgPlanWithDigest(
         plan.valid, plan.schema, plan.revision, digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest,
         plan.target_capability_schema,
         plan.target_capability_fingerprint, plan.entry_block,
         plan.true_block, plan.false_block, plan.merge_block,
-        plan.phi_count, plan.nested, plan.loop_fact, plan.shape
+        plan.phi_count, plan.nested, plan.loop_fact, plan.range_fact,
+        plan.shape
     );
 }
 
@@ -81,9 +90,11 @@ func DirectMirCfgPlanWithTargetFingerprint(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest,
         plan.target_capability_schema, fingerprint,
         plan.entry_block, plan.true_block, plan.false_block,
-        plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact, plan.shape
+        plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
+        plan.range_fact, plan.shape
     );
 }
 
@@ -94,10 +105,11 @@ func DirectMirCfgPlanWithNested(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest,
         plan.target_capability_schema,
         plan.target_capability_fingerprint, plan.entry_block,
         plan.true_block, plan.false_block, plan.merge_block,
-        plan.phi_count, nested, plan.loop_fact, plan.shape
+        plan.phi_count, nested, plan.loop_fact, plan.range_fact, plan.shape
     );
 }
 
@@ -108,14 +120,31 @@ func DirectMirCfgPlanWithLoop(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest,
         plan.target_capability_schema, plan.target_capability_fingerprint,
         plan.entry_block, plan.true_block, plan.false_block,
-        plan.merge_block, plan.phi_count, plan.nested, loop_fact, plan.shape
+        plan.merge_block, plan.phi_count, plan.nested, loop_fact,
+        plan.range_fact, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithRange(
+    plan: DirectMirCfgPlan, range_fact: DirectMirRangeCfgPlanFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.entry_block,
+        plan.true_block, plan.false_block, plan.merge_block,
+        plan.phi_count, plan.nested, plan.loop_fact, range_fact, plan.shape
     );
 }
 
 func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
     let loop_ready: Bool = DirectMirLoopCfgPlanFactReady(plan.loop_fact);
+    let range_ready: Bool = DirectMirRangeCfgPlanFactReady(plan.range_fact);
     let nested_shape: Bool =
         plan.shape.kind == DirectMirCfgNestedConditionalShapeKind();
     let nested_ready: Bool =
@@ -140,8 +169,19 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
             plan.merge_block == plan.loop_fact.certificate.header_block &&
             plan.phi_count == 1;
     }
+    let range_binding_ready: Bool = !range_ready &&
+        DirectMirRangeCfgPlanFactAbsent(plan.range_fact);
+    if range_ready {
+        range_binding_ready =
+            plan.entry_block ==
+                plan.range_fact.certificate.preheader_block &&
+            plan.true_block == plan.range_fact.certificate.body_block &&
+            plan.false_block == plan.range_fact.certificate.exit_block &&
+            plan.merge_block == plan.range_fact.certificate.header_block &&
+            plan.phi_count == 0;
+    }
     let direct_false_fact: Bool = false;
-    if !loop_ready {
+    if !loop_ready && !range_ready {
         direct_false_fact = nested_shape ||
             plan.shape.entry_result_name == plan.shape.false_result_name;
     }
@@ -173,14 +213,17 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         plan.plan_digest == DirectMirCfgPlanIdentityDigest(plan) &&
         plan.certificate_digest != 0 && plan.mir_digest != 0 &&
         plan.cfg_digest != 0 && phi_binding_ready && nested_binding_ready &&
-        loop_binding_ready &&
+        loop_binding_ready && range_binding_ready &&
+        !(loop_ready && range_ready) &&
         plan.nested_digest ==
             DirectMirNestedCfgCertificateFactDigest(plan.nested) &&
         plan.loop_digest == DirectMirLoopCfgPlanFactDigest(plan.loop_fact) &&
+        plan.range_digest ==
+            DirectMirRangeCfgPlanFactDigest(plan.range_fact) &&
         plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
         plan.target_capability_fingerprint ==
             CompilerTargetCapabilityFingerprint() &&
-        plan.entry_block == 0 && plan.true_block >= 0 &&
+        plan.entry_block >= 0 && plan.true_block >= 0 &&
         plan.false_block >= 0 && plan.merge_block >= 0 &&
         plan.entry_block != plan.true_block &&
         plan.entry_block != plan.false_block &&
@@ -189,8 +232,9 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         plan.true_block != plan.merge_block &&
         ((!direct_false_fact && !direct_false_edge) ||
             (direct_false_fact && direct_false_edge)) &&
-        ((loop_ready && DirectMirCfgShapeFactsAbsent(plan.shape)) ||
-            (!loop_ready &&
+        (((loop_ready || range_ready) &&
+            DirectMirCfgShapeFactsAbsent(plan.shape)) ||
+            (!loop_ready && !range_ready &&
                 DirectMirCfgShapeFactsReady(plan.shape, plan.phi_count))) &&
         CompilerArtifactIdentityReady(
             CompilerEmittedCArtifactKind(), plan.revision, plan.plan_digest

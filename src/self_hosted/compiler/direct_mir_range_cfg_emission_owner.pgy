@@ -1,0 +1,100 @@
+// C and LLVM text for one range CFG responsibility. Both backends
+// consume the same fixed certificate/shape facts; neither can reopen MIR.
+
+import "direct_mir_range_cfg_shape_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirRangeCfgEmissionFactsReady(
+    ref shape: DirectMirRangeCfgShapeFact,
+    ref range_fact: DirectMirRangeCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> Bool {
+    return DirectMirRangeCfgShapeFactReady(shape) &&
+        DirectMirRangeCfgCertificateFactReady(range_fact) &&
+        shape.local_name == range_fact.local_name &&
+        formatted_print.ok && StringLength(formatted_print.symbol) > 0 &&
+        formatted_print.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") &&
+        StringLength(line_format) > 0;
+}
+
+func DirectMirRangeCfgEmitC(
+    ref shape: DirectMirRangeCfgShapeFact,
+    ref range_fact: DirectMirRangeCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirRangeCfgEmissionFactsReady(
+        shape, range_fact, formatted_print, line_format
+    ) || StringLength(int_c_type) == 0 {
+        Die("direct MIR range CFG C facts are invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+    output = Concat(output, int_c_type);
+    output = Concat(output, " pgy_local_0 = ");
+    output = Concat(output, shape.start_literal);
+    output = Concat(output, ";\n    while (pgy_local_0 < ");
+    output = Concat(output, shape.stop_literal);
+    output = Concat(output, ") {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, int_c_type);
+    output = Concat(output, ")pgy_local_0);\n        pgy_local_0 = pgy_local_0 + ");
+    output = Concat(output, shape.step_literal);
+    output = Concat(output, ";\n    }\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirRangeCfgEmitLlvm(
+    ref shape: DirectMirRangeCfgShapeFact,
+    ref range_fact: DirectMirRangeCfgCertificateFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirRangeCfgEmissionFactsReady(
+        shape, range_fact, formatted_print, line_format
+    ) {
+        Die("direct MIR range CFG LLVM facts are invalid");
+    }
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output, "  %pgy.local.slot = alloca i64, align 8\n");
+    output = Concat(output, "  store i64 ");
+    output = Concat(output, shape.start_literal);
+    output = Concat(output, ", ptr %pgy.local.slot, align 8\n  br label %pgy.block.");
+    output = Concat(output, ToString(range_fact.header_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(range_fact.header_block));
+    output = Concat(output, ":\n  %pgy.local.current = load i64, ptr %pgy.local.slot, align 8\n");
+    output = Concat(output, "  %pgy.condition.range = icmp slt i64 %pgy.local.current, ");
+    output = Concat(output, shape.stop_literal);
+    output = Concat(output, "\n  br i1 %pgy.condition.range, label %pgy.block.");
+    output = Concat(output, ToString(range_fact.body_block));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(range_fact.exit_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(range_fact.body_block));
+    output = Concat(output, ":\n  %pgy.logged.range = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.local.current)\n");
+    output = Concat(output, "  %pgy.local.next = add i64 %pgy.local.current, ");
+    output = Concat(output, shape.step_literal);
+    output = Concat(output, "\n  store i64 %pgy.local.next, ptr %pgy.local.slot, align 8\n");
+    output = Concat(output, "  br label %pgy.block.");
+    output = Concat(output, ToString(range_fact.header_block));
+    output = Concat(output, "\n\npgy.block.");
+    output = Concat(output, ToString(range_fact.exit_block));
+    output = Concat(output, ":\n  ret i32 0\n}\n");
+    return output;
+}

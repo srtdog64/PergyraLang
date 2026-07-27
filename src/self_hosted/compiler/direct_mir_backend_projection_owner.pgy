@@ -76,6 +76,7 @@ func CompileAdmittedDirectMirForTarget(
         }
         let line_format: String = StringRuntimeCStringLineFormat();
         if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
+            DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
             plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
             line_format = StringRuntimeCIntLineFormat();
         } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&

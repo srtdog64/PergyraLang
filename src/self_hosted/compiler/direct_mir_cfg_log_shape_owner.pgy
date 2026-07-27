@@ -1,0 +1,69 @@
+// Shared target-neutral Log(ToString(local)) graph validator for CFG rungs.
+// SSA-use policy remains with each semantic topology owner.
+
+import "direct_mir_cfg_entry_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+func DirectMirCfgLogToStringGraphReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    global_row: Int,
+    expected_local: String
+) -> Bool {
+    if global_row < 0 ||
+        global_row >= ArrayLength(admitted.routines.instruction_starts) ||
+        global_row >= ArrayLength(admitted.routines.instruction_ends) ||
+        StringLength(expected_local) == 0 {
+        return false;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    let instruction_id: String =
+        DirectMirCfgCanonicalInstructionId(instruction);
+    if StringLength(instruction_id) == 0 ||
+        !DirectMirLogInstructionEnvelopeReady(instruction, instruction_id) {
+        return false;
+    }
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 4 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 3 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 4 ||
+        ArrayLength(sequence.arena.topology.left_children) != 4 ||
+        ArrayLength(sequence.arena.topology.right_children) != 4 ||
+        ArrayLength(sequence.arena.node_texts) != 4 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 4 ||
+        ArrayLength(sequence.arena.call_target_names) != 4 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != "ToString" ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[2] != expected_local ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 {
+        return false;
+    }
+    let node: Int = 0;
+    while node < 4 {
+        if node != 1 &&
+            (sequence.arena.call_target_kinds[node] !=
+                SemanticCallTargetNone() ||
+             sequence.arena.call_target_names[node] != "") {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}

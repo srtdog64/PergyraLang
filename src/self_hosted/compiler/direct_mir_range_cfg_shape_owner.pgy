@@ -1,0 +1,201 @@
+// Target-neutral range payload derived once from certified MIR graphs.
+// The fixed comparison/step policy is part of this plan-bound fact rather
+// than being independently invented by C and LLVM emitters.
+
+import "direct_mir_cfg_shape_fact_owner.pgy";
+import "direct_mir_cfg_log_shape_owner.pgy";
+import "../air/mir_range_cfg_certificate_fact_owner.pgy";
+
+struct DirectMirRangeCfgShapeFact {
+    let valid: Bool;
+    let digest: Int;
+    let local_name: String;
+    let start_literal: String;
+    let stop_literal: String;
+    let step_literal: String;
+    let comparison_kind: Int;
+    let stop_exclusive: Bool;
+}
+
+func DirectMirRangeCfgShapeFactEmpty() -> DirectMirRangeCfgShapeFact {
+    return DirectMirRangeCfgShapeFact(
+        false, 0, "", "", "", "", 0 - 1, false
+    );
+}
+
+func DirectMirRangeCfgShapeFactDigest(
+    ref fact: DirectMirRangeCfgShapeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(71L, fact.local_name);
+    hash = DirectMirCfgHashString(hash, fact.start_literal);
+    hash = DirectMirCfgHashString(hash, fact.stop_literal);
+    hash = DirectMirCfgHashString(hash, fact.step_literal);
+    hash = DirectMirCfgHashInt(hash, fact.comparison_kind);
+    let exclusive: Int = 0;
+    if fact.stop_exclusive { exclusive = 1; }
+    hash = DirectMirCfgHashInt(hash, exclusive);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRangeCfgShapeFactWithDigest(
+    fact: DirectMirRangeCfgShapeFact, digest: Int
+) -> DirectMirRangeCfgShapeFact {
+    return DirectMirRangeCfgShapeFact(
+        fact.valid, digest, fact.local_name, fact.start_literal,
+        fact.stop_literal, fact.step_literal, fact.comparison_kind,
+        fact.stop_exclusive
+    );
+}
+
+func DirectMirRangeCfgShapeFactAbsent(
+    ref fact: DirectMirRangeCfgShapeFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.local_name == "" &&
+        fact.start_literal == "" && fact.stop_literal == "" &&
+        fact.step_literal == "" && fact.comparison_kind < 0 &&
+        !fact.stop_exclusive;
+}
+
+func DirectMirRangeCfgShapeFactReady(
+    ref fact: DirectMirRangeCfgShapeFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirRangeCfgShapeFactDigest(fact) &&
+        StringLength(fact.local_name) > 0 &&
+        StringLength(fact.start_literal) > 0 &&
+        ToString(ToInt(fact.start_literal)) == fact.start_literal &&
+        StringLength(fact.stop_literal) > 0 &&
+        ToString(ToInt(fact.stop_literal)) == fact.stop_literal &&
+        fact.step_literal == "1" &&
+        fact.comparison_kind == AstExpressionNodeLess() &&
+        fact.stop_exclusive;
+}
+
+func DirectMirRangeCfgInstructionEnvelopeReady(
+    ref instruction: JsonObjectFactTable,
+    expected_kind: String,
+    expected_name: String,
+    expected_source: String,
+    expected_local: String
+) -> Bool {
+    return JsonObjectFactTableReady(instruction) &&
+        JsonObjectFactStringFieldEquals(
+            instruction, "kind", expected_kind
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "name", expected_name
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "source_type", expected_source
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "arg0", expected_local
+        ) && DirectMirObjectFieldKindEquals(instruction, "result", "null") &&
+        DirectMirObjectFieldKindEquals(instruction, "arg1", "null") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "slot_anchor", "null"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "abi_type_name", "null"
+        ) && DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") &&
+        JsonObjectBoolFieldEqualsWithin(
+            instruction.json, instruction.start, instruction.end,
+            "abi_layout_required", false
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "abi_layout", "null"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "expr0", "string"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "expr1", "string"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "expr1_graph", "null"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "machine_layer", "null"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "machine_contact_kind", ""
+        ) && DirectMirObjectArrayEmpty(instruction, "match_patterns") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "match_variant", "null"
+        ) && DirectMirObjectArrayEmpty(instruction, "match_bindings") &&
+        DirectMirObjectArrayEmpty(instruction, "match_binding_types") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "destructure_element_type", "null"
+        ) && DirectMirObjectArrayEmpty(
+            instruction, "destructure_bindings"
+        );
+}
+
+func DirectMirRangeCfgShapeFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref range_fact: DirectMirRangeCfgCertificateFact
+) -> DirectMirRangeCfgShapeFact {
+    if !DirectMirRangeCfgCertificateFactReady(range_fact) ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, range_fact.log_global_row
+        ) != 0 || !DirectMirCfgLogToStringGraphReady(
+            admitted, range_fact.log_global_row, range_fact.local_name
+        ) {
+        return DirectMirRangeCfgShapeFactEmpty();
+    }
+    let init: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[range_fact.init_global_row],
+        admitted.routines.instruction_ends[range_fact.init_global_row]
+    );
+    let branch: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[range_fact.branch_global_row],
+        admitted.routines.instruction_ends[range_fact.branch_global_row]
+    );
+    if !DirectMirRangeCfgInstructionEnvelopeReady(
+            init, "loop-init", "loop-init", "AST_FOR_LOOP",
+            range_fact.local_name
+        ) || !DirectMirRangeCfgInstructionEnvelopeReady(
+            branch, "branch", "branch", "AST_FOR_LOOP",
+            range_fact.local_name
+        ) {
+        Die("direct MIR range CFG instruction envelope is invalid");
+    }
+    let start_literal: String = DirectMirCfgSingleNodeLiteral(
+        init, AstExpressionNodeIntegerLiteral()
+    );
+    let stop_literal: String = DirectMirCfgSingleNodeLiteral(
+        branch, AstExpressionNodeIntegerLiteral()
+    );
+    let init_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, range_fact.init_global_row
+        );
+    let branch_scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, range_fact.branch_global_row
+        );
+    if !init_scalar.valid || !branch_scalar.valid ||
+        init_scalar.arg0 != range_fact.local_name ||
+        branch_scalar.arg0 != range_fact.local_name ||
+        init_scalar.expr0 != start_literal ||
+        branch_scalar.expr0 != start_literal ||
+        init_scalar.expr1 != stop_literal ||
+        branch_scalar.expr1 != stop_literal {
+        Die("direct MIR range CFG scalar and graph bounds disagree");
+    }
+    let fact: DirectMirRangeCfgShapeFact = DirectMirRangeCfgShapeFact(
+        true, 0, range_fact.local_name, start_literal, stop_literal,
+        "1", AstExpressionNodeLess(), true
+    );
+    return DirectMirRangeCfgShapeFactWithDigest(
+        fact, DirectMirRangeCfgShapeFactDigest(fact)
+    );
+}
+
+func DirectMirRangeCfgShapeFactInvalidPolicy(
+    fact: DirectMirRangeCfgShapeFact
+) -> DirectMirRangeCfgShapeFact {
+    let invalid: DirectMirRangeCfgShapeFact = DirectMirRangeCfgShapeFact(
+        fact.valid, 0, fact.local_name, fact.start_literal,
+        fact.stop_literal, "0", fact.comparison_kind,
+        fact.stop_exclusive
+    );
+    return DirectMirRangeCfgShapeFactWithDigest(
+        invalid, DirectMirRangeCfgShapeFactDigest(invalid)
+    );
+}

@@ -1,0 +1,110 @@
+// Repaired-digest negative checks for the fixed outer CFG certificate.
+// Kept separate from issuance so certificate construction remains cohesive.
+
+import "mir_cfg_certificate_owner.pgy";
+
+func DirectMirCfgCertificateMutationRejected(
+    own certificate: DirectMirCfgCertificate
+) -> Bool {
+    let expected_evidence_count: Int = 1;
+    if DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
+        DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) ||
+        DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
+        expected_evidence_count = 2;
+    }
+    let bad_digest: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithDigest(
+            certificate, certificate.certificate_digest + 1
+        );
+    let missing_evidence: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(certificate, 0, 0, 0);
+    missing_evidence = DirectMirCfgCertificateWithDigest(
+        missing_evidence,
+        DirectMirCfgCertificateIdentityDigest(missing_evidence)
+    );
+    let fallback: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(
+            certificate, expected_evidence_count, 1, 0
+        );
+    fallback = DirectMirCfgCertificateWithDigest(
+        fallback, DirectMirCfgCertificateIdentityDigest(fallback)
+    );
+    let drift: DirectMirCfgCertificate =
+        DirectMirCfgCertificateWithEvidenceCounts(
+            certificate, expected_evidence_count, 0, 1
+        );
+    drift = DirectMirCfgCertificateWithDigest(
+        drift, DirectMirCfgCertificateIdentityDigest(drift)
+    );
+    let bad_nested_rejected: Bool = true;
+    if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
+        let nested_for_mutation: DirectMirNestedCfgCertificateFact =
+            certificate.nested;
+        let bad_nested: DirectMirNestedCfgCertificateFact =
+            DirectMirNestedCfgCertificateFactInvalidMerge(
+                nested_for_mutation
+            );
+        let bad_nested_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithNested(certificate, bad_nested);
+        bad_nested_certificate = DirectMirCfgCertificateWithDigest(
+            bad_nested_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_nested_certificate)
+        );
+        let nested_for_negative: DirectMirNestedCfgCertificateFact =
+            certificate.nested;
+        bad_nested_rejected =
+            !DirectMirCfgCertificateReady(bad_nested_certificate) &&
+            DirectMirNestedCfgCertificateFactMutationRejected(
+                nested_for_negative
+            );
+    }
+    let bad_loop_rejected: Bool = true;
+    if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
+        let loop_for_mutation: DirectMirLoopCfgCertificateFact =
+            certificate.loop_fact;
+        let bad_loop: DirectMirLoopCfgCertificateFact =
+            DirectMirLoopCfgCertificateFactInvalidBackedge(
+                loop_for_mutation
+            );
+        let bad_loop_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithLoop(certificate, bad_loop);
+        bad_loop_certificate = DirectMirCfgCertificateWithDigest(
+            bad_loop_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_loop_certificate)
+        );
+        let loop_for_negative: DirectMirLoopCfgCertificateFact =
+            certificate.loop_fact;
+        bad_loop_rejected =
+            !DirectMirCfgCertificateReady(bad_loop_certificate) &&
+            DirectMirLoopCfgCertificateFactMutationRejected(
+                loop_for_negative
+            );
+    }
+    let bad_range_rejected: Bool = true;
+    if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
+        let range_for_mutation: DirectMirRangeCfgCertificateFact =
+            certificate.range_fact;
+        let bad_range: DirectMirRangeCfgCertificateFact =
+            DirectMirRangeCfgCertificateFactInvalidIteration(
+                range_for_mutation
+            );
+        let bad_range_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithRange(certificate, bad_range);
+        bad_range_certificate = DirectMirCfgCertificateWithDigest(
+            bad_range_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_range_certificate)
+        );
+        let range_for_negative: DirectMirRangeCfgCertificateFact =
+            certificate.range_fact;
+        bad_range_rejected =
+            !DirectMirCfgCertificateReady(bad_range_certificate) &&
+            DirectMirRangeCfgCertificateFactMutationRejected(
+                range_for_negative
+            );
+    }
+    return !DirectMirCfgCertificateReady(bad_digest) &&
+        !DirectMirCfgCertificateReady(missing_evidence) &&
+        !DirectMirCfgCertificateReady(fallback) &&
+        !DirectMirCfgCertificateReady(drift) && bad_nested_rejected &&
+        bad_loop_rejected && bad_range_rejected;
+}

@@ -2,6 +2,7 @@
 // consumes the admitted index/use facts once; emitters receive only this fact.
 
 import "direct_mir_cfg_entry_fact_owner.pgy";
+import "direct_mir_cfg_log_shape_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../air/mir_loop_cfg_certificate_fact_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
@@ -167,57 +168,9 @@ func DirectMirLoopCfgLogReady(
         UnwrapOption(use_opt) != loop_fact.phi_result_name {
         return false;
     }
-    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
-        admitted.routines.instruction_starts[loop_fact.log_global_row],
-        admitted.routines.instruction_ends[loop_fact.log_global_row]
+    return DirectMirCfgLogToStringGraphReady(
+        admitted, loop_fact.log_global_row, loop_fact.local_name
     );
-    let instruction_id: String =
-        DirectMirCfgCanonicalInstructionId(instruction);
-    if StringLength(instruction_id) == 0 ||
-        !DirectMirLogInstructionEnvelopeReady(instruction, instruction_id) {
-        return false;
-    }
-    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
-        instruction, "expr0_graph"
-    );
-    let sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequenceAppend(
-            MirExpressionGraphSequenceEmpty(), graph
-        );
-    if !sequence.ok || sequence.ready_node_count != 4 ||
-        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 3 ||
-        ArrayLength(sequence.arena.topology.node_kinds) != 4 ||
-        ArrayLength(sequence.arena.topology.left_children) != 4 ||
-        ArrayLength(sequence.arena.topology.right_children) != 4 ||
-        ArrayLength(sequence.arena.node_texts) != 4 ||
-        ArrayLength(sequence.arena.call_target_kinds) != 4 ||
-        ArrayLength(sequence.arena.call_target_names) != 4 ||
-        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
-        sequence.arena.node_texts[0] != "ToString" ||
-        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
-        sequence.arena.topology.left_children[1] != 0 ||
-        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
-        sequence.arena.call_target_names[1] != "ToString" ||
-        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
-        sequence.arena.node_texts[2] != loop_fact.local_name ||
-        sequence.arena.topology.node_kinds[3] !=
-            AstExpressionNodeCallArgument() ||
-        sequence.arena.topology.left_children[3] != 1 ||
-        sequence.arena.topology.right_children[3] != 2 {
-        return false;
-    }
-    let node: Int = 0;
-    while node < 4 {
-        if node != 1 &&
-            (sequence.arena.call_target_kinds[node] !=
-                SemanticCallTargetNone() ||
-             sequence.arena.call_target_names[node] != "") {
-            return false;
-        }
-        node = node + 1;
-    }
-    return true;
 }
 
 func DirectMirLoopCfgShapeFactFromOwners(

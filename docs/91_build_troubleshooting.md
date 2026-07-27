@@ -1313,6 +1313,23 @@ keep the negative producer-coverage gate. The next pressure investigation must
 start at assignment body-type admission under the same 1,800-second / 3,072 MB
 budget rather than raising either limit.
 
+#### v73 bounded bootstrap stays near 1 GiB; select the current seed explicitly
+
+The v73 phi-free range change rebuilt the integrated driver with the verified
+`bootstrap_v64_formal` parser/codegen seed. During the long gen2 C emission,
+two live samples were 886.2/791.0 MB and 988.4/887.8 MB private/working set.
+They are in-flight observations rather than a peak measurement, but they show
+no 20 GiB-class recurrence. The generated seed then matched the native oracle
+for sample C, MIR production, and bounded MIR consumption and passed the full
+direct CFG chain through `forloop`.
+
+An earlier invocation used the old default `.tmp/self_hosted/codegen/bootstrap`
+cache from 2026-07-24. It failed closed before C compilation because that seed
+did not recognize the already-owned `ArrayPushOwnedString` builtin. This is a
+seed-version mismatch, not range-CFG or memory evidence. For resumed bootstrap
+work, resolve and record the exact codegen seed directory; existence of
+`gen2.exe` is insufficient when the compiler-world builtin surface has moved.
+
 #### v61 admits expression-graph readiness once for assignment typing
 
 The v60 timeout was a CPU defect in assignment admission, not residual graph

@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # One admitted MIR identity -> one MIR-bound AIR/CFG plan -> both backends.
-# one admitted ifelse/reassign/nested/while CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; typed Int line format drives the loop emitter; direct CFG plan target mutation rejects before output
+# one admitted ifelse/reassign/nested/while/range CFG drives both backends through one AIR certificate and verified plan; MIR-bound strict certificate and evidence mutations reject before output; one target-neutral plan drives both C and LLVM; typed string line format drives both CFG emitters; typed Int line format drives the loop emitter; direct CFG plan target mutation rejects before output
 
 set -euo pipefail
-
 if ! command -v dirname >/dev/null 2>&1 \
     || ! command -v tr >/dev/null 2>&1 \
     || ! command -v pwd >/dev/null 2>&1; then
@@ -29,6 +28,7 @@ EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_emission_o
 CFG_OWNER_REL="${PGY_SELFHOST_ONE_MIR_CFG_OWNER:-src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy}"
 CFG_OWNER="$ROOT_DIR/$CFG_OWNER_REL"
 AIR_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_owner.pgy"
+AIR_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
 SHAPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 SCALAR_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
 CC="${PGY_SELFHOST_CC:-gcc}"
@@ -67,7 +67,8 @@ assert_shared_plan_ratchet() {
     # backend_mir_or_air_read, backend_specific_cfg_plan, full_certificate_plan_retention,
     # second_shape_plan, unbound_target_fingerprint, post_verification_plan_mutation.
     require_file "$DIRECT_OWNER"; require_file "$EMISSION_OWNER"
-    require_file "$CFG_OWNER"; require_file "$AIR_OWNER"; require_file "$SHAPE_OWNER"
+    require_file "$CFG_OWNER"; require_file "$AIR_OWNER"
+    require_file "$AIR_MUTATION_OWNER"; require_file "$SHAPE_OWNER"
     for term in DirectMirCfgPlanFromAdmitted DirectMirCfgPlanReady \
         DirectMirCfgPlanMutationRejected; do
         grep -Fq -- "$term" "$CFG_OWNER" ||
@@ -75,7 +76,7 @@ assert_shared_plan_ratchet() {
     done
     grep -Fq -- 'DirectMirCfgCertificateReady' "$AIR_OWNER" ||
         fail "MIR-bound AIR owner is missing DirectMirCfgCertificateReady"
-    grep -Fq -- 'DirectMirCfgCertificateMutationRejected' "$AIR_OWNER" ||
+    grep -Fq -- 'DirectMirCfgCertificateMutationRejected' "$AIR_MUTATION_OWNER" ||
         fail "MIR-bound AIR owner lacks certificate mutation negatives"
     [[ "$(grep -R -F --include='*.pgy' 'DirectMirCfgCertificateFromIndex(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] ||
         fail "self-host source must contain one certificate definition and one issuer"
@@ -86,7 +87,7 @@ assert_shared_plan_ratchet() {
     grep -Fq -- 'DirectMirCfgPlanMutationRejected(verified_negative)' "$CFG_OWNER" ||
         fail "plan identity mutation negatives are not on the pre-output path"
     for term in 'let bad_digest:' 'let fallback:' 'let drift:'; do
-        grep -Fq -- "$term" "$AIR_OWNER" || fail "AIR certificate negative is missing: $term"
+        grep -Fq -- "$term" "$AIR_MUTATION_OWNER" || fail "AIR certificate negative is missing: $term"
     done
     for term in 'let bad_digest:' 'let bad_phi_binding:'; do grep -Fq -- "$term" "$CFG_OWNER" || fail "plan mutation negative is missing: $term"; done
     grep -Fq -- 'import "../air/mir_cfg_certificate_owner.pgy";' "$CFG_OWNER" ||

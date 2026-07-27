@@ -12,6 +12,7 @@ import "../compiler/air_evidence_owner.pgy";
 import "mir_cfg_identity_owner.pgy";
 import "mir_nested_cfg_certificate_fact_owner.pgy";
 import "mir_loop_cfg_certificate_fact_owner.pgy";
+import "mir_range_cfg_certificate_fact_owner.pgy";
 import "mir_cfg_certificate_fact_owner.pgy";
 
 func DirectMirCfgCertificateFromIndex(
@@ -59,7 +60,15 @@ func DirectMirCfgCertificateFromIndex(
         DirectMirNestedCfgCertificateFactEmpty();
     let loop_fact: DirectMirLoopCfgCertificateFact =
         DirectMirLoopCfgCertificateFactEmpty();
-    if block_count == 4 && true_block >= 0 &&
+    let range_fact: DirectMirRangeCfgCertificateFact =
+        DirectMirRangeCfgCertificateFactEmpty();
+    if block_count == 4 &&
+        ArrayLength(index.loop_flow_summary_kinds) == 1 &&
+        index.loop_flow_summary_kinds[0] == 1 {
+        range_fact = DirectMirRangeCfgCertificateFactFromIndex(
+            admitted, index, use_facts
+        );
+    } else if block_count == 4 && true_block >= 0 &&
         true_block < block_count && index.backedge_headers[true_block] == 1 {
         loop_fact = DirectMirLoopCfgCertificateFactFromIndex(
             admitted, index, use_facts
@@ -72,11 +81,22 @@ func DirectMirCfgCertificateFromIndex(
     }
     let nested_ready: Bool = DirectMirNestedCfgCertificateFactReady(nested);
     let loop_ready: Bool = DirectMirLoopCfgCertificateFactReady(loop_fact);
-    if ArrayLength(index.loop_flow_summary_loop_ids) > 0 && !loop_ready {
+    let range_ready: Bool =
+        DirectMirRangeCfgCertificateFactReady(range_fact);
+    if !range_ready &&
+        (ArrayLength(index.iteration_type_facts.iteration_syntax_ids) != 0 ||
+         ArrayLength(index.iteration_type_facts.function_syntax_ids) != 0 ||
+         ArrayLength(index.iteration_type_facts.binding_types) != 0 ||
+         ArrayLength(index.iteration_type_facts.iterable_types) != 0 ||
+         ArrayLength(index.iteration_type_facts.collection_hoists) != 0) {
+        Die("direct MIR CFG iteration facts require a range certificate");
+    }
+    if ArrayLength(index.loop_flow_summary_loop_ids) > 0 &&
+        !loop_ready && !range_ready {
         Die("direct MIR loop CFG certificate fact was not issued");
     }
     if !MirRoutineFactIndexLoopFlowFactsValid(index) ||
-        (!loop_ready &&
+        (!loop_ready && !range_ready &&
             (ArrayLength(index.loop_flow_summary_loop_ids) != 0 ||
              ArrayLength(index.loop_flow_state_stable_indices) != 0)) {
         Die("direct MIR CFG loop-flow fact inventory is invalid");
@@ -85,12 +105,19 @@ func DirectMirCfgCertificateFromIndex(
         Die("direct MIR nested CFG issued topology fact is invalid");
     }
     if loop_ready {
+        entry = loop_fact.preheader_block;
         true_block = loop_fact.body_block;
         false_block = loop_fact.exit_block;
         merge_block = loop_fact.header_block;
+    } else if range_ready {
+        entry = range_fact.preheader_block;
+        true_block = range_fact.body_block;
+        false_block = range_fact.exit_block;
+        merge_block = range_fact.header_block;
     }
     let direct_false_edge: Bool =
-        !loop_ready && (block_count == 3 || nested_ready) &&
+        !loop_ready && !range_ready &&
+        (block_count == 3 || nested_ready) &&
         false_block == merge_block;
     if true_block < 0 || true_block >= block_count ||
         false_block < 0 || false_block >= block_count ||
@@ -99,7 +126,9 @@ func DirectMirCfgCertificateFromIndex(
         entry == merge_block || true_block == false_block ||
         true_block == merge_block ||
         (!direct_false_edge && false_block == merge_block) {
-        if loop_ready { Die("direct MIR loop CFG role binding is invalid"); }
+        if loop_ready || range_ready {
+            Die("direct MIR loop CFG role binding is invalid");
+        }
         return DirectMirCfgCertificateEmpty();
     }
     if loop_ready {
@@ -108,6 +137,13 @@ func DirectMirCfgCertificateFromIndex(
             false_block != loop_fact.exit_block ||
             merge_block != loop_fact.header_block {
             Die("direct MIR loop CFG outer role binding is invalid");
+        }
+    } else if range_ready {
+        if entry != range_fact.preheader_block ||
+            true_block != range_fact.body_block ||
+            false_block != range_fact.exit_block ||
+            merge_block != range_fact.header_block {
+            Die("direct MIR range CFG outer role binding is invalid");
         }
     } else if nested_ready {
         if true_block != nested.branch_block ||
@@ -136,11 +172,13 @@ func DirectMirCfgCertificateFromIndex(
         let expected_backedge_header: Int = 0;
         if loop_ready && block == loop_fact.header_block {
             expected_backedge_header = 1;
+        } else if range_ready && block == range_fact.header_block {
+            expected_backedge_header = 1;
         }
         if !index.block_reachable[block] ||
             index.backedge_headers[block] != expected_backedge_header ||
             block_phi_count < 0 {
-            if loop_ready {
+            if loop_ready || range_ready {
                 Die("direct MIR loop CFG certificate block fact is invalid");
             }
             return DirectMirCfgCertificateEmpty();
@@ -156,13 +194,15 @@ func DirectMirCfgCertificateFromIndex(
         let should_branch: Int = 0;
         if loop_ready && block == loop_fact.header_block {
             should_branch = 1;
-        } else if !loop_ready &&
+        } else if range_ready && block == range_fact.header_block {
+            should_branch = 1;
+        } else if !loop_ready && !range_ready &&
                 (block == entry ||
                  (nested_ready && block == nested.branch_block)) {
             should_branch = 1;
         }
         if index.block_has_conditional_branch[block] != should_branch {
-            if loop_ready {
+            if loop_ready || range_ready {
                 Die("direct MIR loop CFG certificate branch role is invalid");
             }
             return DirectMirCfgCertificateEmpty();
@@ -175,6 +215,11 @@ func DirectMirCfgCertificateFromIndex(
         if ArrayLength(index.instruction_facts.starts) != 5 ||
             phi_count != 1 {
             Die("direct MIR loop CFG certificate instruction or phi count is invalid");
+        }
+    } else if range_ready {
+        if ArrayLength(index.instruction_facts.starts) != 3 ||
+            phi_count != 0 {
+            Die("direct MIR range CFG certificate instruction or phi count is invalid");
         }
     } else if nested_ready {
         if ArrayLength(index.instruction_facts.starts) != 4 ||
@@ -241,6 +286,7 @@ func DirectMirCfgCertificateFromIndex(
 
     let branch_block: Int = entry;
     if loop_ready { branch_block = loop_fact.header_block; }
+    if range_ready { branch_block = range_fact.header_block; }
     let branch: MirRoutineInstructionSelection =
         MirRoutineFactIndexBranchAtBlock(
             index, admitted.routines, 0, branch_block
@@ -251,12 +297,13 @@ func DirectMirCfgCertificateFromIndex(
     if phi_count == 1 && !loop_ready {
         expected_branch_source = "AST_IDENTIFIER";
     }
+    if range_ready { expected_branch_source = "AST_FOR_LOOP"; }
     if !branch.valid || !branch.found || !branch.instruction.valid ||
         branch.instruction.source_type != expected_branch_source ||
         branch.instruction.global_row !=
             admitted.routines.block_instruction_starts[entry_global_block] +
             index.block_instruction_counts[branch_block] - 1 {
-        if loop_ready {
+        if loop_ready || range_ready {
             Die("direct MIR loop CFG certificate branch anchor is invalid");
         }
         return DirectMirCfgCertificateEmpty();
@@ -274,7 +321,9 @@ func DirectMirCfgCertificateFromIndex(
         return DirectMirCfgCertificateEmpty();
     }
     let evidence_fact_count: Int = 1;
-    if nested_ready || loop_ready { evidence_fact_count = 2; }
+    if nested_ready || loop_ready || range_ready {
+        evidence_fact_count = 2;
+    }
     let certificate: DirectMirCfgCertificate = DirectMirCfgCertificate(
         true, DirectMirCfgCertificateSchema(),
         DirectMirCfgCertificateRevision(), 0,
@@ -283,7 +332,7 @@ func DirectMirCfgCertificateFromIndex(
         index.routine_end, index.source_syntax_id, cfg_digest,
         block_count, ArrayLength(index.instruction_facts.starts),
         entry, true_block, false_block, merge_block,
-        branch.instruction.global_row, nested, loop_fact,
+        branch.instruction.global_row, nested, loop_fact, range_fact,
         CompilerAirEvidenceMirTerminatorFact(), evidence_fact_count, 0, 0,
         true, true, phi_count, phi_digest, phi_local_name,
         phi_result_name, phi_true_incoming, phi_false_incoming
@@ -312,6 +361,18 @@ func DirectMirCfgCertificateReady(
         certificate.phi_false_incoming ==
             certificate.loop_fact.preheader_incoming;
     if loop_ready { expected_instruction_count = 5; }
+    let range_ready: Bool = certificate.block_count == 4 &&
+        DirectMirRangeCfgCertificateFactReady(certificate.range_fact) &&
+        certificate.entry_block == certificate.range_fact.preheader_block &&
+        certificate.true_block == certificate.range_fact.body_block &&
+        certificate.false_block == certificate.range_fact.exit_block &&
+        certificate.merge_block == certificate.range_fact.header_block &&
+        certificate.branch_global_row ==
+            certificate.range_fact.branch_global_row &&
+        ToInt(certificate.source_syntax_id) ==
+            certificate.range_fact.iteration_function_id &&
+        certificate.phi_count == 0;
+    if range_ready { expected_instruction_count = 3; }
     let nested_ready: Bool = certificate.block_count == 5 &&
         DirectMirNestedCfgCertificateFactReady(certificate.nested) &&
         certificate.true_block == certificate.nested.branch_block &&
@@ -329,8 +390,14 @@ func DirectMirCfgCertificateReady(
         loop_binding_ready =
             DirectMirLoopCfgCertificateFactAbsent(certificate.loop_fact);
     }
+    let range_binding_ready: Bool = range_ready;
+    if !range_ready {
+        range_binding_ready =
+            DirectMirRangeCfgCertificateFactAbsent(certificate.range_fact);
+    }
     let direct_false_edge: Bool =
-        !loop_ready && (certificate.block_count == 3 || nested_ready) &&
+        !loop_ready && !range_ready &&
+        (certificate.block_count == 3 || nested_ready) &&
         certificate.phi_count == 1 &&
         certificate.false_block == certificate.merge_block;
     if nested_ready { direct_false_edge = true; }
@@ -380,8 +447,9 @@ func DirectMirCfgCertificateReady(
         (certificate.phi_count == 0 || certificate.phi_count == 1) &&
         certificate.instruction_count == expected_instruction_count &&
         certificate.phi_digest == expected_phi_digest && phi_fields_ready &&
-        nested_binding_ready && loop_binding_ready &&
-        certificate.entry_block == 0 &&
+        nested_binding_ready && loop_binding_ready && range_binding_ready &&
+        !(loop_ready && range_ready) &&
+        certificate.entry_block >= 0 &&
         certificate.true_block >= 0 && certificate.false_block >= 0 &&
         certificate.merge_block >= 0 &&
         certificate.entry_block != certificate.true_block &&
@@ -393,94 +461,11 @@ func DirectMirCfgCertificateReady(
             certificate.false_block != certificate.merge_block) &&
         certificate.evidence_kind ==
             CompilerAirEvidenceMirTerminatorFact() &&
-        ((!nested_ready && !loop_ready &&
+        ((!nested_ready && !loop_ready && !range_ready &&
             certificate.evidence_fact_count == 1) ||
-            ((nested_ready || loop_ready) &&
+            ((nested_ready || loop_ready || range_ready) &&
                 certificate.evidence_fact_count == 2)) &&
         certificate.fallback_count == 0 &&
         certificate.drift_count == 0 && certificate.strict_evidence &&
         certificate.mir_evidence_bound;
-}
-
-func DirectMirCfgCertificateMutationRejected(
-    own certificate: DirectMirCfgCertificate
-) -> Bool {
-    let expected_evidence_count: Int = 1;
-    if DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
-        DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
-        expected_evidence_count = 2;
-    }
-    let bad_digest: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithDigest(
-            certificate, certificate.certificate_digest + 1
-        );
-    let missing_evidence: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithEvidenceCounts(certificate, 0, 0, 0);
-    missing_evidence = DirectMirCfgCertificateWithDigest(
-        missing_evidence,
-        DirectMirCfgCertificateIdentityDigest(missing_evidence)
-    );
-    let fallback: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithEvidenceCounts(
-            certificate, expected_evidence_count, 1, 0
-        );
-    fallback = DirectMirCfgCertificateWithDigest(
-        fallback, DirectMirCfgCertificateIdentityDigest(fallback)
-    );
-    let drift: DirectMirCfgCertificate =
-        DirectMirCfgCertificateWithEvidenceCounts(
-            certificate, expected_evidence_count, 0, 1
-        );
-    drift = DirectMirCfgCertificateWithDigest(
-        drift, DirectMirCfgCertificateIdentityDigest(drift)
-    );
-    let bad_nested_rejected: Bool = true;
-    if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
-        let nested_for_mutation: DirectMirNestedCfgCertificateFact =
-            certificate.nested;
-        let bad_nested: DirectMirNestedCfgCertificateFact =
-            DirectMirNestedCfgCertificateFactInvalidMerge(
-                nested_for_mutation
-            );
-        let bad_nested_certificate: DirectMirCfgCertificate =
-            DirectMirCfgCertificateWithNested(certificate, bad_nested);
-        bad_nested_certificate = DirectMirCfgCertificateWithDigest(
-            bad_nested_certificate,
-            DirectMirCfgCertificateIdentityDigest(bad_nested_certificate)
-        );
-        let nested_for_negative: DirectMirNestedCfgCertificateFact =
-            certificate.nested;
-        bad_nested_rejected =
-            !DirectMirCfgCertificateReady(bad_nested_certificate) &&
-            DirectMirNestedCfgCertificateFactMutationRejected(
-                nested_for_negative
-            );
-    }
-    let bad_loop_rejected: Bool = true;
-    if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
-        let loop_for_mutation: DirectMirLoopCfgCertificateFact =
-            certificate.loop_fact;
-        let bad_loop: DirectMirLoopCfgCertificateFact =
-            DirectMirLoopCfgCertificateFactInvalidBackedge(
-                loop_for_mutation
-            );
-        let bad_loop_certificate: DirectMirCfgCertificate =
-            DirectMirCfgCertificateWithLoop(certificate, bad_loop);
-        bad_loop_certificate = DirectMirCfgCertificateWithDigest(
-            bad_loop_certificate,
-            DirectMirCfgCertificateIdentityDigest(bad_loop_certificate)
-        );
-        let loop_for_negative: DirectMirLoopCfgCertificateFact =
-            certificate.loop_fact;
-        bad_loop_rejected =
-            !DirectMirCfgCertificateReady(bad_loop_certificate) &&
-            DirectMirLoopCfgCertificateFactMutationRejected(
-                loop_for_negative
-            );
-    }
-    return !DirectMirCfgCertificateReady(bad_digest) &&
-        !DirectMirCfgCertificateReady(missing_evidence) &&
-        !DirectMirCfgCertificateReady(fallback) &&
-        !DirectMirCfgCertificateReady(drift) && bad_nested_rejected &&
-        bad_loop_rejected;
 }
