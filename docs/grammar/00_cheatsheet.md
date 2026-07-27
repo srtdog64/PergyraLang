@@ -1,7 +1,8 @@
 # Pergyra 문법 한눈에 (Cheat-Sheet)
 
 > 헷갈리면 **여기부터**. 깊은 규칙·예외는 [01_syntax.md](01_syntax.md), 형식 문법은
-> [02_grammar.md](02_grammar.md), 네이밍은 [03_naming.md](03_naming.md).
+> [02_grammar.md](02_grammar.md), 네이밍은 [03_naming.md](03_naming.md),
+> 구성체 선택은 [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md).
 > 이 문서는 *현재 파서가 실제로 받는 것*을 요약한다(미래 계획은 맨 아래 §9).
 
 ## 0. 항상 참인 6가지
@@ -10,6 +11,8 @@
 - 키워드 = **소문자**. 타입·내장 API = **PascalCase**. 필드·로컬·파라미터 = **camelCase**.
 - identity 타입(`subject` `relation` `effect` `zone` `world`) = 함수 인자로 **자동 참조 전달**.
   value 타입(`struct` `object` `tobject` `class` `vessel`) = **복사 전달**.
+  단, hosted receiver는 별도 축이다. `subject`와 `vessel`의 `self`는
+  pointer-self이고 `class`/`object`/현재 `tobject`의 `self`는 value-self다.
 - doc comment `/// @effects ...` 를 파서가 읽는다.
 - declaration 이름은 **일반 식별자만**(예약어 재사용 불가).
 - 선언 토큰은 lexer에서 이미 분리됨 — `subject`/`class`, `struct`/`object`/`tobject` 등은 *별도 토큰*(alias 아님).
@@ -43,7 +46,7 @@
 
 > 현재 *파서는* world 본문의 `;`을 **관용적으로 받아준다**(거부 안 함). 즉 위 규칙은 지금은
 > *canonical 스타일*이지 hard 파서 규칙이 아니다. authored 예제는 무종결을 따르고,
-> `grammar-cheatsheet-contract-smoke` 게이트가 tests/ 예제에서 register를 강제한다. 파서가
+> `grammar-cheatsheet-contract-test-smoke` 게이트가 tests/ 예제에서 register를 강제한다. 파서가
 > 직접 거부하게 하는 것(register를 load-bearing으로)은 §9의 미래 단계.
 
 ## 2. 선언 스켈레톤 (한 줄씩)
@@ -51,18 +54,18 @@
 ```text
 enum E       { A, B, C }                              // variant = 콤마
 struct S     { x: Int; y: Int; }                      // value, 복사
-object O     { x: Int; }                              // value, read-only view
-tobject T    { x: Int; }                              // value (구 struct alias 아님)
+object O     { x: Int; }                              // local read-only view; query func만
+tobject T    { x: Int; }                              // immutable boundary DTO; canonical method-free
 class  C     { let x: Int;  func F(self, n: Int) -> Int { ... } }   // 수동 도구
 subject P    { let x: Int;
                action A(self, n: Int) -> Void within Z authorized by self { ... }
                func   F(self) -> Bool { ... } }       // 능동 주체
-vessel  V    { let x: Int;  func F(self) -> Int { ... } }   // value + 라이프사이클 상태(Empty->Filled); 멤버는 class처럼 ;
+vessel  V    { let x: Int;  func F(self) -> Int { ... } }   // 인자는 value, hosted self는 pointer-self
 ability Ab   { fields x: Int;  func M() -> Bool; }    // 계약: 요구 필드 + 요구 메서드(시그니처만)
 role  R for P { impl ability Ab { func M() -> Bool { ... } } }
 effect Eff for bearer: P { object slot v: O   refresh v from bearer }     // 본문 ; 없음
 relation Rel for a: P, b: P { object slot s: O   refresh s from a }       // 본문 ; 없음
-zone  Z      { subject slot s: P;   state st: effect e on s   apply e to s by s
+zone  Z      { subject slot s: P   state st: effect e on s   apply e to s by s
                authority s   func ShowState(self) -> Void { ... } }       // 사실선언 ; 없음
 world W      { zone z: Z   state active: zone z   activate z
                func ShowWorldState(self) -> Void { ... } }                // 사실선언 ; 없음
@@ -82,7 +85,7 @@ func F<T>(x: T) -> R where T: Ability { ... }
 | **intent step clause** | `intent` step 본문 | `where: Z;`, `who: p;`, `using: x;`, `on: ...;`, `guard: ...;`, `pre:`, `post:`, `expect:` | `라벨: 값;` |
 | **type clause** | 제네릭 시그니처 | `where T: Ability` | 타입 제약 |
 
-> **`within` (action) ≠ `where:` (step).** `within`은 action의 *선택적 zone 제약*(시그니처 장식),
+> **`within` (action) ≠ `where:` (step).** `within`은 action의 *선택적 zone 계약 fact*,
 > `where:`는 step의 *위치 사실*(선언 데이터). 역할이 다르므로 철자가 다른 게 맞다.
 
 ## 4. 필드: 저장 vs 계약
@@ -128,8 +131,9 @@ select { ... }
 ## 8. 능력 게이트 / effect 선언
 
 ```text
-func ReadConfig() with caps io_read { ... }     // 능력(capability) 선언
-func DoWork() with effects io_read, clock { ... } // effect 선언
+func ReadConfig() with caps io_read { ... }     // runtime capability 선언
+func ObserveClock() with caps clock { ... }     // clock도 capability
+func DoWork() with effects io, alloc { ... }    // compiler effect mask 선언
 ```
 
 ## 9. 규칙화 추적 (아직 — 미래 surface-breaking window)
@@ -140,7 +144,7 @@ func DoWork() with effects io_read, clock { ... } // effect 선언
 - **세미콜론 = 규칙화 대상 아님(원칙으로 확정).** §1의 register(`;`=code 층, 무종결=세계 층)는
   *의도된 신호*이므로 flatten하지 않는다. 게이트는 "통일"이 아니라 *register 위반*을 잡는다:
   `zone`/`world`/`effect`/`relation` 본문의 사실선언에 `;`이 붙으면 = 세계 층을 code로 오용 →
-  `grammar-cheatsheet-contract-smoke` 게이트가 authored 예제(tests/)에서 거부.
+  `grammar-cheatsheet-contract-test-smoke` 게이트가 authored 예제(tests/)에서 거부.
   **미래 단계**: 파서가 world 본문의 `;`을 직접 *거부*하게 해 register를 load-bearing으로
   승격(현재는 파서가 관용 허용). 그 전까지는 게이트가 스타일을 지킨다.
 - **`fields` → `require`**: `ability { require x: Int; }` (또는 `require let x: Int`)로 규칙화.

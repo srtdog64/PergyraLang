@@ -1,5 +1,10 @@
 # Pergyra Vessel-Action 모델 (설계 결정)
 
+`struct`부터 `action`까지의 현재 구현/작성 판단표는
+[`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md)가
+canonical하다. 이 문서는 vessel/action 철학과 god-subject 방지 이유를
+상세히 설명한다.
+
 ## 핵심 문제: God Subject 방지
 
 subject-core host 모델을 설계 순서와 분리하지 않고 그대로 밀면 가장 먼저 생기는 위험이 **god subject**다.
@@ -60,7 +65,10 @@ Pergyra에서 "method"라는 용어는 쓰지 않는다. 타입 안에 선언되
 - **hosted func**: 타입에 귀속된 func (self 바인딩)
 - **general func**: subject 안의 일반 func (사적 판단)
 
-func는 데이터에 붙은 계산이다. struct, vessel, object, tobject, role, subject 안에서 사용된다.
+func는 데이터나 host에 붙은 계산/구현이다. `class`, `vessel`, `object`,
+`role`, `subject` 안에서 사용된다. `struct` hosted func는 semantic에서
+거부하며, `tobject` passive helper는 현재 허용되지만 canonical boundary
+contract에서는 method-free로 닫는 구현 부채다.
 
 ```pergyra
 vessel HealthState {
@@ -83,9 +91,9 @@ vessel HealthState {
 
 func의 특성:
 
-- 누구나 호출 가능
-- zone/authority 제약 없음
-- effect 추적 없음
+- visibility에 따라 호출 가능
+- action 전용 `requires`/`within`/`causes`/`authorized by` 계약은 없음
+- `with caps`와 `with effects`는 func에도 적용 가능
 - 순수 계산 또는 수동 상태 변경
 
 ### action -- 플롯 행위
@@ -117,9 +125,10 @@ action의 5가지 속성:
 
 | 키워드 | 동사 | 성격 |
 |--------|------|------|
-| struct / tobject | func | 순수 계산 (상태 변이 없음) |
-| object | func | 피동 반응과 helper 계산 |
-| vessel | func | 읽기 전용 계산 (value-self, mutation 없음) |
+| struct | 없음 | hosted behavior가 없는 값 fact; free func의 입력/출력 |
+| tobject | 없음이 canonical | 현재 passive helper func 허용은 열린 부채; boundary DTO는 method-free |
+| object | func | read-only projection의 관측/query 계산 |
+| vessel | func | pointer-self로 호출되는 피동 상태/자원 갱신 |
 | role | func | ability 이행 (계약의 구체화) |
 | subject | **func + action** | func = 사적 판단, action = 공적 행위 |
 | ability | func 시그니처 | 계약 (구현 없음) |
@@ -171,20 +180,20 @@ intent ResolveTrade(selfPlayer: Player, otherPlayer: Player, item: Item) {
 }
 
 zone BattleZone {
-    subject slot attacker: Player;
-    subject slot defender: Player;
-    effect slot damage: DamageEffect;
-    relation slot alliance: Alliance;
+    subject slot attacker: Player
+    subject slot defender: Player
+    effect slot damage: DamageEffect
+    relation slot alliance: Alliance
 }
 
 zone TradeZone {
-    subject slot seller: Player;
-    subject slot buyer: Player;
+    subject slot seller: Player
+    subject slot buyer: Player
 }
 
 world GameWorld {
-    zone battle: BattleZone;
-    zone trade: TradeZone;
+    zone battle: BattleZone
+    zone trade: TradeZone
 }
 
 struct Vec2 {
@@ -304,8 +313,8 @@ struct    = 순수 값 (광물/분자)
 vessel    = 피동 상태+메서드 (기관/organ)
 subject   = intent/world/zone 계약을 실제로 수행하는 능동 host (유기체)
 class     = 도구/사물 (값 타입, func 있음, action 없음)
-object    = 읽기 전용 투영 (그림자)
-tobject       = 경계 밖 전송 투영 (소식/평판)
+object    = 읽기 전용 local 투영 (그림자)
+tobject   = immutable 경계 전달 값 (소식/평판)
 ability   = 행위 계약 (유전형질)
 role      = 행위 이행 (표현형)
 action    = 플롯 행위 (주인공의 행동)
@@ -431,10 +440,10 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 
 | 키워드 | func 허용 | action 허용 |
 |--------|----------|-------------|
-| struct | O | X |
-| tobject | O | X |
-| object | O | X |
-| vessel | O | X |
+| struct | X | X |
+| tobject | current O / canonical X | X |
+| object | O (관측/query) | X |
+| vessel | O (pointer-self 상태 갱신) | X |
 | role | O (ability 이행) | X |
 | ability | O (시그니처만) | X |
 | subject | **O** (사적 판단) | **O** (공적 행위) |
@@ -447,6 +456,7 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 - 2026-04-04: 5대 피동 축 정의 (상태, 행위, 자원, 투영, 규칙)
 - 2026-04-04: subject에 func 재허용 (실전 battle sim 구현 후 Anemic Domain Model 위험 확인)
 - 2026-04-04: subject 참조 전달 허용 (포인터 숨김, 언어가 자동 reference 처리)
-- 2026-04-04: vessel을 value-self로 확정 (순수 상태 묶음 + 읽기 전용 계산, mutation 없음)
+- 2026-07-27: 함수 인자 carriage는 value지만 hosted receiver는
+  pointer-self임을 source/MIR 기준으로 정정. 기존 value-self 판정은 폐기
 - 근거: god subject 방지, subject-core host 유지, 포인터 은닉, 오케스트레이터 패턴
 - 구현 상태: core parser/semantic/C/LLVM surface 반영 완료. `vessel` 선언, subject-local `vessel` field, subject-only `action`, `requires/within/causes/authorized by` clause가 현재 구현에 연결되어 있고, `authorized by` subject-host 검증, `within` zone slot/authority 적합성, `causes` effect target/zone layer 적합성까지 semantic에 반영됨. 또한 zone method 안의 subject `action` call은 현재 C/LLVM에서 matching `effect slot` runtime activation과 embedded layer sync로 이어진다.

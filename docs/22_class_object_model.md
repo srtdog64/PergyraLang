@@ -1,4 +1,8 @@
-# Pergyra Subject Model (`class` Today)
+# Pergyra Subject, Class, Object Model
+
+현재 작성 판단의 canonical matrix는
+[`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md)를
+우선한다. 이 문서는 장기 철학과 구현 이력을 함께 설명한다.
 
 ## Overview
 
@@ -10,10 +14,12 @@
 - `struct`는 최소 값 타입이다
 - `vessel`은 subject 안에서 상태/자원을 피동적으로 담는 수용체다 (2026-04-04 추가)
 - `subject`는 의사결정과 오케스트레이션을 담당하는 능동 주체 타입이다
-- `subject`는 `func`가 아닌 `action`으로 행동한다 — action은 zone/ability/effect와 연동되는 플롯 행위다(2026-04-04 추가)
+- `subject`는 사적 계산/판단에는 `func`, 공적 전이와 권한·경계 handoff에는
+  `action`을 사용한다
 - 현재 구현 surface는 `subject`와 `class`를 서로 다른 nominal declaration flavor로 기록하고, semantic/lowering도 둘을 점진적으로 다르게 다룬다
 - 현재 구현에서 `subject`는 별도 선언 키워드이자 코어 identity-bearing host로 semantic에 고정되어 있다
-- `object`는 intent를 시작하지 않는 피동 상태 대상이다. `object`는 상태와 `func`(메서드)를 가질 수 있다.
+- `object`는 intent를 시작하지 않는 read-only 피동 projection이다.
+  관측/query `func`를 가질 수 있지만 source 대신 직접 갱신하지 않는다.
 - `ability`는 subject 위의 행위 계약이다
 - 장기 모델에서 `role`은 subject에 ability를 바인딩한다
 - `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
@@ -58,12 +64,17 @@ Pergyra는 도메인 파편화를 줄이기 위해
 
 - `subject`는 상태와 identity를 가지고 능동적으로 행위를 수행하는 코어 타입이다
 - `object`는 intent를 시작하지 않는 피동 상태 대상이다
-- `object`는 상태를 가질 수 있고 effect를 받을 수 있으며 relation의 대상이 될 수 있고 시간에 따라 반응할 수 있다
+- `object`는 projection 상태를 담고 effect/relation의 대상이 될 수 있지만,
+  construction 이후 직접 mutation하지 않고 source의 `refresh`로 갱신한다
 - 현재 compiler surface는 `effect Name for object target: T` / `relation Name for object a: A, object b: B`를 받아 object를 직접 layer contract 대상으로 삼을 수 있다
 - 현재 compiler surface는 domain-local projection sync(`refresh` / `publish` / `bind`)에서 object를 projection source로도 허용한다. 다만 `tobject`는 sink이며 source로는 허용하지 않는다
 - `tobject`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위한 별도 boundary projection contract다
 - 현재 compiler surface는 `object` / `tobject`에 struct-style declaration syntax를 재사용하지만, 둘은 같은 nominal/value 계약이 아니다
-- 현재 compiler surface는 `object`를 local/internal passive projection contract로, `tobject`를 더 좁은 boundary transfer/publish contract로 취급하며 helper `func`는 허용한다
+- 현재 compiler surface는 `object`를 local/internal passive projection
+  contract로, `tobject`를 더 좁은 boundary transfer/publish contract로
+  취급한다. semantic은 둘의 passive helper `func` 선언을 현재 허용하지만,
+  canonical authoring은 object의 관측 helper만 허용하고 tobject는
+  method-free로 닫는다
 - 현재 compiler surface는 `ToObject(TargetObject, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
 - 현재 compiler surface는 `ToTObject(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
 - lowering은 이제 `object borrow-first / tobject materialize-first`로 갈라진다. `ToObject(...)` local binding이 non-escaping이면 backend는 source subject field를 직접 읽는 borrowed projection alias로 다루고, whole-value가 실제로 필요할 때만 object literal을 만든다. `ToTObject(...)`는 boundary contract라 여전히 materialized transfer value를 만든다.
@@ -83,7 +94,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - 복사/비교 중심
 - identity 없음
 - 좌표, 설정값, 스냅샷, 작은 데이터 묶음에 적합
-- `func` (메서드) 허용
+- hosted `func` 없음. 동작이 필요하면 free `func` 또는 `class`를 사용
 
 ```pergyra
 struct Vec3 {
@@ -96,7 +107,8 @@ struct Vec3 {
 ### vessel (2026-04-04 추가)
 
 - subject 안에서 상태/자원/행위를 피동적으로 담는 수용체
-- `func` (메서드) 허용 -- 수동 실행 (호출당해서 상태 변경)
+- hosted `func` 허용 -- 일반 파라미터로는 값 전달되지만, hosted receiver는
+  pointer-self라 호출당한 원본 내부 상태를 갱신할 수 있다
 - 스스로 의사결정하지 않음
 - 5대 피동 축: 상태, 행위, 자원, 투영, 규칙
 
@@ -202,7 +214,7 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 
 - `subject`: 능동 주체, identity, `action`, zone/world orchestration
 - `class`: 피동 도구/사물, value semantics, hosted `func`
-- `object`: 읽기 전용 또는 수동 상태 대상
+- `object`: 같은 실행 경계의 읽기 전용 projection
 - `tobject`: 경계 밖 전송 표면
 
 다만 이 질문은 이미 `intent`와 `world/zone` 경계가 잡힌 뒤에 와야 한다.
@@ -236,8 +248,9 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 ### object
 
 - intent를 시작하지 않는 피동 상태 대상
-- 상태를 가질 수 있고 helper `func`로 시간에 따라 반응할 수 있다
-- effect를 받을 수 있고 relation의 대상이 될 수 있다
+- projection 상태를 담고 관측/query `func`를 가질 수 있다
+- effect/relation의 대상이 될 수 있지만 직접 mutation 대신 source
+  갱신과 `refresh`를 사용한다
 
 ### tobject
 
@@ -248,14 +261,18 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 
 `tobject`를 zero-copy 관측이나 shared borrow와 같은 층으로 해석하면 시간적 결합이 생긴다.
 그런 정책은 `telemetry snapshot`, `generation`, `lease` 같은 별도 계층으로 분리해야 한다.
-- 현재 구현에서는 `struct` 호환 nominal declaration alias로 시작하지만, 장기 의미론은 단순 projection 결과물보다 넓다
+- 현재 구현은 별도 `NOMINAL_DECL_TOBJECT` identity를 운반한다. storage/layout
+  일부를 struct-like 경로와 공유해도 `struct` alias는 아니다
 
 ```pergyra
 object Door {
     isOpen: Bool;
 
-    func Toggle(self) -> Void {
-        self.isOpen = !self.isOpen;
+    func Status(self) -> String {
+        if isOpen {
+            return "open";
+        }
+        return "closed";
     }
 }
 ```

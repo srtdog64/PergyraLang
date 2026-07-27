@@ -131,6 +131,11 @@ func CharAt(s: String, i: Int) -> String {
 
 ### 2.2 첫 production subject/action은 도달했고 world/zone/intent는 아직 아니다
 
+`struct`/`class`/`object`/`tobject`/`vessel`/`subject`/`action`의 선택 규칙은
+[`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md)가
+소유한다. 이 절은 그 구성체가 self-host 실행 그래프에서 실제로 도달하는지만
+판정한다.
+
 컴파일러 파이프라인의 목표 토폴로지는
 world/zone/subject/object/authority로 선언돼 있다. 그러나 “선언이
 컴파일된다”와 “실제 bootstrap entrypoint가 그 책임을 호출한다”는 다른
@@ -173,9 +178,9 @@ bootstrap 실행 증거가 아니다. 다만 direct-MIR mode에는 별도의 pro
 canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
 같다.
 
-- import closure 396개, missing import 0;
-- fixture/generated/probe 제외 reachable source 395개;
-- reachable 선언은 `func` 2,643, `struct` 175, `enum` 3, `subject` 1,
+- import closure 403개, missing import 0;
+- fixture/generated/probe 제외 reachable source 403개;
+- reachable 선언은 `func` 2,664, `struct` 175, `enum` 4, `subject` 1,
   `action` 1;
 - reachable `world/zone/intent/role/ability/effect` 선언은 아직 전부 0;
 - `compiler/driver_rung2_execution_owner.pgy`의 subject/action은 direct-MIR
@@ -184,7 +189,7 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 - 나머지 비-fixture Pergyra-native syntax는 unreachable한
   `compiler/world.pgy`, `compiler/stage_intents.pgy`,
   `compiler/authority_owner.pgy` 세 파일에 존재;
-- `world.pgy`의 action 16개는 19개 `Compiler*Ready()` 결합만 반환하며 실제
+- `world.pgy`의 action 16개는 `Compiler*Ready()` 결합만 반환하며 실제
   source/MIR/backend artifact 경로를 호출하지 않는다.
 
 따라서 현재 bootstrap에는 첫 Pergyra-native orchestration 경계가 생겼지만,

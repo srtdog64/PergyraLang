@@ -49,6 +49,10 @@
 - 이 타입들을 함수 파라미터로 전달하면 **자동으로 reference(참조) 전달**된다.
 - 사용자는 포인터를 의식하지 않아도 된다 -- 언어가 내부적으로 처리한다.
 - `struct`, `vessel`, `class`, `object`, `tobject`는 value 타입이다 -- 복사 전달된다.
+- 이 규칙은 함수 인자 carriage다. hosted receiver는 별도이며 `subject`와
+  `vessel`은 pointer-self, `class`/`object`/현재 `tobject`는 value-self다.
+  구성체별 authoring contract는
+  [`../200_object_to_action_boundary_patterns.md`](../200_object_to_action_boundary_patterns.md)를 따른다.
 
 ## 2. 리터럴과 표현식
 
@@ -262,11 +266,17 @@ subject Fighter
 
 | 구분 | `func` | `action` |
 |------|--------|----------|
-| 허용 위치 | 어디서든 (top-level, subject, vessel, class, role 등) | subject 전용 |
+| 허용 위치 | top-level 및 허용 host (`class`, `object`, `vessel`, `role`, `subject`; 현재 `tobject`) | subject 전용 |
 | self 바인딩 | 선택 (self가 있으면 hosted func) | 필수 |
-| zone/effect 연동 | 없음 | `requires`, `within`, `causes`, `authorized by` |
+| capability/effect | `with caps`, `with effects` 가능 | 동일하게 가능 |
+| action contract | 없음 | `requires`, `within`, `causes`, `authorized by` |
 | 소설 비유 | 머릿속 계산 (관객이 안 봄) | 무대 행동 (관객이 봄) |
 | subject 안 용어 | general func | action |
+
+`func == pure`, `action == impure`는 문법 규칙이 아니다. action은 subject가
+공적 전이, 권한, resource/stage handoff를 소유할 때 사용한다. `struct` hosted
+func는 semantic에서 거부되고, `tobject` helper는 현재 허용되지만 canonical
+boundary DTO는 method-free다.
 
 #### action 전용 clause
 
@@ -349,9 +359,10 @@ enum Shape {
 지원되는 선언:
 - `struct`
 - `object` (internal projection/value declaration)
-- `subject` (`class` alias)
+- `subject` (identity-bearing active host; `class` alias가 아님)
 - `class`
 - `tobject` (transfer-object declaration)
+- `vessel` (subject-owned passive state/resource host)
 - `enum`
 - `relation`
 - `effect`
@@ -364,6 +375,9 @@ enum Shape {
 - `object`는 local/internal projection contract다. zone/world 실행 경계 안에서 source 상태를 읽기 위해 `refresh`되는 view 모델이다.
 - `tobject`는 transfer/boundary projection contract다. `publish`를 통해 zone/world/export 경계를 넘기는 전달 모델이다.
 - 따라서 `tobject`는 `object`의 단순 축약형이 아니며, projection state와 boundary contract에서 별도 취급한다.
+- semantic은 현재 `object`/`tobject` passive helper `func`를 허용한다.
+  canonical authoring은 object의 관측/query만 남기고 tobject를 method-free로
+  쓰며, 이 차이는 열린 semantic closure다.
 - `ability`는 기본 공개 계약이다. cross-module에서 숨기고 싶을 때만 `private ability`를 사용한다. 따라서 `export ability`는 허용되더라도 중복 표기다.
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `tobject slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.
 - `shared`는 visibility 키워드가 아니라 host-local contextual state marker다. 즉 `party` / `relation` / `effect` / `zone` / `world`가 문맥 전체에서 공동으로 읽고 갱신하는 상태를 뜻한다.

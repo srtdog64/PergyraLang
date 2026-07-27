@@ -4,6 +4,11 @@ Status: accepted direction, staged implementation. This records two related
 language extensions and the path to build them on the machinery Pergyra already
 has, rather than as from-scratch type theory.
 
+Current spelling note: the early `uses ...` examples below are superseded design
+history. The implemented declaration surface is `with effects ...`; runtime
+operation permission is separately declared with `with caps ...`. Domain
+`causes`, compiler effects, and runtime capabilities are not interchangeable.
+
 ## Why these two, and why now
 
 `if` / `for` give Turing completeness but not safety or expressiveness. The

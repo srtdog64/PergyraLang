@@ -17,6 +17,10 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 우회하면서, 별도 파일의 `world`/`zone`/`intent` 선언을 개사료 증거로
 세는 것이다.
 
+구성체 자체의 선택 기준은
+[`../200_object_to_action_boundary_patterns.md`](../200_object_to_action_boundary_patterns.md)가
+소유한다. 이 문서는 같은 패턴을 self-host 실행 도달성과 대체 증거에 적용한다.
+
 ## 현재 관측된 상태
 
 2026-07-27 현재 실제 부트스트랩 진입점은
@@ -42,9 +46,9 @@ direct backend 호출, direct-mode `WriteFile` 우회는 삭제됐다.
 실행의 루트는 아니다. 별도 direct-MIR execution subject/action은 아래처럼
 실제 진입점에서 도달 가능하다.
 
-재귀 import 감사에서 bootstrap closure는 396개 파일이고 missing import는
-0이었다. fixture/generated/probe를 제외한 reachable source는 395개다. 그
-reachable 집합의 선언은 `func` 2,643개, `struct` 175개, `enum` 3개,
+재귀 import 감사에서 bootstrap closure는 403개 파일이고 missing import는
+0이었다. fixture/generated/probe를 제외한 reachable source도 403개다. 그
+reachable 집합의 선언은 `func` 2,664개, `struct` 175개, `enum` 4개,
 `subject` 1개, `action` 1개다. `world`/`zone`/`intent`/`role`/`ability`/`effect`는
 아직 0개다. 즉 첫 production subject/action은 도달 가능해졌지만 전체
 실행 그래프의 대부분은 책임에 맞는 `func`/`struct` 계산 소유자다.
@@ -55,13 +59,14 @@ fixture/generated/probe를 제외하고 Pergyra-native 구성체를 선언한 pr
 - `compiler/driver_rung2_execution_owner.pgy`: subject 1, action 1;
   direct-MIR production mode에서 `REACHABLE`;
 
-- `compiler/world.pgy`: world 1, zone 36, subject 32, action 16, intent 10;
+- `compiler/world.pgy`: world 1, zone 18, subject 16, object 18, tobject 1,
+  action 16, intent 10;
 - `compiler/stage_intents.pgy`: intent 4;
 - `compiler/authority_owner.pgy`: role 4, ability 4.
 
 뒤의 세 파일은 여전히 bootstrap에서 unreachable이다.
 
-`world.pgy`의 16개 action은 19개의 `Compiler*Ready()` 호출/결합만 반환한다.
+`world.pgy`의 16개 action은 `Compiler*Ready()` 호출/결합만 반환한다.
 world/stage-intent closure에는 production `CompileSource*`, `CompileMir*`,
 `ParseRootProgramArtifact`, semantic/MIR/backend artifact 호출이 없다. 따라서
 이들 world/stage-intent action/intent의 bootstrap call site는 0개다. 별도
@@ -187,6 +192,9 @@ parser probe, readiness shell의 단어 수는 실행 개사료율로 세지 않
 - Pergyra-native self-host는 모든 함수를 action으로 바꾸는 작업이 아니다.
 - `func`는 “어떻게”, `action`은 “누가 왜 어느 경계에서”, `intent`는
   “어떤 목적을 어떤 성공/실패 프로토콜로”를 소유한다.
+- `struct`는 hosted behavior 없는 값 fact, `class`는 value-self 도구,
+  `object`는 local read model, `tobject`는 immutable transfer, `vessel`은
+  subject-owned pointer-self 상태다. 이 경계를 이름표로만 바꾸지 않는다.
 
 ## 금지 패턴
 

@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Pins the source-backed struct/class/object/tobject/vessel/subject/action
+# boundary. This is a documentation/owner ratchet, not executable self-host
+# substitution evidence.
+set -u
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT" || exit 2
+
+DOC="docs/200_object_to_action_boundary_patterns.md"
+fail=0
+
+require_text() {
+    if ! grep -qF "$2" "$1"; then
+        echo "[FAIL] $1 no longer contains: $2"
+        fail=1
+    fi
+}
+
+reject_text() {
+    if grep -qF "$2" "$1"; then
+        echo "[FAIL] $1 reintroduced forbidden text: $2"
+        fail=1
+    fi
+}
+
+if [ ! -f "$DOC" ]; then
+    echo "[FAIL] missing canonical boundary contract: $DOC"
+    exit 1
+fi
+
+# Canonical authoring decisions and the deliberately open tobject debt.
+require_text "$DOC" '현재 구현과 canonical authoring 행렬'
+require_text "$DOC" '`vessel`은 일반 함수 인자로는 값 전달되지만'
+require_text "$DOC" '`subject` | identity-bearing active host'
+require_text "$DOC" 'canonical surface는 receiver 없음'
+require_text "$DOC" '현재 semantic은 passive `func`를 허용하지만 새 코드는 method-free'
+require_text "$DOC" '`func == pure`, `action == impure`로 나누지'
+require_text "$DOC" '`causes DamageEffect` 같은 domain effect'
+require_text "$DOC" '`MakeSubject().Action()` 같은 temporary subject receiver'
+require_text "$DOC" '`REACHABLE`이지만 아직 C-owned compiler path를'
+
+# The parser owns six distinct nominal identities; aliases may not collapse them.
+for kind in CLASS SUBJECT VESSEL STRUCT OBJECT TOBJECT; do
+    require_text "src/parser/ast_types.h" "NOMINAL_DECL_${kind}"
+done
+require_text "src/parser/parser_decl.c" \
+    'decl_kind == NOMINAL_DECL_SUBJECT'
+require_text "src/parser/parser_decl.c" \
+    'parser_decl_match_contextual_keyword(parser, "action")'
+
+# Semantic and backend facts behind the matrix.
+require_text "src/semantic/type_checker_class_decl.c" \
+    "struct '%s' cannot have methods"
+require_text "src/semantic/type_checker_module_contract.c" \
+    "action '%s' is only supported inside subject declarations"
+require_text "src/codegen/host_decl_compat.c" \
+    'ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT'
+require_text "src/codegen/host_decl_compat.c" \
+    '|| ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL'
+require_text "src/semantic/type_checker_assignment.c" \
+    "object '%s' fields are read-only after construction"
+require_text "src/semantic/type_checker_assignment.c" \
+    "tobject '%s' fields are immutable"
+require_text "src/semantic/type_checker_assignment.c" \
+    'transfer snapshots must be republished from their source'
+require_text "src/codegen/llvm_type.c" \
+    'return kind == NOMINAL_DECL_OBJECT || kind == NOMINAL_DECL_TOBJECT;'
+require_text "src/codegen/llvm_type.c" \
+    'return kind == NOMINAL_DECL_TOBJECT;'
+require_text "src/semantic/type_checker_host_helpers.c" \
+    'type_is_class_object_type(const Type *type, SemanticContext *ctx)'
+require_text "$DOC" '`type_is_class_object_type()`은 이름과 달리 현재 subject만'
+
+# Keep the present-vs-canonical tobject distinction honest until semantic closure.
+require_text "src/tests/semantic/test_semantic_misc_b1_part_a_2.cases.h" \
+    'object and tobject declarations may carry passive helper funcs'
+
+# Stale prose that previously made the language model self-contradictory.
+reject_text "docs/grammar/02_grammar.md" 'subject (`class` alias)'
+reject_text "docs/grammar/00_cheatsheet.md" '시그니처 장식'
+reject_text "docs/grammar/00_cheatsheet.md" 'with effects io_read, clock'
+reject_text "docs/26_vessel_action_model.md" \
+    '읽기 전용 계산 (value-self, mutation 없음)'
+reject_text "docs/10_role_interface_design.md" \
+    '별도 코어 타입은 아니다'
+
+if [ "$fail" -eq 0 ]; then
+    echo "ALL PASS (object-to-action boundary contract)"
+    exit 0
+fi
+
+echo "FAILED"
+exit 1

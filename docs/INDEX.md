@@ -156,6 +156,7 @@ not own status, decisions, or completion claims.
 | [`24_visibility_model.md`](24_visibility_model.md) | Visibility model |
 | [`25_declaration_vs_instantiation.md`](25_declaration_vs_instantiation.md) | Declaration vs instantiation |
 | [`26_vessel_action_model.md`](26_vessel_action_model.md) | Vessel/action model |
+| [`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md) | Canonical `struct`/`class`/`object`/`tobject`/`vessel`/`subject`/`action` selection, receiver, mutation, and boundary matrix |
 | [`42_keyword_orthogonality.md`](42_keyword_orthogonality.md) | Keyword orthogonality |
 | [`45_math_layer_design.md`](45_math_layer_design.md) | Math layer design |
 | [`46_texmath_spec.md`](46_texmath_spec.md) | TeX math spec |

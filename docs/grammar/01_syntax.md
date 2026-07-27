@@ -37,6 +37,9 @@
   `subject` / `class`, `struct` / `object` / `tobject`, `vessel`, `intent`, `event`,
   `roster` / `world` / `relation` / `effect` / `zone`은 각각 **별도 토큰**이다
 - 즉 현재 구현은 예전처럼 `subject -> class`, `tobject -> struct` 같은 lexer alias 모델이 아니다
+- 함수 인자 전달과 hosted `self`는 다른 축이다. `vessel`은 일반 인자로는
+  값 전달되지만 hosted `func`에서는 pointer-self다. 구성체 선택과 mutation
+  계약은 [../200_object_to_action_boundary_patterns.md](../200_object_to_action_boundary_patterns.md)를 따른다.
 
 ### 예약 키워드 (reserved — 식별자로 사용 불가)
 
@@ -114,6 +117,15 @@ let (a, b, c) = Split("x y z", " ");
 - **hosted func** (귀속 func) -- 타입 안에 선언, `self`를 받음
 - **general func** -- subject 안의 일반 func (사적 판단)
 - **action** -- subject 전용, zone/effect 연동 (공적 행위)
+
+hosted behavior의 canonical 경계는 다음과 같다.
+
+- `struct`: hosted `func` 없음;
+- `class`: value-self 계산 도구;
+- `object`: read-only 관측/query `func`;
+- `tobject`: 현재 passive helper를 받지만 새 boundary DTO는 method-free;
+- `vessel`: pointer-self 내부 상태 갱신 `func`;
+- `subject`: pointer-self 사적 `func`와 공적 `action`.
 
 ```pergyra
 func Add(a: Int, b: Int) -> Int
@@ -257,7 +269,9 @@ Purchase(hero, merchant);
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
-- C lowering: hosted func -> `TypeName_Func(Type *self, ...)`, JS -> `class { Func() { this.xxx } }`
+- C/LLVM hosted receiver는 nominal kind가 결정한다. `subject`/`vessel`은
+  pointer-self이고 `class`/`object`/현재 `tobject`는 value-self다. 모든 hosted
+  func를 `Type *self`로 설명하는 이전 문서는 더 이상 canonical하지 않다.
 
 #### `->` 반환 타입 문법
 
@@ -387,6 +401,9 @@ enum Color { Red, Green, Blue }
 - `object`는 local/internal projection view를 뜻한다. 같은 execution boundary 안에서 `refresh`로 동기화되는 읽기 모델이다.
 - `tobject`는 transfer object를 뜻한다. `publish`를 통해 zone/world/boundary 바깥으로 넘기는 전달 모델이다.
 - 따라서 `tobject`는 `object`의 단순 별칭이 아니고, projection sync와 boundary contract에서 별도 의미를 가진다.
+- semantic은 현재 `object`/`tobject`의 passive helper `func`를 허용한다.
+  canonical authoring은 object의 query만 남기고 tobject는 method-free로 쓰며,
+  tobject helper 허용은 구현 부채로 추적한다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.

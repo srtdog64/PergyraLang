@@ -1,5 +1,9 @@
 # Pergyra Role/Interface System Design
 
+Nominal 구성체 선택과 receiver/mutation 경계는
+[`200_object_to_action_boundary_patterns.md`](200_object_to_action_boundary_patterns.md)가
+canonical하다. 이 문서는 ability/role 조합 책임에 집중한다.
+
 ## Overview
 이 문서는 Pergyra의 역할 기반 조합 시스템을 정리한다.
 핵심은 다음 네 층이다.
@@ -203,7 +207,8 @@ Pergyra에서 `ability`는 모든 타입에 무차별적으로 붙는 일반 인
 - `subject`는 ability를 수행하는 주체 타입이다
 - role은 subject에 ability를 바인딩한다
 - ability의 `fields`는 그 subject가 점유하거나 접근 가능한 자원 셀을 전제한다
-- `object`는 이 subject가 transfer/view 문맥에서 수동적으로 해석된 모습일 뿐, 별도 코어 타입은 아니다
+- `object`는 subject/source에서 `refresh`되는 별도 local read-model nominal이다.
+  `tobject`는 다시 별도의 immutable boundary-transfer nominal이다
 
 즉 `ability`는 "메서드 목록"보다
 "이 객체가 어떤 자원 상태와 규율 위에서 어떤 행위를 수행할 수 있는가"에 더 가깝다.

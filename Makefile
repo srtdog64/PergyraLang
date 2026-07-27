@@ -2461,7 +2461,7 @@ async-model-positioning-test-smoke:
 agent-boundary-sentinel-test-smoke:
 	"$(BASH)" tests/agent_boundary_sentinel_smoke.sh
 
-documentation-quality-test-smoke: agent-boundary-sentinel-test-smoke
+documentation-quality-test-smoke: agent-boundary-sentinel-test-smoke object-action-boundary-contract-test-smoke
 	"$(BASH)" tests/documentation_quality_smoke.sh
 	"$(BASH)" tests/post_selfhost_validation_manifest_smoke.sh
 
@@ -2651,6 +2651,12 @@ language-surface-hygiene-test-smoke:
 # compiler needed -- always load-bearing in CI.
 grammar-cheatsheet-contract-test-smoke:
 	"$(BASH)" tests/grammar_cheatsheet_contract_smoke.sh
+
+# Source-backed nominal/receiver/mutation/action authoring contract. This gate
+# prevents prose from collapsing distinct owners while semantic closure remains
+# explicit about the currently accepted tobject passive helper surface.
+object-action-boundary-contract-test-smoke:
+	"$(BASH)" tests/object_action_boundary_contract_smoke.sh
 
 ifeq ($(OS),Windows_NT)
 grammar-examples-compile-test-smoke: $(PGY)
@@ -3804,6 +3810,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: self-host-codegen-bootstrap-seed-test-smoke self-host-driver-bootstrap-test-smoke self-host-driver-bootstrap-full-test-smoke self-host-driver-bootstrap-full-pressure-body-test-smoke self-host-bootstrap-policy-corpus-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-hard-driver-rung2-parity-test-smoke self-host-hard-driver-rung2-parity-full-test-smoke self-host-mir-abi-first-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-authority-edge-test-smoke self-host-compiler self-host-live-replacement-test-smoke
 .PHONY: runtime-cache-identity-test-smoke arena-ledger-test-smoke runtime-context-test-smoke
 .PHONY: grammar-self-driver-test-smoke
+.PHONY: object-action-boundary-contract-test-smoke
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke

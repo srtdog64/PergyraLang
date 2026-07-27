@@ -46,8 +46,8 @@ owner, and the named executable gate.
   direct selectors across 34 words. Support flags, fixtures, and tooling do not
   promote implementation status.
 - Pergyra-native dogfood status is now explicit. The bootstrap import closure
-  has 396 files with no missing import; its non-fixture/generated/probe
-  reachable declaration set has 2,643 `func`, 175 `struct`, three `enum`, one
+  has 403 files with no missing import; its non-fixture/generated/probe
+  reachable declaration set has 2,664 `func`, 175 `struct`, four `enum`, one
   `subject`, and one `action`. `world`/`zone`/`intent`/`role`/`ability`/`effect`
   remain zero. `DriverRung2Execution.EmitDirectMir` is the first production
   `REACHABLE` action; `world.pgy`, `stage_intents.pgy`, and
@@ -67,7 +67,7 @@ owner, and the named executable gate.
   function/intent prototype pass now precedes nominal method-body emission.
   `subject_action_global_helper` reproduces the old implicit/conflicting
   declaration failure and now passes C/LLVM with output `12`. The current
-  396-file driver compiles with 0 errors/0 warnings, and the direct one-MIR
+  current driver compiles with 0 errors/0 warnings, and the direct one-MIR
   hello/`let_log`/`multilet` C/LLVM parity plus negatives remain green.
 - This action rung is `REACHABLE`, not `SUBSTITUTING`: it replaces a Pergyra
   `Main` orchestration bypass but does not yet replace another C-owned compiler
@@ -86,7 +86,10 @@ owner, and the named executable gate.
 
 The exact executable/dogfood implementation checkpoint for this handoff is
 `62d601f5e296aa88ecdbce9bbc88edad7b595c21`; the handoff-only refresh commit
-follows it without changing compiler semantics. The v74 executable boundary
+`fce6b14654efb48acc0370a5ea97f9ecd4479d21` follows it without changing
+compiler semantics. The object-to-action boundary audit is the next child of
+that checkpoint; use `git rev-parse HEAD` for its exact commit after landing.
+The v74 executable boundary
 remains `bce4ae6f`; the later language-word/dogfood work is a supporting
 SoT/contract checkpoint, and the direct-MIR production action is a reachable
 dogfood boundary. Neither changes released/default replacement.
@@ -99,6 +102,34 @@ unmodified and excluded from task commits:
 
 No registry, dogfood-contract, action-rung, codegen-ordering, ABI-probe, v74
 implementation, gate, or documentation file should remain dirty.
+
+## Object-to-action boundary audit checkpoint
+
+- `docs/200_object_to_action_boundary_patterns.md` is the canonical authoring
+  matrix for `struct`, `class`, `object`, `tobject`, `vessel`, `subject`, and
+  `action`. Parser/semantic/MIR/codegen owners and executable gates remain the
+  semantic authority.
+- Function-parameter carriage and hosted receiver are separate. `vessel` is
+  value-carried but pointer-self when hosted; `subject` is identity-referenced
+  and pointer-self; `class`/`object`/current `tobject` are value-self.
+- `func` is not synonymous with pure and `action` is not synonymous with
+  impure. Use action only for a subject-owned public state/authority/resource/
+  stage transition with an explicit failure boundary.
+- The current bootstrap closure reaches only one `subject` and one `action`.
+  Unreachable `compiler/world.pgy` declares object 18, tobject 1, subject 16,
+  zone 18, world 1, and action 16; all 16 actions are readiness facades and do
+  not count as `REACHABLE` or `SUBSTITUTING`.
+- The source-backed static ratchet is
+  `tests/object_action_boundary_contract_smoke.sh`. It pins six nominal kinds,
+  subject-only action, struct hosted-func rejection, subject/vessel pointer-self,
+  object/tobject immutability, and the honest current tobject-helper debt.
+- Open falsifiers: tobject hosted method, object bare-field mutation, class
+  mutator persistence, subject bare/`self.` mutability drift, temporary subject
+  action receiver, full action-contract MIR carriage, and duplicated C/LLVM
+  post-action sync.
+- This is the second consecutive supporting SoT/docs checkpoint after
+  `fce6b146`. The next commit must be an executable zone/world replacement delta
+  or record the exact blocking fact; do not start a third SoT-only commit.
 
 ## Completed Pergyra-native direct-MIR action objective card
 
@@ -191,7 +222,7 @@ implementation, gate, or documentation file should remain dirty.
 | v73 Pergyra-built range CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/generalized/zero-trip range execution and all pre-artifact mutations. |
 | v74 Pergyra-built bounded bootstrap | 0 / not separately timed | 944.3 / 847.7 MB observed sample | Current generated seed matched the native oracle for sample C, MIR producer, and bounded MIR consumer with certificate/plan v6. The memory value is an in-flight sample, not a peak. |
 | v74 Pergyra-built loop-break CFG gate | 0 / not separately timed | not separately sampled | Scalar rungs and every CFG predecessor remained green; the fresh seed passed original/late-break/zero-trip execution, phi permutation, and all strengthened pre-artifact mutations. |
-| direct-MIR action native build | 0 / not separately timed | not separately sampled | The 396-file current driver compiled with 0 errors/0 warnings after early global prototypes moved ahead of hosted method bodies. |
+| direct-MIR action native build | 0 / not separately timed | not separately sampled | The current driver compiled with 0 errors/0 warnings after early global prototypes moved ahead of hosted method bodies. |
 | subject action global-helper regression | 0 / not separately timed | not separately sampled | A subject action calling a nominal-return file-scope helper passed C/LLVM and produced `12`; the pre-fix C order reproduced implicit/conflicting declarations. |
 | reachable direct-MIR action one-MIR gate | 0 / not separately timed | not separately sampled | hello, `let_log`, and `multilet` kept fixed MIR identities; direct C/LLVM outputs and all existing negative mutations passed through the action-owned artifact handoff. |
 
