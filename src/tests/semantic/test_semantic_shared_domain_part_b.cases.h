@@ -98,8 +98,8 @@
             "relation KeyBinding for object door: Door, object key: Key {\n"
             "}\n"
             "zone LockZone {\n"
-            "    object slot door: Door\n"
-            "    object slot key: Key\n"
+            "    binding slot door: Door\n"
+            "    binding slot key: Key\n"
             "    effect slot glow: Highlighted\n"
             "    relation slot binding: KeyBinding\n"
             "    apply glow to door\n"
@@ -130,8 +130,8 @@
             "relation KeyBinding for object door: Door, object key: Key {\n"
             "}\n"
             "zone LockZone {\n"
-            "    object slot door: Door\n"
-            "    object slot coin: Coin\n"
+            "    binding slot door: Door\n"
+            "    binding slot coin: Coin\n"
             "    effect slot glow: Highlighted\n"
             "    relation slot binding: KeyBinding\n"
             "    apply glow to coin\n"
@@ -211,6 +211,37 @@
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count == 0);
 
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect constructors reject body projection inputs");
+    {
+        const char *source =
+            "object Source { value: Int; }\n"
+            "object View { value: Int; }\n"
+            "tobject Packet { value: Int; }\n"
+            "effect Scanned for object source: Source {\n"
+            "    object slot view: View\n"
+            "    refresh view from source\n"
+            "}\n"
+            "relation Linked for object left: Source, object right: Source {\n"
+            "    tobject slot packet: Packet\n"
+            "    publish packet from right\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let scanned = Scanned(Source(1), View(99));\n"
+            "    let linked = Linked(Source(1), Source(2), Packet(99));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
         semantic_result_destroy(result);
         ast_destroy(program);
         parser_destroy(parser);

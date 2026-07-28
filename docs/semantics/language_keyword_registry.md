@@ -6,10 +6,10 @@ C-only table, generated JSON, editor configuration, or documentation mirror.
 
 ## Registry membership inventory
 
-The registry contains 144 bytewise-sorted, unique spellings:
+The registry contains 145 bytewise-sorted, unique spellings:
 
 - 70 `RESERVED` rows with dedicated native token identities;
-- 71 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
+- 72 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
 - 3 `SOFT` rows (`current`, `full`, and `none`) used as closed values inside an
   already-selected grammar production.
 
@@ -42,24 +42,24 @@ occurrences across 34 language words as migration debt.
   delegates to generated identity, index, class, axis, semantic-support,
   tooling, and reserved-compatibility owners, each below the 600-line
   component limit. They expose collision-free `LanguageWordId.Word*`
-  identities and metadata for all 144 rows; only the 70 reserved rows affect
+  identities and metadata for all 145 rows; only the 70 reserved rows affect
   lexical classification through the legacy `LanguageKeyword*` compatibility
   view. The split is physical ownership only: every projection is regenerated
   together from the same registry SoT.
-- Native parser selector literals are checked bidirectionally against all 74
+- Native parser selector literals are checked bidirectionally against all 75
   contextual/soft rows. Ordinary identifier data, builtin/type names, effect
   values, and duration suffixes are not language-word rows. The closed values
   of `with caps`/`with effects` are instead owned by
   [`callable_contract_vocabulary.md`](callable_contract_vocabulary.md); this
   keeps semantic mask membership out of the lexer authority.
 - LSP completion labels are built from `COMPLETION` flags. The current view has
-  27 labels.
-- Lowercase language hover content is allowed only for the 25 rows marked
+  28 labels.
+- Lowercase language hover content is allowed only for the 26 rows marked
   `HOVER`. The seven PascalCase builtin hover entries remain a separate LSP
   presentation fact and are not language keywords.
-- The canonical TextMate view contains the exact spelling-and-scope 91-row
+- The canonical TextMate view contains the exact spelling-and-scope 92-row
   `HIGHLIGHT` projection generated from the registry: all 70 reserved rows
-  plus 21 contextual rows. `domain` and `sync` were removed because no parser
+  plus 22 contextual rows. `domain` and `sync` were removed because no parser
   owner accepts them, and `channel` because its row was removed outright. This is editor projection evidence, not parser
   implementation evidence.
 

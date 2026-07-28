@@ -134,20 +134,12 @@ func BuildSector(captainSpec: AdventurerSpec, wingSpec: AdventurerSpec,
         wingSpec.pack
     );
 
-    return SectorZone(
+    let sector = SectorZone(
         Clone(captain),
-        Clone(wing),
-        BuildAdventurerView(captain),
-        BuildAdventurerPacket(wing),
-        sectorId,
-        threat,
-        control,
-        supplies,
-        wards,
-        0,
-        0,
-        0
+        Clone(wing)
     );
+    sector.Reset(sectorId, threat, control, supplies, wards);
+    return sector;
 }
 
 func BuildWatchSector() -> SectorZone

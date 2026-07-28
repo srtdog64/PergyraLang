@@ -19,9 +19,9 @@ main(void)
         PGY_KEYWORD_CONTEXT_INTENT_STEP | PGY_KEYWORD_CONTEXT_ZONE_BODY |
         PGY_KEYWORD_CONTEXT_NAME | PGY_KEYWORD_CONTEXT_PARAMETER;
 
-    if (lexer_keyword_registry_count() != 144
-        || PGY_LANGUAGE_WORD_COUNT != 144) {
-        fprintf(stderr, "registry/word-id count is not 144\n");
+    if (lexer_keyword_registry_count() != 145
+        || PGY_LANGUAGE_WORD_COUNT != 145) {
+        fprintf(stderr, "registry/word-id count is not 145\n");
         return 1;
     }
 
@@ -84,7 +84,7 @@ main(void)
         }
     }
 
-    if (reserved_count != 70 || contextual_count != 71 || soft_count != 3)
+    if (reserved_count != 70 || contextual_count != 72 || soft_count != 3)
         return 9;
     if (lexer_keyword_debug_name(PGY_KEYWORD_TOKEN_NONE) != NULL) {
         fprintf(stderr, "non-reserved debug identity leaked into token lookup\n");

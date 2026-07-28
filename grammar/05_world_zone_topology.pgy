@@ -17,13 +17,15 @@ object BuyerView {
 // Zone declarations own resource slots.
 zone CartZone {
     subject slot buyer: Buyer
-    object slot mirror: BuyerView = BuyerView(0)
+    object slot mirror: BuyerView
+    refresh mirror from buyer
 }
 
 // A second zone with its own subject slot.
 zone PaymentZone {
     subject slot buyer: Buyer
-    object slot receipt: BuyerView = BuyerView(0)
+    object slot receipt: BuyerView
+    refresh receipt from buyer
 }
 
 // A world owns zone slots. Like zone slot declarations, these are topology
@@ -38,8 +40,8 @@ func Main() -> Void {
 
     // Clone makes the boundary fork explicit. Without it, construction would
     // silently copy a live subject into a zone-owned slot, which is rejected.
-    let cart: CartZone = CartZone(Clone(buyer), BuyerView(0));
-    let payment: PaymentZone = PaymentZone(Clone(buyer), BuyerView(0));
+    let cart: CartZone = CartZone(Clone(buyer));
+    let payment: PaymentZone = PaymentZone(Clone(buyer));
 
     // The same rule applies when embedding zones into a world.
     let checkout: CheckoutWorld = CheckoutWorld(Clone(cart), Clone(payment));

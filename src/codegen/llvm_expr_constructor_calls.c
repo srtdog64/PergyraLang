@@ -558,7 +558,7 @@ llvm_emit_field_slot_claims(LLVMGenCtx *ctx, ASTNode *host,
 }
 
 static const char *
-llvm_zone_constructor_input_slot_at(
+llvm_domain_constructor_input_slot_at(
     const LLVMHostedDomainSlotView *slot_view,
     size_t input_index,
     size_t *slot_index_out)
@@ -622,15 +622,17 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
 
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
     LLVMHostedDomainSlotView zone_slot_view = {0};
-    bool zone_constructor = host_decl != NULL
-        && host_decl->type == AST_ZONE_DECL;
-    if (zone_constructor) {
+    bool role_filtered_domain_constructor = host_decl != NULL
+        && (host_decl->type == AST_ZONE_DECL
+            || host_decl->type == AST_RELATION_DECL
+            || host_decl->type == AST_EFFECT_DECL);
+    if (role_filtered_domain_constructor) {
         zone_slot_view = llvm_hosted_domain_slot_view_from_decl(
             ctx, callee_name, host_decl);
         if (llvm_hosted_domain_slot_view_missing_mir_metadata(
                 &zone_slot_view)) {
             llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing admitted zone constructor input metadata for '%s'",
+                "MIR-only LLVM path missing admitted domain constructor input metadata for '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-zone)");
             return NULL;
         }
@@ -640,9 +642,9 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         const char *field_type_name = NULL;
         const char *field_name = NULL;
         int field_index = -1;
-        if (zone_constructor) {
+        if (role_filtered_domain_constructor) {
             size_t slot_index = 0;
-            field_name = llvm_zone_constructor_input_slot_at(
+            field_name = llvm_domain_constructor_input_slot_at(
                 &zone_slot_view, i, &slot_index);
             field_type_name = field_name != NULL
                 ? llvm_hosted_domain_slot_view_type_name(

@@ -23,7 +23,7 @@ func RunCapture(payment: PaymentZone, shipping: Int) -> Int {
 }
 
 func Main() -> Void {
-    let payment = PaymentZone(Buyer(10), 0);
+    let payment = PaymentZone(Buyer(10));
     let got = RunCapture(payment, 6);
     Log("got=" + ToString(got));
     Log("captured=" + ToString(payment.captured));

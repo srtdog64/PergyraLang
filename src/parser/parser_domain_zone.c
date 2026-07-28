@@ -470,7 +470,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'tobject slot', 'relation slot', 'effect slot', 'subjects', 'effects', 'relations', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'bind', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'binding slot', 'object slot', 'tobject slot', 'relation slot', 'effect slot', 'subjects', 'effects', 'relations', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'bind', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
         }

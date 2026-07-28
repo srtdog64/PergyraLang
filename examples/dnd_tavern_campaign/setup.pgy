@@ -211,13 +211,7 @@ func BuildJourneyZone() -> JourneyZone
         Clone(fighter),
         Clone(cleric),
         Clone(rogue),
-        Clone(mage),
-        BuildHeroView(fighter),
-        BuildHeroView(rogue),
-        BuildHeroPacket(cleric),
-        BuildHeroPacket(mage),
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        "TAVERN", "", "", "", "", ""
+        Clone(mage)
     );
 }
 

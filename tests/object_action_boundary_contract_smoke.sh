@@ -94,6 +94,31 @@ require_text "src/semantic/type_checker_assignment.c" \
     "tobject '%s' fields are immutable"
 require_text "src/semantic/type_checker_assignment.c" \
     'transfer snapshots must be republished from their source'
+require_text "src/semantic/type_checker_domain_slots.c" \
+    'only refresh/publish/bind owns projection source identity'
+require_text "src/semantic/type_checker_domain_slots.c" \
+    'PGY_CAUSE_DOMAIN_PROJECTION_INITIALIZER'
+require_text "src/lexer/language_keyword_registry.def" \
+    '"binding", PGY_KEYWORD_CLASS_CONTEXTUAL'
+require_text "src/parser/parser_domain.c" \
+    'slot->data.domain_slot.is_binding = is_subject || is_binding;'
+require_text "src/self_hosted/parser/decl_zone_owner.pgy" \
+    'slot_label = "BindingSlot";'
+require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    'kind == NominalFieldKindBindingSlot()'
+require_text "src/compiler/mir_domain_topology.c" \
+    'MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING'
+require_text "src/compiler/mir_decl_field_kind_vocabulary.def" \
+    'BINDING_SLOT, 5, "binding_slot", "BindingSlot"'
+require_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
+    'rows.field_kinds[field] == NominalFieldKindBindingSlot()'
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'NominalFieldKindBindingSlot()'
+require_text "src/self_hosted/dir/domain_topology_row_owner.pgy" \
+    'field_name, NominalFieldKindBindingSlot()'
+require_text "$DOC" \
+    '`binding slot`은 object-valued endpoint를 zone에 들이는 명시적 admission 역할이다.'
+require_text "$DOC" '실제 실행에서는 zero-filled storage로'
 require_text "src/codegen/llvm_type.c" \
     'return kind == NOMINAL_DECL_OBJECT || kind == NOMINAL_DECL_TOBJECT;'
 require_text "src/codegen/llvm_type.c" \

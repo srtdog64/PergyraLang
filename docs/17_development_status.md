@@ -265,12 +265,12 @@
 - `world`, `roster`, `relation`, `effect`, `zone`은 declaration position에서만 키워드처럼 동작하고, local variable / expression position에서는 식별자로 그대로 쓸 수 있음
 - `subject`, `class`, `struct`, `object`, `tobject` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
 - 현재 domain 표면은 `ability/role/party/roster/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
-- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결되며, zone은 caller가 제공하는 object endpoint를 `binding slot`으로 별도 선언한다.
 - `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 declaration body에서 직접 가질 수 있음
-- `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
+- `relation`, `effect`, `zone`의 `object`/`tobject` projection slot initializer는 parser가 진단 위치 보존을 위해 읽지만 semantic에서 거부한다. projection source identity/freshness/materialization의 유일한 owner는 `refresh`/`publish`/kind-directed `bind`이며, slot initializer나 zone positional argument로 projection storage를 선주입할 수 없다.
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 declaration header에 고정할 수 있음
-- `relation` / `effect`는 positional nominal constructor call을 받아 local runtime instance를 만들 수 있고, constructor argument arity/type을 semantic에서 검사함
+- `relation` / `effect`는 positional nominal constructor call을 받아 local runtime instance를 만들 수 있고, constructor argument는 header의 subject/object binding만 받는다. body object/tobject projection과 shared/layer storage는 positional input이 아니다.
 - `zone`은 `relation slot` / `effect slot` / fixed-capacity `effect pool`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음

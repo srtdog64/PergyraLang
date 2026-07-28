@@ -16,7 +16,7 @@ object BuyerView {
 
 zone CartZone {
     subject slot buyer: Buyer
-    object slot mirror: BuyerView = BuyerView(0)
+    object slot mirror: BuyerView
     authority buyer
     bind mirror from buyer by buyer
 }
@@ -35,7 +35,7 @@ world SoloWorld {
 }
 
 func Main() -> Void {
-    let cz = CartZone(Buyer(5), BuyerView(0));
+    let cz = CartZone(Buyer(5));
     let w1 = SoloWorld(cz);
     let w2 = SoloWorld(cz);
 

@@ -158,6 +158,10 @@ func SelfDirProjectionSourceFieldSyntaxId(
     );
     if source_id > 0 { return source_id; }
     source_id = SelfDirFieldSourceSyntaxId(
+        rows, declaration_index, field_name, NominalFieldKindBindingSlot()
+    );
+    if source_id > 0 { return source_id; }
+    source_id = SelfDirFieldSourceSyntaxId(
         rows, declaration_index, field_name, NominalFieldKindObjectSlot()
     );
     // A tobject is already a detached publication receipt.  Reusing it as a

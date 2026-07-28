@@ -22,12 +22,12 @@ object BuyerView {
 
 zone PaymentZone {
     subject slot buyer: PaymentBuyer
-    object slot receipt: BuyerView = BuyerView(0)
+    object slot receipt: BuyerView
     authority buyer
     bind receipt from buyer by buyer
 }
 
 func Main() -> Void {
-    let z = PaymentZone(CartBuyer(5), BuyerView(0));
+    let z = PaymentZone(CartBuyer(5));
     Log(z.buyer.hp);
 }

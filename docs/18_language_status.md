@@ -28,9 +28,9 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨
 - `intent` declaration이 parser/semantic/HIR/codegen 표면에 반영되어 world/zone/action 계약을 참조하는 executable orchestration declaration으로 동작함
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
-- `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, runtime instance를 직접 만들 수 있음
-- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` 최소 표면까지 parser/semantic에 반영됨
-- `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
+- `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, `for ...` header가 선언한 binding participant만 caller input으로 받는다.
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` 최소 표면까지 parser/semantic에 반영됐고, zone의 caller-admitted object endpoint는 별도 `binding slot`으로 선언한다.
+- `relation`, `effect`, `zone`의 projection slot은 initializer를 받지 않는다. `object`는 `refresh`, `tobject`는 `publish`, target kind에 맡길 때는 `bind`가 source identity와 runtime materialization을 유일하게 소유한다.
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 고정하는 최소 표면까지 반영됨
 - `zone`은 `relation slot` / `effect slot` / fixed-capacity `effect pool`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨

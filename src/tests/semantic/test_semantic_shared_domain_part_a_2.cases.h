@@ -52,7 +52,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("zone slot initializer enforces declared slot type");
+    TEST("zone projection slot initializer is rejected before type fallback");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -68,6 +68,8 @@
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(
+            result, "cannot declare an initializer"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

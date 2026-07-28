@@ -49,8 +49,8 @@ func ParseZoneDecl(
             break;
         }
         // Zone body slot lines: `subject slot NAME: TYPE`,
-        // `object slot NAME: TYPE`, or `tobject slot NAME: TYPE`.
-        // Each emits `SubjectSlot:` / `ObjectSlot:` / `TObjectSlot:`
+        // `binding slot NAME: TYPE`, `object slot NAME: TYPE`, or
+        // `tobject slot NAME: TYPE`. Each emits the corresponding typed slot
         // with the same `NAME: TYPE` payload.
         let slot_label: String = "";
         let is_auth: Bool = false;
@@ -63,6 +63,9 @@ func ParseZoneDecl(
         } else if MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
             slot_label = "TObjectSlot";
             i = LanguageWordEnd(i, LanguageWordId.WordTobject);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordBinding) {
+            slot_label = "BindingSlot";
+            i = LanguageWordEnd(i, LanguageWordId.WordBinding);
         } else if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
             slot_label = "EffectSlot";
             i = LanguageWordEnd(i, LanguageWordId.WordEffect);
@@ -266,12 +269,15 @@ func ParseZoneDecl(
             let from_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if !MatchLanguageWord(content, i, LanguageWordId.WordBy) { Exit(1); }
-            i = LanguageWordEnd(i, LanguageWordId.WordBy);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let by_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
+            let by_name: String = "";
+            if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
+                i = LanguageWordEnd(i, LanguageWordId.WordBy);
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                by_name = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(by_name) == 0 { Exit(1); }
+            }
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let projection_map: ParserDomainProjectionMapRows =
@@ -291,7 +297,16 @@ func ParseZoneDecl(
                     ArraySet(cursor_out, 0, k);
                     let t_name: String = ReadIdent(content, k, cursor_out);
                     k = cursor_out[0];
-                    let projection_row: String = Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name)))))));
+                    let projection_row: String = Concat(
+                        "    ", Concat(ref_pub_label, Concat(
+                            ": ", Concat(t_name, Concat(" from ", from_name))
+                        ))
+                    );
+                    if StringLength(by_name) > 0 {
+                        projection_row = Concat(
+                            projection_row, Concat(" by ", by_name)
+                        );
+                    }
                     bind_accum = AppendLine(bind_accum, projection_row);
                     k = SkipWhitespaceAndComments(content, k);
                     if ParserCharAt(content, k) == "," {
@@ -303,7 +318,16 @@ func ParseZoneDecl(
             } else {
                 ArraySet(cursor_out, 0, k);
                 let t_name: String = ReadIdent(content, k, cursor_out);
-                let projection_row: String = Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name)))))));
+                let projection_row: String = Concat(
+                    "    ", Concat(ref_pub_label, Concat(
+                        ": ", Concat(t_name, Concat(" from ", from_name))
+                    ))
+                );
+                if StringLength(by_name) > 0 {
+                    projection_row = Concat(
+                        projection_row, Concat(" by ", by_name)
+                    );
+                }
                 bind_accum = AppendLine(bind_accum, projection_row);
                 if projection_map.present {
                     bind_accum = AppendLine(
@@ -383,11 +407,14 @@ func ParseZoneDecl(
                 Exit(1);
             }
             i = SkipWhitespaceAndComments(content, i);
-            // A zone object/effect slot may carry a declaration-time default
-            // (`slot mirror: BuyerView = BuyerView(0)`).  The executable
-            // constructor fact owns the slot type; consume the default here
-            // so it cannot be mistaken for a second zone declaration.
             if ParserCharAt(content, i) == "=" {
+                // Projection initializers have no DIR/MIR/runtime owner.
+                // Preserve native fail-closed behavior instead of silently
+                // discarding a second source/materialization path.
+                if slot_label == "ObjectSlot" ||
+                    slot_label == "TObjectSlot" {
+                    Exit(1);
+                }
                 i = i + 1;
                 while i < n && ParserCharAt(content, i) != ";" &&
                     ParserCharAt(content, i) != "}" {

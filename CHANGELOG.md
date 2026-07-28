@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Projection Slot Source-of-Truth Closure (2026-07-28)
+
+- Projection destinations in relation/effect/zone declarations no longer
+  accept `object slot ... = ...` or `tobject slot ... = ...`. Those
+  initializers were parsed and type-checked but had no DIR/MIR/runtime owner,
+  so C and LLVM silently observed zero-filled storage.
+- `refresh`, `publish`, and kind-directed `bind` are now the only projection
+  materialization paths. Domain constructors accept subject/binding inputs
+  only; projection storage remains topology-owned.
+- Added contextual `binding slot` as the explicit zone admission role for
+  object-valued endpoints. This removes the old overload where `object slot`
+  meant both caller input and derived projection destination.
+- Migrated active grammar samples, examples, ABI fixtures, and backend/axis
+  fixtures to the canonical slot-declaration plus projection-directive form.
+
 ### Self-Hosted Loop CFG Rung (2026-07-27)
 
 - Added the four-block `whileloop.pgy` shape to the single MIR-bound

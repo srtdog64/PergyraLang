@@ -1,0 +1,32 @@
+object Door {
+    hp: Int;
+}
+
+object DoorView {
+    hp: Int;
+}
+
+object Key {
+    id: Int;
+}
+
+zone LockZone {
+    binding slot door: Door
+    object slot view: DoorView
+    binding slot key: Key
+
+    refresh view from door map {
+        hp <- hp;
+    }
+
+    func Show(self) -> Void {
+        Log("door=" + ToString(door.hp));
+        Log("key=" + ToString(key.id));
+        Log("view=" + ToString(view.hp));
+    }
+}
+
+func Main() -> Void {
+    let lock = LockZone(Door(5), Key(9));
+    lock.Show();
+}

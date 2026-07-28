@@ -2,8 +2,11 @@ zone CartZone
 {
     subject slot buyer: Member
     subject slot merchant: Merchant
-    object slot buyerView: BuyerZoneView = ToObject(BuyerZoneView, buyer)
-    tobject slot merchantPacket: MerchantZonePacket = ToTObject(MerchantZonePacket, merchant)
+    object slot buyerView: BuyerZoneView
+    tobject slot merchantPacket: MerchantZonePacket
+
+    refresh buyerView from buyer by buyer
+    publish merchantPacket from merchant by merchant
 
     shared route: String = "/cart"
     shared stage: String = "cart"

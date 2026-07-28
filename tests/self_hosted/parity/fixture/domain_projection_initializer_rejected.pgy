@@ -1,0 +1,21 @@
+subject Source {
+    let value: Int;
+}
+
+object View {
+    value: Int;
+}
+
+tobject Packet {
+    value: Int;
+}
+
+zone InvalidProjectionInitializerZone {
+    subject slot source: Source
+    object slot view: View = ToObject(View, source)
+    tobject slot packet: Packet = ToTObject(Packet, source)
+}
+
+func Main() -> Void {
+    Log("unreachable");
+}

@@ -26,8 +26,10 @@ rows = registry.load_rows(
 assert len(rows) == 14
 assert {row.spelling for row in rows} >= {
     "field", "shared_field", "subject_slot", "object_slot", "tobject_slot",
-    "effect_slot", "relation_slot", "effect_pool", "relation_pool",
+    "binding_slot", "effect_slot", "relation_slot", "effect_pool", "relation_pool",
 }
+binding = next(row for row in rows if row.spelling == "binding_slot")
+assert binding.ast_label == "BindingSlot"
 
 native = (root / "src/compiler/mir_json_dump_decl.c").read_text(encoding="utf-8")
 assert '#include "mir_decl_field_kind_vocabulary.def"' in native

@@ -13,7 +13,7 @@ object DriverView {
 zone CockpitZone {
     subject slot driver: Driver
     authority driver
-    object slot dashboard: DriverView = DriverView(0)
+    object slot dashboard: DriverView
 
     bind dashboard from driver by driver
 }
@@ -36,7 +36,7 @@ intent SyncDrive(cockpit: CockpitZone, driver: Driver) {
 }
 
 func Main() -> Void {
-    let cockpit = CockpitZone(Driver(5), DriverView(0));
+    let cockpit = CockpitZone(Driver(5));
     let ok = SyncDrive(cockpit, cockpit.driver);
     Log("ok=" + ToString(ok));
     Log("cockpit.driver.hp=" + ToString(cockpit.driver.hp));

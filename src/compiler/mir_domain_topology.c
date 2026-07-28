@@ -286,7 +286,7 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                 owner_header,
                 row->participant_slot_name,
                 row->participant_slot_source_syntax_id,
-                MIR_TOPOLOGY_FIELD_SUBJECT);
+                MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING);
         if (mir_domain_topology_is_projection(row->kind)) {
             shape_ok = shape_ok
                 && (owner_header->ast_type == AST_ZONE_DECL
@@ -324,7 +324,7 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                     owner_header,
                     row->target_slot_name,
                     row->target_slot_source_syntax_id,
-                    MIR_TOPOLOGY_FIELD_SUBJECT)
+                    MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING)
                 && row->projection_slot_name == NULL
                 && row->projection_slot_source_syntax_id == 0
                 && row->source_slot_name == NULL
@@ -345,12 +345,12 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                     owner_header,
                     row->left_slot_name,
                     row->left_slot_source_syntax_id,
-                    MIR_TOPOLOGY_FIELD_SUBJECT)
+                    MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING)
                 && mir_domain_topology_field_identity_matches(
                     owner_header,
                     row->right_slot_name,
                     row->right_slot_source_syntax_id,
-                    MIR_TOPOLOGY_FIELD_SUBJECT)
+                    MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING)
                 && row->projection_slot_name == NULL
                 && row->projection_slot_source_syntax_id == 0
                 && row->source_slot_name == NULL

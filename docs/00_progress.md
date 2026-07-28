@@ -2,6 +2,40 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 tobject publication + domain admission boundary checkpoint
+
+- `object`/`tobject`는 zone/relation/effect constructor input이 아니라
+  `refresh`/`publish`/`bind`가 materialize하는 projection destination으로
+  고정했다. `object slot ... = ...`와 `tobject slot ... = ...`는 DIR/MIR/runtime
+  owner가 없어 zero-filled storage로 조용히 사라지던 문법이므로 native semantic과
+  self parser가 fail closed한다.
+- Object-valued endpoint admission은 contextual `binding slot`으로 분리했다.
+  Zone constructor는 declaration source order의 subject/binding만 받고,
+  relation/effect constructor는 `for ...` header participant만 받는다. Layer/shared
+  storage와 projection destination을 caller가 선주입하는 경로는 native C/LLVM과
+  self semantic negative로 차단한다.
+- `binding`은 145-row language-word registry에서 self lexer, parser selector, LSP
+  completion/hover, TextMate grammar로 생성된다. `binding_slot` wire/AST identity도
+  MIR declaration-field vocabulary가 소유한다.
+- Self path에서 발견된 세 누락을 닫았다. Effect/relation participant label은 mutable
+  string SSA carry 대신 immutable classifier 결과를 사용한다. DIR graph census는
+  SubjectSlot/BindingSlot participant를 함께 세고, projection source lookup은
+  Subject -> Binding -> Object exact field ID 순서를 사용한다.
+- 관측 결과 self MIR은 intent positive 46,384 bytes, binding positive 10,394 bytes로
+  생성됐고 네 self negative는 모두 거부됐다. Native C/LLVM은 binding fixture의
+  `door=5`, `key=9`, `view=5`와 interleaved projection fixture의
+  `alpha=7`, `beta=9`, `view=7`, `receipt=9`를 동일하게 실행했다.
+- 이 변경의 self binding 경로 등급은 `REACHABLE`이다. Production general self C가
+  binding positive를 직접 실행해 C-owned path를 대체한 증거는 아직 없으므로 새
+  `SUBSTITUTING` 진척으로 세지 않는다. 다음 falsifier는 그 self C 실행과 valid-ID
+  binding/projection kind mutation이다.
+- 과거 20 GiB처럼 보인 현상은 compiler 고유 비용이 아니라 sealed whole graph를
+  다시 검증한 lifetime 결함과 중복 process-tree build 합산이었다. 현재 focused
+  driver build 관측은 `pgy` 약 674 MiB + `cc1` 약 791 MiB였고, 대응 절차는
+  `docs/127_compiler_speed_engineering.md` §8.1에 고정돼 있다.
+- 오래된 tracked 실행 transcript `testall_run.txt`는 삭제하고 ignore했다. 실제
+  fixture와 owner gate만 실행 증거로 유지한다.
+
 ## 2026-07-28 intent execution + tobject boundary checkpoint
 
 - Self DIR의 exact intent declaration/step facts가 이제 별도 typed MIR intent

@@ -2,8 +2,8 @@ zone LoadingZone
 {
     subject slot courier: Courier
     subject slot dispatcher: Dispatcher
-    object slot courierView: CourierView = ToObject(CourierView, courier)
-    tobject slot dispatchPacket: DispatchPacket = ToTObject(DispatchPacket, dispatcher)
+    object slot courierView: CourierView
+    tobject slot dispatchPacket: DispatchPacket
 
     effect slot seal: CargoSeal
     relation slot route: RouteLink

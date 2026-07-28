@@ -68,6 +68,7 @@ func NominalFieldKindAllowedForDeclaration(
     }
     if nominal_kind == "effect" || nominal_kind == "relation" {
         return field_kind == NominalFieldKindSubjectSlot() ||
+            field_kind == NominalFieldKindBindingSlot() ||
             field_kind == NominalFieldKindObjectSlot() ||
             field_kind == NominalFieldKindTObjectSlot() ||
             field_kind == NominalFieldKindField() ||

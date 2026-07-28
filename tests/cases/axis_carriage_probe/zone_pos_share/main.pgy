@@ -17,14 +17,14 @@ object BuyerView {
 
 zone CartZone {
     subject slot buyer: Buyer
-    object slot mirror: BuyerView = BuyerView(0)
+    object slot mirror: BuyerView
     authority buyer
     bind mirror from buyer by buyer
 }
 
 zone PaymentZone {
     subject slot buyer: Buyer
-    object slot receipt: BuyerView = BuyerView(0)
+    object slot receipt: BuyerView
     authority buyer
     bind receipt from buyer by buyer
 }
@@ -48,8 +48,8 @@ world TwoZoneWorld {
 func Main() -> Void {
     let sb = Buyer(5);
     let w = TwoZoneWorld(
-        CartZone(sb, BuyerView(0)),
-        PaymentZone(sb, BuyerView(0)));
+        CartZone(sb),
+        PaymentZone(sb));
 
     w.Report();
     w.Poke();

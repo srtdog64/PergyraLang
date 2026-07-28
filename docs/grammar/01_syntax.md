@@ -410,7 +410,7 @@ enum Color { Red, Green, Blue }
 - `object`/`tobject`의 canonical read-only/immutable 계약은 현재 bare/nested field
   write까지 완전히 닫히지 않았다. `tobject` publish는 detached value projection이며
   별도 channel/API/IPC transport 보장을 뜻하지 않는다.
-- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
+- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다. Zone은 외부에서 주입되는 object endpoint를 `binding slot`으로 선언한다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
@@ -801,7 +801,8 @@ effect Poisoned for bearer: Player {
 zone BattleZone {
     subject slot player: Player
     subject slot enemy: Player
-    object slot playerView: PlayerView = ToObject(PlayerView, player)
+    object slot playerView: PlayerView
+    refresh playerView from player
     relation slot trust: TrustedLink
     effect slot poison: Poisoned
     apply poison to player
@@ -825,7 +826,7 @@ world GameWorld {
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
-현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`tobject slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
+현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`tobject slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있다. Projection slot initializer는 semantic error이며, zone caller admission은 `subject slot`/`binding slot`, relation/effect caller admission은 `for ...` header binding으로만 표현한다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 

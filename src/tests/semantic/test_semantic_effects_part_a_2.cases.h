@@ -205,8 +205,8 @@
             "tobject CreaturePacket { age: Int; metabolism: Int; }\n"
             "zone MeadowZone {\n"
             "    subject slot grazer: Creature\n"
-            "    object slot grazerView: CreatureView = ToObject(CreatureView, grazer)\n"
-            "    tobject slot grazerPacket: CreaturePacket = ToTObject(CreaturePacket, grazer)\n"
+            "    object slot grazerView: CreatureView\n"
+            "    tobject slot grazerPacket: CreaturePacket\n"
             "    refresh grazerView from grazer\n"
             "    publish grazerPacket from grazer\n"
             "}\n";

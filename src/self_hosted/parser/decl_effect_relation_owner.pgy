@@ -5,6 +5,13 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "domain_projection_map_owner.pgy";
 
+func DomainHeaderParticipantSlotLabel(content: String, i: Int) -> String {
+    if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
+        return "BindingSlot";
+    }
+    return "SubjectSlot";
+}
+
 func ParseEffectRelationProjectionDirective(
     content: String,
     start: Int,
@@ -128,6 +135,16 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     }
     i = LanguageWordEnd(i, LanguageWordId.WordFor);
     i = SkipWhitespaceAndComments(content, i);
+    let eff_slot_label: String = DomainHeaderParticipantSlotLabel(content, i);
+    if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
+        i = LanguageWordEnd(i, LanguageWordId.WordObject);
+        i = SkipWhitespaceAndComments(content, i);
+    } else {
+        if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
+            i = LanguageWordEnd(i, LanguageWordId.WordSubject);
+            i = SkipWhitespaceAndComments(content, i);
+        }
+    }
     ArraySet(cursor_out, 0, i);
     let eff_param_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
@@ -200,7 +217,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         }
     }
     out = AppendLine(out, Concat("  Effect: ", Concat(decl_prefix, eff_name)));
-    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(eff_param_name, Concat(": ", eff_param_type))));
+    out = AppendLine(out, Concat("    ", Concat(eff_slot_label, Concat(": ", Concat(eff_param_name, Concat(": ", eff_param_type))))));
     if StringLength(eff_fields) > 0 {
         out = AppendLine(out, eff_fields);
     }
@@ -222,6 +239,16 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
 
     // Param 1
     i = SkipWhitespaceAndComments(content, i);
+    let p1_slot_label: String = DomainHeaderParticipantSlotLabel(content, i);
+    if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
+        i = LanguageWordEnd(i, LanguageWordId.WordObject);
+        i = SkipWhitespaceAndComments(content, i);
+    } else {
+        if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
+            i = LanguageWordEnd(i, LanguageWordId.WordSubject);
+            i = SkipWhitespaceAndComments(content, i);
+        }
+    }
     ArraySet(cursor_out, 0, i);
     let p1_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
@@ -237,6 +264,16 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
 
     // Param 2
     i = SkipWhitespaceAndComments(content, i);
+    let p2_slot_label: String = DomainHeaderParticipantSlotLabel(content, i);
+    if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
+        i = LanguageWordEnd(i, LanguageWordId.WordObject);
+        i = SkipWhitespaceAndComments(content, i);
+    } else {
+        if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
+            i = LanguageWordEnd(i, LanguageWordId.WordSubject);
+            i = SkipWhitespaceAndComments(content, i);
+        }
+    }
     ArraySet(cursor_out, 0, i);
     let p2_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
@@ -308,8 +345,8 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     }
 
     out = AppendLine(out, Concat("  Relation: ", Concat(decl_prefix, rel_name)));
-    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p1_name, Concat(": ", p1_type))));
-    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p2_name, Concat(": ", p2_type))));
+    out = AppendLine(out, Concat("    ", Concat(p1_slot_label, Concat(": ", Concat(p1_name, Concat(": ", p1_type))))));
+    out = AppendLine(out, Concat("    ", Concat(p2_slot_label, Concat(": ", Concat(p2_name, Concat(": ", p2_type))))));
     if StringLength(rel_fields) > 0 {
         out = AppendLine(out, rel_fields);
     }

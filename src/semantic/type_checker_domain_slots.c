@@ -95,6 +95,31 @@ type_check_domain_slot_initializers(ASTNode **slots,
             continue;
         }
 
+        if (!ast_domain_slot_is_subject(slot)
+            && !ast_domain_slot_is_vessel(slot)) {
+            const char *projection_kind = ast_domain_slot_is_tobject(slot)
+                ? "tobject" : "object";
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_ZONE_CONTRACT_INVALID,
+                PGY_CAUSE_DOMAIN_PROJECTION_INITIALIZER,
+                PGY_FIX_USE_PROJECTION_DIRECTIVE,
+                ast_domain_slot_initializer(slot),
+                "%s %s slot '%s' cannot declare an initializer.\n"
+                "Reason:\n"
+                "- object/tobject slots are projection destinations, not constructor-owned input\n"
+                "- only refresh/publish/bind owns projection source identity, freshness, and runtime materialization\n"
+                "- accepting an initializer here would create a second source path that DIR/MIR does not own\n"
+                "Fix:\n"
+                "- declare '%s slot %s: ...' without '= ...'\n"
+                "- add refresh for an object, publish for a tobject, or bind when target kind should select the operation",
+                kind_name != NULL ? kind_name : "domain",
+                projection_kind,
+                ast_domain_slot_name(slot),
+                projection_kind,
+                ast_domain_slot_name(slot));
+            continue;
+        }
+
         slot_type = world_resolve_domain_slot_type(slot, ctx);
         init_type = type_check_expression(ast_domain_slot_initializer(slot), ctx);
         if (slot_type == NULL || init_type == NULL

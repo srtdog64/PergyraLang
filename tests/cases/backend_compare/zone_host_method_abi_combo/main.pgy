@@ -51,7 +51,7 @@ func RunCapture(payment: PaymentZone, arena: Arena, strategy: Strategy, shipping
 }
 
 func Main() -> Void {
-    let payment = PaymentZone(Hero(Weapon(3), 10), 0);
+    let payment = PaymentZone(Hero(Weapon(3), 10));
     let arena = Arena(Hero(Weapon(3), 0));
     let strategy = Strategy(5, 1);
     let got = RunCapture(payment, arena, strategy, 6);

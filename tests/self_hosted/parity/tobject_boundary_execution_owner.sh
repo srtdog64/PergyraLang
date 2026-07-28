@@ -25,9 +25,12 @@ command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "python is required"
 BUILD_DIR="${PGY_SELFHOST_TOBJECT_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/tobject_boundary}"
 DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
 POSITIVE="tests/self_hosted/parity/fixture/zone_projection_constructor_source_order.pgy"
+BINDING_POSITIVE="tests/self_hosted/parity/fixture/binding_slot_constructor_source_order.pgy"
 SELF_POSITIVE="tests/self_hosted/parity/fixture/intent_callable_execution.pgy"
 CONSTRUCTOR_NEGATIVE="$BUILD_DIR/zone_projection_constructor_input_rejected.pgy"
 SOURCE_NEGATIVE="tests/self_hosted/parity/fixture/domain_topology_tobject_source_rejected.pgy"
+INITIALIZER_NEGATIVE="tests/self_hosted/parity/fixture/domain_projection_initializer_rejected.pgy"
+DOMAIN_CONSTRUCTOR_NEGATIVE="tests/self_hosted/parity/fixture/domain_projection_constructor_input_rejected.pgy"
 mkdir -p "$BUILD_DIR"
 
 if [[ -n "$DRIVER" ]]; then
@@ -86,6 +89,44 @@ for backend in c llvm; do
         || fail "native $backend tobject-source diagnostic drifted"
 done
 
+for backend in c llvm; do
+    binding_exe="$BUILD_DIR/binding.$backend.exe"
+    (cd "$ROOT_DIR" && "$PGY" "$BINDING_POSITIVE" --backend="$backend" \
+        -o "$binding_exe" >"$BUILD_DIR/binding.$backend.compile.log" 2>&1) \
+        || { cat "$BUILD_DIR/binding.$backend.compile.log" >&2; fail "native $backend binding positive failed"; }
+    "$binding_exe" | tr -d '\r' >"$BUILD_DIR/binding.$backend.run"
+
+    if (cd "$ROOT_DIR" && "$PGY" "$DOMAIN_CONSTRUCTOR_NEGATIVE" \
+        --backend="$backend" -o "$BUILD_DIR/invalid-domain-constructor.$backend.exe" \
+        >"$BUILD_DIR/invalid-domain-constructor.$backend.out" \
+        2>"$BUILD_DIR/invalid-domain-constructor.$backend.err"); then
+        fail "native $backend admitted relation/effect projection constructor input"
+    fi
+    grep -Fq 'positional field argument(s), got' \
+        "$BUILD_DIR/invalid-domain-constructor.$backend.out" \
+        "$BUILD_DIR/invalid-domain-constructor.$backend.err" \
+        || fail "native $backend domain constructor diagnostic drifted"
+done
+
+printf '%s\n' 'door=5' 'key=9' 'view=5' >"$BUILD_DIR/binding.expected.run"
+cmp -s "$BUILD_DIR/binding.expected.run" "$BUILD_DIR/binding.c.run" \
+    || { cat "$BUILD_DIR/binding.c.run" >&2; fail "native C binding output drifted"; }
+cmp -s "$BUILD_DIR/binding.c.run" "$BUILD_DIR/binding.llvm.run" \
+    || fail "native C/LLVM binding constructor source-order differs"
+
+for backend in c llvm; do
+    if (cd "$ROOT_DIR" && "$PGY" "$INITIALIZER_NEGATIVE" --backend="$backend" \
+        -o "$BUILD_DIR/invalid-initializer.$backend.exe" \
+        >"$BUILD_DIR/invalid-initializer.$backend.out" \
+        2>"$BUILD_DIR/invalid-initializer.$backend.err"); then
+        fail "native $backend admitted an unowned projection initializer"
+    fi
+    grep -Fq 'cannot declare an initializer' \
+        "$BUILD_DIR/invalid-initializer.$backend.out" \
+        "$BUILD_DIR/invalid-initializer.$backend.err" \
+        || fail "native $backend projection-initializer diagnostic drifted"
+done
+
 printf '%s\n' 'alpha=7' 'beta=9' 'view=7' 'receipt=9' \
     >"$BUILD_DIR/expected.run"
 cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/native.c.run" \
@@ -98,7 +139,8 @@ SELF_MIR="$BUILD_DIR/self.mir.json"
     >"$SELF_MIR" 2>"$BUILD_DIR/self.mir.err") \
     || { cat "$SELF_MIR" "$BUILD_DIR/self.mir.err" >&2; fail "self positive MIR failed"; }
 
-for negative in "$CONSTRUCTOR_NEGATIVE" "$SOURCE_NEGATIVE"; do
+for negative in "$CONSTRUCTOR_NEGATIVE" "$SOURCE_NEGATIVE" \
+    "$INITIALIZER_NEGATIVE" "$DOMAIN_CONSTRUCTOR_NEGATIVE"; do
     name="$(basename "$negative" .pgy)"
     driver_negative="$negative"
     if [[ "$negative" == "$CONSTRUCTOR_NEGATIVE" ]]; then
@@ -109,6 +151,14 @@ for negative in "$CONSTRUCTOR_NEGATIVE" "$SOURCE_NEGATIVE"; do
         fail "self source producer admitted $name"
     fi
 done
+
+
+BINDING_MIR="$BUILD_DIR/binding.self.mir.json"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$BINDING_POSITIVE" \
+    >"$BINDING_MIR" 2>"$BUILD_DIR/binding.self.mir.err") \
+    || { cat "$BINDING_MIR" "$BUILD_DIR/binding.self.mir.err" >&2; fail "self binding positive MIR failed"; }
+grep -Fq '"field_kind":"binding_slot"' "$BINDING_MIR" \
+    || fail "self binding slot identity was not preserved"
 
 "$PYTHON_BIN" - "$SELF_MIR" "$BUILD_DIR/tobject-source.mir.json" <<'PY'
 import json
@@ -144,4 +194,4 @@ if grep -Eq '^#include|^typedef' "$MUTATED.out" "$MUTATED.err"; then
     fail "self MIR emitted partial C before rejecting tobject source"
 fi
 
-echo "[self-host-tobject-boundary] detached receipt + constructor/source negatives: PASS"
+echo "[self-host-tobject-boundary] detached receipt + binding/projection constructor boundaries: PASS"

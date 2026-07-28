@@ -41,7 +41,7 @@ func RenderDom(view: CounterView) -> String {
 }
 
 func Main() -> Void {
-    let w = CounterApp(CounterZone(Counter(0), CounterView(0)));
+    let w = CounterApp(CounterZone(Counter(0)));
     Log("[rung-1] initial DOM:            " + RenderDom(w.app.view));
     w.Bump();
     Log("[rung-1] DOM after intent Bump:  " + RenderDom(w.app.view));

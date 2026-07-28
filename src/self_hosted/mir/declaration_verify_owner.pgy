@@ -169,7 +169,8 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
                     rows.field_source_syntax_ids[field_row] { return false; }
                 prior_field_row = prior_field_row + 1;
             }
-            if rows.field_kinds[field_row] == NominalFieldKindSubjectSlot() {
+            if rows.field_kinds[field_row] == NominalFieldKindSubjectSlot() ||
+                rows.field_kinds[field_row] == NominalFieldKindBindingSlot() {
                 subject_slot_count = subject_slot_count + 1;
             }
             field_i = field_i + 1;

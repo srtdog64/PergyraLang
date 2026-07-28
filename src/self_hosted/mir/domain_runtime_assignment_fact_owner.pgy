@@ -312,7 +312,8 @@ func SelfMirDomainParticipantRolesFromDeclarations(
         let offset: Int = 0;
         while offset < rows.field_counts[declaration] {
             let field: Int = rows.field_starts[declaration] + offset;
-            if rows.field_kinds[field] == NominalFieldKindSubjectSlot() {
+            if rows.field_kinds[field] == NominalFieldKindSubjectSlot() ||
+                rows.field_kinds[field] == NominalFieldKindBindingSlot() {
                 ArrayPush(subject_rows, field);
             }
             offset = offset + 1;

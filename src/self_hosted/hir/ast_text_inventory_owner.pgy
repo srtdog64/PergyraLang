@@ -50,7 +50,8 @@ func TypedAstTextKindOf(text: String) -> Int {
     }
     if StartsWith(text, "Field:") || StartsWith(text, "Shared:") ||
         StartsWith(text, "SubjectSlot:") ||
-        StartsWith(text, "ObjectSlot:") || StartsWith(text, "TObjectSlot:") ||
+        StartsWith(text, "BindingSlot:") || StartsWith(text, "ObjectSlot:") ||
+        StartsWith(text, "TObjectSlot:") ||
         StartsWith(text, "EffectSlot:") ||
         StartsWith(text, "RelationSlot:") || StartsWith(text, "EffectPool:") ||
         StartsWith(text, "RelationPool:") || StartsWith(text, "SystemicSlot:") ||
@@ -299,7 +300,8 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 7, StringLength(text) - 7);
         }
         let labels: Array<String> = [
-            "Shared: ", "SubjectSlot: ", "ObjectSlot: ", "TObjectSlot: ",
+            "Shared: ", "SubjectSlot: ", "BindingSlot: ", "ObjectSlot: ",
+            "TObjectSlot: ",
             "EffectSlot: ", "RelationSlot: ", "EffectPool: ",
             "RelationPool: ", "SystemicSlot: ", "WorldSystemic: ",
             "WorldZone: "
@@ -467,6 +469,7 @@ func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Shared: ") { return NominalFieldKindSharedField(); }
         if StartsWith(text, "SubjectSlot: ") { return NominalFieldKindSubjectSlot(); }
+        if StartsWith(text, "BindingSlot: ") { return NominalFieldKindBindingSlot(); }
         if StartsWith(text, "ObjectSlot: ") { return NominalFieldKindObjectSlot(); }
         if StartsWith(text, "TObjectSlot: ") { return NominalFieldKindTObjectSlot(); }
         if StartsWith(text, "EffectSlot: ") { return NominalFieldKindEffectSlot(); }

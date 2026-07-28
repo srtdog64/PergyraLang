@@ -40,7 +40,7 @@ func RenderDom(view: CounterView) -> String {
 }
 
 func Main() -> Void {
-    let app = CounterZone(Counter(7), CounterView(7));
+    let app = CounterZone(Counter(7));
     Log("[reactive-dom rung-0] render of view slot:");
     Log(RenderDom(app.view));
 }

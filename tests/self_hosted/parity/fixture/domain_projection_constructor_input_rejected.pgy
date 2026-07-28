@@ -1,0 +1,27 @@
+object Source {
+    value: Int;
+}
+
+object View {
+    value: Int;
+}
+
+tobject Packet {
+    value: Int;
+}
+
+effect Scanned for object source: Source {
+    object slot view: View
+    refresh view from source
+}
+
+relation Linked for object left: Source, object right: Source {
+    tobject slot packet: Packet
+    publish packet from right
+}
+
+func Main() -> Void {
+    let scanned = Scanned(Source(1), View(99));
+    let linked = Linked(Source(1), Source(2), Packet(99));
+    Log(scanned.view.value + linked.packet.value);
+}

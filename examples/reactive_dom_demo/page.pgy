@@ -33,6 +33,6 @@ func RenderPage(view: CounterView) -> String {
 }
 
 func Main() -> Void {
-    let app = CounterZone(Counter(7), CounterView(7));
+    let app = CounterZone(Counter(7));
     Log(RenderPage(app.view));
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Proves the 144-row language-word registry, full self-host metadata projection,
+# Proves the 145-row language-word registry, full self-host metadata projection,
 # reserved lexer compatibility view, editor scope projection, and generated
 # implementation inventory remain one source-of-truth chain.
 # SoT fallback IDs covered here or by the companion enforcement refs in the
@@ -149,15 +149,15 @@ if actual_native_only != native_only:
     )
 
 completion = {
-    "action", "authority", "authorized", "causes", "requires", "transfer",
+    "action", "authority", "authorized", "binding", "causes", "requires", "transfer",
     "using", "who", "within",
 }
 hover = {
-    "action", "authority", "authorized", "by", "causes", "effects",
+    "action", "authority", "authorized", "binding", "by", "causes", "effects",
     "requires", "transfer", "using", "who", "within",
 }
 highlight = {
-    "action", "authorized", "by", "causes", "concurrent", "exclusive",
+    "action", "authorized", "binding", "by", "causes", "concurrent", "exclusive",
     "failure", "guard", "invariant", "involves", "mut", "on", "post",
     "pre", "projection", "requires", "state", "step", "success", "who",
     "within",
@@ -294,5 +294,5 @@ if [ "$dead_reserved" != "$expected_dead" ]; then
     exit 1
 fi
 
-echo "[language-keyword-registry] ok (144 rows; 70 reserved lexer rows; 74 parser selectors; 9 fixtures;" \
+echo "[language-keyword-registry] ok (145 rows; 70 reserved lexer rows; 75 parser selectors; 9 fixtures;" \
      "no reserved word lacks a parser selector)"

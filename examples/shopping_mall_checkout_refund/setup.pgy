@@ -36,13 +36,7 @@ func BuildCartZone() -> CartZone
     );
     return CartZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/cart",
-        "cart",
-        0,
-        0
+        Clone(merchant)
     );
 }
 
@@ -74,14 +68,7 @@ func BuildPaymentZone() -> PaymentZone
     );
     return PaymentZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/checkout",
-        4101,
-        0,
-        0,
-        "pending"
+        Clone(merchant)
     );
 }
 
@@ -113,13 +100,7 @@ func BuildRefundZone() -> RefundZone
     );
     return RefundZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/refund",
-        0,
-        0,
-        "idle"
+        Clone(merchant)
     );
 }
 
@@ -141,12 +122,7 @@ func BuildAccountZone() -> AccountZone
         0,
         "idle"
     );
-    return AccountZone(
-        Clone(buyer),
-        "/account/profile",
-        "view",
-        0
-    );
+    return AccountZone(Clone(buyer));
 }
 
 func OpenCommerceWorld() -> CommerceWorld
@@ -177,41 +153,17 @@ func OpenCommerceWorld() -> CommerceWorld
     );
     let cart = CartZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/cart",
-        "cart",
-        0,
-        0
+        Clone(merchant)
     );
     let payment = PaymentZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/checkout",
-        4101,
-        0,
-        0,
-        "pending"
+        Clone(merchant)
     );
     let refund = RefundZone(
         Clone(buyer),
-        Clone(merchant),
-        BuildBuyerZoneView(buyer),
-        BuildMerchantZonePacket(merchant),
-        "/refund",
-        0,
-        0,
-        "idle"
+        Clone(merchant)
     );
-    let account = AccountZone(
-        Clone(buyer),
-        "/account/profile",
-        "view",
-        0
-    );
+    let account = AccountZone(Clone(buyer));
 
     return CommerceWorld(
         cart,

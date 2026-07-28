@@ -67,7 +67,7 @@
       "patterns": [
         {
           "name": "keyword.other.domain.pergyra",
-          "match": "\\b(?:authorized|bind|by|causes|event|projection|requires|shared|slot|state|within)\\b"
+          "match": "\\b(?:authorized|bind|binding|by|causes|event|projection|requires|shared|slot|state|within)\\b"
         }
       ]
     },

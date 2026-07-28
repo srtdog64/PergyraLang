@@ -28,7 +28,7 @@ func MirDeclFieldKindAstLabelAt(index: Int) -> String {
     if index == 2 { return "SubjectSlot"; }
     if index == 3 { return "ObjectSlot"; }
     if index == 4 { return "TObjectSlot"; }
-    if index == 5 { return ""; }
+    if index == 5 { return "BindingSlot"; }
     if index == 6 { return "EffectSlot"; }
     if index == 7 { return "RelationSlot"; }
     if index == 8 { return "EffectPool"; }

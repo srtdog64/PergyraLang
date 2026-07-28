@@ -275,6 +275,7 @@
 #define PGY_CAUSE_ABILITY_DUPLICATE_NAME        "semantic:ability:duplicate_name"
 #define PGY_CAUSE_CLASS_DUPLICATE_NAME          "semantic:class:duplicate_name"
 #define PGY_CAUSE_DOMAIN_SLOT_DUPLICATE_NAME    "semantic:domain_slot:duplicate_name"
+#define PGY_CAUSE_DOMAIN_PROJECTION_INITIALIZER "semantic:domain_projection:initializer_has_no_owner"
 #define PGY_CAUSE_FUNCTION_DUPLICATE_NAME       "semantic:function:duplicate_name"
 #define PGY_CAUSE_IDENTIFIER_C_RESERVED         "semantic:identifier:c_reserved_word"
 #define PGY_CAUSE_SEMANTIC_STEP_BUDGET          "semantic:analysis:step_budget_exceeded"
@@ -355,6 +356,7 @@
 #define PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION \
                                                 "align-world-zone-state-composition"
 #define PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING "align-zone-slot-or-state-naming"
+#define PGY_FIX_USE_PROJECTION_DIRECTIVE         "use-refresh-publish-or-bind"
 
 /* --- annotate-* (add type/binding info) --- */
 #define PGY_FIX_ANNOTATE_BINDING_TYPE           "annotate-binding-type"

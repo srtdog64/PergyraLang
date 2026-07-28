@@ -30,34 +30,59 @@ constructor_field_is_ordinary_channel(ASTNode *field_type_node,
 }
 
 static bool
-zone_constructor_slot_is_input(ASTNode *slot)
+domain_constructor_has_role_filtered_inputs(ASTNode *decl)
+{
+    return decl != NULL
+        && (decl->type == AST_ZONE_DECL
+            || decl->type == AST_RELATION_DECL
+            || decl->type == AST_EFFECT_DECL);
+}
+
+static bool
+domain_constructor_slot_is_input(ASTNode *slot)
 {
     return slot != NULL && slot->type == AST_DOMAIN_SLOT
         && (ast_domain_slot_is_subject(slot)
             || ast_domain_slot_is_binding(slot));
 }
 
+static ASTNode **
+domain_constructor_slots(ASTNode *decl, size_t *slot_count_out)
+{
+    if (slot_count_out != NULL)
+        *slot_count_out = 0;
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_ZONE_DECL)
+        return ast_zone_slots(decl, slot_count_out);
+    if (decl->type == AST_RELATION_DECL)
+        return ast_relation_slots(decl, slot_count_out);
+    if (decl->type == AST_EFFECT_DECL)
+        return ast_effect_slots(decl, slot_count_out);
+    return NULL;
+}
+
 static size_t
-zone_constructor_input_count(ASTNode *decl)
+domain_constructor_input_count(ASTNode *decl)
 {
     size_t slot_count = 0;
     size_t input_count = 0;
     ASTNode **slots;
 
-    if (decl == NULL || decl->type != AST_ZONE_DECL)
+    if (!domain_constructor_has_role_filtered_inputs(decl))
         return 0;
-    slots = ast_zone_slots(decl, &slot_count);
+    slots = domain_constructor_slots(decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
-        if (zone_constructor_slot_is_input(slots[i]))
+        if (domain_constructor_slot_is_input(slots[i]))
             input_count++;
     }
     return input_count;
 }
 
 static ASTNode *
-zone_constructor_input_type_at(ASTNode *decl,
-                               size_t input_index,
-                               const char **field_name_out)
+domain_constructor_input_type_at(ASTNode *decl,
+                                 size_t input_index,
+                                 const char **field_name_out)
 {
     size_t slot_count = 0;
     size_t seen = 0;
@@ -65,12 +90,12 @@ zone_constructor_input_type_at(ASTNode *decl,
 
     if (field_name_out != NULL)
         *field_name_out = NULL;
-    if (decl == NULL || decl->type != AST_ZONE_DECL)
+    if (!domain_constructor_has_role_filtered_inputs(decl))
         return NULL;
-    slots = ast_zone_slots(decl, &slot_count);
+    slots = domain_constructor_slots(decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
-        if (!zone_constructor_slot_is_input(slot))
+        if (!domain_constructor_slot_is_input(slot))
             continue;
         if (seen == input_index) {
             if (field_name_out != NULL)
@@ -97,8 +122,8 @@ constructor_decl_field_type_at(ASTNode *decl,
             *field_name_out = field.name;
         return field.name != NULL ? field.type_ast : NULL;
     }
-    if (decl->type == AST_ZONE_DECL)
-        return zone_constructor_input_type_at(
+    if (domain_constructor_has_role_filtered_inputs(decl))
+        return domain_constructor_input_type_at(
             decl, index, field_name_out);
     return overlay_field_decl_at(decl, index, field_name_out);
 }
@@ -220,8 +245,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                            || decl->type == AST_ROSTER_DECL
                            || decl->type == AST_WORLD_DECL
                            || decl->type == AST_ZONE_DECL)) {
-                field_count = decl->type == AST_ZONE_DECL
-                    ? zone_constructor_input_count(decl)
+                field_count = domain_constructor_has_role_filtered_inputs(decl)
+                    ? domain_constructor_input_count(decl)
                     : overlay_field_count(decl);
             }
             if (decl != NULL) {

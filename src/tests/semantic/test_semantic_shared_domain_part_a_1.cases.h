@@ -339,7 +339,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone object/tobject slot initializer can project from subject slot without direct-projection warning");
+    TEST("zone object/tobject slot initializer fails closed before unowned materialization");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
@@ -356,7 +356,9 @@ test_shared_memory_features(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(
+            result, "only refresh/publish/bind owns projection source identity"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -395,7 +397,7 @@ test_shared_memory_features(void)
             "tobject PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
-            "    tobject slot snapshot: PlayerDto = ToTObject(PlayerDto, player)\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    publish snapshot from player\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

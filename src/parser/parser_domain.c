@@ -49,7 +49,7 @@ parser_match_identifier_keyword_on_line(Parser *parser, const char *keyword,
 
 static bool
 parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
-                              bool *is_tobject)
+                              bool *is_tobject, bool *is_binding)
 {
     if (parser_match(parser, TOKEN_SUBJECT)) {
         if (is_subject != NULL)
@@ -58,6 +58,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_vessel = false;
         if (is_tobject != NULL)
             *is_tobject = false;
+        if (is_binding != NULL)
+            *is_binding = false;
         return true;
     }
 
@@ -68,6 +70,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_vessel = true;
         if (is_tobject != NULL)
             *is_tobject = false;
+        if (is_binding != NULL)
+            *is_binding = false;
         return true;
     }
 
@@ -78,6 +82,20 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_vessel = false;
         if (is_tobject != NULL)
             *is_tobject = true;
+        if (is_binding != NULL)
+            *is_binding = false;
+        return true;
+    }
+
+    if (parser_match_identifier_keyword(parser, "binding")) {
+        if (is_subject != NULL)
+            *is_subject = false;
+        if (is_vessel != NULL)
+            *is_vessel = false;
+        if (is_tobject != NULL)
+            *is_tobject = false;
+        if (is_binding != NULL)
+            *is_binding = true;
         return true;
     }
 
@@ -88,6 +106,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_vessel = false;
         if (is_tobject != NULL)
             *is_tobject = false;
+        if (is_binding != NULL)
+            *is_binding = false;
         return true;
     }
 
@@ -100,7 +120,9 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
     bool is_subject = false;
     bool is_vessel = false;
     bool is_tobject = false;
-    if (!parser_match_domain_slot_kind(parser, &is_subject, &is_vessel, &is_tobject))
+    bool is_binding = false;
+    if (!parser_match_domain_slot_kind(parser, &is_subject, &is_vessel,
+            &is_tobject, &is_binding))
         return NULL;
 
     parser_consume(parser, TOKEN_SLOT,
@@ -110,7 +132,9 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
                 ? "Expected 'slot' after 'vessel' in domain body"
             : (is_tobject
                 ? "Expected 'slot' after 'tobject' in domain body"
-                : "Expected 'slot' after 'object' in domain body")));
+            : (is_binding
+                ? "Expected 'slot' after 'binding' in domain body"
+                : "Expected 'slot' after 'object' in domain body"))));
     Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected slot name");
     parser_consume(parser, TOKEN_COLON,
@@ -120,6 +144,7 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
     ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
     slot->data.domain_slot.is_vessel = is_vessel;
     slot->data.domain_slot.is_tobject = is_tobject;
+    slot->data.domain_slot.is_binding = is_subject || is_binding;
     slot->data.domain_slot.type = slot_type;
     if (parser_match(parser, TOKEN_ASSIGN))
         slot->data.domain_slot.initializer = parser_parse_expression(parser);

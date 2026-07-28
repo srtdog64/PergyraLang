@@ -272,10 +272,20 @@ backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중
 - Self source producer도 같은 typed row를 만들고, machine admission이 topology,
   role, member/path를 한 번 exact join해 target-neutral plan을 만든다. 이후 lookup과
   codegen view는 whole-plan/whole-owner validation을 반복하지 않는다.
-- Zone constructor input은 declaration source order를 보존한 `subject slot`과
-  `binding slot`뿐이다. `object`/`tobject` projection destination과 effect/relation
-  layer storage는 topology/runtime owner가 construction 이후 materialize하며 caller가
-  값을 선주입할 수 없다. Native C/LLVM과 self semantic이 같은 정책을 소비한다.
+- Domain constructor input은 declaration source order를 보존한 identity/admission
+  binding뿐이다. Zone은 `subject slot`/`binding slot`, relation/effect는 `for ...`
+  header participant를 사용한다. `object`/`tobject` projection destination과
+  effect/relation layer/shared storage는 topology/runtime owner가 construction 이후
+  materialize하며 caller가 값을 선주입할 수 없다. Native C/LLVM과 self semantic이
+  같은 정책을 소비한다.
+- `binding slot`은 object-valued endpoint를 zone에 들이는 명시적 admission 역할이다.
+  `object slot`을 admission과 projection에 동시에 쓰지 않으므로 constructor ABI가
+  projection directive 유무에 따라 암묵적으로 바뀌지 않는다.
+- `object slot ... = ...`와 `tobject slot ... = ...`도 projection materialization
+  경로가 아니다. 이 syntax는 한때 parser/semantic에서 받아들였지만 DIR/MIR과 두
+  backend가 initializer를 소유하지 않아 실제 실행에서는 zero-filled storage로
+  사라졌다. Semantic은 이제 이를 fail-closed하고 `object -> refresh`,
+  `tobject -> publish`, target kind 선택이 필요하면 `bind`만 허용한다.
 - Native semantic, native MIR verifier, self DIR producer, self MIR admission 모두
   `tobject` source를 거부한다. `tobject` field ID를 유효한 다른 source ID로 바꾼
   malformed MIR도 C artifact 전에 실패한다.
@@ -776,7 +786,9 @@ identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한�
   Missing/unknown/value-zone/foreign-owner/temporary-receiver 변조는 output 전에
   거부된다. 다만 일반 parameter carriage와 native C/LLVM receiver 소비자는
   아직 더 넓은 `uses_pointer_self` compatibility policy를 공유한다.
-- Constructor caller는 계속 subject/object/tobject/binding input만 넘긴다. 현재 self
+- Domain constructor caller는 declaration source order의 subject/binding input만
+  넘긴다. object/tobject projection destination과 layer/shared storage는 topology/
+  runtime owner가 materialize한다. 현재 self
   exact prologue가 hidden layer를 bind/sync하므로 generic zero-fill만으로 성공을
   주장하지 않는다. Native MIR/JSON graft도 금지한다.
 

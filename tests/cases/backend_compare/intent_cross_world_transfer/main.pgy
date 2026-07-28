@@ -12,14 +12,14 @@ object BuyerView {
 
 zone CartZone {
     subject slot buyer: Buyer
-    object slot mirror: BuyerView = BuyerView(0)
+    object slot mirror: BuyerView
 
     bind mirror from buyer by buyer
 }
 
 zone PaymentZone {
     subject slot buyer: Buyer
-    object slot receipt: BuyerView = BuyerView(0)
+    object slot receipt: BuyerView
 
     bind receipt from buyer by buyer
 }
@@ -43,8 +43,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 }
 
 func Main() -> Void {
-    let cart = CartZone(Buyer(5), BuyerView(0));
-    let payment = PaymentZone(Buyer(0), BuyerView(0));
+    let cart = CartZone(Buyer(5));
+    let payment = PaymentZone(Buyer(0));
     let ok = Checkout(cart, payment, cart.buyer);
 
     Log("ok=" + ToString(ok));

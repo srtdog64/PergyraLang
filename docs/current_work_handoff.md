@@ -6,6 +6,85 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - tobject publication and domain admission boundary
+
+- Landing parent: `5f6b764d381350bcee6cae21e3a9d10df3d83656` on `main`, aligned
+  with `origin/main` at the start of this slice. The landing commit contains
+  this handoff; use `git rev-parse HEAD` and `git status --short --branch` after
+  landing for the exact revision and dirty state.
+- Objective card:
+  - objective: keep `object`/`tobject` as topology-materialized projection
+    destinations, make caller-supplied domain admission explicit, and prevent
+    declaration initializers or constructor arguments from becoming a second
+    materialization authority;
+  - priority: projection identity and one materialization owner; explicit
+    admission roles; native/self field-kind parity; exact DIR/MIR identity;
+    C/LLVM execution; then examples and tooling projections;
+  - fact owners: the language-word registry owns `binding`; nominal field-kind
+    vocabulary owns `binding_slot`; domain declarations own slot identity;
+    `dir.domain_graph` and `semantic.domain_runtime_assignment` own topology and
+    exact projection assignments; MIR is a carrier;
+  - last legitimate consumers: native C/LLVM constructor and topology
+    renderers, and the self source-to-MIR producer/admission path;
+  - forbidden fallback: object/tobject slot initializer, projection/layer/shared
+    constructor injection, object slot used ambiguously as both admission and
+    projection, subject-only endpoint validation, source-name recovery, or a
+    detached tobject reused as a fresh projection source;
+  - verification: `tobject_boundary_execution_owner.sh`, language-word and MIR
+    field-kind registries, object/action boundary ratchet, VS Code grammar gate,
+    and focused C/LLVM backend execution.
+- `binding slot` is the explicit object-valued zone admission surface. Zone
+  constructors accept source-order `subject slot`/`binding slot` values;
+  relation/effect constructors accept only their `for ...` participants.
+  `object`/`tobject` projection destinations and layer/shared storage are
+  materialized after construction by topology/runtime owners.
+- Native semantic and self parser now reject `object slot ... = ...` and
+  `tobject slot ... = ...`. Those initializers previously parsed and type
+  checked but had no DIR/MIR/backend carrier, so runtime silently observed
+  zero-filled storage.
+- The self path carries `BindingSlot` through typed AST, declaration
+  vocabulary, DIR graph census, exact topology source identity, MIR declaration
+  verification and runtime projection assignment. The effect/relation header
+  label is produced by one immutable classifier; this avoids the observed
+  generated-C SSA carry defect that erased the default subject participant.
+- Observed focused evidence before landing:
+  - a clean native `make compiler` rebuild completed successfully, then
+    `tobject_boundary_execution_owner.sh` passed with the rebuilt `pgy` and the
+    current Pergyra-built self driver;
+  - `language_keyword_registry_smoke.sh`,
+    `mir_decl_field_kind_vocabulary_smoke.sh`,
+    `object_action_boundary_contract_smoke.sh`, and
+    `vscode_language_graph_smoke.sh` all passed after regenerating their owned
+    projections;
+  - self MIR for `intent_callable_execution` is 46,384 bytes and for
+    `binding_slot_constructor_source_order` is 10,394 bytes; the latter carries
+    exact `binding_slot` identities and projection source IDs;
+  - four self negatives reject projection constructor injection, detached
+    tobject source reuse and unowned projection initializers;
+  - native C/LLVM preserve interleaved source-order zone admission and execute
+    `alpha=7`, `beta=9`, `view=7`, `receipt=9`; the binding fixture executes
+    `door=5`, `key=9`, `view=5` on both backends;
+  - the keyword registry now contains 145 words, including contextual
+    `binding`, with one generated self/LSP/TextMate projection.
+- Grade this `binding slot` source-to-self-MIR path `REACHABLE`, not
+  `SUBSTITUTING`: self general C execution of the binding positive is not yet
+  the production replacement witness. Existing explicit domain-assignment
+  execution remains independently `SUBSTITUTING`; this boundary repair does
+  not inflate that grade.
+- Next executable falsifier: run `binding_slot_constructor_source_order`
+  through production `CompileSourceToCVerified`, execute the resulting general
+  self C with the exact native output, and reject a valid-ID mutation that
+  substitutes an object/tobject projection slot for either admitted binding.
+  After that, carry a detached tobject receipt as the explicit outcome of a
+  real fallible action/intent without reopening its source graph.
+- The stale tracked `testall_run.txt` transcript was removed and is ignored;
+  generated builders remain under `.tmp/`.
+- Preserve and do not stage the three concurrent parity edits
+  (`driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`) or the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+
 ## Current resume checkpoint - intent execution and tobject boundary
 
 - Landing parent: `57cbc9d5bd600bb37fa0c1a56d7feeb60f6993aa` on `main`.

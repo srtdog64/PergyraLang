@@ -907,8 +907,8 @@ relation KeyBinding for object door: Door, object key: Key {
 }
 
 zone LockZone {
-    object slot door: Door
-    object slot key: Key
+    binding slot door: Door
+    binding slot key: Key
     effect slot glow: Highlighted
     relation slot binding: KeyBinding
     apply glow to door

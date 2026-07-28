@@ -17,6 +17,7 @@ enum LanguageWordId {
     WordBackoff,
     WordBetween,
     WordBind,
+    WordBinding,
     WordBlocking,
     WordBreak,
     WordBy,
@@ -150,7 +151,7 @@ enum LanguageWordId {
 }
 
 func LanguageWordRegistryCount() -> Int {
-    return 144;
+    return 145;
 }
 
 func LanguageWordSpelling(id: LanguageWordId) -> String {
@@ -168,6 +169,7 @@ func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordBackoff { return "backoff"; }
     if id == LanguageWordId.WordBetween { return "between"; }
     if id == LanguageWordId.WordBind { return "bind"; }
+    if id == LanguageWordId.WordBinding { return "binding"; }
     if id == LanguageWordId.WordBlocking { return "blocking"; }
     if id == LanguageWordId.WordBreak { return "break"; }
     if id == LanguageWordId.WordBy { return "by"; }

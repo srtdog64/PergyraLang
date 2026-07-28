@@ -495,10 +495,10 @@ func Main() -> Void
     Log("");
 
     let world = RaidWorld(
-        RoomZone(0, 0, 0, 0, 0, 0),
-        RoomZone(1, 0, 3, 2, 0, 0),
-        RoomZone(2, 0, 6, 3, 0, 0),
-        RoomZone(3, 0, 8, 4, 0, 0)
+        RoomZone(),
+        RoomZone(),
+        RoomZone(),
+        RoomZone()
     );
     let scout = Raider("Iris", "scout", 0, RaiderCore(0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0));
     let guardian = Raider("Brom", "guardian", 1, RaiderCore(0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0));

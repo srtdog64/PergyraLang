@@ -394,10 +394,10 @@ func Main() -> Void
     Log("");
 
     let world = DispatchWorld(
-        NodeZone(0, 0, 0, 0, 0, 12),
-        NodeZone(1, 0, 0, 0, 0, 6),
-        NodeZone(2, 0, 0, 0, 0, 4),
-        NodeZone(3, 0, 0, 0, 0, 5)
+        NodeZone(),
+        NodeZone(),
+        NodeZone(),
+        NodeZone()
     );
     let atlas = Courier("Atlas", "heavy", CourierCore(0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0));
     let nova = Courier("Nova", "express", CourierCore(0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0));

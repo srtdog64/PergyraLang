@@ -241,7 +241,9 @@ ast_print_domain_node(ASTNode *node, int indent)
             printf("%sSlot: %s",
                    node->data.domain_slot.is_subject ? "Subject"
                    : (node->data.domain_slot.is_vessel ? "Vessel"
-                      : (node->data.domain_slot.is_tobject ? "TObject" : "Object")),
+                      : (node->data.domain_slot.is_tobject ? "TObject"
+                         : (node->data.domain_slot.is_binding
+                            ? "Binding" : "Object"))),
                    node->data.domain_slot.slot_name);
             if (node->data.domain_slot.type != NULL) {
                 printf(": ");

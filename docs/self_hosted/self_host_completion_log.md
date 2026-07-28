@@ -9314,3 +9314,38 @@ Released/default replacement remains 0%.
   directly with the Make target's full-fixpoint environment and pressure owner,
   using fresh isolated seed/driver directories. Do not report the unavailable
   wrapper as executed.
+
+## 2026-07-28 - TObject publication and explicit binding admission
+
+- Projection storage is no longer a constructor/default-value surface.
+  Native semantic and the self parser reject object/tobject slot initializers;
+  native/self constructor policy admits only source-order subject/binding roles
+  for zones and header participants for effects/relations.
+- Contextual `binding slot` now names object-valued endpoint admission without
+  overloading `object slot`, which remains a refresh projection destination.
+  The 145-row language-word registry projects the spelling to the self lexer,
+  parser, LSP and canonical TextMate grammar. The MIR declaration-field
+  vocabulary owns the `binding_slot` wire and `BindingSlot` AST identities.
+- Three self producer omissions were exposed and closed: mutable participant
+  labels lost their value in generated-C SSA, DIR graph census rejected
+  BindingSlot, and projection source identity lookup skipped BindingSlot. The
+  final path carries exact binding field identity through AST, DIR graph,
+  topology and runtime projection assignment.
+- Fresh focused observations produced 46,384-byte intent MIR and 10,394-byte
+  binding MIR. The latter preserves both binding declaration rows and the exact
+  projection source ID. Four source negatives exited nonzero. Native C and LLVM
+  execute the binding fixture as `door=5`, `key=9`, `view=5` and the interleaved
+  subject/projection fixture as `alpha=7`, `beta=9`, `view=7`, `receipt=9`.
+- A clean native `make compiler` rebuild completed before the final run.
+  `tobject_boundary_execution_owner.sh` and the language-word, declaration-field,
+  object/action-boundary, and canonical VS Code grammar gates all passed against
+  the regenerated owner projections.
+- This is `REACHABLE` for the self binding path, not a new `SUBSTITUTING`
+  claim. The next executable rung is production general-self-C execution of
+  the binding fixture plus valid-ID binding/projection kind mutations, followed
+  by a real fallible action/intent returning a detached tobject receipt.
+- The memory incident remains classified as repeated whole-graph admission and
+  overlapping process-tree work, not an intrinsic 20 GiB compiler footprint.
+  The focused current build sampled about 674 MiB in `pgy` and 791 MiB in
+  `cc1`; the unchanged 3 GiB process-tree cap and troubleshooting procedure
+  remain mandatory.
