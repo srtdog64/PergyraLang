@@ -279,9 +279,19 @@ func SelfDirIntentStepFromArtifact(
                 );
             }
             expect_node_id = row_id;
-        } else if row_kind != TypedAstKindIntentStepCompensateTag() &&
-            row_kind != TypedAstKindIntentStepGuardTag() &&
-            row_kind != TypedAstKindIntentStepPostTag() {
+        } else if row_kind == TypedAstKindIntentStepCompensateTag() {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent compensate carrier is not executable"
+            );
+        } else if row_kind == TypedAstKindIntentStepPostTag() {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent post carrier is not executable"
+            );
+        } else if row_kind == TypedAstKindIntentStepGuardTag() {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent guard carrier is not executable"
+            );
+        } else {
             return SelfDirIntentResolvedStepError(
                 "self-host DIR intent step row kind is unsupported"
             );

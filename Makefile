@@ -3368,6 +3368,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-callable-execution-test-smoke \
 	self-host-intent-outcome-frontend-test-smoke \
 	self-host-intent-typed-outcome-execution-test-smoke \
+	self-host-intent-post-compensate-fail-closed-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
 	lsp-completion-registry-test-smoke \
@@ -3401,6 +3402,10 @@ self-host-intent-outcome-frontend-test-smoke: $(PGY)
 self-host-intent-typed-outcome-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh
+
+self-host-intent-post-compensate-fail-closed-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_post_compensate_fail_closed_owner.sh
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

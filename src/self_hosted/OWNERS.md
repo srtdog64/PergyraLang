@@ -754,7 +754,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, zone/using/who/requires/causes/authorized identities, and ordered
-  predecessor edges.
+  predecessor edges. Parser `guard`/`post`/`compensate` rows fail closed here
+  until their identities have lossless MIR and executable consumers.
 - `src/self_hosted/dir/intent_outcome_contract_owner.pgy` -- exact step-to-intent
   membership, participant receiver, subject-action signature, outcome node,
   name, and return-type validation over already-owned DIR rows.

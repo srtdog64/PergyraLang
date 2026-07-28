@@ -1,6 +1,22 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-07-28
+마지막 업데이트: 2026-07-29
+
+## 2026-07-29 intent guard/post/compensate fail-closed checkpoint
+
+- `tobject` 구현을 다시 추적한 결과, detached immutable success receipt/failure
+  payload에는 맞지만 variant branch, step completion, predecessor, rollback graph의
+  owner는 아니라는 기존 경계가 확인됐다. 이 사실은 intent transition SoT가
+  소유해야 한다.
+- Self parser는 `guard`/`post`/`compensate` row를 보존하지만 DIR/MIR/C path가
+  소비하지 않아 이전에는 성공한 듯 보이면서 clause가 사라졌다. 이제 첫 executable
+  DIR boundary에서 세 clause를 서로 다른 진단으로 거부하고 partial MIR/C artifact를
+  만들지 않는다.
+- 이 안전 ratchet은 `SUBSTITUTING` 진척이 아니다. 다음 executable rung은 source에
+  선언된 exact success/failure variant identity, payload binding, stable predecessor,
+  success-only completion과 compensation target을 같은 semantic/DIR/MIR 변경에서
+  닫아야 한다. 일반 `expect` 실패의 기존 rollback 의미를 typed failure와 혼동해
+  backend completion flag 위치만 옮기는 수정은 금지한다.
 
 ## 2026-07-28 fallible action tobject outcome checkpoint
 

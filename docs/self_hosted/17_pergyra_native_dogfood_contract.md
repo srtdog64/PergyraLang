@@ -659,9 +659,12 @@ subject/action으로 이주하는 작업은 그 뒤 별도 executable rung으로
 단일 step의 `on outcome: subject.Action(...)` binding은 구현·실행됐다. Native와
 self semantic/DIR은 exact action return type과 stable action identity를 한 번
 결정하고, MIR의 `IntentOutcomeBinding`과 `IntentEval(on)`이 같은 result/type을
-운반한다. Native C/LLVM과 admitted self C는 action을 한 번 평가한 immutable typed
-local을 `expect`/`post`/`compensate` scope에 제공한다. Binding은 `pre`와 뒤 step에는
-보이지 않으며 rollback lifetime 전체에서 이름이 유일해야 한다.
+운반한다. Native C/LLVM은 action을 한 번 평가한 immutable typed local을
+`expect`/`post`/`compensate` scope에 제공한다. Admitted self C의 현재 executable
+범위는 `expect`뿐이다. Self parser가 보존하는 `guard`/`post`/`compensate`는 DIR→MIR→C
+carrier가 생기기 전까지 executable driver가 명시적으로 거부하며, 조용히 삭제하지
+않는다. Binding은 `pre`와 뒤 step에는 보이지 않으며 rollback lifetime 전체에서
+이름이 유일해야 한다.
 
 `intent_typed_outcome_execution_owner.sh`의 enum은 success/failure 각각에 detached
 `tobject` payload를 갖는다. Self C, native C, native LLVM이 모두

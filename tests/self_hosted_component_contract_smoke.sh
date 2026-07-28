@@ -1133,6 +1133,15 @@ require_file "src/self_hosted/mir_lower/intent_lower_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_lower_owner.pgy" 430
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_lower_owner.pgy"
+require_file "tests/self_hosted/parity/intent_post_compensate_fail_closed_owner.sh"
+require_text "Makefile" \
+    "self-host-intent-post-compensate-fail-closed-test-smoke"
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "self-host DIR intent compensate carrier is not executable"
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "self-host DIR intent post carrier is not executable"
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "self-host DIR intent guard carrier is not executable"
 require_file "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
 require_text "src/self_hosted/OWNERS.md" \

@@ -1,6 +1,6 @@
 # 200. Object-to-Action 경계와 Domain Composition 작성 패턴
 
-Updated: 2026-07-28 (Asia/Seoul)
+Updated: 2026-07-29 (Asia/Seoul)
 
 이 문서는 `struct`에서 `action`까지의 값·identity 선택과, 그 action이
 `effect`/`relation`/`zone`/`intent`/`world`로 합성되는 기준을 한곳에 모은
@@ -1226,8 +1226,8 @@ DIR predecessor identity와 실제 compensation은 계속 `PLANNED/OPEN`이다. 
 - semantic owner가 receiver의 exact `subject.action` signature를 한 번 resolve해
   return type을 binding type으로 고정한다. `Void`, unknown action, 두 개 이상의
   `on`, participant/value 이름 충돌, rollback lifetime 전체의 outcome 이름 중복은
-  거부한다. binding은 같은 step의 `expect`/`post`/`compensate`에서만 보이며
-  `pre`와 뒤 step에서는 보이지 않는다.
+  거부한다. 언어 scope상 binding은 같은 step의 `expect`/`post`/`compensate`에서만
+  보이며 `pre`와 뒤 step에서는 보이지 않는다.
 - DIR은 binding name/type과 action stable syntax identity를 운반한다. MIR의
   `IntentOutcomeBinding`은 `result=slot_anchor=binding`, `arg0=action syntax id`,
   `arg1=step`, `abi_type_name=exact return type`,
@@ -1249,6 +1249,14 @@ DIR predecessor identity와 실제 compensation은 계속 `PLANNED/OPEN`이다. 
 helper가 enum payload를 match해 Bool을 만들고 intent는 그 결과를 `expect`한다.
 `tobject`는 receipt/failure payload일 뿐 step identity, 완료, predecessor, rollback,
 authority 또는 projection freshness를 소유하지 않는다.
+
+현재 self executable 경계는 이 가운데 `expect`만 무손실로 소비한다. Parser가
+`guard`/`post`/`compensate` row를 보존하더라도 DIR이 그 node identity를 MIR과
+마지막 C consumer까지 운반하지 못하므로, 세 clause는
+`intent_post_compensate_fail_closed_owner.sh`에서 artifact 방출 전에 각각 명시적으로
+거부된다. 이는 기능 완료나 substitution 진척이 아니라 silent semantic loss를 막는
+안전 ratchet이다. `tobject`를 completion/rollback owner로 키워 이 간극을 숨기지
+않는다.
 
 ### 10.2 PLANNED/OPEN compensation objective card
 
