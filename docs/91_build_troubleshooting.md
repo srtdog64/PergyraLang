@@ -2269,7 +2269,7 @@ After those fixes, the same integration reaches typed AST node 88972:
 
 ```text
 Action: EmitDirectMir
-  Returns: DriverRung2ExecutionResult
+  Returns: DriverRung2ExecutionOutcome
   Within: DriverRung2DirectMirZone
   Authorized by: self
   Body:
@@ -2296,6 +2296,34 @@ direct or generated projections. If this failure returns, check the first layer
 that lost `ActionContract`; do not add a cursor scan, default function contract,
 or consumer-local string table. This declaration seam is `CLOSED`, but it does
 not make the production action `SUBSTITUTING`.
+
+#### Action이 `tobject` payload enum을 반환하면 C에서 unknown type 또는 cycle
+
+`subject.action -> enum -> tobject payload` 조합은 LLVM과 self C에서는 실행됐지만
+native C가 action prototype을 outcome enum보다 먼저 출력해 `unknown type name`과
+`conflicting types`를 냈다. 원인은 `transpiler_type_decl_schedule.c`가 nominal
+field와 enum payload 의존성만 보고 hosted method/action의 by-value return type을
+보지 않은 것이다.
+
+수정된 scheduler는 `MIRDeclMethod.return_type_name`과 value-carried explicit
+parameter를 같은 declaration schedule에서 소비한다. 다만 다음은 complete-layout
+선행 의존성이 아니므로 기다리지 않는다.
+
+- 이름이 `self`인 implicit receiver;
+- nominal forward typedef 뒤 포인터로 전달되는 subject-like parameter;
+- host struct 본문 뒤 prototype이 출력되는 direct host-self return/parameter.
+
+이 예외가 없으면 `Alpha.action(... Beta)` / `Beta.action(... Alpha)` 또는
+`ValueTool.Clone(self, other: ValueTool) -> ValueTool`이 가짜
+`cyclic by-value type declaration dependency`로 실패한다. Focused fixture는 이 두
+shape와 success/failure tobject payload를 함께 고정한다.
+
+같은 rung에서 artifact failure 진단의 Bool을 local String에 조건부 대입했을 때
+self C join이 빈 문자열을 만든 사례도 있었다. 진단 builder가 control-flow local
+문자열을 합치게 하지 말고 Bool owner가 곧바로 `"true"`/`"false"`를 반환하게
+한다. Production open-failure gate는 exact schema/path/stage/status/preservation/
+cleanup 행을 Main에서 비교한다. 이 build에서 관측한 동시 peak는 `pgy` 약 808MB,
+자식 `cc1` 약 1.03GB로 합계 약 1.8GB였으며 20GB 재발은 없었다.
 
 #### Multi-ability role or zone slot makes self MIR declarations disappear
 

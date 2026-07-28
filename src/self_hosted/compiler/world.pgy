@@ -274,7 +274,7 @@ world PgyCompilerWorld {
         output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration,
         request: DriverRung2DirectMirRequest
-    ) -> DriverRung2ExecutionResult with caps io_read, io_write {
+    ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
         return self.direct_mir.execution.EmitDirectMir(
             mir_json_path, output_path, machine_declaration, request
         );

@@ -1,0 +1,41 @@
+tobject ActionTObjectReceipt {
+    value: Int;
+}
+
+tobject ActionTObjectFailure {
+    status: Int;
+}
+
+enum ActionTObjectOutcome {
+    ActionTObjectCommitted(ActionTObjectReceipt),
+    ActionTObjectRejected(ActionTObjectFailure),
+}
+
+subject ActionTObjectExecutor {
+    let identity: String;
+
+    action Execute(
+        self,
+        succeed: Bool
+    ) -> ActionTObjectOutcome {
+        if succeed {
+            return ActionTObjectCommitted(ActionTObjectReceipt(7));
+        }
+        return ActionTObjectRejected(ActionTObjectFailure(9));
+    }
+}
+
+func Observe(outcome: ActionTObjectOutcome) -> Void {
+    match outcome {
+        case ActionTObjectCommitted(receipt):
+            Log("ok=" + ToString(receipt.value));
+        case ActionTObjectRejected(failure):
+            Log("error=" + ToString(failure.status));
+    }
+}
+
+func Main() -> Void {
+    let executor = ActionTObjectExecutor("probe");
+    Observe(executor.Execute(true));
+    Observe(executor.Execute(false));
+}

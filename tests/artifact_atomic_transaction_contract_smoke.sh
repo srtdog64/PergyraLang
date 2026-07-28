@@ -2,7 +2,10 @@
 # Static ratchet for the compiler artifact transaction substitution seam.
 # Forbidden fallbacks: raw_final_writer,
 # duplicate_backend_transaction_algorithm, commit_without_typed_receipt,
-# second_whole_graph_validation, crash_durability_without_sync.
+# second_whole_graph_validation, crash_durability_without_sync,
+# failure_tag_only, outcome_bool_collapse_before_last_consumer,
+# receipt_as_authority_or_projection_source, unknown_failure_status,
+# known_wrong_target_projection.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,7 +69,30 @@ if grep -Fq 'SelfMirProgramJsonWriteFile(projection.facts' "$DRIVER"; then
     echo "production source-to-MIR path reintroduced the validating wrapper" >&2
     exit 1
 fi
-grep -Fq 'ArtifactCommitted,' "$ACTION"
-grep -Fq 'SelfMirArtifactCommitOutcomeReady(committed)' "$ACTION"
+grep -Fq 'DriverRung2Executed(DriverRung2ExecutionReceipt)' "$ACTION"
+for term in 'match committed {' 'case SelfMirArtifactCommitted(receipt):' \
+    'SelfMirArtifactReceiptReadyFor(receipt, output_path)' \
+    'case SelfMirArtifactRejected(failure):' \
+    'return DriverRung2ArtifactRejected(failure);'; do
+    grep -Fq -- "$term" "$ACTION" || {
+        echo "action collapsed a typed artifact outcome: $term" >&2
+        exit 1
+    }
+done
+if grep -Fq 'SelfMirArtifactCommitOutcomeReady(committed)' "$ACTION"; then
+    echo "action collapsed artifact failure payload to Bool" >&2
+    exit 1
+fi
+for term in 'failure.stage' 'failure.status' 'failure.prior_final_preserved' \
+    'failure.temp_removed' 'failure.final_path'; do
+    grep -Fq -- "$term" "$TX_OWNER" || {
+        echo "artifact failure diagnostic dropped payload field: $term" >&2
+        exit 1
+    }
+done
+grep -Fq 'SelfMirArtifactCommitStatusKnown(failure.status)' "$TX_OWNER" || {
+    echo "artifact failure admitted an unknown status identity" >&2
+    exit 1
+}
 
 echo "[artifact-atomic-contract] one runtime owner; typed receipt; no raw final writer; single production validation"

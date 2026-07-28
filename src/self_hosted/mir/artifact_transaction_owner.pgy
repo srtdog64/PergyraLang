@@ -46,6 +46,16 @@ func SelfMirArtifactCommitCloseFailedStatus() -> Int { return 4; }
 func SelfMirArtifactCommitPublishFailedStatus() -> Int { return 5; }
 func SelfMirArtifactCommitCleanupFailedStatus() -> Int { return 6; }
 
+func SelfMirArtifactCommitStatusKnown(status: Int) -> Bool {
+    return status >= SelfMirArtifactCommitInvalidHandleStatus() &&
+        status <= SelfMirArtifactCommitCleanupFailedStatus();
+}
+
+func SelfMirArtifactBoolName(value: Bool) -> String {
+    if value { return "true"; }
+    return "false";
+}
+
 func SelfMirArtifactCommitStageForStatus(
     status: Int
 ) -> SelfMirArtifactCommitStage {
@@ -65,6 +75,74 @@ func SelfMirArtifactCommitStageForStatus(
         return ArtifactWriteChunks;
     }
     return ArtifactBeginTemp;
+}
+
+func SelfMirArtifactCommitStageName(
+    stage: SelfMirArtifactCommitStage
+) -> String {
+    match stage {
+        case ArtifactBeginTemp: return "begin-temp";
+        case ArtifactWriteChunks: return "write-chunks";
+        case ArtifactFlushTemp: return "flush-temp";
+        case ArtifactCloseTemp: return "close-temp";
+        case ArtifactPublishFinal: return "publish-final";
+        case ArtifactCleanupTemp: return "cleanup-temp";
+    }
+}
+
+func SelfMirArtifactReceiptReadyFor(
+    receipt: SelfMirArtifactReceipt,
+    expected_final_path: String
+) -> Bool {
+    return receipt.schema == SelfMirArtifactTransactionSchema() &&
+        expected_final_path != "" &&
+        receipt.final_path == expected_final_path &&
+        receipt.atomic_visibility && !receipt.crash_durable;
+}
+
+func SelfMirArtifactFailureReadyFor(
+    failure: SelfMirArtifactFailure,
+    expected_final_path: String
+) -> Bool {
+    if failure.schema != SelfMirArtifactTransactionSchema() ||
+        expected_final_path == "" ||
+        failure.final_path != expected_final_path ||
+        !SelfMirArtifactCommitStatusKnown(failure.status) ||
+        failure.stage != SelfMirArtifactCommitStageForStatus(failure.status) ||
+        !failure.prior_final_preserved {
+        return false;
+    }
+    return failure.temp_removed ==
+        (failure.status != SelfMirArtifactCommitCleanupFailedStatus());
+}
+
+func SelfMirArtifactFailureDiagnostic(
+    failure: SelfMirArtifactFailure,
+    expected_final_path: String
+) -> String {
+    if !SelfMirArtifactFailureReadyFor(failure, expected_final_path) {
+        return "artifact transaction failure payload is invalid";
+    }
+    let prior: String = SelfMirArtifactBoolName(
+        failure.prior_final_preserved
+    );
+    let removed: String = SelfMirArtifactBoolName(failure.temp_removed);
+    let diagnostic: String = Concat(
+        "artifact transaction rejected: schema=", failure.schema
+    );
+    diagnostic = Concat(
+        diagnostic, Concat(" final_path=", failure.final_path)
+    );
+    diagnostic = Concat(diagnostic, Concat(
+        " stage=", SelfMirArtifactCommitStageName(failure.stage)
+    ));
+    diagnostic = Concat(
+        diagnostic, Concat(" status=", ToString(failure.status))
+    );
+    diagnostic = Concat(
+        diagnostic, Concat(" prior_final_preserved=", prior)
+    );
+    return Concat(diagnostic, Concat(" temp_removed=", removed));
 }
 
 func SelfMirArtifactRejectedOutcome(
@@ -157,9 +235,9 @@ func SelfMirArtifactCommitOutcomeReady(
 ) -> Bool {
     match outcome {
         case SelfMirArtifactCommitted(receipt):
-            return receipt.schema == SelfMirArtifactTransactionSchema() &&
-                receipt.final_path != "" && receipt.atomic_visibility &&
-                !receipt.crash_durable;
+            return SelfMirArtifactReceiptReadyFor(
+                receipt, receipt.final_path
+            );
         case SelfMirArtifactRejected(failure):
             return false;
     }

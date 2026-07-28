@@ -51,11 +51,11 @@ artifact identity를 확인한 뒤 shared compiler-artifact transaction을 commi
 `Main`의 target-fact 생성, direct backend 호출, direct-mode raw writer 우회는
 삭제됐다.
 
-`ArtifactCommitted`는 `tobject SelfMirArtifactReceipt`가 반환되고
-`atomic_visibility=true`, `crash_durable=false`가 확인된 경우에만 기록한다.
-wrong identity/target과 commit 실패는 action이 returned `Rejected`로 구별하지만
-malformed MIR의 하위 `Die`는 fatal boundary다. 두 실패 종류를 하나의 Rejected
-계약으로 과장하지 않는다.
+`DriverRung2Executed`는 `tobject SelfMirArtifactReceipt`의 exact target/path,
+`atomic_visibility=true`, `crash_durable=false`가 확인된 경우에만 반환된다.
+Wrong identity/target은 typed rejection이고 commit 실패는 원래
+`SelfMirArtifactFailure` payload variant다. Malformed MIR의 하위 `Die`는 fatal
+boundary이며 이 실패를 transaction rejection과 하나로 과장하지 않는다.
 
 `src/self_hosted/compiler/world.pgy`는 이제 composition owner를 통해 bootstrap
 import/call graph에 들어오며 `PgyCompilerWorld`는 direct-MIR slice의 실제
@@ -74,7 +74,7 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | --- | --- | --- |
 | `struct` | `REACHABLE` supporting construct | production typed 계산에 사용되지만 독립 C-path 대체 등급은 아님 |
 | `class`, `object`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
-| `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload까지 소비된다. failure는 생성되지만 caller는 tag만 소비하고 payload는 버린다 |
+| `tobject` | `REACHABLE`, not `SUBSTITUTING` | production action의 receipt와 failure가 typed variant로 Main까지 전달되고 양쪽 payload가 후속 판정/진단에 소비된다 |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
@@ -378,11 +378,10 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
 - Objective: direct MIR C/LLVM projection의 실제 target 선택 및 artifact
   handoff를 Pergyra subject action 하나로 옮기고 bootstrap `Main`의
   `CompileMirJsonToDirectBackendVerified` 직접 호출을 제거한다.
-- Execution owner: `driver_rung2_execution_owner.pgy`가
-  `DriverRung2ExecutionStage`의 `Requested`, `TargetAdmitted`,
-  `ArtifactCommitted`, `Rejected` 전이와 그 전이를 수행하는 subject/action을
-  선언한다. commit receipt는 atomic visibility만 증명하고 crash durability는
-  증명하지 않는다.
+- Execution owner: `driver_rung2_execution_owner.pgy`가 성공 receipt, 일반
+  rejection, artifact failure의 세 terminal payload variant와 그 전이를 수행하는
+  subject/action을 선언한다. commit receipt는 atomic visibility만 증명하고 crash
+  durability는 증명하지 않는다.
 - Action responsibility: CLI의 C/LLVM 요청을 owner projection으로 변환하고,
   `CompilerTargetProjectionFactFromOwner`로 target을 admit하고, 기존
   `CompileMirJsonToDirectBackendVerified` 결과를 한 번 소비해 compiler artifact
@@ -566,9 +565,39 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Grade only this bounded input-feature slice `SUBSTITUTING`. The compiler
   organization grades for `object`, `tobject`, `zone`, `world`, and `intent`,
   and the separate world/tobject query rung, remain unchanged.
-- Next falsifier: return a detached tobject receipt from a real fallible
-  action/intent and consume both success and failure payloads without recovering
-  graph authority or source freshness from the receipt.
+- The next falsifier named here is completed by the bounded action outcome rung
+  below. Multi-action fallible intent consumption remains a separate rung.
+
+## Completed fallible action tobject outcome rung objective card
+
+- Objective: preserve the production direct-MIR action's typed success receipt
+  or failure payload through `PgyCompilerWorld` to `driver_bootstrap_main.pgy`,
+  and make the final caller consume the payload rather than only its tag.
+- Fact owner: `artifact_transaction_owner.pgy` owns transaction status, stage,
+  final-path preservation and cleanup facts. The action owns the terminal
+  outcome variant; world/composition only carries it.
+- Forbidden fallback: Bool collapse before Main, failure-tag-only handling,
+  generic diagnostic replacement, unknown status acceptance, known-but-wrong
+  target acceptance, raw writer/retry, or reconstructing authority, source
+  freshness or topology identity from a detached receipt.
+- Executable gate: `driver_rung2_fallible_tobject_outcome_owner.sh` compiles the
+  payload action for native C/LLVM and production self C, consumes both values,
+  then observes an exact real artifact-begin failure at Main with no partial
+  output. The runtime transaction matrix separately covers
+  open/write/flush/close/publish/cleanup preservation for C-inline/LLVM-linked
+  legs.
+- Adjacent C declaration-order defect closed: hosted method/action by-value
+  return facts participate in the MIR type schedule. Pointer-carried mutual
+  subject parameters and the host's own direct return/parameter type do not
+  create false by-value cycles.
+- Grade: the failure tobject advances from tag-consumed `MATERIALIZED` to
+  `OUTCOME_CONSUMED`. Overall `tobject`, subject/action, zone and world remain
+  `REACHABLE`, not `SUBSTITUTING`; compiler `intent` remains `SURFACE` because
+  it still cannot bind and branch on a fallible action outcome.
+- Next falsifier: add an explicit intent outcome-binding/branch ABI for two
+  real production actions, consume success and failure payloads, execute
+  compensation with predecessor evidence, and only then consider root-intent
+  takeover.
 
 ## Intent successful-path execution rung objective card
 

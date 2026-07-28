@@ -1,0 +1,22 @@
+subject Alpha {
+    action Touch(self, beta: Beta) -> Void { }
+}
+
+subject Beta {
+    action Touch(self, alpha: Alpha) -> Void { }
+}
+
+class ValueTool {
+    let value: Int;
+
+    func Clone(self, other: ValueTool) -> ValueTool {
+        return ValueTool(self.value + other.value);
+    }
+}
+
+func Main() -> Void {
+    let tool = ValueTool(1);
+    let merged = tool.Clone(ValueTool(2));
+    Log(ToString(merged.value));
+    Log("mutual-subject-action-params");
+}

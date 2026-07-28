@@ -2,6 +2,29 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 fallible action tobject outcome checkpoint
+
+- Production `DriverRung2Execution.EmitDirectMir`가 이제 success receipt,
+  ordinary rejection, artifact failure를 서로 다른 typed variant로 반환한다.
+  `PgyCompilerWorld`/composition은 이를 그대로 운반하고 bootstrap Main이 exact
+  target/path/visibility receipt 또는 stage/status/recovery failure payload를 소비한다.
+- 기존 `DriverRung2ExecutionResult { ok, stage, execution_identity, ... }`는 삭제했다.
+  Detached payload에는 subject authority, source freshness, graph/topology identity를
+  싣지 않는다. Unknown failure status와 known-but-wrong target은 fail closed한다.
+- Native C 선언 scheduler가 action return enum을 payload tobject보다 먼저 출력하던
+  결함을 닫았다. Hosted method의 by-value return/parameter는 schedule fact가 되고,
+  implicit self, pointer-carried mutual subjects, direct host-self type은 false cycle을
+  만들지 않는다.
+- Focused gate에서 native C/LLVM/self C가 `ok=7`, `error=9`를 동일하게 실행했다.
+  Fresh bootstrap Main은 real artifact-begin failure를 schema/path/begin-temp/status 1/
+  prior-final-preserved/temp-removed로 정확히 구별했고 partial output은 없었다.
+- Fresh build peak는 `pgy` 약 808 MiB + `cc1` 약 1.03 GiB, 합계 약 1.8 GiB였다.
+  20 GiB whole-graph/process-tree 재발은 관측되지 않았다.
+- 이 rung은 failure tobject를 `OUTCOME_CONSUMED`로 올리지만 전체 `tobject`,
+  subject/action/zone/world는 계속 `REACHABLE`, compiler `intent`는 `SURFACE`다.
+  다음 falsifier는 두 production action의 typed intent outcome binding, failure branch,
+  compensation과 exact predecessor evidence다.
+
 ## 2026-07-28 binding production self-C substitution checkpoint
 
 - `binding_slot_constructor_source_order`가 이제 production Pergyra-built
@@ -18,9 +41,8 @@
 - `semantic.nominal_field_kind`, `semantic.domain_runtime_assignment`,
   `dir.domain_graph` registry row에는 실행·negative gate를 추가했지만, 남은
   vessel/lifecycle/epoch/shared-plan 범위 때문에 세 family 모두 `BRIDGE`를 유지한다.
-- 다음 falsifier는 실제 fallible action/intent가 detached `tobject` receipt의
-  success와 failure payload를 반환하고 caller가 둘 다 소비하는 경로다. Receipt에서
-  graph authority나 source freshness를 복구하는 우회는 금지한다.
+- 이때 기록한 다음 falsifier는 최신 fallible action tobject outcome checkpoint에서
+  완료됐다. Multi-action intent의 outcome binding/compensation은 계속 열린다.
 - Hard self-host contract의 stale owner anchor도 현재 구조로 맞췄다. MIR fixture
   inventory는 `driver_rung2_mir_manifest_owner.pgy`, body call environment는 shared
   environment owner, graph traversal은 accessor가 소유한다. Collection mutation은
@@ -407,7 +429,7 @@
   `ReceiverCarriage`, `ParameterCarriage`, `CallableKind`, `ActionContract`,
   `CallAuthorityBinding`, `RuntimeAuthorityEvidence`의 직교 fact다.
 - Production import closure 450개에서 object 18개는 import만 되고 실제 생성/소비가
-  없다. artifact receipt는 payload까지 소비되지만 failure payload는 버려지며,
+  없다. artifact receipt/failure는 모두 payload까지 소비되며,
   subject/action 17쌍 중 production 호출은 direct-MIR 한 쌍뿐이다.
 - C/LLVM은 vessel hosted receiver의 `uses_pointer_self`를 일반 vessel 파라미터에도
   재사용해 canonical value carriage와 달리 caller 원본을 바꾼다. object/tobject

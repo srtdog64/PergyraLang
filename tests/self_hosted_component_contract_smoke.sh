@@ -4934,15 +4934,31 @@ require_text "tests/self_hosted/parity/world_tobject_projection_query_owner.sh" 
 require_text "Makefile" "self-host-world-tobject-query-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/tobject_boundary_execution_owner.sh"
 require_max_lines "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" 180
+require_file "tests/self_hosted/parity/tobject_boundary_self_mir_owner.sh"
+require_max_lines "tests/self_hosted/parity/tobject_boundary_self_mir_owner.sh" 160
+require_text "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/tobject_boundary_self_mir_owner.sh"'
 require_file \
     "tests/self_hosted/parity/fixture/zone_projection_constructor_source_order.pgy"
 require_file \
     "tests/self_hosted/parity/fixture/domain_topology_tobject_source_rejected.pgy"
 require_text "Makefile" "self-host-tobject-boundary-test-smoke:"
-require_text "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" \
+require_text "tests/self_hosted/parity/tobject_boundary_self_mir_owner.sh" \
     'valid-ID tobject projection source'
 require_text "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" \
     'accepts at most 1 positional field argument(s), got 2'
+require_file "tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh" 140
+require_file "tests/self_hosted/fixtures/action_tobject_outcome_probe.pgy"
+require_file "tests/self_hosted/fixtures/mutual_subject_action_params.pgy"
+require_text "Makefile" "self-host-fallible-tobject-outcome-test-smoke:"
+require_text "tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh" \
+    'caller did not consume the exact failure payload'
+require_text "src/codegen/transpiler_type_decl_schedule.c" \
+    'mir_decl_method_return_type_name(method)'
+require_text "src/codegen/transpiler_type_decl_schedule.c" \
+    'dependency_uses_pointer_carriage(inventory, type_name)'
 reject_regex "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
     'ArrayPush\([A-Za-z_][A-Za-z0-9_]*\.'
 reject_regex "src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy" \

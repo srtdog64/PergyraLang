@@ -67,12 +67,18 @@ func Main() -> Void with caps env, io_read, io_write {
         if args[0] == "--mir-json-backend=llvm" {
             request = DirectMirLlvm;
         }
-        let result: DriverRung2ExecutionResult =
+        let outcome: DriverRung2ExecutionOutcome =
             EmitDirectMirThroughPgyCompilerWorld(
             args[1], args[2], machine_declaration, request
         );
-        if !DriverRung2ExecutionResultReady(result) {
-            Log(result.diagnostic);
+        let expected_projection: String =
+            DriverRung2DirectMirRequestProjection(request);
+        if !DriverRung2ExecutionOutcomeReadyFor(
+            outcome, args[2], expected_projection
+        ) {
+            Log(DriverRung2ExecutionOutcomeDiagnostic(
+                outcome, args[2], expected_projection
+            ));
             Exit(1);
         }
         return;

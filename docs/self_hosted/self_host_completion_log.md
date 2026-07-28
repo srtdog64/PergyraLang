@@ -6,6 +6,26 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-28 - Fallible action consumes both tobject outcome payloads
+
+- Replaced the direct-MIR action's `ok + stage` result struct with one tagged
+  outcome carrying an immutable success receipt, ordinary rejection, or the
+  original artifact failure tobject. The detached result no longer carries the
+  execution subject identity.
+- World/composition carries that outcome unchanged. Bootstrap Main validates
+  exact target/path/visibility on success and consumes stage/status/final
+  preservation/temp cleanup on transaction failure. Unknown status and
+  known-but-wrong target fail closed.
+- Added a production executable gate. Native C, native LLVM and self C consume
+  both payloads as `ok=7`, `error=9`; a real missing-directory artifact begin
+  fails at Main with the exact typed payload and no partial artifact.
+- Fixed native C declaration scheduling for action/method by-value return and
+  parameter types. Mutual subject pointer parameters and direct host-self
+  method types no longer create false cycles.
+- This advances artifact failure to `OUTCOME_CONSUMED`, not whole compiler
+  substitution. Overall tobject/action/world stay `REACHABLE`; intent stays
+  `SURFACE` until it can bind a fallible action outcome and branch/compensate.
+
 ## 2026-07-28 - Intent successful path executes; tobject authority stays outside payload
 
 - Added a distinct typed MIR intent carrier and consumer. The general production

@@ -206,9 +206,9 @@ canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는
 - `world.pgy`의 나머지 subject/action 16개는 `Compiler*Ready()` 결합만
   반환하고 production artifact 경로에서 호출되지 않는다;
 - intent 14개와 object projection schema는 import-reachable하지만 active
-  call-site가 없어 `SURFACE`다. tobject 중 artifact receipt는 active commit에서
-  payload까지 소비된다. failure는 materialize되지만 caller가 tag만 읽고 payload는
-  버리며, 기존 `ParityVerdict`는 surface다.
+  call-site가 없어 `SURFACE`다. tobject 중 artifact receipt와 failure는 active
+  commit에서 typed variant로 Main까지 전달되고 양쪽 payload가 소비된다. 기존
+  `ParityVerdict`는 surface다.
 
 따라서 현재 bootstrap에는 subject/action/zone/world를 잇는 첫
 Pergyra-native orchestration slice가 생겼고 direct-MIR artifact action은
@@ -223,8 +223,8 @@ requires/within/causes/authorized/caps/effects declaration contract를 운반한
 
 구성체의 실행 증거는 단순 선언 수와 분리해
 `IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING`으로
-기록한다. 현재 object 18개는 `IMPORTED`, artifact receipt는
-`OUTCOME_CONSUMED`, failure는 `MATERIALIZED`와 tag-consumed, direct-MIR
+기록한다. 현재 object 18개는 `IMPORTED`, artifact receipt와 failure는
+`OUTCOME_CONSUMED`, direct-MIR
 subject/action 한 쌍은 `INVOKED`와 terminal result consumption까지다. 마지막
 `SUBSTITUTING`만 기존 C-owned path 삭제와 executable negative가 함께 있을 때
 hard self-host 진척으로 센다.

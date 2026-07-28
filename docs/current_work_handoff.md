@@ -6,6 +6,62 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - fallible action tobject outcome consumption
+
+- Landing parent: `49c097b2dbd42f1387349b4b1d751881a7a5dd27` on `main`,
+  aligned with `origin/main` at the start of this slice. After landing, verify
+  the exact revision with `git rev-parse HEAD`.
+- Objective card:
+  - objective: preserve the production direct-MIR action's typed success or
+    failure payload through world composition to bootstrap Main and make the
+    final caller consume the payload;
+  - priority: exact outcome variant; transaction stage/status/recovery facts;
+    exact target/path receipt; action/world/caller carriage; authority and
+    freshness negatives; then multi-action intent outcome binding;
+  - fact owner: `artifact_transaction_owner.pgy` owns receipt/failure facts;
+    `DriverRung2Execution.EmitDirectMir` owns the terminal transition;
+    world/composition only carries it and Main is the last consumer;
+  - forbidden fallback: `ok + stage` double tag, Bool collapse before Main,
+    failure-tag-only handling, diagnostic string recovery, raw writer/retry,
+    unknown status, known-but-wrong target, or receipt-derived authority,
+    source freshness and topology identity;
+  - verification: `driver_rung2_fallible_tobject_outcome_owner.sh`, the action
+    and atomic-transaction static gates, runtime transaction matrix, object/
+    action boundary contract and the SoT registry gate.
+- `DriverRung2ExecutionOutcome` now has distinct executed receipt, ordinary
+  rejection and artifact failure variants. The old result struct and detached
+  `execution_identity` field are gone. Success checks schema, exact target and
+  output path, atomic visibility and non-durability. Failure preserves exact
+  stage/status/prior-final/temp-cleanup facts to Main.
+- The C type declaration scheduler now consumes hosted method/action by-value
+  return and parameter facts. It does not create false cycles for implicit
+  self, pointer-carried mutual subject parameters, or the host's own direct
+  return/parameter type.
+- Observed focused evidence:
+  - incremental native compiler rebuild passed;
+  - native C, native LLVM and production self C execute the action outcome
+    probe as `ok=7`, `error=9`;
+  - mutual subject action parameters compile without a false by-value cycle,
+    while a host-self `ValueTool` method returns the executed value `3`;
+  - a fresh current-source bootstrap driver publishes the success artifact and
+    Main distinguishes a real begin failure exactly as schema v1, begin-temp,
+    status 1, prior final preserved and temp removed, with no partial output;
+  - the fresh build peak observed about 808 MiB in `pgy` plus 1.03 GiB in
+    `cc1`, roughly 1.8 GiB combined rather than the old multi-process 20 GiB
+    symptom.
+- Grade: receipt and failure reach `OUTCOME_CONSUMED`; overall `tobject`,
+  subject/action, zone and world remain `REACHABLE`, not `SUBSTITUTING`.
+  Compiler `intent` remains `SURFACE` because intent lowering still discards
+  action results and accepts only literal-success `expect`.
+- Next falsifier: add typed outcome binding and success/failure branching for
+  two real production actions in an intent, execute compensation with exact
+  predecessor evidence, then consider root-intent takeover.
+- Preserve and do not stage the three concurrent parity edits
+  (`driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`) or the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+
 ## Current resume checkpoint - tobject publication and domain admission boundary
 
 - Landing parent: `553af9793433798a8b7c6bdea3badc80b1d345a6` on `main`, aligned
@@ -94,10 +150,9 @@ owner, and the named executable gate.
   C/LLVM output parity, and valid-ID negative ratchets. Do not promote the
   compiler-organization grade of `object`, `tobject`, `zone`, `world`, or
   `intent`; their independently recorded grades remain unchanged.
-- Next executable falsifier: carry a detached tobject receipt as the explicit
-  outcome of a real fallible action/intent, consume both the success and
-  failure payload at the caller, and reject any attempt to recover authority or
-  source freshness from that receipt.
+- This next falsifier is completed by the newer fallible action outcome
+  checkpoint at the top of this handoff. Multi-action intent outcome binding
+  remains open.
 - The stale tracked `testall_run.txt` transcript was removed and is ignored;
   generated builders remain under `.tmp/`.
 - Preserve and do not stage the three concurrent parity edits
@@ -826,7 +881,7 @@ historical context; the current executable state is the section above.
   atomic replace, cleanup, and generation-tagged transaction handles for both
   C-inline and LLVM-linked output. The Pergyra owner maps scalar status
   immediately to `tobject SelfMirArtifactReceipt`/`SelfMirArtifactFailure`;
-  `ArtifactCommitted` requires the receipt. It claims atomic visibility only,
+  the typed executed variant requires the receipt. It claims atomic visibility only,
   never crash durability. Production MIR JSON, direct-MIR action, bootstrap
   outputs, and rung-1 CLI outputs have no raw-final writer fallback.
 - The source-to-MIR production path validates `SelfMirProgramFacts` once and

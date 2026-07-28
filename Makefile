@@ -3365,6 +3365,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-callable-reachability-test-smoke \
 	self-host-intent-callable-execution-test-smoke \
 	self-host-tobject-boundary-test-smoke \
+	self-host-fallible-tobject-outcome-test-smoke \
 	lsp-completion-registry-test-smoke \
 	lsp-hover-registry-test-smoke \
 	vscode-language-graph-test-smoke
@@ -3392,6 +3393,10 @@ self-host-intent-callable-execution-test-smoke: $(PGY)
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/tobject_boundary_execution_owner.sh
+
+self-host-fallible-tobject-outcome-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/driver_rung2_fallible_tobject_outcome_owner.sh
 
 lsp-completion-registry-test-smoke:
 	"$(BASH)" tests/lsp_completion_registry_smoke.sh

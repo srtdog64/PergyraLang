@@ -14,7 +14,7 @@ func EmitDirectMirThroughPgyCompilerWorld(
     output_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverRung2DirectMirRequest
-) -> DriverRung2ExecutionResult with caps io_read, io_write {
+) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
     let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
             DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())

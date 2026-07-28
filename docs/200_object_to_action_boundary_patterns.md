@@ -364,9 +364,10 @@ missing import는 0이다. 이 import-reachable 집합에는 `func` 3,800개,
 실제 direct-MIR production call chain은 `PgyCompilerWorld`의 `direct_mir` zone과
 `DriverRung2Execution.EmitDirectMir` action 하나를 지난다. 이 action은
 identity admission, target admission, atomic artifact commit을 실제로 소유한다.
-commit은 `tobject SelfMirArtifactReceipt`가 있을 때만 `ArtifactCommitted`로
-전이하며 이 receipt의 payload는 실제 소비된다. `SelfMirArtifactFailure`도
-생성되지만 현재 caller는 variant tag만 소비하고 failure payload는 버린다.
+commit은 `tobject SelfMirArtifactReceipt`가 있을 때만 typed success variant로
+전이하며 이 receipt의 payload는 실제 소비된다. `SelfMirArtifactFailure`도 typed
+failure variant로 Main까지 전달되고 exact stage/status/recovery payload가 진단과
+실패 판정을 바꾼다.
 receipt는 atomic visibility만 주장하고 crash durability는 명시적으로 `false`다.
 `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
 계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
@@ -378,7 +379,7 @@ chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름
 | `struct` | `REACHABLE` supporting construct | production 계산에는 실제 사용되지만 구성체 자체가 C-owned path를 대체했다는 독립 증거는 아님 |
 | `class` | `SURFACE` | bootstrap closure 선언 0, backend fixture만 존재 |
 | `object` | `SURFACE` | world schema 18개, active direct-MIR call chain 소비 0 |
-| `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload가 소비됨. failure는 생성되지만 tag만 소비되고 payload는 미소비 |
+| `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt/failure가 production caller까지 typed variant로 전달되고 양쪽 payload가 소비됨 |
 | `vessel` | `SURFACE` | bootstrap closure 선언 0 |
 | `subject` / `action` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR subject/action 1쌍만 production 호출, 나머지 16쌍은 readiness |
 | `zone` / `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 하나만 호출; authority runtime 증거는 presence-only |
@@ -411,8 +412,9 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 - `SUBSTITUTING`은 여기에 더해 실제 C-owned 경로를 대체하고 우회가 삭제됐다는
   뜻이다.
 
-현재 object 18개는 `IMPORTED`에서 멈춘다. artifact receipt는
-`OUTCOME_CONSUMED`, failure는 `MATERIALIZED`와 tag-consumed까지만 도달한다.
+현재 object 18개는 `IMPORTED`에서 멈춘다. Artifact receipt와 failure는 모두
+production direct-MIR action에서 caller까지 typed variant로 전달되고
+`OUTCOME_CONSUMED`에 도달한다.
 subject/action 17쌍 중 `DriverRung2Execution.EmitDirectMir` 한 쌍만
 `INVOKED`와 result consumption에 도달한다. 나머지 readiness/intent 선언과
 문법·lowering fixture는 canonical authoring 예가 아니라 surface 회귀 자료다.
@@ -422,10 +424,19 @@ subject/action 17쌍 중 `DriverRung2Execution.EmitDirectMir` 한 쌍만
 현재 production 호출 그래프에서 실제로 호출되는 Pergyra-native hosted action은
 `DriverRung2Execution.EmitDirectMir` 하나다. `object` 18개는 schema/slot
 surface이며 construction, `ToObject`, `refresh` production call이 없다.
-`tobject SelfMirArtifactReceipt`는 transaction 결과 payload까지 실제 도달한다.
-`SelfMirArtifactFailure`는 생성되지만 tag만 소비되며, `ParityVerdict`는 surface다.
+`tobject SelfMirArtifactReceipt`와 `SelfMirArtifactFailure`는 transaction 결과의
+모든 payload field가 bootstrap caller의 성공 판정 또는 실패 진단을 바꾼다.
+`ParityVerdict`는 surface다.
 `subject/action` 17쌍 중 나머지
 16쌍도 호출되지 않는 readiness facade다.
+
+이 경계의 terminal result는 `ok + stage` 중복 tag struct가 아니다.
+`DriverRung2ExecutionOutcome`이 성공 receipt, 일반 rejection, artifact failure를
+서로 다른 payload variant로 소유한다. 성공 receipt는 schema, exact target/path,
+atomic visibility와 durability를 검증하고, artifact failure는 stage/status,
+prior-final 보존과 temp 제거 여부를 transaction owner가 검증·render한다. Unknown
+status와 known-but-wrong target도 fail closed한다. Detached payload에는 subject
+authority, source identity/freshness 또는 topology identity를 넣지 않는다.
 
 따라서 모든 키워드를 한 경로에 억지로 쓰는 것은 개사료가 아니다. 필요한
 경계만 다음 순서로 둔다.
@@ -851,12 +862,11 @@ immutable 결과다. byte count/fingerprint는 아직 receipt wire에 넣지 않
 `authorized by`가 소유하는 승인 provenance를 대신하지 않는다.
 
 현재 production 예인 `DriverRung2Execution.EmitDirectMir`는 target admission과
-artifact commit을 실제로 소유한다. 코드에는
-`Requested -> TargetAdmitted -> ArtifactCommitted`가 있지만 앞의 두 stage 값은
-현재 읽히거나 반환되지 않는 local dead write다. 따라서 관측 가능한 stage
-protocol 증거로 세지 않으며 caller가 소비하는 terminal 결과는
-`ArtifactCommitted` 또는 `Rejected`다. wrong identity/target과 commit failure는
-반환된 `Rejected`로 구별하지만 하위
+artifact commit을 실제로 소유한다. Terminal protocol은
+`DriverRung2Executed(receipt)`, `DriverRung2Rejected(rejection)`,
+`DriverRung2ArtifactRejected(failure)` 세 variant다. `ok + stage` 중복 tag와
+읽히지 않는 intermediate stage local은 삭제됐다. Wrong identity/target은 typed
+rejection으로, transaction failure는 원래 failure payload로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
 끝까지 운반된다. Contract vocabulary SoT는 shared registry로 닫혔지만 실행 대체는
