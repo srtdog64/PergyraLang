@@ -1,0 +1,45 @@
+subject Buyer {
+    let displayName: String;
+    let total: Int;
+}
+
+object BuyerView {
+    label: String;
+    totalPurchases: Int;
+}
+
+tobject BuyerPacket {
+    user: String;
+    totalPurchases: Int;
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    object slot buyerView: BuyerView
+    tobject slot buyerPacket: BuyerPacket
+
+    refresh buyerView from buyer by buyer map {
+        label <- displayName;
+        totalPurchases <- total;
+    }
+
+    publish buyerPacket from buyer by buyer map {
+        user <- displayName;
+        totalPurchases <- total;
+    }
+}
+
+world PaymentWorld {
+    zone payment: PaymentZone
+
+    func Ready(self) -> Bool {
+        return HasZoneProjection(payment, missingPacket);
+    }
+}
+
+func Main() -> Void {
+    let buyer = Buyer("Mina", 2);
+    let payment = PaymentZone(Clone(buyer));
+    let world = PaymentWorld(Clone(payment));
+    Log(ToString(world.Ready()));
+}

@@ -2,6 +2,33 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 world/tobject query reachability checkpoint
+
+- Self semantic은 명목 생성자 호출을 일반 함수의 exact-arity 경로와 분리한다.
+  `PaymentZone(Clone(buyer))`는 caller가 공급하는 subject slot prefix만 받고,
+  topology-managed layer storage는 생성자 인자에서 제외된다.
+- `HasProjection`/`HasZoneProjection` 인자는 일반 값 변수가 아니라 선언-scoped
+  symbolic identity다. Self owner는 `PaymentWorld.payment -> PaymentZone ->
+  buyerView:ObjectSlot | buyerPacket:TObjectSlot`을 exact field kind로 검증한 뒤,
+  검증된 leaf node만 undefined-value 검사에서 제외한다.
+- `refresh/publish ... by buyer`의 `by`는 tobject에 authority를 넣는 문법이 아니라
+  projection 전이의 provenance다. 이를 제거한 축소 fixture가 무진단 실패한 것을
+  첫 falsifier로 삼아 양성/음성 fixture 모두 명시적 participant를 유지한다.
+- `world_tobject_projection_query_owner.sh`는 새 DRV-2가 source에서 typed MIR의
+  tobject slot/publish/world query fact를 산출하는지 확인하고, 현재 native C/LLVM이
+  모두 `true`를 출력하는지 비교한다. 존재하지 않는 `missingPacket`은 부분 MIR
+  없이 `undefined_symbol`로 실패한다.
+- 이 delta는 `REACHABLE`이다. Self query backend lowering/실행은 아직 없고 직접
+  `ToTObject(Target, source)`의 self semantic/codegen도 열려 있다. 현재 실제
+  tobject 실행 패턴은 `subject source -> tobject slot -> publish`다.
+- 전체 `world_zone_projection_visibility`는 이제 initializer/query seam을 지나
+  `undefined_function`, `func: Checkout`에서 멈춘다. 다음 executable falsifier는
+  intent callable reachability이며 tobject/map/backend 우회로 풀지 않는다.
+- 변경 소스를 포함한 fresh Pergyra-built DRV-2는 약 28분에 설치됐고, 단일
+  `gen2.exe`의 sampled peak는 private 1,173.0 MiB / working set 1,071.1 MiB였다.
+  20+ GiB 재발은 없다. Self fact builder는 growable record member를 직접
+  `ArrayPush`하지 않고 local arrays를 완성한 뒤 immutable fact를 한 번 생성한다.
+
 ## 2026-07-28 explicit projection-map executable checkpoint
 
 - Self parser가 `map { target <- source }`를 버리지 않고 refresh/publish

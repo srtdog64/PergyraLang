@@ -3110,6 +3110,11 @@ self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
 		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
 
+self-host-world-tobject-query-test-smoke: self-host-compiler
+	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+		tests/self_hosted/parity/world_tobject_projection_query_owner.sh
+
 self-host-hard-driver-rung2-parity-full-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_SELFHOST_DRIVER_BACKENDS=hard PGY_BIN="$(abspath $(PGY))" \

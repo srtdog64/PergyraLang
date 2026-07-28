@@ -286,6 +286,17 @@ status.
 
 Current status counts: `CLOSED=34 BRIDGE=25 ACTIVE=0`.
 
+The current world/tobject semantic slice does not introduce another top-level
+authority row. `ast_expression_graph_nominal_constructor_call_owner.pgy` and
+`ast_expression_graph_domain_query_owner.pgy` are bounded verdict consumers of
+`selfhost.nominal_declaration_rows`: the former derives the caller-supplied
+constructor prefix from exact field kinds, and the latter joins a world zone
+slot to an exact `ObjectSlot`/`TObjectSlot` declaration identity. Neither owner
+may add a constructor/function compatibility fallback or put symbolic query
+arguments into the ordinary value environment. Promotion to a carried fact
+family is required only when a downstream MIR/backend consumer needs the query
+identity beyond semantic admission.
+
 The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact
 family, and which last consumers must eventually lose every alternate read.

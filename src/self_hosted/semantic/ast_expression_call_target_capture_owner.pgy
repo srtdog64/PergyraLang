@@ -53,6 +53,15 @@ func SemanticExpressionCallTargetExpected(
             callable_names, UnwrapOption(source_name)
         );
         if !IsSome(direct) {
+            let protocol: SemanticAstDomainQueryProtocol =
+                SemanticAstDomainQueryProtocolFromName(
+                    UnwrapOption(source_name)
+                );
+            if protocol.applies {
+                return SemanticExpressionCallTargetFact(
+                    true, SemanticCallTargetDirect(), protocol.name, 0
+                );
+            }
             return SemanticExpressionCallTargetFact(
                 true, SemanticCallTargetNone(), "", 0
             );

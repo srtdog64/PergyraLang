@@ -492,7 +492,7 @@ resolved semantic family는 아직 MIR producer boundary에서 만들어지므�
 owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 `subject/action/effect/relation`로 이주했다는 증거가 아니다.
 
-## 다음 실행 rung objective card
+## world/tobject query reachability rung objective card
 
 - Objective: `world_zone_projection_visibility`를 self semantic artifact와
   production world/zone call graph에 도달시켜 `label <- displayName`과
@@ -509,13 +509,36 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Falsifying case: self source가 semantic initializer artifact에서 계속 중단되거나,
   world/intent를 제거해도 같은 실행 결과가 나오거나, renamed source path를
   foreign valid field identity로 바꿔도 artifact가 생기는 경우.
-- Current first blocker: current DRV-2는 이 fixture를
-  `ast_artifact_invalid`, `node_count: 96`, owner
-  `SemanticAstInitializerTypeFacts`에서 거부한다. 이 관측을 map/codegen 실패로
-  오기하지 않는다.
-- Gate: direct source -> self semantic artifact -> MIR -> admitted plan -> general C
-  실행과 native C/LLVM parity, production call-graph reachability, old bypass 부재,
-  malformed identity의 output-before-failure를 한 focused gate에 둔다.
+- Current reached seam: nominal constructor calls now consume constructor-field
+  facts rather than the ordinary exact-arity function path. Zone constructors
+  accept the caller-supplied positional prefix while topology-managed layer
+  storage is excluded. `Buyer`, `PaymentZone(Clone(buyer))`, and
+  `PaymentWorld(Clone(payment))` therefore pass the initializer artifact.
+- `HasProjection`/`HasZoneProjection` arguments are declaration-scoped symbolic
+  names, not ordinary value reads. The self semantic query owner now validates
+  `payment -> PaymentZone -> buyerView:ObjectSlot` and
+  `buyerPacket:TObjectSlot` from the nominal field graph and suppresses the
+  undefined-value check only for those exact validated leaf node identities.
+  It does not put `buyerPacket` into the runtime variable environment.
+- Current next blocker: the same full fixture now reaches the intent call and
+  reports `undefined_function`, `func: Checkout`. This is an intent callable
+  graph/reachability seam, not a tobject, projection-map, or backend failure.
+- A fresh Pergyra-built DRV-2 now emits typed MIR for the bounded
+  `world_tobject_projection_query` fixture. The focused gate observes the exact
+  tobject/world/query facts, compares native C/LLVM output `true`, and rejects
+  `missingPacket` with `undefined_symbol` before a partial MIR artifact. The
+  projection directives retain explicit `by buyer`: this is transition
+  provenance, not authority stored in the tobject.
+- Grade this constructor/query delta `REACHABLE`, not `SUBSTITUTING`. Self query
+  backend lowering has not executed the world result yet. The existing
+  `subject source -> tobject slot -> publish` runtime assignment remains the
+  actual tobject execution path; direct self semantic/codegen support for
+  `ToTObject(Target, source)` is still open and must not be claimed from parser
+  fixtures alone.
+- Gate: `tests/self_hosted/parity/world_tobject_projection_query_owner.sh` owns
+  self source -> semantic/DIR -> typed MIR reachability, current native C/LLVM
+  execution parity, and the missing declaration-identity negative. The full
+  fixture remains the next intent-callable falsifier.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을

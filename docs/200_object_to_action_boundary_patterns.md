@@ -201,6 +201,13 @@ typed computation facts (struct/class/func)
 필요한 키워드 하나를 쓰고 그 typed fact가 production consumer까지 살아남는
 구현이다.
 
+Self-host fact builder도 이 규칙을 따른다. `struct` 결과의 growable array member를
+`ArrayPush(result.rows, ...)`처럼 live mutable builder로 사용하지 않는다. 배열은
+함수-local owner로 수집하고, 모든 cardinality가 맞은 뒤 immutable fact record를
+한 번 생성해 반환한다. 이 패턴은 C식 out-parameter 묶음이 아니라 “검증 전
+builder storage”와 “검증 뒤 fact identity”의 lifetime을 분리한다. 중간 실패는
+부분 record를 내보내지 않고 명시적 invalid fact를 반환한다.
+
 ### 2.4 Runtime 경계의 반복 패턴과 owner 분리
 
 Native C/LLVM과 self-host 경로를 함께 감사하면, `object`부터 `zone`까지는

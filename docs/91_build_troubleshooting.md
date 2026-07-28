@@ -2423,6 +2423,18 @@ The self-host-only argv helper now has a distinct internal identity, and both
 driver installer compile paths pin `-std=c11`. Do not raise the memory cap or
 patch generated C for either failure.
 
+A second fresh build after the world/tobject DIR and semantic changes completed
+and installed `bin/pgy-self-driver.exe` in about 28 minutes. The one observed
+`gen2.exe` peaked at 1,173.0 MiB private memory and 1,071.1 MiB working set.
+This is consistent with the prior bounded sample and again rejects a 20+ GiB
+recurrence; it remains CPU/time debt, not justification for a larger memory
+allowance. The build also exposed another instance of the same Pergyra-native
+builder rule: production domain-runtime assignment/codegen owners must collect
+growable rows in local arrays and construct the immutable fact record once.
+Direct `ArrayPush(result.member, ...)` relies on mutable record-member builder
+semantics that the Pergyra-built driver does not admit. The component gate now
+ratchets that form out of the affected production owners.
+
 ### Array-only emitted C loses runtime headers
 
 An Array program can use the collection runtime without otherwise using

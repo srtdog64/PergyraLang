@@ -4784,6 +4784,43 @@ require_file "src/self_hosted/semantic/nominal_constructor_argument_policy_owner
 require_max_lines "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" 100
 require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     "func SemanticAstNominalConstructorFieldIsArgument("
+require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentCountAt("
+require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentTypeAt("
+require_file "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 60
+require_text "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" \
+    "func SemanticAstNominalConstructorIndexForName("
+require_file "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
+require_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
+    "func SemanticExpressionGraphNominalConstructorCallFactFromGraph("
+require_file "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" 80
+require_text "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" \
+    'SemanticAstDomainQueryProtocolFromName("HasZoneProjection")'
+require_file "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy" 420
+require_text "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy" \
+    "func SemanticExpressionGraphDomainQueryFactsFromTree("
+require_text "src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy" \
+    "NominalFieldKindTObjectSlot()"
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    "NominalFieldKindWorldZone()"
+require_text_count_at_least "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    "NominalFieldKindTObjectSlot()" 2
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "domain_queries.symbolic_identifier_nodes"
+require_file "tests/self_hosted/parity/world_tobject_projection_query_owner.sh"
+require_max_lines "tests/self_hosted/parity/world_tobject_projection_query_owner.sh" 150
+require_text "tests/self_hosted/parity/world_tobject_projection_query_owner.sh" \
+    "Code: undefined_symbol"
+require_text "Makefile" "self-host-world-tobject-query-test-smoke: self-host-compiler"
+reject_regex "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
+    'ArrayPush\([A-Za-z_][A-Za-z0-9_]*\.'
+reject_regex "src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy" \
+    'ArrayPush\([A-Za-z_][A-Za-z0-9_]*\.'
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     '"=constructor_fields:"'
 require_file "tests/self_hosted/parity/driver_rung2_fieldless_class_parity_owner.sh"

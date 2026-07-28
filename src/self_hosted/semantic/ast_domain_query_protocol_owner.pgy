@@ -1,0 +1,41 @@
+// Self-host semantic protocol registry for domain-observability calls whose
+// arguments are declaration-scoped symbolic names rather than ordinary values.
+
+struct SemanticAstDomainQueryProtocol {
+    applies: Bool;
+    name: String;
+    family: String;
+    expected_arity: Int;
+}
+
+func SemanticAstDomainQueryProtocolFromName(
+    name: String
+) -> SemanticAstDomainQueryProtocol {
+    if name == "HasProjection" {
+        return SemanticAstDomainQueryProtocol(true, name, "projection", 1);
+    }
+    if name == "HasLayer" {
+        return SemanticAstDomainQueryProtocol(true, name, "layer", 1);
+    }
+    if name == "HasZoneProjection" {
+        return SemanticAstDomainQueryProtocol(
+            true, name, "zone_projection", 2
+        );
+    }
+    if name == "HasZoneLayer" {
+        return SemanticAstDomainQueryProtocol(true, name, "zone_layer", 2);
+    }
+    return SemanticAstDomainQueryProtocol(false, name, "", 0);
+}
+
+func SemanticAstDomainQueryProtocolContractReady() -> Bool {
+    let local_query: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName("HasProjection");
+    let cross_query: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName("HasZoneProjection");
+    return local_query.applies && local_query.family == "projection" &&
+        local_query.expected_arity == 1 && cross_query.applies &&
+        cross_query.family == "zone_projection" &&
+        cross_query.expected_arity == 2 &&
+        !SemanticAstDomainQueryProtocolFromName("HasZoneState").applies;
+}

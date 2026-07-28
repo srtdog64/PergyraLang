@@ -246,33 +246,36 @@ func CompilerDomainRuntimeCMethodPrologueForOwner(
 func CodegenDomainRuntimeFactsFromAdmittedOrDie(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> CodegenDomainRuntimeFacts {
-    let result: CodegenDomainRuntimeFacts =
-        CodegenDomainRuntimeFactsEmpty(true);
     if !admitted.domain_runtime_plan.present {
-        return result;
+        return CodegenDomainRuntimeFactsEmpty(true);
     }
+    let owner_names: Array<String> = [];
+    let method_prologues: Array<String> = [];
     let row: Int = 0;
     while row < ArrayLength(admitted.domain_runtime_plan.owner_names) {
         let owner_name: String =
             admitted.domain_runtime_plan.owner_names[row];
         let seen: Bool = false;
         let prior: Int = 0;
-        while prior < ArrayLength(result.owner_names) {
-            if result.owner_names[prior] == owner_name { seen = true; }
+        while prior < ArrayLength(owner_names) {
+            if owner_names[prior] == owner_name { seen = true; }
             prior = prior + 1;
         }
         if !seen {
             let prologue: String =
                 CompilerDomainRuntimeCMethodPrologueForOwner(
                     admitted, owner_name
-                );
+            );
             if prologue != "" {
-                ArrayPush(result.owner_names, owner_name);
-                ArrayPush(result.method_prologues, prologue);
+                ArrayPush(owner_names, owner_name);
+                ArrayPush(method_prologues, prologue);
             }
         }
         row = row + 1;
     }
+    let result: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFacts(
+        true, owner_names, method_prologues
+    );
     if !CodegenDomainRuntimeFactsReady(result) {
         Die("domain runtime C view did not preserve admitted plan identity");
     }

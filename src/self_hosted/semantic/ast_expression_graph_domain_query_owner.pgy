@@ -1,0 +1,373 @@
+// Typed domain-query facts over parser-owned expression graphs.
+//
+// Query arguments such as HasZoneProjection(payment, buyerView) name domain
+// declarations; they are not value reads. This owner validates the name path
+// against the current nominal owner and returns the exact symbolic leaf nodes
+// that the general undefined-value checker must not reinterpret.
+
+import "ast_domain_query_protocol_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "env_owner.pgy";
+import "diagnostic_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct SemanticExpressionGraphDomainQueryFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    symbolic_identifier_nodes: Array<Int>;
+}
+
+func SemanticExpressionGraphDomainQueryReady(
+    symbolic_identifier_nodes: Array<Int>
+) -> SemanticExpressionGraphDomainQueryFact {
+    return SemanticExpressionGraphDomainQueryFact(
+        true, true, "", "", symbolic_identifier_nodes
+    );
+}
+
+func SemanticExpressionGraphDomainQueryError(
+    code: String,
+    message: String,
+    symbolic_identifier_nodes: Array<Int>
+) -> SemanticExpressionGraphDomainQueryFact {
+    return SemanticExpressionGraphDomainQueryFact(
+        true, false, code, message, symbolic_identifier_nodes
+    );
+}
+
+func SemanticExpressionGraphDomainQueryNameAt(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    if !IsSome(kind) || !IsSome(text) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
+        IsIdentifier(UnwrapOption(text)) {
+        return text;
+    }
+    if UnwrapOption(kind) != AstExpressionNodeStringLiteral() {
+        return None;
+    }
+    let source: String = UnwrapOption(text);
+    if StringLength(source) < 2 { return None; }
+    let value: String = Substring(source, 1, StringLength(source) - 2);
+    if !IsIdentifier(value) { return None; }
+    return Some(value);
+}
+
+func SemanticAstDomainQueryFieldIndex(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_name: String
+) -> Option<Int> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(constructors) {
+        return None;
+    }
+    let found: Int = -1;
+    let field_index: Int = 0;
+    while field_index < constructors.param_counts[constructor_index] {
+        let absolute: Int =
+            constructors.param_starts[constructor_index] + field_index;
+        if constructors.field_names[absolute] == field_name {
+            if found >= 0 { return None; }
+            found = field_index;
+        }
+        field_index = field_index + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}
+
+func SemanticAstDomainQueryFieldKindAt(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    if field_index < 0 ||
+        field_index >= constructors.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(constructors.field_kinds[
+        constructors.param_starts[constructor_index] + field_index
+    ]);
+}
+
+func SemanticAstDomainQueryKindAllowed(
+    family: String,
+    field_kind: String
+) -> Bool {
+    if family == "projection" || family == "zone_projection" {
+        return field_kind == NominalFieldKindObjectSlot() ||
+            field_kind == NominalFieldKindTObjectSlot();
+    }
+    if family == "layer" || family == "zone_layer" {
+        return field_kind == NominalFieldKindEffectSlot() ||
+            field_kind == NominalFieldKindRelationSlot();
+    }
+    return false;
+}
+
+func SemanticExpressionGraphDomainQueryValidateCall(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    inout symbolic_identifier_nodes: Array<Int>
+) -> SemanticExpressionGraphDomainQueryFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok {
+        return SemanticExpressionGraphDomainQueryError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "domain_query_spine"),
+            symbolic_identifier_nodes
+        );
+    }
+    let target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if !target.ok { return SemanticExpressionGraphDomainQueryReady(symbolic_identifier_nodes); }
+    let protocol: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName(target.name);
+    if !protocol.applies {
+        return SemanticExpressionGraphDomainQueryReady(symbolic_identifier_nodes);
+    }
+    if ArrayLength(call.argument_nodes) != protocol.expected_arity {
+        return SemanticExpressionGraphDomainQueryError(
+            "call_arity_mismatch",
+            SemanticError3(
+                "call_arity_mismatch", "func", protocol.name,
+                "expected", ToString(protocol.expected_arity),
+                "actual", ToString(ArrayLength(call.argument_nodes))
+            ), symbolic_identifier_nodes
+        );
+    }
+    let owner_type: String = EnvLookup(names, types, "self");
+    let owner_index: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, owner_type);
+    if !IsSome(owner_index) {
+        return SemanticExpressionGraphDomainQueryError(
+            "call_arg_type_mismatch",
+            SemanticError3(
+                "call_arg_type_mismatch", "func", protocol.name,
+                "expected", "domain_owner_method", "actual", owner_type
+            ), symbolic_identifier_nodes
+        );
+    }
+    let owner: Int = UnwrapOption(owner_index);
+    let detail_owner: Int = owner;
+    let detail_argument: Int = 0;
+    if protocol.family == "projection" || protocol.family == "layer" {
+        if (protocol.family == "projection" &&
+            constructors.nominal_kinds[owner] != "zone" &&
+            constructors.nominal_kinds[owner] != "effect" &&
+            constructors.nominal_kinds[owner] != "relation") ||
+            (protocol.family == "layer" &&
+             constructors.nominal_kinds[owner] != "zone") {
+            return SemanticExpressionGraphDomainQueryError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", protocol.name,
+                    "expected", "domain_owner_method",
+                    "actual", constructors.nominal_kinds[owner]
+                ), symbolic_identifier_nodes
+            );
+        }
+    } else {
+        if constructors.nominal_kinds[owner] != "world" {
+            return SemanticExpressionGraphDomainQueryError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", protocol.name,
+                    "expected", "world_owner_method",
+                    "actual", constructors.nominal_kinds[owner]
+                ), symbolic_identifier_nodes
+            );
+        }
+        let zone_name: Option<String> =
+            SemanticExpressionGraphDomainQueryNameAt(
+                graph, call.argument_nodes[0]
+            );
+        if !IsSome(zone_name) {
+            return SemanticExpressionGraphDomainQueryError(
+                "call_arg_type_mismatch",
+                SemanticError3(
+                    "call_arg_type_mismatch", "func", protocol.name,
+                    "expected", "world_zone_slot_name", "actual", "expression"
+                ), symbolic_identifier_nodes
+            );
+        }
+        let zone_field: Option<Int> = SemanticAstDomainQueryFieldIndex(
+            constructors, owner, UnwrapOption(zone_name)
+        );
+        if !IsSome(zone_field) ||
+            constructors.field_kinds[
+                constructors.param_starts[owner] + UnwrapOption(zone_field)
+            ] != NominalFieldKindWorldZone() {
+            return SemanticExpressionGraphDomainQueryError(
+                "undefined_symbol",
+                SemanticError1(
+                    "undefined_symbol", "name", UnwrapOption(zone_name)
+                ), symbolic_identifier_nodes
+            );
+        }
+        let zone_type: String = constructors.param_type_names[
+            constructors.param_starts[owner] + UnwrapOption(zone_field)
+        ];
+        let zone_owner: Option<Int> =
+            SemanticAstNominalConstructorIndexForName(constructors, zone_type);
+        if !IsSome(zone_owner) ||
+            constructors.nominal_kinds[UnwrapOption(zone_owner)] != "zone" {
+            return SemanticExpressionGraphDomainQueryError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "world_zone_query_type"
+                ), symbolic_identifier_nodes
+            );
+        }
+        detail_owner = UnwrapOption(zone_owner);
+        detail_argument = 1;
+        let zone_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, call.argument_nodes[0]
+        );
+        if IsSome(zone_kind) &&
+            UnwrapOption(zone_kind) == AstExpressionNodeLeaf() {
+            ArrayPush(symbolic_identifier_nodes, call.argument_nodes[0]);
+        }
+    }
+    let detail_name: Option<String> =
+        SemanticExpressionGraphDomainQueryNameAt(
+            graph, call.argument_nodes[detail_argument]
+        );
+    if !IsSome(detail_name) {
+        return SemanticExpressionGraphDomainQueryError(
+            "call_arg_type_mismatch",
+            SemanticError3(
+                "call_arg_type_mismatch", "func", protocol.name,
+                "expected", Concat(protocol.family, "_slot_name"),
+                "actual", "expression"
+            ), symbolic_identifier_nodes
+        );
+    }
+    let detail_field: Option<Int> = SemanticAstDomainQueryFieldIndex(
+        constructors, detail_owner, UnwrapOption(detail_name)
+    );
+    if !IsSome(detail_field) {
+        return SemanticExpressionGraphDomainQueryError(
+            "undefined_symbol",
+            SemanticError1(
+                "undefined_symbol", "name", UnwrapOption(detail_name)
+            ), symbolic_identifier_nodes
+        );
+    }
+    let detail_kind: Option<String> = SemanticAstDomainQueryFieldKindAt(
+        constructors, detail_owner, UnwrapOption(detail_field)
+    );
+    if !IsSome(detail_kind) || !SemanticAstDomainQueryKindAllowed(
+        protocol.family, UnwrapOption(detail_kind)
+    ) {
+        return SemanticExpressionGraphDomainQueryError(
+            "call_arg_type_mismatch",
+            SemanticError3(
+                "call_arg_type_mismatch", "func", protocol.name,
+                "expected", Concat(protocol.family, "_slot"),
+                "actual", UnwrapOption(detail_name)
+            ), symbolic_identifier_nodes
+        );
+    }
+    let detail_node_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.argument_nodes[detail_argument]
+    );
+    if IsSome(detail_node_kind) &&
+        UnwrapOption(detail_node_kind) == AstExpressionNodeLeaf() {
+        ArrayPush(symbolic_identifier_nodes, call.argument_nodes[detail_argument]);
+    }
+    return SemanticExpressionGraphDomainQueryReady(symbolic_identifier_nodes);
+}
+
+func SemanticExpressionGraphDomainQueryFactsFromTree(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> SemanticExpressionGraphDomainQueryFact {
+    let symbolic_identifier_nodes: Array<Int> = [];
+    let pending: Array<Int> = [root_id];
+    let saw_query: Bool = false;
+    while ArrayLength(pending) > 0 {
+        let node_id: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+        if !IsSome(kind) {
+            return SemanticExpressionGraphDomainQueryError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "domain_query_tree"
+                ), symbolic_identifier_nodes
+            );
+        }
+        if AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                graph, node_id
+            );
+            if !call.ok {
+                return SemanticExpressionGraphDomainQueryError(
+                    "ast_artifact_invalid",
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner", "domain_query_spine"
+                    ), symbolic_identifier_nodes
+                );
+            }
+            let target: SemanticExpressionCallTargetFact =
+                SemanticExpressionGraphResolvedCallTarget(
+                    graph, node_id, constructors, names, types,
+                    function_names, function_returns
+                );
+            if target.ok &&
+                SemanticAstDomainQueryProtocolFromName(target.name).applies {
+                saw_query = true;
+                let query: SemanticExpressionGraphDomainQueryFact =
+                    SemanticExpressionGraphDomainQueryValidateCall(
+                        graph, node_id, constructors, names, types, modes,
+                        function_names, function_returns,
+                        symbolic_identifier_nodes
+                    );
+                if !query.ok { return query; }
+            }
+            let argument_index: Int = 0;
+            while argument_index < ArrayLength(call.argument_nodes) {
+                ArrayPush(pending, call.argument_nodes[argument_index]);
+                argument_index = argument_index + 1;
+            }
+            continue;
+        }
+        let arity: Option<Int> = AstExpressionNodeArityOpt(UnwrapOption(kind));
+        if !IsSome(arity) { continue; }
+        if UnwrapOption(arity) >= 1 {
+            ArrayPush(pending, graph.arena.topology.left_children[node_id]);
+        }
+        if UnwrapOption(arity) == 2 {
+            ArrayPush(pending, graph.arena.topology.right_children[node_id]);
+        }
+    }
+    return SemanticExpressionGraphDomainQueryFact(
+        saw_query, true, "", "", symbolic_identifier_nodes
+    );
+}

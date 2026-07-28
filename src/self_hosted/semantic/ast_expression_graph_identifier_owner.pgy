@@ -33,6 +33,21 @@ func SemanticExpressionGraphIdentifierEvidence(
     callable_names: Array<String>,
     member_root_names: Array<String>
 ) -> SemanticExpressionGraphIdentifierFact {
+    let symbolic_identifier_nodes: Array<Int> = [];
+    return SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
+        graph, root_id, names, callable_names, member_root_names,
+        symbolic_identifier_nodes
+    );
+}
+
+func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Array<String>,
+    callable_names: Array<String>,
+    member_root_names: Array<String>,
+    symbolic_identifier_nodes: Array<Int>
+) -> SemanticExpressionGraphIdentifierFact {
     let pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
         let node_id: Int = pending[ArrayLength(pending) - 1];
@@ -52,6 +67,15 @@ func SemanticExpressionGraphIdentifierEvidence(
                 return SemanticExpressionGraphIdentifierInvalid();
             }
             let text: String = UnwrapOption(text_opt);
+            let symbolic: Bool = false;
+            let symbolic_index: Int = 0;
+            while symbolic_index < ArrayLength(symbolic_identifier_nodes) {
+                if symbolic_identifier_nodes[symbolic_index] == node_id {
+                    symbolic = true;
+                }
+                symbolic_index = symbolic_index + 1;
+            }
+            if symbolic { continue; }
             if text != "true" && text != "false" && text != "None" &&
                 IsIdentifier(text) && !EnvContainsName(names, text) &&
                 !IsSome(SemanticCallableIndex(callable_names, text)) {

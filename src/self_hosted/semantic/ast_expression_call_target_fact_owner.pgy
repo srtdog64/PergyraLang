@@ -10,6 +10,7 @@ import "ast_signature_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
+import "ast_domain_query_protocol_owner.pgy";
 
 struct SemanticExpressionCallTargetFact {
     ok: Bool;
@@ -83,6 +84,15 @@ func SemanticExpressionGraphResolvedCallTarget(
             function_names, UnwrapOption(callee_text)
         );
         if !IsSome(direct) {
+            let protocol: SemanticAstDomainQueryProtocol =
+                SemanticAstDomainQueryProtocolFromName(
+                    UnwrapOption(callee_text)
+                );
+            if protocol.applies {
+                return SemanticExpressionCallTargetFact(
+                    true, SemanticCallTargetDirect(), protocol.name, 0
+                );
+            }
             return SemanticExpressionCallTargetFact(
                 false, SemanticCallTargetNone(), "", 0
             );

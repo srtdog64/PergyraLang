@@ -8,6 +8,8 @@ import "ast_expression_graph_type_owner.pgy";
 import "ast_expression_graph_resolved_call_type_owner.pgy";
 import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_expression_graph_concrete_scalar_verdict_owner.pgy";
+import "ast_expression_graph_nominal_constructor_call_owner.pgy";
+import "ast_expression_graph_domain_query_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_scalar_verdict_owner.pgy";
 import "ast_expression_graph_struct_type_verdict_owner.pgy";
@@ -116,6 +118,17 @@ func SemanticAstExpressionVerdictFromGraph(
     member_root_names: Array<String>
 ) -> SemanticAstExpressionVerdict {
     let text: String = SemanticStripOuterParens(expression);
+    let domain_queries: SemanticExpressionGraphDomainQueryFact =
+        SemanticExpressionGraphDomainQueryFactsFromTree(
+            graph, root_id, constructors, names, types, modes,
+            function_names, function_returns
+        );
+    if !domain_queries.ok {
+        return SemanticAstExpressionVerdict(
+            false, domain_queries.diagnostic_code,
+            domain_queries.diagnostic_message, text, "Unknown"
+        );
+    }
     let intrinsic: Option<String> =
         SemanticExpressionGraphIntrinsicTypeName(
             graph, root_id, function_names, function_returns
@@ -230,6 +243,18 @@ func SemanticAstExpressionVerdictFromGraph(
             graph, root_id, constructors, names, types,
             function_names, function_returns
         );
+    let nominal_constructor_call:
+        SemanticExpressionGraphNominalConstructorCallFact =
+        SemanticExpressionGraphNominalConstructorCallFactFromGraph(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if nominal_constructor_call.applies && !nominal_constructor_call.ok {
+        return SemanticAstExpressionVerdict(
+            false, nominal_constructor_call.diagnostic_code,
+            nominal_constructor_call.diagnostic_message, text, "Unknown"
+        );
+    }
     let generic_call: SemanticExpressionGraphGenericCallFact =
         SemanticExpressionGraphGenericCallFactFromGraph(
             graph, root_id, signatures, constructors, names, types,
@@ -260,7 +285,8 @@ func SemanticAstExpressionVerdictFromGraph(
             function_names, function_returns, function_params
         );
     } else if !graph_owned_intrinsic && !generic_value.applies &&
-        !wrapper.applies {
+        !wrapper.applies && !nominal_constructor_call.applies &&
+        !domain_queries.applies {
         call_error = CheckCallFromGraphIdentifiers(
             text, names, types, modes,
             function_names, function_returns, function_params
@@ -270,8 +296,9 @@ func SemanticAstExpressionVerdictFromGraph(
         return SemanticAstExpressionVerdictError(text, call_error);
     }
     let identifier_fact: SemanticExpressionGraphIdentifierFact =
-        SemanticExpressionGraphIdentifierEvidence(
-            graph, root_id, names, function_names, member_root_names
+        SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
+            graph, root_id, names, function_names, member_root_names,
+            domain_queries.symbolic_identifier_nodes
         );
     if !identifier_fact.ok {
         return SemanticAstExpressionVerdictError(
@@ -339,6 +366,8 @@ func SemanticAstExpressionVerdictFromGraph(
         inferred = wrapper.type_name;
     } else if generic_value.applies {
         inferred = generic_value.return_type_name;
+    } else if nominal_constructor_call.applies {
+        inferred = nominal_constructor_call.return_type_name;
     } else if graph_owned_intrinsic {
         inferred = UnwrapOption(intrinsic);
     } else if index_value_owned {

@@ -1,0 +1,22 @@
+// Read-only identity lookup over semantic nominal-constructor facts.
+// Duplicate names fail closed rather than selecting an arbitrary declaration.
+
+import "ast_nominal_constructor_fact_owner.pgy";
+
+func SemanticAstNominalConstructorIndexForName(
+    ref facts: SemanticAstNominalConstructorFacts,
+    name: String
+) -> Option<Int> {
+    if !facts.ok || name == "" { return None; }
+    let found: Int = -1;
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(facts) {
+        if facts.names[i] == name {
+            if found >= 0 { return None; }
+            found = i;
+        }
+        i = i + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}

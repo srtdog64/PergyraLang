@@ -250,6 +250,9 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name
     );
+    let domain_query: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName(target.name);
+    if domain_query.applies { return Some("Bool"); }
     if !IsSome(target_index) { return None; }
     let type_name: String = function_returns[UnwrapOption(target_index)];
     if type_name == "" || type_name == "Unknown" { return None; }

@@ -225,8 +225,12 @@ func SelfMirDomainProjectionPathResolve(
         SelfMirDomainProjectionPathDirect(rows, declaration_index, field_name);
     if direct.ok || direct.ambiguous { return direct; }
     let match_count: Int = 0;
-    let resolved: SelfMirDomainProjectionPathResolution =
-        SelfMirDomainProjectionPathResolutionEmpty(false, false);
+    let resolved_ok: Bool = false;
+    let resolved_path: String = "";
+    let resolved_leaf_type_name: String = "";
+    let resolved_segment_names: Array<String> = [];
+    let resolved_segment_source_syntax_ids: Array<Int> = [];
+    let resolved_segment_type_names: Array<String> = [];
     let offset: Int = 0;
     while offset < rows.field_counts[declaration_index] {
         let row: Int = rows.field_starts[declaration_index] + offset;
@@ -247,24 +251,28 @@ func SelfMirDomainProjectionPathResolve(
                 if match_count > 1 {
                     return SelfMirDomainProjectionPathResolutionEmpty(false, true);
                 }
-                resolved.ok = true;
-                resolved.path = Concat(rows.field_names[row], Concat(".", nested.path));
-                resolved.leaf_type_name = nested.leaf_type_name;
-                ArrayPush(resolved.segment_names, rows.field_names[row]);
+                resolved_ok = true;
+                resolved_path = Concat(
+                    rows.field_names[row], Concat(".", nested.path)
+                );
+                resolved_leaf_type_name = nested.leaf_type_name;
+                ArrayPush(resolved_segment_names, rows.field_names[row]);
                 ArrayPush(
-                    resolved.segment_source_syntax_ids,
+                    resolved_segment_source_syntax_ids,
                     rows.field_source_syntax_ids[row]
                 );
-                ArrayPush(resolved.segment_type_names, rows.field_types[row]);
+                ArrayPush(resolved_segment_type_names, rows.field_types[row]);
                 let segment: Int = 0;
                 while segment < ArrayLength(nested.segment_names) {
-                    ArrayPush(resolved.segment_names, nested.segment_names[segment]);
                     ArrayPush(
-                        resolved.segment_source_syntax_ids,
+                        resolved_segment_names, nested.segment_names[segment]
+                    );
+                    ArrayPush(
+                        resolved_segment_source_syntax_ids,
                         nested.segment_source_syntax_ids[segment]
                     );
                     ArrayPush(
-                        resolved.segment_type_names,
+                        resolved_segment_type_names,
                         nested.segment_type_names[segment]
                     );
                     segment = segment + 1;
@@ -273,15 +281,23 @@ func SelfMirDomainProjectionPathResolve(
         }
         offset = offset + 1;
     }
-    return resolved;
+    return SelfMirDomainProjectionPathResolution(
+        resolved_ok, false, resolved_path, resolved_leaf_type_name,
+        resolved_segment_names, resolved_segment_source_syntax_ids,
+        resolved_segment_type_names
+    );
 }
 
 func SelfMirDomainParticipantRolesFromDeclarations(
     ref rows: SelfMirDeclarationRows,
     ref constructors: SemanticAstNominalConstructorFacts
 ) -> SelfMirDomainParticipantRoleFacts {
-    let facts: SelfMirDomainParticipantRoleFacts =
-        SelfMirDomainParticipantRoleFactsEmpty(true);
+    let roles: Array<String> = [];
+    let owner_names: Array<String> = [];
+    let owner_source_syntax_ids: Array<Int> = [];
+    let field_names: Array<String> = [];
+    let field_source_syntax_ids: Array<Int> = [];
+    let field_type_names: Array<String> = [];
     let declaration: Int = 0;
     while declaration < ArrayLength(rows.names) {
         let nominal_kind: String = rows.nominal_kinds[declaration];
@@ -316,20 +332,23 @@ func SelfMirDomainParticipantRolesFromDeclarations(
                 role_name = "relation-target";
             }
             let field: Int = subject_rows[role_index];
-            ArrayPush(facts.roles, role_name);
-            ArrayPush(facts.owner_names, rows.names[declaration]);
-            ArrayPush(facts.owner_source_syntax_ids, owner_id);
-            ArrayPush(facts.field_names, rows.field_names[field]);
+            ArrayPush(roles, role_name);
+            ArrayPush(owner_names, rows.names[declaration]);
+            ArrayPush(owner_source_syntax_ids, owner_id);
+            ArrayPush(field_names, rows.field_names[field]);
             ArrayPush(
-                facts.field_source_syntax_ids,
+                field_source_syntax_ids,
                 rows.field_source_syntax_ids[field]
             );
-            ArrayPush(facts.field_type_names, rows.field_types[field]);
+            ArrayPush(field_type_names, rows.field_types[field]);
             role_index = role_index + 1;
         }
         declaration = declaration + 1;
     }
-    return facts;
+    return SelfMirDomainParticipantRoleFacts(
+        true, roles, owner_names, owner_source_syntax_ids, field_names,
+        field_source_syntax_ids, field_type_names
+    );
 }
 
 func SelfMirDomainProjectionAssignmentsFromTopology(
@@ -338,8 +357,29 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
     facts: SelfMirDomainTopologyFacts,
     projection_maps: SelfDirDomainProjectionMapRows
 ) -> SelfMirDomainProjectionMemberAssignmentFacts {
-    let result: SelfMirDomainProjectionMemberAssignmentFacts =
-        SelfMirDomainProjectionMemberAssignmentFactsEmpty(true);
+    let owner_names: Array<String> = [];
+    let owner_source_syntax_ids: Array<Int> = [];
+    let directive_source_syntax_ids: Array<Int> = [];
+    let operations: Array<String> = [];
+    let projection_slot_names: Array<String> = [];
+    let projection_slot_source_syntax_ids: Array<Int> = [];
+    let source_slot_names: Array<String> = [];
+    let source_slot_source_syntax_ids: Array<Int> = [];
+    let target_declaration_names: Array<String> = [];
+    let target_declaration_source_syntax_ids: Array<Int> = [];
+    let target_field_names: Array<String> = [];
+    let target_field_source_syntax_ids: Array<Int> = [];
+    let target_field_type_names: Array<String> = [];
+    let source_declaration_names: Array<String> = [];
+    let source_declaration_source_syntax_ids: Array<Int> = [];
+    let source_paths: Array<String> = [];
+    let source_leaf_type_names: Array<String> = [];
+    let explicit_maps: Array<Int> = [];
+    let source_path_segment_starts: Array<Int> = [];
+    let source_path_segment_counts: Array<Int> = [];
+    let source_path_segment_names: Array<String> = [];
+    let source_path_segment_source_syntax_ids: Array<Int> = [];
+    let source_path_segment_type_names: Array<String> = [];
     let topology_row: Int = 0;
     while topology_row < facts.row_count {
         let operation: String = facts.kinds[topology_row];
@@ -421,69 +461,69 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
                 ) {
                 return SelfMirDomainProjectionMemberAssignmentFactsEmpty(false);
             }
-            ArrayPush(result.owner_names, facts.owner_names[topology_row]);
+            ArrayPush(owner_names, facts.owner_names[topology_row]);
             ArrayPush(
-                result.owner_source_syntax_ids,
+                owner_source_syntax_ids,
                 ToInt(facts.owner_source_syntax_ids[topology_row])
             );
             ArrayPush(
-                result.directive_source_syntax_ids,
+                directive_source_syntax_ids,
                 ToInt(facts.source_syntax_ids[topology_row])
             );
-            ArrayPush(result.operations, operation);
+            ArrayPush(operations, operation);
             ArrayPush(
-                result.projection_slot_names,
+                projection_slot_names,
                 facts.projection_slot_names[topology_row]
             );
             ArrayPush(
-                result.projection_slot_source_syntax_ids,
+                projection_slot_source_syntax_ids,
                 ToInt(facts.projection_slot_source_syntax_ids[topology_row])
             );
             ArrayPush(
-                result.source_slot_names,
+                source_slot_names,
                 facts.source_slot_names[topology_row]
             );
             ArrayPush(
-                result.source_slot_source_syntax_ids,
+                source_slot_source_syntax_ids,
                 ToInt(facts.source_slot_source_syntax_ids[topology_row])
             );
-            ArrayPush(result.target_declaration_names, rows.names[target_decl_index]);
-            ArrayPush(result.target_declaration_source_syntax_ids, target_decl_id);
-            ArrayPush(result.target_field_names, rows.field_names[target_field]);
+            ArrayPush(target_declaration_names, rows.names[target_decl_index]);
+            ArrayPush(target_declaration_source_syntax_ids, target_decl_id);
+            ArrayPush(target_field_names, rows.field_names[target_field]);
             ArrayPush(
-                result.target_field_source_syntax_ids,
+                target_field_source_syntax_ids,
                 rows.field_source_syntax_ids[target_field]
             );
-            ArrayPush(result.target_field_type_names, rows.field_types[target_field]);
-            ArrayPush(result.source_declaration_names, rows.names[source_decl_index]);
-            ArrayPush(result.source_declaration_source_syntax_ids, source_decl_id);
-            ArrayPush(result.source_paths, path.path);
-            ArrayPush(result.source_leaf_type_names, path.leaf_type_name);
+            ArrayPush(target_field_type_names, rows.field_types[target_field]);
+            ArrayPush(source_declaration_names, rows.names[source_decl_index]);
+            ArrayPush(source_declaration_source_syntax_ids, source_decl_id);
+            ArrayPush(source_paths, path.path);
+            ArrayPush(source_leaf_type_names, path.leaf_type_name);
             if map_lookup.explicit_map {
-                ArrayPush(result.explicit_maps, 1);
+                ArrayPush(explicit_maps, 1);
             } else {
-                ArrayPush(result.explicit_maps, 0);
+                ArrayPush(explicit_maps, 0);
             }
             ArrayPush(
-                result.source_path_segment_starts,
-                ArrayLength(result.source_path_segment_names)
+                source_path_segment_starts,
+                ArrayLength(source_path_segment_names)
             );
             ArrayPush(
-                result.source_path_segment_counts,
+                source_path_segment_counts,
                 ArrayLength(path.segment_names)
             );
             let segment: Int = 0;
             while segment < ArrayLength(path.segment_names) {
                 ArrayPush(
-                    result.source_path_segment_names,
+                    source_path_segment_names,
                     path.segment_names[segment]
                 );
                 ArrayPush(
-                    result.source_path_segment_source_syntax_ids,
+                    source_path_segment_source_syntax_ids,
                     path.segment_source_syntax_ids[segment]
                 );
                 ArrayPush(
-                    result.source_path_segment_type_names,
+                    source_path_segment_type_names,
                     path.segment_type_names[segment]
                 );
                 segment = segment + 1;
@@ -492,7 +532,19 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
         }
         topology_row = topology_row + 1;
     }
-    return result;
+    return SelfMirDomainProjectionMemberAssignmentFacts(
+        true, owner_names, owner_source_syntax_ids,
+        directive_source_syntax_ids, operations, projection_slot_names,
+        projection_slot_source_syntax_ids, source_slot_names,
+        source_slot_source_syntax_ids, target_declaration_names,
+        target_declaration_source_syntax_ids, target_field_names,
+        target_field_source_syntax_ids, target_field_type_names,
+        source_declaration_names, source_declaration_source_syntax_ids,
+        source_paths, source_leaf_type_names, explicit_maps,
+        source_path_segment_starts, source_path_segment_counts,
+        source_path_segment_names, source_path_segment_source_syntax_ids,
+        source_path_segment_type_names
+    );
 }
 
 func SelfMirDomainRuntimeAssignmentsFromFacts(

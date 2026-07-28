@@ -181,9 +181,15 @@ inventory must not become a second fact-family owner registry.
   artifact-bound nominal constructor name, return type, and ordered effective
   field-type rows after generic-default substitution, consumed by expression
   typing and declaration routing; source constructor scans are forbidden.
+- `src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy` --
+  duplicate-rejecting read-only nominal declaration lookup over the canonical
+  constructor fact rows.
 - `src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy` --
   semantic distinction between caller-supplied nominal constructor arguments
   and domain storage fields that require a topology/runtime materializer.
+- `src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy`
+  -- graph-owned nominal constructor prefix arity and argument-type verdicts;
+  ordinary function exact-arity policy is not a constructor fallback.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, initializer
   payload, and per-name ordinal facts, including array-literal body and `Let`
@@ -251,6 +257,12 @@ inventory must not become a second fact-family owner registry.
   expression verdicts, including owner-projected array-literal types.
 - `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
   undefined-identifier evidence from parser graph node roles.
+- `src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy` -- closed
+  semantic protocol names, family, and arity for declaration-scoped domain
+  observability calls; it does not own the keyword registry.
+- `src/self_hosted/semantic/ast_expression_graph_domain_query_owner.pgy` --
+  exact world/zone field-kind validation and symbolic leaf-node evidence for
+  domain queries; ordinary value-environment injection is forbidden.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.

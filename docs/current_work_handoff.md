@@ -6,6 +6,59 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - world/tobject query reachability
+
+- Landing parent: `ea6138a1e3242c34d597e57d7f7373cd62768c76` on `main`, aligned
+  with `origin/main` at the start of this slice. The landing commit contains
+  this handoff; use `git rev-parse HEAD` after landing for the exact revision.
+- Objective card:
+  - objective: carry the canonical `subject source -> tobject slot -> publish`
+    path through self semantic/DIR/MIR and make world projection queries consume
+    exact declaration identity;
+  - priority: constructor admission, symbolic query identity, bounded world/zone
+    DIR graph, provenance, negative ratchet, then backend execution;
+  - fact owner: `selfhost.nominal_declaration_rows` retains nominal/field identity;
+    the constructor and domain-query semantic owners are bounded verdict
+    consumers. Existing domain topology/runtime-assignment owners retain
+    `publish` and exact member paths;
+  - last legitimate consumers: current self MIR producer and native C/LLVM query
+    lowering; self query backend lowering is the next explicit consumer;
+  - forbidden fallback: putting query names in the value environment, matching
+    field spelling without kind/owner identity, native MIR graft, fixture-only
+    output, or claiming parser/direct-`ToTObject` support as execution;
+  - verification: `tests/self_hosted/parity/world_tobject_projection_query_owner.sh`
+    plus `domain_runtime_assignment_execution_owner.sh`, component, boundary,
+    documentation, and SoT gates.
+- Observed evidence:
+  - fresh `bin/pgy-self-driver.exe` installed successfully from the modified
+    self-host graph; sampled peak was 1,173.0 MiB private / 1,071.1 MiB working
+    set in one `gen2.exe`, with no 20+ GiB recurrence;
+  - the focused positive source emits typed self MIR containing
+    `BuyerPacket:tobject`, `buyerPacket:tobject_slot`, `PaymentWorld.payment`
+    with `world_zone`, explicit refresh/publish assignments, and both
+    `HasZoneProjection` call targets;
+  - current native C and LLVM both execute the same fixture and print `true`;
+  - `missingPacket` fails with `undefined_symbol` and no partial MIR;
+  - existing implicit/explicit domain runtime assignment execution gates pass
+    with the same fresh driver and current `bin/pgy.exe`.
+- Grade: `REACHABLE`, not `SUBSTITUTING`. Self MIR reaches the world/tobject query
+  facts, but self query backend lowering does not execute them yet. Direct
+  `ToTObject(Target, source)` self semantic/codegen and post-construction
+  tobject immutability remain open.
+- Next executable falsifier: the full
+  `tests/cases/backend_compare/world_zone_projection_visibility/main.pgy` now
+  passes constructors and queries, then fails exactly at `undefined_function`,
+  `func: Checkout`. Close intent callable reachability without bypassing the
+  existing projection/map facts.
+- The two production builders touched in this slice now accumulate local arrays
+  and construct immutable fact records once. Component negatives reject
+  reintroducing `ArrayPush(result.member, ...)` in those owners.
+- Preserve and do not stage the three concurrent parity edits
+  (`driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`) or the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+
 ## Current resume checkpoint - explicit projection-map substitution
 
 - The landing parent is `880a83c348021f3e126176a2f71ff0ad872e8223` on

@@ -7,7 +7,7 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 
 func SemanticAstNominalConstructorFieldIsArgument(
-    constructors: SemanticAstNominalConstructorFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     constructor_index: Int,
     field_index: Int
 ) -> Bool {
@@ -20,13 +20,56 @@ func SemanticAstNominalConstructorFieldIsArgument(
     if constructors.nominal_kinds[constructor_index] != "zone" {
         return true;
     }
-    let kind_opt: Option<String> = SemanticAstNominalConstructorFieldKindAt(
-        constructors, constructor_index, field_index
-    );
-    if !IsSome(kind_opt) { return false; }
-    let kind: String = UnwrapOption(kind_opt);
+    let kind: String = constructors.field_kinds[
+        constructors.param_starts[constructor_index] + field_index
+    ];
     return kind == NominalFieldKindSubjectSlot() ||
         kind == NominalFieldKindObjectSlot() ||
         kind == NominalFieldKindTObjectSlot() ||
         kind == NominalFieldKindBindingSlot();
+}
+
+func SemanticAstNominalConstructorArgumentCountAt(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> Int {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(constructors) {
+        return -1;
+    }
+    let count: Int = 0;
+    let field_index: Int = 0;
+    while field_index < constructors.param_counts[constructor_index] {
+        if SemanticAstNominalConstructorFieldIsArgument(
+            constructors, constructor_index, field_index
+        ) {
+            count = count + 1;
+        }
+        field_index = field_index + 1;
+    }
+    return count;
+}
+
+func SemanticAstNominalConstructorArgumentTypeAt(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    argument_index: Int
+) -> Option<String> {
+    if argument_index < 0 { return None; }
+    let ordinal: Int = 0;
+    let field_index: Int = 0;
+    while field_index < constructors.param_counts[constructor_index] {
+        if SemanticAstNominalConstructorFieldIsArgument(
+            constructors, constructor_index, field_index
+        ) {
+            if ordinal == argument_index {
+                return Some(constructors.param_type_names[
+                    constructors.param_starts[constructor_index] + field_index
+                ]);
+            }
+            ordinal = ordinal + 1;
+        }
+        field_index = field_index + 1;
+    }
+    return None;
 }

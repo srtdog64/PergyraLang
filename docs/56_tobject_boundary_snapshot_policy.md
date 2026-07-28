@@ -1,6 +1,6 @@
 # `tobject` Boundary Contract and Snapshot Policy
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-07-28
 
 ## 한 줄 결론
 
@@ -34,7 +34,9 @@
 
 - zone/world/API/transport 경계를 넘는 immutable transfer snapshot
 - 기본 정책은 materialized transfer
-- method/authority/slot ownership을 담지 않는다
+- authority/action/slot ownership을 담지 않는다
+- canonical 새 코드는 method-free다. 현재 parser/semantic이 허용하는 passive
+  helper `func`는 호환 표면이며 transfer 의미나 authority를 추가하지 않는다
 
 ### telemetry snapshot
 
@@ -49,10 +51,16 @@
 
 - immutable
 - authority-free
-- method-free
+- canonical authoring은 method-free
 - slot-free
 - source lifecycle와 분리
 - boundary crossing 가능
+
+현재 구현은 `object`와 `tobject` 선언 안의 passive helper `func`를 받아들인다.
+이 허용을 snapshot의 행위·identity·권한 소유로 해석하면 안 된다. 새 코드는 계산을
+free `func` 또는 별도 수동 도구로 두고, `tobject`에는 전송할 immutable field만 둔다.
+기존 helper 허용을 닫으려면 parser/semantic/codegen parity와 migration 진단을 같은
+rung에서 바꾸며, 문서만 앞서서 현재 동작을 부정하지 않는다.
 
 즉 `tobject`는 "borrowed read view"가 아니라 "전송용 스냅샷"이다.
 
@@ -218,6 +226,12 @@ tobject CameraFrame {
 
 향후 필요하면 telemetry snapshot은 별도 표면으로 추가한다.
 하지만 그것을 `tobject` 의미론 안에 섞지 않는다.
+
+Self-host에서도 같은 계약은 `tobject` spelling 하나로 성립하지 않는다. 최소
+실행 패턴은 `subject source -> tobject slot -> publish -> transfer/receipt`이며,
+`TObjectSlot` identity와 `publish` operation, source/target member assignment가 typed
+fact로 끝까지 운반돼야 한다. `HasProjection`/`HasZoneProjection`의 tobject 인자는
+일반 값 변수가 아니라 이 선언 identity를 가리키는 symbolic name이다.
 
 ## 11. 설계 원칙
 
