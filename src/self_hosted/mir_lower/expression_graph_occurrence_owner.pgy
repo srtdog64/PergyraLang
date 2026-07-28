@@ -48,6 +48,9 @@ func MirExpressionGraphOccurrenceGraphSlot(
     let arg0_opt: Option<String> = JsonObjectFactStringFieldOpt(
         instruction, "arg0"
     );
+    let name_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "name"
+    );
     if !IsSome(kind_opt) || !IsSome(source_opt) || ordinal < 0 {
         return MirExpressionGraphSlotNone();
     }
@@ -113,6 +116,10 @@ func MirExpressionGraphOccurrenceGraphSlot(
         }
     }
     if source == "AST_DEFER_STMT" && lane == AstExpressionLaneAtom() {
+        return MirExpressionGraphSlotExpr0();
+    }
+    if kind == "stmt" && lane == AstExpressionLaneAtom() &&
+        IsSome(name_opt) && UnwrapOption(name_opt) == "IntentCheck" {
         return MirExpressionGraphSlotExpr0();
     }
     if kind == "branch" && lane == AstExpressionLaneAtom() {

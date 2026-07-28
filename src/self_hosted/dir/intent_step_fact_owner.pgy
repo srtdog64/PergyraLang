@@ -27,6 +27,10 @@ struct SelfDirIntentResolvedStep {
     where_zone_name: String;
     where_declaration_index: Int;
     using_alias: String;
+    receiver_alias: String;
+    action_name: String;
+    on_node_id: Int;
+    expect_node_id: Int;
     predecessor_step_index: Int;
     causes_name: String;
     causes_declaration_index: Int;
@@ -45,7 +49,7 @@ func SelfDirIntentResolvedStepError(
     let requires_indices: Array<Int> = [];
     let authorized_names: Array<String> = [];
     return SelfDirIntentResolvedStep(
-        false, message, -1, "", "", -1, "", -1, "", -1,
+        false, message, -1, "", "", -1, "", "", "", -1, -1, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names, 0
     );
 }
@@ -222,6 +226,8 @@ func SelfDirIntentStepFromArtifact(
     }
     let step_name: String = header.name;
     let on_text: String = "";
+    let on_node_id: Int = -1;
+    let expect_node_id: Int = -1;
     let explicit_using: String = header.using_alias;
     let explicit_causes: String = "";
     let who_names: Array<String> = [];
@@ -251,6 +257,7 @@ func SelfDirIntentStepFromArtifact(
                 "self-host DIR intent step has duplicate on rows"
             ); }
             on_text = payload;
+            on_node_id = row_id;
         } else if row_kind == TypedAstKindIntentStepWhoTag() {
             if ArrayLength(who_names) > 0 ||
                 !SelfDirIntentStepAppendUniqueNames(payload, who_names) {
@@ -287,8 +294,14 @@ func SelfDirIntentStepFromArtifact(
                 );
             }
             explicit_causes = payload;
-        } else if row_kind != TypedAstKindIntentStepExpectTag() &&
-            row_kind != TypedAstKindIntentStepCompensateTag() &&
+        } else if row_kind == TypedAstKindIntentStepExpectTag() {
+            if expect_node_id >= 0 || payload == "" {
+                return SelfDirIntentResolvedStepError(
+                    "self-host DIR intent step has an invalid expect row"
+                );
+            }
+            expect_node_id = row_id;
+        } else if row_kind != TypedAstKindIntentStepCompensateTag() &&
             row_kind != TypedAstKindIntentStepGuardTag() &&
             row_kind != TypedAstKindIntentStepPostTag() {
             return SelfDirIntentResolvedStepError(
@@ -441,7 +454,8 @@ func SelfDirIntentStepFromArtifact(
     if predecessor >= 0 { edge_count = edge_count + 1; }
     return SelfDirIntentResolvedStep(
         true, "", step_node_id, step_name, where_zone, where_index,
-        using_alias, predecessor, cause_name, cause_index,
+        using_alias, on_call.receiver_alias, on_call.action_name,
+        on_node_id, expect_node_id, predecessor, cause_name, cause_index,
         who_names, requires_names, requires_indices, authorized_names,
         edge_count
     );

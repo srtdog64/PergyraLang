@@ -255,7 +255,8 @@ func CollectTypeDeclarations(
         CodegenTypeDeclarationZeroMask(wrapper_count);
     let remaining: Int = enum_count + nominal_count + wrapper_count;
     let blocks: Array<String> = [];
-    let requires_bool_header: Bool = false;
+    let requires_bool_header: Bool =
+        CodegenSemanticNominalsRequireProjectionReadyBool(nominal_facts);
     while remaining > 0 {
         let made_progress: Bool = false;
         let enum_selected: Array<Int> =

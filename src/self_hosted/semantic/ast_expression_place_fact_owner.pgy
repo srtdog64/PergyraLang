@@ -10,6 +10,7 @@ import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_intent_expression_environment_owner.pgy";
 
 func SemanticExpressionPlaceKindForNode(
     ref graph: SemanticExpressionGraphFacts,
@@ -89,6 +90,11 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;
     }
+    let intent_signatures: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    if !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) {
+        return false;
+    }
     let iteration_function_node_ids: Array<Int> = [];
     let iteration_binding_names: Array<String> = [];
     let iteration_index: Int = 0;
@@ -130,30 +136,35 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         analysis.expression_surfaces,
                         analysis.signatures, surface_index
                     );
+                let intent_node_id: Option<Int> =
+                    SemanticAstIntentExpressionOwnerNodeId(
+                        artifact, use_node_id
+                    );
                 let names: Array<String> = [];
                 let types: Array<String> = [];
                 let modes: Array<String> = [];
-                if !IsSome(function_node_id) ||
-                    !SemanticAstExpressionSeedEnumValues(
+                let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
                         analysis.enums, names, types, modes
-                    ) || !SemanticAstExpressionSeedOwnerFields(
+                    );
+                if environment_ok && IsSome(function_node_id) {
+                    environment_ok = SemanticAstExpressionSeedOwnerFields(
                         analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), names, types, modes
-                    ) || !SemanticAstExpressionSeedParameters(
+                    ) && SemanticAstExpressionSeedParameters(
                         analysis.signatures, UnwrapOption(function_node_id),
                         names, types
-                    ) || !SemanticAstExpressionSeedParameterModes(
+                    ) && SemanticAstExpressionSeedParameterModes(
                         analysis.signatures, UnwrapOption(function_node_id),
                         modes
-                    ) || !SemanticAstExpressionSeedVisibleLocals(
+                    ) && SemanticAstExpressionSeedVisibleLocals(
                         artifact, analysis.local_bindings,
                         initializer_types.inferred_type_names,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types
-                    ) || !SemanticAstExpressionSeedVisibleLocalModes(
+                    ) && SemanticAstExpressionSeedVisibleLocalModes(
                         artifact, analysis.local_bindings,
                         UnwrapOption(function_node_id), use_node_id, modes
-                    ) || !SemanticAstExpressionSeedVisibleIterationRows(
+                    ) && SemanticAstExpressionSeedVisibleIterationRows(
                         artifact, iteration_types.node_ids,
                         iteration_function_node_ids,
                         iteration_binding_names,
@@ -161,12 +172,21 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         iteration_types.verified,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes
-                    ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+                    ) && SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
                         artifact, analysis.expression_surfaces,
                         analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes, function_tables
-                    ) || ArrayLength(names) != ArrayLength(types) ||
+                    );
+                } else if environment_ok && IsSome(intent_node_id) {
+                    environment_ok = SemanticAstIntentExpressionSeedParameters(
+                        intent_signatures, UnwrapOption(intent_node_id),
+                        names, types, modes
+                    );
+                } else {
+                    environment_ok = false;
+                }
+                if !environment_ok || ArrayLength(names) != ArrayLength(types) ||
                     ArrayLength(names) != ArrayLength(modes) {
                     valid = false;
                 } else {

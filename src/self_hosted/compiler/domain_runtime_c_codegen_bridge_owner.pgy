@@ -116,6 +116,25 @@ func CompilerDomainRuntimeCProjectionBlockForOwner(
                 ));
                 assignment_offset = assignment_offset + 1;
             }
+            let topology_row: Int = admitted.domain_runtime_plan.
+                topology_row_indices[plan_row];
+            if topology_row < 0 || topology_row >= ArrayLength(
+                admitted.domain_topology.projection_slot_names
+            ) || admitted.domain_topology.projection_slot_names[
+                topology_row] == "" {
+                Die("domain runtime projection readiness identity is stale");
+            }
+            output = Concat(output, Concat(
+                "    ", Concat(owner_c_expression, Concat(
+                    ".__projection_ready_", Concat(
+                        CompilerDomainRuntimeCField(
+                            admitted.domain_topology.projection_slot_names[
+                                topology_row
+                            ]
+                        ), " = true;\n"
+                    )
+                ))
+            ));
         }
         ordinal = ordinal + 1;
     }
@@ -219,6 +238,23 @@ func CompilerDomainRuntimeCMethodPrologueForOwner(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     owner_name: String
 ) -> String {
+    if MirDomainRuntimePlanOperationCountForOwner(
+        admitted.domain_runtime_plan, owner_name
+    ) <= 0 {
+        return "";
+    }
+    return Concat(
+        "    ", Concat(
+            CompilerSymbolCQualifiedName(owner_name, "sync"),
+            "(self);\n"
+        )
+    );
+}
+
+func CompilerDomainRuntimeCSyncBlockForOwner(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    owner_name: String
+) -> String {
     let output: String = CompilerDomainRuntimeCProjectionBlockForOwner(
         admitted, owner_name, "(*self)"
     );
@@ -240,7 +276,18 @@ func CompilerDomainRuntimeCMethodPrologueForOwner(
         }
         ordinal = ordinal + 1;
     }
-    return output;
+    if output == "" { return ""; }
+    return Concat(
+        "static void ", Concat(
+            CompilerSymbolCQualifiedName(owner_name, "sync"), Concat(
+                "(", Concat(
+                    CompilerSymbolCIdentifier(owner_name), Concat(
+                        " *self)\n{\n", Concat(output, "}\n\n")
+                    )
+                )
+            )
+        )
+    );
 }
 
 func CodegenDomainRuntimeFactsFromAdmittedOrDie(
@@ -251,6 +298,7 @@ func CodegenDomainRuntimeFactsFromAdmittedOrDie(
     }
     let owner_names: Array<String> = [];
     let method_prologues: Array<String> = [];
+    let sync_blocks: Array<String> = [];
     let row: Int = 0;
     while row < ArrayLength(admitted.domain_runtime_plan.owner_names) {
         let owner_name: String =
@@ -265,16 +313,22 @@ func CodegenDomainRuntimeFactsFromAdmittedOrDie(
             let prologue: String =
                 CompilerDomainRuntimeCMethodPrologueForOwner(
                     admitted, owner_name
+                );
+            let sync_block: String = CompilerDomainRuntimeCSyncBlockForOwner(
+                admitted, owner_name
             );
-            if prologue != "" {
+            if prologue != "" && sync_block != "" {
                 ArrayPush(owner_names, owner_name);
                 ArrayPush(method_prologues, prologue);
+                ArrayPush(sync_blocks, sync_block);
+            } else if prologue != "" || sync_block != "" {
+                Die("domain runtime C sync/prologue projection is incomplete");
             }
         }
         row = row + 1;
     }
     let result: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFacts(
-        true, owner_names, method_prologues
+        true, owner_names, method_prologues, sync_blocks
     );
     if !CodegenDomainRuntimeFactsReady(result) {
         Die("domain runtime C view did not preserve admitted plan identity");

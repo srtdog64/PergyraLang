@@ -156,7 +156,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/diagnostic_contract_owner.pgy` -- executable
   payload-status and diagnostic-vocabulary completeness contract.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
-  evidence derived directly from the shared parser-owned `AstTreeArtifact`.
+  evidence derived directly from the shared parser-owned `AstTreeArtifact`,
+  including the canonical intent signature bundle consumed by later codegen.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
@@ -376,6 +377,13 @@ inventory must not become a second fact-family owner registry.
   parser-artifact projection of intent declaration identity and ordered
   `involves`/`value` parameter facts used to admit intent calls without
   pretending that an intent is a function or action declaration.
+- `src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy` --
+  intent-body expression environment projection that binds exact participant
+  aliases and types without inserting intent rows into ordinary function
+  signature ownership.
+- `src/self_hosted/semantic/ast_body_expression_environment_owner.pgy` -- one
+  body environment dispatcher that seeds either ordinary callable scope facts
+  or exact intent participant facts before call-target resolution.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
@@ -627,6 +635,9 @@ inventory must not become a second fact-family owner registry.
   instruction/use offset rebinding across routine-local MIR graphs.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
+- `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
+  for intent identity, participant/zone bindings, ordered steps, action
+  receiver, authorization, effects, expect/rollback, and commit boundaries.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
 - `src/self_hosted/mir/enum_declaration_verify_owner.pgy` -- contiguous
@@ -727,6 +738,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
+- `src/self_hosted/dir/intent_row_owner.pgy` -- compact read-only row projection
+  for one admitted intent declaration and its exact participant slice.
 - `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, zone/using/who/requires/causes/authorized identities, and ordered
@@ -805,6 +818,10 @@ inventory must not become a second fact-family owner registry.
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/intent_lower_owner.pgy` -- exact intent MIR
+  admission and AST reconstruction for the bounded successful action path;
+  malformed cross-carrier identity and unsupported fallible rollback fail
+  before code generation.
 - `src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy` -- routine-local
   successor, block identity, loop-header, and loop-exit projection queries over
   the admitted routine fact index.
@@ -999,6 +1016,11 @@ inventory must not become a second fact-family owner registry.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption, delegating List family calls to their named owner.
+- `src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy`
+  -- typed DeviceSlot machine-call ABI selection and argument emission.
+- `src/self_hosted/codegen/emission/expr_semantic_domain_query_emit_owner.pgy`
+  -- admitted projection-readiness query emission, including exact nested-zone
+  sync before observation.
 - `src/self_hosted/codegen/emission/expr_semantic_dynamic_ability_call_emit_owner.pgy`
   -- dynamic party role-slot call projection from semantic graph identity,
   dispatch ABI rows, and vtable field ownership; direct-call fallback is
@@ -1033,6 +1055,10 @@ inventory must not become a second fact-family owner registry.
   derived from semantic locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition,
   signature-environment, and prototype emission.
+- `src/self_hosted/codegen/emission/intent_emit_owner.pgy` -- distinct intent
+  prototype/environment/definition emission for admitted participant bindings,
+  zone rebinding, action execution, projection synchronization, and caller
+  value-result writeback; it does not reclassify intent as `func`.
 - `src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy` -- ability
   vtable types and instances, role method ABI declarations, party bind
   boundaries, and value-to-receiver operator adapters from semantic role facts.

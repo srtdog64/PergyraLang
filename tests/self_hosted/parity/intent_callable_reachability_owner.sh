@@ -3,8 +3,8 @@ set -euo pipefail
 
 # REACHABLE, not SUBSTITUTING: this gate proves that intent declaration,
 # participant, action-default step, and predecessor facts reach the production
-# self-host DIR graph. Native/self must publish the same graph anchor; MIR
-# intent execution remains the next honest boundary.
+# self-host DIR graph. Native/self must publish the same graph anchor. The
+# separate intent_callable_execution gate owns the bounded MIR execution rung.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"

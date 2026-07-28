@@ -302,7 +302,6 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                     row->source_slot_name,
                     row->source_slot_source_syntax_id,
                     MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_OBJECT
-                        | MIR_TOPOLOGY_FIELD_TOBJECT
                         | MIR_TOPOLOGY_FIELD_BINDING)
                 && row->layer_slot_name == NULL
                 && row->layer_slot_source_syntax_id == 0

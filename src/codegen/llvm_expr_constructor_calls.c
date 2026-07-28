@@ -557,6 +557,34 @@ llvm_emit_field_slot_claims(LLVMGenCtx *ctx, ASTNode *host,
     return true;
 }
 
+static const char *
+llvm_zone_constructor_input_slot_at(
+    const LLVMHostedDomainSlotView *slot_view,
+    size_t input_index,
+    size_t *slot_index_out)
+{
+    size_t seen = 0;
+
+    if (slot_index_out != NULL)
+        *slot_index_out = 0;
+    if (slot_view == NULL)
+        return NULL;
+    for (size_t i = 0; i < slot_view->count; i++) {
+        if (!llvm_hosted_domain_slot_view_is_subject_like(slot_view, i)
+            && !llvm_hosted_domain_slot_view_is_binding_like(
+                slot_view, i)) {
+            continue;
+        }
+        if (seen == input_index) {
+            if (slot_index_out != NULL)
+                *slot_index_out = i;
+            return llvm_hosted_domain_slot_view_name(slot_view, i);
+        }
+        seen++;
+    }
+    return NULL;
+}
+
 static LLVMValueRef
 llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
@@ -593,22 +621,53 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     }
 
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
-    int field_count = llvm_class_field_count(cls);
-    for (size_t i = 0; i < ast_call_arg_count(node)
-        && i < (size_t)field_count; i++) {
-        char *field_type_name =
-            (host_decl == NULL || host_decl->type == AST_CLASS_DECL)
-                ? llvm_class_constructor_field_type_name_at(ctx, callee_name, i)
+    LLVMHostedDomainSlotView zone_slot_view = {0};
+    bool zone_constructor = host_decl != NULL
+        && host_decl->type == AST_ZONE_DECL;
+    if (zone_constructor) {
+        zone_slot_view = llvm_hosted_domain_slot_view_from_decl(
+            ctx, callee_name, host_decl);
+        if (llvm_hosted_domain_slot_view_missing_mir_metadata(
+                &zone_slot_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing admitted zone constructor input metadata for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-zone)");
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+        char *owned_field_type_name = NULL;
+        const char *field_type_name = NULL;
+        const char *field_name = NULL;
+        int field_index = -1;
+        if (zone_constructor) {
+            size_t slot_index = 0;
+            field_name = llvm_zone_constructor_input_slot_at(
+                &zone_slot_view, i, &slot_index);
+            field_type_name = field_name != NULL
+                ? llvm_hosted_domain_slot_view_type_name(
+                    &zone_slot_view, slot_index)
                 : NULL;
-        const char *field_name = llvm_class_field_name_at(cls, (int)i);
-        LLVMTypeRef expected_ty = llvm_class_field_type_at(cls, (int)i);
-        int field_index = llvm_class_field_struct_index_at(cls, (int)i);
+            field_index = field_name != NULL
+                ? llvm_class_field_index(cls, field_name) : -1;
+        } else {
+            owned_field_type_name =
+                (host_decl == NULL || host_decl->type == AST_CLASS_DECL)
+                    ? llvm_class_constructor_field_type_name_at(
+                        ctx, callee_name, i)
+                    : NULL;
+            field_type_name = owned_field_type_name;
+            field_name = llvm_class_field_name_at(cls, (int)i);
+            field_index = llvm_class_field_struct_index_at(cls, (int)i);
+        }
+        LLVMTypeRef expected_ty = field_index >= 0
+            ? llvm_class_field_type_at_index(cls, field_index) : NULL;
         if (ctx->has_error) {
-            free(field_type_name);
+            free(owned_field_type_name);
             return NULL;
         }
         if (field_name == NULL || expected_ty == NULL || field_index < 0) {
-            free(field_type_name);
+            free(owned_field_type_name);
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor field metadata is incomplete");
         }
@@ -619,7 +678,7 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             arg = llvm_emit_constructor_field_arg(node, ctx,
                 field_type_name, field_name, ast_call_argument(node, i));
             ctx->current_ret_type = saved_ret;
-            free(field_type_name);
+            free(owned_field_type_name);
         }
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,

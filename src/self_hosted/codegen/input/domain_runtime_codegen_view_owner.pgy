@@ -4,10 +4,13 @@
 // prologue per identity-bearing owner.  Codegen consumes these strings as a
 // target view; it never reads MIR JSON or rebuilds participant/member policy.
 
+import "../text/text_owner.pgy";
+
 struct CodegenDomainRuntimeFacts {
     let admitted: Bool;
     let owner_names: Array<String>;
     let method_prologues: Array<String>;
+    let sync_blocks: Array<String>;
 }
 
 func CodegenDomainRuntimeFactsEmpty(
@@ -15,7 +18,10 @@ func CodegenDomainRuntimeFactsEmpty(
 ) -> CodegenDomainRuntimeFacts {
     let owner_names: Array<String> = [];
     let prologues: Array<String> = [];
-    return CodegenDomainRuntimeFacts(admitted, owner_names, prologues);
+    let sync_blocks: Array<String> = [];
+    return CodegenDomainRuntimeFacts(
+        admitted, owner_names, prologues, sync_blocks
+    );
 }
 
 func CodegenDomainRuntimeFactsReady(
@@ -23,13 +29,16 @@ func CodegenDomainRuntimeFactsReady(
 ) -> Bool {
     if !facts.admitted ||
         ArrayLength(facts.owner_names) !=
-            ArrayLength(facts.method_prologues) {
+            ArrayLength(facts.method_prologues) ||
+        ArrayLength(facts.owner_names) !=
+            ArrayLength(facts.sync_blocks) {
         return false;
     }
     let row: Int = 0;
     while row < ArrayLength(facts.owner_names) {
         if facts.owner_names[row] == "" ||
-            facts.method_prologues[row] == "" {
+            facts.method_prologues[row] == "" ||
+            facts.sync_blocks[row] == "" {
             return false;
         }
         let prior: Int = 0;
@@ -42,6 +51,21 @@ func CodegenDomainRuntimeFactsReady(
         row = row + 1;
     }
     return true;
+}
+
+func CodegenDomainRuntimeSyncBlock(
+    ref facts: CodegenDomainRuntimeFacts
+) -> String {
+    if !CodegenDomainRuntimeFactsReady(facts) {
+        Die("domain runtime sync block facts are missing or stale");
+    }
+    let block: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(facts.sync_blocks) {
+        block = Concat(block, facts.sync_blocks[row]);
+        row = row + 1;
+    }
+    return block;
 }
 
 func CodegenDomainRuntimeMethodPrologue(

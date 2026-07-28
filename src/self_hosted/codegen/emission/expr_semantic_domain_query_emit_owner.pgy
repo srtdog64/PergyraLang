@@ -1,0 +1,72 @@
+// C emission owner for admitted HasProjection/HasZoneProjection queries.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_domain_query_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+import "function_binding_env_owner.pgy";
+
+func RewriteSemanticDomainQueryCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    protocol: SemanticAstDomainQueryProtocol,
+    env: CodegenTypeEnv
+) -> String {
+    if !protocol.applies ||
+        ArrayLength(view.argument_nodes) != protocol.expected_arity {
+        Die("semantic domain query carrier is invalid");
+    }
+    if protocol.family != "projection" &&
+        protocol.family != "zone_projection" {
+        Die("semantic domain layer query codegen is not substituted");
+    }
+    let detail_index: Int = 0;
+    let prefix: String = "self->__projection_ready_";
+    if protocol.family == "zone_projection" {
+        detail_index = 1;
+        let zone_name: Option<String> =
+            SemanticExpressionGraphDomainQueryNameAt(
+                graph, view.argument_nodes[0]
+            );
+        if !IsSome(zone_name) {
+            Die("semantic zone projection query owner is missing");
+        }
+        prefix = Concat("self->", Concat(
+            CompilerSymbolCIdentifier(UnwrapOption(zone_name)),
+            ".__projection_ready_"
+        ));
+        let zone_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, view.argument_nodes[0], env
+        );
+        if !IsSome(zone_type) {
+            Die("semantic zone projection query type is missing");
+        }
+        let sync_symbol: String = LookupKindType(
+            env, UnwrapOption(zone_type), "projection_sync"
+        );
+        if sync_symbol == "" {
+            Die("semantic zone projection sync owner is missing");
+        }
+        prefix = Concat("(", Concat(sync_symbol, Concat(
+            "(&self->", Concat(
+                CompilerSymbolCIdentifier(UnwrapOption(zone_name)),
+                Concat("), ", prefix)
+            )
+        )));
+    }
+    let detail_name: Option<String> =
+        SemanticExpressionGraphDomainQueryNameAt(
+            graph, view.argument_nodes[detail_index]
+        );
+    if !IsSome(detail_name) {
+        Die("semantic projection query slot is missing");
+    }
+    let result: String = Concat(
+        prefix, CompilerSymbolCIdentifier(UnwrapOption(detail_name))
+    );
+    if protocol.family == "zone_projection" {
+        return Concat(result, ")");
+    }
+    return result;
+}

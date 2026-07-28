@@ -6,6 +6,25 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-28 - Intent successful path executes; tobject authority stays outside payload
+
+- Added a distinct typed MIR intent carrier and consumer. The general production
+  DRV-2 source entrypoint now reconstructs `Checkout`, emits a real intent C
+  callable, rebinds the admitted zone participant, executes `Buyer.Promote`,
+  synchronizes projections, and writes the subject result back to the caller.
+- A dedicated execution fixture observes both `buyer.total=3` and
+  `payment.total=3`. Direct-source self C and admitted-self-MIR C are byte-equal;
+  self C, native C, and native LLVM produce the same five output rows.
+- Intent kind/commit/binding/zone/authorization/rollback mutations reject before
+  partial C. The bounded successful path is `REACHABLE`, not whole-intent
+  `SUBSTITUTING`: fallible expect, compensation and effect observability remain
+  explicit blockers, as does compiler-root intent takeover.
+- Closed two tobject SoT leaks. Zone constructors accept only subject/binding
+  inputs in declaration source order; object/tobject destinations and layers are
+  topology-owned storage. A detached tobject is not a projection source in
+  native semantic/MIR or self DIR/MIR admission. A valid-ID MIR mutation is the
+  negative ratchet.
+
 ## 2026-07-28 - Intent callable and observability ABI reach self DIR
 
 - Added an artifact-exact self semantic intent signature owner. It preserves

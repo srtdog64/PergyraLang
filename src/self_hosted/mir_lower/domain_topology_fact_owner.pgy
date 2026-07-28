@@ -166,9 +166,6 @@ func MirDomainTopologyProjectionSourceIdentityReady(
             NominalFieldKindObjectSlot()
         ) || MirProgramDeclarationFieldIdentityMatches(
             identities, owner_name, field_name, source_syntax_id,
-            NominalFieldKindTObjectSlot()
-        ) || MirProgramDeclarationFieldIdentityMatches(
-            identities, owner_name, field_name, source_syntax_id,
             NominalFieldKindBindingSlot()
         );
 }

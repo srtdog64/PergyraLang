@@ -6,6 +6,7 @@ import "routine_entry_owner.pgy";
 import "routine_local_inventory_owner.pgy";
 import "routine_receiver_carriage_owner.pgy";
 import "routine_cfg_append_owner.pgy";
+import "intent_routine_owner.pgy";
 import "../dir/domain_graph_fact_owner.pgy";
 import "../dir/domain_projection_map_row_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -389,6 +390,22 @@ func SelfMirProgramFactsFromReadyArtifact(
             iteration_types, initializer_types
         );
         i = i + 1;
+    }
+    let intent_i: Int = 0;
+    while intent_i < SelfDirIntentCount(domain_graph.intents) {
+        let intent_build: SelfMirRoutineBuild = SelfMirIntentRoutineBuild(
+            input, declarations, domain_graph.intents, intent_i
+        );
+        if !intent_build.ok {
+            return SelfMirProgramFactsError(
+                facts, "mir_intent_lower_unsupported",
+                intent_build.diagnostic_message
+            );
+        }
+        facts = SelfMirAppendIntentRoutine(
+            facts, domain_graph.intents, intent_i, intent_build
+        );
+        intent_i = intent_i + 1;
     }
     return SelfMirCanonicalInstructionIds(facts);
 }

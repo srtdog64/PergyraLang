@@ -23,9 +23,11 @@ func SemanticAstNominalConstructorFieldIsArgument(
     let kind: String = constructors.field_kinds[
         constructors.param_starts[constructor_index] + field_index
     ];
+    // A zone receives identity-bearing subjects and explicit bindings.
+    // object/tobject slots are projection products materialized by
+    // refresh/publish; asking callers to construct them would create a
+    // second authority beside the topology owner.
     return kind == NominalFieldKindSubjectSlot() ||
-        kind == NominalFieldKindObjectSlot() ||
-        kind == NominalFieldKindTObjectSlot() ||
         kind == NominalFieldKindBindingSlot();
 }
 

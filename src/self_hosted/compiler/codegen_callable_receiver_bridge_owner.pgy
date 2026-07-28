@@ -16,12 +16,13 @@ struct CodegenAdmittedCView {
 
 func CodegenCallableReceiverFactsFromAdmittedOrDie(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    analysis: SemanticAstArtifactAnalysis
+    analysis: SemanticAstArtifactAnalysis,
+    canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenCallableReceiverFacts {
     return CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
         analysis.signatures, analysis.constructors, analysis.roles,
         analysis.enums,
-        admitted.routines.source_syntax_ids,
+        canonical_routine_source_syntax_ids,
         admitted.routines.kinds,
         admitted.routines.owners,
         admitted.routines.names,
@@ -34,10 +35,13 @@ func CodegenAdmittedCViewFromFactsOrDie(
     analysis: SemanticAstArtifactAnalysis,
     artifact: AstTreeArtifact,
     own semantic_body_types: SemanticAstBodyTypeBundle,
-    own generic_specializations: CodegenGenericSpecializationFacts
+    own generic_specializations: CodegenGenericSpecializationFacts,
+    canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenAdmittedCView {
     let receivers: CodegenCallableReceiverFacts =
-        CodegenCallableReceiverFactsFromAdmittedOrDie(admitted, analysis);
+        CodegenCallableReceiverFactsFromAdmittedOrDie(
+            admitted, analysis, canonical_routine_source_syntax_ids
+        );
     if !receivers.admitted {
         Die("MIR callable receiver facts did not cross machine admission");
     }

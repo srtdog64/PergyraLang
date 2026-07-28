@@ -2,6 +2,7 @@
 
 import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
 import "../../semantic/nominal_constructor_argument_policy_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenSemanticNominalIs(
@@ -74,6 +75,43 @@ func CodegenSemanticNominalFieldTypeOrDie(
         Die("semantic nominal declaration field-type fact missing");
     }
     return UnwrapOption(type_name);
+}
+
+func CodegenSemanticNominalFieldKindOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> String {
+    let kind: Option<String> = SemanticAstNominalConstructorFieldKindAt(
+        facts, constructor_index, field_index
+    );
+    if !IsSome(kind) {
+        Die("semantic nominal declaration field-kind fact missing");
+    }
+    return UnwrapOption(kind);
+}
+
+func CodegenSemanticNominalsRequireProjectionReadyBool(
+    facts: SemanticAstNominalConstructorFacts
+) -> Bool {
+    let nominal_index: Int = 0;
+    while nominal_index < SemanticAstNominalConstructorCount(facts) {
+        let field_index: Int = 0;
+        while field_index < CodegenSemanticNominalFieldCountOrDie(
+            facts, nominal_index
+        ) {
+            let kind: String = CodegenSemanticNominalFieldKindOrDie(
+                facts, nominal_index, field_index
+            );
+            if kind == NominalFieldKindObjectSlot() ||
+                kind == NominalFieldKindTObjectSlot() {
+                return true;
+            }
+            field_index = field_index + 1;
+        }
+        nominal_index = nominal_index + 1;
+    }
+    return false;
 }
 
 func CodegenSemanticNominalFieldIsConstructorArgumentOrDie(

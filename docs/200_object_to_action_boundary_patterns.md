@@ -133,7 +133,7 @@ production call, 삭제된 bypass, 소비되는 result, negative gate가 있을 
 | 패턴 | canonical 흐름 | 최종 fact owner | 금지되는 축약 |
 | --- | --- | --- | --- |
 | local observation | `subject source -> object slot -> refresh -> query` | source identity는 subject, projection freshness/topology는 effect/relation/zone의 DIR row | object 직접 수정, object를 외부 DTO로 재사용, backend의 refresh 문자열 재탐색 |
-| boundary publication | `subject source -> tobject slot -> publish -> transfer/receipt` | snapshot 값과 source 분리는 tobject/publish fact, 전송 성공은 action/transaction result | borrowed pointer·live slot·authority를 tobject에 싣기, mutable DTO, publish 없는 암묵 복사 |
+| boundary publication | `subject source -> tobject slot -> publish -> transfer/receipt` | tobject는 materialized payload만 소유한다. source identity/freshness/edge는 enclosing directive와 `dir.domain_graph`, 전송 성공은 action/transaction result가 소유한다 | borrowed pointer·live slot·authority를 tobject에 싣기, mutable DTO, publish 없는 암묵 복사, receipt를 새 projection source로 재사용 |
 | encapsulated state | `subject -> owned vessel -> hosted func` | actor identity/승인은 subject, 내부 state/resource는 vessel | vessel이 action/authority를 소유, free-function parameter ABI를 hosted receiver ABI에서 추정 |
 | observable transition | `typed input fact -> subject.action -> Result/stage/tobject receipt` | action contract와 transition result, 하위 계산은 기존 typed owner | `*Ready()`/`return true` wrapper, action body의 semantic 재계산, 실패 시 old path 재진입 |
 | domain orchestration | `action causes effect`; `zone apply/link/refresh/publish`; 여러 action이면 `intent` | effect/relation identity는 각 declaration, membership/lifetime/topology는 zone, 목적·보상은 intent | clause를 장식으로 추가, zone이 subject 내부를 직접 수정, 단일 action용 intent, backend별 world |
@@ -142,6 +142,12 @@ production call, 삭제된 bypass, 소비되는 result, negative gate가 있을 
 승격되기 전 단계가 아니다. `action`도 effect/relation/zone을 포괄하는 상위 타입이
 아니다. 각 구성체는 identity, freshness, transfer, internal state, authority,
 transition, orchestration 중 정확히 한 경계 질문에 답한다.
+
+`object`와 `tobject`는 typed value 또는 graph endpoint일 수 있지만 edge identity,
+source provenance, freshness, topology, authority를 소유하지 않는다. 그 사실은
+enclosing effect/relation/zone의 `refresh`/`publish`/`bind` directive와
+`dir.domain_graph`가 소유한다. 특히 publish가 끝난 `tobject`는 source lifecycle에서
+분리된 receipt이므로 다른 projection의 fresh source로 재사용할 수 없다.
 
 Self-host 구현도 같은 판정법을 사용한다. 올바른 Pergyra 컴파일러 파일 대부분이
 `func`와 `struct`로 남는 것은 정상이다. 실제 source lifecycle 분리에는
@@ -241,7 +247,7 @@ operation 배열을 렌더링할 뿐 다시 선택하지 않는다.
 | 경계 | canonical runtime 규칙 | 현재 닫아야 할 falsifier |
 | --- | --- | --- |
 | `object` | local source-bound value projection. semantic이 refresh member assignment를 exact ID/type/path로 확정 | 같은 이름의 다른 field ID, missing source, 직접 mutation |
-| `tobject` | source lifecycle과 분리된 immutable publish snapshot. routine receiver를 두지 않음 | borrowed/live state 포함, passive hosted method, publish 없는 전달 |
+| `tobject` | source lifecycle과 분리된 immutable publish snapshot. routine receiver를 두지 않고 graph/source/authority를 payload에서 복구하지 않음 | borrowed/live state 포함, passive hosted method, publish 없는 전달, zone constructor 선주입, valid-ID receipt를 projection source로 재사용 |
 | `vessel` | subject-owned stable cell. hosted receiver만 pointer-self이고 일반 parameter carriage와 분리 | default/ref parameter가 의도 없이 caller state를 바꾸는 경우 |
 | `subject` | stable identity가 func/action transition을 소유. temporary receiver 금지 | by-value self, address-of-rvalue, copy/rebind/value return |
 | `action` | subject-owned callable contract와 호출별 authority binding, 명시적 outcome을 소유 | `*Ready()` facade, first-authority 선택, 실패 후 old path 재진입 |
@@ -266,6 +272,13 @@ backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중
 - Self source producer도 같은 typed row를 만들고, machine admission이 topology,
   role, member/path를 한 번 exact join해 target-neutral plan을 만든다. 이후 lookup과
   codegen view는 whole-plan/whole-owner validation을 반복하지 않는다.
+- Zone constructor input은 declaration source order를 보존한 `subject slot`과
+  `binding slot`뿐이다. `object`/`tobject` projection destination과 effect/relation
+  layer storage는 topology/runtime owner가 construction 이후 materialize하며 caller가
+  값을 선주입할 수 없다. Native C/LLVM과 self semantic이 같은 정책을 소비한다.
+- Native semantic, native MIR verifier, self DIR producer, self MIR admission 모두
+  `tobject` source를 거부한다. `tobject` field ID를 유효한 다른 source ID로 바꾼
+  malformed MIR도 C artifact 전에 실패한다.
 - Production DRV-2 직접 source entrypoint는 source -> self MIR -> admission -> general
   C를 통과한다. `zone_layer_projection_runtime`의 명시적 MIR 경로와 byte-equal C를
   만들며 둘 다 `7`과 `dst`를 실행한다.
@@ -299,6 +312,8 @@ effect/relation map은 해당 fixture를 대체하지만 전체 lifecycle schedu
   parameter를 reference semantics로 취급한다.
 - semantic은 `object`와 `tobject` field assignment를 각각 refresh/publish
   위반으로 거부한다.
+- semantic은 zone constructor에서 projection/layer storage 인수를 거부하고,
+  detached `tobject`를 다른 projection의 source로 쓰는 것도 거부한다.
 - `struct` hosted method는 semantic에서 거부한다.
 - parser와 semantic은 `action`을 `subject` 안에서만 허용한다.
 - top-level `public`/`export`는 native와 self-host parser 모두 같은 AST

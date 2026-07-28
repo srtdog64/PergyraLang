@@ -1100,10 +1100,59 @@ reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
 require_file "tests/self_hosted/parity/intent_callable_reachability_owner.sh"
 require_text "Makefile" \
     'tests/self_hosted/parity/intent_callable_reachability_owner.sh'
+require_file "tests/self_hosted/parity/intent_callable_execution_owner.sh"
+require_max_lines "tests/self_hosted/parity/intent_callable_execution_owner.sh" 220
+require_text "Makefile" \
+    'tests/self_hosted/parity/intent_callable_execution_owner.sh'
+require_file "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy"
+require_file "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy"
+require_text \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "SemanticAstBodyExpressionEnvironmentSeed("
 require_file "src/self_hosted/dir/intent_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 560
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 470
+require_file "src/self_hosted/dir/intent_row_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_row_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_row_owner.pgy"
+require_file "src/self_hosted/mir/intent_routine_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir_lower/intent_lower_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/intent_lower_owner.pgy" 430
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_lower_owner.pgy"
+require_file "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/emission/expr_semantic_domain_query_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/expr_semantic_domain_query_emit_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/expr_semantic_domain_query_emit_owner.pgy"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'import "expr_semantic_domain_query_emit_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'import "expr_semantic_machine_call_emit_owner.pgy";'
 require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
     'import "intent_fact_owner.pgy";'
 require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
@@ -1130,6 +1179,10 @@ require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
     '"domain_graph_id":14937234969446610600'
 require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
     'intent-step-depends-on'
+require_text "tests/self_hosted/parity/intent_callable_execution_owner.sh" \
+    'Buyer_Promote(&((*payment).buyer));'
+require_text "tests/self_hosted/parity/intent_callable_execution_owner.sh" \
+    'authorize-cross-carrier'
 reject_regex_under "src/self_hosted" "ZeroArtifactDecl"
 require_file "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
@@ -3287,6 +3340,10 @@ require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func S
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsContractReady"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "local_bindings: SemanticAstLocalBindingFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "constructors: SemanticAstNominalConstructorFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "intent_signatures: SemanticAstIntentSignatureFacts;"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "SemanticAstIntentSignatureFactsFromArtifact("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "assignments: SemanticAstAssignmentFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "statements: SemanticAstStatementFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "enums: SemanticAstEnumFacts;"
@@ -3319,7 +3376,7 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticAstExpressionEnvironmentClear(names, types, modes);"
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "SemanticAstExpressionEnvironmentClear(names, types, modes);"
-require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" \
     "SemanticAstIterationSeedVisibleBindings("
 reject_function_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
@@ -4842,6 +4899,10 @@ require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner
     "func SemanticAstNominalConstructorArgumentCountAt("
 require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     "func SemanticAstNominalConstructorArgumentTypeAt("
+reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    'kind == NominalFieldKindObjectSlot()'
+reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    'kind == NominalFieldKindTObjectSlot()'
 require_file "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 60
 require_text "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" \
@@ -4871,6 +4932,17 @@ require_max_lines "tests/self_hosted/parity/world_tobject_projection_query_owner
 require_text "tests/self_hosted/parity/world_tobject_projection_query_owner.sh" \
     "Code: undefined_symbol"
 require_text "Makefile" "self-host-world-tobject-query-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/tobject_boundary_execution_owner.sh"
+require_max_lines "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" 180
+require_file \
+    "tests/self_hosted/parity/fixture/zone_projection_constructor_source_order.pgy"
+require_file \
+    "tests/self_hosted/parity/fixture/domain_topology_tobject_source_rejected.pgy"
+require_text "Makefile" "self-host-tobject-boundary-test-smoke:"
+require_text "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" \
+    'valid-ID tobject projection source'
+require_text "tests/self_hosted/parity/tobject_boundary_execution_owner.sh" \
+    'accepts at most 1 positional field argument(s), got 2'
 reject_regex "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
     'ArrayPush\([A-Za-z_][A-Za-z0-9_]*\.'
 reject_regex "src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy" \

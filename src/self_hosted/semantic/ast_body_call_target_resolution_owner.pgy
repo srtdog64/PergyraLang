@@ -4,6 +4,7 @@ import "ast_artifact_verdict_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_body_expression_environment_owner.pgy";
 
 func SemanticAstAnalysisResolveCallTargetsFromBody(
     artifact: AstTreeArtifact,
@@ -23,6 +24,11 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
         return false;
     }
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
+        return false;
+    }
+    if !SemanticAstIntentSignatureFactsReady(
+        artifact, analysis.intent_signatures
+    ) {
         return false;
     }
     let last_root: Int = -1;
@@ -52,36 +58,17 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                         analysis.expression_surfaces,
                         analysis.signatures, surface_index
                     );
+                let intent_node_id: Option<Int> =
+                    SemanticAstIntentExpressionOwnerNodeId(
+                        artifact, use_node_id
+                    );
                 if surface_index != seeded_surface {
                     SemanticAstExpressionEnvironmentReset(names, types, modes);
-                    if !IsSome(function_node_id) ||
-                        !SemanticAstExpressionSeedOwnerFields(
-                            analysis.signatures, analysis.constructors,
-                            UnwrapOption(function_node_id), names, types, modes
-                        ) ||
-                        !SemanticAstExpressionSeedParameters(
-                            analysis.signatures, UnwrapOption(function_node_id),
-                            names, types
-                        ) || !SemanticAstExpressionSeedParameterModes(
-                            analysis.signatures, UnwrapOption(function_node_id),
-                            modes
-                        ) || !SemanticAstExpressionSeedVisibleLocals(
-                            artifact, analysis.local_bindings, inferred_types,
-                            UnwrapOption(function_node_id), use_node_id,
-                            names, types
-                        ) || !SemanticAstExpressionSeedVisibleLocalModes(
-                            artifact, analysis.local_bindings,
-                            UnwrapOption(function_node_id), use_node_id, modes
-                        ) || !SemanticAstIterationSeedVisibleBindings(
-                            artifact, analysis.statements, iteration_types,
-                            UnwrapOption(function_node_id), use_node_id,
-                            names, types, modes
-                        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-                            artifact, analysis.expression_surfaces,
-                            analysis.signatures, analysis.constructors,
-                            UnwrapOption(function_node_id), use_node_id,
-                            names, types, modes, function_tables
-                        ) || ArrayLength(names) != ArrayLength(modes) {
+                    if !SemanticAstBodyExpressionEnvironmentSeed(
+                        artifact, analysis, inferred_types, iteration_types,
+                        function_tables, analysis.intent_signatures, function_node_id,
+                        intent_node_id, use_node_id, names, types, modes
+                    ) {
                         valid = false;
                     } else {
                         seeded_surface = surface_index;

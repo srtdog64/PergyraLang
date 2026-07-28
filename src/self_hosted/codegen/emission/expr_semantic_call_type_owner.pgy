@@ -9,6 +9,7 @@ import "set_call_type_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/builtin_signature_owner.pgy";
+import "../../semantic/ast_domain_query_protocol_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 
 func CodegenExpressionCallTypeFromGraph(
@@ -37,6 +38,14 @@ func CodegenExpressionCallTypeFromGraph(
     );
     if !IsSome(target_name) { return None; }
     let source_name: String = UnwrapOption(target_name);
+    let domain_query: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName(source_name);
+    if domain_query.applies {
+        if ArrayLength(call.argument_nodes) != domain_query.expected_arity {
+            return None;
+        }
+        return Some("Bool");
+    }
     if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
         ArrayLength(call.argument_nodes) == 1 {
         let wrapped: Option<String> = CodegenExpressionTypeFromGraph(

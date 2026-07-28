@@ -1,0 +1,50 @@
+subject Player {
+    let value: Int;
+}
+
+object PlayerView {
+    value: Int;
+}
+
+tobject PlayerReceipt {
+    value: Int;
+}
+
+zone MixedZone {
+    subject slot alpha: Player
+    object slot alphaView: PlayerView
+    subject slot beta: Player
+    tobject slot betaReceipt: PlayerReceipt
+
+    refresh alphaView from alpha map {
+        value <- value;
+    }
+
+    publish betaReceipt from beta map {
+        value <- value;
+    }
+
+    func AlphaValue(self) -> Int {
+        return alpha.value;
+    }
+
+    func BetaValue(self) -> Int {
+        return beta.value;
+    }
+
+    func ViewValue(self) -> Int {
+        return alphaView.value;
+    }
+
+    func ReceiptValue(self) -> Int {
+        return betaReceipt.value;
+    }
+}
+
+func Main() -> Void {
+    let mixed = MixedZone(Player(7), Player(9));
+    Log("alpha=" + ToString(mixed.AlphaValue()));
+    Log("beta=" + ToString(mixed.BetaValue()));
+    Log("view=" + ToString(mixed.ViewValue()));
+    Log("receipt=" + ToString(mixed.ReceiptValue()));
+}

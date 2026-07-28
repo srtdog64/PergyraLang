@@ -160,10 +160,10 @@ func SelfDirProjectionSourceFieldSyntaxId(
     source_id = SelfDirFieldSourceSyntaxId(
         rows, declaration_index, field_name, NominalFieldKindObjectSlot()
     );
-    if source_id > 0 { return source_id; }
-    return SelfDirFieldSourceSyntaxId(
-        rows, declaration_index, field_name, NominalFieldKindTObjectSlot()
-    );
+    // A tobject is already a detached publication receipt.  Reusing it as a
+    // projection source would reopen the graph edge and freshness authority
+    // outside the enclosing refresh/publish/bind directive owner.
+    return source_id;
 }
 
 func SelfDirDomainTopologyRowsFromArtifact(

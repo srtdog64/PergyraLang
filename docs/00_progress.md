@@ -2,6 +2,32 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 intent execution + tobject boundary checkpoint
+
+- Self DIR의 exact intent declaration/step facts가 이제 별도 typed MIR intent
+  routine으로 운반된다. MIR consumer는 participant/zone/action/authorization/commit
+  identity를 교차 검증하고, full source와 admitted MIR에서 byte-equal C를 만든다.
+- `intent_callable_execution`은 `Checkout(payment, buyer)`를 실제 호출한다. Self C,
+  native C, native LLVM이 모두 `buyer.total=3`, `payment.total=3`, 두 projection
+  ready, `Mina`, world ready를 동일하게 출력했다. Action은 payment zone의 admitted
+  buyer에 실행되고 projection sync 뒤 caller buyer로 value-result writeback된다.
+- Intent kind, commit identity, participant type, zone alias, authorization
+  cross-carrier, rollback identity 변조는 partial C 없이 실패한다. 이 successful
+  path는 `REACHABLE`이다. Fallible `expect`, compensation/effect observability와 실제
+  `PgyCompilerWorld` root intent takeover가 열려 있으므로 whole-intent
+  `SUBSTITUTING`으로 세지 않는다.
+- `tobject`는 detached immutable payload/receipt이며 graph owner가 아니다. Zone
+  constructor는 source order의 subject/binding만 받고 object/tobject projection
+  storage를 인수로 받지 않는다. Native C/LLVM positive source-order 실행과 native/
+  self arity negative가 이 경계를 고정한다.
+- Publish된 `tobject`는 새 projection source가 될 수 없다. Native source semantic,
+  self DIR source producer, native/self MIR admission에서 거부하며, 실제 valid
+  TObjectSlot ID로 바꾼 malformed self MIR도 C output 전에 실패한다.
+- 다음 executable falsifier는 fallible `expect`의 typed success/failure 분기와
+  compensation/effect outcome이다. 그 뒤 둘 이상의 실제 compiler action을
+  `PgyCompilerWorld` root intent에서 호출하고 migrated direct bypass를 삭제해야
+  compiler dogfood가 `SUBSTITUTING`으로 올라간다.
+
 ## 2026-07-28 exact intent DIR reachability checkpoint
 
 - Self typed AST가 native AST의 intent mode/rollback/retry, ordered

@@ -13,14 +13,79 @@ import "../mir/domain_runtime_assignment_verify_owner.pgy";
 import "../mir/program_fact_owner.pgy";
 import "../mir_lower/domain_topology_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "canonical_mir_field_identity_epoch_owner.pgy";
 
 struct CanonicalMirIdentityEpochArtifact {
     ok: Bool;
     artifact: AstTreeArtifact;
     directive_node_ids: Array<Int>;
+}
+
+struct CanonicalMirRoutineIdentityEpoch {
+    ok: Bool;
+    source_syntax_ids: Array<String>;
+}
+
+func CanonicalMirRoutineIdentityEpochFromArtifact(
+    ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> CanonicalMirRoutineIdentityEpoch {
+    let ids: Array<String> = [];
+    let intents: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    let ok: Bool = routines.valid &&
+        SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) && SemanticAstIntentSignatureFactsReady(artifact, intents);
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) && ok {
+        let canonical_id: Int = 0 - 1;
+        let match_count: Int = 0;
+        if routines.kinds[row] == "intent" {
+            let intent_index: Int = 0;
+            while intent_index < SemanticAstIntentSignatureCount(intents) {
+                if intents.names[intent_index] == routines.names[row] {
+                    canonical_id = intents.intent_node_ids[intent_index];
+                    match_count = match_count + 1;
+                }
+                intent_index = intent_index + 1;
+            }
+        } else if routines.kinds[row] == "function" ||
+            routines.kinds[row] == "method" {
+            let signature_index: Int = 0;
+            while signature_index <
+                SemanticAstFunctionSignatureCount(signatures) {
+                if signatures.owner_names[signature_index] ==
+                        routines.owners[row] &&
+                    signatures.names[signature_index] == routines.names[row] {
+                    canonical_id = signatures.function_node_ids[signature_index];
+                    match_count = match_count + 1;
+                }
+                signature_index = signature_index + 1;
+            }
+        }
+        if match_count != 1 || canonical_id <= 0 {
+            ok = false;
+        } else {
+            let id: String = ToString(canonical_id);
+            let prior: Int = 0;
+            while prior < ArrayLength(ids) {
+                if ids[prior] == id { ok = false; }
+                prior = prior + 1;
+            }
+            ArrayPush(ids, id);
+        }
+        row = row + 1;
+    }
+    return CanonicalMirRoutineIdentityEpoch(
+        ok && ArrayLength(ids) == MirProgramRoutineIndexCount(routines), ids
+    );
 }
 
 struct CanonicalMirProgramIdentityEpoch {

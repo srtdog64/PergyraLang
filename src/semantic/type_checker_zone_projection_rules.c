@@ -63,8 +63,8 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                     "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared.\n"
                     "Reason:\n"
-                    "- boundary projection publishes authority-bearing state across the zone edge\n"
-                    "- zone '%s' declares authority, so provenance must name the approving subject slot\n"
+                    "- boundary publication is approved by zone authority; the tobject payload remains authority-free\n"
+                    "- zone '%s' declares authority, so 'by' records the approving subject provenance\n"
                     "Contract source:\n"
                     "- zone authority declaration on this zone\n"
                     "- boundary projection publish/bind/refresh requires an approving subject slot\n"

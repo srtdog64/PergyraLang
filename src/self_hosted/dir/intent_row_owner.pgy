@@ -1,0 +1,51 @@
+// Typed DIR intent row carriers shared by resolution and MIR projection.
+
+struct SelfDirIntentParticipantFacts {
+    node_ids: Array<Int>;
+    is_values: Array<Bool>;
+    aliases: Array<String>;
+    type_names: Array<String>;
+    declaration_indices: Array<Int>;
+}
+
+struct SelfDirIntentStepFacts {
+    node_ids: Array<Int>;
+    names: Array<String>;
+    where_zone_names: Array<String>;
+    where_declaration_indices: Array<Int>;
+    using_aliases: Array<String>;
+    receiver_aliases: Array<String>;
+    action_names: Array<String>;
+    on_node_ids: Array<Int>;
+    expect_node_ids: Array<Int>;
+    predecessor_step_indices: Array<Int>;
+    causes_names: Array<String>;
+    causes_declaration_indices: Array<Int>;
+    who_starts: Array<Int>;
+    who_counts: Array<Int>;
+    who_names: Array<String>;
+    requires_starts: Array<Int>;
+    requires_counts: Array<Int>;
+    requires_names: Array<String>;
+    requires_declaration_indices: Array<Int>;
+    authorized_starts: Array<Int>;
+    authorized_counts: Array<Int>;
+    authorized_names: Array<String>;
+}
+
+func SelfDirIntentParticipantFactsEmpty() -> SelfDirIntentParticipantFacts {
+    let ints: Array<Int> = [];
+    let bools: Array<Bool> = [];
+    let strings: Array<String> = [];
+    return SelfDirIntentParticipantFacts(ints, bools, strings, strings, ints);
+}
+
+func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfDirIntentStepFacts(
+        ints, strings, strings, ints, strings, strings, strings, ints, ints,
+        ints, strings, ints, ints, ints, strings, ints, ints, strings, ints,
+        ints, ints, strings
+    );
+}

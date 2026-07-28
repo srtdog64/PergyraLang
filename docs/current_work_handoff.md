@@ -6,72 +6,62 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - exact intent DIR reachability
+## Current resume checkpoint - intent execution and tobject boundary
 
-- Landing parent: `13be4e802b73c526bebc189aa831c8f9132236c9` on `main`, aligned
-  with `origin/main` at the start of this slice. The landing commit contains
-  this handoff; use `git rev-parse HEAD` after landing for the exact revision.
+- Landing parent: `57cbc9d5bd600bb37fa0c1a56d7feeb60f6993aa` on `main`.
+  The landing commit contains this handoff; after landing use `git rev-parse
+  HEAD` and `git status --short --branch` for the exact revision and dirty state.
 - Objective card:
-  - objective: replace the self DIR unconditional `IntentDecl` rejection with
-    exact participant and ordered step graph facts derived from the parser
-    artifact and semantic action contract owners;
-  - priority: typed intent row identity, exact declaration joins, action-default
-    consumption, native/self graph-anchor parity, negative `using`/call gates,
-    then the next MIR execution boundary;
-  - fact owners: `ast_intent_signature_fact_owner.pgy` owns declaration and
-    involves/value signatures; `intent_fact_owner.pgy` owns intent ranges and
-    edge census; `intent_step_fact_owner.pgy` owns receiver/action resolution,
-    zone/using/who/requires/causes/authorized facts and predecessor order;
-  - last legitimate consumer: `domain_graph_fact_owner.pgy` includes these facts
-    once in the DIR graph anchor. MIR intent carriage/execution is the next
-    consumer and must not reopen AST/source text;
-  - forbidden fallback: count-only intent edges, native MIR graft, raw-source
-    rescan, unresolved participant success, header/child disagreement, treating
-    `tobject` as authority, or leaving the old unconditional rejection beside
-    the typed owner;
-  - verification: fresh DRV-2 build,
-    `tests/self_hosted/parity/intent_callable_reachability_owner.sh`,
-    `tests/intent_observability_abi_registry_smoke.sh`, and
-    `tests/self_hosted_component_contract_smoke.sh`.
-- Observed evidence:
-  - a fresh Pergyra-built DRV-2 compiled with 0 Pergyra errors/warnings;
-    generated C completed with the three existing unused-variable warnings and
+  - objective: carry exact DIR intent facts to typed MIR and execute the bounded
+    successful `Checkout` action through the general self-host C consumer while
+    keeping `tobject` a detached payload rather than a second graph authority;
+  - priority: participant/action identity; lossless MIR carriage; one admitted
+    execution path; projection synchronization and caller writeback; tobject
+    constructor/source negatives; then fallible intent semantics;
+  - fact owners: semantic action/call owners decide callable contracts; DIR owns
+    intent purpose/participants/ordered step graph and `dir.domain_graph`; MIR is
+    a carrier; intent lowering/emission is the final bounded C consumer;
+  - forbidden fallback: intent-as-func, source/AST rescan, native MIR graft,
+    action beside an old direct path, projection storage as constructor input,
+    or a published tobject reused as fresh projection source;
+  - verification: `intent_callable_execution_owner.sh`,
+    `tobject_boundary_execution_owner.sh`, the earlier intent reachability gate,
+    and the self-host component contract.
+- Observed executable evidence:
+  - native `make -j4 compiler` rebuilt `bin/pgy.exe`; a fresh Pergyra-built
+    `driver_rung2_main.pgy` completed with 0 Pergyra errors and 0 warnings;
+    generated C retained only the three known unused-variable warnings and two
     unsupported warning-option notes;
-  - the full focused source now emits self `pgy.mir.v1`; the old
-    `self-host DIR authority shape is unsupported` boundary is gone;
-  - single-step native/self DIR is exactly 14 nodes and 30 edges with graph
-    anchor `14937234969446610600`;
-  - an explicit-using two-step mutation includes the predecessor edge and
-    converges at graph anchor `14937235081115760274`;
-  - a wrong-zone `using: buyer` mutation fails with no partial MIR artifact;
-  - wrong arity fails with `call_arity_mismatch`, wrong participant type with
-    `call_arg_type_mismatch`, and a renamed intent with `undefined_function`,
-    all before a partial MIR artifact;
-  - the canonical observability registry remains 51 rows and its focused native/
-    self projection gate is green;
-  - the SoT registry declares `selfhost.intent_declaration_rows`, classifies the
-    intent DIR fact/step files as `dir.domain_graph` bridges, and reports 61
-    authorities, 62 derived carriers, `CLOSED=34 BRIDGE=27 ACTIVE=0`;
-  - `sot_authority_adequacy_smoke.sh` passed its live owner/consumer and negative
-    mutation checks. Coq/Rocq is unavailable on this runner, so proof compilation
-    was a declared skip and is not claimed as executed proof evidence;
-  - `verified_projection_plan_smoke.sh` still fails at its pre-existing broad
-    `ast_` forbidden-pattern check because current HEAD contains
-    `ast_node_stable_id` in `verified_projection_plan.c`. The registry-reading
-    portion was migrated to the `.def` owner, but the full gate is not claimed
-    green and that unrelated planner seam was not changed in this slice.
-- Grade: `REACHABLE`, not `SUBSTITUTING`. This replaces the previous
-  DIR rejection and reaches MIR production, but no Pergyra intent routine
-  executes and no C-owned intent lowering path has been replaced.
-- Next executable falsifier: `CompileSourceToCVerified` currently advances past
-  DIR and fails during MIR-to-AST reconstruction with
-  `SemanticAstExpressionSurfaceFacts` / `ast_artifact_invalid`. Add one typed MIR
-  intent carrier for declaration, participant, ordered step and on-call facts;
-  reconstruct/execute `Checkout` from that carrier, delete the direct old-path
-  bypass for the migrated slice, and reject missing/mutated rows before C output.
-- `tobject` remains the immutable detached handoff on the already reached
-  `subject source -> tobject slot -> publish` path. It is not the missing intent
-  authority owner and should not absorb step identity or mutable orchestration.
+  - direct-source self C and admitted-self-MIR C are byte-equal for the exact
+    successful intent slice;
+  - self C, native C and native LLVM all execute `Checkout` and print
+    `buyer.total=3`, `payment.total=3`, ready projections, `Mina`, and ready world;
+  - intent kind, commit, participant type, zone alias, authorization and rollback
+    identity mutations fail before partial C;
+  - native C/LLVM preserve subject input order across interleaved object/tobject
+    zone storage, while a second projection constructor argument is rejected;
+  - native source, self source and a valid-ID mutated self MIR all reject a
+    detached tobject as projection source.
+  - `self_hosted_component_contract_smoke.sh`, object/action boundary,
+    documentation quality, build-source inventory, MIR declaration inventory,
+    domain runtime topology, SoT edge, and single-owner gates passed. The
+    registry reports 61 authorities, 62 derived carriers,
+    `CLOSED=34 BRIDGE=27 ACTIVE=0`;
+  - Coq/Rocq is unavailable, so `sot_authority_adequacy_smoke.sh` ran with the
+    explicit `PGY_ALLOW_MISSING_COQ=1` declared skip. Live owner/consumer binding
+    and negative mutations passed; proof compilation is not claimed.
+- Grade: the bounded successful input-language intent path is `REACHABLE`, not
+  whole-intent `SUBSTITUTING`. Fallible `expect`, compensation/effect outcome and
+  `PgyCompilerWorld` root intent takeover remain open. Compiler-organization
+  intent remains `SURFACE` because the real bootstrap entrypoint does not call
+  a multi-action root intent.
+- Next executable falsifier: carry an actual fallible `expect` result, branch to
+  explicit failure/compensation, observe the effect/outcome, and reject missing
+  predecessor/rollback evidence. Only after two real compiler actions exist may
+  the root intent replace their direct bootstrap bypass.
+- `tobject` owns only immutable materialized payload. Source identity, freshness,
+  edge and authority remain with the enclosing directive plus
+  `dir.domain_graph`; zone constructors accept only subject/binding inputs.
 - Preserve and do not stage the three concurrent parity edits
   (`driver_rung2_indexed_assignment_parity_owner.sh`,
   `driver_rung2_match_parity_owner.sh`, and

@@ -1,7 +1,7 @@
 // Borrowed expression-graph view over artifact-bound surface facts.
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
-
+import "ast_intent_expression_environment_owner.pgy";
 func SemanticAstExpressionSurfaceBorrowReady(
     artifact: AstTreeArtifact,
     ref facts: SemanticAstExpressionSurfaceFacts
@@ -38,7 +38,8 @@ func SemanticAstExpressionSurfaceBorrowReady(
             function_node_id < -1 || function_node_id >= artifact.count ||
             (function_node_id >= 0 && !TypedAstArenaNodeKindIsCallable(
                 artifact.arena, function_node_id
-            )) || (has_graph && function_node_id < 0) ||
+            )) || (has_graph && function_node_id < 0 &&
+                !IsSome(SemanticAstIntentExpressionOwnerNodeId(artifact, node_id))) ||
             (facts.expression_graph.has_roots[i * 3] &&
                 !facts.has_atoms[i]) ||
             (facts.expression_graph.has_roots[i * 3 + 1] &&
@@ -52,7 +53,6 @@ func SemanticAstExpressionSurfaceBorrowReady(
     }
     return true;
 }
-
 func SemanticAstExpressionFunctionNodeAt(
     ref facts: SemanticAstExpressionSurfaceFacts,
     signatures: SemanticAstFunctionSignatureFacts,

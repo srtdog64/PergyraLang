@@ -417,15 +417,15 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(
         observe_pressure, "consumer:generic-specialization:done"
     );
-    DriverRung2PressureStage(
-        observe_pressure, "consumer:codegen-view:start"
-    );
-    let codegen_view: CodegenAdmittedCView =
-        CodegenAdmittedCViewFromFactsOrDie(admitted, verified.analysis,
-            artifact, semantic_body_types, mir_generic_specializations);
-    DriverRung2PressureStage(
-        observe_pressure, "consumer:codegen-view:done"
-    );
+    DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:start");
+    let routine_identity_epoch: CanonicalMirRoutineIdentityEpoch =
+        CanonicalMirRoutineIdentityEpochFromArtifact(admitted.routines,
+            artifact, verified.analysis.signatures);
+    if !routine_identity_epoch.ok { Die("canonical MIR routine identity epoch remap is invalid"); }
+    let codegen_view: CodegenAdmittedCView = CodegenAdmittedCViewFromFactsOrDie(
+        admitted, verified.analysis, artifact, semantic_body_types,
+        mir_generic_specializations, routine_identity_epoch.source_syntax_ids);
+    DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
     let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;
     DriverRung2PressureStage(
         observe_pressure, "consumer:c-emission:start"

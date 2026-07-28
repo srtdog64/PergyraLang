@@ -9,6 +9,7 @@ import "ast_type_name_canonical_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_intent_expression_environment_owner.pgy";
 
 struct SemanticAstGenericSpecializationFacts {
     ok: Bool;
@@ -234,6 +235,18 @@ func SemanticAstGenericSpecializationFactsFromBody(
             actual_type_names
         );
     }
+    let intent_signatures: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    if !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) {
+        return SemanticAstGenericSpecializationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_intent_environment"
+            ),
+            call_node_ids, signature_indexes, actual_starts, actual_counts,
+            actual_type_names
+        );
+    }
     let surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(
         expression_surfaces
@@ -255,7 +268,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
             SemanticAstExpressionFunctionNodeAt(
                 expression_surfaces, signatures, surface_index
             );
-        if !IsSome(function_node) {
+        let intent_node: Option<Int> =
+            SemanticAstIntentExpressionOwnerNodeId(artifact, use_node_id);
+        if !IsSome(function_node) && !IsSome(intent_node) {
             return SemanticAstGenericSpecializationError(
                 "ast_artifact_invalid",
                 SemanticError2(
@@ -270,25 +285,38 @@ func SemanticAstGenericSpecializationFactsFromBody(
         let names: Array<String> = [];
         let types: Array<String> = [];
         let modes: Array<String> = [];
-        if !SemanticAstExpressionSeedEnumValues(
+        let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
-        ) || !SemanticAstExpressionSeedOwnerFields(
-            signatures, constructors, UnwrapOption(function_node),
-            names, types, modes
-        ) || !SemanticAstExpressionSeedParameters(
-            signatures, UnwrapOption(function_node), names, types
-        ) || !SemanticAstExpressionSeedParameterModes(
-            signatures, UnwrapOption(function_node), modes
-        ) || !SemanticAstExpressionSeedVisibleLocals(
-            artifact, locals, initializer_types.inferred_type_names,
-            UnwrapOption(function_node), use_node_id, names, types
-        ) || !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, UnwrapOption(function_node), use_node_id, modes
-        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-            artifact, expression_surfaces, signatures, constructors,
-            UnwrapOption(function_node),
-            use_node_id, names, types, modes, function_tables
-        ) || ArrayLength(names) != ArrayLength(modes) {
+        );
+        if environment_ok && IsSome(function_node) {
+            environment_ok = SemanticAstExpressionSeedOwnerFields(
+                signatures, constructors, UnwrapOption(function_node),
+                names, types, modes
+            ) && SemanticAstExpressionSeedParameters(
+                signatures, UnwrapOption(function_node), names, types
+            ) && SemanticAstExpressionSeedParameterModes(
+                signatures, UnwrapOption(function_node), modes
+            ) && SemanticAstExpressionSeedVisibleLocals(
+                artifact, locals, initializer_types.inferred_type_names,
+                UnwrapOption(function_node), use_node_id, names, types
+            ) && SemanticAstExpressionSeedVisibleLocalModes(
+                artifact, locals, UnwrapOption(function_node), use_node_id,
+                modes
+            ) && SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+                artifact, expression_surfaces, signatures, constructors,
+                UnwrapOption(function_node), use_node_id,
+                names, types, modes, function_tables
+            );
+        } else if environment_ok && IsSome(intent_node) {
+            environment_ok = SemanticAstIntentExpressionSeedParameters(
+                intent_signatures, UnwrapOption(intent_node),
+                names, types, modes
+            );
+        } else {
+            environment_ok = false;
+        }
+        if !environment_ok || ArrayLength(names) != ArrayLength(types) ||
+            ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstGenericSpecializationError(
                 "ast_artifact_invalid",
                 SemanticError1(

@@ -3363,6 +3363,8 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	mir-decl-field-kind-vocabulary-test-smoke \
 	intent-observability-abi-registry-test-smoke \
 	self-host-intent-callable-reachability-test-smoke \
+	self-host-intent-callable-execution-test-smoke \
+	self-host-tobject-boundary-test-smoke \
 	lsp-completion-registry-test-smoke \
 	lsp-hover-registry-test-smoke \
 	vscode-language-graph-test-smoke
@@ -3382,6 +3384,14 @@ intent-observability-abi-registry-test-smoke:
 self-host-intent-callable-reachability-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_callable_reachability_owner.sh
+
+self-host-intent-callable-execution-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_callable_execution_owner.sh
+
+self-host-tobject-boundary-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/tobject_boundary_execution_owner.sh
 
 lsp-completion-registry-test-smoke:
 	"$(BASH)" tests/lsp_completion_registry_smoke.sh

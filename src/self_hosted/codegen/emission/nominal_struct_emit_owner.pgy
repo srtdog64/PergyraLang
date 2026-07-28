@@ -4,6 +4,7 @@ import "../text/text_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "role_dispatch_emit_owner.pgy";
 
@@ -30,6 +31,7 @@ func CollectStructsSelected(
         let fields_c: Array<String> = [];
         let field_names: Array<String> = [];
         let constructor_field_names: Array<String> = [];
+        let has_projection_slots: Bool = false;
         let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
         let role_slot_count: Int = CodegenSemanticNominalRoleSlotCountOrDie(
             facts, i
@@ -40,6 +42,9 @@ func CollectStructsSelected(
                 facts, i, field_index
             );
             let ftype: String = CodegenSemanticNominalFieldTypeOrDie(
+                facts, i, field_index
+            );
+            let field_kind: String = CodegenSemanticNominalFieldKindOrDie(
                 facts, i, field_index
             );
             let cfield_type: String = AbiLayoutCFieldType(
@@ -54,6 +59,17 @@ func CollectStructsSelected(
             }
             ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
             ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
+            if field_kind == NominalFieldKindObjectSlot() ||
+                field_kind == NominalFieldKindTObjectSlot() {
+                // Projection values remain ordinary storage, but readiness is
+                // derived runtime state.  Neither field is a constructor
+                // argument or a second semantic authority.
+                ArrayPush(fields_c, Concat(
+                    "    bool __projection_ready_",
+                    Concat(c_fname, ";\n")
+                ));
+                has_projection_slots = true;
+            }
             field_index = field_index + 1;
         }
         let slot_index: Int = 0;
@@ -114,6 +130,13 @@ func CollectStructsSelected(
                 StringJoin(constructor_field_names, ","), "|"
             ))
         ));
+        if has_projection_slots {
+            ArrayPush(struct_env_rows, Concat(
+                sname, Concat("=projection_sync:", Concat(
+                    CompilerSymbolCQualifiedName(sname, "sync"), "|"
+                ))
+            ));
+        }
         ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
         i = i + 1;
     }

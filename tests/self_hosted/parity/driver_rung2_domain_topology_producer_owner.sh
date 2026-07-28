@@ -32,13 +32,19 @@ grep -Fq 'SemanticAstNominalConstructorFieldIsArgument' \
     return 1 2>/dev/null || exit 1
 }
 for term in 'SemanticAstNominalConstructorFieldIsArgument' \
-    'NominalFieldKindSubjectSlot()' 'NominalFieldKindObjectSlot()' \
-    'NominalFieldKindTObjectSlot()' 'NominalFieldKindBindingSlot()'; do
+    'NominalFieldKindSubjectSlot()' 'NominalFieldKindBindingSlot()'; do
     grep -Fq -- "$term" "$constructor_argument_owner" || {
         echo "[self-host-parity:driver-rung2] zone constructor input policy drifted: $term" >&2
         return 1 2>/dev/null || exit 1
     }
 done
+if grep -Fq 'kind == NominalFieldKindObjectSlot()' \
+    "$constructor_argument_owner" || \
+   grep -Fq 'kind == NominalFieldKindTObjectSlot()' \
+    "$constructor_argument_owner"; then
+    echo "[self-host-parity:driver-rung2] projection storage reentered zone constructor inputs" >&2
+    return 1 2>/dev/null || exit 1
+fi
 grep -Fq '=constructor_fields:' "$constructor_layout_owner" || {
     echo "[self-host-parity:driver-rung2] constructor field inventory projection drifted" >&2
     return 1 2>/dev/null || exit 1

@@ -2,6 +2,62 @@
 
 import "program_fact_owner.pgy";
 
+func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
+    return name == "IntentBinding" || name == "IntentParticipant" ||
+        name == "IntentValue" || name == "IntentStep" ||
+        name == "IntentZoneWhere" || name == "IntentZoneAlias" ||
+        name == "IntentInvalidationTarget" || name == "IntentWho" ||
+        name == "IntentAuthorizedBy" || name == "IntentCauses" ||
+        name == "IntentCheck" || name == "IntentEval";
+}
+
+func SelfMirIntentCarrierInstruction(
+    rows: SelfMirInstructionRows,
+    index: Int
+) -> Bool {
+    let kind: String = rows.kinds[index];
+    if kind == "resource-op" {
+        return (rows.names[index] == "CommitIntent" ||
+                rows.names[index] == "Read" ||
+                rows.names[index] == "AttachEffect" ||
+                rows.names[index] == "Authorize") &&
+            rows.arg0s[index] != "" && rows.slot_anchors[index] != "" &&
+            rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
+            (rows.source_types[index] == "AST_INTENT_DECL" ||
+             rows.source_types[index] == "AST_INTENT_STEP");
+    }
+    if kind == "cleanup" {
+        return (rows.names[index] == "cleanup-edge" ||
+                rows.names[index] == "RollbackPolicy" ||
+                rows.names[index] == "AbortIntent" ||
+                rows.names[index] == "DetachInvalidation" ||
+                rows.names[index] == "cleanup-edge-from-rollback" ||
+                rows.names[index] == "cleanup-edge-from-invalidation") &&
+            rows.arg0s[index] != "" && rows.expr0s[index] == "" &&
+            rows.expr1s[index] == "";
+    }
+    if kind != "stmt" { return false; }
+    if rows.names[index] == "stmt" {
+        return rows.source_types[index] == "AST_INTENT_STEP" &&
+            (rows.expr0s[index] == "" ||
+             rows.expr0_graphs.has_roots[index] == 1);
+    }
+    if !SelfMirIntentSemanticInstructionName(rows.names[index]) ||
+        rows.arg0s[index] == "" {
+        return false;
+    }
+    if rows.names[index] == "IntentCheck" ||
+        rows.names[index] == "IntentEval" {
+        return rows.source_types[index] != "" &&
+            rows.expr0s[index] != "" &&
+            rows.expr0_graphs.has_roots[index] == 1;
+    }
+    return (rows.source_types[index] == "AST_INTENT_STEP" ||
+            rows.source_types[index] == "AST_INTENT_INVOLVES" ||
+            rows.source_types[index] == "AST_INTENT_VALUE") &&
+        rows.expr0s[index] == "" && rows.expr1s[index] == "";
+}
+
 func SelfMirInstructionRowsValidationError(
     rows: SelfMirInstructionRows
 ) -> String {
@@ -83,9 +139,10 @@ func SelfMirInstructionRowsValidationError(
         if rows.use_counts[i] < 0 {
             return Concat(row_prefix, " use-count is negative");
         }
+        let intent_carrier: Bool = SelfMirIntentCarrierInstruction(rows, i);
         if kind != "def" && kind != "stmt" && kind != "return" &&
             kind != "branch" && kind != "phi" && kind != "loop-init" &&
-            kind != "destructure" {
+            kind != "destructure" && !intent_carrier {
             return Concat(row_prefix, " instruction kind is unknown");
         }
         if kind == "branch" && rows.names[i] == "branch" &&
@@ -111,7 +168,8 @@ func SelfMirInstructionRowsValidationError(
             rows.source_types[i] == "AST_BIND_STMT" &&
             rows.names[i] == "bind" && rows.arg0s[i] != "" &&
             rows.arg1s[i] != "" && rows.slot_anchors[i] != "";
-        if kind == "stmt" && rows.expr0s[i] == "" && !ability_bind {
+        if kind == "stmt" && rows.expr0s[i] == "" && !ability_bind &&
+            !intent_carrier {
             return Concat(row_prefix, " statement payload is empty");
         }
         if rows.source_types[i] == "AST_BIND_STMT" && !ability_bind {
@@ -119,7 +177,7 @@ func SelfMirInstructionRowsValidationError(
                 row_prefix, " ability-bind slot fact is missing or invalid"
             );
         }
-        if rows.source_types[i] != "AST_BIND_STMT" &&
+        if rows.source_types[i] != "AST_BIND_STMT" && !intent_carrier &&
             rows.slot_anchors[i] != "" {
             return Concat(
                 row_prefix, " slot anchor is attached to a non-bind row"

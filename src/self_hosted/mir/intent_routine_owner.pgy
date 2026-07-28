@@ -1,0 +1,461 @@
+// DIR intent facts -> executable self-host MIR routine projection.
+// Intent authority stays in DIR; this owner only carries those admitted facts
+// into the existing MIR/backend protocol without reopening source text.
+
+import "routine_build_owner.pgy";
+import "routine_cfg_append_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "../dir/intent_fact_owner.pgy";
+
+func SelfMirIntentAddInstruction(
+    build: SelfMirRoutineBuild,
+    kind: String,
+    name: String,
+    arg0: String,
+    arg1: String,
+    slot_anchor: String,
+    expr0: String,
+    source_type: String,
+    uses: Array<String>
+) -> SelfMirRoutineBuild {
+    build = SelfMirRoutineAddInstruction(
+        build, kind, name, "", arg0, arg1, expr0, "", source_type, uses
+    );
+    if slot_anchor != "" {
+        build = SelfMirRoutineWithCfg(
+            build, SelfMirCfgAttachLastSlotAnchor(build.cfg, slot_anchor)
+        );
+    }
+    return build;
+}
+
+func SelfMirIntentExpressionText(
+    surfaces: SemanticAstExpressionSurfaceFacts,
+    node_id: Int
+) -> String {
+    let row_opt: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        surfaces, node_id
+    );
+    if !IsSome(row_opt) { return ""; }
+    let row: Int = UnwrapOption(row_opt);
+    if row < 0 || row >= ArrayLength(surfaces.has_atoms) ||
+        !surfaces.has_atoms[row] {
+        return "";
+    }
+    return surfaces.normalized_atoms[row];
+}
+
+func SelfMirIntentExpressionSourceType(
+    graph: SemanticExpressionGraphView,
+    text: String
+) -> String {
+    if !graph.ok { return ""; }
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph.graph, graph.root_id
+    );
+    if !IsSome(kind_opt) { return ""; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeBoolLiteral() { return "AST_BOOLEAN"; }
+    if kind == AstExpressionNodeIntegerLiteral() ||
+        kind == AstExpressionNodeLongLiteral() ||
+        kind == AstExpressionNodeFloatLiteral() {
+        return "AST_NUMBER";
+    }
+    if kind == AstExpressionNodeStringLiteral() { return "AST_STRING"; }
+    return SelfMirExpressionSourceTypeName(SelfMirExpressionKindFromText(text));
+}
+
+func SelfMirIntentEffectSlotForType(
+    rows: SelfMirDeclarationRows,
+    zone_declaration_index: Int,
+    effect_type: String
+) -> String {
+    if zone_declaration_index < 0 ||
+        zone_declaration_index >= ArrayLength(rows.names) ||
+        rows.nominal_kinds[zone_declaration_index] != "zone" {
+        return "";
+    }
+    let result: String = "";
+    let i: Int = 0;
+    while i < rows.field_counts[zone_declaration_index] {
+        let row: Int = rows.field_starts[zone_declaration_index] + i;
+        if rows.field_kinds[row] == "effect_slot" &&
+            rows.field_types[row] == effect_type {
+            if result != "" { return ""; }
+            result = rows.field_names[row];
+        }
+        i = i + 1;
+    }
+    return result;
+}
+
+func SelfMirIntentRoutineBuild(
+    ref input: SelfMirRoutineInput,
+    rows: SelfMirDeclarationRows,
+    intents: SelfDirIntentFacts,
+    intent_index: Int
+) -> SelfMirRoutineBuild {
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    if !intents.ok || intent_index < 0 ||
+        intent_index >= ArrayLength(intents.names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent projection requires one admitted DIR row"
+        );
+    }
+    let intent_name: String = intents.names[intent_index];
+    let participant_start: Int = intents.participant_starts[intent_index];
+    let participant_count: Int = intents.participant_counts[intent_index];
+    let step_start: Int = intents.step_starts[intent_index];
+    let step_count: Int = intents.step_counts[intent_index];
+    if intent_name == "" || participant_count <= 0 || step_count <= 0 {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent projection requires participants and steps"
+        );
+    }
+
+    build = SelfMirIntentAddInstruction(
+        build, "resource-op", "CommitIntent", intent_name, "",
+        intent_name, "", "AST_INTENT_DECL", SelfMirNoUses()
+    );
+    let step_i: Int = 0;
+    while step_i < step_count {
+        let step_row: Int = step_start + step_i;
+        let step_name: String = intents.steps.names[step_row];
+        let using_alias: String = intents.steps.using_aliases[step_row];
+        let zone_name: String = intents.steps.where_zone_names[step_row];
+        build = SelfMirIntentAddInstruction(
+            build, "resource-op", "Read", using_alias, step_name,
+            using_alias, "", "AST_INTENT_STEP", SelfMirNoUses()
+        );
+        let effect_slot: String = "";
+        if intents.steps.causes_names[step_row] != "" {
+            effect_slot = SelfMirIntentEffectSlotForType(
+                rows, intents.steps.where_declaration_indices[step_row],
+                intents.steps.causes_names[step_row]
+            );
+            if effect_slot == "" {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent caused effect slot is not unique"
+                );
+            }
+            build = SelfMirIntentAddInstruction(
+                build, "resource-op", "AttachEffect", effect_slot, step_name,
+                effect_slot, "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+        }
+        let authority_i: Int = 0;
+        while authority_i < intents.steps.authorized_counts[step_row] {
+            let authority_name: String = intents.steps.authorized_names[
+                intents.steps.authorized_starts[step_row] + authority_i
+            ];
+            build = SelfMirIntentAddInstruction(
+                build, "resource-op", "Authorize", authority_name, step_name,
+                authority_name, "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+            authority_i = authority_i + 1;
+        }
+        step_i = step_i + 1;
+    }
+
+    build = SelfMirIntentAddInstruction(
+        build, "stmt", "stmt", "", "", "", "", "AST_INTENT_STEP",
+        SelfMirNoUses()
+    );
+    step_i = 0;
+    while step_i < step_count {
+        let step_row: Int = step_start + step_i;
+        let on_node_id: Int = intents.steps.on_node_ids[step_row];
+        let on_text: String = SelfMirIntentExpressionText(
+            input.analysis.expression_surfaces, on_node_id
+        );
+        let on_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces, on_node_id,
+                AstExpressionLaneAtom()
+            );
+        if on_text == "" || !on_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR intent on expression graph is missing"
+            );
+        }
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "stmt", "", "", "", on_text,
+            SelfMirIntentExpressionSourceType(on_graph, on_text),
+            SelfMirExpressionGraphUses(build, on_graph)
+        );
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, on_graph, input.machine_declaration
+        );
+        step_i = step_i + 1;
+    }
+
+    let participant_i: Int = 0;
+    while participant_i < participant_count {
+        let row: Int = participant_start + participant_i;
+        let binding_kind: String = "participant";
+        let carrier_name: String = "IntentParticipant";
+        let source_type: String = "AST_INTENT_INVOLVES";
+        if intents.participants.is_values[row] {
+            binding_kind = "value";
+            carrier_name = "IntentValue";
+            source_type = "AST_INTENT_VALUE";
+        }
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentBinding", intents.participants.aliases[row],
+            intents.participants.type_names[row], binding_kind, "", source_type,
+            SelfMirNoUses()
+        );
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", carrier_name, intents.participants.aliases[row],
+            intents.participants.type_names[row], intent_name, "", source_type,
+            SelfMirNoUses()
+        );
+        participant_i = participant_i + 1;
+    }
+
+    step_i = 0;
+    while step_i < step_count {
+        let step_row: Int = step_start + step_i;
+        let step_name: String = intents.steps.names[step_row];
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentStep", step_name, step_name, step_name,
+            "", "AST_INTENT_STEP", SelfMirNoUses()
+        );
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentZoneWhere",
+            intents.steps.where_zone_names[step_row], step_name, step_name,
+            "", "AST_INTENT_STEP", SelfMirNoUses()
+        );
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentZoneAlias",
+            intents.steps.using_aliases[step_row], step_name, step_name,
+            "", "AST_INTENT_STEP", SelfMirNoUses()
+        );
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentInvalidationTarget",
+            intents.steps.using_aliases[step_row], step_name, step_name,
+            "", "AST_INTENT_STEP", SelfMirNoUses()
+        );
+        let who_i: Int = 0;
+        while who_i < intents.steps.who_counts[step_row] {
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentWho", intents.steps.who_names[
+                    intents.steps.who_starts[step_row] + who_i
+                ], step_name, step_name, "", "AST_INTENT_STEP",
+                SelfMirNoUses()
+            );
+            who_i = who_i + 1;
+        }
+        let authority_i: Int = 0;
+        while authority_i < intents.steps.authorized_counts[step_row] {
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentAuthorizedBy",
+                intents.steps.authorized_names[
+                    intents.steps.authorized_starts[step_row] + authority_i
+                ], step_name, step_name, "", "AST_INTENT_STEP",
+                SelfMirNoUses()
+            );
+            authority_i = authority_i + 1;
+        }
+        if intents.steps.causes_names[step_row] != "" {
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentCauses",
+                intents.steps.causes_names[step_row], step_name, step_name,
+                "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+        }
+        let expect_node_id: Int = intents.steps.expect_node_ids[step_row];
+        if expect_node_id >= 0 {
+            let expect_text: String = SelfMirIntentExpressionText(
+                input.analysis.expression_surfaces, expect_node_id
+            );
+            let expect_graph: SemanticExpressionGraphView =
+                SemanticAstExpressionGraphForNode(
+                    input.analysis.expression_surfaces, expect_node_id,
+                    AstExpressionLaneAtom()
+                );
+            if expect_text == "" || !expect_graph.ok {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent expect expression graph is missing"
+                );
+            }
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentCheck", "expect", step_name, step_name,
+                expect_text,
+                SelfMirIntentExpressionSourceType(expect_graph, expect_text),
+                SelfMirExpressionGraphUses(build, expect_graph)
+            );
+            build = SelfMirRoutineAttachLastExpressionGraph(
+                build, expect_graph, input.machine_declaration
+            );
+        }
+        let on_node_id: Int = intents.steps.on_node_ids[step_row];
+        let on_text: String = SelfMirIntentExpressionText(
+            input.analysis.expression_surfaces, on_node_id
+        );
+        let on_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces, on_node_id,
+                AstExpressionLaneAtom()
+            );
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", "IntentEval", "on", step_name, step_name, on_text,
+            SelfMirIntentExpressionSourceType(on_graph, on_text),
+            SelfMirExpressionGraphUses(build, on_graph)
+        );
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, on_graph, input.machine_declaration
+        );
+        step_i = step_i + 1;
+    }
+    build = SelfMirIntentAddInstruction(
+        build, "cleanup", "cleanup-edge", "cleanup", "", "cleanup", "", "",
+        SelfMirNoUses()
+    );
+
+    build = SelfMirRoutineAddBlock(build);
+    build = SelfMirRoutineAddBlock(build);
+    build = SelfMirRoutineAtBlock(build, 2);
+    build = SelfMirIntentAddInstruction(
+        build, "cleanup", "RollbackPolicy", "full", "", "", "", "",
+        SelfMirNoUses()
+    );
+    build = SelfMirIntentAddInstruction(
+        build, "cleanup", "AbortIntent", intent_name, "full", intent_name,
+        "", "AST_INTENT_DECL", SelfMirNoUses()
+    );
+    build = SelfMirIntentAddInstruction(
+        build, "cleanup", "cleanup-edge-from-rollback", "cleanup", "",
+        "cleanup", "", "", SelfMirNoUses()
+    );
+
+    build = SelfMirRoutineAddBlock(build);
+    build = SelfMirRoutineAtBlock(build, 3);
+    step_i = 0;
+    while step_i < step_count {
+        let step_row: Int = step_start + step_i;
+        let using_alias: String = intents.steps.using_aliases[step_row];
+        build = SelfMirIntentAddInstruction(
+            build, "cleanup", "DetachInvalidation", using_alias, "ZoneHandle",
+            using_alias, "", "AST_INTENT_INVOLVES", SelfMirNoUses()
+        );
+        if intents.steps.causes_names[step_row] != "" {
+            let effect_slot: String = SelfMirIntentEffectSlotForType(
+                rows, intents.steps.where_declaration_indices[step_row],
+                intents.steps.causes_names[step_row]
+            );
+            build = SelfMirIntentAddInstruction(
+                build, "cleanup", "DetachInvalidation", effect_slot,
+                "EffectInstance", effect_slot, "", "AST_INTENT_STEP",
+                SelfMirNoUses()
+            );
+        }
+        build = SelfMirIntentAddInstruction(
+            build, "cleanup", "DetachInvalidation", using_alias,
+            intents.steps.names[step_row], using_alias, "", "AST_INTENT_STEP",
+            SelfMirNoUses()
+        );
+        step_i = step_i + 1;
+    }
+    return SelfMirIntentAddInstruction(
+        build, "cleanup", "cleanup-edge-from-invalidation", "cleanup", "",
+        "cleanup", "", "", SelfMirNoUses()
+    );
+}
+
+func SelfMirIntentAppendEmptyRoutineFacts(
+    rows: SelfMirRoutineRows
+) -> SelfMirRoutineRows {
+    let destructure: SelfMirDestructureTypeFactRows = rows.destructure_type_facts;
+    let destructure_starts: Array<Int> = destructure.routine_starts;
+    let destructure_counts: Array<Int> = destructure.routine_counts;
+    ArrayPush(destructure_starts, ArrayLength(destructure.function_syntax_ids));
+    ArrayPush(destructure_counts, 0);
+    let loops: SelfMirLoopFlowRows = rows.loop_flows;
+    let loop_starts: Array<Int> = loops.routine_starts;
+    let loop_counts: Array<Int> = loops.routine_counts;
+    ArrayPush(loop_starts, ArrayLength(loops.summaries.loop_node_ids));
+    ArrayPush(loop_counts, 0);
+    return SelfMirRoutineRows(
+        rows.node_ids, rows.names, rows.kinds, rows.owners,
+        rows.receiver_carriages, rows.return_types,
+        rows.generic_starts, rows.generic_counts, rows.generic_names,
+        rows.param_starts, rows.param_counts, rows.param_names, rows.param_types,
+        rows.param_abi_kinds, rows.param_resource_kinds,
+        rows.block_starts, rows.block_counts, rows.local_starts,
+        rows.local_counts, rows.local_names, rows.local_types,
+        rows.iteration_starts, rows.iteration_counts, rows.iteration_node_ids,
+        rows.iteration_binding_types, rows.iteration_iterable_types,
+        rows.iteration_collection_hoists,
+        SelfMirDestructureTypeFactRows(
+            destructure_starts, destructure_counts,
+            destructure.function_syntax_ids, destructure.destructure_syntax_ids,
+            destructure.binding_indices, destructure.binding_counts,
+            destructure.binding_types
+        ),
+        SelfMirLoopFlowRows(
+            loop_starts, loop_counts, loops.summaries, loops.states
+        )
+    );
+}
+
+func SelfMirAppendIntentRoutine(
+    facts: SelfMirProgramFacts,
+    intents: SelfDirIntentFacts,
+    intent_index: Int,
+    build: SelfMirRoutineBuild
+) -> SelfMirProgramFacts {
+    let rows: SelfMirRoutineRows = facts.routines;
+    let node_ids: Array<Int> = rows.node_ids;
+    let names: Array<String> = rows.names;
+    let kinds: Array<String> = rows.kinds;
+    let owners: Array<String> = rows.owners;
+    let receiver_carriages: Array<String> = rows.receiver_carriages;
+    let return_types: Array<String> = rows.return_types;
+    let generic_starts: Array<Int> = rows.generic_starts;
+    let generic_counts: Array<Int> = rows.generic_counts;
+    let param_starts: Array<Int> = rows.param_starts;
+    let param_counts: Array<Int> = rows.param_counts;
+    let block_starts: Array<Int> = rows.block_starts;
+    let block_counts: Array<Int> = rows.block_counts;
+    let local_starts: Array<Int> = rows.local_starts;
+    let local_counts: Array<Int> = rows.local_counts;
+    let iteration_starts: Array<Int> = rows.iteration_starts;
+    let iteration_counts: Array<Int> = rows.iteration_counts;
+    ArrayPush(node_ids, intents.intent_node_ids[intent_index]);
+    ArrayPush(names, intents.names[intent_index]);
+    ArrayPush(kinds, "intent");
+    ArrayPush(owners, "");
+    ArrayPush(receiver_carriages, "none");
+    ArrayPush(return_types, "Void");
+    ArrayPush(generic_starts, ArrayLength(rows.generic_names));
+    ArrayPush(generic_counts, 0);
+    ArrayPush(param_starts, ArrayLength(rows.param_names));
+    ArrayPush(param_counts, 0);
+    ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
+    ArrayPush(block_counts, ArrayLength(build.cfg.blocks.ids));
+    ArrayPush(local_starts, ArrayLength(rows.local_names));
+    ArrayPush(local_counts, 0);
+    ArrayPush(iteration_starts, ArrayLength(rows.iteration_node_ids));
+    ArrayPush(iteration_counts, 0);
+    let appended: SelfMirRoutineRows = SelfMirIntentAppendEmptyRoutineFacts(
+        SelfMirRoutineRows(
+            node_ids, names, kinds, owners, receiver_carriages, return_types,
+            generic_starts, generic_counts, rows.generic_names,
+            param_starts, param_counts, rows.param_names, rows.param_types,
+            rows.param_abi_kinds, rows.param_resource_kinds,
+            block_starts, block_counts, local_starts, local_counts,
+            rows.local_names, rows.local_types,
+            iteration_starts, iteration_counts, rows.iteration_node_ids,
+            rows.iteration_binding_types, rows.iteration_iterable_types,
+            rows.iteration_collection_hoists, rows.destructure_type_facts,
+            rows.loop_flows
+        )
+    );
+    return SelfMirProgramFacts(
+        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.artifact_node_count, facts.declarations, facts.domain_topology,
+        facts.domain_runtime_assignments, facts.generic_specializations,
+        facts.parallel_captures, appended, SelfMirAppendCfg(facts.cfg, build.cfg)
+    );
+}

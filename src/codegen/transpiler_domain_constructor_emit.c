@@ -389,6 +389,35 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     }
 }
 
+static const char *
+transpiler_zone_constructor_input_slot_at(
+    const TranspilerHostedDomainSlotView *slot_view,
+    size_t input_index,
+    size_t *slot_index_out)
+{
+    size_t seen = 0;
+
+    if (slot_index_out != NULL)
+        *slot_index_out = 0;
+    if (slot_view == NULL)
+        return NULL;
+    for (size_t i = 0; i < slot_view->count; i++) {
+        if (!transpiler_hosted_domain_slot_view_is_subject_like(
+                slot_view, i)
+            && !transpiler_hosted_domain_slot_view_is_binding_like(
+                slot_view, i)) {
+            continue;
+        }
+        if (seen == input_index) {
+            if (slot_index_out != NULL)
+                *slot_index_out = i;
+            return transpiler_hosted_domain_slot_view_name(slot_view, i);
+        }
+        seen++;
+    }
+    return NULL;
+}
+
 static char *
 transpiler_emit_zone_constructor(ASTNode *call,
                                  ASTNode *zone_decl,
@@ -433,19 +462,21 @@ transpiler_emit_zone_constructor(ASTNode *call,
         return NULL;
     }
 
-    for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
-        const char *field_name = NULL;
-        const char *field_type_name = NULL;
-        if (i < slot_count) {
-            field_name = transpiler_hosted_domain_slot_view_name(
-                &slot_view, i);
-            field_type_name = transpiler_hosted_domain_slot_view_type_name(
-                &slot_view, i);
-        } else {
-            field_name = transpiler_hosted_shared_field_view_name(
-                &shared_view, i - slot_count);
-            field_type_name = transpiler_hosted_shared_field_view_type_name(
-                &shared_view, i - slot_count);
+    for (size_t i = 0; i < argc; i++) {
+        size_t slot_index = 0;
+        const char *field_name =
+            transpiler_zone_constructor_input_slot_at(
+                &slot_view, i, &slot_index);
+        const char *field_type_name = field_name != NULL
+            ? transpiler_hosted_domain_slot_view_type_name(
+                &slot_view, slot_index)
+            : NULL;
+        if (field_name == NULL || field_type_name == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing admitted zone constructor input metadata for '%s' argument %zu",
+                decl_name != NULL ? decl_name : "(anonymous-zone)", i);
+            codebuf_destroy(fields);
+            return NULL;
         }
         char *arg = transpiler_emit_ctor_arg_from_field_abi(ctx,
             field_type_name,
@@ -464,12 +495,9 @@ transpiler_emit_zone_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < shared_count; i++) {
-        size_t absolute_index = slot_count + i;
         ASTNode *initializer;
         const char *field_name;
         char *init_expr;
-        if (absolute_index < argc)
-            continue;
         initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
         if (initializer == NULL)

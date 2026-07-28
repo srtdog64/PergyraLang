@@ -34,6 +34,7 @@ import "generic_function_emit_owner.pgy";
 import "role_dispatch_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 import "program_statement_shape_owner.pgy";
+import "intent_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
@@ -272,9 +273,17 @@ func GenerateCUnitFromSemanticFacts(
             specializations.diagnostic_message
         ));
     }
+    if !SemanticAstIntentSignatureFactsReady(
+        artifact, semantic_analysis.intent_signatures
+    ) {
+        Die("semantic intent signature facts are missing or stale");
+    }
     let env_acc: Array<String> = [BuildFunctionEnv(
         signatures, specializations, receiver_facts
     )];
+    ArraySet(env_acc, 0, Concat(
+        env_acc[0], CodegenIntentCallableEnvRows(semantic_analysis.intent_signatures)
+    ));
     let value_wrappers: CodegenValueWrapperUsageFacts =
         CodegenValueWrapperUsageFactsFromSemantic(
             semantic_analysis.type_surfaces, arena, signatures,
@@ -407,6 +416,13 @@ func GenerateCUnitFromSemanticFacts(
         signatures, semantic_analysis.roles, receiver_facts,
         base_env, specializations
     );
+    let intent_proto_block: String = CodegenIntentPrototypeBlock(
+        semantic_analysis.intent_signatures, base_env
+    );
+    let intent_definition_block: String = CodegenIntentDefinitionBlock(
+        artifact, semantic_analysis.intent_signatures,
+        semantic_analysis.expression_surfaces, base_env
+    );
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
@@ -419,7 +435,8 @@ func GenerateCUnitFromSemanticFacts(
     let uses_result: Bool = usage.uses_result;
     let uses_option: Bool = usage.uses_option;
     let uses_bool: Bool = usage.uses_bool || usage.uses_array || usage.uses_log ||
-        type_declaration_fact.requires_bool_header;
+        type_declaration_fact.requires_bool_header ||
+        SemanticAstIntentSignatureCount(semantic_analysis.intent_signatures) > 0;
     let uses_exit: Bool = usage.uses_exit;
     let uses_array: Bool = usage.uses_array;
     let uses_list: Bool = usage.uses_list;
@@ -559,8 +576,11 @@ func GenerateCUnitFromSemanticFacts(
     }
     TextBuilderAppend(output, type_declaration_block);
     TextBuilderAppend(output, record_array_block);
+    TextBuilderAppend(output, CodegenDomainRuntimeSyncBlock(domain_runtime));
     if usage.uses_machine_layer { TextBuilderAppend(output, CompilerMachineLayerRuntimeBindingBlock(machine_declaration)); }
     TextBuilderAppend(output, proto_block);
+    TextBuilderAppend(output, intent_proto_block);
+    TextBuilderAppend(output, intent_definition_block);
     let definition_index: Int = 0;
     while definition_index < ArrayLength(defs) {
         TextBuilderAppend(output, defs[definition_index]);

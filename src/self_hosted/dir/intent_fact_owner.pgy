@@ -7,36 +7,8 @@ import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
+import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
-
-struct SelfDirIntentParticipantFacts {
-    node_ids: Array<Int>;
-    is_values: Array<Bool>;
-    aliases: Array<String>;
-    type_names: Array<String>;
-    declaration_indices: Array<Int>;
-}
-
-struct SelfDirIntentStepFacts {
-    node_ids: Array<Int>;
-    names: Array<String>;
-    where_zone_names: Array<String>;
-    where_declaration_indices: Array<Int>;
-    using_aliases: Array<String>;
-    predecessor_step_indices: Array<Int>;
-    causes_names: Array<String>;
-    causes_declaration_indices: Array<Int>;
-    who_starts: Array<Int>;
-    who_counts: Array<Int>;
-    who_names: Array<String>;
-    requires_starts: Array<Int>;
-    requires_counts: Array<Int>;
-    requires_names: Array<String>;
-    requires_declaration_indices: Array<Int>;
-    authorized_starts: Array<Int>;
-    authorized_counts: Array<Int>;
-    authorized_names: Array<String>;
-}
 
 struct SelfDirIntentFacts {
     required: Bool;
@@ -52,46 +24,6 @@ struct SelfDirIntentFacts {
     step_counts: Array<Int>;
     steps: SelfDirIntentStepFacts;
     edge_count: Int;
-}
-
-func SelfDirIntentParticipantFactsEmpty() -> SelfDirIntentParticipantFacts {
-    let node_ids: Array<Int> = [];
-    let is_values: Array<Bool> = [];
-    let aliases: Array<String> = [];
-    let type_names: Array<String> = [];
-    let declaration_indices: Array<Int> = [];
-    return SelfDirIntentParticipantFacts(
-        node_ids, is_values, aliases, type_names, declaration_indices
-    );
-}
-
-func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
-    let node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let where_zone_names: Array<String> = [];
-    let where_declaration_indices: Array<Int> = [];
-    let using_aliases: Array<String> = [];
-    let predecessor_step_indices: Array<Int> = [];
-    let causes_names: Array<String> = [];
-    let causes_declaration_indices: Array<Int> = [];
-    let who_starts: Array<Int> = [];
-    let who_counts: Array<Int> = [];
-    let who_names: Array<String> = [];
-    let requires_starts: Array<Int> = [];
-    let requires_counts: Array<Int> = [];
-    let requires_names: Array<String> = [];
-    let requires_declaration_indices: Array<Int> = [];
-    let authorized_starts: Array<Int> = [];
-    let authorized_counts: Array<Int> = [];
-    let authorized_names: Array<String> = [];
-    return SelfDirIntentStepFacts(
-        node_ids, names, where_zone_names, where_declaration_indices,
-        using_aliases, predecessor_step_indices, causes_names,
-        causes_declaration_indices, who_starts, who_counts, who_names,
-        requires_starts, requires_counts, requires_names,
-        requires_declaration_indices, authorized_starts, authorized_counts,
-        authorized_names
-    );
 }
 
 func SelfDirIntentFactsEmpty(
@@ -164,6 +96,10 @@ func SelfDirIntentFactsFromArtifact(
     let step_where_zone_names: Array<String> = [];
     let step_where_declaration_indices: Array<Int> = [];
     let step_using_aliases: Array<String> = [];
+    let step_receiver_aliases: Array<String> = [];
+    let step_action_names: Array<String> = [];
+    let step_on_node_ids: Array<Int> = [];
+    let step_expect_node_ids: Array<Int> = [];
     let step_predecessor_indices: Array<Int> = [];
     let step_causes_names: Array<String> = [];
     let step_causes_declaration_indices: Array<Int> = [];
@@ -268,6 +204,10 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_where_declaration_indices,
                     resolved.where_declaration_index);
                 ArrayPush(step_using_aliases, resolved.using_alias);
+                ArrayPush(step_receiver_aliases, resolved.receiver_alias);
+                ArrayPush(step_action_names, resolved.action_name);
+                ArrayPush(step_on_node_ids, resolved.on_node_id);
+                ArrayPush(step_expect_node_ids, resolved.expect_node_id);
                 ArrayPush(step_predecessor_indices,
                     resolved.predecessor_step_index);
                 ArrayPush(step_causes_names, resolved.causes_name);
@@ -308,7 +248,8 @@ func SelfDirIntentFactsFromArtifact(
         SelfDirIntentStepFacts(
             step_node_ids, step_names, step_where_zone_names,
             step_where_declaration_indices, step_using_aliases,
-            step_predecessor_indices, step_causes_names,
+            step_receiver_aliases, step_action_names, step_on_node_ids,
+            step_expect_node_ids, step_predecessor_indices, step_causes_names,
             step_causes_declaration_indices, who_starts, who_counts, who_names,
             requires_starts, requires_counts, requires_names,
             requires_declaration_indices, authorized_starts, authorized_counts,
@@ -335,6 +276,10 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
         ArrayLength(facts.steps.where_zone_names) == steps &&
         ArrayLength(facts.steps.where_declaration_indices) == steps &&
         ArrayLength(facts.steps.using_aliases) == steps &&
+        ArrayLength(facts.steps.receiver_aliases) == steps &&
+        ArrayLength(facts.steps.action_names) == steps &&
+        ArrayLength(facts.steps.on_node_ids) == steps &&
+        ArrayLength(facts.steps.expect_node_ids) == steps &&
         ArrayLength(facts.steps.predecessor_step_indices) == steps &&
         ArrayLength(facts.steps.causes_names) == steps &&
         ArrayLength(facts.steps.causes_declaration_indices) == steps &&
@@ -422,6 +367,13 @@ func SelfDirIntentFactsReady(
                     facts.steps.where_zone_names[step_row] {
                 return false;
             }
+            let receiver_row: Int = SelfDirIntentParticipantIndex(
+                facts.participants.aliases, p_start, p_count,
+                facts.steps.receiver_aliases[step_row]
+            );
+            if receiver_row < 0 || facts.participants.is_values[receiver_row] {
+                return false;
+            }
             let name_i: Int = 0;
             while name_i < who_count {
                 let participant_row: Int = SelfDirIntentParticipantIndex(
@@ -488,7 +440,18 @@ func SelfDirIntentFactsReady(
         if !TypedAstArenaNodeKindIs(
                 artifact.arena, facts.steps.node_ids[i],
                 TypedAstKindIntentStepTag()
-            ) || facts.steps.names[i] == "" ||
+             ) || facts.steps.names[i] == "" ||
+            facts.steps.receiver_aliases[i] == "" ||
+            facts.steps.action_names[i] == "" ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.steps.on_node_ids[i],
+                TypedAstKindIntentStepOnTag()
+            ) ||
+            (facts.steps.expect_node_ids[i] >= 0 &&
+             !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.steps.expect_node_ids[i],
+                TypedAstKindIntentStepExpectTag()
+             )) ||
             facts.steps.where_zone_names[i] == "" ||
             facts.steps.where_declaration_indices[i] < 0 ||
             facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||

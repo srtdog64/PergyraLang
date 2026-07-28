@@ -1,0 +1,29 @@
+subject Player {
+    let value: Int;
+}
+
+object PlayerView {
+    value: Int;
+}
+
+tobject PlayerReceipt {
+    value: Int;
+}
+
+zone SnapshotZone {
+    subject slot player: Player
+    tobject slot receipt: PlayerReceipt
+    object slot view: PlayerView
+
+    publish receipt from player map {
+        value <- value;
+    }
+
+    refresh view from receipt map {
+        value <- value;
+    }
+}
+
+func Main() -> Void {
+    Log(0);
+}

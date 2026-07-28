@@ -29,6 +29,59 @@ constructor_field_is_ordinary_channel(ASTNode *field_type_node,
         || type_is_constructed_named(field_type, "Channel");
 }
 
+static bool
+zone_constructor_slot_is_input(ASTNode *slot)
+{
+    return slot != NULL && slot->type == AST_DOMAIN_SLOT
+        && (ast_domain_slot_is_subject(slot)
+            || ast_domain_slot_is_binding(slot));
+}
+
+static size_t
+zone_constructor_input_count(ASTNode *decl)
+{
+    size_t slot_count = 0;
+    size_t input_count = 0;
+    ASTNode **slots;
+
+    if (decl == NULL || decl->type != AST_ZONE_DECL)
+        return 0;
+    slots = ast_zone_slots(decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        if (zone_constructor_slot_is_input(slots[i]))
+            input_count++;
+    }
+    return input_count;
+}
+
+static ASTNode *
+zone_constructor_input_type_at(ASTNode *decl,
+                               size_t input_index,
+                               const char **field_name_out)
+{
+    size_t slot_count = 0;
+    size_t seen = 0;
+    ASTNode **slots;
+
+    if (field_name_out != NULL)
+        *field_name_out = NULL;
+    if (decl == NULL || decl->type != AST_ZONE_DECL)
+        return NULL;
+    slots = ast_zone_slots(decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (!zone_constructor_slot_is_input(slot))
+            continue;
+        if (seen == input_index) {
+            if (field_name_out != NULL)
+                *field_name_out = ast_domain_slot_name(slot);
+            return ast_domain_slot_type(slot);
+        }
+        seen++;
+    }
+    return NULL;
+}
+
 static ASTNode *
 constructor_decl_field_type_at(ASTNode *decl,
                                size_t index,
@@ -44,6 +97,9 @@ constructor_decl_field_type_at(ASTNode *decl,
             *field_name_out = field.name;
         return field.name != NULL ? field.type_ast : NULL;
     }
+    if (decl->type == AST_ZONE_DECL)
+        return zone_constructor_input_type_at(
+            decl, index, field_name_out);
     return overlay_field_decl_at(decl, index, field_name_out);
 }
 
@@ -82,8 +138,9 @@ constructor_decl_has_channel_field(ASTNode *decl,
         : overlay_field_count(decl);
     for (size_t i = 0; i < field_count; i++) {
         const char *field_name = NULL;
-        ASTNode *field_type_node =
-            constructor_decl_field_type_at(decl, i, &field_name);
+        ASTNode *field_type_node = decl->type == AST_CLASS_DECL
+            ? constructor_decl_field_type_at(decl, i, &field_name)
+            : overlay_field_decl_at(decl, i, &field_name);
         Type *field_type;
         if (field_type_node == NULL)
             continue;
@@ -163,7 +220,9 @@ type_check_constructor_symbol_call(ASTNode *expr,
                            || decl->type == AST_ROSTER_DECL
                            || decl->type == AST_WORLD_DECL
                            || decl->type == AST_ZONE_DECL)) {
-                field_count = overlay_field_count(decl);
+                field_count = decl->type == AST_ZONE_DECL
+                    ? zone_constructor_input_count(decl)
+                    : overlay_field_count(decl);
             }
             if (decl != NULL) {
                 size_t provided = ast_call_arg_count(expr);

@@ -315,7 +315,9 @@ func ParseDecls(
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordIntent) {
-            let intent_block: String = ParseIntentDecl(content, i, cursor_out, decl_prefix, involve_types);
+            let intent_block: String = ParseIntentDecl(
+                content, i, cursor_out, decl_prefix, involve_types, out_graphs
+            );
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
             TextBuilderAppend(out, intent_block);

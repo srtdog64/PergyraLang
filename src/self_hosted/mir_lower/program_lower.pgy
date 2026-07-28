@@ -9,6 +9,7 @@ import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "routine_lower.pgy";
+import "intent_lower_owner.pgy";
 
 struct MirProgramTreeEmission {
     let ok: Bool;
@@ -49,7 +50,12 @@ func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
     while row < MirProgramRoutineIndexCount(routines) {
         let kind: String = routines.kinds[row];
         let owner: String = routines.owners[row];
-        if kind == "function" || StringLength(owner) == 0 {
+        if kind == "intent" {
+            ArrayPush(chunks, EmitMirIntentTreeAtRow(
+                routines, row, expression_order
+            ));
+            total = total + 1;
+        } else if kind == "function" || StringLength(owner) == 0 {
             let observe_focused_routine: Bool = observe_pressure &&
                 (total == 16 || total == 184 || total == 185 ||
                  total == 191 || total == 242);

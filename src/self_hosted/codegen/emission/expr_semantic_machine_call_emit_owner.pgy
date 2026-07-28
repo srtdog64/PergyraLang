@@ -1,0 +1,78 @@
+// C emission owner for typed machine-layer calls.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+
+func RewriteSemanticMachineCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    env: CodegenTypeEnv
+) -> String {
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, view.call_node
+    );
+    if !IsSome(target_name) {
+        Die("semantic machine-call target fact is missing");
+    }
+    let source_name: String = UnwrapOption(target_name);
+    let argc: Int = ArrayLength(view.argument_nodes);
+    if source_name == "ClaimDeviceSlot" {
+        Die("ClaimDeviceSlot requires an expected DeviceSlot<T> type fact");
+    }
+    if argc < 1 {
+        Die(Concat(source_name, " requires a DeviceSlot<T> argument"));
+    }
+    let slot_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.argument_nodes[0], env
+    );
+    if !IsSome(slot_type_opt) {
+        Die(Concat(source_name, " argument type fact is missing"));
+    }
+    let slot_type: String = UnwrapOption(slot_type_opt);
+    let runtime_name: Option<String> =
+        CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(
+            source_name, slot_type
+        );
+    if !IsSome(runtime_name) {
+        Die(Concat(source_name, " has no DeviceSlot<T> runtime ABI row"));
+    }
+    if source_name == "DeviceRead" || source_name == "ReleaseDeviceSlot" ||
+        source_name == "SubmitDeviceRead" {
+        if (source_name == "DeviceRead" || source_name == "ReleaseDeviceSlot") && argc != 1 {
+            Die(Concat(source_name, " requires exactly one argument"));
+        }
+        if source_name == "SubmitDeviceRead" && argc != 1 {
+            Die("SubmitDeviceRead requires exactly one argument");
+        }
+        let slot_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[0], slot_type, "ref", env
+        );
+        return Concat(UnwrapOption(runtime_name), Concat("(", Concat(slot_arg, ")")));
+    }
+    if source_name == "DeviceWrite" {
+        if argc != 2 {
+            Die("DeviceWrite requires exactly two arguments");
+        }
+        let scalar_type: String =
+            CompilerRuntimeCallAbiMachineLayerDeviceScalarType(slot_type);
+        if scalar_type == "" {
+            Die("DeviceWrite requires a valid DeviceSlot<T> argument");
+        }
+        let slot_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[0], slot_type, "ref", env
+        );
+        let value_arg: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[1], scalar_type, "default", env
+        );
+        return Concat(UnwrapOption(runtime_name), Concat("(", Concat(
+            slot_arg, Concat(", ", Concat(value_arg, ")"))
+        )));
+    }
+    Die(Concat(source_name, " is not a supported machine-layer call"));
+    return "";
+}

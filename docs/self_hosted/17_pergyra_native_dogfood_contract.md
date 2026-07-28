@@ -511,8 +511,9 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   foreign valid field identity로 바꿔도 artifact가 생기는 경우.
 - Current reached seam: nominal constructor calls now consume constructor-field
   facts rather than the ordinary exact-arity function path. Zone constructors
-  accept the caller-supplied positional prefix while topology-managed layer
-  storage is excluded. `Buyer`, `PaymentZone(Clone(buyer))`, and
+  accept only caller-owned subject/binding inputs in declaration source order;
+  object/tobject projection destinations and topology-managed layer storage are
+  excluded. `Buyer`, `PaymentZone(Clone(buyer))`, and
   `PaymentWorld(Clone(payment))` therefore pass the initializer artifact.
 - `HasProjection`/`HasZoneProjection` arguments are declaration-scoped symbolic
   names, not ordinary value reads. The self semantic query owner now validates
@@ -547,6 +548,33 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   positive single-step graph matches native at 14 nodes/30 edges and a two-step
   explicit-using mutation matches the native predecessor-edge graph. This
   remains `REACHABLE`, not `SUBSTITUTING`.
+
+## Intent successful-path execution rung objective card
+
+- Objective: carry the exact DIR `Checkout` declaration and step through typed
+  MIR, reconstruct it without AST/source rescans, and execute its admitted
+  action through the general DRV-2 C entrypoint.
+- Fact owner: semantic owns callable/action contracts, DIR owns intent purpose,
+  participants and ordered step graph, MIR is a lossless carrier, and the intent
+  C emitter is the last consumer. `tobject` is only a detached payload/receipt;
+  it does not own intent authority, predecessor edges, or graph freshness.
+- Forbidden fallback: classify intent as func, infer participant/action from
+  names, run the action beside an old direct path, recover topology from a
+  tobject payload, or emit partial C after a cross-carrier mismatch.
+- Observed gate: `intent_callable_execution_owner.sh` compares direct-source and
+  admitted-MIR C byte-for-byte and executes self C/native C/native LLVM. All
+  print `buyer.total=3`, `payment.total=3`, ready projections, `Mina`, and ready
+  world state. Six intent identity/type mutations reject before C.
+- Grade: the bounded successful intent path is `REACHABLE`, not whole-intent
+  `SUBSTITUTING`. Fallible `expect`, compensation/effect outcome and the actual
+  compiler root remain open. `PgyCompilerWorld` still does not call a root
+  multi-action intent, so compiler-organization grade for `intent` remains
+  `SURFACE` even though the language/compiler pipeline can now execute an input
+  program intent.
+- TObject boundary gate: zone constructors consume only subject/binding inputs;
+  native C/LLVM preserve their declaration source order. Native source, self
+  source and valid-ID malformed MIR all reject a detached tobject as a fresh
+  projection source.
 
 ### Completed intent DIR objective card and next MIR boundary
 

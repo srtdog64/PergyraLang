@@ -5,7 +5,11 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
 
-func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, inout involve_types: Array<String>) -> String {
+func ParseIntentDecl(
+    content: String, start: Int, inout cursor_out: Array<Int>,
+    decl_prefix: String, inout involve_types: Array<String>,
+    inout expression_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -196,6 +200,8 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             let s_compensate: String = "";
             let s_post: String = "";
             let s_intent: String = "";
+            let s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
@@ -266,7 +272,13 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     ArraySet(cursor_out, 0, i);
                 } else {
                     ArraySet(cursor_out, 0, i);
-                    val = ParseExpr(content, i, cursor_out);
+                    let val_fact: ParserExpressionFact = ParseExprFact(
+                        content, i, cursor_out
+                    );
+                    if !val_fact.ok { Exit(1); }
+                    val = val_fact.text;
+                    if clause == "on" { s_on_fact = val_fact; }
+                    if clause == "expect" { s_expect_fact = val_fact; }
                     i = cursor_out[0];
                 }
                 i = Expect(content, i, ";");
@@ -352,6 +364,18 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             }
             if StringLength(s_expect) > 0 {
                 step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));
+            }
+            if StringLength(s_on) > 0 {
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+                    expression_graphs[0], TypedAstKindIntentStepOnTag(),
+                    AstExpressionLaneAtom(), s_on_fact
+                ));
+            }
+            if StringLength(s_expect) > 0 {
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+                    expression_graphs[0], TypedAstKindIntentStepExpectTag(),
+                    AstExpressionLaneAtom(), s_expect_fact
+                ));
             }
             step_blocks = AppendLine(step_blocks, step_out);
             continue;

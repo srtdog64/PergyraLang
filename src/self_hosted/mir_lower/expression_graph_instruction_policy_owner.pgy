@@ -60,6 +60,10 @@ func MirInstructionRequiresExpr0Graph(
             UnwrapOption(arg0) == "ArraySet" ||
             UnwrapOption(arg0) == "Exit";
     }
+    if instruction_kind == "stmt" &&
+        instruction_name == "IntentCheck" {
+        return UnwrapOption(expr0) != "";
+    }
     return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }
 

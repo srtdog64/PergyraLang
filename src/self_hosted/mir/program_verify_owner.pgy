@@ -454,13 +454,20 @@ func SelfMirRoutineRowsReady(
     while i < count {
         let receiver: SelfMirRoutineReceiverFact =
             SelfMirRoutineReceiverForOwner(declarations, rows.owners[i]);
+        let receiver_ready: Bool = receiver.ok &&
+            rows.kinds[i] == receiver.routine_kind &&
+            rows.receiver_carriages[i] == receiver.carriage;
+        if rows.kinds[i] == "intent" {
+            receiver_ready = rows.owners[i] == "" &&
+                rows.receiver_carriages[i] == "none";
+        }
         if rows.names[i] == "" || rows.return_types[i] == "" ||
-            (rows.kinds[i] != "function" && rows.kinds[i] != "method") ||
+            (rows.kinds[i] != "function" && rows.kinds[i] != "method" &&
+             rows.kinds[i] != "intent") ||
             (rows.kinds[i] == "method" && rows.owners[i] == "") ||
             (rows.kinds[i] == "function" && rows.owners[i] != "") ||
-            !receiver.ok || rows.kinds[i] != receiver.routine_kind ||
+            !receiver_ready ||
             !SelfMirReceiverCarriageNameKnown(rows.receiver_carriages[i]) ||
-            rows.receiver_carriages[i] != receiver.carriage ||
             rows.generic_starts[i] != generic_cursor ||
             rows.generic_counts[i] < 0 ||
             rows.param_starts[i] != param_cursor || rows.param_counts[i] < 0 ||

@@ -1,0 +1,333 @@
+// C success-path emission for admitted intent declarations.
+//
+// Intent remains its own semantic callable.  This owner consumes the compact
+// intent signature rows plus the On/Expect expression graphs reconstructed
+// from admitted MIR; it does not reinterpret an intent as a func.  Until the
+// rollback runtime is substituted, only an absent Expect or a statically true
+// Expect is executable.  Any potentially failing Expect is rejected here
+// rather than emitted with fake rollback behavior.
+
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+
+func CodegenIntentCallableEnvRows(
+    ref intents: SemanticAstIntentSignatureFacts
+) -> String {
+    let rows: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        let name: String = intents.names[intent_index];
+        let modes: String = "";
+        let types: String = "";
+        let p: Int = 0;
+        while p < intents.param_counts[intent_index] {
+            let row: Int = intents.param_starts[intent_index] + p;
+            if p > 0 {
+                modes = Concat(modes, ",");
+                types = Concat(types, ",");
+            }
+            if intents.param_is_values[row] {
+                modes = Concat(modes, "default");
+            } else {
+                modes = Concat(modes, "inout");
+            }
+            types = Concat(types, intents.param_types[row]);
+            p = p + 1;
+        }
+        ArrayPush(rows, Concat(name, Concat("=f:Bool|", Concat(
+            name, Concat("=pm:", Concat(modes, Concat("|", Concat(
+                name, Concat("=pt:", Concat(types, "|"))
+            ))))
+        ))));
+        intent_index = intent_index + 1;
+    }
+    return StringJoin(rows, "");
+}
+
+func CodegenIntentParameterList(
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let params: String = "";
+    let p: Int = 0;
+    while p < intents.param_counts[intent_index] {
+        let row: Int = intents.param_starts[intent_index] + p;
+        let c_type: String = AbiLayoutCParamType(
+            intents.param_types[row], env
+        );
+        let c_name: String = CompilerSymbolCBindingName(
+            intents.param_names[row]
+        );
+        let param: String = Concat(c_type, Concat(" ", c_name));
+        if !intents.param_is_values[row] {
+            param = Concat(c_type, Concat(" *", c_name));
+        }
+        if params == "" { params = param; }
+        else { params = Concat(params, Concat(", ", param)); }
+        p = p + 1;
+    }
+    if params == "" { return AbiLayoutCEmptyParameterList(); }
+    return params;
+}
+
+func CodegenIntentPrototypeBlock(
+    ref intents: SemanticAstIntentSignatureFacts,
+    env: CodegenTypeEnv
+) -> String {
+    let rows: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        ArrayPush(rows, Concat(
+            "bool ", Concat(
+                CompilerSymbolCIdentifier(intents.names[intent_index]),
+                Concat("(", Concat(
+                    CodegenIntentParameterList(intents, intent_index, env),
+                    ");\n"
+                ))
+            )
+        ));
+        intent_index = intent_index + 1;
+    }
+    return StringJoin(rows, "");
+}
+
+func CodegenIntentLocalEnv(
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    base_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
+    let rows: Array<String> = [];
+    let p: Int = 0;
+    while p < intents.param_counts[intent_index] {
+        let row: Int = intents.param_starts[intent_index] + p;
+        let c_name: String = CompilerSymbolCBindingName(
+            intents.param_names[row]
+        );
+        let c_expression: String = c_name;
+        if !intents.param_is_values[row] {
+            c_expression = Concat("(*", Concat(c_name, ")"));
+        }
+        ArrayPush(rows, CodegenFunctionValueBindingFactForCExpression(
+            intents.param_names[row], intents.param_types[row],
+            base_env.global_rows, c_expression
+        ).env_rows);
+        p = p + 1;
+    }
+    return CodegenTypeEnv(base_env.global_rows, StringJoin(rows, ""));
+}
+
+func CodegenIntentDefinitionBlock(
+    artifact: AstTreeArtifact,
+    ref intents: SemanticAstIntentSignatureFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    base_env: CodegenTypeEnv
+) -> String {
+    let definitions: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        let intent_node: Int = intents.intent_node_ids[intent_index];
+        let env: CodegenTypeEnv = CodegenIntentLocalEnv(
+            intents, intent_index, base_env
+        );
+        let body: Array<String> = [];
+        let step_count: Int = 0;
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, intent_node, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindIntentStepTag()
+            ) {
+                step_count = step_count + 1;
+                let on_count: Int = 0;
+                let expect_count: Int = 0;
+                let on_node: Int = 0 - 1;
+                let expect_node: Int = 0 - 1;
+                let who_alias: String = "";
+                let using_alias: String = "";
+                let authority_alias: String = "";
+                let step_child_index: Int = 0;
+                let step_child: Option<Int> = TypedAstArenaChildAt(
+                    artifact.arena, child_id, step_child_index
+                );
+                while IsSome(step_child) {
+                    let row_id: Int = UnwrapOption(step_child);
+                    if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepOnTag()
+                    ) {
+                        on_count = on_count + 1;
+                        on_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepExpectTag()
+                    ) {
+                        expect_count = expect_count + 1;
+                        expect_node = row_id;
+                    } else {
+                        let provenance: Option<String> =
+                            TypedAstArenaProvenanceText(
+                                artifact.arena, row_id
+                            );
+                        if IsSome(provenance) && StartsWith(
+                            UnwrapOption(provenance), "Who: "
+                        ) {
+                            who_alias = StringTrim(Substring(
+                                UnwrapOption(provenance),
+                                StringLength("Who: "),
+                                StringLength(UnwrapOption(provenance)) -
+                                    StringLength("Who: ")
+                            ));
+                        } else if IsSome(provenance) && StartsWith(
+                            UnwrapOption(provenance), "Using: "
+                        ) {
+                            using_alias = StringTrim(Substring(
+                                UnwrapOption(provenance),
+                                StringLength("Using: "),
+                                StringLength(UnwrapOption(provenance)) -
+                                    StringLength("Using: ")
+                            ));
+                        } else if IsSome(provenance) && StartsWith(
+                            UnwrapOption(provenance), "AuthorizedBy: "
+                        ) {
+                            authority_alias = StringTrim(Substring(
+                                UnwrapOption(provenance),
+                                StringLength("AuthorizedBy: "),
+                                StringLength(UnwrapOption(provenance)) -
+                                    StringLength("AuthorizedBy: ")
+                            ));
+                        }
+                    }
+                    step_child_index = step_child_index + 1;
+                    step_child = TypedAstArenaChildAt(
+                        artifact.arena, child_id, step_child_index
+                    );
+                }
+                if on_count != 1 || on_node < 0 || expect_count > 1 ||
+                    who_alias == "" || using_alias == "" ||
+                    authority_alias != who_alias {
+                    Die("self-host intent executable step shape is invalid");
+                }
+                let who_param: Int = 0 - 1;
+                let using_param: Int = 0 - 1;
+                let p: Int = 0;
+                while p < intents.param_counts[intent_index] {
+                    let param_row: Int =
+                        intents.param_starts[intent_index] + p;
+                    if intents.param_names[param_row] == who_alias {
+                        if who_param >= 0 { Die("duplicate intent who binding"); }
+                        who_param = param_row;
+                    }
+                    if intents.param_names[param_row] == using_alias {
+                        if using_param >= 0 { Die("duplicate intent using binding"); }
+                        using_param = param_row;
+                    }
+                    p = p + 1;
+                }
+                if who_param < 0 || using_param < 0 ||
+                    intents.param_is_values[who_param] ||
+                    intents.param_is_values[using_param] {
+                    Die("self-host intent step participant binding is invalid");
+                }
+                let who_type: String = intents.param_types[who_param];
+                let zone_type: String = intents.param_types[using_param];
+                if LookupFieldType(env, zone_type, who_alias) != who_type {
+                    Die("self-host intent zone participant field is missing");
+                }
+                let who_c: String = CompilerSymbolCBindingName(who_alias);
+                let zone_c: String = CompilerSymbolCBindingName(using_alias);
+                let zone_member: String = Concat(
+                    "(*", Concat(zone_c, Concat(").",
+                        CompilerSymbolCFieldName(who_alias)
+                    ))
+                );
+                let sync_symbol: String = LookupKindType(
+                    env, zone_type, "projection_sync"
+                );
+                if sync_symbol == "" {
+                    Die("self-host intent zone sync owner is missing");
+                }
+                ArrayPush(body, Concat(
+                    "    ", Concat(zone_member, Concat(
+                        " = (*", Concat(who_c, ");\n")
+                    ))
+                ));
+                ArrayPush(body, Concat(
+                    "    ", Concat(sync_symbol, Concat(
+                        "(", Concat(zone_c, ");\n")
+                    ))
+                ));
+                let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+                    env, CodegenFunctionValueBindingFactForCExpression(
+                        who_alias, who_type, env.global_rows, zone_member
+                    ).env_rows
+                );
+                let on_graph: SemanticExpressionGraphView =
+                    CodegenSemanticExpressionGraphOrDie(
+                        expression_surfaces, on_node,
+                        AstExpressionLaneAtom()
+                    );
+                ArrayPush(body, Concat(
+                    "    ", Concat(RewriteExprFromSemanticGraph(
+                        on_graph.graph, on_graph.root_id, step_env
+                    ), ";\n")
+                ));
+                ArrayPush(body, Concat(
+                    "    ", Concat(sync_symbol, Concat(
+                        "(", Concat(zone_c, ");\n")
+                    ))
+                ));
+                ArrayPush(body, Concat(
+                    "    (*", Concat(who_c, Concat(") = ", Concat(
+                        zone_member, ";\n"
+                    )))
+                ));
+                if expect_count == 1 {
+                    let graph: SemanticExpressionGraphView =
+                        CodegenSemanticExpressionGraphOrDie(
+                            expression_surfaces, expect_node,
+                            AstExpressionLaneAtom()
+                        );
+                    let expect_text: Option<String> =
+                        SemanticExpressionGraphNodeText(
+                            graph.graph, graph.root_id
+                        );
+                    if !IsSome(expect_text) ||
+                        UnwrapOption(expect_text) != "true" {
+                        Die("self-host intent rollback execution is not substituted for a fallible Expect");
+                    }
+                }
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, intent_node, child_index
+            );
+        }
+        if step_count <= 0 {
+            Die("self-host intent has no executable step");
+        }
+        ArrayPush(body, "    return true;\n");
+        ArrayPush(definitions, Concat(
+            "bool ", Concat(
+                CompilerSymbolCIdentifier(intents.names[intent_index]),
+                Concat("(", Concat(
+                    CodegenIntentParameterList(intents, intent_index, base_env),
+                    Concat(")\n{\n", Concat(
+                        StringJoin(body, ""), "}\n\n"
+                    ))
+                ))
+            )
+        ));
+        intent_index = intent_index + 1;
+    }
+    return StringJoin(definitions, "");
+}
