@@ -6,6 +6,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 import "domain_topology_row_owner.pgy";
+import "intent_fact_owner.pgy";
 
 struct SelfDirDomainGraphFacts {
     required: Bool;
@@ -17,19 +18,22 @@ struct SelfDirDomainGraphFacts {
     domain_graph_id: String;
     topology_row_count: Int;
     topology: SelfDirDomainTopologyRows;
+    intents: SelfDirIntentFacts;
 }
 
 func SelfDirDomainGraphFactsAbsent() -> SelfDirDomainGraphFacts {
     return SelfDirDomainGraphFacts(
         false, true, "", 0, 0, 0, "", 0,
-        SelfDirDomainTopologyRowsEmpty()
+        SelfDirDomainTopologyRowsEmpty(),
+        SelfDirIntentFactsEmpty(false, true, "", 0)
     );
 }
 
 func SelfDirDomainGraphFactsError(message: String) -> SelfDirDomainGraphFacts {
     return SelfDirDomainGraphFacts(
         true, false, message, 0, 0, 0, "", 0,
-        SelfDirDomainTopologyRowsEmpty()
+        SelfDirDomainTopologyRowsEmpty(),
+        SelfDirIntentFactsEmpty(false, true, "", 0)
     );
 }
 
@@ -101,8 +105,7 @@ func SelfDirDomainAuthorityEdges(
             artifact.arena, node_id
         );
         if IsSome(node_kind) &&
-            (UnwrapOption(node_kind) == TypedAstKindIntentDeclTag() ||
-             UnwrapOption(node_kind) == TypedAstKindRosterDeclTag()) {
+            UnwrapOption(node_kind) == TypedAstKindRosterDeclTag() {
             return None;
         }
         if TypedAstArenaNodeKindIs(
@@ -200,9 +203,16 @@ func SelfDirDomainAuthorityEdges(
 
 func SelfDirDomainGraphFactsFromArtifact(
     artifact: AstTreeArtifact,
-    rows: SelfMirDeclarationRows
+    rows: SelfMirDeclarationRows,
+    signatures: SemanticAstFunctionSignatureFacts
 ) -> SelfDirDomainGraphFacts {
-    let required: Bool = false;
+    let intents: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
+        artifact, rows, signatures
+    );
+    if !SelfDirIntentFactsReady(artifact, rows, intents) {
+        return SelfDirDomainGraphFactsError(intents.diagnostic_message);
+    }
+    let required: Bool = intents.required;
     let i: Int = 0;
     while i < ArrayLength(rows.names) {
         if rows.nominal_kinds[i] == "effect" ||
@@ -345,12 +355,16 @@ func SelfDirDomainGraphFactsFromArtifact(
         }
         node_id = node_id + 1;
     }
-    node_count = node_count + authority_node_count;
-    edge_count = edge_count + UnwrapOption(authority_edges);
+    // Intent declarations are DIR nodes but are not MIR declaration rows.
+    // Count the typed intent owner exactly once, matching native DIR.
+    node_count = node_count + authority_node_count +
+        ArrayLength(intents.intent_node_ids);
+    edge_count = edge_count + UnwrapOption(authority_edges) +
+        intents.edge_count;
     return SelfDirDomainGraphFacts(
         true, true, "", 1, node_count, edge_count,
         SelfDirDomainGraphAnchor(node_count, edge_count),
-        ArrayLength(topology.kinds), topology
+        ArrayLength(topology.kinds), topology, intents
     );
 }
 
@@ -360,11 +374,18 @@ func SelfDirDomainGraphFactsReady(facts: SelfDirDomainGraphFacts) -> Bool {
             facts.node_count == 0 && facts.edge_count == 0 &&
             facts.domain_graph_id == "" && facts.topology_row_count == 0 &&
             SelfDirDomainTopologyRowsReady(facts.topology) &&
-            ArrayLength(facts.topology.kinds) == 0;
+            ArrayLength(facts.topology.kinds) == 0 &&
+            facts.intents.ok && !facts.intents.required &&
+            SelfDirIntentFactsShapeReady(facts.intents) &&
+            facts.intents.edge_count == 0;
     }
     return facts.ok && facts.source_program_syntax_id == 1 &&
         facts.node_count > 0 && facts.edge_count >= 0 &&
         facts.domain_graph_id != "" && facts.domain_graph_id != "0" &&
         SelfDirDomainTopologyRowsReady(facts.topology) &&
-        facts.topology_row_count == ArrayLength(facts.topology.kinds);
+        facts.topology_row_count == ArrayLength(facts.topology.kinds) &&
+        facts.intents.ok && facts.intents.diagnostic_message == "" &&
+        SelfDirIntentFactsShapeReady(facts.intents) &&
+        facts.intents.edge_count >= 0 &&
+        facts.edge_count >= facts.intents.edge_count;
 }

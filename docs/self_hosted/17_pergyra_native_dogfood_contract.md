@@ -523,7 +523,9 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Closed semantic blocker: the same full fixture now resolves `Checkout` from
   an exact parser-artifact intent signature and resolves `IntentHistoryCount`
   from the generated projection of the canonical native observability ABI.
-  It reaches `self-host DIR authority shape is unsupported`.
+  The subsequent typed DIR owner now carries exact participant and ordered step
+  facts, so the fixture emits self `pgy.mir.v1` instead of stopping at
+  `self-host DIR authority shape is unsupported`.
 - A fresh Pergyra-built DRV-2 now emits typed MIR for the bounded
   `world_tobject_projection_query` fixture. The focused gate observes the exact
   tobject/world/query facts, compares native C/LLVM output `true`, and rejects
@@ -541,24 +543,34 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   execution parity, and the missing declaration-identity negative. The full
   fixture is now also pinned by
   `tests/self_hosted/parity/intent_callable_reachability_owner.sh`: arity, type,
-  and renamed-intent negatives fail before MIR, while the positive reaches the
-  next honest DIR boundary. This remains `REACHABLE`, not `SUBSTITUTING`.
+  renamed-intent and wrong-zone-using negatives fail without partial MIR. The
+  positive single-step graph matches native at 14 nodes/30 edges and a two-step
+  explicit-using mutation matches the native predecessor-edge graph. This
+  remains `REACHABLE`, not `SUBSTITUTING`.
 
-### Next intent DIR objective card
+### Completed intent DIR objective card and next MIR boundary
 
-- Objective: carry exact intent participant and step authority/topology facts
-  into self DIR, then remove the current unconditional `IntentDecl` rejection.
-- Fact owner: a dedicated typed DIR intent owner, sourced from parser artifact
-  identity and declaration rows. `tobject` owns immutable detached handoff data;
-  it does not own intent step identity or authority.
-- Required edges: participant type, step zone, who, requires, authorized-by,
-  causes, and predecessor dependency, matching the native DIR fact families.
-- Forbidden fallback: incrementing only node/edge counts, accepting unknown
-  participant types, rescanning raw source in MIR/backend, importing native MIR,
-  or lowering `Checkout` to a constant `Bool` stub.
-- Falsifier: mutate the focused `Checkout` participant type, action receiver,
-  required ability, authorization source, caused effect, or step order. The
-  typed DIR owner must reject the exact changed fact before any MIR artifact.
+- Completed owner: `intent_fact_owner.pgy` owns declaration/participant/step
+  ranges and edge census; `intent_step_fact_owner.pgy` consumes semantic action
+  contracts for zone/requires/causes/authorized defaults, binds `self` to the
+  actual receiver alias, validates explicit `using`, and records predecessor
+  order. `domain_graph_fact_owner.pgy` removed only the unconditional intent
+  rejection and includes the typed node/edges exactly once.
+- Observed proof: single-step native/self anchors are both
+  `14937234969446610600`; explicit-using two-step anchors are both
+  `14937235081115760274`; wrong-zone `using` fails before MIR.
+- Next objective: carry the already admitted DIR intent facts through MIR and
+  reconstruct/execute the production `Checkout` call without reopening AST or
+  source text. Current `CompileSourceToCVerified` fails after MIR production at
+  `SemanticAstExpressionSurfaceFacts` / `ast_artifact_invalid` because the MIR
+  document has no intent declaration/step execution carrier.
+- Forbidden fallback: native AST/MIR graft, graph-count-only reconstruction,
+  backend intent-name lookup, const success stub, or leaving a direct old
+  `Checkout` execution path beside the typed MIR carrier.
+- Next falsifier: delete/mutate a participant, step on-call, predecessor,
+  required ability, authorization or caused effect row in MIR. Machine
+  admission must reject it before any C artifact; the positive must invoke the
+  real subject action and consume its outcome.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을

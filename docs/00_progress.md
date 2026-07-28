@@ -2,6 +2,40 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 exact intent DIR reachability checkpoint
+
+- Self typed AST가 native AST의 intent mode/rollback/retry, ordered
+  involves/value, step와 step child rows를 distinct kind로 보존한다. 명시적
+  `using`/`where`는 native `IntentStep:` header와 child row가 일치할 때만
+  수용하며 subintent/transfer header는 현재 bounded rung에서 fail closed한다.
+- `SelfDirIntentFacts`가 participant alias/type/value class와 ordered step range를
+  소유한다. `SelfDirIntentStepFromArtifact`는 raw source를 다시 읽지 않고 semantic
+  action contract의 `within/requires/causes/authorized by`를 소비하며 `self`
+  authority를 실제 receiver participant로 결속한다.
+- `domain_graph_fact_owner.pgy`의 unconditional `IntentDecl` 거부는 삭제됐다.
+  Intent declaration node와 participant type, step zone/who/requires/causes/
+  authorized-by, ordered predecessor edge가 graph census와 anchor에 한 번 포함된다.
+- Fresh Pergyra-built DRV-2는 full `intent_callable_reachability` source를
+  `pgy.mir.v1`까지 생성한다. Single-step native/self graph는 정확히 14 nodes,
+  30 edges, anchor `14937234969446610600`; explicit-using two-step variant도
+  predecessor edge를 포함한 anchor `14937235081115760274`로 일치한다. Wrong-zone
+  `using`은 partial MIR 없이 거부된다.
+- SoT registry는 intent declaration signature를
+  `selfhost.intent_declaration_rows` authority로, intent DIR fact/step owner를
+  `dir.domain_graph` bridge로 분류한다. Coq authority projection과 live gate
+  evidence를 정합화한 결과는 61 authorities, 62 derived carriers,
+  `CLOSED=34 BRIDGE=27 ACTIVE=0`이다. 이 runner에는 Coq/Rocq가 없어 proof
+  compile은 declared skip이며 live owner/consumer 및 negative mutation 검사는
+  통과했다.
+- 이 delta는 `REACHABLE`, not `SUBSTITUTING`이다. Source -> self C는 이제 DIR을
+  지나지만 MIR JSON reconstruction에서 intent declaration/step 실행 fact가
+  운반되지 않아 `SemanticAstExpressionSurfaceFacts`의 `ast_artifact_invalid`에서
+  멈춘다. 다음 executable rung은 DIR owner를 재스캔하지 않는 MIR intent carrier와
+  `Checkout` call execution이며, native AST/MIR graft나 count-only graph는 금지한다.
+- `tobject`는 계속 `subject source -> tobject slot -> publish`의 immutable detached
+  handoff만 소유한다. Intent step identity, authority, predecessor graph를 tobject에
+  넣지 않는다.
+
 ## 2026-07-28 intent callable + observability SoT checkpoint
 
 - Self semantic call resolution now derives source `intent` signatures from

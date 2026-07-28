@@ -327,7 +327,10 @@ func SelfMirProgramFactsFromReadyArtifact(
         );
     }
     let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
-    let domain_graph: SelfDirDomainGraphFacts = SelfDirDomainGraphFactsFromArtifact(artifact, declarations);
+    let domain_graph: SelfDirDomainGraphFacts =
+        SelfDirDomainGraphFactsFromArtifact(
+            artifact, declarations, analysis.signatures
+        );
     if !SelfDirDomainGraphFactsReady(domain_graph) {
         return SelfMirProgramFactsError(facts, "mir_domain_graph_invalid", domain_graph.diagnostic_message);
     }

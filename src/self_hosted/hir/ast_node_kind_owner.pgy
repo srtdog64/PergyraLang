@@ -63,6 +63,28 @@ func TypedAstKindRoleIncludeTag() -> Int { return 60; }
 func TypedAstKindIntentDeclTag() -> Int { return 61; }
 func TypedAstKindRosterDeclTag() -> Int { return 62; }
 func TypedAstKindDomainProjectionMapEntryTag() -> Int { return 63; }
+func TypedAstKindIntentModeTag() -> Int { return 64; }
+func TypedAstKindIntentRollbackTag() -> Int { return 65; }
+func TypedAstKindIntentRetryTag() -> Int { return 66; }
+func TypedAstKindIntentInvolvesTag() -> Int { return 67; }
+func TypedAstKindIntentValueTag() -> Int { return 68; }
+func TypedAstKindIntentStepTag() -> Int { return 69; }
+func TypedAstKindIntentSuccessTag() -> Int { return 70; }
+func TypedAstKindIntentFailureTag() -> Int { return 71; }
+func TypedAstKindIntentStepWhoTag() -> Int { return 72; }
+func TypedAstKindIntentStepUsingTag() -> Int { return 73; }
+func TypedAstKindIntentStepTransferTag() -> Int { return 74; }
+func TypedAstKindIntentStepOnTag() -> Int { return 75; }
+func TypedAstKindIntentStepCompensateTag() -> Int { return 76; }
+func TypedAstKindIntentStepGuardTag() -> Int { return 77; }
+func TypedAstKindIntentStepPostTag() -> Int { return 78; }
+func TypedAstKindIntentStepAuthorizedByTag() -> Int { return 79; }
+func TypedAstKindIntentStepExpectTag() -> Int { return 80; }
+
+func TypedAstKindIsIntentRow(kind: Int) -> Bool {
+    return kind >= TypedAstKindIntentModeTag() &&
+        kind <= TypedAstKindIntentStepExpectTag();
+}
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
     return kind >= TypedAstKindDomainRefreshTag() &&
@@ -76,7 +98,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindDomainProjectionMapEntryTag();
+        kind <= TypedAstKindIntentStepExpectTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -150,14 +172,24 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindDomainDetachTag(), TypedAstKindDomainUnlinkTag(),
         TypedAstKindDomainStateTag(), TypedAstKindRoleIncludeTag(),
         TypedAstKindIntentDeclTag(), TypedAstKindRosterDeclTag(),
-        TypedAstKindDomainProjectionMapEntryTag()
+        TypedAstKindDomainProjectionMapEntryTag(),
+        TypedAstKindIntentModeTag(), TypedAstKindIntentRollbackTag(),
+        TypedAstKindIntentRetryTag(), TypedAstKindIntentInvolvesTag(),
+        TypedAstKindIntentValueTag(), TypedAstKindIntentStepTag(),
+        TypedAstKindIntentSuccessTag(), TypedAstKindIntentFailureTag(),
+        TypedAstKindIntentStepWhoTag(), TypedAstKindIntentStepUsingTag(),
+        TypedAstKindIntentStepTransferTag(), TypedAstKindIntentStepOnTag(),
+        TypedAstKindIntentStepCompensateTag(), TypedAstKindIntentStepGuardTag(),
+        TypedAstKindIntentStepPostTag(),
+        TypedAstKindIntentStepAuthorizedByTag(),
+        TypedAstKindIntentStepExpectTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 63 {
+    if ArrayLength(tags) != 80 {
         return false;
     }
     let i: Int = 0;
@@ -188,6 +220,13 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindIntentDeclTag()) &&
         TypedAstKindKnown(TypedAstKindRosterDeclTag()) &&
         TypedAstKindKnown(TypedAstKindDomainProjectionMapEntryTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentInvolvesTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepAuthorizedByTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepExpectTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentStepExpectTag()) &&
+        !TypedAstKindIsIntentRow(TypedAstKindIntentDeclTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
         ) &&
@@ -198,7 +237,7 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindDomainProjectionMapEntryTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindIntentStepExpectTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

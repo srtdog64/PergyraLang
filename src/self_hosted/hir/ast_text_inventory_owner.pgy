@@ -110,6 +110,57 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Role:") {
         return TypedAstKindRoleDeclTag();
     }
+    if StartsWith(text, "IntentMode:") {
+        return TypedAstKindIntentModeTag();
+    }
+    if StartsWith(text, "IntentRollback:") {
+        return TypedAstKindIntentRollbackTag();
+    }
+    if StartsWith(text, "IntentRetry:") {
+        return TypedAstKindIntentRetryTag();
+    }
+    if StartsWith(text, "IntentInvolves:") {
+        return TypedAstKindIntentInvolvesTag();
+    }
+    if StartsWith(text, "IntentValue:") {
+        return TypedAstKindIntentValueTag();
+    }
+    if StartsWith(text, "IntentStep:") {
+        return TypedAstKindIntentStepTag();
+    }
+    if StartsWith(text, "IntentSuccess:") {
+        return TypedAstKindIntentSuccessTag();
+    }
+    if StartsWith(text, "IntentFailure:") {
+        return TypedAstKindIntentFailureTag();
+    }
+    if StartsWith(text, "Who:") {
+        return TypedAstKindIntentStepWhoTag();
+    }
+    if StartsWith(text, "Using:") {
+        return TypedAstKindIntentStepUsingTag();
+    }
+    if StartsWith(text, "Transfer:") {
+        return TypedAstKindIntentStepTransferTag();
+    }
+    if StartsWith(text, "On:") {
+        return TypedAstKindIntentStepOnTag();
+    }
+    if StartsWith(text, "Compensate:") {
+        return TypedAstKindIntentStepCompensateTag();
+    }
+    if StartsWith(text, "Guard:") {
+        return TypedAstKindIntentStepGuardTag();
+    }
+    if StartsWith(text, "Post:") {
+        return TypedAstKindIntentStepPostTag();
+    }
+    if StartsWith(text, "AuthorizedBy:") {
+        return TypedAstKindIntentStepAuthorizedByTag();
+    }
+    if StartsWith(text, "Expect:") {
+        return TypedAstKindIntentStepExpectTag();
+    }
     if StartsWith(text, "Intent:") {
         return TypedAstKindIntentDeclTag();
     }
@@ -279,6 +330,15 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == TypedAstKindRoleDeclTag() {
         return Substring(text, 6, StringLength(text) - 6);
+    }
+    if TypedAstKindIsIntentRow(kind) {
+        let colon: Int = StringIndexOf(text, ":");
+        if colon >= 0 {
+            return StringTrim(Substring(
+                text, colon + 1, StringLength(text) - colon - 1
+            ));
+        }
+        return "";
     }
     if kind == TypedAstKindIntentDeclTag() {
         return Substring(text, 8, StringLength(text) - 8);

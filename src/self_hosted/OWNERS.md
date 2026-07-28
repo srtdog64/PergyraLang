@@ -724,6 +724,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
 - `src/self_hosted/dir/domain_graph_fact_owner.pgy` -- bounded DIR census,
   graph-anchor identity, and topology-producer orchestration.
+- `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
+  participant/value range, ordered-step range, and intent-edge census owner;
+  it validates typed identities and never rescans source text.
+- `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
+  resolution owner for `on` receiver/action binding, semantic action-contract
+  defaults, zone/using/who/requires/causes/authorized identities, and ordered
+  predecessor edges.
 - `src/self_hosted/dir/domain_topology_row_owner.pgy` -- typed domain
   directive rows, exact declaration-field identity joins, and non-empty row
   validation. It is the self-host producer-side `dir.domain_graph` authority;

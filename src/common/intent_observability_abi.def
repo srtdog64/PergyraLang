@@ -2,6 +2,7 @@
  *
  * Keep rows sorted by source name for the native bsearch consumer. Stable IDs
  * are 1-based, contiguous for the current epoch, and must never be renumbered.
+ * PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER
  */
 PGY_INTENT_OBSERVABILITY_ABI(1, "IntentActiveConcurrent", "pgy_intent_active_concurrent_export", 1, PGY_INTENT_OBSERVABILITY_RETURN_BOOL)
 PGY_INTENT_OBSERVABILITY_ABI(2, "IntentActiveCount", "pgy_intent_active_count_export", 0, PGY_INTENT_OBSERVABILITY_RETURN_INT)

@@ -3,6 +3,32 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-07-28 Exact Intent DIR Reachability
+
+- Self typed AST now preserves native intent mode, rollback, retry,
+  involves/value, step, and step-child rows as distinct identities.
+  `SelfDirIntentFacts` owns exact participant and ordered-step ranges;
+  `SelfDirIntentStepFromArtifact` consumes semantic action contracts instead of
+  reopening raw source.
+- The old unconditional self DIR `IntentDecl` rejection is removed. Intent
+  declaration, participant type, step zone/who/requires/causes/authorized-by,
+  and predecessor edges contribute once to the domain graph.
+- A fresh Pergyra-built DRV-2 emits `pgy.mir.v1` for the focused production
+  source. Native/self single-step graphs both have 14 nodes, 30 edges, and
+  anchor `14937234969446610600`; an explicit-using two-step mutation matches at
+  `14937235081115760274`. Wrong-zone `using`, wrong arity/type, and renamed
+  intent mutations fail without a partial MIR artifact.
+- The SoT spine now declares `selfhost.intent_declaration_rows`, classifies the
+  two DIR intent carriers under `dir.domain_graph`, and carries the previously
+  missing intent-observability ABI Coq authority mapping. The live registry
+  reports 61 authorities and 62 derived carriers (`CLOSED=34`, `BRIDGE=27`,
+  `ACTIVE=0`). Coq/Rocq is unavailable on this runner, so proof compilation is
+  a declared skip; live owner/consumer and negative-mutation gates passed.
+- The slice is `REACHABLE`, not `SUBSTITUTING`. The next executable boundary is
+  a typed MIR intent carrier and real `Checkout` execution. Native AST/MIR
+  grafts, source rescans, count-only graphs, constant success stubs, and using
+  `tobject` as the intent authority are forbidden.
+
 ## Progress Log - 2026-06-21 MIR Lifecycle Source-Text Fact Closure
 
 - MIR JSON still emits the transitional `"ast"` text field for the current

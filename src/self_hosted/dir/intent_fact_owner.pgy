@@ -1,0 +1,548 @@
+// Typed self-host DIR intent participant and step graph owner.
+// The step resolver consumes semantic action contracts; this owner assembles
+// exact intent ranges and validates the resulting edge census locally.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "../mir/declaration_fact_owner.pgy";
+import "domain_topology_row_owner.pgy";
+import "intent_step_fact_owner.pgy";
+
+struct SelfDirIntentParticipantFacts {
+    node_ids: Array<Int>;
+    is_values: Array<Bool>;
+    aliases: Array<String>;
+    type_names: Array<String>;
+    declaration_indices: Array<Int>;
+}
+
+struct SelfDirIntentStepFacts {
+    node_ids: Array<Int>;
+    names: Array<String>;
+    where_zone_names: Array<String>;
+    where_declaration_indices: Array<Int>;
+    using_aliases: Array<String>;
+    predecessor_step_indices: Array<Int>;
+    causes_names: Array<String>;
+    causes_declaration_indices: Array<Int>;
+    who_starts: Array<Int>;
+    who_counts: Array<Int>;
+    who_names: Array<String>;
+    requires_starts: Array<Int>;
+    requires_counts: Array<Int>;
+    requires_names: Array<String>;
+    requires_declaration_indices: Array<Int>;
+    authorized_starts: Array<Int>;
+    authorized_counts: Array<Int>;
+    authorized_names: Array<String>;
+}
+
+struct SelfDirIntentFacts {
+    required: Bool;
+    ok: Bool;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    intent_node_ids: Array<Int>;
+    names: Array<String>;
+    participant_starts: Array<Int>;
+    participant_counts: Array<Int>;
+    participants: SelfDirIntentParticipantFacts;
+    step_starts: Array<Int>;
+    step_counts: Array<Int>;
+    steps: SelfDirIntentStepFacts;
+    edge_count: Int;
+}
+
+func SelfDirIntentParticipantFactsEmpty() -> SelfDirIntentParticipantFacts {
+    let node_ids: Array<Int> = [];
+    let is_values: Array<Bool> = [];
+    let aliases: Array<String> = [];
+    let type_names: Array<String> = [];
+    let declaration_indices: Array<Int> = [];
+    return SelfDirIntentParticipantFacts(
+        node_ids, is_values, aliases, type_names, declaration_indices
+    );
+}
+
+func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
+    let node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let where_zone_names: Array<String> = [];
+    let where_declaration_indices: Array<Int> = [];
+    let using_aliases: Array<String> = [];
+    let predecessor_step_indices: Array<Int> = [];
+    let causes_names: Array<String> = [];
+    let causes_declaration_indices: Array<Int> = [];
+    let who_starts: Array<Int> = [];
+    let who_counts: Array<Int> = [];
+    let who_names: Array<String> = [];
+    let requires_starts: Array<Int> = [];
+    let requires_counts: Array<Int> = [];
+    let requires_names: Array<String> = [];
+    let requires_declaration_indices: Array<Int> = [];
+    let authorized_starts: Array<Int> = [];
+    let authorized_counts: Array<Int> = [];
+    let authorized_names: Array<String> = [];
+    return SelfDirIntentStepFacts(
+        node_ids, names, where_zone_names, where_declaration_indices,
+        using_aliases, predecessor_step_indices, causes_names,
+        causes_declaration_indices, who_starts, who_counts, who_names,
+        requires_starts, requires_counts, requires_names,
+        requires_declaration_indices, authorized_starts, authorized_counts,
+        authorized_names
+    );
+}
+
+func SelfDirIntentFactsEmpty(
+    required: Bool, ok: Bool, message: String, artifact_node_count: Int
+) -> SelfDirIntentFacts {
+    let intent_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let participant_starts: Array<Int> = [];
+    let participant_counts: Array<Int> = [];
+    let step_starts: Array<Int> = [];
+    let step_counts: Array<Int> = [];
+    return SelfDirIntentFacts(
+        required, ok, message, artifact_node_count,
+        intent_node_ids, names, participant_starts, participant_counts,
+        SelfDirIntentParticipantFactsEmpty(), step_starts, step_counts,
+        SelfDirIntentStepFactsEmpty(), 0
+    );
+}
+
+func SelfDirIntentFactsError(
+    message: String, artifact_node_count: Int
+) -> SelfDirIntentFacts {
+    return SelfDirIntentFactsEmpty(true, false, message, artifact_node_count);
+}
+
+func SelfDirIntentDirectChildAllowed(kind: Int) -> Bool {
+    return kind == TypedAstKindIntentModeTag() ||
+        kind == TypedAstKindIntentRollbackTag() ||
+        kind == TypedAstKindIntentRetryTag() ||
+        kind == TypedAstKindIntentInvolvesTag() ||
+        kind == TypedAstKindIntentValueTag() ||
+        kind == TypedAstKindIntentStepTag() ||
+        kind == TypedAstKindIntentSuccessTag() ||
+        kind == TypedAstKindIntentFailureTag();
+}
+
+func SelfDirIntentFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> SelfDirIntentFacts {
+    let signature_facts: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    let required: Bool = SemanticAstIntentSignatureCount(signature_facts) > 0;
+    if !required {
+        return SelfDirIntentFactsEmpty(false, true, "", artifact.count);
+    }
+    if !AstTreeArtifactReady(artifact) || !signatures.ok ||
+        !SemanticAstActionContractFactsReady(
+            artifact, signatures.action_contracts
+        ) || !SemanticAstIntentSignatureFactsReady(artifact, signature_facts) {
+        return SelfDirIntentFactsError(
+            "self-host DIR intent inputs are incomplete", artifact.count
+        );
+    }
+
+    let intent_node_ids: Array<Int> = [];
+    let intent_names: Array<String> = [];
+    let participant_starts: Array<Int> = [];
+    let participant_counts: Array<Int> = [];
+    let participant_node_ids: Array<Int> = [];
+    let participant_is_values: Array<Bool> = [];
+    let participant_aliases: Array<String> = [];
+    let participant_type_names: Array<String> = [];
+    let participant_declaration_indices: Array<Int> = [];
+    let step_starts: Array<Int> = [];
+    let step_counts: Array<Int> = [];
+    let step_node_ids: Array<Int> = [];
+    let step_names: Array<String> = [];
+    let step_where_zone_names: Array<String> = [];
+    let step_where_declaration_indices: Array<Int> = [];
+    let step_using_aliases: Array<String> = [];
+    let step_predecessor_indices: Array<Int> = [];
+    let step_causes_names: Array<String> = [];
+    let step_causes_declaration_indices: Array<Int> = [];
+    let who_starts: Array<Int> = [];
+    let who_counts: Array<Int> = [];
+    let who_names: Array<String> = [];
+    let requires_starts: Array<Int> = [];
+    let requires_counts: Array<Int> = [];
+    let requires_names: Array<String> = [];
+    let requires_declaration_indices: Array<Int> = [];
+    let authorized_starts: Array<Int> = [];
+    let authorized_counts: Array<Int> = [];
+    let authorized_names: Array<String> = [];
+    let edge_count: Int = 0;
+
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(signature_facts) {
+        let intent_node_id: Int = signature_facts.intent_node_ids[intent_index];
+        let participant_start: Int = ArrayLength(participant_node_ids);
+        let source_start: Int = signature_facts.param_starts[intent_index];
+        let p: Int = 0;
+        while p < signature_facts.param_counts[intent_index] {
+            let source_row: Int = source_start + p;
+            let type_name: String = signature_facts.param_types[source_row];
+            let is_value: Bool = signature_facts.param_is_values[source_row];
+            let declaration_index: Int = SelfDirDeclarationIndexForName(
+                rows, type_name
+            );
+            if !is_value && declaration_index < 0 {
+                return SelfDirIntentFactsError(
+                    "self-host DIR intent participant type is unresolved",
+                    artifact.count
+                );
+            }
+            ArrayPush(participant_node_ids,
+                signature_facts.param_node_ids[source_row]);
+            ArrayPush(participant_is_values, is_value);
+            ArrayPush(participant_aliases,
+                signature_facts.param_names[source_row]);
+            ArrayPush(participant_type_names, type_name);
+            ArrayPush(participant_declaration_indices, declaration_index);
+            edge_count = edge_count + 1;
+            p = p + 1;
+        }
+        let participant_count: Int =
+            ArrayLength(participant_node_ids) - participant_start;
+        let step_start: Int = ArrayLength(step_node_ids);
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, intent_node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+                artifact.arena, child_id
+            );
+            if !IsSome(kind_opt) ||
+                !SelfDirIntentDirectChildAllowed(UnwrapOption(kind_opt)) {
+                return SelfDirIntentFactsError(
+                    "self-host DIR intent child row kind is unsupported",
+                    artifact.count
+                );
+            }
+            if UnwrapOption(kind_opt) == TypedAstKindIntentStepTag() {
+                let local_step_index: Int =
+                    ArrayLength(step_node_ids) - step_start;
+                let resolved: SelfDirIntentResolvedStep =
+                    SelfDirIntentStepFromArtifact(
+                        artifact, rows, signatures, child_id,
+                        participant_aliases, participant_type_names,
+                        participant_is_values, participant_start,
+                        participant_count, local_step_index
+                    );
+                if !resolved.ok {
+                    return SelfDirIntentFactsError(
+                        resolved.diagnostic_message, artifact.count
+                    );
+                }
+                let who_start: Int = ArrayLength(who_names);
+                let i: Int = 0;
+                while i < ArrayLength(resolved.who_names) {
+                    ArrayPush(who_names, resolved.who_names[i]);
+                    i = i + 1;
+                }
+                let requires_start: Int = ArrayLength(requires_names);
+                i = 0;
+                while i < ArrayLength(resolved.requires_names) {
+                    ArrayPush(requires_names, resolved.requires_names[i]);
+                    ArrayPush(requires_declaration_indices,
+                        resolved.requires_declaration_indices[i]);
+                    i = i + 1;
+                }
+                let authorized_start: Int = ArrayLength(authorized_names);
+                i = 0;
+                while i < ArrayLength(resolved.authorized_names) {
+                    ArrayPush(authorized_names, resolved.authorized_names[i]);
+                    i = i + 1;
+                }
+                ArrayPush(step_node_ids, resolved.node_id);
+                ArrayPush(step_names, resolved.name);
+                ArrayPush(step_where_zone_names, resolved.where_zone_name);
+                ArrayPush(step_where_declaration_indices,
+                    resolved.where_declaration_index);
+                ArrayPush(step_using_aliases, resolved.using_alias);
+                ArrayPush(step_predecessor_indices,
+                    resolved.predecessor_step_index);
+                ArrayPush(step_causes_names, resolved.causes_name);
+                ArrayPush(step_causes_declaration_indices,
+                    resolved.causes_declaration_index);
+                ArrayPush(who_starts, who_start);
+                ArrayPush(who_counts, ArrayLength(resolved.who_names));
+                ArrayPush(requires_starts, requires_start);
+                ArrayPush(requires_counts,
+                    ArrayLength(resolved.requires_names));
+                ArrayPush(authorized_starts, authorized_start);
+                ArrayPush(authorized_counts,
+                    ArrayLength(resolved.authorized_names));
+                edge_count = edge_count + resolved.edge_count;
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, intent_node_id, child_index
+            );
+        }
+        ArrayPush(intent_node_ids, intent_node_id);
+        ArrayPush(intent_names, signature_facts.names[intent_index]);
+        ArrayPush(participant_starts, participant_start);
+        ArrayPush(participant_counts, participant_count);
+        ArrayPush(step_starts, step_start);
+        ArrayPush(step_counts, ArrayLength(step_node_ids) - step_start);
+        intent_index = intent_index + 1;
+    }
+
+    return SelfDirIntentFacts(
+        true, true, "", artifact.count,
+        intent_node_ids, intent_names, participant_starts, participant_counts,
+        SelfDirIntentParticipantFacts(
+            participant_node_ids, participant_is_values, participant_aliases,
+            participant_type_names, participant_declaration_indices
+        ),
+        step_starts, step_counts,
+        SelfDirIntentStepFacts(
+            step_node_ids, step_names, step_where_zone_names,
+            step_where_declaration_indices, step_using_aliases,
+            step_predecessor_indices, step_causes_names,
+            step_causes_declaration_indices, who_starts, who_counts, who_names,
+            requires_starts, requires_counts, requires_names,
+            requires_declaration_indices, authorized_starts, authorized_counts,
+            authorized_names
+        ),
+        edge_count
+    );
+}
+
+func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
+    let intents: Int = ArrayLength(facts.intent_node_ids);
+    let participants: Int = ArrayLength(facts.participants.node_ids);
+    let steps: Int = ArrayLength(facts.steps.node_ids);
+    return ArrayLength(facts.names) == intents &&
+        ArrayLength(facts.participant_starts) == intents &&
+        ArrayLength(facts.participant_counts) == intents &&
+        ArrayLength(facts.step_starts) == intents &&
+        ArrayLength(facts.step_counts) == intents &&
+        ArrayLength(facts.participants.is_values) == participants &&
+        ArrayLength(facts.participants.aliases) == participants &&
+        ArrayLength(facts.participants.type_names) == participants &&
+        ArrayLength(facts.participants.declaration_indices) == participants &&
+        ArrayLength(facts.steps.names) == steps &&
+        ArrayLength(facts.steps.where_zone_names) == steps &&
+        ArrayLength(facts.steps.where_declaration_indices) == steps &&
+        ArrayLength(facts.steps.using_aliases) == steps &&
+        ArrayLength(facts.steps.predecessor_step_indices) == steps &&
+        ArrayLength(facts.steps.causes_names) == steps &&
+        ArrayLength(facts.steps.causes_declaration_indices) == steps &&
+        ArrayLength(facts.steps.who_starts) == steps &&
+        ArrayLength(facts.steps.who_counts) == steps &&
+        ArrayLength(facts.steps.requires_starts) == steps &&
+        ArrayLength(facts.steps.requires_counts) == steps &&
+        ArrayLength(facts.steps.authorized_starts) == steps &&
+        ArrayLength(facts.steps.authorized_counts) == steps &&
+        ArrayLength(facts.steps.requires_names) ==
+            ArrayLength(facts.steps.requires_declaration_indices);
+}
+
+func SelfDirIntentFactsReady(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    facts: SelfDirIntentFacts
+) -> Bool {
+    if !facts.ok || facts.diagnostic_message != "" ||
+        facts.artifact_node_count != artifact.count ||
+        !SelfDirIntentFactsShapeReady(facts) {
+        return false;
+    }
+    let intent_count: Int = ArrayLength(facts.intent_node_ids);
+    let participant_count: Int = ArrayLength(facts.participants.node_ids);
+    let step_count: Int = ArrayLength(facts.steps.node_ids);
+    if !facts.required {
+        return intent_count == 0 && participant_count == 0 && step_count == 0 &&
+            facts.edge_count == 0;
+    }
+    let expected_participant_start: Int = 0;
+    let expected_step_start: Int = 0;
+    let expected_who_start: Int = 0;
+    let expected_requires_start: Int = 0;
+    let expected_authorized_start: Int = 0;
+    let expected_edges: Int = 0;
+    let intent_i: Int = 0;
+    while intent_i < intent_count {
+        let p_start: Int = facts.participant_starts[intent_i];
+        let p_count: Int = facts.participant_counts[intent_i];
+        let s_start: Int = facts.step_starts[intent_i];
+        let s_count: Int = facts.step_counts[intent_i];
+        if facts.intent_node_ids[intent_i] < 0 ||
+            facts.names[intent_i] == "" ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.intent_node_ids[intent_i],
+                TypedAstKindIntentDeclTag()
+            ) || p_start != expected_participant_start ||
+            s_start != expected_step_start || p_count < 0 || s_count < 0 {
+            return false;
+        }
+        let local_step: Int = 0;
+        while local_step < s_count {
+            let step_row: Int = s_start + local_step;
+            let expected_predecessor: Int = -1;
+            if local_step > 0 { expected_predecessor = local_step - 1; }
+            let who_start: Int = facts.steps.who_starts[step_row];
+            let who_count: Int = facts.steps.who_counts[step_row];
+            let requires_start: Int = facts.steps.requires_starts[step_row];
+            let requires_count: Int = facts.steps.requires_counts[step_row];
+            let authorized_start: Int =
+                facts.steps.authorized_starts[step_row];
+            let authorized_count: Int =
+                facts.steps.authorized_counts[step_row];
+            if facts.steps.predecessor_step_indices[step_row] !=
+                    expected_predecessor ||
+                who_start != expected_who_start || who_count <= 0 ||
+                who_start + who_count > ArrayLength(facts.steps.who_names) ||
+                requires_start != expected_requires_start ||
+                requires_count < 0 ||
+                requires_start + requires_count >
+                    ArrayLength(facts.steps.requires_names) ||
+                authorized_start != expected_authorized_start ||
+                authorized_count < 0 ||
+                authorized_start + authorized_count >
+                    ArrayLength(facts.steps.authorized_names) {
+                return false;
+            }
+            let using_row: Int = SelfDirIntentParticipantIndex(
+                facts.participants.aliases, p_start, p_count,
+                facts.steps.using_aliases[step_row]
+            );
+            if using_row < 0 || facts.participants.is_values[using_row] ||
+                facts.participants.type_names[using_row] !=
+                    facts.steps.where_zone_names[step_row] {
+                return false;
+            }
+            let name_i: Int = 0;
+            while name_i < who_count {
+                let participant_row: Int = SelfDirIntentParticipantIndex(
+                    facts.participants.aliases, p_start, p_count,
+                    facts.steps.who_names[who_start + name_i]
+                );
+                if participant_row < 0 ||
+                    facts.participants.is_values[participant_row] {
+                    return false;
+                }
+                name_i = name_i + 1;
+            }
+            name_i = 0;
+            while name_i < authorized_count {
+                let participant_row: Int = SelfDirIntentParticipantIndex(
+                    facts.participants.aliases, p_start, p_count,
+                    facts.steps.authorized_names[authorized_start + name_i]
+                );
+                if participant_row < 0 ||
+                    facts.participants.is_values[participant_row] {
+                    return false;
+                }
+                name_i = name_i + 1;
+            }
+            expected_who_start = expected_who_start + who_count;
+            expected_requires_start = expected_requires_start + requires_count;
+            expected_authorized_start =
+                expected_authorized_start + authorized_count;
+            local_step = local_step + 1;
+        }
+        expected_participant_start = expected_participant_start + p_count;
+        expected_step_start = expected_step_start + s_count;
+        intent_i = intent_i + 1;
+    }
+    if expected_participant_start != participant_count ||
+        expected_step_start != step_count ||
+        expected_who_start != ArrayLength(facts.steps.who_names) ||
+        expected_requires_start != ArrayLength(facts.steps.requires_names) ||
+        expected_authorized_start != ArrayLength(facts.steps.authorized_names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < participant_count {
+        let expected_kind: Int = TypedAstKindIntentInvolvesTag();
+        if facts.participants.is_values[i] {
+            expected_kind = TypedAstKindIntentValueTag();
+        }
+        if !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.participants.node_ids[i], expected_kind
+            ) || facts.participants.aliases[i] == "" ||
+            facts.participants.type_names[i] == "" ||
+            (!facts.participants.is_values[i] &&
+             (facts.participants.declaration_indices[i] < 0 ||
+              facts.participants.declaration_indices[i] >= ArrayLength(rows.names) ||
+              rows.names[facts.participants.declaration_indices[i]] !=
+                facts.participants.type_names[i])) {
+            return false;
+        }
+        expected_edges = expected_edges + 1;
+        i = i + 1;
+    }
+    i = 0;
+    while i < step_count {
+        if !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.steps.node_ids[i],
+                TypedAstKindIntentStepTag()
+            ) || facts.steps.names[i] == "" ||
+            facts.steps.where_zone_names[i] == "" ||
+            facts.steps.where_declaration_indices[i] < 0 ||
+            facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||
+            rows.nominal_kinds[facts.steps.where_declaration_indices[i]] != "zone" ||
+            rows.names[facts.steps.where_declaration_indices[i]] !=
+                facts.steps.where_zone_names[i] ||
+            facts.steps.using_aliases[i] == "" ||
+            facts.steps.who_starts[i] < 0 || facts.steps.who_counts[i] <= 0 ||
+            facts.steps.who_starts[i] + facts.steps.who_counts[i] >
+                ArrayLength(facts.steps.who_names) ||
+            facts.steps.requires_starts[i] < 0 ||
+            facts.steps.requires_counts[i] < 0 ||
+            facts.steps.requires_starts[i] + facts.steps.requires_counts[i] >
+                ArrayLength(facts.steps.requires_names) ||
+            facts.steps.authorized_starts[i] < 0 ||
+            facts.steps.authorized_counts[i] < 0 ||
+            facts.steps.authorized_starts[i] + facts.steps.authorized_counts[i] >
+                ArrayLength(facts.steps.authorized_names) {
+            return false;
+        }
+        let requirement_i: Int = 0;
+        while requirement_i < facts.steps.requires_counts[i] {
+            let requirement_row: Int =
+                facts.steps.requires_starts[i] + requirement_i;
+            let declaration_index: Int =
+                facts.steps.requires_declaration_indices[requirement_row];
+            if declaration_index < 0 ||
+                declaration_index >= ArrayLength(rows.names) ||
+                rows.kinds[declaration_index] != "ability" ||
+                rows.names[declaration_index] !=
+                    facts.steps.requires_names[requirement_row] {
+                return false;
+            }
+            requirement_i = requirement_i + 1;
+        }
+        expected_edges = expected_edges + 1 + facts.steps.who_counts[i] +
+            facts.steps.requires_counts[i] + facts.steps.authorized_counts[i];
+        if facts.steps.causes_names[i] != "" {
+            let cause_index: Int = facts.steps.causes_declaration_indices[i];
+            if cause_index < 0 || cause_index >= ArrayLength(rows.names) ||
+                rows.nominal_kinds[cause_index] != "effect" ||
+                rows.names[cause_index] != facts.steps.causes_names[i] {
+                return false;
+            }
+            expected_edges = expected_edges + 1;
+        }
+        if facts.steps.predecessor_step_indices[i] >= 0 {
+            expected_edges = expected_edges + 1;
+        }
+        i = i + 1;
+    }
+    return expected_edges == facts.edge_count;
+}
+
+func SelfDirIntentCount(facts: SelfDirIntentFacts) -> Int {
+    return ArrayLength(facts.intent_node_ids);
+}

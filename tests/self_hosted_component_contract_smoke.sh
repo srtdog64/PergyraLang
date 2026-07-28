@@ -1100,6 +1100,36 @@ reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
 require_file "tests/self_hosted/parity/intent_callable_reachability_owner.sh"
 require_text "Makefile" \
     'tests/self_hosted/parity/intent_callable_reachability_owner.sh'
+require_file "src/self_hosted/dir/intent_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 560
+require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 470
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'import "intent_fact_owner.pgy";'
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'ArrayLength(intents.intent_node_ids)'
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'intents.edge_count'
+reject_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'UnwrapOption(node_kind) == TypedAstKindIntentDeclTag() ||'
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'func SelfDirIntentFactsReady('
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'SelfDirIntentStepFromArtifact('
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'signatures.action_contracts'
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'predecessor = local_step_index - 1'
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" '"Checkout"'
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" '"Checkout"'
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" 'FileRead('
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" 'FileRead('
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'artifact, declarations, analysis.signatures'
+require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
+    '"domain_graph_id":14937234969446610600'
+require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
+    'intent-step-depends-on'
 reject_regex_under "src/self_hosted" "ZeroArtifactDecl"
 require_file "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"

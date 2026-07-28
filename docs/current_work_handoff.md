@@ -6,57 +6,69 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - intent callable and observability reachability
+## Current resume checkpoint - exact intent DIR reachability
 
-- Landing parent: `f97428894d376a9bf4d1f2e3fd2095967349df7c` on `main`, aligned
+- Landing parent: `13be4e802b73c526bebc189aa831c8f9132236c9` on `main`, aligned
   with `origin/main` at the start of this slice. The landing commit contains
   this handoff; use `git rev-parse HEAD` after landing for the exact revision.
 - Objective card:
-  - objective: admit a source `intent` by its parser-owned declaration identity
-    and project the canonical native `Intent*` observability ABI into self-host
-    semantic call resolution without duplicating a builtin table;
-  - priority: exact declaration/parameter identity, one append-only ABI owner,
-    native/self projection parity, negative call diagnostics, then DIR lowering;
-  - fact owners: `ast_intent_signature_fact_owner.pgy` owns the artifact-exact
-    intent callable view; `src/common/intent_observability_abi.def` owns stable
-    runtime-call ABI ID, source/runtime names, arity, and result kind;
-  - last legitimate consumers: self expression call-target resolution for the
-    current slice; native C/LLVM runtime call emitters and the future self DIR/MIR
-    intent carrier remain downstream consumers;
-  - forbidden fallback: treating an intent as a function/action declaration,
-    literal `IntentHistoryCount` rows in the self builtin table, deriving stable
-    ABI IDs from sorted indexes, deleting the DIR rejection without carrying
-    participant/step facts, or claiming later failure as substitution;
-  - verification: `tests/intent_observability_abi_registry_smoke.sh`,
-    `tests/self_hosted/parity/intent_callable_reachability_owner.sh`, and
+  - objective: replace the self DIR unconditional `IntentDecl` rejection with
+    exact participant and ordered step graph facts derived from the parser
+    artifact and semantic action contract owners;
+  - priority: typed intent row identity, exact declaration joins, action-default
+    consumption, native/self graph-anchor parity, negative `using`/call gates,
+    then the next MIR execution boundary;
+  - fact owners: `ast_intent_signature_fact_owner.pgy` owns declaration and
+    involves/value signatures; `intent_fact_owner.pgy` owns intent ranges and
+    edge census; `intent_step_fact_owner.pgy` owns receiver/action resolution,
+    zone/using/who/requires/causes/authorized facts and predecessor order;
+  - last legitimate consumer: `domain_graph_fact_owner.pgy` includes these facts
+    once in the DIR graph anchor. MIR intent carriage/execution is the next
+    consumer and must not reopen AST/source text;
+  - forbidden fallback: count-only intent edges, native MIR graft, raw-source
+    rescan, unresolved participant success, header/child disagreement, treating
+    `tobject` as authority, or leaving the old unconditional rejection beside
+    the typed owner;
+  - verification: fresh DRV-2 build,
+    `tests/self_hosted/parity/intent_callable_reachability_owner.sh`,
+    `tests/intent_observability_abi_registry_smoke.sh`, and
     `tests/self_hosted_component_contract_smoke.sh`.
 - Observed evidence:
-  - the modified native-current DRV-2 compiled with 0 Pergyra errors/warnings;
-    generated C completed with three existing unused-variable warnings;
-  - sampled build memory was about 673.6 MiB private for `pgy` and 791.3 MiB
-    private for `cc1`; no 20 GiB-class recurrence was observed;
-  - the full `world_zone_projection_visibility` source, including
-    `IntentHistoryCount()`, and the focused source without that call now both
-    pass semantic call-target resolution and stop at the same next boundary:
-    `self-host DIR authority shape is unsupported`;
+  - a fresh Pergyra-built DRV-2 compiled with 0 Pergyra errors/warnings;
+    generated C completed with the three existing unused-variable warnings and
+    unsupported warning-option notes;
+  - the full focused source now emits self `pgy.mir.v1`; the old
+    `self-host DIR authority shape is unsupported` boundary is gone;
+  - single-step native/self DIR is exactly 14 nodes and 30 edges with graph
+    anchor `14937234969446610600`;
+  - an explicit-using two-step mutation includes the predecessor edge and
+    converges at graph anchor `14937235081115760274`;
+  - a wrong-zone `using: buyer` mutation fails with no partial MIR artifact;
   - wrong arity fails with `call_arity_mismatch`, wrong participant type with
     `call_arg_type_mismatch`, and a renamed intent with `undefined_function`,
     all before a partial MIR artifact;
-  - the canonical registry has 51 sorted rows; `IntentHistoryCount` retains ABI
-    ID 25, zero arguments, `Int`, and `pgy_intent_history_count_export`.
+  - the canonical observability registry remains 51 rows and its focused native/
+    self projection gate is green;
+  - the SoT registry declares `selfhost.intent_declaration_rows`, classifies the
+    intent DIR fact/step files as `dir.domain_graph` bridges, and reports 61
+    authorities, 62 derived carriers, `CLOSED=34 BRIDGE=27 ACTIVE=0`;
+  - `sot_authority_adequacy_smoke.sh` passed its live owner/consumer and negative
+    mutation checks. Coq/Rocq is unavailable on this runner, so proof compilation
+    was a declared skip and is not claimed as executed proof evidence;
   - `verified_projection_plan_smoke.sh` still fails at its pre-existing broad
     `ast_` forbidden-pattern check because current HEAD contains
     `ast_node_stable_id` in `verified_projection_plan.c`. The registry-reading
     portion was migrated to the `.def` owner, but the full gate is not claimed
     green and that unrelated planner seam was not changed in this slice.
 - Grade: `REACHABLE`, not `SUBSTITUTING`. This replaces the previous
-  `undefined_function Checkout` and missing observability-builtin seams, but no
-  Pergyra intent routine executes yet.
-- Next executable falsifier: replace the unconditional `IntentDecl` rejection
-  in `SelfDirDomainAuthorityEdges` only after a typed DIR intent owner carries
-  exact participant aliases/types and step zone/who/requires/authorized/causes/
-  predecessor edges. The focused fixture must then advance beyond DIR without a
-  count-only or native-MIR graft fallback.
+  DIR rejection and reaches MIR production, but no Pergyra intent routine
+  executes and no C-owned intent lowering path has been replaced.
+- Next executable falsifier: `CompileSourceToCVerified` currently advances past
+  DIR and fails during MIR-to-AST reconstruction with
+  `SemanticAstExpressionSurfaceFacts` / `ast_artifact_invalid`. Add one typed MIR
+  intent carrier for declaration, participant, ordered step and on-call facts;
+  reconstruct/execute `Checkout` from that carrier, delete the direct old-path
+  bypass for the migrated slice, and reject missing/mutated rows before C output.
 - `tobject` remains the immutable detached handoff on the already reached
   `subject source -> tobject slot -> publish` path. It is not the missing intent
   authority owner and should not absorb step identity or mutable orchestration.

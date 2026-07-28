@@ -10,6 +10,7 @@ import "diagnostic_owner.pgy";
 
 struct SemanticAstIntentParameterRow {
     ok: Bool;
+    is_value: Bool;
     name: String;
     type_name: String;
 }
@@ -24,6 +25,7 @@ struct SemanticAstIntentSignatureFacts {
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_node_ids: Array<Int>;
+    param_is_values: Array<Bool>;
     param_names: Array<String>;
     param_types: Array<String>;
 }
@@ -32,12 +34,14 @@ func SemanticAstIntentParameterRowFromProvenance(
     provenance: String
 ) -> SemanticAstIntentParameterRow {
     let prefix: String = "";
+    let is_value: Bool = false;
     if StartsWith(provenance, "IntentInvolves: ") {
         prefix = "IntentInvolves: ";
     } else if StartsWith(provenance, "IntentValue: ") {
         prefix = "IntentValue: ";
+        is_value = true;
     } else {
-        return SemanticAstIntentParameterRow(false, "", "");
+        return SemanticAstIntentParameterRow(false, false, "", "");
     }
     let row: String = Substring(
         provenance, StringLength(prefix),
@@ -45,16 +49,16 @@ func SemanticAstIntentParameterRowFromProvenance(
     );
     let colon: Int = StringIndexOf(row, ": ");
     if colon <= 0 || colon + 2 >= StringLength(row) {
-        return SemanticAstIntentParameterRow(false, "", "");
+        return SemanticAstIntentParameterRow(false, false, "", "");
     }
     let name: String = StringTrim(Substring(row, 0, colon));
     let type_name: String = SemanticCanonicalTypeName(StringTrim(Substring(
         row, colon + 2, StringLength(row) - colon - 2
     )));
     if name == "" || type_name == "" || type_name == "Unknown" {
-        return SemanticAstIntentParameterRow(false, "", "");
+        return SemanticAstIntentParameterRow(false, false, "", "");
     }
-    return SemanticAstIntentParameterRow(true, name, type_name);
+    return SemanticAstIntentParameterRow(true, is_value, name, type_name);
 }
 
 func SemanticAstIntentSignatureFactsFromArtifact(
@@ -65,6 +69,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
     let param_node_ids: Array<Int> = [];
+    let param_is_values: Array<Bool> = [];
     let param_names: Array<String> = [];
     let param_types: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
@@ -149,6 +154,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(
                     continue;
                 }
                 ArrayPush(param_node_ids, child_id);
+                ArrayPush(param_is_values, row.is_value);
                 ArrayPush(param_names, row.name);
                 ArrayPush(param_types, row.type_name);
             }
@@ -167,7 +173,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(
     return SemanticAstIntentSignatureFacts(
         ok, diagnostic_code, diagnostic_message, artifact.count,
         intent_node_ids, names, param_starts, param_counts,
-        param_node_ids, param_names, param_types
+        param_node_ids, param_is_values, param_names, param_types
     );
 }
 
@@ -183,6 +189,7 @@ func SemanticAstIntentSignatureFactsReady(
         ArrayLength(facts.names) != count ||
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.param_is_values) != param_count ||
         ArrayLength(facts.param_names) != param_count ||
         ArrayLength(facts.param_types) != param_count {
         return false;
@@ -239,6 +246,7 @@ func SemanticAstIntentSignatureFactsReady(
                 if !row.ok || local_count >= facts.param_counts[fact_index] ||
                     param_index >= param_count ||
                     facts.param_node_ids[param_index] != child_id ||
+                    facts.param_is_values[param_index] != row.is_value ||
                     facts.param_names[param_index] != row.name ||
                     facts.param_types[param_index] != row.type_name {
                     return false;

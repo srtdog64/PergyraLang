@@ -1038,6 +1038,7 @@ Inductive SpineFact : Type :=
   | SFDirectMirCfgProjectionPlan
   | SFAbiLayoutRows
   | SFAbiRuntimeCallRows
+  | SFIntentObservabilityAbiRows
   | SFRegionAllocationPlan
   | SFTargetCapabilityProfile
   | SFProjectionPlan
@@ -1066,6 +1067,7 @@ Inductive SpineFact : Type :=
   | SFNodeKindSurface
   | SFEntrypointSelection
   | SFFunctionDeclarationRows
+  | SFIntentDeclarationRows
   | SFActionContract
   | SFLocalBindingStatementRouting
   | SFAssignmentStatementRouting
@@ -1095,6 +1097,7 @@ Inductive SpineOwner : Type :=
   | SOMir
   | SOAir
   | SOMirAbi
+  | SOIntentObservabilityAbi
   | SORegionPlan
   | SOTargetCapability
   | SOProjectionPlanner
@@ -1122,6 +1125,7 @@ Inductive SpineOwner : Type :=
   | SOSemanticTypeSurface
   | SOSemanticKindSurface
   | SOSemanticSignature
+  | SOSemanticIntentSignature
   | SOSemanticActionContract
   | SOSemanticAssignment
   | SOSemanticStatementType.
@@ -1154,6 +1158,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFDirectMirCfgProjectionPlan => SOProjectionPlanner
   | SFAbiLayoutRows => SOMirAbi
   | SFAbiRuntimeCallRows => SOMirAbi
+  | SFIntentObservabilityAbiRows => SOIntentObservabilityAbi
   | SFRegionAllocationPlan => SORegionPlan
   | SFTargetCapabilityProfile => SOTargetCapability
   | SFProjectionPlan => SOProjectionPlanner
@@ -1182,6 +1187,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFNodeKindSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature
   | SFFunctionDeclarationRows => SOSemanticSignature
+  | SFIntentDeclarationRows => SOSemanticIntentSignature
   | SFActionContract => SOSemanticActionContract
   | SFLocalBindingStatementRouting => SOSemanticLocalBinding
   | SFAssignmentStatementRouting => SOSemanticAssignment
