@@ -97,9 +97,9 @@ observed. Released/default `pgy` replacement remains 0%; v70 is a bounded
 executable self-host substitution rung.
 
 2026-07-27 closes the language-word source-of-truth seam reached after v69.
-The compiler-owned registry now contains 145 sorted identities: 71 reserved,
-71 contextual, and 3 soft words. The lexer still reserves only the original 71
-words; all contextual and soft rows remain identifiers, and the owning parser
+The compiler-owned registry now contains 144 sorted identities: 70 reserved,
+71 contextual, and 3 soft words (`channel` was removed: no parser read it).
+The lexer reserves only those 70 words; all contextual and soft rows remain identifiers, and the owning parser
 production retains grammar validity. An explicit-selector gate binds the 74
 non-reserved rows bidirectionally to native parser owners without treating
 diagnostic strings, builtin/type names, effect data, or duration suffixes as

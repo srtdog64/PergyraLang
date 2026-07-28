@@ -592,7 +592,7 @@ def _render_aggregate_projection() -> str:
             "        }",
             "        index = index + 1;",
             "    }",
-            "    return LanguageWordRegistryCount() == 145;",
+            f"    return LanguageWordRegistryCount() == {EXPECTED_ROW_COUNT};",
             "}",
             "",
             "func LanguageKeywordRegistryProjectionReady() -> Bool {",

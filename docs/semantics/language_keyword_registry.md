@@ -6,9 +6,9 @@ C-only table, generated JSON, editor configuration, or documentation mirror.
 
 ## Registry membership inventory
 
-The registry contains 145 bytewise-sorted, unique spellings:
+The registry contains 144 bytewise-sorted, unique spellings:
 
-- 71 `RESERVED` rows with dedicated native token identities;
+- 70 `RESERVED` rows with dedicated native token identities;
 - 71 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
 - 3 `SOFT` rows (`current`, `full`, and `none`) used as closed values inside an
   already-selected grammar production.
@@ -42,7 +42,7 @@ occurrences across 34 language words as migration debt.
   delegates to generated identity, index, class, axis, semantic-support,
   tooling, and reserved-compatibility owners, each below the 600-line
   component limit. They expose collision-free `LanguageWordId.Word*`
-  identities and metadata for all 145 rows; only the 71 reserved rows affect
+  identities and metadata for all 144 rows; only the 70 reserved rows affect
   lexical classification through the legacy `LanguageKeyword*` compatibility
   view. The split is physical ownership only: every projection is regenerated
   together from the same registry SoT.
@@ -57,10 +57,10 @@ occurrences across 34 language words as migration debt.
 - Lowercase language hover content is allowed only for the 25 rows marked
   `HOVER`. The seven PascalCase builtin hover entries remain a separate LSP
   presentation fact and are not language keywords.
-- The canonical TextMate view contains the exact spelling-and-scope 92-row
-  `HIGHLIGHT` projection generated from the registry: all 71 reserved rows
+- The canonical TextMate view contains the exact spelling-and-scope 91-row
+  `HIGHLIGHT` projection generated from the registry: all 70 reserved rows
   plus 21 contextual rows. `domain` and `sync` were removed because no parser
-  owner accepts them. This is editor projection evidence, not parser
+  owner accepts them, and `channel` because its row was removed outright. This is editor projection evidence, not parser
   implementation evidence.
 
 The full VS Code grammar remains at
