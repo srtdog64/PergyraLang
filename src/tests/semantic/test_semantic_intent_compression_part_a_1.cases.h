@@ -365,3 +365,229 @@ test_intent_compression_semantics(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("intent step outcome binding preserves exact action and return type");
+    {
+        const char *source =
+            "subject Worker {\n"
+            "    let id: Int;\n"
+            "    action Produce(self) -> Int within WorkZone authorized by self {\n"
+            "        return self.id;\n"
+            "    }\n"
+            "}\n"
+            "zone WorkZone {\n"
+            "    subject slot worker: Worker\n"
+            "    authority worker\n"
+            "}\n"
+            "func Accepted(value: Int) -> Bool { return value >= 0; }\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            "    step Produce {\n"
+            "        using: work;\n"
+            "        on outcome: worker.Produce();\n"
+            "        post: outcome >= 0;\n"
+            "        compensate: Accepted(outcome);\n"
+            "        expect: Accepted(outcome);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *step = NULL;
+        ASTNode *action = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL
+                    && stmt->data.intent_decl.step_count == 1) {
+                    step = stmt->data.intent_decl.steps[0];
+                }
+                if (stmt != NULL && stmt->type == AST_CLASS_DECL
+                    && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
+                    for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                        ASTNode *method = stmt->data.class_decl.methods[j];
+                        if (method != NULL && ast_func_is_action(method)
+                            && method->data.func_decl.name != NULL
+                            && strcmp(method->data.func_decl.name,
+                                      "Produce") == 0) {
+                            action = method;
+                        }
+                    }
+                }
+            }
+        }
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL
+            && ast_intent_step_outcome_binding_name(step) != NULL
+            && strcmp(ast_intent_step_outcome_binding_name(step), "outcome") == 0);
+        EXPECT(step != NULL
+            && ast_intent_step_outcome_binding_type_name(step) != NULL
+            && strcmp(ast_intent_step_outcome_binding_type_name(step), "Int") == 0);
+        EXPECT(step != NULL && action != NULL
+            && ast_intent_step_outcome_action_decl_syntax_id(step)
+                == ast_node_stable_id(action));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step rejects binding a Void action result");
+    {
+        const char *source =
+            "subject Worker {\n"
+            "    let id: Int;\n"
+            "    action Produce(self) -> Void within WorkZone authorized by self {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "zone WorkZone {\n"
+            "    subject slot worker: Worker\n"
+            "    authority worker\n"
+            "}\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            "    step Produce {\n"
+            "        using: work;\n"
+            "        on outcome: worker.Produce();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "cannot bind Void action result"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent outcome binding is unavailable in pre guard and later steps");
+    {
+        const char *source =
+            "subject Worker {\n"
+            "    let id: Int;\n"
+            "    action Produce(self) -> Int within WorkZone authorized by self {\n"
+            "        return self.id;\n"
+            "    }\n"
+            "}\n"
+            "zone WorkZone {\n"
+            "    subject slot worker: Worker\n"
+            "    authority worker\n"
+            "}\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            "    step First {\n"
+            "        using: work;\n"
+            "        pre: outcome >= 0;\n"
+            "        guard: outcome >= 0;\n"
+            "        on outcome: worker.Produce();\n"
+            "        expect: outcome >= 0;\n"
+            "    }\n"
+            "    step Second {\n"
+            "        using: work;\n"
+            "        on: worker.Produce();\n"
+            "        expect: outcome >= 0;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count >= 3);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "outcome"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent outcome binding requires exactly one on action");
+    {
+        const char *source =
+            "subject Worker {\n"
+            "    let id: Int;\n"
+            "    action Produce(self) -> Int within WorkZone authorized by self {\n"
+            "        return self.id;\n"
+            "    }\n"
+            "}\n"
+            "zone WorkZone {\n"
+            "    subject slot worker: Worker\n"
+            "    authority worker\n"
+            "}\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            "    step Produce {\n"
+            "        using: work;\n"
+            "        on outcome: worker.Produce();\n"
+            "        on: worker.Produce();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "requires exactly one on-call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent outcome binding names are unique across rollback lifetime");
+    {
+        const char *source =
+            "subject Worker {\n"
+            "    let id: Int;\n"
+            "    action Produce(self) -> Int within WorkZone authorized by self {\n"
+            "        return self.id;\n"
+            "    }\n"
+            "}\n"
+            "zone WorkZone {\n"
+            "    subject slot worker: Worker\n"
+            "    authority worker\n"
+            "}\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            "    step First {\n"
+            "        using: work;\n"
+            "        on outcome: worker.Produce();\n"
+            "        expect: outcome >= 0;\n"
+            "    }\n"
+            "    step Second {\n"
+            "        using: work;\n"
+            "        on outcome: worker.Produce();\n"
+            "        expect: outcome >= 0;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "already used by an earlier step"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }

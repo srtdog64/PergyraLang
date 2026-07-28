@@ -1,11 +1,11 @@
-// C success-path emission for admitted intent declarations.
+// C emission for the bounded admitted intent declaration path.
 //
 // Intent remains its own semantic callable.  This owner consumes the compact
 // intent signature rows plus the On/Expect expression graphs reconstructed
-// from admitted MIR; it does not reinterpret an intent as a func.  Until the
-// rollback runtime is substituted, only an absent Expect or a statically true
-// Expect is executable.  Any potentially failing Expect is rejected here
-// rather than emitted with fake rollback behavior.
+// from admitted MIR; it does not reinterpret an intent as a func.  A typed
+// Outcome row binds the one On action result exactly once and makes that
+// immutable value available to the step Expect.  Multi-step compensation is
+// still outside this bounded consumer and must not be inferred here.
 
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
@@ -15,6 +15,7 @@ import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "intent_outcome_emit_owner.pgy";
 
 func CodegenIntentCallableEnvRows(
     ref intents: SemanticAstIntentSignatureFacts
@@ -149,9 +150,11 @@ func CodegenIntentDefinitionBlock(
             ) {
                 step_count = step_count + 1;
                 let on_count: Int = 0;
+                let outcome_count: Int = 0;
                 let expect_count: Int = 0;
                 let on_node: Int = 0 - 1;
                 let expect_node: Int = 0 - 1;
+                let outcome_name: String = "";
                 let who_alias: String = "";
                 let using_alias: String = "";
                 let authority_alias: String = "";
@@ -167,6 +170,18 @@ func CodegenIntentDefinitionBlock(
                     ) {
                         on_count = on_count + 1;
                         on_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepOutcomeTag()
+                    ) {
+                        outcome_count = outcome_count + 1;
+                        let outcome_atom: Option<String> =
+                            TypedAstArenaAtomText(artifact.arena, row_id);
+                        if !IsSome(outcome_atom) ||
+                            !IsIdentifier(UnwrapOption(outcome_atom)) {
+                            Die("self-host intent outcome binding is invalid");
+                        }
+                        outcome_name = UnwrapOption(outcome_atom);
                     } else if TypedAstArenaNodeKindIs(
                         artifact.arena, row_id,
                         TypedAstKindIntentStepExpectTag()
@@ -212,7 +227,9 @@ func CodegenIntentDefinitionBlock(
                         artifact.arena, child_id, step_child_index
                     );
                 }
-                if on_count != 1 || on_node < 0 || expect_count > 1 ||
+                if on_count != 1 || on_node < 0 || outcome_count > 1 ||
+                    (outcome_count == 1 && outcome_name == "") ||
+                    expect_count > 1 ||
                     who_alias == "" || using_alias == "" ||
                     authority_alias != who_alias {
                     Die("self-host intent executable step shape is invalid");
@@ -276,11 +293,13 @@ func CodegenIntentDefinitionBlock(
                         expression_surfaces, on_node,
                         AstExpressionLaneAtom()
                     );
-                ArrayPush(body, Concat(
-                    "    ", Concat(RewriteExprFromSemanticGraph(
-                        on_graph.graph, on_graph.root_id, step_env
-                    ), ";\n")
-                ));
+                let on_expression: String = RewriteExprFromSemanticGraph(
+                    on_graph.graph, on_graph.root_id, step_env
+                );
+                step_env = CodegenIntentEmitOnOutcome(
+                    body, on_graph, on_expression, outcome_count,
+                    outcome_name, step_env
+                );
                 ArrayPush(body, Concat(
                     "    ", Concat(sync_symbol, Concat(
                         "(", Concat(zone_c, ");\n")
@@ -292,19 +311,10 @@ func CodegenIntentDefinitionBlock(
                     )))
                 ));
                 if expect_count == 1 {
-                    let graph: SemanticExpressionGraphView =
-                        CodegenSemanticExpressionGraphOrDie(
-                            expression_surfaces, expect_node,
-                            AstExpressionLaneAtom()
-                        );
-                    let expect_text: Option<String> =
-                        SemanticExpressionGraphNodeText(
-                            graph.graph, graph.root_id
-                        );
-                    if !IsSome(expect_text) ||
-                        UnwrapOption(expect_text) != "true" {
-                        Die("self-host intent rollback execution is not substituted for a fallible Expect");
-                    }
+                    CodegenIntentEmitExpect(
+                        body, expression_surfaces, expect_node,
+                        outcome_count, step_env
+                    );
                 }
             }
             child_index = child_index + 1;

@@ -16,6 +16,10 @@ struct SelfDirIntentStepFacts {
     using_aliases: Array<String>;
     receiver_aliases: Array<String>;
     action_names: Array<String>;
+    action_signature_indices: Array<Int>;
+    outcome_node_ids: Array<Int>;
+    outcome_names: Array<String>;
+    outcome_type_names: Array<String>;
     on_node_ids: Array<Int>;
     expect_node_ids: Array<Int>;
     predecessor_step_indices: Array<Int>;
@@ -45,7 +49,7 @@ func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
     let strings: Array<String> = [];
     return SelfDirIntentStepFacts(
         ints, strings, strings, ints, strings, strings, strings, ints, ints,
-        ints, strings, ints, ints, ints, strings, ints, ints, strings, ints,
-        ints, ints, strings
+        strings, strings, ints, ints, ints, strings, ints, ints, ints, strings,
+        ints, ints, strings, ints, ints, ints, strings
     );
 }

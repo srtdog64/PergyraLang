@@ -3,14 +3,9 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
+import "../semantic/ast_intent_action_call_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
-
-struct SelfDirIntentOnCall {
-    ok: Bool;
-    receiver_alias: String;
-    action_name: String;
-}
 
 struct SelfDirIntentStepHeader {
     ok: Bool;
@@ -29,6 +24,10 @@ struct SelfDirIntentResolvedStep {
     using_alias: String;
     receiver_alias: String;
     action_name: String;
+    action_signature_index: Int;
+    outcome_node_id: Int;
+    outcome_name: String;
+    outcome_type_name: String;
     on_node_id: Int;
     expect_node_id: Int;
     predecessor_step_index: Int;
@@ -49,7 +48,8 @@ func SelfDirIntentResolvedStepError(
     let requires_indices: Array<Int> = [];
     let authorized_names: Array<String> = [];
     return SelfDirIntentResolvedStep(
-        false, message, -1, "", "", -1, "", "", "", -1, -1, -1, "", -1,
+        false, message, -1, "", "", -1, "", "", "", -1, -1, "", "",
+        -1, -1, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names, 0
     );
 }
@@ -102,21 +102,6 @@ func SelfDirIntentUniqueParticipantForType(
     return found;
 }
 
-func SelfDirIntentOnCallFromText(text: String) -> SelfDirIntentOnCall {
-    let dot: Int = StringIndexOf(text, ".");
-    let open: Int = StringIndexOf(text, "(");
-    if dot <= 0 || open <= dot + 1 {
-        return SelfDirIntentOnCall(false, "", "");
-    }
-    let receiver: String = StringTrim(Substring(text, 0, dot));
-    let action: String = StringTrim(Substring(text, dot + 1, open - dot - 1));
-    if receiver == "" || action == "" || StringIndexOf(receiver, " ") >= 0 ||
-        StringIndexOf(action, " ") >= 0 {
-        return SelfDirIntentOnCall(false, "", "");
-    }
-    return SelfDirIntentOnCall(true, receiver, action);
-}
-
 func SelfDirIntentStepHeaderFromText(
     text: String
 ) -> SelfDirIntentStepHeader {
@@ -158,23 +143,6 @@ func SelfDirIntentStepHeaderFromText(
         name != "" && StringIndexOf(name, " ") < 0 && canonical == text,
         name, where_zone, using_alias
     );
-}
-
-func SelfDirIntentActionSignatureIndex(
-    signatures: SemanticAstFunctionSignatureFacts,
-    owner_name: String,
-    action_name: String
-) -> Int {
-    let i: Int = 0;
-    while i < SemanticAstFunctionSignatureCount(signatures) {
-        if signatures.action_contracts.is_actions[i] &&
-            signatures.owner_names[i] == owner_name &&
-            signatures.names[i] == action_name {
-            return i;
-        }
-        i = i + 1;
-    }
-    return -1;
 }
 
 func SelfDirIntentStepAppendActionContractRange(
@@ -227,6 +195,8 @@ func SelfDirIntentStepFromArtifact(
     let step_name: String = header.name;
     let on_text: String = "";
     let on_node_id: Int = -1;
+    let outcome_node_id: Int = -1;
+    let outcome_name: String = "";
     let expect_node_id: Int = -1;
     let explicit_using: String = header.using_alias;
     let explicit_causes: String = "";
@@ -258,6 +228,14 @@ func SelfDirIntentStepFromArtifact(
             ); }
             on_text = payload;
             on_node_id = row_id;
+        } else if row_kind == TypedAstKindIntentStepOutcomeTag() {
+            if outcome_node_id >= 0 || !IsIdentifier(payload) {
+                return SelfDirIntentResolvedStepError(
+                    "self-host DIR intent outcome binding is invalid"
+                );
+            }
+            outcome_node_id = row_id;
+            outcome_name = payload;
         } else if row_kind == TypedAstKindIntentStepWhoTag() {
             if ArrayLength(who_names) > 0 ||
                 !SelfDirIntentStepAppendUniqueNames(payload, who_names) {
@@ -314,7 +292,12 @@ func SelfDirIntentStepFromArtifact(
         );
     }
 
-    let on_call: SelfDirIntentOnCall = SelfDirIntentOnCallFromText(on_text);
+    let on_call: SemanticAstIntentActionCallFact =
+        SemanticAstIntentActionCallFromText(
+            signatures, participant_aliases, participant_type_names,
+            participant_is_values, participant_start, participant_count,
+            on_text
+        );
     if !on_call.ok {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent step requires one direct action on-call"
@@ -329,13 +312,26 @@ func SelfDirIntentStepFromArtifact(
             "self-host DIR intent action receiver is not a subject participant"
         );
     }
-    let action_index: Int = SelfDirIntentActionSignatureIndex(
-        signatures, participant_type_names[receiver_row], on_call.action_name
-    );
+    let action_index: Int = on_call.signature_index;
     if action_index < 0 {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent action contract is unresolved"
         );
+    }
+    let outcome_type_name: String = "";
+    if outcome_node_id >= 0 {
+        if outcome_name == "" || signatures.return_types[action_index] == "" ||
+            signatures.return_types[action_index] == "Unknown" ||
+            signatures.return_types[action_index] == "Void" ||
+            SelfDirIntentParticipantIndex(
+                participant_aliases, participant_start, participant_count,
+                outcome_name
+            ) >= 0 {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent outcome binding is invalid"
+            );
+        }
+        outcome_type_name = signatures.return_types[action_index];
     }
     let contracts: SemanticAstActionContractFacts = signatures.action_contracts;
     let where_zone: String = header.where_zone_name;
@@ -455,6 +451,7 @@ func SelfDirIntentStepFromArtifact(
     return SelfDirIntentResolvedStep(
         true, "", step_node_id, step_name, where_zone, where_index,
         using_alias, on_call.receiver_alias, on_call.action_name,
+        action_index, outcome_node_id, outcome_name, outcome_type_name,
         on_node_id, expect_node_id, predecessor, cause_name, cause_index,
         who_names, requires_names, requires_indices, authorized_names,
         edge_count

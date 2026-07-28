@@ -162,6 +162,10 @@ typedef struct
     size_t      authorized_by_capacity;
     const char *causes_effect_name;
     size_t      causes_effect_node_id;
+    const char *outcome_binding_name;
+    const char *outcome_binding_type_name;
+    uint32_t    outcome_action_decl_syntax_id;
+    size_t      on_expr_count;
     ASTNode    *ast;
 } DIRIntentStep;
 

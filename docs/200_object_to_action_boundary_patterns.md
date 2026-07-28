@@ -1210,3 +1210,104 @@ source를 재배치하거나 `i32`/opaque type으로 추정하지 않고 fail cl
 host와 later zone/world value까지 일반 보장으로 넓히려면 해당 C/LLVM parity
 fixture를 먼저 추가하고 domain method body schedule도 같은 declaration inventory
 owner 아래에서 검증해야 한다.
+
+## 10. Typed action outcome을 소비하는 intent 경계
+
+단일 step의 exact action 결과 binding과 동적 `expect` 소비는 2026-07-29에
+실행으로 닫혔다. 두 action의 typed variant branch, success-only completion,
+DIR predecessor identity와 실제 compensation은 계속 `PLANNED/OPEN`이다. 따라서
+입력 언어의 bounded outcome-binding slice는 `REACHABLE`이지만 production compiler
+`intent` 등급은 계속 `SURFACE`다.
+
+### 10.1 완료된 단일-step binding rung
+
+- Source spelling은 `on outcome: worker.Run(...);`이다. `on:`은 결과를 버리는
+  legacy form으로 남는다. 새 예약어를 추가하지 않는다.
+- semantic owner가 receiver의 exact `subject.action` signature를 한 번 resolve해
+  return type을 binding type으로 고정한다. `Void`, unknown action, 두 개 이상의
+  `on`, participant/value 이름 충돌, rollback lifetime 전체의 outcome 이름 중복은
+  거부한다. binding은 같은 step의 `expect`/`post`/`compensate`에서만 보이며
+  `pre`와 뒤 step에서는 보이지 않는다.
+- DIR은 binding name/type과 action stable syntax identity를 운반한다. MIR의
+  `IntentOutcomeBinding`은 `result=slot_anchor=binding`, `arg0=action syntax id`,
+  `arg1=step`, `abi_type_name=exact return type`,
+  `source_type=AST_INTENT_STEP`을 소유하고, `IntentEval(on)`은 같은 result/type을
+  결속한다. 타입을 `runtime_call_abi`나 `uses` 문자열에 숨기지 않는다.
+- Native C와 LLVM은 action을 정확히 한 번 평가해 immutable typed local에 저장하고
+  동적 `expect`가 그 값을 소비한다. Self source -> MIR -> admitted general C와 direct
+  source C는 byte-equal이며 같은 local을 소비한다. `IntentCheck` call expression은
+  일반 statement-call allowlist보다 semantic carrier 정책이 먼저 소유한다.
+- `intent_typed_outcome_execution_owner.sh`는 enum의 success/failure variant가 각각
+  detached `tobject` payload를 갖는 action을 두 번 호출한다. Self C, native C,
+  native LLVM이 모두 `accepted=true/calls=1/rejected=false/calls=2`를 출력한다.
+  호출 횟수와 Bool 결과가 action exact-once 및 저장된 outcome 소비를 함께
+  falsify한다.
+- 같은 gate는 missing binding, result/type/action identity drift, duplicate binding,
+  eval result drift를 각각 valid MIR에 주입하고 partial C 전에 거부한다.
+
+이 rung은 variant 이름으로 성공을 추정하지 않는다. `IntentRunAccepted`라는 typed
+helper가 enum payload를 match해 Bool을 만들고 intent는 그 결과를 `expect`한다.
+`tobject`는 receipt/failure payload일 뿐 step identity, 완료, predecessor, rollback,
+authority 또는 projection freshness를 소유하지 않는다.
+
+### 10.2 PLANNED/OPEN compensation objective card
+
+- **Objective:** 두 개의 실제 forward `subject.action` 결과를 intent step에서 typed
+  binding하고, source가 선언한 enum variant branch에서 success/failure payload를
+  소비하며, 두 번째 action 실패 시 완료된 predecessor의 compensation만 실행한다.
+- **Priority:** exact step/outcome identity, payload type/definition, branch successor,
+  success-only completion evidence, predecessor edge, compensation target, runtime
+  payload consumption, direct bypass 삭제 순서다.
+- **Fact owner:** semantic은 action return type과 variant/payload binding을 소유하고,
+  DIR은 step stable identity와 dependency edge를 소유한다. MIR은 그 identity를
+  outcome binding/case, success completion, compensation expression graph에 결속한다.
+  C/LLVM intent emitter는 마지막 소비자다. `tobject` receipt/failure는 payload이며
+  step topology, predecessor, completion 또는 authority owner가 아니다.
+- **Forbidden fallback:** action outcome을 `Bool`/literal `expect`로 축소, variant
+  spelling으로 success/failure 추정, diagnostic 문자열에서 payload 복원, subject나
+  global field를 outcome side channel로 사용, payload type 재추론, predecessor를
+  `step_index - 1` 또는 source order에서 재생성, action 호출 직후 무조건 completed,
+  모든 이전 step을 역순 보상, compensate AST/source 재스캔, native MIR graft,
+  missing carrier 성공, 기존 `Main -> action` 직행 orchestration 병존이다.
+- **Planned gate:**
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`와
+  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy.todo`는
+  executable gate/fixture가 아니라 fail-case 설계 초안이다. Makefile 또는 aggregate
+  gate에 등록하지 않으며, 실행하면 미구현으로 실패해야 한다.
+- **First falsifier:** action A가 typed success payload를 반환하고 그 payload가 action
+  B의 입력이나 후속 결정을 바꾼다. B의 typed failure payload는 exact failure
+  diagnostic 또는 관측 상태를 바꾼다. B는 completed가 아니므로 B compensation은
+  0회, predecessor A compensation은 정확히 1회이며 최종 상태가 복구돼야 한다.
+
+### 10.3 compensation 최소 negative ratchet
+
+양성 fixture가 만드는 유효 MIR에서 다음 mutation만 독립적으로 적용한다. 단순히
+schema/hash를 깨뜨리지 않도록 다른 유효 step/type/definition/block identity를
+cross-wire하고, 모두 C artifact 첫 줄 전에 거부한다.
+
+1. outcome binding의 result definition 또는 declared outcome type을 다른 유효
+   identity로 바꾼다: `MIR intent step outcome binding is invalid`.
+2. success/failure variant 또는 successor block identity를 서로 바꾼다:
+   `MIR intent step outcome branch identity is invalid`.
+3. B의 predecessor를 B 자신이나 future step으로 바꾸거나 predecessor name/identity
+   쌍을 교차시킨다:
+   `MIR intent compensation predecessor evidence is invalid`.
+4. A의 compensation row는 남기고 success-only completion evidence를 제거한다:
+   `MIR intent step completion evidence is missing`.
+
+위 문구는 planned admission diagnostic 계약이다. 현재 generic
+`MIR intent step semantic carriers are incomplete` 또는
+`MIR intent rollback facts are incomplete`가 우연히 발생하는 것을 이 rung의
+완료 증거로 세지 않는다.
+
+### 10.4 등급 조건
+
+- 별도 test subject의 source -> DIR -> MIR -> admission -> general C 실행과 native
+  C/LLVM parity가 성공하고 같은 bounded feature의 old path가 없으면 그 **입력 언어
+  기능 slice**만 `SUBSTITUTING`으로 올릴 수 있다.
+- 실제 compiler production entrypoint가 두 개의 실제 production action을 이
+  intent로 호출하면 compiler `intent`는 `REACHABLE`이다. readiness facade 또는
+  순수 계산 `func`를 action으로 이름만 바꾼 경로는 이 조건을 만족하지 않는다.
+- 기존 `Main -> action(s)` 직행 우회가 삭제되고 success/failure payload와 실제
+  compensation을 production caller가 관측하며 위 negative가 fail closed한 뒤에만
+  compiler `intent`를 `SUBSTITUTING`으로 올릴 수 있다.

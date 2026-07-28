@@ -1,0 +1,105 @@
+// Rollback and invalidation block contracts for reconstructed intents.
+import "routine_fact_index_owner.pgy";
+
+func MirIntentRoutineStructureReady(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int
+) -> Bool {
+    return routine_row >= 0 &&
+        routine_row < MirProgramRoutineIndexCount(routines) && index.valid &&
+        routines.kinds[routine_row] == "intent" &&
+        routines.owners[routine_row] == "" &&
+        routines.receiver_carriages[routine_row] == "none" &&
+        ArrayLength(index.block_instruction_counts) == 4 &&
+        index.block_instruction_counts[0] > 0 &&
+        index.block_instruction_counts[1] == 0 &&
+        index.block_instruction_counts[2] == 3 &&
+        index.block_instruction_counts[3] >= 2;
+}
+
+func MirIntentCleanupScalarAt(
+    ref index: MirRoutineFactIndex,
+    instruction: MirRoutineInstructionView
+) -> MirRoutineInstructionScalarCapture {
+    if !instruction.valid { return InvalidMirRoutineInstructionScalarCapture(); }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, instruction.global_row
+    );
+}
+
+func MirIntentRollbackContractError(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int,
+    intent_name: String
+) -> String {
+    let rollback_count: Int = 0;
+    let abort_count: Int = 0;
+    let edge_count: Int = 0;
+    let instruction_row: Int = 0;
+    while instruction_row < index.block_instruction_counts[2] {
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, 2, instruction_row
+            );
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirIntentCleanupScalarAt(index, instruction);
+        if !instruction.valid || !scalar.valid ||
+            instruction.kind != "cleanup" {
+            return "MIR intent rollback block is invalid";
+        }
+        if scalar.name == "RollbackPolicy" && scalar.arg0 == "full" {
+            rollback_count = rollback_count + 1;
+        } else if scalar.name == "AbortIntent" &&
+            scalar.arg0 == intent_name && scalar.arg1 == "full" &&
+            scalar.slot_anchor == intent_name {
+            abort_count = abort_count + 1;
+        } else if scalar.name == "cleanup-edge-from-rollback" &&
+            scalar.arg0 == "cleanup" {
+            edge_count = edge_count + 1;
+        } else {
+            return "MIR intent rollback carrier is invalid";
+        }
+        instruction_row = instruction_row + 1;
+    }
+    if rollback_count != 1 || abort_count != 1 || edge_count != 1 {
+        return "MIR intent rollback facts are incomplete";
+    }
+    return "";
+}
+
+func MirIntentInvalidationContractError(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int
+) -> String {
+    let edge_count: Int = 0;
+    let detach_count: Int = 0;
+    let instruction_row: Int = 0;
+    while instruction_row < index.block_instruction_counts[3] {
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, 3, instruction_row
+            );
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirIntentCleanupScalarAt(index, instruction);
+        if !instruction.valid || !scalar.valid ||
+            instruction.kind != "cleanup" {
+            return "MIR intent invalidation block is invalid";
+        }
+        if scalar.name == "DetachInvalidation" && scalar.arg0 != "" {
+            detach_count = detach_count + 1;
+        } else if scalar.name == "cleanup-edge-from-invalidation" &&
+            scalar.arg0 == "cleanup" {
+            edge_count = edge_count + 1;
+        } else {
+            return "MIR intent invalidation carrier is invalid";
+        }
+        instruction_row = instruction_row + 1;
+    }
+    if detach_count == 0 || edge_count != 1 {
+        return "MIR intent invalidation facts are incomplete";
+    }
+    return "";
+}

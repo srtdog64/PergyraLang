@@ -156,6 +156,30 @@ parse_intent_step(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "on")) {
             ASTNode *expr;
+            if (parser_check_binding_name_token(parser)
+                && parser_peek_next(parser).type == TOKEN_COLON) {
+                Token binding;
+                if (ast_intent_step_outcome_binding_name(step) != NULL) {
+                    parser_error(parser,
+                        "Duplicate outcome binding in intent step; only one 'on <name>:' clause may bind an action result");
+                    return step;
+                }
+                binding = consume_binding_name_token(
+                    parser, "Expected outcome binding name after 'on'");
+                if (binding.text == NULL || binding.text[0] == '\0'
+                    || binding.length == 0) {
+                    parser_error(parser,
+                        "Intent step outcome binding name cannot be empty");
+                    return step;
+                }
+                if (!ast_intent_step_set_outcome_binding_copy(
+                        step, binding.text, binding.length,
+                        binding.line, binding.column)) {
+                    parser_error(parser,
+                        "Out of memory while recording intent step outcome binding");
+                    return step;
+                }
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'on'");
             expr = parser_parse_expression(parser);
             intent_append_node(&step->data.intent_step.on_exprs,

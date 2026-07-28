@@ -1,6 +1,7 @@
 // Canonical state transformations for one bounded MIR routine build.
 
 import "program_fact_owner.pgy";
+import "instruction_scalar_mutation_owner.pgy";
 import "cfg_instruction_mutation_owner.pgy";
 import "expression_fact_owner.pgy";
 import "expression_runtime_abi_owner.pgy";

@@ -626,7 +626,7 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   source and valid-ID malformed MIR all reject a detached tobject as a fresh
   projection source.
 
-### Completed intent DIR objective card and next MIR boundary
+### Completed intent DIR/MIR boundary and next compensation boundary
 
 - Completed owner: `intent_fact_owner.pgy` owns declaration/participant/step
   ranges and edge census; `intent_step_fact_owner.pgy` consumes semantic action
@@ -637,22 +637,80 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Observed proof: single-step native/self anchors are both
   `14937234969446610600`; explicit-using two-step anchors are both
   `14937235081115760274`; wrong-zone `using` fails before MIR.
-- Next objective: carry the already admitted DIR intent facts through MIR and
-  reconstruct/execute the production `Checkout` call without reopening AST or
-  source text. Current `CompileSourceToCVerified` fails after MIR production at
-  `SemanticAstExpressionSurfaceFacts` / `ast_artifact_invalid` because the MIR
-  document has no intent declaration/step execution carrier.
-- Forbidden fallback: native AST/MIR graft, graph-count-only reconstruction,
-  backend intent-name lookup, const success stub, or leaving a direct old
-  `Checkout` execution path beside the typed MIR carrier.
-- Next falsifier: delete/mutate a participant, step on-call, predecessor,
-  required ability, authorization or caused effect row in MIR. Machine
-  admission must reject it before any C artifact; the positive must invoke the
-  real subject action and consume its outcome.
+- Completed MIR boundary: intent declaration/participant/step carriers now
+  reconstruct and execute the bounded `Checkout` call without reopening AST or
+  source text. The newer outcome binding rung below also carries the exact
+  action result/type and consumes it from dynamic `expect`.
+- Forbidden fallback remains native AST/MIR graft, graph-count-only
+  reconstruction, backend intent-name lookup, const success stub, outcome Bool
+  collapse, or leaving a direct old orchestration path beside a typed MIR
+  carrier.
+- Next falsifier: two real actions with typed success/failure variant branches,
+  success-only completion evidence, exact predecessor carriage, and failure-
+  driven compensation. Participant/action/outcome/step mutations must continue
+  to reject before any partial C artifact.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을
 subject/action으로 이주하는 작업은 그 뒤 별도 executable rung으로 유지한다.
+
+## REACHABLE outcome binding / PLANNED compensation executable rung
+
+단일 step의 `on outcome: subject.Action(...)` binding은 구현·실행됐다. Native와
+self semantic/DIR은 exact action return type과 stable action identity를 한 번
+결정하고, MIR의 `IntentOutcomeBinding`과 `IntentEval(on)`이 같은 result/type을
+운반한다. Native C/LLVM과 admitted self C는 action을 한 번 평가한 immutable typed
+local을 `expect`/`post`/`compensate` scope에 제공한다. Binding은 `pre`와 뒤 step에는
+보이지 않으며 rollback lifetime 전체에서 이름이 유일해야 한다.
+
+`intent_typed_outcome_execution_owner.sh`의 enum은 success/failure 각각에 detached
+`tobject` payload를 갖는다. Self C, native C, native LLVM이 모두
+`accepted=true`, `calls=1`, `rejected=false`, `calls=2`를 출력했고 direct/admitted
+self C는 byte-equal이었다. Missing carrier, result/type/action identity drift,
+duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 bounded feature는
+`REACHABLE`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
+`intent` 등급은 여전히 `SURFACE`이며 hard substitution 진척으로 세지 않는다.
+
+다음 objective card는 typed variant branch, success-only completion과 실제
+compensation 경계를 고정할 뿐 완료를 주장하지 않는다. Compensation expression과
+DIR predecessor identity는 아직 typed MIR의 마지막 emitter까지 운반되지 않는다.
+
+- Objective: 두 개의 실제 forward action 결과를 intent가 typed binding/case로
+  소비하고, 두 번째 action의 typed failure에서 완료된 predecessor action만
+  compensate한다.
+- Fact owner: semantic은 exact action outcome/variant/payload binding, DIR은 exact
+  step/dependency identity, MIR은 branch successor와 success-only completion 및
+  compensation binding을 소유한다. emitter는 이를 소비만 한다.
+- Last consumer: admitted self MIR을 읽는 general self C intent emitter와 같은
+  fact를 소비하는 native C/LLVM intent lowering이다.
+- Forbidden fallback: outcome의 Bool/`expect` collapse, spelling-based variant
+  classification, payload type 재추론, subject/global side channel, positional
+  predecessor, call-implies-completed, source-order rollback scan, AST/source
+  compensate 재조회, native graft, old direct orchestration 병존이다.
+- Planned evidence: success run은 action A/B의 success payload를 모두 실제 후속
+  결정에 사용하고 compensation 0회를 관측한다. Failure run은 A success 뒤 B의
+  failure payload를 진단/상태에 사용하며 A compensation 1회, B compensation 0회,
+  복구된 최종 상태를 관측한다.
+- Planned negatives: valid foreign outcome definition/type, swapped variant/successor,
+  self/future or mixed-identity predecessor, missing success completion evidence를
+  각각 주입하고 partial C 전에 exact admission diagnostic으로 거부한다.
+- Draft-only files:
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`와
+  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy.todo`.
+  둘은 aggregate gate에 등록되지 않았고 현재 미구현 실패 설계만 소유한다.
+- Grade: draft/owner/document/fixture 수는 진척이 아니다. 현재 single-step typed
+  binding은 general self C와 native C/LLVM에서 `REACHABLE`이지만 C-owned compiler
+  path를 대체하지 않았다. Production root가 intent를 호출하되 direct bypass가
+  남아 있으면 compiler `intent`는 `REACHABLE`; bypass 삭제와 실제
+  failure/compensation 관측까지 끝나야 compiler `intent`가 `SUBSTITUTING`이다.
+  그 전 compiler intent 등급은 계속 `SURFACE`다.
+
+SoT seam은 `selfhost.intent_declaration_rows`에 새 실행 authority를 섞지 않는다.
+해당 row는 source declaration/signature owner로 유지하고, outcome binding/case,
+completion, carried predecessor와 compensation은 planned
+`mir.intent_step_transition` 실행 fact family로 분리한다. 실제 authority path,
+Coq fact/owner, producer와 모든 last consumer, missing-fact gate가 착지하기 전에는
+정식 registry row나 `CLOSED`로 승격하지 않는다.
 
 ## 세션 메모리와 handoff 규칙
 

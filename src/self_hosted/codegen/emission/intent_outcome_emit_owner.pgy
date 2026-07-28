@@ -1,0 +1,88 @@
+// Typed intent action-result binding and step Expect C emission.
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+
+func CodegenIntentEmitOnOutcome(
+    inout body: Array<String>,
+    on_graph: SemanticExpressionGraphView,
+    on_expression: String,
+    outcome_count: Int,
+    outcome_name: String,
+    step_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
+    if outcome_count == 0 {
+        ArrayPush(body, Concat("    ", Concat(on_expression, ";\n")));
+        return step_env;
+    }
+    if outcome_count != 1 || outcome_name == "" {
+        Die("self-host intent outcome binding is invalid");
+    }
+    let outcome_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
+        on_graph.graph, on_graph.root_id, step_env
+    );
+    if !IsSome(outcome_type_opt) || UnwrapOption(outcome_type_opt) == "" ||
+        UnwrapOption(outcome_type_opt) == "Unknown" ||
+        UnwrapOption(outcome_type_opt) == "Void" {
+        Die("self-host intent outcome type is missing or invalid");
+    }
+    let outcome_type: String = UnwrapOption(outcome_type_opt);
+    let outcome_c_type: String = AbiLayoutCLocalType(outcome_type, step_env);
+    let outcome_c_name: String = CompilerSymbolCBindingName(outcome_name);
+    if outcome_c_type == "" || outcome_c_name == "" {
+        Die("self-host intent outcome C binding is invalid");
+    }
+    ArrayPush(body, Concat(
+        "    ", Concat(outcome_c_type, Concat(
+            " const ", Concat(outcome_c_name, Concat(
+                " = ", Concat(on_expression, ";\n")
+            ))
+        ))
+    ));
+    return TypeEnvAppendLocalRows(
+        step_env,
+        CodegenFunctionValueBindingFactForCExpression(
+            outcome_name, outcome_type, step_env.global_rows, outcome_c_name
+        ).env_rows
+    );
+}
+
+func CodegenIntentEmitExpect(
+    inout body: Array<String>,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    expect_node: Int,
+    outcome_count: Int,
+    step_env: CodegenTypeEnv
+) -> Void {
+    let graph: SemanticExpressionGraphView =
+        CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces, expect_node, AstExpressionLaneAtom()
+        );
+    if outcome_count == 1 {
+        let expect_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph.graph, graph.root_id, step_env
+        );
+        if !IsSome(expect_type) || UnwrapOption(expect_type) != "Bool" {
+            Die("self-host intent typed Expect is not Bool");
+        }
+        let expect_expression: String = RewriteExprFromSemanticGraph(
+            graph.graph, graph.root_id, step_env
+        );
+        ArrayPush(body, Concat(
+            "    if (!( ", Concat(
+                expect_expression, " )) { return false; }\n"
+            )
+        ));
+        return;
+    }
+    let expect_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph.graph, graph.root_id
+    );
+    if !IsSome(expect_text) || UnwrapOption(expect_text) != "true" {
+        Die("self-host intent rollback execution is not substituted for a fallible Expect");
+    }
+}

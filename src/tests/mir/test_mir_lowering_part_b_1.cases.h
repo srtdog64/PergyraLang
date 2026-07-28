@@ -55,6 +55,102 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR carries exact intent outcome binding and on DEF");
+    {
+        const char *src =
+            "subject Worker {\n"
+            "    action Measure(self) -> Int { return 1; }\n"
+            "}\n"
+            "zone Lab { subject slot worker: Worker }\n"
+            "intent Inspect(lab: Lab, worker: Worker) {\n"
+            "    step Measure {\n"
+            "        where: Lab;\n"
+            "        using: lab;\n"
+            "        who: worker;\n"
+            "        on outcome: worker.Measure();\n"
+            "        expect: outcome > 0;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *inspect = NULL;
+        MIRInstruction *carrier = NULL;
+        MIRInstruction *on_eval = NULL;
+        const char *saved_carrier_type = NULL;
+        const char *saved_eval_result = NULL;
+        char expected_action_id[16];
+        char *mir_error = NULL;
+        bool rejected_type_drift = false;
+        bool rejected_missing_def = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok)
+            inspect = find_mir_routine_mut(mir, "Inspect", MIR_SCOPE_INTENT);
+        if (inspect != NULL) {
+            MIRBasicBlock *block = &inspect->blocks[inspect->entry_block];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (mir_instruction_is_intent_stmt(
+                        inst, "IntentOutcomeBinding")) {
+                    carrier = inst;
+                } else if (mir_instruction_is_intent_stmt(inst, "IntentEval")
+                           && mir_instruction_intent_phase_matches(inst, "on")) {
+                    on_eval = inst;
+                }
+            }
+        }
+        expected_action_id[0] = '\0';
+        if (carrier != NULL && carrier->ast != NULL) {
+            (void)snprintf(expected_action_id, sizeof(expected_action_id),
+                "%u", (unsigned)
+                    ast_intent_step_outcome_action_decl_syntax_id(
+                        carrier->ast));
+        }
+        if (carrier != NULL) {
+            saved_carrier_type = carrier->abi_type_name;
+            carrier->abi_type_name = "Bool";
+            rejected_type_drift = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "missing or mismatched") != NULL;
+            carrier->abi_type_name = saved_carrier_type;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        if (on_eval != NULL) {
+            saved_eval_result = on_eval->result_name;
+            on_eval->result_name = NULL;
+            rejected_missing_def = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "one matching on DEF") != NULL;
+            on_eval->result_name = saved_eval_result;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        EXPECT(ok && inspect != NULL && carrier != NULL && on_eval != NULL
+               && carrier->slot_anchor != NULL
+               && strcmp(carrier->slot_anchor, "outcome") == 0
+               && carrier->result_name != NULL
+               && strcmp(carrier->result_name, "outcome") == 0
+               && carrier->abi_type_name != NULL
+               && strcmp(carrier->abi_type_name, "Int") == 0
+               && carrier->arg0 != NULL
+               && strcmp(carrier->arg0, expected_action_id) == 0
+               && carrier->arg1 != NULL
+               && strcmp(carrier->arg1, "Measure") == 0
+               && on_eval->result_name != NULL
+               && strcmp(on_eval->result_name, "outcome") == 0
+               && on_eval->abi_type_name != NULL
+               && strcmp(on_eval->abi_type_name, "Int") == 0
+               && rejected_type_drift
+               && rejected_missing_def
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects intent instruction metadata drift");
     {
         const char *src =

@@ -46,8 +46,9 @@ func SemanticAstBodyExpressionEnvironmentSeed(
     } else if IsSome(intent_node_id) {
         environment_ok = SemanticAstExpressionSeedEnumValues(
             analysis.enums, names, types, modes
-        ) && SemanticAstIntentExpressionSeedParameters(
-            intent_signatures, UnwrapOption(intent_node_id), names, types, modes
+        ) && SemanticAstIntentExpressionSeedEnvironment(
+            artifact, analysis.signatures, intent_signatures,
+            UnwrapOption(intent_node_id), use_node_id, names, types, modes
         );
     }
     return environment_ok && ArrayLength(names) == ArrayLength(modes) &&

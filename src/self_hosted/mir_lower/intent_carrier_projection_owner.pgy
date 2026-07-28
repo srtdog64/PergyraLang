@@ -1,0 +1,125 @@
+// Canonical binding/step projection from admitted intent semantic carriers.
+import "routine_fact_index_owner.pgy";
+
+struct MirIntentBindingProjection {
+    ok: Bool;
+    aliases: Array<String>;
+    type_names: Array<String>;
+    kinds: Array<String>;
+    step_names: Array<String>;
+    tree_lines: String;
+}
+
+func MirIntentTreeAppendLine(text: String, line: String) -> String {
+    return Concat(text, Concat(line, "\n"));
+}
+
+func MirIntentCarrierCount(names: Array<String>, expected: String) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == expected { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func MirIntentBindingProjectionInvalid() -> MirIntentBindingProjection {
+    let strings: Array<String> = [];
+    return MirIntentBindingProjection(
+        false, strings, strings, strings, strings, ""
+    );
+}
+
+func MirIntentScalarAt(
+    ref index: MirRoutineFactIndex,
+    instruction: MirRoutineInstructionView
+) -> MirRoutineInstructionScalarCapture {
+    if !instruction.valid { return InvalidMirRoutineInstructionScalarCapture(); }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, instruction.global_row
+    );
+}
+
+func MirIntentKnownSemanticCarrier(name: String) -> Bool {
+    return name == "IntentBinding" || name == "IntentParticipant" ||
+        name == "IntentValue" || name == "IntentStep" ||
+        name == "IntentZoneWhere" || name == "IntentZoneAlias" ||
+        name == "IntentInvalidationTarget" || name == "IntentWho" ||
+        name == "IntentAuthorizedBy" || name == "IntentCauses" ||
+        name == "IntentOutcomeBinding" || name == "IntentCheck" ||
+        name == "IntentEval";
+}
+
+func MirIntentBindingProjectionFromCarriers(
+    carrier_names: Array<String>,
+    carrier_arg0s: Array<String>,
+    carrier_arg1s: Array<String>,
+    carrier_slots: Array<String>,
+    intent_name: String
+) -> MirIntentBindingProjection {
+    if ArrayLength(carrier_names) != ArrayLength(carrier_arg0s) ||
+        ArrayLength(carrier_names) != ArrayLength(carrier_arg1s) ||
+        ArrayLength(carrier_names) != ArrayLength(carrier_slots) {
+        return MirIntentBindingProjectionInvalid();
+    }
+    let aliases: Array<String> = [];
+    let type_names: Array<String> = [];
+    let kinds: Array<String> = [];
+    let step_names: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(carrier_names) {
+        if carrier_names[row] == "IntentBinding" {
+            let binding_kind: String = carrier_slots[row];
+            if carrier_arg0s[row] == "" || carrier_arg1s[row] == "" ||
+                (binding_kind != "participant" && binding_kind != "value") {
+                return MirIntentBindingProjectionInvalid();
+            }
+            ArrayPush(aliases, carrier_arg0s[row]);
+            ArrayPush(type_names, carrier_arg1s[row]);
+            ArrayPush(kinds, binding_kind);
+        } else if carrier_names[row] == "IntentStep" {
+            if carrier_arg0s[row] == "" ||
+                carrier_arg0s[row] != carrier_arg1s[row] ||
+                carrier_slots[row] != carrier_arg0s[row] {
+                return MirIntentBindingProjectionInvalid();
+            }
+            ArrayPush(step_names, carrier_arg0s[row]);
+        }
+        row = row + 1;
+    }
+    if ArrayLength(aliases) == 0 || ArrayLength(step_names) == 0 {
+        return MirIntentBindingProjectionInvalid();
+    }
+    let tree_lines: String = "";
+    let binding_index: Int = 0;
+    while binding_index < ArrayLength(aliases) {
+        let expected_carrier: String = "IntentParticipant";
+        let row_prefix: String = "    IntentInvolves: ";
+        if kinds[binding_index] == "value" {
+            expected_carrier = "IntentValue";
+            row_prefix = "    IntentValue: ";
+        }
+        let match_count: Int = 0;
+        row = 0;
+        while row < ArrayLength(carrier_names) {
+            if carrier_names[row] == expected_carrier &&
+                carrier_arg0s[row] == aliases[binding_index] &&
+                carrier_arg1s[row] == type_names[binding_index] &&
+                carrier_slots[row] == intent_name {
+                match_count = match_count + 1;
+            }
+            row = row + 1;
+        }
+        if match_count != 1 { return MirIntentBindingProjectionInvalid(); }
+        tree_lines = Concat(tree_lines, Concat(
+            row_prefix, Concat(aliases[binding_index], Concat(
+                ": ", Concat(type_names[binding_index], "\n")
+            ))
+        ));
+        binding_index = binding_index + 1;
+    }
+    return MirIntentBindingProjection(
+        true, aliases, type_names, kinds, step_names, tree_lines
+    );
+}

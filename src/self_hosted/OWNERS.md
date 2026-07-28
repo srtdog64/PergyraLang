@@ -378,9 +378,17 @@ inventory must not become a second fact-family owner registry.
   `involves`/`value` parameter facts used to admit intent calls without
   pretending that an intent is a function or action declaration.
 - `src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy` --
-  intent-body expression environment projection that binds exact participant
-  aliases and types without inserting intent rows into ordinary function
-  signature ownership.
+  intent-body expression environment dispatcher; it identifies the owning
+  intent step and composes parameter plus step-local outcome facts.
+- `src/self_hosted/semantic/ast_intent_parameter_environment_owner.pgy` --
+  exact ordered participant/value aliases, types, and environment modes derived
+  from the intent signature owner.
+- `src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy` -- exact
+  participant receiver to subject-action signature and return-type join for one
+  intent `on` expression.
+- `src/self_hosted/semantic/ast_intent_outcome_environment_owner.pgy` --
+  step-local outcome name and exact action return type exposed only to
+  `expect`, `post`, and compensation expressions in the same intent step.
 - `src/self_hosted/semantic/ast_body_expression_environment_owner.pgy` -- one
   body environment dispatcher that seeds either ordinary callable scope facts
   or exact intent participant facts before call-target resolution.
@@ -638,6 +646,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
   receiver, authorization, effects, expect/rollback, and commit boundaries.
+- `src/self_hosted/mir/intent_instruction_append_owner.pgy` -- canonical
+  intent instruction append plus atomic result, slot-anchor, and ABI type-name
+  scalar attachment; callers cannot leave a partially-carried outcome row.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
 - `src/self_hosted/mir/enum_declaration_verify_owner.pgy` -- contiguous
@@ -744,6 +755,9 @@ inventory must not become a second fact-family owner registry.
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, zone/using/who/requires/causes/authorized identities, and ordered
   predecessor edges.
+- `src/self_hosted/dir/intent_outcome_contract_owner.pgy` -- exact step-to-intent
+  membership, participant receiver, subject-action signature, outcome node,
+  name, and return-type validation over already-owned DIR rows.
 - `src/self_hosted/dir/domain_topology_row_owner.pgy` -- typed domain
   directive rows, exact declaration-field identity joins, and non-empty row
   validation. It is the self-host producer-side `dir.domain_graph` authority;
@@ -820,8 +834,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
 - `src/self_hosted/mir_lower/intent_lower_owner.pgy` -- exact intent MIR
   admission and AST reconstruction for the bounded successful action path;
-  malformed cross-carrier identity and unsupported fallible rollback fail
+  malformed cross-carrier identity and unsupported multi-step compensation fail
   before code generation.
+- `src/self_hosted/mir_lower/intent_action_contract_owner.pgy` -- exact intent
+  `on` expression-graph identity, subject-action declaration join, return type,
+  and stable action syntax-ID contract consumed by intent admission.
+- `src/self_hosted/mir_lower/intent_carrier_projection_owner.pgy` -- canonical
+  participant/value binding and ordered-step projection from admitted intent
+  carriers, including exact companion-row cardinality and tree text rows.
+- `src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy` -- bounded
+  rollback/abort and invalidation/detach block validation for one intent routine.
 - `src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy` -- routine-local
   successor, block identity, loop-header, and loop-exit projection queries over
   the admitted routine fact index.
@@ -1059,6 +1081,9 @@ inventory must not become a second fact-family owner registry.
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller
   value-result writeback; it does not reclassify intent as `func`.
+- `src/self_hosted/codegen/emission/intent_outcome_emit_owner.pgy` -- exact
+  typed immutable C binding for one intent action result and Bool `expect`
+  emission against the step-local outcome environment.
 - `src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy` -- ability
   vtable types and instances, role method ABI declarations, party bind
   boundaries, and value-to-receiver operator adapters from semantic role facts.

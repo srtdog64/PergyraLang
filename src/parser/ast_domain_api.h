@@ -137,6 +137,20 @@ char** ast_intent_step_who_names(const ASTNode* node, size_t* count_out);
 size_t ast_intent_step_who_count(const ASTNode* node);
 ASTNode** ast_intent_step_on_exprs(const ASTNode* node, size_t* count_out);
 size_t ast_intent_step_on_expr_count(const ASTNode* node);
+const char* ast_intent_step_outcome_binding_name(const ASTNode* node);
+size_t ast_intent_step_outcome_binding_length(const ASTNode* node);
+uint32_t ast_intent_step_outcome_binding_line(const ASTNode* node);
+uint32_t ast_intent_step_outcome_binding_column(const ASTNode* node);
+const char* ast_intent_step_outcome_binding_type_name(const ASTNode* node);
+uint32_t ast_intent_step_outcome_action_decl_syntax_id(const ASTNode* node);
+bool ast_intent_step_set_outcome_binding_copy(ASTNode* node,
+                                              const char* name,
+                                              size_t length,
+                                              uint32_t line,
+                                              uint32_t column);
+bool ast_intent_step_set_outcome_resolution_copy(ASTNode* node,
+                                                 const char* type_name,
+                                                 uint32_t action_decl_syntax_id);
 ASTNode** ast_intent_step_compensate_exprs(const ASTNode* node, size_t* count_out);
 size_t ast_intent_step_compensate_expr_count(const ASTNode* node);
 ASTNode* ast_intent_step_pre_expr(const ASTNode* node);

@@ -55,6 +55,7 @@ static const char *const k_mir_intent_semantic_carrier_names[] = {
     "IntentDispatch",
     "IntentEval",
     "IntentInvalidationTarget",
+    "IntentOutcomeBinding",
     "IntentParticipant",
     "IntentStep",
     "IntentValue",
@@ -133,6 +134,7 @@ mir_intent_fact_requires_ast_step(const MIRInstruction *inst)
         || mir_instruction_is_intent_stmt(inst, "IntentWho")
         || mir_instruction_is_intent_stmt(inst, "IntentAuthorizedBy")
         || mir_instruction_is_intent_stmt(inst, "IntentCauses")
+        || mir_instruction_is_intent_stmt(inst, "IntentOutcomeBinding")
         || mir_instruction_is_intent_stmt(inst, "IntentDispatch");
 }
 
@@ -149,6 +151,127 @@ mir_intent_fact_is_binding_kind(const char *kind)
     return kind != NULL
         && (strcmp(kind, "participant") == 0
             || strcmp(kind, "value") == 0);
+}
+
+static bool
+mir_intent_outcome_carrier_matches_ast(const MIRInstruction *inst)
+{
+    ASTNode *step;
+    const char *binding_name;
+    const char *type_name;
+    uint32_t action_id;
+    char expected_action_id[16];
+    int written;
+
+    if (!mir_instruction_is_intent_stmt(inst, "IntentOutcomeBinding")
+        || !mir_instruction_source_is_intent_step(inst)) {
+        return false;
+    }
+    step = inst->ast;
+    binding_name = ast_intent_step_outcome_binding_name(step);
+    type_name = ast_intent_step_outcome_binding_type_name(step);
+    action_id = ast_intent_step_outcome_action_decl_syntax_id(step);
+    written = snprintf(expected_action_id, sizeof(expected_action_id), "%u",
+        (unsigned)action_id);
+    return binding_name != NULL && binding_name[0] != '\0'
+        && type_name != NULL && type_name[0] != '\0'
+        && strcmp(type_name, "Void") != 0
+        && action_id != 0
+        && ast_intent_step_on_expr_count(step) == 1
+        && written > 0 && (size_t)written < sizeof(expected_action_id)
+        && inst->slot_anchor != NULL
+        && strcmp(inst->slot_anchor, binding_name) == 0
+        && inst->result_name != NULL
+        && strcmp(inst->result_name, binding_name) == 0
+        && inst->abi_type_name != NULL
+        && strcmp(inst->abi_type_name, type_name) == 0
+        && inst->arg0 != NULL
+        && strcmp(inst->arg0, expected_action_id) == 0
+        && inst->arg1 != NULL
+        && ast_intent_step_name(step) != NULL
+        && strcmp(inst->arg1, ast_intent_step_name(step)) == 0;
+}
+
+static bool
+mir_intent_validate_outcome_step(const MIRRoutine *routine,
+                                 const MIRBasicBlock *block,
+                                 size_t block_index,
+                                 ASTNode *step,
+                                 char **error_message)
+{
+    const char *step_name;
+    const char *binding_name;
+    const char *binding_type;
+    size_t step_fact_count = 0;
+    size_t carrier_count = 0;
+    size_t on_eval_count = 0;
+    const MIRInstruction *carrier = NULL;
+    const MIRInstruction *on_eval = NULL;
+
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return false;
+    step_name = ast_intent_step_name(step);
+    binding_name = ast_intent_step_outcome_binding_name(step);
+    binding_type = ast_intent_step_outcome_binding_type_name(step);
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (mir_instruction_is_intent_stmt(inst, "IntentStep")
+            && inst->arg0 != NULL && step_name != NULL
+            && strcmp(inst->arg0, step_name) == 0) {
+            step_fact_count++;
+        }
+        if (mir_instruction_is_intent_stmt(inst, "IntentOutcomeBinding")
+            && mir_instruction_intent_step_matches(inst, step_name)) {
+            carrier_count++;
+            carrier = inst;
+        }
+        if (mir_instruction_is_intent_stmt(inst, "IntentEval")
+            && mir_instruction_intent_step_matches(inst, step_name)
+            && mir_instruction_intent_phase_matches(inst, "on")) {
+            on_eval_count++;
+            on_eval = inst;
+        }
+    }
+    if (step_fact_count == 0)
+        return true;
+    if (step_fact_count != 1) {
+        if (error_message != NULL) {
+            *error_message = mir_intent_fact_strdup_fmt(
+                "MIR routine '%s' block[%zu] step '%s' has duplicate IntentStep facts",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                block_index, step_name != NULL ? step_name : "-");
+        }
+        return false;
+    }
+    if (binding_name == NULL) {
+        if (carrier_count != 0) {
+            if (error_message != NULL) {
+                *error_message = mir_intent_fact_strdup_fmt(
+                    "MIR routine '%s' block[%zu] step '%s' has an outcome carrier without a semantic binding",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index, step_name != NULL ? step_name : "-");
+            }
+            return false;
+        }
+        return true;
+    }
+    if (ast_intent_step_on_expr_count(step) != 1
+        || carrier_count != 1 || on_eval_count != 1
+        || carrier == NULL || on_eval == NULL
+        || !mir_intent_outcome_carrier_matches_ast(carrier)
+        || on_eval->result_name == NULL
+        || strcmp(on_eval->result_name, binding_name) != 0
+        || on_eval->abi_type_name == NULL || binding_type == NULL
+        || strcmp(on_eval->abi_type_name, binding_type) != 0) {
+        if (error_message != NULL) {
+            *error_message = mir_intent_fact_strdup_fmt(
+                "MIR routine '%s' block[%zu] step '%s' outcome binding requires one exact carrier and one matching on DEF",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                block_index, step_name != NULL ? step_name : "-");
+        }
+        return false;
+    }
+    return true;
 }
 
 bool
@@ -256,6 +379,54 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
                         block_index,
                         i);
                 }
+                return false;
+            }
+        }
+        if (mir_instruction_is_intent_stmt(inst,
+                                            "IntentOutcomeBinding")) {
+            if (!mir_intent_outcome_carrier_matches_ast(inst)) {
+                if (error_message != NULL) {
+                    *error_message = mir_intent_fact_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] IntentOutcomeBinding has missing or mismatched step/name/type/action-id metadata",
+                        routine->name != NULL
+                            ? routine->name : "(anonymous)",
+                        block_index, i);
+                }
+                return false;
+            }
+            for (size_t j = 0; j < i; j++) {
+                const MIRInstruction *prior = &block->instructions[j];
+                if (mir_instruction_is_intent_stmt(
+                        prior, "IntentOutcomeBinding")
+                    && prior->result_name != NULL
+                    && inst->result_name != NULL
+                    && strcmp(prior->result_name,
+                              inst->result_name) == 0) {
+                    if (error_message != NULL) {
+                        *error_message = mir_intent_fact_strdup_fmt(
+                            "MIR routine '%s' block[%zu] outcome binding '%s' is duplicated across intent steps",
+                            routine->name != NULL
+                                ? routine->name : "(anonymous)",
+                            block_index, inst->result_name);
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
+    if (routine->hir_routine != NULL
+        && routine->hir_routine->ast != NULL
+        && routine->hir_routine->ast->type == AST_INTENT_DECL) {
+        ASTNode **steps;
+        size_t step_count;
+
+        steps = ast_intent_decl_steps(
+            routine->hir_routine->ast, &step_count);
+        for (size_t i = 0; i < step_count; i++) {
+            if (!mir_intent_validate_outcome_step(
+                    routine, block, block_index, steps[i],
+                    error_message)) {
                 return false;
             }
         }

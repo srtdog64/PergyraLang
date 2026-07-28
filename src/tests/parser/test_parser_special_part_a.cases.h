@@ -593,6 +593,104 @@ cleanup:
 }
 
 static int
+run_intent_step_outcome_binding_parse_test(void)
+{
+    const char *code =
+        "intent Produce() {\n"
+        "    step Bound {\n"
+        "        on outcome: ProduceValue();\n"
+        "    }\n"
+        "    step Legacy {\n"
+        "        on: ProduceValue();\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *program = NULL;
+    ASTNode *intent = NULL;
+    ASTNode *bound = NULL;
+    ASTNode *legacy = NULL;
+
+    printf("\n=== Test: Intent Step Outcome Binding Parse ===\n");
+    if (lexer == NULL)
+        return 1;
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        return 1;
+    }
+    program = parser_parse_program(parser);
+    if (program != NULL && ast_program_statement_count(program) == 1)
+        intent = ast_program_statement(program, 0);
+    if (intent != NULL && ast_intent_decl_step_count(intent) == 2) {
+        ASTNode **steps = ast_intent_decl_steps(intent, NULL);
+        bound = steps != NULL ? steps[0] : NULL;
+        legacy = steps != NULL ? steps[1] : NULL;
+    }
+
+    if (parser_has_error(parser)
+        || bound == NULL || legacy == NULL
+        || ast_intent_step_outcome_binding_name(bound) == NULL
+        || strcmp(ast_intent_step_outcome_binding_name(bound), "outcome") != 0
+        || ast_intent_step_outcome_binding_length(bound) != 7
+        || ast_intent_step_outcome_binding_line(bound) != 3
+        || ast_intent_step_outcome_binding_column(bound) == 0
+        || ast_intent_step_on_expr_count(bound) != 1
+        || ast_intent_step_outcome_binding_name(legacy) != NULL
+        || ast_intent_step_on_expr_count(legacy) != 1) {
+        printf("[FAIL] Bound/legacy on-clause AST facts were not preserved: %s\n",
+            parser_get_error(parser) != NULL
+                ? parser_get_error(parser) : "<no parser diagnostic>");
+        failed = 1;
+    }
+
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_intent_step_duplicate_outcome_binding_parse_test(void)
+{
+    const char *code =
+        "intent Produce() {\n"
+        "    step Bound {\n"
+        "        on first: ProduceValue();\n"
+        "        on second: ProduceValue();\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *program = NULL;
+    const char *error;
+
+    printf("\n=== Test: Intent Step Duplicate Outcome Binding ===\n");
+    if (lexer == NULL)
+        return 1;
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        return 1;
+    }
+    program = parser_parse_program(parser);
+    error = parser_get_error(parser);
+    if (!parser_has_error(parser) || error == NULL
+        || strstr(error, "Duplicate outcome binding in intent step") == NULL) {
+        printf("[FAIL] Expected duplicate outcome-binding diagnostic, got: %s\n",
+            error != NULL ? error : "<null>");
+        failed = 1;
+    }
+
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_parser_reentry_cleanup_test(void)
 {
     const char *valid_code =

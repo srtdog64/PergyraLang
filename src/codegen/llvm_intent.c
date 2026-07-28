@@ -297,7 +297,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *step_name = (mir_step_names != NULL) ? mir_step_names[i] : NULL;
         LLVMIntentStepContext step_ctx;
         const char *causes_effect;
+        const char *outcome_binding_name;
+        const char *outcome_binding_type_name;
+        LLVMTypeRef outcome_binding_type = NULL;
         LLVMValueRef *saved_participant_ptrs = NULL;
+        bool has_outcome_binding;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
@@ -306,7 +310,67 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (!llvm_intent_step_context_load(ctx, node, mir_routine, step, step_name,
                 mir_only_intent, &step_ctx))
             goto intent_emit_fail;
+        if (!mir_only_intent && step_ctx.on_expr_count == 0) {
+            step_ctx.on_exprs = ast_intent_step_on_exprs(step,
+                &step_ctx.on_expr_count);
+        }
         causes_effect = step_ctx.causes_effect;
+        outcome_binding_name = ast_intent_step_outcome_binding_name(step);
+        outcome_binding_type_name =
+            ast_intent_step_outcome_binding_type_name(step);
+        has_outcome_binding = outcome_binding_name != NULL
+            || outcome_binding_type_name != NULL;
+        if (has_outcome_binding
+            && (outcome_binding_name == NULL
+                || outcome_binding_name[0] == '\0'
+                || outcome_binding_type_name == NULL
+                || outcome_binding_type_name[0] == '\0')) {
+            llvm_set_error_at_with_hints(ctx, step,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_INTENT_STEP,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                "LLVM intent step '%s' has incomplete outcome binding name/type metadata",
+                step_name != NULL ? step_name : "<step>");
+            goto intent_emit_fail;
+        }
+        if (has_outcome_binding && step_ctx.on_expr_count != 1) {
+            llvm_set_error_at_with_hints(ctx, step,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_INTENT_STEP,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                "LLVM intent step '%s' outcome binding '%s' requires exactly one on expression",
+                step_name != NULL ? step_name : "<step>",
+                outcome_binding_name);
+            goto intent_emit_fail;
+        }
+        if (has_outcome_binding
+            && (step_ctx.on_exprs == NULL || step_ctx.on_exprs[0] == NULL)) {
+            llvm_set_error_at_with_hints(ctx, step,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_INTENT_STEP,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                "LLVM intent step '%s' outcome binding '%s' is missing its on expression carrier",
+                step_name != NULL ? step_name : "<step>",
+                outcome_binding_name);
+            goto intent_emit_fail;
+        }
+        if (has_outcome_binding) {
+            outcome_binding_type =
+                pergyra_type_to_llvm(ctx, outcome_binding_type_name);
+            if (ctx->has_error)
+                goto intent_emit_fail;
+            if (outcome_binding_type == NULL
+                || LLVMGetTypeKind(outcome_binding_type) == LLVMVoidTypeKind) {
+                llvm_set_error_at_with_hints(ctx, step,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_INTENT_STEP,
+                    PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                    "LLVM intent step '%s' outcome binding '%s' requires a concrete non-Void LLVM type for '%s'",
+                    step_name != NULL ? step_name : "<step>",
+                    outcome_binding_name, outcome_binding_type_name);
+                goto intent_emit_fail;
+            }
+        }
 
         if (ctx->uses_intent_observability)
             llvm_emit_intent_trace_step(ctx, trace_step_fn, handle_alloca,
@@ -354,7 +418,55 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             goto intent_emit_fail;
         }
 
-        if (step_ctx.on_expr_count > 0) {
+        if (has_outcome_binding) {
+            const char *saved_expected_type_name = ctx->expected_type_name;
+            LLVMTypeRef saved_current_ret_type = ctx->current_ret_type;
+            LLVMValueRef outcome_value;
+            LLVMValueRef outcome_alloca;
+
+            ctx->expected_type_name = outcome_binding_type_name;
+            ctx->current_ret_type = outcome_binding_type;
+            outcome_value = llvm_emit_expression(step_ctx.on_exprs[0], ctx);
+            ctx->current_ret_type = saved_current_ret_type;
+            ctx->expected_type_name = saved_expected_type_name;
+            if (ctx->has_error)
+                goto intent_emit_fail;
+            if (outcome_value == NULL) {
+                llvm_set_error_at_with_hints(ctx, step_ctx.on_exprs[0],
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_INTENT_STEP,
+                    PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                    "LLVM intent step '%s' cannot lower bound on expression for '%s'",
+                    step_name != NULL ? step_name : "<step>",
+                    outcome_binding_name);
+                goto intent_emit_fail;
+            }
+            if (LLVMTypeOf(outcome_value) != outcome_binding_type) {
+                llvm_set_error_at_with_hints(ctx, step_ctx.on_exprs[0],
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_INTENT_STEP,
+                    PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                    "LLVM intent step '%s' outcome binding '%s' value type does not match declared Pergyra type '%s'",
+                    step_name != NULL ? step_name : "<step>",
+                    outcome_binding_name, outcome_binding_type_name);
+                goto intent_emit_fail;
+            }
+
+            outcome_alloca = llvm_create_entry_alloca(ctx,
+                outcome_binding_type, outcome_binding_name);
+            if (outcome_alloca == NULL || ctx->has_error)
+                goto intent_emit_fail;
+            LLVMBuildStore(ctx->builder, outcome_value, outcome_alloca);
+            llvm_scope_declare(ctx, outcome_binding_name, outcome_alloca,
+                outcome_binding_type);
+            llvm_register_typed_var_abi_binding(ctx, outcome_binding_name,
+                outcome_alloca, outcome_binding_type_name);
+            if (llvm_lookup_class(ctx, outcome_binding_type_name) != NULL)
+                llvm_register_var_class(ctx, outcome_binding_name,
+                    outcome_binding_type_name);
+            if (ctx->has_error)
+                goto intent_emit_fail;
+        } else if (step_ctx.on_expr_count > 0) {
             for (size_t j = 0; j < step_ctx.on_expr_count; j++) {
                 if (step_ctx.on_exprs[j] != NULL)
                     (void)llvm_emit_expression(step_ctx.on_exprs[j], ctx);

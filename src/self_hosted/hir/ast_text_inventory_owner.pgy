@@ -147,6 +147,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "On:") {
         return TypedAstKindIntentStepOnTag();
     }
+    if StartsWith(text, "Outcome:") {
+        return TypedAstKindIntentStepOutcomeTag();
+    }
     if StartsWith(text, "Compensate:") {
         return TypedAstKindIntentStepCompensateTag();
     }

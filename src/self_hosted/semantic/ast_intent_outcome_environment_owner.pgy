@@ -1,0 +1,93 @@
+// Step-local outcome environment derived from one exact subject-action contract.
+import "ast_intent_action_call_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "env_owner.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+func SemanticAstIntentExpressionSeedOutcome(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstIntentSignatureFacts,
+    intent_node_id: Int,
+    expression_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    let eligible: Bool = TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentStepCompensateTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepPostTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepExpectTag()
+    );
+    if !eligible { return true; }
+    let step: Option<Int> = TypedAstArenaParentId(
+        artifact.arena, expression_node_id
+    );
+    if !IsSome(step) || !TypedAstArenaNodeKindIs(
+        artifact.arena, UnwrapOption(step), TypedAstKindIntentStepTag()
+    ) { return false; }
+    let outcome_name: String = "";
+    let on_text: String = "";
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, UnwrapOption(step), child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentStepOutcomeTag()
+        ) {
+            let atom: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, child_id
+            );
+            if outcome_name != "" || !IsSome(atom) ||
+                !IsIdentifier(UnwrapOption(atom)) { return false; }
+            outcome_name = UnwrapOption(atom);
+        } else if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentStepOnTag()
+        ) {
+            let atom: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, child_id
+            );
+            if on_text != "" || !IsSome(atom) || UnwrapOption(atom) == "" {
+                return false;
+            }
+            on_text = UnwrapOption(atom);
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, UnwrapOption(step), child_index
+        );
+    }
+    if outcome_name == "" { return true; }
+    if on_text == "" || EnvContainsName(names, outcome_name) { return false; }
+    let intent_index: Int = -1;
+    let i: Int = 0;
+    while i < SemanticAstIntentSignatureCount(facts) {
+        if facts.intent_node_ids[i] == intent_node_id {
+            if intent_index >= 0 { return false; }
+            intent_index = i;
+        }
+        i = i + 1;
+    }
+    if intent_index < 0 { return false; }
+    let action_call: SemanticAstIntentActionCallFact =
+        SemanticAstIntentActionCallFromText(
+            signatures, facts.param_names, facts.param_types,
+            facts.param_is_values, facts.param_starts[intent_index],
+            facts.param_counts[intent_index], on_text
+        );
+    if !action_call.ok || action_call.return_type_name == "" ||
+        action_call.return_type_name == "Unknown" ||
+        action_call.return_type_name == "Void" { return false; }
+    ArrayPush(names, outcome_name);
+    ArrayPush(types, action_call.return_type_name);
+    ArrayPush(modes, "intent_outcome");
+    return ArrayLength(names) == ArrayLength(types) &&
+        ArrayLength(names) == ArrayLength(modes);
+}

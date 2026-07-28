@@ -9,6 +9,7 @@ import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
+import "intent_outcome_contract_owner.pgy";
 
 struct SelfDirIntentFacts {
     required: Bool;
@@ -98,6 +99,10 @@ func SelfDirIntentFactsFromArtifact(
     let step_using_aliases: Array<String> = [];
     let step_receiver_aliases: Array<String> = [];
     let step_action_names: Array<String> = [];
+    let step_action_signature_indices: Array<Int> = [];
+    let step_outcome_node_ids: Array<Int> = [];
+    let step_outcome_names: Array<String> = [];
+    let step_outcome_type_names: Array<String> = [];
     let step_on_node_ids: Array<Int> = [];
     let step_expect_node_ids: Array<Int> = [];
     let step_predecessor_indices: Array<Int> = [];
@@ -206,6 +211,12 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_using_aliases, resolved.using_alias);
                 ArrayPush(step_receiver_aliases, resolved.receiver_alias);
                 ArrayPush(step_action_names, resolved.action_name);
+                ArrayPush(step_action_signature_indices,
+                    resolved.action_signature_index);
+                ArrayPush(step_outcome_node_ids, resolved.outcome_node_id);
+                ArrayPush(step_outcome_names, resolved.outcome_name);
+                ArrayPush(step_outcome_type_names,
+                    resolved.outcome_type_name);
                 ArrayPush(step_on_node_ids, resolved.on_node_id);
                 ArrayPush(step_expect_node_ids, resolved.expect_node_id);
                 ArrayPush(step_predecessor_indices,
@@ -248,7 +259,9 @@ func SelfDirIntentFactsFromArtifact(
         SelfDirIntentStepFacts(
             step_node_ids, step_names, step_where_zone_names,
             step_where_declaration_indices, step_using_aliases,
-            step_receiver_aliases, step_action_names, step_on_node_ids,
+            step_receiver_aliases, step_action_names,
+            step_action_signature_indices, step_outcome_node_ids,
+            step_outcome_names, step_outcome_type_names, step_on_node_ids,
             step_expect_node_ids, step_predecessor_indices, step_causes_names,
             step_causes_declaration_indices, who_starts, who_counts, who_names,
             requires_starts, requires_counts, requires_names,
@@ -278,6 +291,10 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
         ArrayLength(facts.steps.using_aliases) == steps &&
         ArrayLength(facts.steps.receiver_aliases) == steps &&
         ArrayLength(facts.steps.action_names) == steps &&
+        ArrayLength(facts.steps.action_signature_indices) == steps &&
+        ArrayLength(facts.steps.outcome_node_ids) == steps &&
+        ArrayLength(facts.steps.outcome_names) == steps &&
+        ArrayLength(facts.steps.outcome_type_names) == steps &&
         ArrayLength(facts.steps.on_node_ids) == steps &&
         ArrayLength(facts.steps.expect_node_ids) == steps &&
         ArrayLength(facts.steps.predecessor_step_indices) == steps &&
@@ -296,9 +313,10 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
 func SelfDirIntentFactsReady(
     artifact: AstTreeArtifact,
     rows: SelfMirDeclarationRows,
+    signatures: SemanticAstFunctionSignatureFacts,
     facts: SelfDirIntentFacts
 ) -> Bool {
-    if !facts.ok || facts.diagnostic_message != "" ||
+    if !facts.ok || !signatures.ok || facts.diagnostic_message != "" ||
         facts.artifact_node_count != artifact.count ||
         !SelfDirIntentFactsShapeReady(facts) {
         return false;
@@ -443,6 +461,9 @@ func SelfDirIntentFactsReady(
              ) || facts.steps.names[i] == "" ||
             facts.steps.receiver_aliases[i] == "" ||
             facts.steps.action_names[i] == "" ||
+            facts.steps.action_signature_indices[i] < 0 ||
+            facts.steps.action_signature_indices[i] >=
+                SemanticAstFunctionSignatureCount(signatures) ||
             !TypedAstArenaNodeKindIs(
                 artifact.arena, facts.steps.on_node_ids[i],
                 TypedAstKindIntentStepOnTag()
@@ -470,6 +491,13 @@ func SelfDirIntentFactsReady(
             facts.steps.authorized_counts[i] < 0 ||
             facts.steps.authorized_starts[i] + facts.steps.authorized_counts[i] >
                 ArrayLength(facts.steps.authorized_names) {
+            return false;
+        }
+        if !SelfDirIntentStepOutcomeContractReady(
+            artifact, signatures, facts.participants,
+            facts.participant_starts, facts.participant_counts,
+            facts.step_starts, facts.step_counts, facts.steps, i
+        ) {
             return false;
         }
         let requirement_i: Int = 0;

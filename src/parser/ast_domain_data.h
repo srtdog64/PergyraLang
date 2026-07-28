@@ -187,6 +187,16 @@ typedef struct {
     ASTNode** on_exprs;
     size_t on_expr_count;
     size_t on_expr_capacity;
+    /* Optional `on outcome: actionExpr;` binding.  The parser owns the
+       spelling/span; semantic analysis fills the exact resolved action and
+       return-type seam without turning DIR/backend projections into a second
+       name-resolution authority. */
+    char* outcome_binding_name;
+    size_t outcome_binding_length;
+    uint32_t outcome_binding_line;
+    uint32_t outcome_binding_column;
+    char* outcome_binding_type_name;
+    uint32_t outcome_action_decl_syntax_id;
     ASTNode** compensate_exprs;
     size_t compensate_expr_count;
     size_t compensate_expr_capacity;

@@ -114,6 +114,99 @@ ast_intent_step_on_expr_count(const ASTNode* node)
     return node->data.intent_step.on_expr_count;
 }
 
+const char*
+ast_intent_step_outcome_binding_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.outcome_binding_name;
+}
+
+size_t
+ast_intent_step_outcome_binding_length(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.outcome_binding_length;
+}
+
+uint32_t
+ast_intent_step_outcome_binding_line(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.outcome_binding_line;
+}
+
+uint32_t
+ast_intent_step_outcome_binding_column(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.outcome_binding_column;
+}
+
+const char*
+ast_intent_step_outcome_binding_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.outcome_binding_type_name;
+}
+
+uint32_t
+ast_intent_step_outcome_action_decl_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.outcome_action_decl_syntax_id;
+}
+
+bool
+ast_intent_step_set_outcome_binding_copy(ASTNode* node,
+                                         const char* name,
+                                         size_t length,
+                                         uint32_t line,
+                                         uint32_t column)
+{
+    char *copy;
+
+    if (node == NULL || node->type != AST_INTENT_STEP || name == NULL
+        || name[0] == '\0' || length == 0) {
+        return false;
+    }
+    copy = pergyra_strdup(name);
+    if (copy == NULL)
+        return false;
+    free(node->data.intent_step.outcome_binding_name);
+    node->data.intent_step.outcome_binding_name = copy;
+    node->data.intent_step.outcome_binding_length = length;
+    node->data.intent_step.outcome_binding_line = line;
+    node->data.intent_step.outcome_binding_column = column;
+    return true;
+}
+
+bool
+ast_intent_step_set_outcome_resolution_copy(ASTNode* node,
+                                            const char* type_name,
+                                            uint32_t action_decl_syntax_id)
+{
+    char *copy;
+
+    if (node == NULL || node->type != AST_INTENT_STEP || type_name == NULL
+        || type_name[0] == '\0' || action_decl_syntax_id == 0) {
+        return false;
+    }
+    copy = pergyra_strdup(type_name);
+    if (copy == NULL)
+        return false;
+    free(node->data.intent_step.outcome_binding_type_name);
+    node->data.intent_step.outcome_binding_type_name = copy;
+    node->data.intent_step.outcome_action_decl_syntax_id =
+        action_decl_syntax_id;
+    return true;
+}
+
 ASTNode**
 ast_intent_step_compensate_exprs(const ASTNode* node, size_t* count_out)
 {

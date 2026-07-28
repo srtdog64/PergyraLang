@@ -1,10 +1,93 @@
 # Current Work Handoff
 
-Updated: 2026-07-28 (Asia/Seoul)
+Updated: 2026-07-29 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
+
+## Current resume checkpoint - typed intent action outcome binding
+
+- Landing parent: `5c942ee5` on `main`, aligned with `origin/main` at the start
+  of this slice. The landing commit will replace this parent; verify exact HEAD
+  and dirty state after commit/push.
+- Objective card:
+  - objective: bind one exact `subject.action` result in an intent step and
+    consume its enum/tobject outcome without evaluating the action twice;
+  - priority: exact action identity and return type, scoped immutable binding,
+    native/self MIR wire parity, C/LLVM/self execution, fail-closed mutations,
+    then typed variant branches and compensation;
+  - fact owners: semantic resolves the exact action return type; DIR carries
+    binding/type/action stable identity; MIR carries
+    `IntentOutcomeBinding + IntentEval`; C/LLVM/self emitters are last consumers;
+    `tobject` owns only detached payload;
+  - forbidden fallback: Bool/literal collapse, variant spelling inference,
+    payload type reinference, action re-evaluation in expect, result hidden in a
+    subject/global field, type hidden in runtime ABI/uses, AST/source rescan,
+    missing-carrier success, or treating payload as authority/freshness/
+    predecessor/rollback evidence;
+  - focused gates: `intent_outcome_frontend_parser_owner.sh` and
+    `intent_typed_outcome_execution_owner.sh`.
+- Implemented source form: `on outcome: worker.Run(...);`. Legacy `on:` still
+  discards the result. The binding is available only after `on` in the same
+  step's `expect`/`post`/`compensate`, not in `pre` or later steps. The bounded
+  rung requires one `on`; outcome names are unique across the intent rollback
+  lifetime.
+- Canonical MIR wire: `IntentOutcomeBinding` carries
+  `result=slot_anchor=outcome`, `arg0=<action source_syntax_id>`, `arg1=<step>`,
+  `abi_type_name=<exact return type>`, `source_type=AST_INTENT_STEP` and no
+  runtime-call ABI or string-encoded identity. `IntentEval(on)` carries the same
+  result/type. Native/self validators and mir_lower exact-join the action routine
+  stable identity, return type and expression graph.
+- Observed executable evidence:
+  - full native `make -j2 compiler` completed;
+  - parser binary rebuilt and its complete test run exited 0, including outcome
+    binding and duplicate-binding cases;
+  - new native semantic outcome tests and MIR carrier/drift tests passed;
+    complete semantic remains `2821 passed, 2 failed` on committed HEAD's
+    unrelated Option/Result match-destructuring baseline, and complete MIR
+    remains `155 passed, 1 failed` on the unrelated committed topology mutation
+    baseline;
+  - a fresh current-source `driver_rung2_main.pgy` build completed with 0 Pergyra
+    errors/warnings. Windows 200ms process sampling observed 1,575.1MiB combined
+    peak private and 1,485.3MiB working set (`pgy` 708.0MiB + `cc1` 867.0MiB),
+    not 20GB;
+  - after the final responsibility splits, the current source rebuilt
+    `.tmp/self_hosted/intent_typed_outcome/driver_rung2_landing.exe` with 0
+    Pergyra errors/warnings; the complete typed-outcome execution/parity/
+    negative gate passed again with that exact driver;
+  - frontend lossless AST + invalid/duplicate negatives passed;
+  - direct self source C and admitted self MIR C are byte-equal; self C, native
+    C and native LLVM all print `accepted=true`, `calls=1`, `rejected=false`,
+    `calls=2`;
+  - missing binding, binding result/type/action identity drift, duplicate binding
+    and eval-result drift all reject before partial C.
+- Adjacent fixes proven by this rung: parser test now links its directly consumed
+  callable vocabulary object; self MIR has an independent `abi_type_name`
+  scalar; `IntentCheck` call expressions are classified before the generic
+  statement-call allowlist.
+- The final self-host module split keeps each responsibility below its existing
+  component cap: intent parameter/outcome environments, exact action contract,
+  DIR outcome validation, MIR scalar append, MIR-lower carrier/cleanup/action
+  admission, and typed C outcome emission now have named owners. The component
+  contract, SoT edge (`61 authorities`, `63 derived carriers`), build-source
+  inventory, MIR declaration inventory, and documentation-quality gate passed.
+  SoT adequacy live owner/consumer and mutation checks passed; the Coq model was
+  explicitly skipped because no `rocq`/`coqc` executable is installed.
+- Grade: the bounded input-language outcome-binding feature is `REACHABLE`.
+  Compiler organization `intent` remains `SURFACE` because the production
+  bootstrap entrypoint does not call a compiler intent and no C-owned path was
+  replaced.
+- Next falsifier: the `.todo` two-action fixture must add source-declared typed
+  success/failure branches, success-only completion, exact DIR predecessor
+  carriage and B-failure compensation where A undo executes once, B undo zero
+  times and the failure tobject payload changes the observed result. Do not infer
+  these facts from source order or variant spelling.
+- Preserve and do not stage the three concurrent parity edits
+  (`driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`, and
+  `driver_rung2_owner_field_parity_owner.sh`) or the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
 
 ## Current resume checkpoint - fallible action tobject outcome consumption
 

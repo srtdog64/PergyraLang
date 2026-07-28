@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# PLANNED/OPEN gate skeleton. The .todo suffix intentionally keeps this file
+# out of Makefile/aggregate execution. Running it must not report PASS until the
+# typed intent step transition owner and executable fixture exist.
+
+echo "[self-host-intent-outcome] OPEN: typed outcome/compensation rung is not implemented" >&2
+exit 1
+
+# Required positive matrix once implemented:
+#   1. self source -> self MIR -> admitted general C, direct/admitted C equal
+#   2. self runtime == native C runtime == native LLVM runtime
+#   3. success: A/B payloads consumed, UndoA=0, UndoB=0
+#   4. B failure: exact failure payload consumed, UndoA=1, UndoB=0, state restored
+#
+# Required valid-identity MIR mutations, each rejected before any C artifact:
+#   outcome-binding-definition-or-type-cross-wire
+#     diagnostic: MIR intent step outcome binding is invalid
+#   outcome-variant-or-successor-cross-wire
+#     diagnostic: MIR intent step outcome branch identity is invalid
+#   predecessor-self-future-or-mixed-identity
+#     diagnostic: MIR intent compensation predecessor evidence is invalid
+#   missing-success-completion-with-compensation-present
+#     diagnostic: MIR intent step completion evidence is missing
+#
+# This gate may be renamed to .sh and registered only in the same change that
+# supplies the real owner, fixture, observed positive/parity results, and all
+# fail-closed mutations. A documentation-only PASS is forbidden.

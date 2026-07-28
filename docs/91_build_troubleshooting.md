@@ -2325,6 +2325,16 @@ self C join이 빈 문자열을 만든 사례도 있었다. 진단 builder가 co
 cleanup 행을 Main에서 비교한다. 이 build에서 관측한 동시 peak는 `pgy` 약 808MB,
 자식 `cc1` 약 1.03GB로 합계 약 1.8GB였으며 20GB 재발은 없었다.
 
+2026-07-29의 현재 source로 `driver_rung2_main.pgy`를 다시 C 빌드한 Windows
+프로세스 표본도 같은 범위였다. 200ms 간격으로 `pgy`/`gcc`/`cc1`의
+`PrivateMemorySize64`와 `WorkingSet64`를 합산했을 때 peak private은 1,575.1MiB,
+peak working set은 1,485.3MiB였고, peak 표본은 `pgy` 708.0MiB + `cc1`
+867.0MiB였다. 빌드는 exit 0으로 완료됐다. 같은 환경에서 MSYS GNU
+`time -v`의 `Maximum resident set size`가 30,667,532KB처럼 출력된 값은 Windows
+process private/working-set 표본과 모순되므로 실제 30GB RSS 증거로 사용하지
+않는다. 회귀 판단은 project pressure runner나 Windows process-tree 합산처럼
+측정 owner가 명확한 지표로 한다.
+
 #### Multi-ability role or zone slot makes self MIR declarations disappear
 
 The focused C shard later exposed two adjacent declaration-carriage defects.

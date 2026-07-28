@@ -1,0 +1,6 @@
+import "../../../../src/self_hosted/mir/routine_input_owner.pgy";
+import "../../../../src/self_hosted/mir/intent_routine_owner.pgy";
+
+func Main() -> Void {
+    Log("intent-outcome-mir-producer=ready");
+}

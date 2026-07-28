@@ -209,7 +209,7 @@ func SelfDirDomainGraphFactsFromArtifact(
     let intents: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
         artifact, rows, signatures
     );
-    if !SelfDirIntentFactsReady(artifact, rows, intents) {
+    if !SelfDirIntentFactsReady(artifact, rows, signatures, intents) {
         return SelfDirDomainGraphFactsError(intents.diagnostic_message);
     }
     let required: Bool = intents.required;

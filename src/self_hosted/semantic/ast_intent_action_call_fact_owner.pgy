@@ -1,0 +1,84 @@
+// Exact subject-action return fact for an intent `on` expression.
+import "ast_signature_fact_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+struct SemanticAstIntentActionCallFact {
+    ok: Bool;
+    receiver_alias: String;
+    action_name: String;
+    signature_index: Int;
+    return_type_name: String;
+}
+
+func SemanticAstIntentActionSignatureIndex(
+    signatures: SemanticAstFunctionSignatureFacts,
+    owner_name: String,
+    action_name: String
+) -> Int {
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        if signatures.action_contracts.is_actions[i] &&
+            signatures.owner_names[i] == owner_name &&
+            signatures.names[i] == action_name {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func SemanticAstIntentActionCallFromText(
+    signatures: SemanticAstFunctionSignatureFacts,
+    participant_aliases: Array<String>,
+    participant_types: Array<String>,
+    participant_is_values: Array<Bool>,
+    participant_start: Int,
+    participant_count: Int,
+    text: String
+) -> SemanticAstIntentActionCallFact {
+    let dot: Int = StringIndexOf(text, ".");
+    let open: Int = StringIndexOf(text, "(");
+    if dot <= 0 || open <= dot + 1 {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
+    let receiver: String = StringTrim(Substring(text, 0, dot));
+    let action: String = StringTrim(Substring(
+        text, dot + 1, open - dot - 1
+    ));
+    if !IsIdentifier(receiver) || !IsIdentifier(action) {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
+    let participant_row: Int = -1;
+    let i: Int = 0;
+    while i < participant_count {
+        let row: Int = participant_start + i;
+        if row < 0 || row >= ArrayLength(participant_aliases) ||
+            row >= ArrayLength(participant_types) ||
+            row >= ArrayLength(participant_is_values) {
+            return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+        }
+        if participant_aliases[row] == receiver {
+            if participant_row >= 0 {
+                return SemanticAstIntentActionCallFact(
+                    false, "", "", -1, ""
+                );
+            }
+            participant_row = row;
+        }
+        i = i + 1;
+    }
+    if participant_row < 0 || participant_is_values[participant_row] {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
+    let signature_index: Int = SemanticAstIntentActionSignatureIndex(
+        signatures, participant_types[participant_row], action
+    );
+    if signature_index < 0 ||
+        signature_index >= ArrayLength(signatures.return_types) {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
+    return SemanticAstIntentActionCallFact(
+        true, receiver, action, signature_index,
+        signatures.return_types[signature_index]
+    );
+}

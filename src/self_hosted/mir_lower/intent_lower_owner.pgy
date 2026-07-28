@@ -5,29 +5,10 @@
 
 import "routine_fact_index_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
-
-func MirIntentTreeAppendLine(text: String, line: String) -> String {
-    return Concat(text, Concat(line, "\n"));
-}
-
-func MirIntentScalarAt(
-    ref index: MirRoutineFactIndex,
-    instruction: MirRoutineInstructionView
-) -> MirRoutineInstructionScalarCapture {
-    if !instruction.valid { return InvalidMirRoutineInstructionScalarCapture(); }
-    return MirRoutineInstructionFactBundleAtGlobal(
-        index.instruction_facts, instruction.global_row
-    );
-}
-
-func MirIntentKnownSemanticCarrier(name: String) -> Bool {
-    return name == "IntentBinding" || name == "IntentParticipant" ||
-        name == "IntentValue" || name == "IntentStep" ||
-        name == "IntentZoneWhere" || name == "IntentZoneAlias" ||
-        name == "IntentInvalidationTarget" || name == "IntentWho" ||
-        name == "IntentAuthorizedBy" || name == "IntentCauses" ||
-        name == "IntentCheck" || name == "IntentEval";
-}
+import "intent_action_contract_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
+import "intent_cleanup_contract_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
 
 func EmitMirIntentTreeAtRow(
     ref routines: MirProgramRoutineIndex,
@@ -37,14 +18,7 @@ func EmitMirIntentTreeAtRow(
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         routines, routine_row
     );
-    if !index.valid || routines.kinds[routine_row] != "intent" ||
-        routines.owners[routine_row] != "" ||
-        routines.receiver_carriages[routine_row] != "none" ||
-        ArrayLength(index.block_instruction_counts) != 4 ||
-        index.block_instruction_counts[0] <= 0 ||
-        index.block_instruction_counts[1] != 0 ||
-        index.block_instruction_counts[2] != 3 ||
-        index.block_instruction_counts[3] < 2 {
+    if !MirIntentRoutineStructureReady(routines, index, routine_row) {
         MirLowerFailClosed("MIR intent routine structure is invalid");
     }
     let intent_name: String = routines.names[routine_row];
@@ -54,6 +28,9 @@ func EmitMirIntentTreeAtRow(
     let carrier_arg0s: Array<String> = [];
     let carrier_arg1s: Array<String> = [];
     let carrier_slots: Array<String> = [];
+    let carrier_results: Array<String> = [];
+    let carrier_abi_type_names: Array<String> = [];
+    let carrier_source_types: Array<String> = [];
     let carrier_expr0s: Array<String> = [];
     let carrier_rows: Array<Int> = [];
     let resource_names: Array<String> = [];
@@ -99,6 +76,9 @@ func EmitMirIntentTreeAtRow(
             ArrayPush(carrier_arg0s, scalar.arg0);
             ArrayPush(carrier_arg1s, scalar.arg1);
             ArrayPush(carrier_slots, scalar.slot_anchor);
+            ArrayPush(carrier_results, scalar.result);
+            ArrayPush(carrier_abi_type_names, scalar.abi_type_name);
+            ArrayPush(carrier_source_types, instruction.source_type);
             ArrayPush(carrier_expr0s, scalar.expr0);
             ArrayPush(carrier_rows, instruction.global_row);
         } else if instruction.kind == "stmt" && scalar.name == "stmt" {
@@ -129,105 +109,36 @@ func EmitMirIntentTreeAtRow(
         MirLowerFailClosed("MIR intent commit carrier is missing or duplicated");
     }
 
-    let binding_aliases: Array<String> = [];
-    let binding_types: Array<String> = [];
-    let binding_kinds: Array<String> = [];
-    let step_names: Array<String> = [];
-    let carrier_row: Int = 0;
-    while carrier_row < ArrayLength(carrier_names) {
-        if carrier_names[carrier_row] == "IntentBinding" {
-            let binding_kind: String = carrier_slots[carrier_row];
-            if carrier_arg0s[carrier_row] == "" ||
-                carrier_arg1s[carrier_row] == "" ||
-                (binding_kind != "participant" && binding_kind != "value") {
-                MirLowerFailClosed("MIR intent binding carrier is invalid");
-            }
-            ArrayPush(binding_aliases, carrier_arg0s[carrier_row]);
-            ArrayPush(binding_types, carrier_arg1s[carrier_row]);
-            ArrayPush(binding_kinds, binding_kind);
-        } else if carrier_names[carrier_row] == "IntentStep" {
-            if carrier_arg0s[carrier_row] == "" ||
-                carrier_arg0s[carrier_row] != carrier_arg1s[carrier_row] ||
-                carrier_slots[carrier_row] != carrier_arg0s[carrier_row] {
-                MirLowerFailClosed("MIR intent step identity is invalid");
-            }
-            ArrayPush(step_names, carrier_arg0s[carrier_row]);
-        }
-        carrier_row = carrier_row + 1;
-    }
-    if ArrayLength(binding_aliases) == 0 || ArrayLength(step_names) == 0 {
+    let binding_projection: MirIntentBindingProjection =
+        MirIntentBindingProjectionFromCarriers(
+            carrier_names, carrier_arg0s, carrier_arg1s, carrier_slots,
+            intent_name
+        );
+    if !binding_projection.ok {
         MirLowerFailClosed("MIR intent bindings or steps are missing");
     }
+    let binding_aliases: Array<String> = binding_projection.aliases;
+    let binding_types: Array<String> = binding_projection.type_names;
+    let binding_kinds: Array<String> = binding_projection.kinds;
+    let step_names: Array<String> = binding_projection.step_names;
+    let carrier_row: Int = 0;
 
     let tree: String = MirIntentTreeAppendLine(
         "", Concat("  Intent: ", intent_name)
     );
     tree = MirIntentTreeAppendLine(tree, "    IntentMode: exclusive");
 
-    let rollback_count: Int = 0;
-    let abort_count: Int = 0;
-    let rollback_edge_count: Int = 0;
-    instruction_row = 0;
-    while instruction_row < index.block_instruction_counts[2] {
-        let instruction: MirRoutineInstructionView =
-            MirRoutineInstructionViewAt(
-                routines, routine_row, 2, instruction_row
-            );
-        let scalar: MirRoutineInstructionScalarCapture =
-            MirIntentScalarAt(index, instruction);
-        if !instruction.valid || !scalar.valid ||
-            instruction.kind != "cleanup" {
-            MirLowerFailClosed("MIR intent rollback block is invalid");
-        }
-        if scalar.name == "RollbackPolicy" && scalar.arg0 == "full" {
-            rollback_count = rollback_count + 1;
-        } else if scalar.name == "AbortIntent" &&
-            scalar.arg0 == intent_name && scalar.arg1 == "full" &&
-            scalar.slot_anchor == intent_name {
-            abort_count = abort_count + 1;
-        } else if scalar.name == "cleanup-edge-from-rollback" &&
-            scalar.arg0 == "cleanup" {
-            rollback_edge_count = rollback_edge_count + 1;
-        } else {
-            MirLowerFailClosed("MIR intent rollback carrier is invalid");
-        }
-        instruction_row = instruction_row + 1;
-    }
-    if rollback_count != 1 || abort_count != 1 || rollback_edge_count != 1 {
-        MirLowerFailClosed("MIR intent rollback facts are incomplete");
-    }
+    let rollback_error: String = MirIntentRollbackContractError(
+        routines, index, routine_row, intent_name
+    );
+    if rollback_error != "" { MirLowerFailClosed(rollback_error); }
     tree = MirIntentTreeAppendLine(tree, "    IntentRollback: full");
+    tree = Concat(tree, binding_projection.tree_lines);
 
-    let binding_index: Int = 0;
-    while binding_index < ArrayLength(binding_aliases) {
-        let expected_carrier: String = "IntentParticipant";
-        let row_prefix: String = "    IntentInvolves: ";
-        if binding_kinds[binding_index] == "value" {
-            expected_carrier = "IntentValue";
-            row_prefix = "    IntentValue: ";
-        }
-        let match_count: Int = 0;
-        carrier_row = 0;
-        while carrier_row < ArrayLength(carrier_names) {
-            if carrier_names[carrier_row] == expected_carrier &&
-                carrier_arg0s[carrier_row] == binding_aliases[binding_index] &&
-                carrier_arg1s[carrier_row] == binding_types[binding_index] &&
-                carrier_slots[carrier_row] == intent_name {
-                match_count = match_count + 1;
-            }
-            carrier_row = carrier_row + 1;
-        }
-        if match_count != 1 {
-            MirLowerFailClosed("MIR intent ordered binding carrier is incomplete");
-        }
-        tree = MirIntentTreeAppendLine(tree, Concat(
-            row_prefix, Concat(binding_aliases[binding_index], Concat(
-                ": ", binding_types[binding_index]
-            ))
-        ));
-        binding_index = binding_index + 1;
-    }
-
+    let total_outcome_carrier_count: Int = MirIntentCarrierCount(
+        carrier_names, "IntentOutcomeBinding"
+    );
+    let outcome_result_names: Array<String> = [];
     let step_index: Int = 0;
     while step_index < ArrayLength(step_names) {
         let step_name: String = step_names[step_index];
@@ -237,6 +148,11 @@ func EmitMirIntentTreeAtRow(
         let authority_name: String = "";
         let eval_text: String = "";
         let expect_text: String = "";
+        let outcome_name: String = "";
+        let outcome_type_name: String = "";
+        let outcome_action_syntax_id: String = "";
+        let eval_result: String = "";
+        let eval_type_name: String = "";
         let eval_row: Int = 0 - 1;
         let expect_row: Int = 0 - 1;
         let zone_count: Int = 0;
@@ -247,11 +163,18 @@ func EmitMirIntentTreeAtRow(
         let cause_count: Int = 0;
         let eval_count: Int = 0;
         let expect_count: Int = 0;
+        let outcome_count: Int = 0;
         carrier_row = 0;
         while carrier_row < ArrayLength(carrier_names) {
-            if carrier_arg1s[carrier_row] == step_name &&
-                carrier_slots[carrier_row] == step_name {
-                let carrier_name: String = carrier_names[carrier_row];
+            let carrier_name: String = carrier_names[carrier_row];
+            let carrier_belongs_to_step: Bool =
+                carrier_arg1s[carrier_row] == step_name &&
+                ((carrier_name == "IntentOutcomeBinding" &&
+                  carrier_slots[carrier_row] ==
+                    carrier_results[carrier_row]) ||
+                 (carrier_name != "IntentOutcomeBinding" &&
+                  carrier_slots[carrier_row] == step_name));
+            if carrier_belongs_to_step {
                 if carrier_name == "IntentZoneWhere" {
                     zone_count = zone_count + 1;
                     zone_name = carrier_arg0s[carrier_row];
@@ -268,8 +191,42 @@ func EmitMirIntentTreeAtRow(
                     authority_name = carrier_arg0s[carrier_row];
                 } else if carrier_name == "IntentCauses" {
                     cause_count = cause_count + 1;
+                } else if carrier_name == "IntentOutcomeBinding" {
+                    if carrier_source_types[carrier_row] !=
+                            "AST_INTENT_STEP" ||
+                        carrier_expr0s[carrier_row] != "" ||
+                        carrier_arg0s[carrier_row] == "" ||
+                        ToInt(carrier_arg0s[carrier_row]) <= 0 ||
+                        ToString(ToInt(carrier_arg0s[carrier_row])) !=
+                            carrier_arg0s[carrier_row] ||
+                        MirObjectArrayStringFactCount(
+                            routines.source_json,
+                            routines.instruction_starts[
+                                carrier_rows[carrier_row]
+                            ],
+                            routines.instruction_ends[
+                                carrier_rows[carrier_row]
+                            ],
+                            "uses"
+                        ) != 0 {
+                        MirLowerFailClosed(
+                            "MIR intent outcome carrier shape is invalid"
+                        );
+                    }
+                    outcome_count = outcome_count + 1;
+                    outcome_name = carrier_results[carrier_row];
+                    outcome_type_name =
+                        carrier_abi_type_names[carrier_row];
+                    outcome_action_syntax_id = carrier_arg0s[carrier_row];
                 } else if carrier_name == "IntentEval" {
                     eval_count = eval_count + 1;
+                    if carrier_arg0s[carrier_row] != "on" {
+                        MirLowerFailClosed(
+                            "MIR intent evaluation action identity is invalid"
+                        );
+                    }
+                    eval_result = carrier_results[carrier_row];
+                    eval_type_name = carrier_abi_type_names[carrier_row];
                     eval_text = carrier_expr0s[carrier_row];
                     eval_row = carrier_rows[carrier_row];
                 } else if carrier_name == "IntentCheck" {
@@ -288,6 +245,34 @@ func EmitMirIntentTreeAtRow(
             expect_count > 1 || zone_name == "" || zone_alias == "" ||
             eval_text == "" || eval_row < 0 {
             MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
+        }
+        if outcome_count > 1 ||
+            (outcome_count == 0 && eval_result != "") ||
+            (outcome_count == 1 &&
+                (!IsIdentifier(outcome_name) || outcome_type_name == "" ||
+                 outcome_type_name == "Unknown" ||
+                 outcome_type_name == "Void" ||
+                 eval_result != outcome_name ||
+                 eval_type_name != outcome_type_name)) {
+            MirLowerFailClosed("MIR intent step outcome binding is invalid");
+        }
+        if outcome_count == 0 {
+            if eval_type_name != "" {
+                MirLowerFailClosed(
+                    "MIR legacy intent step carries outcome type"
+                );
+            }
+        } else {
+            let prior_outcome: Int = 0;
+            while prior_outcome < ArrayLength(outcome_result_names) {
+                if outcome_result_names[prior_outcome] == outcome_name {
+                    MirLowerFailClosed(
+                        "MIR intent outcome result name is duplicated"
+                    );
+                }
+                prior_outcome = prior_outcome + 1;
+            }
+            ArrayPush(outcome_result_names, outcome_name);
         }
         let read_count: Int = 0;
         let authorize_count: Int = 0;
@@ -325,6 +310,66 @@ func EmitMirIntentTreeAtRow(
                 "MIR intent executable and semantic step facts disagree"
             );
         }
+        let eval_action: MirIntentActionGraphFact =
+            MirIntentActionGraphFromInstruction(
+                routines, eval_row, eval_text
+            );
+        let executable_action: MirIntentActionGraphFact =
+            MirIntentActionGraphFromInstruction(
+                routines, executable_row, eval_text
+            );
+        if !eval_action.ok || !executable_action.ok ||
+            eval_action.receiver_alias != executable_action.receiver_alias ||
+            eval_action.action_name != executable_action.action_name ||
+            eval_action.call_target_name !=
+                executable_action.call_target_name {
+            MirLowerFailClosed(
+                "MIR intent action expression graph identity is invalid"
+            );
+        }
+        let receiver_binding_row: Int = 0 - 1;
+        let receiver_match_count: Int = 0;
+        let binding_scan: Int = 0;
+        while binding_scan < ArrayLength(binding_aliases) {
+            if binding_aliases[binding_scan] == eval_action.receiver_alias {
+                receiver_match_count = receiver_match_count + 1;
+                receiver_binding_row = binding_scan;
+            }
+            if outcome_count == 1 &&
+                binding_aliases[binding_scan] == outcome_name {
+                MirLowerFailClosed(
+                    "MIR intent outcome binding collides with a participant"
+                );
+            }
+            binding_scan = binding_scan + 1;
+        }
+        if receiver_match_count != 1 || receiver_binding_row < 0 ||
+            binding_kinds[receiver_binding_row] != "participant" {
+            MirLowerFailClosed(
+                "MIR intent action receiver binding is invalid"
+            );
+        }
+        let receiver_type: String = binding_types[receiver_binding_row];
+        if eval_action.call_target_name != Concat(
+            receiver_type, Concat("_", eval_action.action_name)
+        ) {
+            MirLowerFailClosed(
+                "MIR intent action call target identity is invalid"
+            );
+        }
+        let action_contract: MirIntentActionContractFact =
+            MirIntentActionContract(
+                routines, receiver_type, eval_action.action_name
+            );
+        if !action_contract.ok ||
+            (outcome_count == 1 && action_contract.return_type_name !=
+                outcome_type_name) ||
+            (outcome_count == 1 && action_contract.action_syntax_id !=
+                outcome_action_syntax_id) {
+            MirLowerFailClosed(
+                "MIR intent action outcome contract is invalid"
+            );
+        }
         tree = MirIntentTreeAppendLine(
             tree, Concat("    IntentStep: ", step_name)
         );
@@ -337,6 +382,11 @@ func EmitMirIntentTreeAtRow(
         tree = MirIntentTreeAppendLine(
             tree, Concat("      AuthorizedBy: ", authority_name)
         );
+        if outcome_count == 1 {
+            tree = MirIntentTreeAppendLine(
+                tree, Concat("      Outcome: ", outcome_name)
+            );
+        }
         tree = MirIntentTreeAppendLine(
             tree, Concat("      On: ", eval_text)
         );
@@ -362,33 +412,15 @@ func EmitMirIntentTreeAtRow(
         }
         step_index = step_index + 1;
     }
+    if ArrayLength(outcome_result_names) != total_outcome_carrier_count {
+        MirLowerFailClosed(
+            "MIR intent outcome carrier step identity is invalid"
+        );
+    }
 
-    let invalidation_edge_count: Int = 0;
-    let detach_count: Int = 0;
-    instruction_row = 0;
-    while instruction_row < index.block_instruction_counts[3] {
-        let instruction: MirRoutineInstructionView =
-            MirRoutineInstructionViewAt(
-                routines, routine_row, 3, instruction_row
-            );
-        let scalar: MirRoutineInstructionScalarCapture =
-            MirIntentScalarAt(index, instruction);
-        if !instruction.valid || !scalar.valid ||
-            instruction.kind != "cleanup" {
-            MirLowerFailClosed("MIR intent invalidation block is invalid");
-        }
-        if scalar.name == "DetachInvalidation" && scalar.arg0 != "" {
-            detach_count = detach_count + 1;
-        } else if scalar.name == "cleanup-edge-from-invalidation" &&
-            scalar.arg0 == "cleanup" {
-            invalidation_edge_count = invalidation_edge_count + 1;
-        } else {
-            MirLowerFailClosed("MIR intent invalidation carrier is invalid");
-        }
-        instruction_row = instruction_row + 1;
-    }
-    if detach_count == 0 || invalidation_edge_count != 1 {
-        MirLowerFailClosed("MIR intent invalidation facts are incomplete");
-    }
+    let invalidation_error: String = MirIntentInvalidationContractError(
+        routines, index, routine_row
+    );
+    if invalidation_error != "" { MirLowerFailClosed(invalidation_error); }
     return tree;
 }

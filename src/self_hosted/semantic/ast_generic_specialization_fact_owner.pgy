@@ -308,8 +308,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
                 names, types, modes, function_tables
             );
         } else if environment_ok && IsSome(intent_node) {
-            environment_ok = SemanticAstIntentExpressionSeedParameters(
-                intent_signatures, UnwrapOption(intent_node),
+            environment_ok = SemanticAstIntentExpressionSeedEnvironment(
+                artifact, signatures, intent_signatures,
+                UnwrapOption(intent_node), use_node_id,
                 names, types, modes
             );
         } else {

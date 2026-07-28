@@ -142,6 +142,8 @@ ast_destroy_domain_node(ASTNode* node) {
             for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++)
                 ast_destroy(node->data.intent_step.on_exprs[i]);
             free(node->data.intent_step.on_exprs);
+            free(node->data.intent_step.outcome_binding_name);
+            free(node->data.intent_step.outcome_binding_type_name);
             for (size_t i = 0; i < node->data.intent_step.compensate_expr_count; i++)
                 ast_destroy(node->data.intent_step.compensate_exprs[i]);
             free(node->data.intent_step.compensate_exprs);

@@ -1,0 +1,72 @@
+// Scalar mutation owner for the last appended MIR instruction.
+
+import "program_fact_owner.pgy";
+
+func SelfMirCfgAttachLastSlotAnchor(
+    cfg: SelfMirCfgRows,
+    slot_anchor: String
+) -> SelfMirCfgRows {
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let instruction_index: Int = ArrayLength(instructions.ids) - 1;
+    let slot_anchors: Array<String> = instructions.slot_anchors;
+    if instruction_index < 0 || slot_anchor == "" { return cfg; }
+    ArraySet(slot_anchors, instruction_index, slot_anchor);
+    return SelfMirCfgRows(
+        cfg.blocks,
+        SelfMirInstructionRows(
+            instructions.ids, instructions.kinds, instructions.names,
+            instructions.results, instructions.arg0s, instructions.arg1s,
+            slot_anchors, instructions.expr0s, instructions.expr1s,
+            instructions.source_types, instructions.machine_contact_kinds,
+            instructions.machine_layer_manifest_ids,
+            instructions.machine_layer_physical_grant_ids,
+            instructions.machine_layer_physical_bases,
+            instructions.machine_layer_physical_sizes,
+            instructions.machine_layer_physical_modes,
+            instructions.machine_layer_runtime_operations,
+            instructions.machine_layer_hardware_adequate,
+            instructions.machine_layer_authority_required,
+            instructions.machine_layer_live_lease_required,
+            instructions.use_starts, instructions.use_counts,
+            instructions.uses, instructions.expr0_graphs,
+            instructions.expr1_graphs, instructions.match_facts,
+            instructions.destructure_facts, instructions.abi_type_names,
+            instructions.runtime_call_abi
+        )
+    );
+}
+
+func SelfMirCfgAttachLastAbiTypeName(
+    cfg: SelfMirCfgRows,
+    abi_type_name: String
+) -> SelfMirCfgRows {
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let instruction_index: Int = ArrayLength(instructions.ids) - 1;
+    let abi_type_names: Array<String> = instructions.abi_type_names;
+    if instruction_index < 0 || abi_type_name == "" { return cfg; }
+    ArraySet(abi_type_names, instruction_index, abi_type_name);
+    return SelfMirCfgRows(
+        cfg.blocks,
+        SelfMirInstructionRows(
+            instructions.ids, instructions.kinds, instructions.names,
+            instructions.results, instructions.arg0s, instructions.arg1s,
+            instructions.slot_anchors, instructions.expr0s,
+            instructions.expr1s, instructions.source_types,
+            instructions.machine_contact_kinds,
+            instructions.machine_layer_manifest_ids,
+            instructions.machine_layer_physical_grant_ids,
+            instructions.machine_layer_physical_bases,
+            instructions.machine_layer_physical_sizes,
+            instructions.machine_layer_physical_modes,
+            instructions.machine_layer_runtime_operations,
+            instructions.machine_layer_hardware_adequate,
+            instructions.machine_layer_authority_required,
+            instructions.machine_layer_live_lease_required,
+            instructions.use_starts, instructions.use_counts,
+            instructions.uses, instructions.expr0_graphs,
+            instructions.expr1_graphs, instructions.match_facts,
+            instructions.destructure_facts, abi_type_names,
+            instructions.runtime_call_abi
+        )
+    );
+}

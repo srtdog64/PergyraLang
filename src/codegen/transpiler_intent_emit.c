@@ -22,6 +22,8 @@
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_intent_query.h"
 #include "transpiler_mir_emit_state.h"
+#include "transpiler_symbols.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
 void
@@ -204,6 +206,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         size_t authorized_alias_count = 0;
         const char **dispatch_aliases = NULL;
         size_t dispatch_alias_count = 0;
+        const char *outcome_binding_name = NULL;
+        const char *outcome_binding_type_name = NULL;
+        char outcome_binding_c_type[256] = {0};
+        bool has_outcome_binding = false;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
@@ -313,6 +319,59 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 dispatch_alias_count = ast_intent_step_who_count(step);
             }
         }
+        outcome_binding_name = ast_intent_step_outcome_binding_name(step);
+        outcome_binding_type_name =
+            ast_intent_step_outcome_binding_type_name(step);
+        has_outcome_binding = outcome_binding_name != NULL
+            || outcome_binding_type_name != NULL;
+        if (has_outcome_binding
+            && (outcome_binding_name == NULL
+                || outcome_binding_name[0] == '\0'
+                || outcome_binding_type_name == NULL
+                || outcome_binding_type_name[0] == '\0')) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_INTENT_STEP,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                "C intent step '%s' has incomplete outcome binding name/type metadata",
+                step_name != NULL ? step_name : "<step>");
+            if (mir_only_intent) {
+                free(on_exprs);
+                free((void *)who_aliases);
+                free((void *)authorized_aliases);
+                free((void *)dispatch_aliases);
+            }
+            goto intent_emit_fail;
+        }
+        if (has_outcome_binding && on_expr_count != 1) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_INTENT_STEP,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                "C intent step '%s' outcome binding '%s' requires exactly one on expression",
+                step_name != NULL ? step_name : "<step>",
+                outcome_binding_name);
+            if (mir_only_intent) {
+                free(on_exprs);
+                free((void *)who_aliases);
+                free((void *)authorized_aliases);
+                free((void *)dispatch_aliases);
+            }
+            goto intent_emit_fail;
+        }
+        if (has_outcome_binding
+            && !transpiler_require_type_name_c_type_copy(
+                ctx, outcome_binding_type_name,
+                "intent outcome binding", outcome_binding_c_type,
+                sizeof(outcome_binding_c_type))) {
+            if (mir_only_intent) {
+                free(on_exprs);
+                free((void *)who_aliases);
+                free((void *)authorized_aliases);
+                free((void *)dispatch_aliases);
+            }
+            goto intent_emit_fail;
+        }
         if (step_zone_name != NULL) {
             ASTNode *step_zone_decl =
                 find_zone_decl_in_program_view(ctx, step_zone_name);
@@ -391,7 +450,50 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(invariant);
         }
 
-        if (on_expr_count > 0) {
+        if (has_outcome_binding) {
+            char *on_expr = emit_expression(on_exprs[0], ctx);
+            if (on_expr == NULL || on_expr[0] == '\0'
+                || ctx->backend_error != NULL) {
+                if (ctx->backend_error == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_INTENT_STEP,
+                        PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+                        "C intent step '%s' cannot lower bound on expression for '%s'",
+                        step_name != NULL ? step_name : "<step>",
+                        outcome_binding_name);
+                }
+                free(on_expr);
+                PGY_RESTORE_INTENT_STEP_CONTEXT(
+                    saved_host_decl, saved_overlay_receiver);
+                if (mir_only_intent) {
+                    free(on_exprs);
+                    free((void *)who_aliases);
+                    free((void *)authorized_aliases);
+                    free((void *)dispatch_aliases);
+                }
+                goto intent_emit_fail;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s const %s = %s;\n",
+                outcome_binding_c_type, outcome_binding_name, on_expr);
+            free(on_expr);
+            /* Keep the step-local type fact alive through cleanup emission so
+             * expect/post and the compensation tail lower the same binding. */
+            register_typed_var(
+                ctx, outcome_binding_name, outcome_binding_type_name);
+            if (ctx->backend_error != NULL) {
+                PGY_RESTORE_INTENT_STEP_CONTEXT(
+                    saved_host_decl, saved_overlay_receiver);
+                if (mir_only_intent) {
+                    free(on_exprs);
+                    free((void *)who_aliases);
+                    free((void *)authorized_aliases);
+                    free((void *)dispatch_aliases);
+                }
+                goto intent_emit_fail;
+            }
+        } else if (on_expr_count > 0) {
             for (size_t j = 0; j < on_expr_count; j++) {
                 char *on_expr = emit_expression(on_exprs[j], ctx);
                 if (on_expr != NULL && on_expr[0] != '\0') {

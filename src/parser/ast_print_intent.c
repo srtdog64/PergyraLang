@@ -214,7 +214,13 @@ ast_print_intent_node(ASTNode *node, int indent)
             if (node->data.intent_step.on_expr_count > 0) {
                 for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++) {
                     ast_print_indent(indent + 1);
-                    printf("On: ");
+                    if (i == 0
+                        && node->data.intent_step.outcome_binding_name != NULL) {
+                        printf("On %s: ",
+                            node->data.intent_step.outcome_binding_name);
+                    } else {
+                        printf("On: ");
+                    }
                     ast_print_inline(node->data.intent_step.on_exprs[i]);
                     printf("\n");
                 }

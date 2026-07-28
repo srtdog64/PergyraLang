@@ -1,7 +1,7 @@
 # SoT Owner Spine Registry
 
 Status: `architecture-owner-registry`  
-Date: 2026-07-28
+Date: 2026-07-29
 
 This registry fixes the first whole-compiler owner outline. It is the
 machine-gated companion to `docs/125_source_of_truth_spine.md` and
@@ -97,7 +97,7 @@ selfhost.type_runtime_usage_surface | semantic | SyntaxNodeId | SFTypeRuntimeUsa
 selfhost.node_kind_surface | semantic | SyntaxNodeId | SFNodeKindSurface | SOSemanticKindSurface | src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy | SemanticAstKindSurfaceFacts | src/self_hosted/codegen/input/ast_kind_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | TypedAstArenaNodeKindIs,CodegenAstArenaKindPresent,CodegenKindUsageFactsFromArena,CodegenAstKindArrayLiteral,CodegenAstArenaIsAbilityDecl,CodegenAstArenaIsEventDecl | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.entrypoint_selection | semantic | SyntaxNodeId | SFEntrypointSelection | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | SemanticAstArtifactIsMainFunction,CodegenAstArenaIsMainFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.function_declaration_rows | semantic | SyntaxNodeId | SFFunctionDeclarationRows | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
-selfhost.intent_declaration_rows | semantic | SyntaxNodeId | SFIntentDeclarationRows | SOSemanticIntentSignature | src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy | SemanticAstIntentSignatureFacts | src/self_hosted/semantic/ast_expression_environment_owner.pgy,src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy,src/self_hosted/dir/intent_fact_owner.pgy,src/self_hosted/dir/intent_row_owner.pgy,src/self_hosted/mir/intent_routine_owner.pgy,src/self_hosted/mir_lower/intent_lower_owner.pgy,src/self_hosted/codegen/emission/intent_emit_owner.pgy | intent_signature_as_function_row,raw_source_intent_signature,unknown_intent_parameter_success,duplicate_intent_parameter_success,value_participant_as_authority,intent_kind_fallback,commit_identity_drift,binding_type_drift,zone_alias_drift,authorization_cross_carrier,rollback_identity_drift | tests/self_hosted/parity/intent_callable_reachability_owner.sh#semantic + exact intent DIR reachability: PASS,tests/self_hosted/parity/intent_callable_execution_owner.sh#exact successful action path + MIR negatives: PASS | BRIDGE | exact intent declaration and involves/value identities reach semantic call resolution, DIR, typed MIR and the general self C consumer; the bounded successful Checkout path executes with native C/LLVM parity, but fallible expect, compensation/effect outcome and PgyCompilerWorld root-intent takeover remain open
+selfhost.intent_declaration_rows | semantic | SyntaxNodeId | SFIntentDeclarationRows | SOSemanticIntentSignature | src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy | SemanticAstIntentSignatureFacts | src/self_hosted/semantic/ast_expression_environment_owner.pgy,src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy,src/self_hosted/dir/intent_fact_owner.pgy,src/self_hosted/dir/intent_row_owner.pgy,src/self_hosted/mir/intent_routine_owner.pgy,src/self_hosted/mir/program_fact_owner.pgy,src/self_hosted/mir_lower/intent_lower_owner.pgy,src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy,src/self_hosted/codegen/emission/intent_emit_owner.pgy | intent_signature_as_function_row,raw_source_intent_signature,unknown_intent_parameter_success,duplicate_intent_parameter_success,value_participant_as_authority,intent_kind_fallback,commit_identity_drift,binding_type_drift,zone_alias_drift,authorization_cross_carrier,rollback_identity_drift,outcome_bool_collapse,variant_spelling_classification,payload_type_reinfer,predecessor_from_source_order,completion_after_any_call,compensate_ast_rescan,old_direct_orchestration | tests/self_hosted/parity/intent_callable_reachability_owner.sh#semantic + exact intent DIR reachability: PASS,tests/self_hosted/parity/intent_callable_execution_owner.sh#exact successful action path + MIR negatives: PASS,tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh#enum<tobject> binding + exact-once parity + MIR negatives: PASS | BRIDGE | exact intent declaration and involves/value identities reach semantic call resolution, DIR, typed MIR and the general self C consumer; single-step on-binding carries exact action identity/result/type and executes a dynamic expect with byte-equal direct/admitted self C plus native C/LLVM parity; typed variant branch successors, success-only completion, carried predecessor evidence, compensation/effect outcome and PgyCompilerWorld root-intent takeover remain OPEN
 selfhost.action_contract | semantic | SyntaxNodeId | SFActionContract | SOSemanticActionContract | src/self_hosted/semantic/ast_action_contract_fact_owner.pgy | SemanticAstActionContractFactsFromArtifact | src/self_hosted/semantic/ast_signature_fact_owner.pgy,src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/mir/declaration_rows_owner.pgy,src/self_hosted/mir/declaration_verify_owner.pgy,src/self_hosted/mir/declaration_json_projection_owner.pgy,src/self_hosted/mir_lower/declaration_method_contract_fact_owner.pgy,src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy,src/compiler/mir_decl_header_validate.c,src/compiler/mir_json_dump_decl.c | action_as_function_kind,action_clause_skip_to_body,action_clause_text_rescan,parser_caps_effects_discard,missing_contract_wire_success,callable_kind_default_function,backend_contract_recovery,independent_contract_vocabulary,multi_impl_role_declaration_drop | tests/self_hosted/parity/driver_rung2_action_contract_parity_owner.sh#ActionContract carriage and fail-closed wire mutations,tests/callable_contract_vocabulary_smoke.sh#18 semantic words and projections: ok | CLOSED | none
 selfhost.local_binding_statement_routing | semantic | SyntaxNodeId | SFLocalBindingStatementRouting | SOSemanticLocalBinding | src/self_hosted/semantic/ast_local_binding_fact_owner.pgy | SemanticAstLocalBindingFacts | src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsLetStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.assignment_statement_routing | semantic | SyntaxNodeId | SFAssignmentStatementRouting | SOSemanticAssignment | src/self_hosted/semantic/ast_assignment_fact_owner.pgy | SemanticAstAssignmentFacts | src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsAssignStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
@@ -176,6 +176,7 @@ src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy | Semantic
 src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | selfhost.expression_graph | bridge
 src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy | SemanticExpressionGraphFacts | selfhost.expression_graph | bridge
 src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy | SemanticAstExpressionFunctionTableFacts | selfhost.function_declaration_rows | projection
+src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy | SemanticAstIntentActionCallFact | selfhost.intent_declaration_rows | local_view
 src/self_hosted/semantic/delimited_range_fact_owner.pgy | SemanticDelimitedRangeFacts | semantic.symbol_type_graph | local_view
 src/self_hosted/semantic/expression_operator_fact_owner.pgy | SemanticTopLevelOperatorFacts | selfhost.expression_surface | local_view
 src/self_hosted/semantic/expression_cast_fact_owner.pgy | SemanticOuterCastTargetType | selfhost.expression_surface | bridge
@@ -316,6 +317,46 @@ fallback is permitted.
 The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact
 family, and which last consumers must eventually lose every alternate read.
+
+### Planned intent step transition seam (OPEN, not a registry row)
+
+The bounded single-step action-result carrier now exists: exact action stable
+identity, result name and declared return type reach `IntentOutcomeBinding`,
+`IntentEval(on)`, native C/LLVM and admitted self C. It is recorded under the
+existing intent declaration/step bridge and has executable missing/drift/
+duplicate negatives. It does not claim success/failure branch or completion
+semantics.
+
+The remaining typed branch/compensation rung needs an execution fact family
+that does not turn `selfhost.intent_declaration_rows` into a second MIR
+authority. The candidate identity is `mir.intent_step_transition`, with stable handle
+`IntentStepTransitionId`, target Coq fact/owner
+`SFIntentStepTransition`/`SOMir`, and a target authority that binds these
+subfacts under one step identity:
+
+- action outcome result definition and declared type;
+- source-declared success/failure variant and payload bindings;
+- exact branch successor blocks;
+- completion evidence produced only by a success successor;
+- the DIR-owned predecessor identity carried without source-order recovery;
+- compensation expression/action identity guarded by that completion fact.
+
+This paragraph is deliberately not inside the machine-gated registry block.
+The branch/completion Coq fact, authority path, producer term, complete
+C/LLVM/self-host consumer inventory, missing-fact diagnostics, and focused
+compensation gate do not exist yet. Until they land together, that seam is
+`OPEN`; it must not be represented as `ACTIVE`, `CLOSED`, or as an implemented
+protocol projection. The green single-step binding gate is not evidence that
+these later facts exist.
+
+The planned forbidden fallbacks are outcome-to-Bool collapse, variant spelling
+classification, payload-type reinference, predecessor reconstruction from
+source order or array position, completion after any call regardless of the
+typed branch, rollback over all earlier source indices, compensation AST/source
+rescan, native MIR grafting, and coexistence with the old direct orchestration
+path. The planned gate must cross-wire otherwise-valid result/type, variant/
+successor, predecessor, and completion identities and reject each mutation
+before emitting a partial C artifact.
 
 For `semantic.machine_layer_transition`, the self-host physical declaration
 consumer is `src/self_hosted/compiler/machine_layer_declaration_consumer.pgy`.

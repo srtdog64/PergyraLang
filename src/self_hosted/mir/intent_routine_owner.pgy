@@ -5,29 +5,8 @@
 import "routine_build_owner.pgy";
 import "routine_cfg_append_owner.pgy";
 import "routine_expression_use_owner.pgy";
+import "intent_instruction_append_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
-
-func SelfMirIntentAddInstruction(
-    build: SelfMirRoutineBuild,
-    kind: String,
-    name: String,
-    arg0: String,
-    arg1: String,
-    slot_anchor: String,
-    expr0: String,
-    source_type: String,
-    uses: Array<String>
-) -> SelfMirRoutineBuild {
-    build = SelfMirRoutineAddInstruction(
-        build, kind, name, "", arg0, arg1, expr0, "", source_type, uses
-    );
-    if slot_anchor != "" {
-        build = SelfMirRoutineWithCfg(
-            build, SelfMirCfgAttachLastSlotAnchor(build.cfg, slot_anchor)
-        );
-    }
-    return build;
-}
 
 func SelfMirIntentExpressionText(
     surfaces: SemanticAstExpressionSurfaceFacts,
@@ -111,6 +90,26 @@ func SelfMirIntentRoutineBuild(
         return SelfMirRoutineBuildError(
             build, "MIR intent projection requires participants and steps"
         );
+    }
+    let outcome_result_names: Array<String> = [];
+    let outcome_step_i: Int = 0;
+    while outcome_step_i < step_count {
+        let outcome_step_row: Int = step_start + outcome_step_i;
+        let outcome_result_name: String =
+            intents.steps.outcome_names[outcome_step_row];
+        if outcome_result_name != "" {
+            let prior_outcome: Int = 0;
+            while prior_outcome < ArrayLength(outcome_result_names) {
+                if outcome_result_names[prior_outcome] == outcome_result_name {
+                    return SelfMirRoutineBuildError(
+                        build, "MIR intent outcome result name is duplicated"
+                    );
+                }
+                prior_outcome = prior_outcome + 1;
+            }
+            ArrayPush(outcome_result_names, outcome_result_name);
+        }
+        outcome_step_i = outcome_step_i + 1;
     }
 
     build = SelfMirIntentAddInstruction(
@@ -298,10 +297,44 @@ func SelfMirIntentRoutineBuild(
                 input.analysis.expression_surfaces, on_node_id,
                 AstExpressionLaneAtom()
             );
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "IntentEval", "on", step_name, step_name, on_text,
+        let outcome_name: String = intents.steps.outcome_names[step_row];
+        let outcome_type_name: String =
+            intents.steps.outcome_type_names[step_row];
+        let action_signature_index: Int =
+            intents.steps.action_signature_indices[step_row];
+        if intents.steps.outcome_node_ids[step_row] >= 0 {
+            if outcome_name == "" || outcome_type_name == "" ||
+                outcome_type_name == "Unknown" || outcome_type_name == "Void" ||
+                action_signature_index < 0 || action_signature_index >=
+                    ArrayLength(input.analysis.signatures.function_node_ids) ||
+                input.analysis.signatures.function_node_ids[
+                    action_signature_index
+                ] <= 0 {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent outcome binding is invalid"
+                );
+            }
+            build = SelfMirIntentAddResultInstruction(
+                build, "stmt", "IntentOutcomeBinding", outcome_name,
+                ToString(input.analysis.signatures.function_node_ids[
+                    action_signature_index
+                ]),
+                step_name, outcome_name, "", "AST_INTENT_STEP",
+                outcome_type_name, SelfMirNoUses()
+            );
+        } else if outcome_name != "" || outcome_type_name != "" {
+            return SelfMirRoutineBuildError(
+                build, "MIR intent outcome binding is invalid"
+            );
+        }
+        let eval_uses: Array<String> =
+            SelfMirExpressionGraphUses(build, on_graph);
+        build = SelfMirIntentAddResultInstruction(
+            build, "stmt", "IntentEval", outcome_name, "on", step_name,
+            step_name, on_text,
             SelfMirIntentExpressionSourceType(on_graph, on_text),
-            SelfMirExpressionGraphUses(build, on_graph)
+            outcome_type_name,
+            eval_uses
         );
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, on_graph, input.machine_declaration

@@ -1,10 +1,9 @@
-// Environment owner for expression rows nested under an intent declaration.
-//
-// Intent remains outside the function/action signature SoT.  This owner only
-// projects the already-owned intent parameter rows into the shared expression
-// environment used to resolve `On` and `Expect` graphs.
-
+// Environment dispatcher for expression rows nested under an intent.
 import "ast_intent_signature_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_intent_parameter_environment_owner.pgy";
+import "ast_intent_outcome_environment_owner.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
 
 func SemanticAstIntentExpressionOwnerNodeId(
     artifact: AstTreeArtifact,
@@ -12,6 +11,11 @@ func SemanticAstIntentExpressionOwnerNodeId(
 ) -> Option<Int> {
     if !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
+    ) && !TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentStepCompensateTag()
+    ) && !TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepPostTag()
     ) && !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepExpectTag()
     ) {
@@ -36,44 +40,20 @@ func SemanticAstIntentExpressionOwnerNodeId(
     return owner_node;
 }
 
-func SemanticAstIntentExpressionSeedParameters(
+func SemanticAstIntentExpressionSeedEnvironment(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstIntentSignatureFacts,
     intent_node_id: Int,
+    expression_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
-    let intent_index: Int = -1;
-    let i: Int = 0;
-    while i < SemanticAstIntentSignatureCount(facts) {
-        if facts.intent_node_ids[i] == intent_node_id {
-            if intent_index >= 0 { return false; }
-            intent_index = i;
-        }
-        i = i + 1;
-    }
-    if intent_index < 0 { return false; }
-    let p: Int = 0;
-    while p < facts.param_counts[intent_index] {
-        let row: Int = facts.param_starts[intent_index] + p;
-        if row < 0 || row >= ArrayLength(facts.param_names) ||
-            facts.param_names[row] == "" || facts.param_types[row] == "" {
-            return false;
-        }
-        let prior: Int = 0;
-        while prior < ArrayLength(names) {
-            if names[prior] == facts.param_names[row] { return false; }
-            prior = prior + 1;
-        }
-        ArrayPush(names, facts.param_names[row]);
-        ArrayPush(types, facts.param_types[row]);
-        if facts.param_is_values[row] {
-            ArrayPush(modes, "intent_value");
-        } else {
-            ArrayPush(modes, "intent_participant");
-        }
-        p = p + 1;
-    }
-    return ArrayLength(names) == ArrayLength(types) &&
-        ArrayLength(names) == ArrayLength(modes);
+    return SemanticAstIntentExpressionSeedParameters(
+        facts, intent_node_id, names, types, modes
+    ) && SemanticAstIntentExpressionSeedOutcome(
+        artifact, signatures, facts, intent_node_id, expression_node_id,
+        names, types, modes
+    );
 }

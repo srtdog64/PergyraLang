@@ -609,7 +609,7 @@ mir_with_release_target_block(MIRRoutine *routine, const RIROp *op)
 }
 
 bool
-mir_populate_instructions(MIRRoutine *routine)
+mir_populate_instructions(MIRRoutine *routine, const DIRProgram *dir)
 {
     const RIRScope *rir_scope;
     MIRBasicBlock *entry;
@@ -630,7 +630,7 @@ mir_populate_instructions(MIRRoutine *routine)
 
     if (routine->kind == MIR_SCOPE_INTENT
         && routine->hir_routine != NULL) {
-        if (!mir_append_intent_step_instructions(routine, entry))
+        if (!mir_append_intent_step_instructions(routine, entry, dir))
             return false;
         appended_intent_steps = true;
     }
@@ -775,7 +775,7 @@ mir_populate_instructions(MIRRoutine *routine)
 
     if (!appended_intent_steps && routine->kind == MIR_SCOPE_INTENT
         && routine->hir_routine != NULL) {
-        if (!mir_append_intent_step_instructions(routine, entry))
+        if (!mir_append_intent_step_instructions(routine, entry, dir))
             return false;
     } else if (routine->hir_routine != NULL
                && !routine->hir_routine->has_cfg) {

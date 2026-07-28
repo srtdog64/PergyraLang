@@ -273,7 +273,7 @@ func SelfMirCanonicalInstructionIds(
                 instructions.uses,
                 instructions.expr0_graphs, instructions.expr1_graphs,
                 instructions.match_facts, instructions.destructure_facts,
-                instructions.runtime_call_abi
+                instructions.abi_type_names, instructions.runtime_call_abi
             )
         )
     );

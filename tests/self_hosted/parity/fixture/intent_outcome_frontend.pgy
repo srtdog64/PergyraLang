@@ -1,0 +1,48 @@
+ability Runnable {
+    func CanRun() -> Bool;
+}
+
+within WorkZone {
+    subject Worker {
+        action Finish(self) -> Int
+            requires Runnable
+            authorized by self
+        {
+            return 7;
+        }
+    }
+}
+
+role WorkerRunnable for Worker {
+    impl ability Runnable {
+        func CanRun() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone WorkZone {
+    subject slot worker: Worker
+    authority worker requires Runnable
+}
+
+intent Run(work: WorkZone, worker: Worker) {
+    step Finish {
+        using: work;
+        on outcome: worker.Finish();
+        compensate: ToString(outcome);
+        post: outcome + 1;
+        expect: outcome == 7;
+    }
+}
+
+intent LegacyRun(work: WorkZone, worker: Worker) {
+    step Finish {
+        using: work;
+        on: worker.Finish();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+}

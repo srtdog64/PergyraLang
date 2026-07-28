@@ -39,6 +39,11 @@ ASTNode *subject_decl_find_action_named(ASTNode *decl, const char *action_name);
 
 bool subject_decl_has_action_named(ASTNode *decl, const char *action_name);
 
+ASTNode *intent_step_resolve_single_on_action_decl(ASTNode *intent_decl,
+                                                   ASTNode *step,
+                                                   SemanticContext *ctx,
+                                                   const char **alias_out);
+
 bool intent_semantic_append_name(char ***items,
                                  size_t *count,
                                  size_t *capacity,

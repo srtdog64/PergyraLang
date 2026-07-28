@@ -323,6 +323,9 @@ func SelfMirJsonAbiLayoutId(layout: String) -> String {
 func SelfMirJsonAbiTypeName(
     rows: SelfMirInstructionRows, instruction_index: Int
 ) -> String {
+    if rows.abi_type_names[instruction_index] != "" {
+        return rows.abi_type_names[instruction_index];
+    }
     if rows.kinds[instruction_index] == "def" &&
         rows.source_types[instruction_index] == "AST_LET_DECL" {
         return rows.expr1s[instruction_index];

@@ -1777,7 +1777,9 @@ $(LEXER_TEST): $(BUILD_DIR)/common/arena.o $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(B
 	$(call pgy_link,)
 
 # Parser test
-$(PARSER_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
+$(PARSER_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
+                $(BUILD_DIR)/semantic/callable_contract_vocabulary.o \
+                $(PARSER_TEST_OBJECT) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
@@ -3364,6 +3366,8 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	intent-observability-abi-registry-test-smoke \
 	self-host-intent-callable-reachability-test-smoke \
 	self-host-intent-callable-execution-test-smoke \
+	self-host-intent-outcome-frontend-test-smoke \
+	self-host-intent-typed-outcome-execution-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
 	lsp-completion-registry-test-smoke \
@@ -3389,6 +3393,14 @@ self-host-intent-callable-reachability-test-smoke: $(PGY)
 self-host-intent-callable-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_callable_execution_owner.sh
+
+self-host-intent-outcome-frontend-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_outcome_frontend_parser_owner.sh
+
+self-host-intent-typed-outcome-execution-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

@@ -1,12 +1,16 @@
 #include "mir_intent.h"
 
+#include "dir.h"
+#include "mir_abi_layout.h"
 #include "mir_base_helpers.h"
 #include "mir_type_helpers.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/arena.h"
+#include "../common/string_compat.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -42,6 +46,139 @@ mir_intent_node_name(ASTNode *node)
         default:
             return NULL;
     }
+}
+
+static const DIRIntentInfo *
+mir_intent_dir_info(const DIRProgram *dir, const ASTNode *intent)
+{
+    uint32_t intent_id;
+
+    if (dir == NULL || intent == NULL || intent->type != AST_INTENT_DECL)
+        return NULL;
+    intent_id = ast_node_stable_id(intent);
+    if (intent_id == 0)
+        return NULL;
+    for (size_t i = 0; i < dir->intent_count; i++) {
+        const DIRIntentInfo *info = &dir->intents[i];
+        if (info->node_id < dir->node_count
+            && dir->nodes[info->node_id].source_syntax_id == intent_id) {
+            return info;
+        }
+    }
+    return NULL;
+}
+
+static const DIRIntentStep *
+mir_intent_dir_step(const DIRIntentInfo *info,
+                    const ASTNode *step,
+                    size_t step_index)
+{
+    const DIRIntentStep *dir_step;
+
+    if (info == NULL || step == NULL || step->type != AST_INTENT_STEP
+        || step_index >= info->step_count) {
+        return NULL;
+    }
+    dir_step = &info->steps[step_index];
+    if (dir_step->index != step_index || dir_step->ast == NULL
+        || ast_node_stable_id(dir_step->ast) != ast_node_stable_id(step)
+        || dir_step->on_expr_count != ast_intent_step_on_expr_count(step)
+        || (dir_step->outcome_binding_name == NULL)
+            != (ast_intent_step_outcome_binding_name(step) == NULL)
+        || (dir_step->outcome_binding_type_name == NULL)
+            != (ast_intent_step_outcome_binding_type_name(step) == NULL)
+        || (dir_step->outcome_binding_name != NULL
+            && strcmp(dir_step->outcome_binding_name,
+                ast_intent_step_outcome_binding_name(step)) != 0)
+        || (dir_step->outcome_binding_type_name != NULL
+            && strcmp(dir_step->outcome_binding_type_name,
+                ast_intent_step_outcome_binding_type_name(step)) != 0)
+        || dir_step->outcome_action_decl_syntax_id
+            != ast_intent_step_outcome_action_decl_syntax_id(step)) {
+        return NULL;
+    }
+    return dir_step;
+}
+
+static bool
+mir_intent_bind_outcome_result(MIRRoutine *routine,
+                               MIRInstruction *inst,
+                               const DIRIntentStep *step)
+{
+    if (routine == NULL || inst == NULL || step == NULL
+        || step->outcome_binding_name == NULL
+        || step->outcome_binding_name[0] == '\0'
+        || step->outcome_binding_type_name == NULL
+        || step->outcome_binding_type_name[0] == '\0'
+        || strcmp(step->outcome_binding_type_name, "Void") == 0
+        || step->outcome_action_decl_syntax_id == 0
+        || step->on_expr_count != 1) {
+        return false;
+    }
+    inst->result_name = pergyra_strdup(step->outcome_binding_name);
+    inst->abi_type_name = pgy_arena_strdup(
+        &routine->scratch, step->outcome_binding_type_name);
+    if (inst->result_name == NULL || inst->abi_type_name == NULL) {
+        free((void *)inst->result_name);
+        inst->result_name = NULL;
+        return false;
+    }
+    inst->type_layout = mir_abi_lookup(inst->abi_type_name);
+    return true;
+}
+
+static bool
+mir_intent_bind_outcome_fields(MIRRoutine *routine,
+                               MIRInstruction *inst,
+                               const DIRIntentStep *step)
+{
+    char action_id[16];
+    int written;
+
+    if (!mir_intent_bind_outcome_result(routine, inst, step))
+        return false;
+    written = snprintf(action_id, sizeof(action_id), "%u",
+        (unsigned)step->outcome_action_decl_syntax_id);
+    if (written <= 0 || (size_t)written >= sizeof(action_id)) {
+        free((void *)inst->result_name);
+        inst->result_name = NULL;
+        return false;
+    }
+    inst->slot_anchor = pgy_arena_strdup(
+        &routine->scratch, step->outcome_binding_name);
+    inst->arg0 = pgy_arena_strdup(&routine->scratch, action_id);
+    inst->arg1 = pgy_arena_strdup(&routine->scratch, step->name);
+    if (inst->slot_anchor == NULL || inst->arg0 == NULL
+        || inst->arg1 == NULL) {
+        free((void *)inst->result_name);
+        inst->result_name = NULL;
+        return false;
+    }
+    return true;
+}
+
+static bool
+mir_append_intent_outcome_binding(MIRRoutine *routine,
+                                  MIRBasicBlock *block,
+                                  ASTNode *step,
+                                  const DIRIntentStep *dir_step)
+{
+    MIRInstruction inst;
+
+    if (dir_step == NULL || dir_step->outcome_binding_name == NULL)
+        return true;
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_STMT;
+    inst.name = "IntentOutcomeBinding";
+    inst.ast = step;
+    mir_instruction_capture_source_provenance(&inst, step);
+    if (!mir_intent_bind_outcome_fields(routine, &inst, dir_step))
+        return false;
+    if (!mir_intent_commit_instruction(routine, block, &inst)) {
+        free((void *)inst.result_name);
+        return false;
+    }
+    return true;
 }
 
 static bool
@@ -97,17 +234,32 @@ mir_append_intent_eval(MIRRoutine *routine,
                        MIRBasicBlock *block,
                        ASTNode *step,
                        const char *eval_name,
-                       ASTNode *expr)
+                       ASTNode *expr,
+                       const DIRIntentStep *dir_step)
 {
+    MIRInstruction inst;
+
     if (expr == NULL)
         return true;
-    return mir_append_intent_stmt(routine,
-                                  block,
-                                  "IntentEval",
-                                  ast_intent_step_name(step),
-                                  eval_name,
-                                  ast_intent_step_name(step),
-                                  expr);
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_STMT;
+    inst.name = "IntentEval";
+    inst.slot_anchor = ast_intent_step_name(step);
+    inst.arg0 = eval_name;
+    inst.arg1 = ast_intent_step_name(step);
+    inst.ast = expr;
+    inst.expr0 = expr;
+    mir_instruction_capture_source_provenance(&inst, expr);
+    if (eval_name != NULL && strcmp(eval_name, "on") == 0
+        && dir_step != NULL && dir_step->outcome_binding_name != NULL) {
+        if (!mir_intent_bind_outcome_result(routine, &inst, dir_step))
+            return false;
+    }
+    if (!mir_intent_commit_instruction(routine, block, &inst)) {
+        free((void *)inst.result_name);
+        return false;
+    }
+    return true;
 }
 
 bool
@@ -477,13 +629,31 @@ mir_append_intent_step_checks(MIRRoutine *routine, MIRBasicBlock *block, ASTNode
 }
 
 static bool
-mir_append_intent_step_eval(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *step)
+mir_append_intent_step_eval(MIRRoutine *routine,
+                            MIRBasicBlock *block,
+                            ASTNode *step,
+                            const DIRIntentStep *dir_step)
 {
+    const char *ast_binding_name =
+        ast_intent_step_outcome_binding_name(step);
+
+    if ((ast_binding_name == NULL)
+            != (dir_step == NULL
+                || dir_step->outcome_binding_name == NULL)) {
+        return false;
+    }
+    if (ast_binding_name != NULL
+        && !mir_append_intent_outcome_binding(
+            routine, block, step, dir_step)) {
+        return false;
+    }
     for (size_t j = 0; j < ast_intent_step_on_expr_count(step); j++) {
-        if (!mir_append_intent_eval(routine, block, step, "on", ast_intent_step_on_exprs(step, NULL)[j]))
+        if (!mir_append_intent_eval(routine, block, step, "on",
+                ast_intent_step_on_exprs(step, NULL)[j], dir_step))
             return false;
     }
-    if (!mir_append_intent_eval(routine, block, step, "intent", ast_intent_step_intent_expr(step)))
+    if (!mir_append_intent_eval(routine, block, step, "intent",
+            ast_intent_step_intent_expr(step), NULL))
         return false;
 
     if (ast_intent_step_on_expr_count(step) == 0
@@ -508,7 +678,8 @@ mir_append_intent_step_eval(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *
                                     block,
                                     step,
                                     "compensate",
-                                    ast_intent_step_compensate_exprs(step, NULL)[j])) {
+                                    ast_intent_step_compensate_exprs(step, NULL)[j],
+                                    NULL)) {
             return false;
         }
     }
@@ -552,9 +723,12 @@ mir_append_intent_decl_contracts(MIRRoutine *routine, MIRBasicBlock *block, ASTN
 }
 
 bool
-mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
+mir_append_intent_step_instructions(MIRRoutine *routine,
+                                    MIRBasicBlock *block,
+                                    const DIRProgram *dir)
 {
     ASTNode *intent;
+    const DIRIntentInfo *dir_intent;
 
     if (routine == NULL || block == NULL || routine->hir_routine == NULL)
         return false;
@@ -562,6 +736,7 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         return true;
 
     intent = routine->hir_routine->ast;
+    dir_intent = mir_intent_dir_info(dir, intent);
     if (!mir_append_intent_bindings(routine, block, intent))
         return false;
     if (!mir_append_intent_participants(routine, block, intent))
@@ -578,8 +753,15 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         steps = ast_intent_decl_steps(intent, &step_count);
         for (size_t i = 0; i < step_count; i++) {
             ASTNode *step = steps[i];
+            const DIRIntentStep *dir_step =
+                mir_intent_dir_step(dir_intent, step, i);
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
+        if (dir_intent != NULL && dir_step == NULL)
+            return false;
+        if (ast_intent_step_outcome_binding_name(step) != NULL
+            && dir_step == NULL)
+            return false;
         if (!mir_append_intent_step_header(routine, block, step))
             return false;
         if (!mir_append_intent_step_zone(routine, block, step))
@@ -588,7 +770,7 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
             return false;
         if (!mir_append_intent_step_checks(routine, block, step))
             return false;
-        if (!mir_append_intent_step_eval(routine, block, step))
+        if (!mir_append_intent_step_eval(routine, block, step, dir_step))
             return false;
         }
     }

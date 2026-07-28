@@ -194,6 +194,10 @@ main(void)
     printf("\n");
     failures += run_intent_step_with_effects_hint_test();
     printf("\n");
+    failures += run_intent_step_outcome_binding_parse_test();
+    printf("\n");
+    failures += run_intent_step_duplicate_outcome_binding_parse_test();
+    printf("\n");
     failures += run_intent_step_using_derivation_ast_print_test();
     printf("\n");
     failures += run_intent_header_value_param_ast_test();

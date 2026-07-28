@@ -1,0 +1,54 @@
+// Canonical scalar attachment for instructions emitted by intent lowering.
+import "routine_build_owner.pgy";
+
+func SelfMirIntentAddInstruction(
+    build: SelfMirRoutineBuild,
+    kind: String,
+    name: String,
+    arg0: String,
+    arg1: String,
+    slot_anchor: String,
+    expr0: String,
+    source_type: String,
+    uses: Array<String>
+) -> SelfMirRoutineBuild {
+    build = SelfMirRoutineAddInstruction(
+        build, kind, name, "", arg0, arg1, expr0, "", source_type, uses
+    );
+    if slot_anchor != "" {
+        build = SelfMirRoutineWithCfg(
+            build, SelfMirCfgAttachLastSlotAnchor(build.cfg, slot_anchor)
+        );
+    }
+    return build;
+}
+
+func SelfMirIntentAddResultInstruction(
+    build: SelfMirRoutineBuild,
+    kind: String,
+    name: String,
+    result: String,
+    arg0: String,
+    arg1: String,
+    slot_anchor: String,
+    expr0: String,
+    source_type: String,
+    abi_type_name: String,
+    uses: Array<String>
+) -> SelfMirRoutineBuild {
+    build = SelfMirRoutineAddInstruction(
+        build, kind, name, result, arg0, arg1, expr0, "", source_type, uses
+    );
+    if slot_anchor != "" {
+        build = SelfMirRoutineWithCfg(
+            build, SelfMirCfgAttachLastSlotAnchor(build.cfg, slot_anchor)
+        );
+    }
+    if abi_type_name != "" {
+        build = SelfMirRoutineWithCfg(
+            build,
+            SelfMirCfgAttachLastAbiTypeName(build.cfg, abi_type_name)
+        );
+    }
+    return build;
+}

@@ -970,6 +970,10 @@ dir_validate(const DIRProgram *dir, char **error_message)
         }
         for (size_t j = 0; j < intent->step_count; j++) {
             const DIRIntentStep *step = &intent->steps[j];
+            const char *ast_outcome_name;
+            const char *ast_outcome_type;
+            uint32_t ast_action_id;
+            size_t ast_on_count;
             if (step->index != j) {
                 if (error_message != NULL) {
                     *error_message = dir_validate_strdup_fmt(
@@ -978,6 +982,93 @@ dir_validate(const DIRProgram *dir, char **error_message)
                         (unsigned long long)j);
                 }
                 return false;
+            }
+            if (step->ast == NULL || step->ast->type != AST_INTENT_STEP) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has no exact AST step owner",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            ast_outcome_name =
+                ast_intent_step_outcome_binding_name(step->ast);
+            ast_outcome_type =
+                ast_intent_step_outcome_binding_type_name(step->ast);
+            ast_action_id =
+                ast_intent_step_outcome_action_decl_syntax_id(step->ast);
+            ast_on_count = ast_intent_step_on_expr_count(step->ast);
+            if (step->on_expr_count != ast_on_count) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' on expression count drifted from its AST owner",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if ((step->outcome_binding_name == NULL)
+                    != (ast_outcome_name == NULL)
+                || (step->outcome_binding_type_name == NULL)
+                    != (ast_outcome_type == NULL)
+                || (step->outcome_binding_name != NULL
+                    && strcmp(step->outcome_binding_name,
+                              ast_outcome_name) != 0)
+                || (step->outcome_binding_type_name != NULL
+                    && strcmp(step->outcome_binding_type_name,
+                              ast_outcome_type) != 0)
+                || step->outcome_action_decl_syntax_id != ast_action_id) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' outcome binding metadata drifted from its semantic AST owner",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->outcome_binding_name != NULL
+                && (step->outcome_binding_name[0] == '\0'
+                    || step->outcome_binding_type_name == NULL
+                    || step->outcome_binding_type_name[0] == '\0'
+                    || strcmp(step->outcome_binding_type_name, "Void") == 0
+                    || step->outcome_action_decl_syntax_id == 0
+                    || step->on_expr_count != 1)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has incomplete outcome binding name/type/action identity or non-single on expression",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->outcome_binding_name == NULL
+                && (step->outcome_binding_type_name != NULL
+                    || step->outcome_action_decl_syntax_id != 0)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has outcome type/action identity without a binding",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->outcome_binding_name != NULL) {
+                for (size_t k = 0; k < j; k++) {
+                    const char *prior_name =
+                        intent->steps[k].outcome_binding_name;
+                    if (prior_name != NULL
+                        && strcmp(prior_name,
+                                  step->outcome_binding_name) == 0) {
+                        if (error_message != NULL) {
+                            *error_message = dir_validate_strdup_fmt(
+                                "DIR intent[%llu] outcome binding '%s' is duplicated across steps",
+                                (unsigned long long)i,
+                                step->outcome_binding_name);
+                        }
+                        return false;
+                    }
+                }
             }
             if (step->where_type_name != NULL
                 && (step->where_type_node_id == SIZE_MAX

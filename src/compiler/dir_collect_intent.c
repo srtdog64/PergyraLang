@@ -243,6 +243,13 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         step.using_derived_from_where =
             ast_intent_step_derived_using_from_where(step_node);
         step.causes_effect_name = ast_intent_step_causes_effect(step_node);
+        step.outcome_binding_name =
+            ast_intent_step_outcome_binding_name(step_node);
+        step.outcome_binding_type_name =
+            ast_intent_step_outcome_binding_type_name(step_node);
+        step.outcome_action_decl_syntax_id =
+            ast_intent_step_outcome_action_decl_syntax_id(step_node);
+        step.on_expr_count = ast_intent_step_on_expr_count(step_node);
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);
             step.causes_effect_node_id = to >= 0 ? (size_t)to : SIZE_MAX;

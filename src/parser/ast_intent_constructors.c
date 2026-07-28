@@ -62,6 +62,12 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.on_exprs = NULL;
     node->data.intent_step.on_expr_count = 0;
     node->data.intent_step.on_expr_capacity = 0;
+    node->data.intent_step.outcome_binding_name = NULL;
+    node->data.intent_step.outcome_binding_length = 0;
+    node->data.intent_step.outcome_binding_line = 0;
+    node->data.intent_step.outcome_binding_column = 0;
+    node->data.intent_step.outcome_binding_type_name = NULL;
+    node->data.intent_step.outcome_action_decl_syntax_id = 0;
     node->data.intent_step.compensate_exprs = NULL;
     node->data.intent_step.compensate_expr_count = 0;
     node->data.intent_step.compensate_expr_capacity = 0;

@@ -6,6 +6,8 @@
 #include "mir.h"
 
 bool mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block);
-bool mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block);
+bool mir_append_intent_step_instructions(MIRRoutine *routine,
+                                         MIRBasicBlock *block,
+                                         const DIRProgram *dir);
 
 #endif

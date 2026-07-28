@@ -1,0 +1,84 @@
+// Exact DIR outcome/action contract validation for one intent step.
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../semantic/ast_intent_action_call_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "intent_row_owner.pgy";
+import "intent_step_fact_owner.pgy";
+
+func SelfDirIntentStepOutcomeContractReady(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    participants: SelfDirIntentParticipantFacts,
+    participant_starts: Array<Int>,
+    participant_counts: Array<Int>,
+    step_starts: Array<Int>,
+    step_counts: Array<Int>,
+    steps: SelfDirIntentStepFacts,
+    step_index: Int
+) -> Bool {
+    let owner_intent: Int = -1;
+    let intent_scan: Int = 0;
+    while intent_scan < ArrayLength(step_starts) {
+        if step_index >= step_starts[intent_scan] &&
+            step_index < step_starts[intent_scan] + step_counts[intent_scan] {
+            if owner_intent >= 0 { return false; }
+            owner_intent = intent_scan;
+        }
+        intent_scan = intent_scan + 1;
+    }
+    if owner_intent < 0 { return false; }
+    let exact_receiver_row: Int = SelfDirIntentParticipantIndex(
+        participants.aliases, participant_starts[owner_intent],
+        participant_counts[owner_intent], steps.receiver_aliases[step_index]
+    );
+    if exact_receiver_row < 0 { return false; }
+    let exact_action_index: Int = SemanticAstIntentActionSignatureIndex(
+        signatures, participants.type_names[exact_receiver_row],
+        steps.action_names[step_index]
+    );
+    if exact_action_index != steps.action_signature_indices[step_index] {
+        return false;
+    }
+    let artifact_outcome_node_id: Int = -1;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, steps.node_ids[step_index], child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentStepOutcomeTag()
+        ) {
+            if artifact_outcome_node_id >= 0 { return false; }
+            artifact_outcome_node_id = child_id;
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, steps.node_ids[step_index], child_index
+        );
+    }
+    if artifact_outcome_node_id != steps.outcome_node_ids[step_index] {
+        return false;
+    }
+    if steps.outcome_node_ids[step_index] < 0 {
+        return steps.outcome_names[step_index] == "" &&
+            steps.outcome_type_names[step_index] == "";
+    }
+    let outcome_atom: Option<String> = TypedAstArenaAtomText(
+        artifact.arena, steps.outcome_node_ids[step_index]
+    );
+    return IsSome(outcome_atom) &&
+        UnwrapOption(outcome_atom) == steps.outcome_names[step_index] &&
+        SelfDirIntentParticipantIndex(
+            participants.aliases, participant_starts[owner_intent],
+            participant_counts[owner_intent], steps.outcome_names[step_index]
+        ) < 0 && TypedAstArenaNodeKindIs(
+            artifact.arena, steps.outcome_node_ids[step_index],
+            TypedAstKindIntentStepOutcomeTag()
+        ) && steps.outcome_names[step_index] != "" &&
+        steps.outcome_type_names[step_index] != "" &&
+        steps.outcome_type_names[step_index] != "Unknown" &&
+        steps.outcome_type_names[step_index] != "Void" &&
+        steps.outcome_type_names[step_index] ==
+            signatures.return_types[exact_action_index];
+}

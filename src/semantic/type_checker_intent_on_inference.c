@@ -61,11 +61,11 @@ intent_on_call_action(ASTNode *intent_decl,
     return subject_decl_find_action_named(subject_decl, method_name);
 }
 
-static ASTNode *
-intent_single_on_action(ASTNode *intent_decl,
-                        ASTNode *step,
-                        SemanticContext *ctx,
-                        const char **alias_out)
+ASTNode *
+intent_step_resolve_single_on_action_decl(ASTNode *intent_decl,
+                                          ASTNode *step,
+                                          SemanticContext *ctx,
+                                          const char **alias_out)
 {
     ASTNode *matched_action = NULL;
     const char *matched_alias = NULL;
@@ -314,7 +314,7 @@ intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
                                               SemanticContext *ctx)
 {
     const char *receiver_alias = NULL;
-    ASTNode *action_decl = intent_single_on_action(
+    ASTNode *action_decl = intent_step_resolve_single_on_action_decl(
         intent_decl, step, ctx, &receiver_alias);
 
     if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)

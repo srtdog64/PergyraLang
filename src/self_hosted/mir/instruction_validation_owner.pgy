@@ -8,7 +8,8 @@ func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
         name == "IntentZoneWhere" || name == "IntentZoneAlias" ||
         name == "IntentInvalidationTarget" || name == "IntentWho" ||
         name == "IntentAuthorizedBy" || name == "IntentCauses" ||
-        name == "IntentCheck" || name == "IntentEval";
+        name == "IntentOutcomeBinding" || name == "IntentCheck" ||
+        name == "IntentEval";
 }
 
 func SelfMirIntentCarrierInstruction(
@@ -50,7 +51,30 @@ func SelfMirIntentCarrierInstruction(
         rows.names[index] == "IntentEval" {
         return rows.source_types[index] != "" &&
             rows.expr0s[index] != "" &&
-            rows.expr0_graphs.has_roots[index] == 1;
+            rows.expr0_graphs.has_roots[index] == 1 &&
+            ((rows.results[index] == "" &&
+              rows.abi_type_names[index] == "") ||
+             (rows.names[index] == "IntentEval" &&
+              rows.results[index] != "" &&
+              rows.abi_type_names[index] != "" &&
+              rows.abi_type_names[index] != "Unknown" &&
+              rows.abi_type_names[index] != "Void"));
+    }
+    if rows.names[index] == "IntentOutcomeBinding" {
+        return rows.source_types[index] == "AST_INTENT_STEP" &&
+            rows.results[index] != "" && rows.arg0s[index] != "" &&
+            ToInt(rows.arg0s[index]) > 0 &&
+            ToString(ToInt(rows.arg0s[index])) == rows.arg0s[index] &&
+            rows.arg1s[index] != "" &&
+            rows.slot_anchors[index] == rows.results[index] &&
+            rows.abi_type_names[index] != "" &&
+            rows.abi_type_names[index] != "Unknown" &&
+            rows.abi_type_names[index] != "Void" &&
+            rows.use_counts[index] == 0 &&
+            rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
+            rows.expr0_graphs.has_roots[index] == 0 &&
+            rows.expr1_graphs.has_roots[index] == 0 &&
+            rows.runtime_call_abi.present[index] == 0;
     }
     return (rows.source_types[index] == "AST_INTENT_STEP" ||
             rows.source_types[index] == "AST_INTENT_INVOLVES" ||
@@ -74,6 +98,9 @@ func SelfMirInstructionRowsValidationError(
     if ArrayLength(rows.expr1s) != count { return "expr1 row count differs"; }
     if ArrayLength(rows.source_types) != count {
         return "source-type row count differs";
+    }
+    if ArrayLength(rows.abi_type_names) != count {
+        return "ABI type-name row count differs";
     }
     if ArrayLength(rows.machine_contact_kinds) != count {
         return "machine-contact row count differs";

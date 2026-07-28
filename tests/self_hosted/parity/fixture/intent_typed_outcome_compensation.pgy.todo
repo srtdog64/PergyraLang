@@ -1,0 +1,34 @@
+// PLANNED/OPEN semantic fixture contract. This is intentionally not valid,
+// runnable Pergyra source and is not an aggregate-gate input.
+//
+// The step-local typed binding spelling is fixed as
+// `on outcome: subject.Action(...);`. Typed variant branching, success-only
+// completion evidence, carried predecessor identity, and compensation syntax
+// are not fixed yet. Do not implement this fixture by hiding the outcome in a
+// subject field, converting it to Bool/literal expect, or matching variant-name
+// strings.
+//
+// Required scenario:
+//
+// subject WorkflowActor owns observable forward/compensation counters/state.
+// action A returns OutcomeA::Succeeded(ReceiptA) or Failed(FailureA).
+// action B consumes ReceiptA and returns OutcomeB::Succeeded(ReceiptB) or
+// Failed(FailureB).
+// compensation action UndoA consumes exact predecessor-A evidence.
+// compensation action UndoB exists so the failure run can prove it was not run.
+//
+// Success execution:
+//   bind A outcome -> success case ReceiptA payload is consumed by B
+//   bind B outcome -> success case ReceiptB payload changes final observation
+//   UndoA=0, UndoB=0
+//
+// Failure execution:
+//   A succeeds and produces a consumed ReceiptA
+//   B returns a typed FailureB whose payload changes the exact failure output
+//   B has no success-completion fact
+//   rollback follows B -> A predecessor evidence
+//   UndoA=1, UndoB=0, final forward state restored
+//
+// The implemented fixture must have a success run and a real injected failure
+// run. Merely parsing these declarations or emitting carrier names is not
+// executable evidence.

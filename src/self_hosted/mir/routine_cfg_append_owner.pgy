@@ -68,6 +68,7 @@ func SelfMirAppendCfg(
     let use_starts: Array<Int> = target_instructions.use_starts;
     let use_counts: Array<Int> = target_instructions.use_counts;
     let uses: Array<String> = target_instructions.uses;
+    let abi_type_names: Array<String> = target_instructions.abi_type_names;
     let use_offset: Int = ArrayLength(uses);
     let instruction_i: Int = 0;
     while instruction_i < ArrayLength(source.instructions.ids) {
@@ -130,6 +131,9 @@ func SelfMirAppendCfg(
             source.instructions.use_starts[instruction_i] + use_offset
         );
         ArrayPush(use_counts, source.instructions.use_counts[instruction_i]);
+        ArrayPush(
+            abi_type_names, source.instructions.abi_type_names[instruction_i]
+        );
         instruction_i = instruction_i + 1;
     }
     let use_i: Int = 0;
@@ -178,7 +182,7 @@ func SelfMirAppendCfg(
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
             expr0_graphs, expr1_graphs, match_facts, destructure_facts,
-            runtime_call_abi
+            abi_type_names, runtime_call_abi
         )
     );
 }

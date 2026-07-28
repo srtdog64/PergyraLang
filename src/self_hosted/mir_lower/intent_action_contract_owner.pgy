@@ -1,0 +1,149 @@
+// Exact action identity and return contract facts consumed by intent lowering.
+import "program_routine_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "declaration_method_contract_fact_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+struct MirIntentActionGraphFact {
+    ok: Bool;
+    receiver_alias: String;
+    action_name: String;
+    call_target_name: String;
+}
+
+struct MirIntentActionContractFact {
+    ok: Bool;
+    return_type_name: String;
+    action_syntax_id: String;
+}
+
+func MirIntentActionGraphFromInstruction(
+    ref routines: MirProgramRoutineIndex,
+    instruction_global_row: Int,
+    expression_text: String
+) -> MirIntentActionGraphFact {
+    if instruction_global_row < 0 || instruction_global_row >=
+        ArrayLength(routines.instruction_starts) {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json,
+        routines.instruction_starts[instruction_global_row],
+        routines.instruction_ends[instruction_global_row]
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let root: Int = sequence.roots[0];
+    if root < 0 || root >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.node_texts[root] != expression_text {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let call_node: Int = root;
+    while sequence.arena.topology.node_kinds[call_node] ==
+        AstExpressionNodeCallArgument() {
+        call_node = sequence.arena.topology.left_children[call_node];
+    }
+    if sequence.arena.topology.node_kinds[call_node] !=
+            AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[call_node] !=
+            SemanticCallTargetMember() ||
+        sequence.arena.call_target_names[call_node] == "" {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let member_node: Int =
+        sequence.arena.topology.left_children[call_node];
+    if sequence.arena.topology.node_kinds[member_node] !=
+        AstExpressionNodeMemberAccess() {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let receiver_node: Int =
+        sequence.arena.topology.left_children[member_node];
+    let action_node: Int =
+        sequence.arena.topology.right_children[member_node];
+    if sequence.arena.topology.node_kinds[receiver_node] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[action_node] !=
+            AstExpressionNodeLeaf() {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    let receiver_alias: String = sequence.arena.node_texts[receiver_node];
+    let action_name: String = sequence.arena.node_texts[action_node];
+    if !IsIdentifier(receiver_alias) || !IsIdentifier(action_name) {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
+    return MirIntentActionGraphFact(
+        true, receiver_alias, action_name,
+        sequence.arena.call_target_names[call_node]
+    );
+}
+
+func MirIntentActionContract(
+    ref routines: MirProgramRoutineIndex,
+    owner_name: String,
+    action_name: String
+) -> MirIntentActionContractFact {
+    let match_count: Int = 0;
+    let return_type_name: String = "";
+    let action_syntax_id: String = "";
+    let declaration_row: Int = 0;
+    while declaration_row < MirProgramDeclarationIndexCount(
+        routines.declarations
+    ) {
+        if routines.declarations.names[declaration_row] == owner_name &&
+            routines.declarations.nominal_kinds[declaration_row] == "subject" {
+            let declaration: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                    routines.source_json,
+                    routines.declarations.starts[declaration_row],
+                    routines.declarations.ends[declaration_row]
+                );
+            let methods: JsonArrayObjectFactTable =
+                JsonObjectFactArrayObjectTable(declaration, "methods");
+            let method_row: Int = 0;
+            while method_row < JsonArrayObjectFactCount(methods) {
+                let method: JsonObjectFactTable = JsonArrayObjectFactAt(
+                    methods, method_row
+                );
+                let method_name: Option<String> =
+                    JsonObjectFactStringFieldOpt(method, "name");
+                if IsSome(method_name) &&
+                    UnwrapOption(method_name) == action_name {
+                    let contract: MirDeclarationMethodContractFact =
+                        MirDeclarationMethodContractFactFromBounds(
+                            routines.source_json, method.start, method.end
+                        );
+                    let return_type: Option<String> =
+                        JsonObjectFactStringFieldOpt(method, "return");
+                    if !contract.valid || contract.callable_kind != "action" ||
+                        !IsSome(return_type) || UnwrapOption(return_type) == "" {
+                        return MirIntentActionContractFact(false, "", "");
+                    }
+                    match_count = match_count + 1;
+                    return_type_name = UnwrapOption(return_type);
+                }
+                method_row = method_row + 1;
+            }
+        }
+        declaration_row = declaration_row + 1;
+    }
+    let routine_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
+        routines, owner_name, action_name
+    );
+    if IsSome(routine_row) {
+        action_syntax_id = routines.source_syntax_ids[UnwrapOption(routine_row)];
+    }
+    return MirIntentActionContractFact(
+        match_count == 1 && return_type_name != "" &&
+            action_syntax_id != "" && ToInt(action_syntax_id) > 0 &&
+            ToString(ToInt(action_syntax_id)) == action_syntax_id,
+        return_type_name, action_syntax_id
+    );
+}

@@ -191,6 +191,8 @@ func ParseIntentDecl(
             let s_using: String = "";
             let s_who: String = "";
             let s_on: String = "";
+            let s_outcome: String = "";
+            let s_on_seen: Bool = false;
             let s_guard: String = "";
             let s_expect: String = "";
             let s_requires: String = "";
@@ -202,6 +204,8 @@ func ParseIntentDecl(
             let s_intent: String = "";
             let s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_compensate_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
@@ -256,6 +260,20 @@ func ParseIntentDecl(
                         clause = "authorized by";
                     }
                 }
+                if clause == "on" {
+                    if s_on_seen { Exit(1); }
+                    s_on_seen = true;
+                    let on_head: Int = SkipWhitespaceAndComments(content, i);
+                    if ParserCharAt(content, on_head) != ":" {
+                        if on_head >= n || !SourceByteIsAlpha(
+                            SourceByteAt(content, n, on_head)
+                        ) { Exit(1); }
+                        ArraySet(cursor_out, 0, on_head);
+                        s_outcome = ReadIdent(content, on_head, cursor_out);
+                        i = cursor_out[0];
+                        if s_outcome == "" { Exit(1); }
+                    }
+                }
                 i = Expect(content, i, ":");
                 if i < 0 {
                     Exit(1);
@@ -279,6 +297,8 @@ func ParseIntentDecl(
                     val = val_fact.text;
                     if clause == "on" { s_on_fact = val_fact; }
                     if clause == "expect" { s_expect_fact = val_fact; }
+                    if clause == "compensate" { s_compensate_fact = val_fact; }
+                    if clause == "post" { s_post_fact = val_fact; }
                     i = cursor_out[0];
                 }
                 i = Expect(content, i, ";");
@@ -341,6 +361,9 @@ func ParseIntentDecl(
             if StringLength(s_intent) > 0 {
                 step_out = AppendLine(step_out, Concat("      Intent: ", s_intent));
             }
+            if StringLength(s_outcome) > 0 {
+                step_out = AppendLine(step_out, Concat("      Outcome: ", s_outcome));
+            }
             if StringLength(s_on) > 0 {
                 step_out = AppendLine(step_out, Concat("      On: ", s_on));
             }
@@ -369,6 +392,19 @@ func ParseIntentDecl(
                 ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
                     expression_graphs[0], TypedAstKindIntentStepOnTag(),
                     AstExpressionLaneAtom(), s_on_fact
+                ));
+            }
+            if StringLength(s_compensate) > 0 {
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+                    expression_graphs[0],
+                    TypedAstKindIntentStepCompensateTag(),
+                    AstExpressionLaneAtom(), s_compensate_fact
+                ));
+            }
+            if StringLength(s_post) > 0 {
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+                    expression_graphs[0], TypedAstKindIntentStepPostTag(),
+                    AstExpressionLaneAtom(), s_post_fact
                 ));
             }
             if StringLength(s_expect) > 0 {

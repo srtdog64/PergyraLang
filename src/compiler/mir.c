@@ -501,7 +501,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         MIR_TIMED_STEP(MIR_TIMING_CLEANUP_BLOCK,
                        mir_append_cleanup_block(&routine, routine.rir_scope));
         MIR_TIMED_STEP(MIR_TIMING_POPULATE_INSTS,
-                       mir_populate_instructions(&routine));
+                       mir_populate_instructions(&routine, dir));
         MIR_TIMED_STEP(MIR_TIMING_SSA_RENAME,
                        mir_apply_ssa_rename(&routine));
         MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
