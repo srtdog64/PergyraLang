@@ -72,6 +72,60 @@ dir_intent_branch_matches_ast(const DIRIntentOutcomeBranch *branch,
             == ast_intent_step_outcome_enum_decl_syntax_id(step);
 }
 
+static bool
+dir_intent_terminal_matches_ast(const DIRIntentTerminal *terminal,
+                                const ASTNode *intent,
+                                bool success,
+                                size_t failure_index)
+{
+    return terminal != NULL
+        && dir_nullable_string_equal(
+            terminal->result_type_name,
+            ast_intent_decl_terminal_result_type_name(
+                intent, success, failure_index))
+        && terminal->result_enum_decl_syntax_id
+            == ast_intent_decl_terminal_result_enum_decl_syntax_id(
+                intent, success, failure_index)
+        && terminal->result_variant_index
+            == ast_intent_decl_terminal_result_variant_index(
+                intent, success, failure_index)
+        && dir_nullable_string_equal(
+            terminal->result_variant_name,
+            ast_intent_decl_terminal_result_variant_name(
+                intent, success, failure_index))
+        && dir_nullable_string_equal(
+            terminal->result_payload_name,
+            ast_intent_decl_terminal_result_payload_name(
+                intent, success, failure_index))
+        && dir_nullable_string_equal(
+            terminal->result_payload_type_name,
+            ast_intent_decl_terminal_result_payload_type_name(
+                intent, success, failure_index));
+}
+
+static bool
+dir_intent_terminal_matches_source(
+    const DIRIntentTerminal *terminal,
+    const DIRIntentOutcomeBranch *source_branch,
+    const char *return_type_name,
+    uint32_t result_enum_decl_syntax_id)
+{
+    return terminal != NULL && source_branch != NULL
+        && terminal->result_enum_decl_syntax_id != 0
+        && terminal->result_enum_decl_syntax_id
+            == result_enum_decl_syntax_id
+        && terminal->result_variant_index != SIZE_MAX
+        && terminal->result_variant_name != NULL
+        && terminal->result_variant_name[0] != '\0'
+        && dir_nullable_string_equal(
+            terminal->result_type_name, return_type_name)
+        && dir_nullable_string_equal(
+            terminal->result_payload_name, source_branch->payload_name)
+        && dir_nullable_string_equal(
+            terminal->result_payload_type_name,
+            source_branch->payload_type_name);
+}
+
 const char *
 dir_node_kind_name(DIRNodeKind kind)
 {
@@ -1234,6 +1288,15 @@ dir_validate(const DIRProgram *dir, char **error_message)
                     intent->success_terminal.step_name,
                     intent->steps[intent->step_count - 1].name)
                 || intent->success_terminal.expr == NULL
+                || !dir_intent_terminal_matches_ast(
+                    &intent->success_terminal,
+                    intent->ast,
+                    true, 0)
+                || !dir_intent_terminal_matches_source(
+                    &intent->success_terminal,
+                    &intent->steps[intent->step_count - 1].success_branch,
+                    intent->return_type_name,
+                    intent->success_terminal.result_enum_decl_syntax_id)
                 || intent->failure_terminal_count != intent->step_count
                 || (intent->failure_terminal_count > 0
                     && intent->failure_terminals == NULL)) {
@@ -1253,7 +1316,16 @@ dir_validate(const DIRProgram *dir, char **error_message)
                     || !dir_nullable_string_equal(
                         terminal->step_name,
                         intent->steps[terminal->step_index].name)
-                    || terminal->expr == NULL) {
+                    || terminal->expr == NULL
+                    || !dir_intent_terminal_matches_ast(
+                        terminal,
+                        intent->ast,
+                        false, j)
+                    || !dir_intent_terminal_matches_source(
+                        terminal,
+                        &intent->steps[terminal->step_index].failure_branch,
+                        intent->return_type_name,
+                        intent->success_terminal.result_enum_decl_syntax_id)) {
                     if (error_message != NULL) {
                         *error_message = dir_validate_strdup_fmt(
                             "DIR typed intent[%llu] failure terminal[%llu] identity drifted",

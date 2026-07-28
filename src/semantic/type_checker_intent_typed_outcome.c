@@ -299,6 +299,87 @@ intent_typed_resolve_step_branches(ASTNode *step,
 }
 
 bool
+intent_typed_resolve_terminal_result(ASTNode *intent,
+                                     bool success_terminal,
+                                     size_t failure_index,
+                                     ASTNode *source_step,
+                                     Type *return_type,
+                                     Type *source_payload_type,
+                                     SemanticContext *ctx)
+{
+    ASTNode *terminal_expr = success_terminal
+        ? ast_intent_decl_success_terminal_expr(intent)
+        : ast_intent_decl_failure_terminal_expr(intent, failure_index);
+    ASTNode *callee;
+    ASTNode *payload_expr;
+    ASTNode *return_enum;
+    ASTNode *result_payload_type_ast;
+    Type *result_payload_type;
+    const char *variant_name;
+    const char *payload_name = success_terminal
+        ? ast_intent_step_success_payload_name(source_step)
+        : ast_intent_step_failure_payload_name(source_step);
+    size_t variant_index = SIZE_MAX;
+
+    if (intent == NULL || source_step == NULL || terminal_expr == NULL
+        || return_type == NULL || return_type == TYPE_UNKNOWN
+        || return_type->name == NULL || source_payload_type == NULL
+        || source_payload_type == TYPE_UNKNOWN
+        || source_payload_type->name == NULL || payload_name == NULL) {
+        return intent_typed_report_invalid(ctx, terminal_expr,
+            "Typed intent terminal for step '%s' has no complete source/result carrier.",
+            source_step != NULL ? ast_intent_step_name(source_step) : "<step>");
+    }
+    if (terminal_expr->type != AST_CALL
+        || ast_call_callee(terminal_expr) == NULL
+        || ast_call_callee(terminal_expr)->type != AST_IDENTIFIER
+        || ast_call_arg_count(terminal_expr) != 1) {
+        return intent_typed_report_invalid(ctx, terminal_expr,
+            "Typed intent terminal for step '%s' must construct one exact result enum variant from its carried payload binding.",
+            ast_intent_step_name(source_step));
+    }
+    callee = ast_call_callee(terminal_expr);
+    payload_expr = ast_call_argument(terminal_expr, 0);
+    variant_name = ast_identifier_name(callee);
+    if (payload_expr == NULL || payload_expr->type != AST_IDENTIFIER
+        || ast_identifier_name(payload_expr) == NULL
+        || strcmp(ast_identifier_name(payload_expr), payload_name) != 0) {
+        return intent_typed_report_invalid(ctx, terminal_expr,
+            "Typed intent terminal must carry the exact admitted payload binding '%s'; rebuilding or substituting the payload is forbidden.",
+            payload_name);
+    }
+    return_enum = semantic_find_enum_decl_by_name(ctx, return_type->name);
+    if (return_enum == NULL || ast_node_stable_id(return_enum) == 0
+        || !intent_typed_find_variant(
+            return_enum, variant_name, &variant_index)
+        || ast_enum_variant_param_count(return_enum, variant_index) != 1) {
+        return intent_typed_report_invalid(ctx, terminal_expr,
+            "Typed intent terminal result '%s' must be one exact single-payload variant of the declared return enum with stable identity.",
+            variant_name != NULL ? variant_name : "<variant>");
+    }
+    result_payload_type_ast = ast_enum_variant_param(
+        return_enum, variant_index, 0);
+    result_payload_type = intent_normalize_type(
+        intent_resolve_type_ref(result_payload_type_ast, ctx));
+    if (result_payload_type == TYPE_UNKNOWN
+        || result_payload_type->name == NULL
+        || !type_equals(result_payload_type, source_payload_type)) {
+        return intent_typed_report_invalid(ctx, terminal_expr,
+            "Typed intent terminal result payload must exactly match carried type '%s'.",
+            source_payload_type->name);
+    }
+    if (!ast_intent_decl_set_terminal_result_resolution_copy(
+            intent, success_terminal, failure_index, return_type->name,
+            ast_node_stable_id(return_enum), variant_index, variant_name,
+            payload_name, source_payload_type->name)) {
+        semantic_error(ctx, terminal_expr,
+            "Out of memory while sealing typed intent terminal result");
+        return false;
+    }
+    return true;
+}
+
+bool
 intent_typed_declare_payload_binding(ASTNode *step,
                                      bool success_branch,
                                      Type *payload_type,

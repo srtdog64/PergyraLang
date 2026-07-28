@@ -1,6 +1,6 @@
 # Typed Intent Execution Transition Contract
 
-Status: `OPEN / frontend, DIR, and fact owner landed; MIR producer, JSON admission, CFG, and execution consumer pending`
+Status: `OPEN / native MIR plan and C/LLVM execution landed; self JSON admission and hard substitution pending`
 Date: 2026-07-29
 
 ## Objective card
@@ -130,12 +130,11 @@ nominal declaration owns the tobject shape; the enum declaration owns the
 variant payload type; the step transition owns the branch-local payload
 definition; the terminal transition owns its last legitimate use.
 
-The MIR declaration JSON does not yet carry stable declaration IDs for enum or
-tobject declarations.  The producer must therefore seal the semantic enum
-node ID, while admission cross-checks the composite variant row and nominal
-declaration kind/name/type.  Adding stable declaration IDs to `pgy.mir.v1` is
-a separate SoT closure item; it must not be approximated with a name-only
-success/failure rule.
+MIR declaration headers and JSON now carry their stable source syntax IDs.
+The producer seals the semantic enum and tobject declaration IDs, while the
+plan validator cross-checks the composite variant row and nominal declaration
+kind/name/type.  A consumer must not approximate either join with a name-only
+success/failure or payload-type rule.
 
 ## Current implementation and promotion rule
 
@@ -147,26 +146,38 @@ is `tests/self_hosted/parity/intent_execution_fact_contract_owner.sh`.
 Native and self frontend/DIR now preserve `IntentReturns`, explicit `after`,
 step success/failure payload patterns and labeled terminals.  The focused
 frontend gate is
-`tests/self_hosted/parity/intent_typed_transition_frontend_owner.sh`.  This is
-still carrier and validation evidence: current native MIR JSON emits no step or
-terminal transition rows, the intent routine has no typed return signature, and
-the HIR CFG has no outcome-tag branch successors.  Native C consequently still
-emits a `Bool` intent and cannot define the predecessor payload binding.  A
-codegen-side AST rescan is forbidden rather than a temporary implementation.
+`tests/self_hosted/parity/intent_typed_transition_frontend_owner.sh`.
+
+Native MIR now preserves the exact intent return signature, materializes one
+validated `MIRIntentExecutionPlan`, and projects it as
+`pgy.selfhost.mir-intent-execution-plan.v1`.  Its step and terminal rows bind
+stable declaration, variant, payload-definition, predecessor, completion and
+compensation identities.  Native C and LLVM return early into target-specific
+projections of that plan; typed mode does not fall through to the legacy Bool
+emitter or rescan the AST.  The native execution gate
+`tests/intent_typed_transition_native_execution_smoke.sh` observes success,
+`failure A`, `failure B`, failure-B compensation of completed A only, and
+reverse traversal of multiple predecessor compensations on both backends.
+
+The self producer also preserves the exact typed routine result signature and
+its target-neutral in-memory fact owner is split into schema, digest and fact
+responsibilities.  The remaining executable boundary is the self top-level MIR
+JSON read/admission: it does not yet cache and cross-seal the native routine
+return and execution plan, so admitted self C parity remains deliberately
+fail-closed rather than borrowing the native plan.
 
 This is not substitution evidence yet.  The seam remains `OPEN` until all of
 the following land together:
 
-1. MIR routine return signature plus typed transition production from the
-   landed semantic/DIR rows;
-2. MIR JSON projection and one admission read into `MirIntentExecutionPlan`;
-3. exact instruction and outcome-tag CFG joins;
-4. a production intent entrypoint that consumes the admitted plan;
-5. self C, native C, and native LLVM parity for success, `failure A`, and
-   `failure B`;
-6. valid-MIR mutations rejected before any partial C artifact;
-7. deletion and ratcheting of the legacy direct branch/rollback bypass for the
-   typed mode.
+1. self MIR JSON admission reads the native projection once into the Pergyra
+   execution-plan owner and cross-seals its routine result signature;
+2. admitted self C consumes that plan without source, AST, name or row-order
+   recovery;
+3. self C, native C, and native LLVM parity holds for success, `failure A`,
+   `failure B`, and ordered multiple compensation;
+4. valid-MIR mutations are rejected before any partial self C artifact;
+5. the production self-host entrypoint reaches the plan consumer and its old
+   direct branch/rollback bypass is deleted and ratcheted.
 
 Only then may the two owner rows be promoted to `ACTIVE` and later `CLOSED` in
 `docs/semantics/sot_owner_spine_registry.md`.

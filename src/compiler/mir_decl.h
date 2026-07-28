@@ -201,6 +201,10 @@ typedef struct
 typedef struct
 {
     ASTNodeType  ast_type;
+    /* Stable source identity of the declaration itself.  Consumers that
+     * cross-seal nominal or enum facts must never recover this identity from
+     * a declaration name or inventory position. */
+    uint32_t     source_syntax_id;
     const char  *name;
     char        *type_alias_target_type_name;
     int          intent_retry_count;

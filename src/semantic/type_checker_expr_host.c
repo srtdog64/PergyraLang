@@ -208,6 +208,18 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
 
+    if (ast_node_stable_id(method) == 0
+        || !ast_call_set_semantic_callee_decl_id(
+            expr, ast_node_stable_id(method))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE,
+            PGY_FIX_USE_CALLABLE_DECLARATION,
+            expr,
+            "Resolved host method/action call has no stable declaration identity");
+        return TYPE_UNKNOWN;
+    }
+
     method_name = ast_declaration_name(method);
     method_display = method_name != NULL ? method_name : "<method>";
     if (host_decl != NULL && host_decl != current_host_decl(ctx)) {

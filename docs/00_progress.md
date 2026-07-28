@@ -2,6 +2,37 @@
 
 마지막 업데이트: 2026-07-29
 
+## 2026-07-29 native typed intent plan 실행 checkpoint
+
+- `tobject`는 이번 경계의 해법이 맞지만 역할은 명확히 제한했다. Action은
+  immutable detached `Receipt`/`Problem` payload를 `enum<tobject>`로 반환하고,
+  MIR transition plan은 step identity, predecessor, success-only completion,
+  compensation 순서와 terminal control flow를 소유한다. `tobject`가 권한이나
+  실행 그래프를 소유하는 우회는 금지한다.
+- Native semantic/DIR에서 확정한 exact enum/variant/payload와 intent return type이
+  이제 `MIRIntentExecutionPlan`으로 내려간다. Declaration stable syntax ID,
+  predecessor transition ID, branch-local payload definition, completion,
+  ordered compensation, terminal result identity를 한 번 검증하고
+  `pgy.selfhost.mir-intent-execution-plan.v1` JSON으로 투영한다.
+- Native C와 LLVM은 typed plan이 있으면 legacy Bool intent emitter로 떨어지지
+  않고 그 plan을 직접 소비한다. Success, failure A, failure B가 서로 다른 exact
+  payload를 반환하고, B failure는 완료된 A만 보상하며, 복수 보상은 양 backend
+  모두 역순으로 실행된다.
+- 통합 LLVM compiler rebuild, native typed execution gate, MIR 157/157,
+  self frontend/fact/result-signature gate가 모두 PASS다. 후속 MIR smoke에서 찾은
+  self JSON admission 회귀도 닫았다. Native writer의 exact empty two-array
+  `domain_runtime_assignments`는 topology가 없을 때만 semantic absent로
+  정규화하고, non-empty stray row는 partial AST 없이 fail-close한다.
+- Self frontend/DIR/MIR은 `legacy_bool`과 typed result signature를 구분해 운반하고
+  target-neutral execution fact owner도 schema/digest/fact 책임으로 분리했다.
+  하지만 self top-level MIR JSON admission은 아직 routine result와 plan을 한 번
+  index/cross-seal하지 못한다. 따라서 이 checkpoint는 native executable
+  `REACHABLE`이며 hard self-host `SUBSTITUTING`은 아니다.
+- 다음 executable falsifier는 self JSON reader가 native projection을 source/name/
+  row-order 복원 없이 admit하고, admitted self C가 같은 success/failure/multiple-
+  compensation gate를 통과한 뒤 production bootstrap의 C direct bypass를 지우는
+  것이다.
+
 ## 2026-07-29 typed intent transition frontend + tobject boundary audit checkpoint
 
 - `tobject`의 현재 핵심 방향은 맞다. action 경계를 넘는 immutable detached

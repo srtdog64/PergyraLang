@@ -22,6 +22,7 @@
         vault->data.class_decl.methods[0] = method;
         vault->data.class_decl.method_count = 1;
         ast_add_statement(program, vault);
+        (void)ast_assign_stable_ids(program);
         ctx->program_root = program;
 
         type_check_class_decl(vault, ctx);
@@ -64,6 +65,7 @@
         vault->data.class_decl.methods[0] = method;
         vault->data.class_decl.method_count = 1;
         ast_add_statement(program, vault);
+        (void)ast_assign_stable_ids(program);
         ctx->program_root = program;
 
         type_check_class_decl(vault, ctx);

@@ -12,6 +12,7 @@ BUILD_DIR="$ROOT_DIR/.tmp/match_binding_type_fact"
 MIR_JSON="$BUILD_DIR/option_match.mirjson"
 MIR_MISSING="$BUILD_DIR/option_match.missing-type.mirjson"
 MIR_UNKNOWN="$BUILD_DIR/option_match.unknown-type.mirjson"
+MIR_STRAY_RUNTIME="$BUILD_DIR/option_match.stray-domain-runtime.mirjson"
 REAST="$BUILD_DIR/option_match.reast"
 MIR_LOWER="$BUILD_DIR/mir_lower.exe"
 PYTHON_BIN="${PYTHON_BIN:-}"
@@ -31,7 +32,8 @@ mkdir -p "$BUILD_DIR"
 (cd "$ROOT_DIR" && "$PGY" --mir-json \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$MIR_JSON")
 
-"$PYTHON_BIN" - "$MIR_JSON" "$MIR_MISSING" "$MIR_UNKNOWN" <<'PY'
+"$PYTHON_BIN" - "$MIR_JSON" "$MIR_MISSING" "$MIR_UNKNOWN" \
+    "$MIR_STRAY_RUNTIME" <<'PY'
 import copy
 import json
 import sys
@@ -70,6 +72,15 @@ for path, candidate in ((sys.argv[2], missing), (sys.argv[3], unknown)):
     with open(path, "w", encoding="utf-8", newline="\n") as stream:
         json.dump(candidate, stream, ensure_ascii=False, separators=(",", ":"))
         stream.write("\n")
+
+runtime = document.get("domain_runtime_assignments")
+if runtime != {"participant_roles": [], "projection_members": []}:
+    raise SystemExit(f"canonical empty domain runtime projection drifted: {runtime!r}")
+stray_runtime = copy.deepcopy(document)
+stray_runtime["domain_runtime_assignments"]["participant_roles"].append({})
+with open(sys.argv[4], "w", encoding="utf-8", newline="\n") as stream:
+    json.dump(stray_runtime, stream, ensure_ascii=False, separators=(",", ":"))
+    stream.write("\n")
 PY
 
 (cd "$ROOT_DIR" && "$PGY" \
@@ -81,6 +92,27 @@ grep -Fq 'Let: v : Int = UnwrapOption(val)' "$REAST" || {
     echo "[match-binding-type-fact] typed match binding was not reconstructed" >&2
     exit 1
 }
+
+# The native writer always projects the canonical two-array domain-runtime
+# object.  For a program without domain topology, only the exact empty pair is
+# semantically absent.  A non-empty stray carrier must still fail before AST
+# reconstruction instead of being hidden by the empty-projection rule.
+if (cd "$ROOT_DIR" && "$MIR_LOWER" "${MIR_STRAY_RUNTIME#$ROOT_DIR/}" \
+        >"$MIR_STRAY_RUNTIME.out" 2>"$MIR_STRAY_RUNTIME.err"); then
+    echo "[match-binding-type-fact] stray domain runtime fact was accepted" >&2
+    exit 1
+fi
+grep -Fq 'MIR machine-layer facts are missing or invalid' \
+    "$MIR_STRAY_RUNTIME.out" "$MIR_STRAY_RUNTIME.err" || {
+    echo "[match-binding-type-fact] stray domain runtime diagnostic drifted" >&2
+    cat "$MIR_STRAY_RUNTIME.out" "$MIR_STRAY_RUNTIME.err" >&2
+    exit 1
+}
+if grep -Eq '^Program:|^  Function:' \
+    "$MIR_STRAY_RUNTIME.out" "$MIR_STRAY_RUNTIME.err"; then
+    echo "[match-binding-type-fact] stray domain runtime fact emitted partial AST" >&2
+    exit 1
+fi
 
 # untyped_match_binding_render is forbidden: the positive assertion above
 # requires the semantic type annotation, and both absent/Unknown rows below

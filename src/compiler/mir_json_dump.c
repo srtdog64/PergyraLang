@@ -9,6 +9,7 @@
 #include "mir_json_generic_method_specialization.h"
 #include "mir_json_dump_internal.h"
 #include "mir_json_dump_runtime_abi.h"
+#include "mir_json_dump_intent_execution.h"
 #include "mir_parallel_capture_facts.h"
 
 #include <stdio.h>
@@ -508,7 +509,9 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
     mir_json_emit_domain_runtime_assignments(out, mir);
     fputs(",\"parallel_capture_boundaries\":[", out);
     mir_json_emit_parallel_capture_boundaries(out, mir);
-    fputs("],\"generic_method_specializations\":[", out);
+    fputc(']', out);
+    mir_json_emit_intent_execution(out, mir);
+    fputs(",\"generic_method_specializations\":[", out);
     mir_json_emit_generic_method_specializations(out, mir);
     fputs("],\"routines\":[", out);
     mir_json_emit_routines(out, mir);

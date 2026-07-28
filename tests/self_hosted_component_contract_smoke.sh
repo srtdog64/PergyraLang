@@ -1139,14 +1139,24 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
 require_file "src/self_hosted/mir/intent_execution_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_execution_fact_owner.pgy" 720
-require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
+require_file "src/self_hosted/mir/intent_execution_schema_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_execution_schema_owner.pgy" 220
+require_file "src/self_hosted/mir/intent_execution_digest_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_execution_digest_owner.pgy" 220
+require_text "src/self_hosted/mir/intent_execution_schema_owner.pgy" \
     "struct MirIntentStepTransitionFacts"
-require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
+require_text "src/self_hosted/mir/intent_execution_schema_owner.pgy" \
     "struct MirIntentTerminalTransitionFacts"
 require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
     "func MirIntentExecutionPlanReady"
+require_text "src/self_hosted/mir/intent_execution_digest_owner.pgy" \
+    "func MirIntentExecutionPlanDigest"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_execution_fact_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_execution_schema_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_execution_digest_owner.pgy"
 require_file "src/self_hosted/mir/intent_phase_contract_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_phase_contract_owner.pgy" 80
 require_file "src/self_hosted/mir/intent_phase_emission_owner.pgy"

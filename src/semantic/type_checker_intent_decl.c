@@ -700,6 +700,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 type_name_or_unknown(typed_return_type),
                 type_name_or_unknown(terminal_type));
         }
+        if (step_count > 0) {
+            (void)intent_typed_resolve_terminal_result(
+                node, true, 0, steps[step_count - 1], typed_return_type,
+                typed_success_payload_types[step_count - 1], ctx);
+        }
         while (typed_success_scope_count > 0) {
             scope_exit(&ctx->scope);
             typed_success_scope_count--;
@@ -757,6 +762,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     type_name_or_unknown(typed_return_type),
                     type_name_or_unknown(terminal_type));
             }
+            (void)intent_typed_resolve_terminal_result(
+                node, false, i, step, typed_return_type, payload_type, ctx);
             scope_exit(&ctx->scope);
         }
     } else if (success_expr != NULL) {

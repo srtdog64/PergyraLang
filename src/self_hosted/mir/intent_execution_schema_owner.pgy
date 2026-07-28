@@ -1,0 +1,187 @@
+// Canonical in-memory schema for typed intent execution rows.
+
+struct MirIntentCompensationFacts {
+    transition_ids: Array<Int>;
+    expression_syntax_ids: Array<Int>;
+    instruction_block_ids: Array<Int>;
+    instruction_ids: Array<Int>;
+    graph_root_ids: Array<Int>;
+    graph_digests: Array<Int>;
+    call_target_names: Array<String>;
+    call_target_syntax_ids: Array<Int>;
+}
+
+struct MirIntentStepTransitionFacts {
+    transition_ids: Array<Int>;
+    routine_syntax_ids: Array<Int>;
+    step_syntax_ids: Array<Int>;
+    step_names: Array<String>;
+    predecessor_transition_ids: Array<Int>;
+    predecessor_step_syntax_ids: Array<Int>;
+    predecessor_step_names: Array<String>;
+    action_syntax_ids: Array<Int>;
+    outcome_instruction_block_ids: Array<Int>;
+    outcome_instruction_ids: Array<Int>;
+    outcome_result_names: Array<String>;
+    outcome_type_names: Array<String>;
+    outcome_enum_names: Array<String>;
+    outcome_enum_syntax_ids: Array<Int>;
+    branch_block_ids: Array<Int>;
+    branch_instruction_ids: Array<Int>;
+    success_variant_indices: Array<Int>;
+    success_variant_names: Array<String>;
+    success_payload_names: Array<String>;
+    success_payload_type_names: Array<String>;
+    success_successor_block_ids: Array<Int>;
+    failure_variant_indices: Array<Int>;
+    failure_variant_names: Array<String>;
+    failure_payload_names: Array<String>;
+    failure_payload_type_names: Array<String>;
+    failure_successor_block_ids: Array<Int>;
+    completion_block_ids: Array<Int>;
+    completion_instruction_ids: Array<Int>;
+    compensation_starts: Array<Int>;
+    compensation_counts: Array<Int>;
+    compensations: MirIntentCompensationFacts;
+}
+
+struct MirIntentTerminalTransitionFacts {
+    terminal_transition_ids: Array<Int>;
+    routine_syntax_ids: Array<Int>;
+    roles: Array<String>;
+    source_transition_ids: Array<Int>;
+    source_step_syntax_ids: Array<Int>;
+    source_step_names: Array<String>;
+    source_variant_indices: Array<Int>;
+    source_variant_names: Array<String>;
+    source_payload_names: Array<String>;
+    source_payload_type_names: Array<String>;
+    result_instruction_block_ids: Array<Int>;
+    result_instruction_ids: Array<Int>;
+    result_definition_names: Array<String>;
+    result_type_names: Array<String>;
+    result_enum_names: Array<String>;
+    result_enum_syntax_ids: Array<Int>;
+    result_variant_indices: Array<Int>;
+    result_variant_names: Array<String>;
+    result_payload_names: Array<String>;
+    result_payload_type_names: Array<String>;
+    expression_syntax_ids: Array<Int>;
+    graph_root_ids: Array<Int>;
+    graph_digests: Array<Int>;
+}
+
+struct MirIntentExecutionPlan {
+    valid: Bool;
+    present: Bool;
+    schema: String;
+    plan_digest: Int;
+    steps: MirIntentStepTransitionFacts;
+    terminals: MirIntentTerminalTransitionFacts;
+}
+
+func MirIntentExecutionPlanSchema() -> String {
+    return "pgy.selfhost.mir-intent-execution-plan.v1";
+}
+
+func MirIntentCompensationFactsEmpty() -> MirIntentCompensationFacts {
+    let transition_ids: Array<Int> = [];
+    let expression_syntax_ids: Array<Int> = [];
+    let instruction_block_ids: Array<Int> = [];
+    let instruction_ids: Array<Int> = [];
+    let graph_root_ids: Array<Int> = [];
+    let graph_digests: Array<Int> = [];
+    let call_target_names: Array<String> = [];
+    let call_target_syntax_ids: Array<Int> = [];
+    return MirIntentCompensationFacts(
+        transition_ids, expression_syntax_ids, instruction_block_ids,
+        instruction_ids, graph_root_ids, graph_digests, call_target_names,
+        call_target_syntax_ids
+    );
+}
+
+func MirIntentStepTransitionFactsEmpty(
+) -> MirIntentStepTransitionFacts {
+    let transition_ids: Array<Int> = [];
+    let routine_syntax_ids: Array<Int> = [];
+    let step_syntax_ids: Array<Int> = [];
+    let step_names: Array<String> = [];
+    let predecessor_transition_ids: Array<Int> = [];
+    let predecessor_step_syntax_ids: Array<Int> = [];
+    let predecessor_step_names: Array<String> = [];
+    let action_syntax_ids: Array<Int> = [];
+    let outcome_instruction_block_ids: Array<Int> = [];
+    let outcome_instruction_ids: Array<Int> = [];
+    let outcome_result_names: Array<String> = [];
+    let outcome_type_names: Array<String> = [];
+    let outcome_enum_names: Array<String> = [];
+    let outcome_enum_syntax_ids: Array<Int> = [];
+    let branch_block_ids: Array<Int> = [];
+    let branch_instruction_ids: Array<Int> = [];
+    let success_variant_indices: Array<Int> = [];
+    let success_variant_names: Array<String> = [];
+    let success_payload_names: Array<String> = [];
+    let success_payload_type_names: Array<String> = [];
+    let success_successor_block_ids: Array<Int> = [];
+    let failure_variant_indices: Array<Int> = [];
+    let failure_variant_names: Array<String> = [];
+    let failure_payload_names: Array<String> = [];
+    let failure_payload_type_names: Array<String> = [];
+    let failure_successor_block_ids: Array<Int> = [];
+    let completion_block_ids: Array<Int> = [];
+    let completion_instruction_ids: Array<Int> = [];
+    let compensation_starts: Array<Int> = [];
+    let compensation_counts: Array<Int> = [];
+    return MirIntentStepTransitionFacts(
+        transition_ids, routine_syntax_ids, step_syntax_ids, step_names,
+        predecessor_transition_ids, predecessor_step_syntax_ids,
+        predecessor_step_names, action_syntax_ids,
+        outcome_instruction_block_ids, outcome_instruction_ids,
+        outcome_result_names, outcome_type_names, outcome_enum_names,
+        outcome_enum_syntax_ids, branch_block_ids, branch_instruction_ids,
+        success_variant_indices, success_variant_names, success_payload_names,
+        success_payload_type_names, success_successor_block_ids,
+        failure_variant_indices, failure_variant_names, failure_payload_names,
+        failure_payload_type_names, failure_successor_block_ids,
+        completion_block_ids, completion_instruction_ids,
+        compensation_starts, compensation_counts,
+        MirIntentCompensationFactsEmpty()
+    );
+}
+
+func MirIntentTerminalTransitionFactsEmpty(
+) -> MirIntentTerminalTransitionFacts {
+    let terminal_transition_ids: Array<Int> = [];
+    let routine_syntax_ids: Array<Int> = [];
+    let roles: Array<String> = [];
+    let source_transition_ids: Array<Int> = [];
+    let source_step_syntax_ids: Array<Int> = [];
+    let source_step_names: Array<String> = [];
+    let source_variant_indices: Array<Int> = [];
+    let source_variant_names: Array<String> = [];
+    let source_payload_names: Array<String> = [];
+    let source_payload_type_names: Array<String> = [];
+    let result_instruction_block_ids: Array<Int> = [];
+    let result_instruction_ids: Array<Int> = [];
+    let result_definition_names: Array<String> = [];
+    let result_type_names: Array<String> = [];
+    let result_enum_names: Array<String> = [];
+    let result_enum_syntax_ids: Array<Int> = [];
+    let result_variant_indices: Array<Int> = [];
+    let result_variant_names: Array<String> = [];
+    let result_payload_names: Array<String> = [];
+    let result_payload_type_names: Array<String> = [];
+    let expression_syntax_ids: Array<Int> = [];
+    let graph_root_ids: Array<Int> = [];
+    let graph_digests: Array<Int> = [];
+    return MirIntentTerminalTransitionFacts(
+        terminal_transition_ids, routine_syntax_ids, roles,
+        source_transition_ids, source_step_syntax_ids, source_step_names,
+        source_variant_indices, source_variant_names, source_payload_names,
+        source_payload_type_names, result_instruction_block_ids,
+        result_instruction_ids, result_definition_names, result_type_names,
+        result_enum_names, result_enum_syntax_ids, result_variant_indices,
+        result_variant_names, result_payload_names, result_payload_type_names,
+        expression_syntax_ids, graph_root_ids, graph_digests
+    );
+}

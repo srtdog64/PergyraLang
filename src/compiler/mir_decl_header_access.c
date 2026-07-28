@@ -40,6 +40,12 @@ mir_decl_header_ast_type_or(const MIRDeclHeader *header, ASTNodeType fallback)
     return header != NULL ? header->ast_type : fallback;
 }
 
+uint32_t
+mir_decl_header_source_syntax_id(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->source_syntax_id : 0;
+}
+
 const char *
 mir_decl_header_name(const MIRDeclHeader *header)
 {

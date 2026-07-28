@@ -1,0 +1,137 @@
+// Explicit intent result-mode and return-type carriage owned by self DIR.
+// Legacy no-arrow syntax is one `legacy_bool`/`Bool` contract; typed intent
+// syntax must keep its enum identity and cannot collapse to Bool downstream.
+
+import "../semantic/ast_intent_transition_fact_owner.pgy";
+import "intent_row_owner.pgy";
+import "intent_step_fact_owner.pgy";
+import "intent_step_carriage_contract_owner.pgy";
+
+struct SelfDirIntentFacts {
+    required: Bool;
+    ok: Bool;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    intent_node_ids: Array<Int>;
+    names: Array<String>;
+    result_modes: Array<String>;
+    return_type_names: Array<String>;
+    participant_starts: Array<Int>;
+    participant_counts: Array<Int>;
+    participants: SelfDirIntentParticipantFacts;
+    step_starts: Array<Int>;
+    step_counts: Array<Int>;
+    steps: SelfDirIntentStepFacts;
+    transitions: SemanticAstIntentTransitionFacts;
+    edge_count: Int;
+}
+
+func SelfDirIntentFactsEmpty(
+    required: Bool, ok: Bool, message: String, artifact_node_count: Int
+) -> SelfDirIntentFacts {
+    let intent_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let result_modes: Array<String> = [];
+    let return_type_names: Array<String> = [];
+    let participant_starts: Array<Int> = [];
+    let participant_counts: Array<Int> = [];
+    let step_starts: Array<Int> = [];
+    let step_counts: Array<Int> = [];
+    return SelfDirIntentFacts(
+        required, ok, message, artifact_node_count,
+        intent_node_ids, names, result_modes, return_type_names,
+        participant_starts, participant_counts,
+        SelfDirIntentParticipantFactsEmpty(), step_starts, step_counts,
+        SelfDirIntentStepFactsEmpty(),
+        SemanticAstIntentTransitionFactsEmpty(artifact_node_count), 0
+    );
+}
+
+func SelfDirIntentFactsError(
+    message: String, artifact_node_count: Int
+) -> SelfDirIntentFacts {
+    return SelfDirIntentFactsEmpty(true, false, message, artifact_node_count);
+}
+
+func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
+    let intents: Int = ArrayLength(facts.intent_node_ids);
+    let participants: Int = ArrayLength(facts.participants.node_ids);
+    return ArrayLength(facts.names) == intents &&
+        ArrayLength(facts.result_modes) == intents &&
+        ArrayLength(facts.return_type_names) == intents &&
+        ArrayLength(facts.participant_starts) == intents &&
+        ArrayLength(facts.participant_counts) == intents &&
+        ArrayLength(facts.step_starts) == intents &&
+        ArrayLength(facts.step_counts) == intents &&
+        ArrayLength(facts.participants.is_values) == participants &&
+        ArrayLength(facts.participants.aliases) == participants &&
+        ArrayLength(facts.participants.type_names) == participants &&
+        ArrayLength(facts.participants.declaration_indices) == participants &&
+        SelfDirIntentStepCarriageShapeReady(facts.steps) &&
+        facts.transitions.ok;
+}
+
+func SelfDirIntentResultContractReady(
+    ref facts: SelfDirIntentFacts,
+    intent_index: Int
+) -> Bool {
+    if intent_index < 0 || intent_index >= ArrayLength(facts.intent_node_ids) ||
+        intent_index >= ArrayLength(facts.result_modes) ||
+        intent_index >= ArrayLength(facts.return_type_names) ||
+        intent_index >= ArrayLength(facts.step_starts) ||
+        intent_index >= ArrayLength(facts.step_counts) ||
+        intent_index >= ArrayLength(facts.transitions.intent_starts) ||
+        intent_index >= ArrayLength(facts.transitions.intent_counts) ||
+        intent_index >= ArrayLength(facts.transitions.terminal_starts) ||
+        intent_index >= ArrayLength(facts.transitions.terminal_counts) {
+        return false;
+    }
+    let mode: String = facts.result_modes[intent_index];
+    let return_type: String = facts.return_type_names[intent_index];
+    let typed: Bool = mode == "typed_enum";
+    if (!typed && mode != "legacy_bool") || return_type == "" ||
+        return_type == "Unknown" || return_type == "Void" ||
+        (typed && return_type == "Bool") ||
+        (!typed && return_type != "Bool") ||
+        facts.transitions.intent_starts[intent_index] !=
+            facts.step_starts[intent_index] ||
+        facts.transitions.intent_counts[intent_index] !=
+            facts.step_counts[intent_index] {
+        return false;
+    }
+    let step_start: Int = facts.step_starts[intent_index];
+    let step_count: Int = facts.step_counts[intent_index];
+    if step_start < 0 || step_count < 0 ||
+        step_start + step_count >
+            ArrayLength(facts.transitions.step_requireds) {
+        return false;
+    }
+    let step_i: Int = 0;
+    while step_i < step_count {
+        if facts.transitions.step_requireds[step_start + step_i] != typed {
+            return false;
+        }
+        step_i = step_i + 1;
+    }
+    let terminal_start: Int =
+        facts.transitions.terminal_starts[intent_index];
+    let terminal_count: Int =
+        facts.transitions.terminal_counts[intent_index];
+    if terminal_start < 0 || terminal_count < 0 ||
+        terminal_start + terminal_count > ArrayLength(
+            facts.transitions.terminal_result_enum_names
+        ) ||
+        (typed && terminal_count <= 0) || (!typed && terminal_count != 0) {
+        return false;
+    }
+    let terminal_i: Int = 0;
+    while terminal_i < terminal_count {
+        let terminal_row: Int = terminal_start + terminal_i;
+        if facts.transitions.terminal_result_enum_names[terminal_row] !=
+                return_type {
+            return false;
+        }
+        terminal_i = terminal_i + 1;
+    }
+    return true;
+}

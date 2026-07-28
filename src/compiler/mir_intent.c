@@ -68,6 +68,51 @@ mir_intent_dir_info(const DIRProgram *dir, const ASTNode *intent)
     return NULL;
 }
 
+static const DIRIntentInfo *
+mir_intent_dir_info_for_routine(const DIRProgram *dir,
+                                const MIRRoutine *routine)
+{
+    if (dir == NULL || routine == NULL || routine->source_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < dir->intent_count; i++) {
+        const DIRIntentInfo *info = &dir->intents[i];
+        if (info->node_id < dir->node_count
+            && dir->nodes[info->node_id].source_syntax_id
+                == routine->source_syntax_id) {
+            return info;
+        }
+    }
+    return NULL;
+}
+
+bool
+mir_intent_capture_signature(MIRRoutine *routine,
+                             const DIRProgram *dir,
+                             char **error_message)
+{
+    const DIRIntentInfo *info;
+
+    if (routine == NULL || routine->kind != MIR_SCOPE_INTENT)
+        return true;
+    info = mir_intent_dir_info_for_routine(dir, routine);
+    if (info == NULL || info->return_type_name == NULL
+        || info->return_type_name[0] == '\0') {
+        if (error_message != NULL) {
+            *error_message = pergyra_strdup(
+                "typed/legacy intent MIR signature has no exact DIR return fact");
+        }
+        return false;
+    }
+    routine->return_type_name = pergyra_strdup(info->return_type_name);
+    if (routine->return_type_name == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("out of memory");
+        return false;
+    }
+    routine->has_signature = true;
+    return true;
+}
+
 static const DIRIntentStep *
 mir_intent_dir_step(const DIRIntentInfo *info,
                     const ASTNode *step,
@@ -249,6 +294,8 @@ mir_append_intent_eval(MIRRoutine *routine,
     inst.arg1 = ast_intent_step_name(step);
     inst.ast = expr;
     inst.expr0 = expr;
+    inst.has_source_statement_stable_id = true;
+    inst.source_statement_stable_id = ast_node_stable_id(step);
     mir_instruction_capture_source_provenance(&inst, expr);
     if (eval_name != NULL && strcmp(eval_name, "on") == 0
         && dir_step != NULL && dir_step->outcome_binding_name != NULL) {

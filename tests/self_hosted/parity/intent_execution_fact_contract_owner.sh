@@ -21,6 +21,8 @@ pgy_require_runnable_binary_here "self-host-intent-execution-facts" "$PGY" \
     || fail "PGY_BIN is not runnable"
 
 OWNER="$ROOT_DIR/src/self_hosted/mir/intent_execution_fact_owner.pgy"
+SCHEMA_OWNER="$ROOT_DIR/src/self_hosted/mir/intent_execution_schema_owner.pgy"
+DIGEST_OWNER="$ROOT_DIR/src/self_hosted/mir/intent_execution_digest_owner.pgy"
 PROBE="$ROOT_DIR/tests/self_hosted/parity/fixture/intent_execution_fact_contract_probe.pgy"
 BUILD_DIR="${PGY_SELFHOST_INTENT_EXECUTION_FACT_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_execution_facts}"
 BINARY="$BUILD_DIR/intent_execution_fact_contract_probe.exe"
@@ -29,20 +31,26 @@ mkdir -p "$BUILD_DIR"
 for term in \
     'struct MirIntentStepTransitionFacts' \
     'struct MirIntentTerminalTransitionFacts' \
-    'struct MirIntentExecutionPlan' \
+    'struct MirIntentExecutionPlan'; do
+    grep -Fq -- "$term" "$SCHEMA_OWNER" \
+        || fail "missing typed intent execution schema term: $term"
+done
+
+for term in \
     'MirIntentStepTransitionCycleFreeFrom' \
     'MirIntentTerminalSourceMatchesStep' \
-    'MirIntentExecutionPlanDigest' \
     'MirIntentExecutionPlanReady'; do
     grep -Fq -- "$term" "$OWNER" \
         || fail "missing typed intent execution owner term: $term"
 done
+grep -Fq -- 'MirIntentExecutionPlanDigest' "$DIGEST_OWNER" \
+    || fail "missing typed intent execution digest owner"
 
 for forbidden in \
     'source_order' 'source order' 'step_index - 1' 'variant == "Ok"' \
     'variant == "Err"' 'success_variant_names[row] == "Success"' \
     'failure_variant_names[row] == "Failure"'; do
-    if grep -Fq -- "$forbidden" "$OWNER"; then
+    if grep -Fq -- "$forbidden" "$OWNER" "$SCHEMA_OWNER" "$DIGEST_OWNER"; then
         fail "intent execution owner reopened positional/spelling fallback: $forbidden"
     fi
 done

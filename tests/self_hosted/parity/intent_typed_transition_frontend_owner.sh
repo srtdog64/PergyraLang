@@ -54,6 +54,24 @@ sed 's/success B: WorkflowCommitted/success: WorkflowCommitted/' \
 reject_source unlabelled-typed-terminal \
     "${BUILD_DIR#"$ROOT_DIR/"}/unlabelled-typed-terminal.pgy"
 
+# Native semantic/DIR owns the exact terminal carrier.  A terminal may not
+# rebuild a same-typed tobject and thereby sever the admitted step payload
+# identity, even when ordinary expression type checking would accept it.
+(cd "$ROOT_DIR" && "$PGY_EXEC" --dir "$FIXTURE_REL" \
+    >"$BUILD_DIR/native-positive.dir" \
+    2>"$BUILD_DIR/native-positive.err")
+sed 's/WorkflowCommitted(receipt_b)/WorkflowCommitted(WorkflowReceiptB(999))/' \
+    "$ROOT_DIR/$FIXTURE_REL" >"$BUILD_DIR/rebuilt-terminal-payload.pgy"
+if (cd "$ROOT_DIR" && "$PGY_EXEC" --dir \
+    "${BUILD_DIR#"$ROOT_DIR/"}/rebuilt-terminal-payload.pgy" \
+    >"$BUILD_DIR/rebuilt-terminal-payload.dir" \
+    2>"$BUILD_DIR/rebuilt-terminal-payload.err"); then
+    echo "[self-host-intent-typed-frontend] native semantic accepted rebuilt terminal payload" >&2
+    exit 1
+fi
+grep -Fq "must carry the exact admitted payload binding 'receipt_b'" \
+    "$BUILD_DIR/rebuilt-terminal-payload.err"
+
 grep -Fq 'enum_matches == 1 && variant_matches == 1' \
     "$ROOT_DIR/src/self_hosted/semantic/ast_intent_transition_row_owner.pgy"
 grep -Fq 'typed intent predecessor evidence is invalid' \

@@ -14,6 +14,7 @@
 #include "compiler/hir.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
+#include "compiler/mir_intent_execution.h"
 #include "compiler/mir_parallel_capture_facts.h"
 #include "compiler/mir_abi_layout.h"
 #include "compiler/mir_dce.h"
@@ -114,6 +115,8 @@ test_mir_carries_dir_domain_topology(void)
     char *error = NULL;
     uint32_t saved_left_id = 0;
     char *saved_owner_name = NULL;
+    bool saved_player_subject_like = false;
+    bool saved_player_tobject_like = false;
     bool carried = false;
     bool rejected_bad_identity = false;
     bool rejected_foreign_valid_identity = false;
@@ -230,11 +233,19 @@ test_mir_carries_dir_domain_topology(void)
         error = NULL;
 
         if (mutable_player_field != NULL) {
+            saved_player_subject_like =
+                mutable_player_field->is_subject_like;
+            saved_player_tobject_like =
+                mutable_player_field->is_tobject_like;
             mutable_player_field->is_subject_like = false;
+            mutable_player_field->is_tobject_like = true;
             rejected_wrong_field_kind = !mir_validate(mir, &error)
                 && error != NULL
                 && strstr(error, "domain topology row") != NULL;
-            mutable_player_field->is_subject_like = true;
+            mutable_player_field->is_subject_like =
+                saved_player_subject_like;
+            mutable_player_field->is_tobject_like =
+                saved_player_tobject_like;
         }
         free(error);
         error = NULL;
@@ -866,6 +877,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_a_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_1.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_2.cases.h"
+#include "tests/mir/test_mir_lowering_part_b_3.cases.h"
 #include "tests/mir/test_mir_lowering_part_c.cases.h"
 #include "tests/mir/test_mir_lowering_part_c_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_c_3.cases.h"
@@ -886,6 +898,7 @@ test_mir_lowering(void)
     test_mir_carries_dir_domain_topology();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();
+    test_mir_lowering_part_b_3();
     test_mir_lowering_part_c();
     test_mir_lowering_part_c_2();
     test_mir_lowering_part_c_3();

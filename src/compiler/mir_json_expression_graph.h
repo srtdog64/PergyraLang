@@ -9,5 +9,8 @@ void mir_json_emit_instruction_expression_graph(
     FILE *out,
     const MIRInstruction *inst,
     int lane);
+bool mir_expression_graph_identity(ASTNode *expression,
+                                   size_t *root_id_out,
+                                   uint32_t *digest_out);
 
 #endif

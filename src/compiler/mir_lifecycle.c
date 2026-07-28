@@ -98,6 +98,14 @@ mir_destroy(MIRProgram *mir)
             }
             free(routine->resource_flow_symbols);
             free(routine->function_param_flow_summaries);
+            if (routine->intent_step_transitions != NULL) {
+                for (size_t j = 0;
+                     j < routine->intent_step_transition_count; j++) {
+                    free(routine->intent_step_transitions[j].compensations);
+                }
+            }
+            free(routine->intent_step_transitions);
+            free(routine->intent_terminal_transitions);
             free(routine->loop_flow_summaries);
             free(routine->loop_flow_states);
             for (size_t k = 0; k < routine->iteration_type_fact_count; k++) {

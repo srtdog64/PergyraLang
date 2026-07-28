@@ -133,6 +133,30 @@ bool ast_intent_decl_set_success_terminal_step_syntax_id(ASTNode* node,
 bool ast_intent_decl_set_failure_terminal_step_syntax_id(ASTNode* node,
                                                          size_t index,
                                                          uint32_t syntax_id);
+const char* ast_intent_decl_terminal_result_type_name(const ASTNode* node,
+                                                      bool success_terminal,
+                                                      size_t failure_index);
+uint32_t ast_intent_decl_terminal_result_enum_decl_syntax_id(
+    const ASTNode* node, bool success_terminal, size_t failure_index);
+size_t ast_intent_decl_terminal_result_variant_index(const ASTNode* node,
+                                                     bool success_terminal,
+                                                     size_t failure_index);
+const char* ast_intent_decl_terminal_result_variant_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index);
+const char* ast_intent_decl_terminal_result_payload_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index);
+const char* ast_intent_decl_terminal_result_payload_type_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index);
+bool ast_intent_decl_set_terminal_result_resolution_copy(
+    ASTNode* node,
+    bool success_terminal,
+    size_t failure_index,
+    const char* result_type_name,
+    uint32_t result_enum_decl_syntax_id,
+    size_t result_variant_index,
+    const char* result_variant_name,
+    const char* result_payload_name,
+    const char* result_payload_type_name);
 char** ast_intent_decl_default_who_names(const ASTNode* node, size_t* count_out);
 size_t ast_intent_decl_default_who_count(const ASTNode* node);
 ASTNode* ast_intent_decl_default_where_type(const ASTNode* node);

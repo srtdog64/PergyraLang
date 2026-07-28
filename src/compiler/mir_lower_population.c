@@ -9,6 +9,7 @@
 #include "mir_cleanup.h"
 #include "mir_destructure_type_facts.h"
 #include "mir_intent.h"
+#include "mir_intent_execution.h"
 #include "mir_machine_layer.h"
 #include "mir_non_cfg_stmt_population.h"
 #include "mir_stmt_population.h"
@@ -636,7 +637,7 @@ mir_populate_instructions(MIRRoutine *routine, const DIRProgram *dir)
     }
 
     if (rir_scope == NULL)
-        return true;
+        return mir_materialize_intent_execution_plan(routine, dir);
 
     op_count = rir_scope_op_count(rir_scope);
     if (op_count > 0) {
@@ -782,5 +783,5 @@ mir_populate_instructions(MIRRoutine *routine, const DIRProgram *dir)
         if (!mir_append_non_cfg_body_statements(routine, entry))
             return false;
     }
-    return true;
+    return mir_materialize_intent_execution_plan(routine, dir);
 }

@@ -69,6 +69,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
     ASTNode **involves_nodes = NULL;
     ASTNode **values = NULL;
     ASTNode *priority_expr;
+    const char *return_type_name = "Bool";
+    const char *return_c_type = "bool";
+    char return_c_type_buf[256];
+    bool has_typed_result = false;
+    bool has_typed_execution_plan = false;
 
     if (node == NULL || ctx == NULL)
         return false;
@@ -77,6 +82,23 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
     allow_ast_compat = mir_routine == NULL &&
         (bindings_view == NULL || bindings_view->count == 0);
     if (mir_routine != NULL) {
+        return_type_name = mir_routine_return_type_name(mir_routine);
+        if (return_type_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-backed C intent prologue has invalid return type metadata for '%s'",
+                intent_name != NULL ? intent_name : "(anonymous-intent)");
+            return false;
+        }
+        if (!transpiler_require_type_name_c_type_copy(
+                ctx, return_type_name, "intent return type",
+                return_c_type_buf, sizeof(return_c_type_buf))) {
+            return false;
+        }
+        return_c_type = return_c_type_buf;
+        has_typed_result = strcmp(return_type_name, "Bool") != 0;
+        has_typed_execution_plan =
+            mir_routine_has_admitted_intent_execution_plan(mir_routine);
         priority_expr = transpiler_find_mir_intent_eval_expr(
             mir_routine, intent_name, "priority");
         if (transpiler_mir_intent_has_stmt(
@@ -121,7 +143,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         return false;
     }
 
-    codebuf_write(ctx->out, "\nbool\n%s(", intent_name);
+    codebuf_write(ctx->out, "\n%s\n%s(", return_c_type, intent_name);
     {
         size_t binding_count = mir_routine != NULL
             ? mir_binding_count
@@ -268,8 +290,15 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
     codebuf_write(ctx->out, ")\n{\n");
     ctx->indent++;
 
-    write_indent(ctx);
-    codebuf_write(ctx->out, "bool __intent_result = false;\n");
+    if (!has_typed_execution_plan) {
+        write_indent(ctx);
+        if (strcmp(return_type_name, "Bool") == 0) {
+            codebuf_write(ctx->out, "bool __intent_result = false;\n");
+        } else {
+            codebuf_write(ctx->out, "%s __intent_result = {0};\n",
+                return_c_type);
+        }
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "bool __intent_failed = false;\n");
     write_indent(ctx);
@@ -358,14 +387,19 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         codebuf_write(ctx->out, "if (__intent_handle == 0) {\n");
         ctx->indent++;
         write_indent(ctx);
-        codebuf_write(ctx->out, "__intent_failed = true;\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "__intent_result = false;\n");
-        write_indent(ctx);
-        if (emit_cleanup_from_mir) {
+        if (has_typed_result) {
+            codebuf_write(ctx->out,
+                "pgy_runtime_panic_internal_invariant_export(\"typed intent runtime admission failed\");\n");
+        } else {
+            codebuf_write(ctx->out, "__intent_failed = true;\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_result = false;\n");
+            write_indent(ctx);
+        }
+        if (!has_typed_result && emit_cleanup_from_mir) {
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
                 intent_name, mir_routine->cleanup_block);
-        } else {
+        } else if (!has_typed_result) {
             codebuf_write(ctx->out, "goto __intent_cleanup;\n");
         }
         ctx->indent--;

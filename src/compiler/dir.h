@@ -140,6 +140,12 @@ typedef struct
     size_t      step_index;
     uint32_t    step_syntax_id;
     ASTNode    *expr;
+    const char *result_type_name;
+    uint32_t    result_enum_decl_syntax_id;
+    size_t      result_variant_index;
+    const char *result_variant_name;
+    const char *result_payload_name;
+    const char *result_payload_type_name;
 } DIRIntentTerminal;
 
 typedef struct
@@ -194,6 +200,7 @@ typedef struct
 typedef struct
 {
     size_t                 node_id;
+    ASTNode               *ast;
     bool                   has_typed_result;
     const char            *return_type_name;
     DIRIntentParticipant  *participants;

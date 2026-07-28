@@ -390,6 +390,13 @@ bool intent_typed_resolve_step_branches(ASTNode *step,
                                         SemanticContext *ctx,
                                         Type **success_payload_out,
                                         Type **failure_payload_out);
+bool intent_typed_resolve_terminal_result(ASTNode *intent,
+                                          bool success_terminal,
+                                          size_t failure_index,
+                                          ASTNode *source_step,
+                                          Type *return_type,
+                                          Type *source_payload_type,
+                                          SemanticContext *ctx);
 bool intent_typed_declare_payload_binding(ASTNode *step,
                                           bool success_branch,
                                           Type *payload_type,

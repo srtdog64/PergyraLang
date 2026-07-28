@@ -399,6 +399,21 @@ func SelfMirAppendIntentRoutine(
     intent_index: Int,
     build: SelfMirRoutineBuild
 ) -> SelfMirProgramFacts {
+    if !SelfDirIntentResultContractReady(intents, intent_index) {
+        return SelfMirProgramFactsError(
+            facts, "mir_intent_signature_invalid",
+            "MIR intent projection requires one explicit DIR result contract"
+        );
+    }
+    let result_mode: String = intents.result_modes[intent_index];
+    let return_type_name: String = intents.return_type_names[intent_index];
+    if (result_mode == "typed_enum" && return_type_name == "Bool") ||
+        (result_mode == "legacy_bool" && return_type_name != "Bool") {
+        return SelfMirProgramFactsError(
+            facts, "mir_intent_signature_invalid",
+            "MIR intent result contract cannot collapse typed output to Bool"
+        );
+    }
     let rows: SelfMirRoutineRows = facts.routines;
     let node_ids: Array<Int> = rows.node_ids;
     let names: Array<String> = rows.names;
@@ -421,7 +436,7 @@ func SelfMirAppendIntentRoutine(
     ArrayPush(kinds, "intent");
     ArrayPush(owners, "");
     ArrayPush(receiver_carriages, "none");
-    ArrayPush(return_types, "Void");
+    ArrayPush(return_types, return_type_name);
     ArrayPush(generic_starts, ArrayLength(rows.generic_names));
     ArrayPush(generic_counts, 0);
     ArrayPush(param_starts, ArrayLength(rows.param_names));

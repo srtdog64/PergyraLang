@@ -261,6 +261,63 @@ mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_has_signature(routine) ? routine->return_type_name : NULL;
 }
 
+bool
+mir_routine_has_admitted_intent_execution_plan(const MIRRoutine *routine)
+{
+    return routine != NULL && routine->intent_execution_plan_admitted;
+}
+
+uint32_t
+mir_routine_intent_execution_plan_digest(const MIRRoutine *routine)
+{
+    return mir_routine_has_admitted_intent_execution_plan(routine)
+        ? routine->intent_execution_plan_digest : 0;
+}
+
+size_t
+mir_routine_intent_step_transition_count(const MIRRoutine *routine)
+{
+    return mir_routine_has_admitted_intent_execution_plan(routine)
+        ? routine->intent_step_transition_count : 0;
+}
+
+const MIRIntentStepTransitionFact *
+mir_routine_intent_step_transition_at(const MIRRoutine *routine,
+                                      size_t index)
+{
+    return mir_routine_has_admitted_intent_execution_plan(routine)
+        && routine->intent_step_transitions != NULL
+        && index < routine->intent_step_transition_count
+            ? &routine->intent_step_transitions[index] : NULL;
+}
+
+size_t
+mir_routine_intent_terminal_transition_count(const MIRRoutine *routine)
+{
+    return mir_routine_has_admitted_intent_execution_plan(routine)
+        ? routine->intent_terminal_transition_count : 0;
+}
+
+const MIRIntentTerminalTransitionFact *
+mir_routine_intent_terminal_transition_at(const MIRRoutine *routine,
+                                          size_t index)
+{
+    return mir_routine_has_admitted_intent_execution_plan(routine)
+        && routine->intent_terminal_transitions != NULL
+        && index < routine->intent_terminal_transition_count
+            ? &routine->intent_terminal_transitions[index] : NULL;
+}
+
+const char *
+mir_intent_terminal_role_name(MIRIntentTerminalRole role)
+{
+    if (role == MIR_INTENT_TERMINAL_SUCCESS)
+        return "success";
+    if (role == MIR_INTENT_TERMINAL_FAILURE)
+        return "failure";
+    return "unknown";
+}
+
 /* Row 607: lossless callable (EventHandler) signature for param `index`, or
    NULL when the param is not a callable. */
 const MIRCallableSig *

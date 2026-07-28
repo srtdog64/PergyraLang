@@ -750,6 +750,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_generic_method_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_cleanup_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_emit.c \
+                   $(CODEGEN_DIR)/transpiler_intent_typed_execution.c \
                    $(CODEGEN_DIR)/transpiler_intent_failure_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_emit_metadata_helpers.c \
                    $(CODEGEN_DIR)/transpiler_intent_prologue_emit.c \
@@ -949,6 +950,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
+                   $(COMPILER_DIR)/mir_json_dump_intent_execution.c \
                    $(COMPILER_DIR)/mir_json_dump_decl.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_topology.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_runtime.c \
@@ -1026,6 +1028,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_dce.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
+                   $(COMPILER_DIR)/mir_intent_execution.c \
+                   $(COMPILER_DIR)/mir_intent_execution_validate.c \
                    $(COMPILER_DIR)/mir_intent_fact.c \
                    $(COMPILER_DIR)/mir_type_helpers.c \
                    $(COMPILER_DIR)/hir.c \
@@ -1085,6 +1089,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_pipeline.c \
                    $(CODEGEN_DIR)/llvm_main_wrapper.c \
                          $(CODEGEN_DIR)/llvm_intent.c \
+                         $(CODEGEN_DIR)/llvm_intent_typed_execution.c \
                          $(CODEGEN_DIR)/llvm_intent_emit_support.c \
                          $(CODEGEN_DIR)/llvm_intent_setup.c \
                          $(CODEGEN_DIR)/llvm_intent_cleanup.c \
@@ -1556,6 +1561,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump_intent_execution.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_topology.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_runtime.o \
@@ -1627,6 +1633,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_dce.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \
+                   $(BUILD_DIR)/compiler/mir_intent_execution.o \
+                   $(BUILD_DIR)/compiler/mir_intent_execution_validate.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_type_helpers.o
 
@@ -3372,6 +3380,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-guard-post-compensation-execution-test-smoke \
 	self-host-intent-phase-carrier-negative-test-smoke \
 	self-host-intent-execution-fact-contract-test-smoke \
+	intent-typed-transition-native-execution-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
 	lsp-completion-registry-test-smoke \
@@ -3417,6 +3426,10 @@ self-host-intent-phase-carrier-negative-test-smoke: $(PGY)
 self-host-intent-execution-fact-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_execution_fact_contract_owner.sh
+
+intent-typed-transition-native-execution-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/intent_typed_transition_native_execution_smoke.sh
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

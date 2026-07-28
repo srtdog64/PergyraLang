@@ -195,6 +195,21 @@ const char *mir_param_carriage_name(MIRParamCarriage carriage);
 const char *mir_param_resource_kind_name(MIRParamResourceKind kind);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
+bool        mir_routine_has_admitted_intent_execution_plan(
+                const MIRRoutine *routine);
+uint32_t    mir_routine_intent_execution_plan_digest(
+                const MIRRoutine *routine);
+size_t      mir_routine_intent_step_transition_count(
+                const MIRRoutine *routine);
+const MIRIntentStepTransitionFact *
+            mir_routine_intent_step_transition_at(
+                const MIRRoutine *routine, size_t index);
+size_t      mir_routine_intent_terminal_transition_count(
+                const MIRRoutine *routine);
+const MIRIntentTerminalTransitionFact *
+            mir_routine_intent_terminal_transition_at(
+                const MIRRoutine *routine, size_t index);
+const char *mir_intent_terminal_role_name(MIRIntentTerminalRole role);
 const MIRCallableSig *mir_routine_param_callable_sig(const MIRRoutine *routine,
                                                     size_t index);
 const MIRCallableSig *mir_routine_return_callable_sig(const MIRRoutine *routine);

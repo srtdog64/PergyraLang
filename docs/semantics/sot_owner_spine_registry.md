@@ -319,7 +319,7 @@ The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact
 family, and which last consumers must eventually lose every alternate read.
 
-### Planned intent execution transition seams (OPEN, not registry rows)
+### Intent execution transition seams (OPEN, not registry rows)
 
 The bounded action-result and legacy phase carriers now exist: exact action
 stable identity, result name and declared return type reach
@@ -330,9 +330,9 @@ bridge and have executable missing/drift/phase/graph negatives. Legacy action
 completion before predicate evaluation and current-step rollback do not claim
 typed success/failure branch or success-only completion semantics.
 
-The remaining typed branch/compensation rung needs execution fact families
-that do not turn `selfhost.intent_declaration_rows` into a second MIR
-authority. The identities are `mir.intent_step_transition`, with stable handle
+The typed branch/compensation rung uses execution fact families that do not
+turn `selfhost.intent_declaration_rows` into a second MIR authority. The
+identities are `mir.intent_step_transition`, with stable handle
 `IntentStepTransitionId` and target Coq fact/owner
 `SFIntentStepTransition`/`SOMir`, plus `mir.intent_terminal_transition`, with
 stable handle `IntentTerminalTransitionId`. The target-neutral in-memory fact
@@ -354,15 +354,19 @@ exact construction and last consumption of that declared result. This keeps
 failure exit.
 
 This paragraph is deliberately not inside the machine-gated registry block.
-The in-memory owner and focused structural/mutation gate now exist, but the
-typed branch/completion Coq facts, DIR-to-MIR producer, JSON protocol
-projection/admission, complete C/LLVM/self-host consumer inventory, and
-failure-payload execution/parity gate do not. Until they land together, both
-seams are `OPEN`; they must not be represented as `ACTIVE`, `CLOSED`, or as an
-implemented protocol projection. Green structural facts, binding, and legacy
-predicate/compensation gates are not substitution evidence.
+Native DIR-to-MIR production, the exact routine result signature, stable
+declaration identities, the JSON protocol projection, validated transition
+blocks, and target-specific native C/LLVM plan consumers now exist. Their
+execution gate covers success, distinct failure A/B payloads, success-only
+completion, predecessor-only rollback and reverse multiple-compensation order.
+The self routine signature and target-neutral in-memory fact owner also exist,
+but the self top-level JSON index does not yet admit and cross-seal that plan.
+Until the production self-host entrypoint consumes the admitted plan and the
+old direct path is deleted, both seams remain `OPEN`; they must not be
+represented as `ACTIVE`, `CLOSED`, or hard self-host substitution. Native
+execution is `REACHABLE` evidence, not a Pergyra replacement of a C-owned path.
 
-The planned forbidden fallbacks are outcome-to-Bool collapse, variant spelling
+The forbidden fallbacks are outcome-to-Bool collapse, variant spelling
 classification, payload-type reinference, predecessor reconstruction from
 source order or array position, completion after any call regardless of the
 typed branch, rollback over all earlier source indices, compensation AST/source
@@ -371,10 +375,12 @@ path. The planned gate must cross-wire otherwise-valid result/type, variant/
 successor, predecessor, and completion identities and reject each mutation
 before emitting a partial C artifact.
 
-The current focused non-substitution gate is
-`tests/self_hosted/parity/intent_execution_fact_contract_owner.sh`; its exact
-wire and executable promotion requirements are recorded in
-`docs/self_hosted/19_intent_execution_transition_contract.md`.
+The current focused gates are
+`tests/self_hosted/parity/intent_execution_fact_contract_owner.sh` for the
+self in-memory contract and
+`tests/intent_typed_transition_native_execution_smoke.sh` for native MIR/C/LLVM
+execution. Their exact wire and executable promotion requirements are recorded
+in `docs/self_hosted/19_intent_execution_transition_contract.md`.
 
 For `semantic.machine_layer_transition`, the self-host physical declaration
 consumer is `src/self_hosted/compiler/machine_layer_declaration_consumer.pgy`.

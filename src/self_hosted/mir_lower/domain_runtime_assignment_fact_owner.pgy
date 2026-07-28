@@ -470,6 +470,17 @@ func MirDomainRuntimeAssignmentFactsFromDocument(
         JsonObjectFactArrayObjectTable(
             document.domain_runtime_assignments, "projection_members"
         );
+    // The native pgy.mir.v1 writer projects this canonical two-array object
+    // even for a program with no domain topology.  Syntactic object presence
+    // is therefore not semantic runtime-plan presence.  Only the exact empty
+    // pair may normalize to absent; a partial or non-empty carrier continues
+    // through the owner joins below and fails closed without matching topology.
+    if JsonArrayObjectFactCount(participant_rows) == 0 &&
+        JsonArrayObjectFactCount(projection_rows) == 0 &&
+        !MirDomainTopologyRequiredForDocument(document) &&
+        !topology.present {
+        return EmptyMirDomainRuntimeAssignmentFacts(false);
+    }
     let participants: MirDomainParticipantRoleFacts =
         MirDomainParticipantRoleFactsFromTable(participant_rows, declarations);
     let projections: MirDomainProjectionAssignmentFacts =

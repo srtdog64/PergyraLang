@@ -17,6 +17,7 @@
 #include "transpiler_intent_failure_emit.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_intent_prologue_emit.h"
+#include "transpiler_intent_typed_execution.h"
 #include "transpiler_intent_zone_binding_emit.h"
 #include "transpiler_intent_zone_slot.h"
 #include "transpiler_mir_inventory_intent_collect.h"
@@ -64,6 +65,22 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     mir_routine = transpiler_find_mir_intent(ctx, node);
     mir_only_intent = mir_routine != NULL;
     if (mir_routine != NULL) {
+        transpiler_set_current_return_type_local(
+            ctx, mir_routine_return_type_name(mir_routine));
+        if (mir_routine_has_admitted_intent_execution_plan(mir_routine)) {
+            mir_binding_count = transpiler_collect_mir_intent_bindings(
+                mir_routine, &binding_metadata);
+            if (!transpiler_emit_typed_intent_execution(
+                    node, ctx, mir_routine, &binding_metadata)) {
+                goto intent_emit_fail;
+            }
+            transpiler_free_intent_emit_metadata(
+                NULL, NULL, NULL, NULL, NULL,
+                &binding_metadata, NULL);
+            transpiler_restore_mir_emit_state_from_snapshot_local(
+                ctx, &saved_emit_state);
+            return;
+        }
         success_expr = transpiler_find_mir_intent_check_expr(
             mir_routine, intent_name, "success");
         if (transpiler_mir_intent_has_stmt(

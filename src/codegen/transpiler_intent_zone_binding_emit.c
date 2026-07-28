@@ -120,8 +120,6 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
     size_t binding_count = 0;
-    size_t participant_index = 0;
-    size_t value_index = 0;
     size_t explicit_binding_count = 0;
     size_t involve_count = 0;
     size_t value_count = 0;
@@ -132,6 +130,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     size_t intent_step_count = 0;
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
+    const char *return_c_type = "bool";
+    char return_c_type_buf[256];
 
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
@@ -151,6 +151,21 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
     mir_only_intent = mir_routine != NULL;
     if (mir_only_intent) {
+        const char *return_type_name =
+            mir_routine_return_type_name(mir_routine);
+        if (return_type_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-backed C forward declaration has invalid return type metadata for '%s'",
+                intent_name != NULL ? intent_name : "(anonymous-intent)");
+            goto cleanup;
+        }
+        if (!transpiler_require_type_name_c_type_copy(
+                ctx, return_type_name, "intent return type",
+                return_c_type_buf, sizeof(return_c_type_buf))) {
+            goto cleanup;
+        }
+        return_c_type = return_c_type_buf;
         mir_binding_count = transpiler_collect_mir_intent_bindings(
             mir_routine, &binding_metadata);
         for (size_t i = 0; i < mir_binding_count; i++) {
@@ -183,7 +198,7 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         : (explicit_binding_count > 0
             ? explicit_binding_count
             : (involve_count + value_count));
-    codebuf_write(buf, "\nbool\n%s(", intent_name);
+    codebuf_write(buf, "\n%s\n%s(", return_c_type, intent_name);
     for (size_t i = 0; i < binding_count; i++) {
         ASTNode *binding = mir_only_intent
             ? NULL
@@ -242,7 +257,6 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             const char *participant_type = NULL;
             char participant_c_type_buf[256];
             ASTNode *subject_type = NULL;
-            (void)participant_index;
             alias = ast_intent_involves_alias(binding) != NULL
                 ? ast_intent_involves_alias(binding) : "participant";
             if (!transpiler_intent_binding_surface_desc(surface_desc,
@@ -270,7 +284,6 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
                 pointer_param = intent_involves_uses_pointer_self(ctx, binding);
             }
-            participant_index++;
             if (pt == NULL) {
                 goto cleanup;
             }
@@ -328,7 +341,6 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(buf, "%s %s", pt, alias);
         }
         if (!mir_only_intent)
-            value_index++;
         if (pt == NULL) {
             goto cleanup;
         }

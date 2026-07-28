@@ -13,6 +13,7 @@
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
 #include "mir_generic_method_specialization.h"
+#include "mir_intent_execution.h"
 #include "mir_validation.h"
 
 static bool
@@ -632,6 +633,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
             return false;
         if (!mir_validate_loop_flow_facts(routine, error_message))
             return false;
+        if (!mir_validate_intent_execution_plan(routine, error_message))
+            return false;
         if (!mir_validate_cfg_contract_state(routine, false, true, true,
                                              error_message)) {
             return false;
@@ -772,6 +775,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 return false;
         }
     }
+
+    if (!mir_validate_intent_execution_program(mir, error_message))
+        return false;
 
     if (!mir_validate_non_cfg_fallback_inventory(mir, error_message))
         return false;

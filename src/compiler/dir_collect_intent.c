@@ -150,6 +150,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
     size_t step_count;
     memset(&info, 0, sizeof(info));
     info.node_id = from_id;
+    info.ast = node;
     info.has_typed_result = ast_intent_decl_has_typed_result(node);
     info.return_type_name = info.has_typed_result
         ? type_name(dir, ast_intent_decl_return_type(node))
@@ -392,6 +393,19 @@ step_oom:
             steps, step_count, info.success_terminal.step_syntax_id);
         info.success_terminal.expr =
             ast_intent_decl_success_terminal_expr(node);
+        info.success_terminal.result_type_name =
+            ast_intent_decl_terminal_result_type_name(node, true, 0);
+        info.success_terminal.result_enum_decl_syntax_id =
+            ast_intent_decl_terminal_result_enum_decl_syntax_id(
+                node, true, 0);
+        info.success_terminal.result_variant_index =
+            ast_intent_decl_terminal_result_variant_index(node, true, 0);
+        info.success_terminal.result_variant_name =
+            ast_intent_decl_terminal_result_variant_name(node, true, 0);
+        info.success_terminal.result_payload_name =
+            ast_intent_decl_terminal_result_payload_name(node, true, 0);
+        info.success_terminal.result_payload_type_name =
+            ast_intent_decl_terminal_result_payload_type_name(node, true, 0);
         info.failure_terminal_count =
             ast_intent_decl_failure_terminal_count(node);
         info.failure_terminals = calloc(
@@ -409,6 +423,20 @@ step_oom:
             terminal->step_index = intent_step_index_for_syntax_id(
                 steps, step_count, terminal->step_syntax_id);
             terminal->expr = ast_intent_decl_failure_terminal_expr(node, i);
+            terminal->result_type_name =
+                ast_intent_decl_terminal_result_type_name(node, false, i);
+            terminal->result_enum_decl_syntax_id =
+                ast_intent_decl_terminal_result_enum_decl_syntax_id(
+                    node, false, i);
+            terminal->result_variant_index =
+                ast_intent_decl_terminal_result_variant_index(node, false, i);
+            terminal->result_variant_name =
+                ast_intent_decl_terminal_result_variant_name(node, false, i);
+            terminal->result_payload_name =
+                ast_intent_decl_terminal_result_payload_name(node, false, i);
+            terminal->result_payload_type_name =
+                ast_intent_decl_terminal_result_payload_type_name(
+                    node, false, i);
         }
     }
 

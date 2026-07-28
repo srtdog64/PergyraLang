@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_intent_internal.h"
+#include "llvm_intent_typed_execution.h"
 
 #include <string.h>
 
@@ -76,6 +77,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (mir_routine != NULL) {
         priority_expr = llvm_find_mir_intent_eval_expr(
             mir_routine, ctx, intent_name, "priority");
+        if (mir_routine_has_admitted_intent_execution_plan(mir_routine)) {
+            if (!llvm_emit_typed_intent_execution(node, ctx, mir_routine,
+                    priority_expr, is_concurrent)
+                && !ctx->has_error) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM typed intent execution emission failed");
+            }
+            return;
+        }
         success_expr = llvm_find_mir_intent_check_expr(
             mir_routine, intent_name, "success");
         if (llvm_mir_intent_has_stmt(

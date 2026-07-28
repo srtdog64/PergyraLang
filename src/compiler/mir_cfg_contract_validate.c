@@ -43,6 +43,8 @@ mir_cfg_contract_block_requires_source_mapping(
 {
     if (block == NULL)
         return false;
+    if (block->is_intent_execution_plan_block)
+        return false;
     if (require_mapping_for_all_blocks)
         return !block->is_cleanup;
     return block->is_reachable

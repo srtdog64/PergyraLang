@@ -224,6 +224,7 @@ typedef struct
     bool             is_entry;
     bool             is_reachable;
     bool             is_cleanup;
+    bool             is_intent_execution_plan_block;
     bool             is_pin_region;
     bool             is_select_case_body;
     bool             pin_view_is_write;
@@ -341,6 +342,95 @@ typedef PgyIterationTypeFact MIRIterationTypeFact;
 typedef PgyDestructureTypeFact MIRDestructureTypeFact;
 typedef PgyMatchBindingTypeFact MIRMatchBindingTypeFact;
 
+typedef enum
+{
+    MIR_INTENT_TERMINAL_SUCCESS = 1,
+    MIR_INTENT_TERMINAL_FAILURE = 2
+} MIRIntentTerminalRole;
+
+typedef struct
+{
+    uint32_t transition_id;
+    uint32_t expression_syntax_id;
+    size_t   instruction_block_id;
+    size_t   instruction_id;
+    size_t   graph_root_id;
+    uint32_t graph_digest;
+    const char *call_target_name;
+    uint32_t call_target_syntax_id;
+    ASTNode *expression;
+} MIRIntentCompensationFact;
+
+typedef struct
+{
+    size_t      variant_index;
+    const char *variant_name;
+    const char *payload_name;
+    const char *payload_type_name;
+    size_t      successor_block_id;
+} MIRIntentOutcomeBranchFact;
+
+/* Fully materialized execution authority for one typed intent step.  A row
+ * becomes visible to consumers only after every referenced instruction and
+ * block has been materialized and cross-validated. */
+typedef struct
+{
+    bool        sealed;
+    uint32_t    transition_id;
+    uint32_t    routine_syntax_id;
+    uint32_t    step_syntax_id;
+    const char *step_name;
+    bool        has_predecessor;
+    uint32_t    predecessor_transition_id;
+    uint32_t    predecessor_step_syntax_id;
+    const char *predecessor_step_name;
+    uint32_t    action_syntax_id;
+    size_t      outcome_instruction_block_id;
+    size_t      outcome_instruction_id;
+    const char *outcome_result_name;
+    const char *outcome_type_name;
+    const char *outcome_enum_name;
+    uint32_t    outcome_enum_syntax_id;
+    ASTNode    *outcome_expression;
+    size_t      branch_block_id;
+    size_t      branch_instruction_id;
+    MIRIntentOutcomeBranchFact success;
+    MIRIntentOutcomeBranchFact failure;
+    size_t      completion_block_id;
+    size_t      completion_instruction_id;
+    MIRIntentCompensationFact *compensations;
+    size_t      compensation_count;
+} MIRIntentStepTransitionFact;
+
+typedef struct
+{
+    bool        sealed;
+    uint32_t    terminal_transition_id;
+    uint32_t    routine_syntax_id;
+    MIRIntentTerminalRole role;
+    uint32_t    source_transition_id;
+    uint32_t    source_step_syntax_id;
+    const char *source_step_name;
+    size_t      source_variant_index;
+    const char *source_variant_name;
+    const char *source_payload_name;
+    const char *source_payload_type_name;
+    size_t      result_instruction_block_id;
+    size_t      result_instruction_id;
+    const char *result_definition_name;
+    const char *result_type_name;
+    const char *result_enum_name;
+    uint32_t    result_enum_syntax_id;
+    size_t      result_variant_index;
+    const char *result_variant_name;
+    const char *result_payload_name;
+    const char *result_payload_type_name;
+    uint32_t    expression_syntax_id;
+    size_t      graph_root_id;
+    uint32_t    graph_digest;
+    ASTNode    *expression;
+} MIRIntentTerminalTransitionFact;
+
 typedef struct
 {
     size_t             id;
@@ -420,6 +510,14 @@ typedef struct
     size_t             value_summary_count;
     size_t             value_summary_capacity;
     bool               has_use_def_summary;
+    bool               intent_execution_plan_admitted;
+    uint32_t           intent_execution_plan_digest;
+    MIRIntentStepTransitionFact *intent_step_transitions;
+    size_t             intent_step_transition_count;
+    size_t             intent_step_transition_capacity;
+    MIRIntentTerminalTransitionFact *intent_terminal_transitions;
+    size_t             intent_terminal_transition_count;
+    size_t             intent_terminal_transition_capacity;
     /* Pass-local scratch arena: reused across MIR passes (SSA rename,
      * future liveness/DCE transforms).  Lifetime binds to the enclosing
      * MIRRoutine: initialised at construction, destroyed in mir_destroy().

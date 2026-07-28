@@ -32,6 +32,7 @@ llvm_forward_declare_intent_from_mir_routine(LLVMGenCtx *ctx,
     const char *name;
     IntentBindingMetadataView binding_metadata = {0};
     LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef return_type = NULL;
     LLVMTypeRef fn_type;
     LLVMValueRef fn;
     size_t param_count;
@@ -49,6 +50,15 @@ llvm_forward_declare_intent_from_mir_routine(LLVMGenCtx *ctx,
     }
     if (llvm_lookup_function(ctx, name) != NULL)
         return true;
+
+    return_type = pergyra_type_to_llvm(
+        ctx, mir_routine_return_type_name(routine));
+    if (ctx->has_error || return_type == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path has invalid intent return type metadata for '%s'",
+            name);
+        return false;
+    }
 
     param_count = llvm_collect_mir_intent_bindings(
         routine, ctx, &binding_metadata);
@@ -94,7 +104,7 @@ llvm_forward_declare_intent_from_mir_routine(LLVMGenCtx *ctx,
         }
     }
 
-    fn_type = LLVMFunctionType(ctx->type_i1, param_types,
+    fn_type = LLVMFunctionType(return_type, param_types,
         (unsigned)param_count, 0);
     fn = LLVMAddFunction(ctx->module, name, fn_type);
     {
@@ -105,7 +115,7 @@ llvm_forward_declare_intent_from_mir_routine(LLVMGenCtx *ctx,
                 LLVMCreateEnumAttribute(ctx->context, attr_kind, 0));
         }
     }
-    llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+    llvm_register_function(ctx, name, fn, fn_type, return_type);
     return !ctx->has_error;
 }
 
@@ -115,6 +125,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     const MIRRoutine *mir_routine;
     const char *name;
     LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef return_type = NULL;
     LLVMTypeRef fn_type;
     LLVMValueRef fn;
     IntentBindingMetadataView binding_metadata = {0};
@@ -145,6 +156,18 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         return;
     }
     mir_only_intent = mir_routine != NULL;
+    if (mir_only_intent) {
+        return_type = pergyra_type_to_llvm(
+            ctx, mir_routine_return_type_name(mir_routine));
+        if (ctx->has_error || return_type == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid intent return type metadata for '%s'",
+                name != NULL ? name : "(anonymous)");
+            return;
+        }
+    } else {
+        return_type = ctx->type_i1;
+    }
     if (mir_routine != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             mir_routine, ctx, &binding_metadata);
@@ -245,7 +268,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    fn_type = LLVMFunctionType(ctx->type_i1, param_types,
+    fn_type = LLVMFunctionType(return_type, param_types,
         (unsigned)param_count, 0);
     fn = LLVMAddFunction(ctx->module, name, fn_type);
     {
@@ -256,7 +279,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMCreateEnumAttribute(ctx->context, attr_kind, 0));
         }
     }
-    llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+    llvm_register_function(ctx, name, fn, fn_type, return_type);
 }
 
 void

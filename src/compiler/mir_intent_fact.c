@@ -58,6 +58,7 @@ static const char *const k_mir_intent_semantic_carrier_names[] = {
     "IntentOutcomeBinding",
     "IntentParticipant",
     "IntentStep",
+    "IntentStepCompleted",
     "IntentValue",
     "IntentWho",
     "IntentZoneAlias",

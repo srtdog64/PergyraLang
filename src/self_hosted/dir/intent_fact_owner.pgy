@@ -12,47 +12,7 @@ import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
 import "intent_step_carriage_contract_owner.pgy";
 import "intent_outcome_contract_owner.pgy";
-
-struct SelfDirIntentFacts {
-    required: Bool;
-    ok: Bool;
-    diagnostic_message: String;
-    artifact_node_count: Int;
-    intent_node_ids: Array<Int>;
-    names: Array<String>;
-    participant_starts: Array<Int>;
-    participant_counts: Array<Int>;
-    participants: SelfDirIntentParticipantFacts;
-    step_starts: Array<Int>;
-    step_counts: Array<Int>;
-    steps: SelfDirIntentStepFacts;
-    transitions: SemanticAstIntentTransitionFacts;
-    edge_count: Int;
-}
-
-func SelfDirIntentFactsEmpty(
-    required: Bool, ok: Bool, message: String, artifact_node_count: Int
-) -> SelfDirIntentFacts {
-    let intent_node_ids: Array<Int> = [];
-    let names: Array<String> = [];
-    let participant_starts: Array<Int> = [];
-    let participant_counts: Array<Int> = [];
-    let step_starts: Array<Int> = [];
-    let step_counts: Array<Int> = [];
-    return SelfDirIntentFacts(
-        required, ok, message, artifact_node_count,
-        intent_node_ids, names, participant_starts, participant_counts,
-        SelfDirIntentParticipantFactsEmpty(), step_starts, step_counts,
-        SelfDirIntentStepFactsEmpty(),
-        SemanticAstIntentTransitionFactsEmpty(artifact_node_count), 0
-    );
-}
-
-func SelfDirIntentFactsError(
-    message: String, artifact_node_count: Int
-) -> SelfDirIntentFacts {
-    return SelfDirIntentFactsEmpty(true, false, message, artifact_node_count);
-}
+import "intent_result_contract_owner.pgy";
 
 func SelfDirIntentDirectChildAllowed(kind: Int) -> Bool {
     return kind == TypedAstKindIntentModeTag() ||
@@ -99,6 +59,8 @@ func SelfDirIntentFactsFromArtifact(
 
     let intent_node_ids: Array<Int> = [];
     let intent_names: Array<String> = [];
+    let intent_result_modes: Array<String> = [];
+    let intent_return_type_names: Array<String> = [];
     let participant_starts: Array<Int> = [];
     let participant_counts: Array<Int> = [];
     let participant_node_ids: Array<Int> = [];
@@ -284,6 +246,13 @@ func SelfDirIntentFactsFromArtifact(
         }
         ArrayPush(intent_node_ids, intent_node_id);
         ArrayPush(intent_names, signature_facts.names[intent_index]);
+        ArrayPush(
+            intent_result_modes, signature_facts.result_modes[intent_index]
+        );
+        ArrayPush(
+            intent_return_type_names,
+            signature_facts.return_type_names[intent_index]
+        );
         ArrayPush(participant_starts, participant_start);
         ArrayPush(participant_counts, participant_count);
         ArrayPush(step_starts, step_start);
@@ -293,7 +262,8 @@ func SelfDirIntentFactsFromArtifact(
 
     return SelfDirIntentFacts(
         true, true, "", artifact.count,
-        intent_node_ids, intent_names, participant_starts, participant_counts,
+        intent_node_ids, intent_names, intent_result_modes,
+        intent_return_type_names, participant_starts, participant_counts,
         SelfDirIntentParticipantFacts(
             participant_node_ids, participant_is_values, participant_aliases,
             participant_type_names, participant_declaration_indices
@@ -317,22 +287,6 @@ func SelfDirIntentFactsFromArtifact(
         transition_facts,
         edge_count
     );
-}
-
-func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
-    let intents: Int = ArrayLength(facts.intent_node_ids);
-    let participants: Int = ArrayLength(facts.participants.node_ids);
-    return ArrayLength(facts.names) == intents &&
-        ArrayLength(facts.participant_starts) == intents &&
-        ArrayLength(facts.participant_counts) == intents &&
-        ArrayLength(facts.step_starts) == intents &&
-        ArrayLength(facts.step_counts) == intents &&
-        ArrayLength(facts.participants.is_values) == participants &&
-        ArrayLength(facts.participants.aliases) == participants &&
-        ArrayLength(facts.participants.type_names) == participants &&
-        ArrayLength(facts.participants.declaration_indices) == participants &&
-        SelfDirIntentStepCarriageShapeReady(facts.steps) &&
-        facts.transitions.ok;
 }
 
 func SelfDirIntentFactsReady(
@@ -369,6 +323,7 @@ func SelfDirIntentFactsReady(
         let s_count: Int = facts.step_counts[intent_i];
         if facts.intent_node_ids[intent_i] < 0 ||
             facts.names[intent_i] == "" ||
+            !SelfDirIntentResultContractReady(facts, intent_i) ||
             !TypedAstArenaNodeKindIs(
                 artifact.arena, facts.intent_node_ids[intent_i],
                 TypedAstKindIntentDeclTag()

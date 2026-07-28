@@ -144,6 +144,12 @@ typedef struct {
     char* step_name;
     uint32_t step_syntax_id;
     ASTNode* expr;
+    char* result_type_name;
+    uint32_t result_enum_decl_syntax_id;
+    size_t result_variant_index;
+    char* result_variant_name;
+    char* result_payload_name;
+    char* result_payload_type_name;
 } ASTIntentTerminalData;
 
 /* Step-local typed outcome pattern.  `variant_name` and `payload_name` are

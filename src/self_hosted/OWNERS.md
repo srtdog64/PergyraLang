@@ -661,10 +661,16 @@ inventory must not become a second fact-family owner registry.
   receiver, authorization, effects, phase/rollback, and commit boundaries.
 - `src/self_hosted/mir/intent_execution_fact_owner.pgy` -- target-neutral
   `mir.intent_step_transition` and `mir.intent_terminal_transition` execution
-  facts: exact enum/payload identities, explicit predecessor handles,
+  validation: exact enum/payload identities, explicit predecessor handles,
   success-only completion, compensation action/graph seals, terminal result
-  construction, and an admission digest.  It does not infer branch roles from
+  construction, and digest cross-sealing.  It does not infer branch roles from
   variant spelling or predecessor identity from row position.
+- `src/self_hosted/mir/intent_execution_schema_owner.pgy` -- exact typed step,
+  compensation, terminal, and plan carriers plus independently allocated empty
+  facts.  It owns shape only; it does not validate roles or derive identity.
+- `src/self_hosted/mir/intent_execution_digest_owner.pgy` -- native-order
+  mutation digest projection over every carried intent execution field.  It
+  owns hash order and arithmetic, not transition semantics or JSON admission.
 - `src/self_hosted/mir/intent_instruction_append_owner.pgy` -- canonical
   intent instruction append plus atomic result, slot-anchor, and ABI type-name
   scalar attachment; callers cannot leave a partially-carried outcome row.

@@ -4,6 +4,7 @@
  */
 
 #include "ast_constructors_internal.h"
+#include "../common/string_compat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -244,6 +245,128 @@ ast_intent_decl_set_failure_terminal_step_syntax_id(ASTNode* node,
         return false;
     }
     node->data.intent_decl.failure_terminals[index].step_syntax_id = syntax_id;
+    return true;
+}
+
+static ASTIntentTerminalData*
+ast_intent_decl_terminal(ASTNode* node,
+                         bool success_terminal,
+                         size_t failure_index)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return NULL;
+    if (success_terminal)
+        return &node->data.intent_decl.success_terminal;
+    if (failure_index >= node->data.intent_decl.failure_terminal_count)
+        return NULL;
+    return &node->data.intent_decl.failure_terminals[failure_index];
+}
+
+const char*
+ast_intent_decl_terminal_result_type_name(const ASTNode* node,
+                                          bool success_terminal,
+                                          size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_type_name : NULL;
+}
+
+uint32_t
+ast_intent_decl_terminal_result_enum_decl_syntax_id(
+    const ASTNode* node, bool success_terminal, size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_enum_decl_syntax_id : 0;
+}
+
+size_t
+ast_intent_decl_terminal_result_variant_index(const ASTNode* node,
+                                              bool success_terminal,
+                                              size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_variant_index : SIZE_MAX;
+}
+
+const char*
+ast_intent_decl_terminal_result_variant_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_variant_name : NULL;
+}
+
+const char*
+ast_intent_decl_terminal_result_payload_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_payload_name : NULL;
+}
+
+const char*
+ast_intent_decl_terminal_result_payload_type_name(
+    const ASTNode* node, bool success_terminal, size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_payload_type_name : NULL;
+}
+
+bool
+ast_intent_decl_set_terminal_result_resolution_copy(
+    ASTNode* node,
+    bool success_terminal,
+    size_t failure_index,
+    const char* result_type_name,
+    uint32_t result_enum_decl_syntax_id,
+    size_t result_variant_index,
+    const char* result_variant_name,
+    const char* result_payload_name,
+    const char* result_payload_type_name)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        node, success_terminal, failure_index);
+    char* type_copy;
+    char* variant_copy;
+    char* payload_copy;
+    char* payload_type_copy;
+
+    if (terminal == NULL || result_type_name == NULL
+        || result_type_name[0] == '\0' || result_enum_decl_syntax_id == 0
+        || result_variant_index == SIZE_MAX || result_variant_name == NULL
+        || result_variant_name[0] == '\0' || result_payload_name == NULL
+        || result_payload_name[0] == '\0' || result_payload_type_name == NULL
+        || result_payload_type_name[0] == '\0') {
+        return false;
+    }
+    type_copy = pergyra_strdup(result_type_name);
+    variant_copy = pergyra_strdup(result_variant_name);
+    payload_copy = pergyra_strdup(result_payload_name);
+    payload_type_copy = pergyra_strdup(result_payload_type_name);
+    if (type_copy == NULL || variant_copy == NULL || payload_copy == NULL
+        || payload_type_copy == NULL) {
+        free(type_copy);
+        free(variant_copy);
+        free(payload_copy);
+        free(payload_type_copy);
+        return false;
+    }
+    free(terminal->result_type_name);
+    free(terminal->result_variant_name);
+    free(terminal->result_payload_name);
+    free(terminal->result_payload_type_name);
+    terminal->result_type_name = type_copy;
+    terminal->result_enum_decl_syntax_id = result_enum_decl_syntax_id;
+    terminal->result_variant_index = result_variant_index;
+    terminal->result_variant_name = variant_copy;
+    terminal->result_payload_name = payload_copy;
+    terminal->result_payload_type_name = payload_type_copy;
     return true;
 }
 

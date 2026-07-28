@@ -661,6 +661,77 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
     return expr;
 }
 
+static uint32_t
+mir_expression_graph_hash_string(uint32_t hash, const char *value)
+{
+    const unsigned char *cursor =
+        (const unsigned char *)(value != NULL ? value : "");
+    size_t length = value != NULL ? strlen(value) : 0;
+
+    hash = (uint32_t)(((uint64_t)hash * 131u + length) % 268435456u);
+    while (*cursor != '\0') {
+        hash = (uint32_t)(((uint64_t)hash * 131u + *cursor)
+                          % 268435456u);
+        cursor++;
+    }
+    return hash;
+}
+
+static uint32_t
+mir_expression_graph_hash_int(uint32_t hash, int value)
+{
+    return (uint32_t)(((uint64_t)hash * 131u
+                       + (uint32_t)(value + 2)) % 268435456u);
+}
+
+static uint32_t
+mir_expression_graph_digest(const MIRJsonExpressionGraph *graph, int root)
+{
+    uint32_t hash = 71u;
+
+    hash = mir_expression_graph_hash_int(hash, root);
+    hash = mir_expression_graph_hash_int(
+        hash, graph != NULL ? (int)graph->count : -1);
+    if (graph != NULL) {
+        for (size_t i = 0; i < graph->count; i++) {
+            const MIRJsonExpressionGraphNode *node = &graph->nodes[i];
+            hash = mir_expression_graph_hash_string(hash, node->kind);
+            hash = mir_expression_graph_hash_string(hash, node->text);
+            hash = mir_expression_graph_hash_string(
+                hash, node->call_target_kind);
+            hash = mir_expression_graph_hash_string(
+                hash, node->call_target_name);
+            hash = mir_expression_graph_hash_int(hash, node->left);
+            hash = mir_expression_graph_hash_int(hash, node->right);
+        }
+    }
+    return 1073741824u + hash;
+}
+
+bool
+mir_expression_graph_identity(ASTNode *expression,
+                              size_t *root_id_out,
+                              uint32_t *digest_out)
+{
+    MIRJsonExpressionGraph graph = {0};
+    int root = mir_json_expression_graph_build(&graph, expression);
+
+    if (root_id_out != NULL)
+        *root_id_out = SIZE_MAX;
+    if (digest_out != NULL)
+        *digest_out = 0;
+    if (root < 0) {
+        mir_json_expression_graph_dispose(&graph);
+        return false;
+    }
+    if (root_id_out != NULL)
+        *root_id_out = (size_t)root;
+    if (digest_out != NULL)
+        *digest_out = mir_expression_graph_digest(&graph, root);
+    mir_json_expression_graph_dispose(&graph);
+    return true;
+}
+
 void
 mir_json_emit_instruction_expression_graph(FILE *out,
                                            const MIRInstruction *inst,
@@ -678,7 +749,8 @@ mir_json_emit_instruction_expression_graph(FILE *out,
         mir_json_expression_graph_dispose(&graph);
         return;
     }
-    fprintf(out, "{\"root\":%d,\"nodes\":[", root);
+    fprintf(out, "{\"root\":%d,\"digest\":%u,\"nodes\":[",
+            root, mir_expression_graph_digest(&graph, root));
     for (size_t i = 0; i < graph.count; i++) {
         const MIRJsonExpressionGraphNode *node = &graph.nodes[i];
         if (i > 0)

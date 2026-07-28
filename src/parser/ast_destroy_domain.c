@@ -115,11 +115,19 @@ ast_destroy_domain_node(ASTNode* node) {
             ast_destroy(node->data.intent_decl.success_expr);
             ast_destroy(node->data.intent_decl.failure_expr);
             free(node->data.intent_decl.success_terminal.step_name);
+            free(node->data.intent_decl.success_terminal.result_type_name);
+            free(node->data.intent_decl.success_terminal.result_variant_name);
+            free(node->data.intent_decl.success_terminal.result_payload_name);
+            free(node->data.intent_decl.success_terminal.result_payload_type_name);
             ast_destroy(node->data.intent_decl.success_terminal.expr);
             for (size_t i = 0;
                  i < node->data.intent_decl.failure_terminal_count;
                  i++) {
                 free(node->data.intent_decl.failure_terminals[i].step_name);
+                free(node->data.intent_decl.failure_terminals[i].result_type_name);
+                free(node->data.intent_decl.failure_terminals[i].result_variant_name);
+                free(node->data.intent_decl.failure_terminals[i].result_payload_name);
+                free(node->data.intent_decl.failure_terminals[i].result_payload_type_name);
                 ast_destroy(node->data.intent_decl.failure_terminals[i].expr);
             }
             free(node->data.intent_decl.failure_terminals);

@@ -444,6 +444,13 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 mir_destroy(mir);
                 return NULL;
             }
+        } else if (routine.kind == MIR_SCOPE_INTENT) {
+            if (!mir_intent_capture_signature(&routine, dir, error_message)) {
+                mir_routine_signature_metadata_clear(&routine);
+                pgy_arena_destroy(&routine.scratch);
+                mir_destroy(mir);
+                return NULL;
+            }
         }
         if (!mir_copy_resource_flow_symbols(
                 &routine, hir_routine, error_message)) {

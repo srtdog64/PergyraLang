@@ -394,6 +394,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str(out, json_nominal_kind);
         fputs(",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_header_source_syntax_id(header));
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
         if (ast_type == AST_PARTY_DECL)
@@ -407,6 +409,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     if (ast_type == AST_ABILITY_DECL) {
         fputs("{\"kind\":\"ability\",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_header_source_syntax_id(header));
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_methods(out, header, true);
         fputc('}', out);
@@ -416,6 +420,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     if (ast_type == AST_ENUM_DECL) {
         fputs("{\"kind\":\"enum\",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_header_source_syntax_id(header));
         mir_json_emit_enum_variants(out, header);
         fputc('}', out);
         return;
@@ -424,6 +430,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     if (ast_type == AST_ROLE_DECL) {
         fputs("{\"kind\":\"role\",\"name\":", out);
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_header_source_syntax_id(header));
         fputs(",\"for_type\":", out);
         mir_json_emit_str_or_null(
             out, mir_decl_header_role_subject_type_name(header));
@@ -443,6 +451,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     }
     fputs(",\"name\":", out);
     mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+    fprintf(out, ",\"source_syntax_id\":%u",
+            mir_decl_header_source_syntax_id(header));
     fputc('}', out);
 }
 

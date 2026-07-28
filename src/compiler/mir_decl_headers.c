@@ -487,6 +487,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 
     memset(&header, 0, sizeof(header));  /* zero-inits variant_metadata too */
     header.ast_type = decl->type;
+    header.source_syntax_id = ast_node_stable_id(decl);
 
     switch (decl->type) {
     case AST_FUNC_DECL:
