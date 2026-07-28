@@ -1,0 +1,38 @@
+// Producer-side scalar contract for executable intent phase carriers.
+//
+// DIR owns the clause facts. This owner only fixes their native-compatible
+// MIR wire shape before any JSON artifact can be committed.
+
+import "program_fact_owner.pgy";
+
+func SelfMirIntentPhaseInstructionReady(
+    rows: SelfMirInstructionRows,
+    index: Int
+) -> Bool {
+    let name: String = rows.names[index];
+    let phase: String = rows.arg0s[index];
+    if name != "IntentCheck" && name != "IntentEval" { return false; }
+    if rows.arg1s[index] == "" ||
+        rows.slot_anchors[index] != rows.arg1s[index] ||
+        rows.source_types[index] == "" || rows.expr0s[index] == "" ||
+        rows.expr1s[index] != "" ||
+        rows.expr0_graphs.has_roots[index] != 1 ||
+        rows.expr1_graphs.has_roots[index] != 0 ||
+        rows.runtime_call_abi.present[index] != 0 {
+        return false;
+    }
+    if name == "IntentCheck" {
+        return (phase == "guard" || phase == "expect" || phase == "post") &&
+            rows.results[index] == "" && rows.abi_type_names[index] == "";
+    }
+    if phase == "compensate" {
+        return rows.results[index] == "" &&
+            rows.abi_type_names[index] == "";
+    }
+    if phase != "on" { return false; }
+    let has_result: Bool = rows.results[index] != "";
+    let has_type: Bool = rows.abi_type_names[index] != "";
+    return has_result == has_type &&
+        (!has_type || (rows.abi_type_names[index] != "Unknown" &&
+                       rows.abi_type_names[index] != "Void"));
+}

@@ -1,0 +1,98 @@
+tobject IntentRunReceipt {
+    value: Int;
+}
+
+tobject IntentRunFailure {
+    status: Int;
+}
+
+enum IntentRunOutcome {
+    IntentRunCommitted(IntentRunReceipt),
+    IntentRunRejected(IntentRunFailure),
+}
+
+object IntentWorkerView {
+    calls: Int;
+}
+
+tobject IntentWorkerSnapshot {
+    calls: Int;
+}
+
+ability IntentRunnable {
+    func CanRun() -> Bool;
+}
+
+subject IntentWorker {
+    let mut calls: Int;
+
+    action Run(self, succeed: Bool) -> IntentRunOutcome
+        requires IntentRunnable
+        within IntentWorkZone
+        authorized by self
+    {
+        self.calls = self.calls + 1;
+        if succeed {
+            return IntentRunCommitted(IntentRunReceipt(self.calls));
+        }
+        return IntentRunRejected(IntentRunFailure(9));
+    }
+}
+
+role IntentWorkerRunnable for IntentWorker {
+    impl ability IntentRunnable {
+        func CanRun() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone IntentWorkZone {
+    subject slot worker: IntentWorker
+    object slot view: IntentWorkerView
+    tobject slot snapshot: IntentWorkerSnapshot
+    authority worker requires IntentRunnable
+
+    refresh view from worker by worker map {
+        calls <- calls;
+    }
+
+    publish snapshot from worker by worker map {
+        calls <- calls;
+    }
+}
+
+func IntentRunAccepted(outcome: IntentRunOutcome) -> Bool {
+    match outcome {
+        case IntentRunCommitted(receipt):
+            return receipt.value > 0;
+        case IntentRunRejected(failure):
+            return failure.status == 0;
+    }
+}
+
+func IntentRunSettled(outcome: IntentRunOutcome) -> Bool {
+    return IntentRunAccepted(outcome);
+}
+
+intent RunIntent(
+    work: IntentWorkZone,
+    worker: IntentWorker,
+    succeed: Bool
+) {
+    step Run {
+        using: work;
+        on outcome: worker.Run(succeed);
+        compensate: IntentRunSettled(outcome);
+        compensate: IntentRunAccepted(outcome);
+        guard: true;
+        post: IntentRunAccepted(outcome);
+        expect: IntentRunAccepted(outcome);
+    }
+}
+
+func Main() -> Void {
+    let worker = IntentWorker(0);
+    let work = IntentWorkZone(Clone(worker));
+    Log(ToString(RunIntent(work, worker, true)));
+}

@@ -6,43 +6,8 @@ import "routine_build_owner.pgy";
 import "routine_cfg_append_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "intent_instruction_append_owner.pgy";
+import "intent_phase_emission_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
-
-func SelfMirIntentExpressionText(
-    surfaces: SemanticAstExpressionSurfaceFacts,
-    node_id: Int
-) -> String {
-    let row_opt: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
-        surfaces, node_id
-    );
-    if !IsSome(row_opt) { return ""; }
-    let row: Int = UnwrapOption(row_opt);
-    if row < 0 || row >= ArrayLength(surfaces.has_atoms) ||
-        !surfaces.has_atoms[row] {
-        return "";
-    }
-    return surfaces.normalized_atoms[row];
-}
-
-func SelfMirIntentExpressionSourceType(
-    graph: SemanticExpressionGraphView,
-    text: String
-) -> String {
-    if !graph.ok { return ""; }
-    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph.graph, graph.root_id
-    );
-    if !IsSome(kind_opt) { return ""; }
-    let kind: Int = UnwrapOption(kind_opt);
-    if kind == AstExpressionNodeBoolLiteral() { return "AST_BOOLEAN"; }
-    if kind == AstExpressionNodeIntegerLiteral() ||
-        kind == AstExpressionNodeLongLiteral() ||
-        kind == AstExpressionNodeFloatLiteral() {
-        return "AST_NUMBER";
-    }
-    if kind == AstExpressionNodeStringLiteral() { return "AST_STRING"; }
-    return SelfMirExpressionSourceTypeName(SelfMirExpressionKindFromText(text));
-}
 
 func SelfMirIntentEffectSlotForType(
     rows: SelfMirDeclarationRows,
@@ -263,40 +228,26 @@ func SelfMirIntentRoutineBuild(
                 "", "AST_INTENT_STEP", SelfMirNoUses()
             );
         }
-        let expect_node_id: Int = intents.steps.expect_node_ids[step_row];
-        if expect_node_id >= 0 {
-            let expect_text: String = SelfMirIntentExpressionText(
-                input.analysis.expression_surfaces, expect_node_id
-            );
-            let expect_graph: SemanticExpressionGraphView =
-                SemanticAstExpressionGraphForNode(
-                    input.analysis.expression_surfaces, expect_node_id,
-                    AstExpressionLaneAtom()
-                );
-            if expect_text == "" || !expect_graph.ok {
-                return SelfMirRoutineBuildError(
-                    build, "MIR intent expect expression graph is missing"
-                );
-            }
-            build = SelfMirIntentAddInstruction(
-                build, "stmt", "IntentCheck", "expect", step_name, step_name,
-                expect_text,
-                SelfMirIntentExpressionSourceType(expect_graph, expect_text),
-                SelfMirExpressionGraphUses(build, expect_graph)
-            );
-            build = SelfMirRoutineAttachLastExpressionGraph(
-                build, expect_graph, input.machine_declaration
+        let guard_node_id: Int = intents.steps.guard_node_ids[step_row];
+        if guard_node_id >= 0 {
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, guard_node_id, "guard", step_name, "", ""
             );
         }
-        let on_node_id: Int = intents.steps.on_node_ids[step_row];
-        let on_text: String = SelfMirIntentExpressionText(
-            input.analysis.expression_surfaces, on_node_id
-        );
-        let on_graph: SemanticExpressionGraphView =
-            SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces, on_node_id,
-                AstExpressionLaneAtom()
+        let expect_node_id: Int = intents.steps.expect_node_ids[step_row];
+        if expect_node_id >= 0 {
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, expect_node_id, "expect", step_name, "", ""
             );
+        }
+        let post_node_id: Int = intents.steps.post_node_ids[step_row];
+        if post_node_id >= 0 {
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, post_node_id, "post", step_name, "", ""
+            );
+        }
+        if !build.ok { return build; }
+        let on_node_id: Int = intents.steps.on_node_ids[step_row];
         let outcome_name: String = intents.steps.outcome_names[step_row];
         let outcome_type_name: String =
             intents.steps.outcome_type_names[step_row];
@@ -327,18 +278,28 @@ func SelfMirIntentRoutineBuild(
                 build, "MIR intent outcome binding is invalid"
             );
         }
-        let eval_uses: Array<String> =
-            SelfMirExpressionGraphUses(build, on_graph);
-        build = SelfMirIntentAddResultInstruction(
-            build, "stmt", "IntentEval", outcome_name, "on", step_name,
-            step_name, on_text,
-            SelfMirIntentExpressionSourceType(on_graph, on_text),
-            outcome_type_name,
-            eval_uses
+        build = SelfMirIntentAppendPhaseCarrier(
+            build, input, on_node_id, "on", step_name,
+            outcome_name, outcome_type_name
         );
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, on_graph, input.machine_declaration
-        );
+        let compensate_i: Int = 0;
+        while compensate_i < intents.steps.compensate_counts[step_row] {
+            let compensate_row: Int =
+                intents.steps.compensate_starts[step_row] + compensate_i;
+            if compensate_row < 0 || compensate_row >=
+                ArrayLength(intents.steps.compensate_node_ids) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent compensate range is invalid"
+                );
+            }
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input,
+                intents.steps.compensate_node_ids[compensate_row],
+                "compensate", step_name, "", ""
+            );
+            compensate_i = compensate_i + 1;
+        }
+        if !build.ok { return build; }
         step_i = step_i + 1;
     }
     build = SelfMirIntentAddInstruction(

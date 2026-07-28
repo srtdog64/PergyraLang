@@ -194,17 +194,21 @@ func ParseIntentDecl(
             let s_outcome: String = "";
             let s_on_seen: Bool = false;
             let s_guard: String = "";
+            let s_guard_seen: Bool = false;
             let s_expect: String = "";
+            let s_expect_seen: Bool = false;
             let s_requires: String = "";
             let s_auth: String = "";
             let s_causes: String = "";
             let s_transfer: String = "";
-            let s_compensate: String = "";
+            let s_compensates: Array<String> = [];
             let s_post: String = "";
+            let s_post_seen: Bool = false;
             let s_intent: String = "";
             let s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_guard_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_compensate_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_compensate_facts: Array<ParserExpressionFact> = [];
             let s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
                 i = SkipWhitespaceAndComments(content, i);
@@ -274,6 +278,18 @@ func ParseIntentDecl(
                         if s_outcome == "" { Exit(1); }
                     }
                 }
+                if clause == "guard" {
+                    if s_guard_seen { Exit(1); }
+                    s_guard_seen = true;
+                }
+                if clause == "post" {
+                    if s_post_seen { Exit(1); }
+                    s_post_seen = true;
+                }
+                if clause == "expect" {
+                    if s_expect_seen { Exit(1); }
+                    s_expect_seen = true;
+                }
                 i = Expect(content, i, ":");
                 if i < 0 {
                     Exit(1);
@@ -296,8 +312,11 @@ func ParseIntentDecl(
                     if !val_fact.ok { Exit(1); }
                     val = val_fact.text;
                     if clause == "on" { s_on_fact = val_fact; }
+                    if clause == "guard" { s_guard_fact = val_fact; }
                     if clause == "expect" { s_expect_fact = val_fact; }
-                    if clause == "compensate" { s_compensate_fact = val_fact; }
+                    if clause == "compensate" {
+                        ArrayPush(s_compensate_facts, val_fact);
+                    }
                     if clause == "post" { s_post_fact = val_fact; }
                     i = cursor_out[0];
                 }
@@ -324,7 +343,7 @@ func ParseIntentDecl(
                 } else if clause == "causes" {
                     s_causes = val;
                 } else if clause == "compensate" {
-                    s_compensate = val;
+                    ArrayPush(s_compensates, val);
                 } else if clause == "post" {
                     s_post = val;
                 } else if clause == "intent" {
@@ -367,8 +386,12 @@ func ParseIntentDecl(
             if StringLength(s_on) > 0 {
                 step_out = AppendLine(step_out, Concat("      On: ", s_on));
             }
-            if StringLength(s_compensate) > 0 {
-                step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensate));
+            let compensate_i: Int = 0;
+            while compensate_i < ArrayLength(s_compensates) {
+                step_out = AppendLine(step_out, Concat(
+                    "      Compensate: ", s_compensates[compensate_i]
+                ));
+                compensate_i = compensate_i + 1;
             }
             if StringLength(s_guard) > 0 {
                 step_out = AppendLine(step_out, Concat("      Guard: ", s_guard));
@@ -394,11 +417,19 @@ func ParseIntentDecl(
                     AstExpressionLaneAtom(), s_on_fact
                 ));
             }
-            if StringLength(s_compensate) > 0 {
+            compensate_i = 0;
+            while compensate_i < ArrayLength(s_compensate_facts) {
                 ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
                     expression_graphs[0],
                     TypedAstKindIntentStepCompensateTag(),
-                    AstExpressionLaneAtom(), s_compensate_fact
+                    AstExpressionLaneAtom(), s_compensate_facts[compensate_i]
+                ));
+                compensate_i = compensate_i + 1;
+            }
+            if StringLength(s_guard) > 0 {
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+                    expression_graphs[0], TypedAstKindIntentStepGuardTag(),
+                    AstExpressionLaneAtom(), s_guard_fact
                 ));
             }
             if StringLength(s_post) > 0 {

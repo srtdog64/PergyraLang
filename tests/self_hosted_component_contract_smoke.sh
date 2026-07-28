@@ -1125,27 +1125,70 @@ require_file "src/self_hosted/dir/intent_row_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_row_owner.pgy" 80
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_row_owner.pgy"
+require_file "src/self_hosted/dir/intent_step_clause_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_step_clause_fact_owner.pgy" 220
+require_file "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_step_clause_fact_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy"
 require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir/intent_phase_contract_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_phase_contract_owner.pgy" 80
+require_file "src/self_hosted/mir/intent_phase_emission_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_phase_emission_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_phase_contract_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_phase_emission_owner.pgy"
 require_file "src/self_hosted/mir_lower/intent_lower_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_lower_owner.pgy" 430
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_lower_owner.pgy"
-require_file "tests/self_hosted/parity/intent_post_compensate_fail_closed_owner.sh"
+require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
+require_file "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
+require_file \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh"
 require_text "Makefile" \
-    "self-host-intent-post-compensate-fail-closed-test-smoke"
-require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
-    "self-host DIR intent compensate carrier is not executable"
-require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
-    "self-host DIR intent post carrier is not executable"
-require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
-    "self-host DIR intent guard carrier is not executable"
+    "self-host-intent-guard-post-compensation-execution-test-smoke"
+require_file "tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh"
+require_text "Makefile" \
+    "self-host-intent-phase-carrier-negative-test-smoke"
+require_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    "compensate_starts: Array<Int>"
+require_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    "guard_node_ids: Array<Int>"
+require_text "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" \
+    "steps.child_counts[i] != child_count"
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "carrier is not executable"
 require_file "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy"
 require_file \
     "src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy"
 require_max_lines \

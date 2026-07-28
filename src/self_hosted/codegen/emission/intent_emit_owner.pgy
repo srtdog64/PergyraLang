@@ -1,11 +1,10 @@
 // C emission for the bounded admitted intent declaration path.
 //
 // Intent remains its own semantic callable.  This owner consumes the compact
-// intent signature rows plus the On/Expect expression graphs reconstructed
+// intent signature rows plus the executable expression graphs reconstructed
 // from admitted MIR; it does not reinterpret an intent as a func.  A typed
 // Outcome row binds the one On action result exactly once and makes that
-// immutable value available to the step Expect.  Multi-step compensation is
-// still outside this bounded consumer and must not be inferred here.
+// immutable value available to the same step predicates and compensation.
 
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
@@ -15,114 +14,9 @@ import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "intent_signature_emit_owner.pgy";
 import "intent_outcome_emit_owner.pgy";
-
-func CodegenIntentCallableEnvRows(
-    ref intents: SemanticAstIntentSignatureFacts
-) -> String {
-    let rows: Array<String> = [];
-    let intent_index: Int = 0;
-    while intent_index < SemanticAstIntentSignatureCount(intents) {
-        let name: String = intents.names[intent_index];
-        let modes: String = "";
-        let types: String = "";
-        let p: Int = 0;
-        while p < intents.param_counts[intent_index] {
-            let row: Int = intents.param_starts[intent_index] + p;
-            if p > 0 {
-                modes = Concat(modes, ",");
-                types = Concat(types, ",");
-            }
-            if intents.param_is_values[row] {
-                modes = Concat(modes, "default");
-            } else {
-                modes = Concat(modes, "inout");
-            }
-            types = Concat(types, intents.param_types[row]);
-            p = p + 1;
-        }
-        ArrayPush(rows, Concat(name, Concat("=f:Bool|", Concat(
-            name, Concat("=pm:", Concat(modes, Concat("|", Concat(
-                name, Concat("=pt:", Concat(types, "|"))
-            ))))
-        ))));
-        intent_index = intent_index + 1;
-    }
-    return StringJoin(rows, "");
-}
-
-func CodegenIntentParameterList(
-    ref intents: SemanticAstIntentSignatureFacts,
-    intent_index: Int,
-    env: CodegenTypeEnv
-) -> String {
-    let params: String = "";
-    let p: Int = 0;
-    while p < intents.param_counts[intent_index] {
-        let row: Int = intents.param_starts[intent_index] + p;
-        let c_type: String = AbiLayoutCParamType(
-            intents.param_types[row], env
-        );
-        let c_name: String = CompilerSymbolCBindingName(
-            intents.param_names[row]
-        );
-        let param: String = Concat(c_type, Concat(" ", c_name));
-        if !intents.param_is_values[row] {
-            param = Concat(c_type, Concat(" *", c_name));
-        }
-        if params == "" { params = param; }
-        else { params = Concat(params, Concat(", ", param)); }
-        p = p + 1;
-    }
-    if params == "" { return AbiLayoutCEmptyParameterList(); }
-    return params;
-}
-
-func CodegenIntentPrototypeBlock(
-    ref intents: SemanticAstIntentSignatureFacts,
-    env: CodegenTypeEnv
-) -> String {
-    let rows: Array<String> = [];
-    let intent_index: Int = 0;
-    while intent_index < SemanticAstIntentSignatureCount(intents) {
-        ArrayPush(rows, Concat(
-            "bool ", Concat(
-                CompilerSymbolCIdentifier(intents.names[intent_index]),
-                Concat("(", Concat(
-                    CodegenIntentParameterList(intents, intent_index, env),
-                    ");\n"
-                ))
-            )
-        ));
-        intent_index = intent_index + 1;
-    }
-    return StringJoin(rows, "");
-}
-
-func CodegenIntentLocalEnv(
-    ref intents: SemanticAstIntentSignatureFacts,
-    intent_index: Int,
-    base_env: CodegenTypeEnv
-) -> CodegenTypeEnv {
-    let rows: Array<String> = [];
-    let p: Int = 0;
-    while p < intents.param_counts[intent_index] {
-        let row: Int = intents.param_starts[intent_index] + p;
-        let c_name: String = CompilerSymbolCBindingName(
-            intents.param_names[row]
-        );
-        let c_expression: String = c_name;
-        if !intents.param_is_values[row] {
-            c_expression = Concat("(*", Concat(c_name, ")"));
-        }
-        ArrayPush(rows, CodegenFunctionValueBindingFactForCExpression(
-            intents.param_names[row], intents.param_types[row],
-            base_env.global_rows, c_expression
-        ).env_rows);
-        p = p + 1;
-    }
-    return CodegenTypeEnv(base_env.global_rows, StringJoin(rows, ""));
-}
+import "intent_control_flow_emit_owner.pgy";
 
 func CodegenIntentDefinitionBlock(
     artifact: AstTreeArtifact,
@@ -138,7 +32,16 @@ func CodegenIntentDefinitionBlock(
             intents, intent_index, base_env
         );
         let body: Array<String> = [];
-        let step_count: Int = 0;
+        let step_count: Int = CodegenIntentExecutableStepCount(
+            artifact, intent_node
+        );
+        let compensation_starts: Array<Int> = [];
+        let compensation_counts: Array<Int> = [];
+        let compensation_expressions: Array<String> = [];
+        let step_sync_expressions: Array<String> = [];
+        let step_writeback_expressions: Array<String> = [];
+        CodegenIntentEmitControlPrologue(body, step_count);
+        let step_index: Int = 0;
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, intent_node, child_index
@@ -148,12 +51,16 @@ func CodegenIntentDefinitionBlock(
             if TypedAstArenaNodeKindIs(
                 artifact.arena, child_id, TypedAstKindIntentStepTag()
             ) {
-                step_count = step_count + 1;
                 let on_count: Int = 0;
                 let outcome_count: Int = 0;
                 let expect_count: Int = 0;
+                let guard_count: Int = 0;
+                let post_count: Int = 0;
                 let on_node: Int = 0 - 1;
                 let expect_node: Int = 0 - 1;
+                let guard_node: Int = 0 - 1;
+                let post_node: Int = 0 - 1;
+                let compensate_nodes: Array<Int> = [];
                 let outcome_name: String = "";
                 let who_alias: String = "";
                 let using_alias: String = "";
@@ -188,6 +95,23 @@ func CodegenIntentDefinitionBlock(
                     ) {
                         expect_count = expect_count + 1;
                         expect_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepGuardTag()
+                    ) {
+                        guard_count = guard_count + 1;
+                        guard_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepPostTag()
+                    ) {
+                        post_count = post_count + 1;
+                        post_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepCompensateTag()
+                    ) {
+                        ArrayPush(compensate_nodes, row_id);
                     } else {
                         let provenance: Option<String> =
                             TypedAstArenaProvenanceText(
@@ -229,7 +153,7 @@ func CodegenIntentDefinitionBlock(
                 }
                 if on_count != 1 || on_node < 0 || outcome_count > 1 ||
                     (outcome_count == 1 && outcome_name == "") ||
-                    expect_count > 1 ||
+                    expect_count > 1 || guard_count > 1 || post_count > 1 ||
                     who_alias == "" || using_alias == "" ||
                     authority_alias != who_alias {
                     Die("self-host intent executable step shape is invalid");
@@ -310,22 +234,60 @@ func CodegenIntentDefinitionBlock(
                         zone_member, ";\n"
                     )))
                 ));
+                CodegenIntentEmitStepCompleted(body, step_index);
+                ArrayPush(compensation_starts,
+                    ArrayLength(compensation_expressions));
+                ArrayPush(compensation_counts,
+                    ArrayLength(compensate_nodes));
+                let compensate_index: Int = 0;
+                while compensate_index < ArrayLength(compensate_nodes) {
+                    ArrayPush(compensation_expressions,
+                        CodegenIntentCompensationExpression(
+                            expression_surfaces,
+                            compensate_nodes[compensate_index], step_env
+                        )
+                    );
+                    compensate_index = compensate_index + 1;
+                }
+                ArrayPush(step_sync_expressions, Concat(
+                    sync_symbol, Concat("(", Concat(zone_c, ")"))
+                ));
+                ArrayPush(step_writeback_expressions, Concat(
+                    "(*", Concat(who_c, Concat(") = ", zone_member))
+                ));
+                if guard_count == 1 {
+                    CodegenIntentEmitPredicate(
+                        body, expression_surfaces, guard_node,
+                        "Guard", step_env
+                    );
+                }
                 if expect_count == 1 {
                     CodegenIntentEmitExpect(
                         body, expression_surfaces, expect_node,
                         outcome_count, step_env
                     );
                 }
+                if post_count == 1 {
+                    CodegenIntentEmitPredicate(
+                        body, expression_surfaces, post_node,
+                        "Post", step_env
+                    );
+                }
+                step_index = step_index + 1;
             }
             child_index = child_index + 1;
             child = TypedAstArenaChildAt(
                 artifact.arena, intent_node, child_index
             );
         }
-        if step_count <= 0 {
-            Die("self-host intent has no executable step");
+        if step_index != step_count {
+            Die("self-host intent executable step count drifted");
         }
-        ArrayPush(body, "    return true;\n");
+        CodegenIntentEmitCleanup(
+            body, step_count, compensation_starts, compensation_counts,
+            compensation_expressions, step_sync_expressions,
+            step_writeback_expressions
+        );
         ArrayPush(definitions, Concat(
             "bool ", Concat(
                 CompilerSymbolCIdentifier(intents.names[intent_index]),

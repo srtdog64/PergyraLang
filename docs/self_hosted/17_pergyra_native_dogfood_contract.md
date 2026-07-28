@@ -626,7 +626,7 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   source and valid-ID malformed MIR all reject a detached tobject as a fresh
   projection source.
 
-### Completed intent DIR/MIR boundary and next compensation boundary
+### Completed intent DIR/MIR predicate boundary and next typed transition boundary
 
 - Completed owner: `intent_fact_owner.pgy` owns declaration/participant/step
   ranges and edge census; `intent_step_fact_owner.pgy` consumes semantic action
@@ -640,31 +640,36 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Completed MIR boundary: intent declaration/participant/step carriers now
   reconstruct and execute the bounded `Checkout` call without reopening AST or
   source text. The newer outcome binding rung below also carries the exact
-  action result/type and consumes it from dynamic `expect`.
+  action result/type, and the phase carriers preserve step-local
+  `guard`/`expect`/`post` plus ordered `compensate` expression graphs.
 - Forbidden fallback remains native AST/MIR graft, graph-count-only
   reconstruction, backend intent-name lookup, const success stub, outcome Bool
   collapse, or leaving a direct old orchestration path beside a typed MIR
   carrier.
+- Observed legacy execution: action completion is followed by
+  `guard -> expect -> post`; predicate failure compensates completed steps in
+  reverse order and each step's compensation rows in reverse order. First-step
+  failure excludes future steps and successful execution compensates nothing.
+  Phase/step/slot/graph/result/type mutations reject before partial C.
 - Next falsifier: two real actions with typed success/failure variant branches,
   success-only completion evidence, exact predecessor carriage, and failure-
-  driven compensation. Participant/action/outcome/step mutations must continue
-  to reject before any partial C artifact.
+  payload-driven compensation. Participant/action/outcome/step mutations must
+  continue to reject before any partial C artifact.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을
 subject/action으로 이주하는 작업은 그 뒤 별도 executable rung으로 유지한다.
 
-## REACHABLE outcome binding / PLANNED compensation executable rung
+## REACHABLE outcome binding and legacy compensation / PLANNED typed transition rung
 
 단일 step의 `on outcome: subject.Action(...)` binding은 구현·실행됐다. Native와
 self semantic/DIR은 exact action return type과 stable action identity를 한 번
 결정하고, MIR의 `IntentOutcomeBinding`과 `IntentEval(on)`이 같은 result/type을
 운반한다. Native C/LLVM은 action을 한 번 평가한 immutable typed local을
-`expect`/`post`/`compensate` scope에 제공한다. Admitted self C의 현재 executable
-범위는 `expect`뿐이다. Self parser가 보존하는 `guard`/`post`/`compensate`는 DIR→MIR→C
-carrier가 생기기 전까지 executable driver가 명시적으로 거부하며, 조용히 삭제하지
-않는다. Binding은 `pre`와 뒤 step에는 보이지 않으며 rollback lifetime 전체에서
-이름이 유일해야 한다.
+`expect`/`post`/`compensate` scope에 제공한다. Admitted self C는 이제 parser가
+보존한 step-local `guard`/`expect`/`post`와 ordered `compensate`를 DIR→MIR→C carrier로
+무손실 소비한다. Binding은 `pre`와 뒤 step에는 보이지 않으며 rollback lifetime
+전체에서 이름이 유일해야 한다.
 
 `intent_typed_outcome_execution_owner.sh`의 enum은 success/failure 각각에 detached
 `tobject` payload를 갖는다. Self C, native C, native LLVM이 모두
@@ -674,9 +679,25 @@ duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 bou
 `REACHABLE`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
 `intent` 등급은 여전히 `SURFACE`이며 hard substitution 진척으로 세지 않는다.
 
-다음 objective card는 typed variant branch, success-only completion과 실제
-compensation 경계를 고정할 뿐 완료를 주장하지 않는다. Compensation expression과
-DIR predecessor identity는 아직 typed MIR의 마지막 emitter까지 운반되지 않는다.
+`intent_guard_post_compensation_execution_owner.sh`는 성공, 첫 step guard 실패,
+둘째 step의 guard/expect/post 실패를 실행한다. Direct/admitted self C는 byte-equal이고
+self/native C/native LLVM은 같은 최종 state/trace와 exact compensation count를
+관측한다. `intent_phase_carrier_negative_owner.sh`는 unknown/orphan/wrong-step-or-slot
+phase, duplicate singleton, check/compensate result-type 오염, on result/type 비대칭,
+missing graph의 9개 mutation을 exact diagnostic으로 거부하고 partial C를 남기지
+않는다. 이 legacy predicate/compensation slice 역시 `REACHABLE`이며 compiler root
+substitution은 아니다.
+
+Fixture의 최소 object/tobject refresh/publish topology는 현재 self machine admission이
+non-empty admitted domain runtime plan을 요구하기 때문에 필요하다. 합법적인 empty
+topology 거부는 별도 blocker이며 tobject가 rollback owner라는 뜻이 아니다. 또한
+서로 다른 step의 동일 action expression text를 stable identity 대신 전역 문자열
+equality로 join하는 기존 mir_lower seam이 후속 negative debt로 남는다.
+
+다음 objective card는 typed variant branch, success-only completion과 failure
+payload-driven predecessor compensation 경계를 고정할 뿐 완료를 주장하지 않는다.
+Legacy compensation expression은 마지막 emitter까지 운반되지만 typed failure의
+explicit predecessor/branch/completion fact는 아직 존재하지 않는다.
 
 - Objective: 두 개의 실제 forward action 결과를 intent가 typed binding/case로
   소비하고, 두 번째 action의 typed failure에서 완료된 predecessor action만
@@ -708,12 +729,12 @@ DIR predecessor identity는 아직 typed MIR의 마지막 emitter까지 운반�
   failure/compensation 관측까지 끝나야 compiler `intent`가 `SUBSTITUTING`이다.
   그 전 compiler intent 등급은 계속 `SURFACE`다.
 
-SoT seam은 `selfhost.intent_declaration_rows`에 새 실행 authority를 섞지 않는다.
-해당 row는 source declaration/signature owner로 유지하고, outcome binding/case,
-completion, carried predecessor와 compensation은 planned
-`mir.intent_step_transition` 실행 fact family로 분리한다. 실제 authority path,
-Coq fact/owner, producer와 모든 last consumer, missing-fact gate가 착지하기 전에는
-정식 registry row나 `CLOSED`로 승격하지 않는다.
+SoT seam은 `selfhost.intent_declaration_rows`에 새 typed transition authority를 섞지
+않는다. 해당 row는 source declaration/signature와 현재 legacy phase carrier bridge로
+유지하고, typed outcome case, success-only completion, carried predecessor와
+failure-driven compensation은 planned `mir.intent_step_transition` 실행 fact family로
+분리한다. 실제 authority path, Coq fact/owner, producer와 모든 last consumer,
+missing-fact gate가 착지하기 전에는 정식 registry row나 `CLOSED`로 승격하지 않는다.
 
 ## 세션 메모리와 handoff 규칙
 

@@ -59,6 +59,47 @@ if [[ "$(grep -Fc '      On: worker.Finish()' "$AST_OUT")" -ne 2 ]]; then
     fail "legacy on: compatibility drifted"
 fi
 
+CARRIAGE="$BUILD_DIR/ordered-carriage.pgy"
+sed 's/        compensate: ToString(outcome);/        compensate: ToString(outcome);\
+        compensate: ToString(outcome + 1);\
+        guard: outcome == 7;/' "$ROOT_DIR/$FIXTURE" >"$CARRIAGE"
+CARRIAGE_AST="$BUILD_DIR/ordered-carriage.ast"
+(cd "$ROOT_DIR" && "$PARSER" "${CARRIAGE#"$ROOT_DIR"/}" \
+        >"$CARRIAGE_AST" 2>"$BUILD_DIR/ordered-carriage.err") \
+    || { cat "$BUILD_DIR/ordered-carriage.err" >&2; fail "ordered carriage was rejected"; }
+first_compensate="$(grep -Fn '      Compensate: ToString(outcome)' \
+    "$CARRIAGE_AST" | head -n 1 | cut -d: -f1)"
+second_compensate="$(grep -Fn '      Compensate: ToString((outcome + 1))' \
+    "$CARRIAGE_AST" | head -n 1 | cut -d: -f1)"
+[[ -n "$first_compensate" && -n "$second_compensate" && \
+    "$first_compensate" -lt "$second_compensate" ]] \
+    || fail "compensation source order was not preserved"
+grep -Fq '      Guard: (outcome == 7)' "$CARRIAGE_AST" \
+    || fail "guard expression was lost"
+
+check_duplicate_singleton() {
+    local label="$1"
+    local input="$2"
+    local pattern="$3"
+    local replacement="$4"
+    local duplicate="$BUILD_DIR/duplicate-$label.pgy"
+    sed "s|$pattern|$replacement|" "$input" >"$duplicate"
+    if (cd "$ROOT_DIR" && "$PARSER" "${duplicate#"$ROOT_DIR"/}" \
+            >"$BUILD_DIR/duplicate-$label.out" \
+            2>"$BUILD_DIR/duplicate-$label.err"); then
+        fail "duplicate $label clauses were accepted"
+    fi
+}
+check_duplicate_singleton guard "$CARRIAGE" \
+    '        guard: outcome == 7;' \
+    '        guard: outcome == 7;\n        guard: outcome == 7;'
+check_duplicate_singleton post "$ROOT_DIR/$FIXTURE" \
+    '        post: outcome + 1;' \
+    '        post: outcome + 1;\n        post: outcome + 1;'
+check_duplicate_singleton expect "$ROOT_DIR/$FIXTURE" \
+    '        expect: outcome == 7;' \
+    '        expect: outcome == 7;\n        expect: outcome == 7;'
+
 INVALID="$BUILD_DIR/invalid-binding.pgy"
 sed 's/on outcome:/on 7:/' "$ROOT_DIR/$FIXTURE" >"$INVALID"
 if (cd "$ROOT_DIR" && "$PARSER" "${INVALID#"$ROOT_DIR"/}" \

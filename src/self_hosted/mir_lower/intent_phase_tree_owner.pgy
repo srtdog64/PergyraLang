@@ -1,0 +1,96 @@
+// Compact intent-tree rows and graph occurrence order from one admitted phase
+// projection. The producer order of repeated compensate rows is preserved.
+
+import "intent_phase_projection_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+
+func MirIntentPhaseTreeLines(
+    ref phases: MirIntentPhaseProjection,
+    step_index: Int
+) -> String {
+    if !phases.ok || step_index < 0 ||
+        step_index >= ArrayLength(phases.on_texts) ||
+        step_index >= ArrayLength(phases.compensate_starts) ||
+        step_index >= ArrayLength(phases.compensate_counts) {
+        return "";
+    }
+    let tree: String = MirIntentTreeAppendLine(
+        "", Concat("      On: ", phases.on_texts[step_index])
+    );
+    let compensate_i: Int = 0;
+    while compensate_i < phases.compensate_counts[step_index] {
+        let row: Int = phases.compensate_starts[step_index] + compensate_i;
+        if row < 0 || row >= ArrayLength(phases.compensate_texts) {
+            return "";
+        }
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Compensate: ", phases.compensate_texts[row])
+        );
+        compensate_i = compensate_i + 1;
+    }
+    if phases.guard_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Guard: ", phases.guard_texts[step_index])
+        );
+    }
+    if phases.post_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Post: ", phases.post_texts[step_index])
+        );
+    }
+    if phases.expect_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Expect: ", phases.expect_texts[step_index])
+        );
+    }
+    return tree;
+}
+
+func MirIntentPhaseAppendExpressionOrder(
+    ref phases: MirIntentPhaseProjection,
+    step_index: Int,
+    executable_on_row: Int,
+    inout order: MirStructuredExpressionEmissionOrder
+) -> Bool {
+    if MirIntentPhaseTreeLines(phases, step_index) == "" ||
+        executable_on_row < 0 ||
+        !MirStructuredExpressionEmissionOrderAppend(
+            order, executable_on_row, AstExpressionLaneAtom(), 0
+        ) {
+        return false;
+    }
+    let compensate_i: Int = 0;
+    while compensate_i < phases.compensate_counts[step_index] {
+        let row: Int = phases.compensate_starts[step_index] + compensate_i;
+        if !MirStructuredExpressionEmissionOrderAppend(
+                order, phases.compensate_rows[row],
+                AstExpressionLaneAtom(), 0
+            ) {
+            return false;
+        }
+        compensate_i = compensate_i + 1;
+    }
+    if phases.guard_rows[step_index] >= 0 &&
+        !MirStructuredExpressionEmissionOrderAppend(
+            order, phases.guard_rows[step_index],
+            AstExpressionLaneAtom(), 0
+        ) {
+        return false;
+    }
+    if phases.post_rows[step_index] >= 0 &&
+        !MirStructuredExpressionEmissionOrderAppend(
+            order, phases.post_rows[step_index],
+            AstExpressionLaneAtom(), 0
+        ) {
+        return false;
+    }
+    if phases.expect_rows[step_index] >= 0 &&
+        !MirStructuredExpressionEmissionOrderAppend(
+            order, phases.expect_rows[step_index],
+            AstExpressionLaneAtom(), 0
+        ) {
+        return false;
+    }
+    return true;
+}

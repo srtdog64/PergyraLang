@@ -1,0 +1,99 @@
+// Structural contract for exact intent-step typed-AST carriage.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "intent_row_owner.pgy";
+
+func SelfDirIntentStepCarriageShapeReady(
+    steps: SelfDirIntentStepFacts
+) -> Bool {
+    let count: Int = ArrayLength(steps.node_ids);
+    return ArrayLength(steps.names) == count &&
+        ArrayLength(steps.where_zone_names) == count &&
+        ArrayLength(steps.where_declaration_indices) == count &&
+        ArrayLength(steps.using_aliases) == count &&
+        ArrayLength(steps.receiver_aliases) == count &&
+        ArrayLength(steps.action_names) == count &&
+        ArrayLength(steps.action_signature_indices) == count &&
+        ArrayLength(steps.outcome_node_ids) == count &&
+        ArrayLength(steps.outcome_names) == count &&
+        ArrayLength(steps.outcome_type_names) == count &&
+        ArrayLength(steps.on_node_ids) == count &&
+        ArrayLength(steps.guard_node_ids) == count &&
+        ArrayLength(steps.post_node_ids) == count &&
+        ArrayLength(steps.expect_node_ids) == count &&
+        ArrayLength(steps.compensate_starts) == count &&
+        ArrayLength(steps.compensate_counts) == count &&
+        ArrayLength(steps.child_counts) == count &&
+        ArrayLength(steps.predecessor_step_indices) == count &&
+        ArrayLength(steps.causes_names) == count &&
+        ArrayLength(steps.causes_declaration_indices) == count &&
+        ArrayLength(steps.who_starts) == count &&
+        ArrayLength(steps.who_counts) == count &&
+        ArrayLength(steps.requires_starts) == count &&
+        ArrayLength(steps.requires_counts) == count &&
+        ArrayLength(steps.authorized_starts) == count &&
+        ArrayLength(steps.authorized_counts) == count &&
+        ArrayLength(steps.requires_names) ==
+            ArrayLength(steps.requires_declaration_indices);
+}
+
+func SelfDirIntentStepCarriageReady(
+    artifact: AstTreeArtifact, steps: SelfDirIntentStepFacts
+) -> Bool {
+    if !SelfDirIntentStepCarriageShapeReady(steps) { return false; }
+    let expected_compensate_start: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(steps.node_ids) {
+        let child_count: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, steps.node_ids[i], child_count
+        );
+        while IsSome(child) {
+            child_count = child_count + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, steps.node_ids[i], child_count
+            );
+        }
+        let compensate_start: Int = steps.compensate_starts[i];
+        let compensate_count: Int = steps.compensate_counts[i];
+        if steps.names[i] == "" || steps.child_counts[i] != child_count ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, steps.node_ids[i], TypedAstKindIntentStepTag()
+            ) || !TypedAstArenaNodeKindIs(
+                artifact.arena, steps.on_node_ids[i],
+                TypedAstKindIntentStepOnTag()
+            ) || (steps.guard_node_ids[i] >= 0 &&
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, steps.guard_node_ids[i],
+                    TypedAstKindIntentStepGuardTag()
+                )) || (steps.post_node_ids[i] >= 0 &&
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, steps.post_node_ids[i],
+                    TypedAstKindIntentStepPostTag()
+                )) || (steps.expect_node_ids[i] >= 0 &&
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, steps.expect_node_ids[i],
+                    TypedAstKindIntentStepExpectTag()
+                )) || compensate_start != expected_compensate_start ||
+            compensate_count < 0 || compensate_start + compensate_count >
+                ArrayLength(steps.compensate_node_ids) {
+            return false;
+        }
+        let compensate_i: Int = 0;
+        while compensate_i < compensate_count {
+            if !TypedAstArenaNodeKindIs(
+                artifact.arena,
+                steps.compensate_node_ids[compensate_start + compensate_i],
+                TypedAstKindIntentStepCompensateTag()
+            ) {
+                return false;
+            }
+            compensate_i = compensate_i + 1;
+        }
+        expected_compensate_start =
+            expected_compensate_start + compensate_count;
+        i = i + 1;
+    }
+    return expected_compensate_start ==
+        ArrayLength(steps.compensate_node_ids);
+}

@@ -58,7 +58,9 @@ func MirInstructionRequiresExpr0Graph(
     // arg0="expect", so the generic allowlist would otherwise return false
     // before this semantic carrier is reached.
     if instruction_kind == "stmt" &&
-        instruction_name == "IntentCheck" {
+        (instruction_name == "IntentCheck" ||
+         (instruction_name == "IntentEval" && IsSome(arg0) &&
+          UnwrapOption(arg0) == "compensate")) {
         return UnwrapOption(expr0) != "";
     }
     if instruction_kind == "stmt" && source == "AST_CALL" {

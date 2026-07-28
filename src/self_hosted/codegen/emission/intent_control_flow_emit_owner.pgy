@@ -1,0 +1,155 @@
+// Intent predicate failure and ordered compensation C emission owner.
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+
+func CodegenIntentExecutableStepCount(
+    artifact: AstTreeArtifact,
+    intent_node: Int
+) -> Int {
+    let count: Int = 0;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, intent_node, child_index
+    );
+    while IsSome(child) {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(child), TypedAstKindIntentStepTag()
+        ) { count = count + 1; }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, intent_node, child_index
+        );
+    }
+    return count;
+}
+
+func CodegenIntentEmitControlPrologue(
+    inout body: Array<String>,
+    step_count: Int
+) -> Void {
+    if step_count <= 0 { Die("self-host intent has no executable step"); }
+    ArrayPush(body, "    bool __intent_failed = false;\n");
+    ArrayPush(body, Concat(
+        "    bool __intent_step_completed[", Concat(
+            ToString(step_count), "] = { false };\n"
+        )
+    ));
+}
+
+func CodegenIntentEmitStepCompleted(
+    inout body: Array<String>,
+    step_index: Int
+) -> Void {
+    ArrayPush(body, Concat(
+        "    __intent_step_completed[", Concat(
+            ToString(step_index), "] = true;\n"
+        )
+    ));
+}
+
+func CodegenIntentEmitPredicate(
+    inout body: Array<String>,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    expression_node: Int,
+    clause_name: String,
+    step_env: CodegenTypeEnv
+) -> Void {
+    let graph: SemanticExpressionGraphView =
+        CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces, expression_node, AstExpressionLaneAtom()
+        );
+    let expression_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph.graph, graph.root_id, step_env
+    );
+    if !IsSome(expression_type) || UnwrapOption(expression_type) != "Bool" {
+        Die(Concat("self-host intent ", Concat(
+            clause_name, " predicate is not Bool"
+        )));
+    }
+    let expression: String = RewriteExprFromSemanticGraph(
+        graph.graph, graph.root_id, step_env
+    );
+    ArrayPush(body, Concat(
+        "    if (!( ", Concat(expression, Concat(
+            " )) {\n        __intent_failed = true;\n",
+            "        goto __intent_cleanup;\n    }\n"
+        ))
+    ));
+}
+
+func CodegenIntentCompensationExpression(
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    expression_node: Int,
+    step_env: CodegenTypeEnv
+) -> String {
+    let graph: SemanticExpressionGraphView =
+        CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces, expression_node, AstExpressionLaneAtom()
+        );
+    return RewriteExprFromSemanticGraph(
+        graph.graph, graph.root_id, step_env
+    );
+}
+
+func CodegenIntentEmitCleanup(
+    inout body: Array<String>,
+    step_count: Int,
+    compensation_starts: Array<Int>,
+    compensation_counts: Array<Int>,
+    compensation_expressions: Array<String>,
+    step_sync_expressions: Array<String>,
+    step_writeback_expressions: Array<String>
+) -> Void {
+    if ArrayLength(compensation_starts) != step_count ||
+        ArrayLength(compensation_counts) != step_count ||
+        ArrayLength(step_sync_expressions) != step_count ||
+        ArrayLength(step_writeback_expressions) != step_count {
+        Die("self-host intent compensation plan is incomplete");
+    }
+    ArrayPush(body, "    goto __intent_cleanup;\n");
+    ArrayPush(body, "__intent_cleanup:\n");
+    ArrayPush(body, "    if (__intent_failed) {\n");
+    let step: Int = step_count;
+    while step > 0 {
+        step = step - 1;
+        let start: Int = compensation_starts[step];
+        let count: Int = compensation_counts[step];
+        if start < 0 || count < 0 ||
+            start + count > ArrayLength(compensation_expressions) {
+            Die("self-host intent compensation range is invalid");
+        }
+        if count > 0 {
+            ArrayPush(body, Concat(
+                "        if (__intent_step_completed[", Concat(
+                    ToString(step), "]) {\n"
+                )
+            ));
+            let compensation_index: Int = count;
+            while compensation_index > 0 {
+                compensation_index = compensation_index - 1;
+                let expression_row: Int = start + compensation_index;
+                ArrayPush(body, Concat(
+                    "            ", Concat(
+                        compensation_expressions[expression_row], ";\n"
+                    )
+                ));
+            }
+            ArrayPush(body, Concat(
+                "            ", Concat(
+                    step_sync_expressions[step], ";\n"
+                )
+            ));
+            ArrayPush(body, Concat(
+                "            ", Concat(
+                    step_writeback_expressions[step], ";\n"
+                )
+            ));
+            ArrayPush(body, "        }\n");
+        }
+    }
+    ArrayPush(body, "    }\n");
+    ArrayPush(body, "    return !__intent_failed;\n");
+}

@@ -1,0 +1,190 @@
+// Lossless typed-AST clause census for one intent step.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+struct SelfDirIntentStepClauseFacts {
+    ok: Bool;
+    diagnostic_message: String;
+    on_text: String;
+    on_node_id: Int;
+    outcome_node_id: Int;
+    outcome_name: String;
+    expect_node_id: Int;
+    guard_node_id: Int;
+    post_node_id: Int;
+    compensate_node_ids: Array<Int>;
+    explicit_using: String;
+    explicit_causes: String;
+    who_names: Array<String>;
+    requires_names: Array<String>;
+    authorized_names: Array<String>;
+    child_count: Int;
+}
+
+func SelfDirIntentStepClauseFactsError(
+    message: String
+) -> SelfDirIntentStepClauseFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfDirIntentStepClauseFacts(
+        false, message, "", -1, -1, "", -1, -1, -1, ints, "", "",
+        strings, strings, strings, 0
+    );
+}
+
+func SelfDirIntentStepClauseAppendUniqueNames(
+    payload: String, inout names: Array<String>
+) -> Bool {
+    let parts: Array<String> = Split(payload, ",");
+    if ArrayLength(parts) == 0 { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(parts) {
+        let name: String = StringTrim(parts[i]);
+        if name == "" { return false; }
+        let prior: Int = 0;
+        while prior < ArrayLength(names) {
+            if names[prior] == name { return false; }
+            prior = prior + 1;
+        }
+        ArrayPush(names, name);
+        i = i + 1;
+    }
+    return ArrayLength(names) > 0;
+}
+
+func SelfDirIntentStepClauseFactsFromArtifact(
+    artifact: AstTreeArtifact, step_node_id: Int
+) -> SelfDirIntentStepClauseFacts {
+    let on_text: String = "";
+    let on_node_id: Int = -1;
+    let outcome_node_id: Int = -1;
+    let outcome_name: String = "";
+    let expect_node_id: Int = -1;
+    let guard_node_id: Int = -1;
+    let post_node_id: Int = -1;
+    let compensate_node_ids: Array<Int> = [];
+    let explicit_using: String = "";
+    let explicit_causes: String = "";
+    let who_names: Array<String> = [];
+    let requires_names: Array<String> = [];
+    let authorized_names: Array<String> = [];
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, step_node_id, child_index
+    );
+    while IsSome(child) {
+        let row_id: Int = UnwrapOption(child);
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, row_id
+        );
+        let payload_opt: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, row_id
+        );
+        if !IsSome(kind_opt) || !IsSome(payload_opt) {
+            return SelfDirIntentStepClauseFactsError(
+                "self-host DIR intent step row is incomplete"
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        let payload: String = UnwrapOption(payload_opt);
+        if kind == TypedAstKindIntentStepOnTag() {
+            if on_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has duplicate on rows"
+                );
+            }
+            on_text = payload;
+            on_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepOutcomeTag() {
+            if outcome_node_id >= 0 || !IsIdentifier(payload) {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent outcome binding is invalid"
+                );
+            }
+            outcome_node_id = row_id;
+            outcome_name = payload;
+        } else if kind == TypedAstKindIntentStepWhoTag() {
+            if ArrayLength(who_names) > 0 ||
+                !SelfDirIntentStepClauseAppendUniqueNames(payload, who_names) {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent who row is invalid"
+                );
+            }
+        } else if kind == TypedAstKindIntentStepUsingTag() {
+            if payload == "" ||
+                (explicit_using != "" && explicit_using != payload) {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent using row is invalid"
+                );
+            }
+            explicit_using = payload;
+        } else if kind == TypedAstKindActionRequiresTag() {
+            if ArrayLength(requires_names) > 0 ||
+                !SelfDirIntentStepClauseAppendUniqueNames(
+                    payload, requires_names
+                ) {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent requires row is invalid"
+                );
+            }
+        } else if kind == TypedAstKindIntentStepAuthorizedByTag() {
+            if ArrayLength(authorized_names) > 0 ||
+                !SelfDirIntentStepClauseAppendUniqueNames(
+                    payload, authorized_names
+                ) {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent authorized-by row is invalid"
+                );
+            }
+        } else if kind == TypedAstKindActionCausesTag() {
+            if explicit_causes != "" || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent causes row is invalid"
+                );
+            }
+            explicit_causes = payload;
+        } else if kind == TypedAstKindIntentStepExpectTag() {
+            if expect_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid expect row"
+                );
+            }
+            expect_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepGuardTag() {
+            if guard_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid guard row"
+                );
+            }
+            guard_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepPostTag() {
+            if post_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid post row"
+                );
+            }
+            post_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepCompensateTag() {
+            if payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid compensate row"
+                );
+            }
+            ArrayPush(compensate_node_ids, row_id);
+        } else {
+            return SelfDirIntentStepClauseFactsError(
+                "self-host DIR intent step row kind is unsupported"
+            );
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, step_node_id, child_index
+        );
+    }
+    return SelfDirIntentStepClauseFacts(
+        true, "", on_text, on_node_id, outcome_node_id, outcome_name,
+        expect_node_id, guard_node_id, post_node_id, compensate_node_ids,
+        explicit_using, explicit_causes, who_names, requires_names,
+        authorized_names, child_index
+    );
+}

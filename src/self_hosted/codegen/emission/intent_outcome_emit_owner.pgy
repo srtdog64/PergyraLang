@@ -6,6 +6,7 @@ import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "intent_control_flow_emit_owner.pgy";
 
 func CodegenIntentEmitOnOutcome(
     inout body: Array<String>,
@@ -58,31 +59,10 @@ func CodegenIntentEmitExpect(
     outcome_count: Int,
     step_env: CodegenTypeEnv
 ) -> Void {
-    let graph: SemanticExpressionGraphView =
-        CodegenSemanticExpressionGraphOrDie(
-            expression_surfaces, expect_node, AstExpressionLaneAtom()
-        );
-    if outcome_count == 1 {
-        let expect_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph.graph, graph.root_id, step_env
-        );
-        if !IsSome(expect_type) || UnwrapOption(expect_type) != "Bool" {
-            Die("self-host intent typed Expect is not Bool");
-        }
-        let expect_expression: String = RewriteExprFromSemanticGraph(
-            graph.graph, graph.root_id, step_env
-        );
-        ArrayPush(body, Concat(
-            "    if (!( ", Concat(
-                expect_expression, " )) { return false; }\n"
-            )
-        ));
-        return;
+    if outcome_count < 0 || outcome_count > 1 {
+        Die("self-host intent Expect outcome count is invalid");
     }
-    let expect_text: Option<String> = SemanticExpressionGraphNodeText(
-        graph.graph, graph.root_id
+    CodegenIntentEmitPredicate(
+        body, expression_surfaces, expect_node, "Expect", step_env
     );
-    if !IsSome(expect_text) || UnwrapOption(expect_text) != "true" {
-        Die("self-host intent rollback execution is not substituted for a fallible Expect");
-    }
 }

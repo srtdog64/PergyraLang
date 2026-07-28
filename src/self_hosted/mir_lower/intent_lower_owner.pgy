@@ -7,6 +7,8 @@ import "routine_fact_index_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "intent_action_contract_owner.pgy";
 import "intent_carrier_projection_owner.pgy";
+import "intent_phase_projection_owner.pgy";
+import "intent_phase_tree_owner.pgy";
 import "intent_cleanup_contract_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
@@ -121,6 +123,16 @@ func EmitMirIntentTreeAtRow(
     let binding_types: Array<String> = binding_projection.type_names;
     let binding_kinds: Array<String> = binding_projection.kinds;
     let step_names: Array<String> = binding_projection.step_names;
+    let phase_projection: MirIntentPhaseProjection =
+        MirIntentPhaseProjectionFromCarriers(
+            routines, step_names, carrier_names, carrier_arg0s,
+            carrier_arg1s, carrier_slots, carrier_results,
+            carrier_abi_type_names, carrier_source_types, carrier_expr0s,
+            carrier_rows
+        );
+    if !phase_projection.ok {
+        MirLowerFailClosed(phase_projection.diagnostic_message);
+    }
     let carrier_row: Int = 0;
 
     let tree: String = MirIntentTreeAppendLine(
@@ -146,23 +158,20 @@ func EmitMirIntentTreeAtRow(
         let zone_alias: String = "";
         let who_name: String = "";
         let authority_name: String = "";
-        let eval_text: String = "";
-        let expect_text: String = "";
+        let eval_text: String = phase_projection.on_texts[step_index];
         let outcome_name: String = "";
         let outcome_type_name: String = "";
         let outcome_action_syntax_id: String = "";
-        let eval_result: String = "";
-        let eval_type_name: String = "";
-        let eval_row: Int = 0 - 1;
-        let expect_row: Int = 0 - 1;
+        let eval_result: String = phase_projection.on_results[step_index];
+        let eval_type_name: String =
+            phase_projection.on_type_names[step_index];
+        let eval_row: Int = phase_projection.on_rows[step_index];
         let zone_count: Int = 0;
         let alias_count: Int = 0;
         let invalidation_count: Int = 0;
         let who_count: Int = 0;
         let authority_count: Int = 0;
         let cause_count: Int = 0;
-        let eval_count: Int = 0;
-        let expect_count: Int = 0;
         let outcome_count: Int = 0;
         carrier_row = 0;
         while carrier_row < ArrayLength(carrier_names) {
@@ -218,21 +227,6 @@ func EmitMirIntentTreeAtRow(
                     outcome_type_name =
                         carrier_abi_type_names[carrier_row];
                     outcome_action_syntax_id = carrier_arg0s[carrier_row];
-                } else if carrier_name == "IntentEval" {
-                    eval_count = eval_count + 1;
-                    if carrier_arg0s[carrier_row] != "on" {
-                        MirLowerFailClosed(
-                            "MIR intent evaluation action identity is invalid"
-                        );
-                    }
-                    eval_result = carrier_results[carrier_row];
-                    eval_type_name = carrier_abi_type_names[carrier_row];
-                    eval_text = carrier_expr0s[carrier_row];
-                    eval_row = carrier_rows[carrier_row];
-                } else if carrier_name == "IntentCheck" {
-                    expect_count = expect_count + 1;
-                    expect_text = carrier_expr0s[carrier_row];
-                    expect_row = carrier_rows[carrier_row];
                 }
             }
             carrier_row = carrier_row + 1;
@@ -241,8 +235,7 @@ func EmitMirIntentTreeAtRow(
             invalidation_count != 1 || who_count != 1 ||
             authority_count != 1 || who_name == "" ||
             authority_name != who_name || cause_count > 1 ||
-            eval_count != 1 ||
-            expect_count > 1 || zone_name == "" || zone_alias == "" ||
+            zone_name == "" || zone_alias == "" ||
             eval_text == "" || eval_row < 0 {
             MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
         }
@@ -387,29 +380,19 @@ func EmitMirIntentTreeAtRow(
                 tree, Concat("      Outcome: ", outcome_name)
             );
         }
-        tree = MirIntentTreeAppendLine(
-            tree, Concat("      On: ", eval_text)
+        let phase_tree: String = MirIntentPhaseTreeLines(
+            phase_projection, step_index
         );
-        if !MirStructuredExpressionEmissionOrderAppend(
-            expression_order, executable_row, AstExpressionLaneAtom(), 0
-        ) {
-            MirLowerFailClosed("MIR intent On expression order is invalid");
-        }
-        if expect_count == 1 {
-            if expect_text == "" || expect_row < 0 {
-                MirLowerFailClosed("MIR intent Expect carrier is invalid");
-            }
-            tree = MirIntentTreeAppendLine(
-                tree, Concat("      Expect: ", expect_text)
-            );
-            if !MirStructuredExpressionEmissionOrderAppend(
-                expression_order, expect_row, AstExpressionLaneAtom(), 0
+        if phase_tree == "" ||
+            !MirIntentPhaseAppendExpressionOrder(
+                phase_projection, step_index, executable_row,
+                expression_order
             ) {
-                MirLowerFailClosed(
-                    "MIR intent Expect expression order is invalid"
-                );
-            }
+            MirLowerFailClosed(
+                "MIR intent phase tree projection is invalid"
+            );
         }
+        tree = Concat(tree, phase_tree);
         step_index = step_index + 1;
     }
     if ArrayLength(outcome_result_names) != total_outcome_carrier_count {

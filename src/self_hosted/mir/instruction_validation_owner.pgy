@@ -1,6 +1,7 @@
 // Detailed structural validation for MIR instruction rows.
 
 import "program_fact_owner.pgy";
+import "intent_phase_contract_owner.pgy";
 
 func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
     return name == "IntentBinding" || name == "IntentParticipant" ||
@@ -49,16 +50,7 @@ func SelfMirIntentCarrierInstruction(
     }
     if rows.names[index] == "IntentCheck" ||
         rows.names[index] == "IntentEval" {
-        return rows.source_types[index] != "" &&
-            rows.expr0s[index] != "" &&
-            rows.expr0_graphs.has_roots[index] == 1 &&
-            ((rows.results[index] == "" &&
-              rows.abi_type_names[index] == "") ||
-             (rows.names[index] == "IntentEval" &&
-              rows.results[index] != "" &&
-              rows.abi_type_names[index] != "" &&
-              rows.abi_type_names[index] != "Unknown" &&
-              rows.abi_type_names[index] != "Void"));
+        return SelfMirIntentPhaseInstructionReady(rows, index);
     }
     if rows.names[index] == "IntentOutcomeBinding" {
         return rows.source_types[index] == "AST_INTENT_STEP" &&

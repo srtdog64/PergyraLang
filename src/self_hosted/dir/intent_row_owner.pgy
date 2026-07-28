@@ -21,7 +21,13 @@ struct SelfDirIntentStepFacts {
     outcome_names: Array<String>;
     outcome_type_names: Array<String>;
     on_node_ids: Array<Int>;
+    guard_node_ids: Array<Int>;
+    post_node_ids: Array<Int>;
     expect_node_ids: Array<Int>;
+    compensate_starts: Array<Int>;
+    compensate_counts: Array<Int>;
+    compensate_node_ids: Array<Int>;
+    child_counts: Array<Int>;
     predecessor_step_indices: Array<Int>;
     causes_names: Array<String>;
     causes_declaration_indices: Array<Int>;
@@ -49,7 +55,8 @@ func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
     let strings: Array<String> = [];
     return SelfDirIntentStepFacts(
         ints, strings, strings, ints, strings, strings, strings, ints, ints,
-        strings, strings, ints, ints, ints, strings, ints, ints, ints, strings,
-        ints, ints, strings, ints, ints, ints, strings
+        strings, strings, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        strings, ints, ints, ints, strings, ints, ints, strings, ints, ints,
+        ints, strings
     );
 }

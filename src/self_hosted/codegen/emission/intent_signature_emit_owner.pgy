@@ -1,0 +1,113 @@
+// Intent callable environment, parameter, prototype, and local-binding C facts.
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+
+func CodegenIntentCallableEnvRows(
+    ref intents: SemanticAstIntentSignatureFacts
+) -> String {
+    let rows: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        let name: String = intents.names[intent_index];
+        let modes: String = "";
+        let types: String = "";
+        let p: Int = 0;
+        while p < intents.param_counts[intent_index] {
+            let row: Int = intents.param_starts[intent_index] + p;
+            if p > 0 {
+                modes = Concat(modes, ",");
+                types = Concat(types, ",");
+            }
+            if intents.param_is_values[row] {
+                modes = Concat(modes, "default");
+            } else {
+                modes = Concat(modes, "inout");
+            }
+            types = Concat(types, intents.param_types[row]);
+            p = p + 1;
+        }
+        ArrayPush(rows, Concat(name, Concat("=f:Bool|", Concat(
+            name, Concat("=pm:", Concat(modes, Concat("|", Concat(
+                name, Concat("=pt:", Concat(types, "|"))
+            ))))
+        ))));
+        intent_index = intent_index + 1;
+    }
+    return StringJoin(rows, "");
+}
+
+func CodegenIntentParameterList(
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let params: String = "";
+    let p: Int = 0;
+    while p < intents.param_counts[intent_index] {
+        let row: Int = intents.param_starts[intent_index] + p;
+        let c_type: String = AbiLayoutCParamType(
+            intents.param_types[row], env
+        );
+        let c_name: String = CompilerSymbolCBindingName(
+            intents.param_names[row]
+        );
+        let param: String = Concat(c_type, Concat(" ", c_name));
+        if !intents.param_is_values[row] {
+            param = Concat(c_type, Concat(" *", c_name));
+        }
+        if params == "" { params = param; }
+        else { params = Concat(params, Concat(", ", param)); }
+        p = p + 1;
+    }
+    if params == "" { return AbiLayoutCEmptyParameterList(); }
+    return params;
+}
+
+func CodegenIntentPrototypeBlock(
+    ref intents: SemanticAstIntentSignatureFacts,
+    env: CodegenTypeEnv
+) -> String {
+    let rows: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        ArrayPush(rows, Concat(
+            "bool ", Concat(
+                CompilerSymbolCIdentifier(intents.names[intent_index]),
+                Concat("(", Concat(
+                    CodegenIntentParameterList(intents, intent_index, env),
+                    ");\n"
+                ))
+            )
+        ));
+        intent_index = intent_index + 1;
+    }
+    return StringJoin(rows, "");
+}
+
+func CodegenIntentLocalEnv(
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    base_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
+    let rows: Array<String> = [];
+    let p: Int = 0;
+    while p < intents.param_counts[intent_index] {
+        let row: Int = intents.param_starts[intent_index] + p;
+        let c_name: String = CompilerSymbolCBindingName(
+            intents.param_names[row]
+        );
+        let c_expression: String = c_name;
+        if !intents.param_is_values[row] {
+            c_expression = Concat("(*", Concat(c_name, ")"));
+        }
+        ArrayPush(rows, CodegenFunctionValueBindingFactForCExpression(
+            intents.param_names[row], intents.param_types[row],
+            base_env.global_rows, c_expression
+        ).env_rows);
+        p = p + 1;
+    }
+    return CodegenTypeEnv(base_env.global_rows, StringJoin(rows, ""));
+}

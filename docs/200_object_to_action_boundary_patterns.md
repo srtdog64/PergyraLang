@@ -1056,6 +1056,18 @@ subject CompilerExecution {
     unresolved라 C emit 전에 실패한다. Synthetic call이나 local emitter gate를
     `SUBSTITUTING`으로 세지 말고 role callable identity epoch, production
     call-target resolution, role-body field type fact를 먼저 닫아야 한다.
+27. Legacy intent의 `guard`/`expect`/`post`와 ordered `compensate`는 이제 self
+    DIR/MIR/general C까지 무손실로 실행되지만, `intent_lower_owner.pgy`의 `on`
+    carrier join은 아직 expression text 전역 equality에 의존한다. 서로 다른 step이
+    동일한 action expression text를 사용해도 stable step/action identity로 join해야
+    하며, 현재 경로의 거부를 언어 제한으로 승격하지 않는다.
+28. 합법적인 empty domain topology가 현재 self machine admission에서 거부된다.
+    Intent runtime fixture의 최소 `object`/`tobject` refresh/publish scaffold는 이
+    admission 제약을 통과시키는 실제 domain plan이지, tobject가 rollback owner라는
+    증거가 아니다. Empty topology admission을 별도 falsifier로 닫아야 한다.
+29. Intent의 explicit `success`/`failure`, `concurrent`/`retry` surface carriage는
+    이번 legacy predicate rung의 증거가 아니다. Parser가 보존한 clause가 DIR/MIR에서
+    default로 접히거나 사라지지 않도록 각 의미 owner와 negative를 따로 닫아야 한다.
 
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
 `object`/`tobject` bare·nested-field mutation, class/subject의 bare/`self.` mutability
@@ -1213,13 +1225,13 @@ owner 아래에서 검증해야 한다.
 
 ## 10. Typed action outcome을 소비하는 intent 경계
 
-단일 step의 exact action 결과 binding과 동적 `expect` 소비는 2026-07-29에
-실행으로 닫혔다. 두 action의 typed variant branch, success-only completion,
-DIR predecessor identity와 실제 compensation은 계속 `PLANNED/OPEN`이다. 따라서
-입력 언어의 bounded outcome-binding slice는 `REACHABLE`이지만 production compiler
-`intent` 등급은 계속 `SURFACE`다.
+단일 step의 exact action 결과 binding과 legacy `guard`/`expect`/`post` predicate,
+ordered `compensate` 실행은 2026-07-29에 닫혔다. 두 action의 typed variant branch,
+success-only completion과 failure payload-driven predecessor compensation은 계속
+`PLANNED/OPEN`이다. 따라서 입력 언어의 bounded intent 실행 slice는
+`REACHABLE`이지만 production compiler `intent` 등급은 계속 `SURFACE`다.
 
-### 10.1 완료된 단일-step binding rung
+### 10.1 완료된 binding 및 legacy predicate/compensation rung
 
 - Source spelling은 `on outcome: worker.Run(...);`이다. `on:`은 결과를 버리는
   legacy form으로 남는다. 새 예약어를 추가하지 않는다.
@@ -1250,13 +1262,19 @@ helper가 enum payload를 match해 Bool을 만들고 intent는 그 결과를 `ex
 `tobject`는 receipt/failure payload일 뿐 step identity, 완료, predecessor, rollback,
 authority 또는 projection freshness를 소유하지 않는다.
 
-현재 self executable 경계는 이 가운데 `expect`만 무손실로 소비한다. Parser가
-`guard`/`post`/`compensate` row를 보존하더라도 DIR이 그 node identity를 MIR과
-마지막 C consumer까지 운반하지 못하므로, 세 clause는
-`intent_post_compensate_fail_closed_owner.sh`에서 artifact 방출 전에 각각 명시적으로
-거부된다. 이는 기능 완료나 substitution 진척이 아니라 silent semantic loss를 막는
-안전 ratchet이다. `tobject`를 completion/rollback owner로 키워 이 간극을 숨기지
-않는다.
+Self executable 경계는 이제 step별 `guard`/`expect`/`post` singleton과 ordered
+`compensate` expression graph를 DIR→MIR→마지막 C consumer까지 운반한다. 실행 순서는
+action completion 뒤 `guard -> expect -> post`이며, 실패하면 완료된 step을 역순으로,
+각 step의 compensate row도 역순으로 실행한다. 첫 step 실패는 미래 step을 실행하지
+않고 성공은 compensation 0회를 보장한다.
+
+`intent_guard_post_compensation_execution_owner.sh`는 direct/admitted self C byte
+parity와 self/native C/native LLVM runtime parity를 고정한다.
+`intent_phase_carrier_negative_owner.sh`는 phase/step/slot/graph 및 result/type
+cross-wire를 partial C 전에 거부한다. 이 legacy predicate 의미는 typed action failure
+분기와 다르다. 후자는 현재 step을 completed로 만들지 않고 completed predecessor만
+보상해야 하므로 10.2의 별도 transition owner에서 닫는다. `tobject`는 여전히
+receipt/failure payload일 뿐 completion/rollback owner가 아니다.
 
 ### 10.2 PLANNED/OPEN compensation objective card
 

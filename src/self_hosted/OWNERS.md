@@ -79,7 +79,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations and
   canonical variant parameter-type preservation.
 - `src/self_hosted/parser/decl_event_owner.pgy` -- event declarations.
-- `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations.
+- `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations,
+  singleton guard/post/expect admission, ordered compensation rows, and their
+  parser-owned expression graphs.
 - `src/self_hosted/parser/decl_nominal_owner.pgy` -- class/subject/object/tobject/vessel declarations.
 - `src/self_hosted/parser/decl_role_owner.pgy` -- role declarations.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
@@ -645,10 +647,16 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
-  receiver, authorization, effects, expect/rollback, and commit boundaries.
+  receiver, authorization, effects, phase/rollback, and commit boundaries.
 - `src/self_hosted/mir/intent_instruction_append_owner.pgy` -- canonical
   intent instruction append plus atomic result, slot-anchor, and ABI type-name
   scalar attachment; callers cannot leave a partially-carried outcome row.
+- `src/self_hosted/mir/intent_phase_contract_owner.pgy` -- producer-side
+  `IntentCheck`/`IntentEval` phase vocabulary, exact step slot, graph presence,
+  and on-only result/type shape checked before MIR artifact commit.
+- `src/self_hosted/mir/intent_phase_emission_owner.pgy` -- graph-owned DIR
+  guard/expect/post/on/ordered-compensate clauses projected to the native MIR
+  phase wire without a source or AST reread.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
 - `src/self_hosted/mir/enum_declaration_verify_owner.pgy` -- contiguous
@@ -750,12 +758,18 @@ inventory must not become a second fact-family owner registry.
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
 - `src/self_hosted/dir/intent_row_owner.pgy` -- compact read-only row projection
-  for one admitted intent declaration and its exact participant slice.
+  for one admitted intent declaration, its exact participant slice, and exact
+  guard/post/expect/ordered-compensation typed-AST identities.
+- `src/self_hosted/dir/intent_step_clause_fact_owner.pgy` -- one-pass exact
+  typed-AST child census and lossless intent-step clause collection; singleton
+  clauses reject duplicates while compensation retains source order.
+- `src/self_hosted/dir/intent_step_carriage_contract_owner.pgy` -- structural
+  range, node-kind, and child-census validation for intent-step row carriage.
 - `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, zone/using/who/requires/causes/authorized identities, and ordered
-  predecessor edges. Parser `guard`/`post`/`compensate` rows fail closed here
-  until their identities have lossless MIR and executable consumers.
+  predecessor edges. It consumes the clause owner without source rescans and
+  carries guard/post/expect plus ordered compensation identities into DIR.
 - `src/self_hosted/dir/intent_outcome_contract_owner.pgy` -- exact step-to-intent
   membership, participant receiver, subject-action signature, outcome node,
   name, and return-type validation over already-owned DIR rows.
@@ -834,15 +848,20 @@ inventory must not become a second fact-family owner registry.
   assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
 - `src/self_hosted/mir_lower/intent_lower_owner.pgy` -- exact intent MIR
-  admission and AST reconstruction for the bounded successful action path;
-  malformed cross-carrier identity and unsupported multi-step compensation fail
-  before code generation.
+  admission and AST reconstruction for the bounded action/contract/compensation
+  path; malformed cross-carrier identity fails before code generation.
 - `src/self_hosted/mir_lower/intent_action_contract_owner.pgy` -- exact intent
   `on` expression-graph identity, subject-action declaration join, return type,
   and stable action syntax-ID contract consumed by intent admission.
 - `src/self_hosted/mir_lower/intent_carrier_projection_owner.pgy` -- canonical
   participant/value binding and ordered-step projection from admitted intent
   carriers, including exact companion-row cardinality and tree text rows.
+- `src/self_hosted/mir_lower/intent_phase_projection_owner.pgy` -- one admitted
+  phase plan with exact step attachment, singleton cardinality, on-only result
+  shape, graph presence, and source-ordered compensate ranges.
+- `src/self_hosted/mir_lower/intent_phase_tree_owner.pgy` -- compact
+  On/Compensate/Guard/Post/Expect rows and matching graph occurrence order from
+  the admitted phase plan; it owns no MIR or source rediscovery path.
 - `src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy` -- bounded
   rollback/abort and invalidation/detach block validation for one intent routine.
 - `src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy` -- routine-local
@@ -1082,9 +1101,16 @@ inventory must not become a second fact-family owner registry.
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller
   value-result writeback; it does not reclassify intent as `func`.
+- `src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy` -- intent
+  callable environment, parameter ABI, prototype, and local-binding C facts;
+  intent remains a distinct Bool orchestration boundary.
+- `src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy` --
+  legacy action-completion flags, Bool predicate failure edges, and full-policy
+  reverse-step/reverse-expression compensation C emission. Typed variant
+  success-only completion remains outside this owner.
 - `src/self_hosted/codegen/emission/intent_outcome_emit_owner.pgy` -- exact
-  typed immutable C binding for one intent action result and Bool `expect`
-  emission against the step-local outcome environment.
+  typed immutable C binding for one intent action result and step-local Bool
+  `expect` dispatch through the shared intent control-flow owner.
 - `src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy` -- ability
   vtable types and instances, role method ABI declarations, party bind
   boundaries, and value-to-receiver operator adapters from semantic role facts.

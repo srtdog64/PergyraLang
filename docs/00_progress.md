@@ -2,21 +2,37 @@
 
 마지막 업데이트: 2026-07-29
 
-## 2026-07-29 intent guard/post/compensate fail-closed checkpoint
+## 2026-07-29 intent predicate와 ordered compensation 실행 checkpoint
 
-- `tobject` 구현을 다시 추적한 결과, detached immutable success receipt/failure
-  payload에는 맞지만 variant branch, step completion, predecessor, rollback graph의
-  owner는 아니라는 기존 경계가 확인됐다. 이 사실은 intent transition SoT가
-  소유해야 한다.
-- Self parser는 `guard`/`post`/`compensate` row를 보존하지만 DIR/MIR/C path가
-  소비하지 않아 이전에는 성공한 듯 보이면서 clause가 사라졌다. 이제 첫 executable
-  DIR boundary에서 세 clause를 서로 다른 진단으로 거부하고 partial MIR/C artifact를
-  만들지 않는다.
-- 이 안전 ratchet은 `SUBSTITUTING` 진척이 아니다. 다음 executable rung은 source에
-  선언된 exact success/failure variant identity, payload binding, stable predecessor,
-  success-only completion과 compensation target을 같은 semantic/DIR/MIR 변경에서
-  닫아야 한다. 일반 `expect` 실패의 기존 rollback 의미를 typed failure와 혼동해
-  backend completion flag 위치만 옮기는 수정은 금지한다.
+- 직전 fail-closed 경계가 실제 실행 경계로 대체됐다. Parser는 step별
+  `guard`/`expect`/`post` singleton과 ordered `compensate` expression graph를
+  보존하고 중복 singleton을 거부한다. DIR은 exact step/node/range를 소유하며 MIR은
+  `IntentCheck(guard|expect|post)`와 `IntentEval(compensate)`를 순서대로 운반한다.
+- Admitted general self C는 action 완료 뒤 `guard -> expect -> post`를 실행한다.
+  실패하면 완료된 step을 역순으로, 같은 step의 compensate row도 역순으로 실행한다.
+  성공 시 compensation은 0회이고, 첫 step guard 실패 시 미래 step과 그 보상은
+  실행되지 않는다. B의 guard/expect/post 실패는 A와 B의 forward mutation을 모두
+  복구한다.
+- `intent_guard_post_compensation_execution_owner.sh`가 direct/admitted self C의
+  byte parity와 self/native C/native LLVM runtime parity를 고정한다.
+  `intent_phase_carrier_negative_owner.sh`는 unknown/orphan/wrong-step-or-slot phase,
+  singleton 중복, check/compensate result-type 오염, on result/type 비대칭, missing
+  expression graph의 9개 mutation을 exact diagnostic으로 거부하고 partial C를 남기지
+  않는다. Parser frontend, 기존 enum<tobject> exact-once gate와 component gate도
+  함께 green이다.
+- `tobject` 결론은 바뀌지 않는다. detached immutable success/failure payload에는
+  맞지만 step identity, phase order, completion, predecessor, compensation graph의
+  owner가 아니다. 이번 실행 의미는 intent carrier와 emitter가 소유한다.
+- 이 bounded input-language slice는 `REACHABLE`이다. Production bootstrap이 compiler
+  intent를 호출하지 않으므로 compiler `intent`는 계속 `SURFACE`이며 hard self-host
+  substitution으로 세지 않는다. 현재 self machine admission은 non-empty admitted
+  domain runtime plan을 요구하므로 합법적인 empty topology는 별도 blocker다. 서로
+  다른 step의 동일 action expression text를 전역 문자열 equality로 join하는 기존
+  seam도 다음 negative debt로 남는다.
+- 다음 executable rung은 typed variant branch, success-only completion, DIR-owned
+  predecessor와 failure payload-driven compensation을 `mir.intent_step_transition`에서
+  한 번에 닫는다. 일반 predicate failure의 current-step rollback과 action typed
+  failure의 predecessor-only rollback을 합치지 않는다.
 
 ## 2026-07-28 fallible action tobject outcome checkpoint
 

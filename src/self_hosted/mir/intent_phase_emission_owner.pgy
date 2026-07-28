@@ -1,0 +1,106 @@
+// Lossless DIR intent-clause expression -> native-compatible MIR phase wire.
+// Source text is never reopened; the admitted semantic graph supplies text,
+// uses, source kind, and the persisted expression graph.
+
+import "routine_build_owner.pgy";
+import "routine_input_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "intent_instruction_append_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
+
+func SelfMirIntentExpressionText(
+    surfaces: SemanticAstExpressionSurfaceFacts,
+    node_id: Int
+) -> String {
+    let row_opt: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        surfaces, node_id
+    );
+    if !IsSome(row_opt) { return ""; }
+    let row: Int = UnwrapOption(row_opt);
+    if row < 0 || row >= ArrayLength(surfaces.has_atoms) ||
+        !surfaces.has_atoms[row] {
+        return "";
+    }
+    return surfaces.normalized_atoms[row];
+}
+
+func SelfMirIntentExpressionSourceType(
+    graph: SemanticExpressionGraphView,
+    text: String
+) -> String {
+    if !graph.ok { return ""; }
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph.graph, graph.root_id
+    );
+    if !IsSome(kind_opt) { return ""; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeBoolLiteral() { return "AST_BOOLEAN"; }
+    if kind == AstExpressionNodeIntegerLiteral() ||
+        kind == AstExpressionNodeLongLiteral() ||
+        kind == AstExpressionNodeFloatLiteral() {
+        return "AST_NUMBER";
+    }
+    if kind == AstExpressionNodeStringLiteral() { return "AST_STRING"; }
+    return SelfMirExpressionSourceTypeName(SelfMirExpressionKindFromText(text));
+}
+
+func SelfMirIntentAppendPhaseCarrier(
+    build: SelfMirRoutineBuild,
+    ref input: SelfMirRoutineInput,
+    node_id: Int,
+    phase: String,
+    step_name: String,
+    result_name: String,
+    result_type_name: String
+) -> SelfMirRoutineBuild {
+    if !build.ok { return build; }
+    let is_check: Bool = phase == "guard" || phase == "expect" ||
+        phase == "post";
+    let is_eval: Bool = phase == "on" || phase == "compensate";
+    if node_id < 0 || step_name == "" || (!is_check && !is_eval) ||
+        (phase != "on" &&
+            (result_name != "" || result_type_name != "")) ||
+        ((result_name == "") != (result_type_name == "")) {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent phase carrier shape is invalid"
+        );
+    }
+    let text: String = SelfMirIntentExpressionText(
+        input.analysis.expression_surfaces, node_id
+    );
+    let graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, node_id,
+            AstExpressionLaneAtom()
+        );
+    if text == "" || !graph.ok {
+        return SelfMirRoutineBuildError(
+            build, Concat("MIR intent ", Concat(
+                phase, " expression graph is missing"
+            ))
+        );
+    }
+    let source_type: String = SelfMirIntentExpressionSourceType(graph, text);
+    if source_type == "" {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent phase expression type is missing"
+        );
+    }
+    let carrier_name: String = "IntentEval";
+    if is_check { carrier_name = "IntentCheck"; }
+    let uses: Array<String> = SelfMirExpressionGraphUses(build, graph);
+    if phase == "on" {
+        build = SelfMirIntentAddResultInstruction(
+            build, "stmt", carrier_name, result_name, phase, step_name,
+            step_name, text, source_type, result_type_name, uses
+        );
+    } else {
+        build = SelfMirIntentAddInstruction(
+            build, "stmt", carrier_name, phase, step_name, step_name,
+            text, source_type, uses
+        );
+    }
+    return SelfMirRoutineAttachLastExpressionGraph(
+        build, graph, input.machine_declaration
+    );
+}

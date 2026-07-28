@@ -1,0 +1,160 @@
+ability WorkflowRunnable {
+    func CanRun() -> Bool;
+}
+
+object WorkflowActorView {
+    state: Int;
+}
+
+tobject WorkflowActorSnapshot {
+    state: Int;
+}
+
+subject WorkflowActor {
+    let mut state: Int;
+    let mut trace: Int;
+    let mut a_calls: Int;
+    let mut b_calls: Int;
+    let mut undo_a_calls: Int;
+    let mut undo_b_first_calls: Int;
+    let mut undo_b_second_calls: Int;
+
+    action ForwardA(self) -> Void
+        requires WorkflowRunnable
+        within WorkflowZone
+        authorized by self
+    {
+        self.state = self.state + 10;
+        self.trace = self.trace * 10 + 1;
+        self.a_calls = self.a_calls + 1;
+    }
+
+    action ForwardB(self) -> Void
+        requires WorkflowRunnable
+        within WorkflowZone
+        authorized by self
+    {
+        self.state = self.state + 3;
+        self.trace = self.trace * 10 + 2;
+        self.b_calls = self.b_calls + 1;
+    }
+
+    action UndoA(self) -> Void {
+        self.state = self.state - 10;
+        self.trace = self.trace * 10 + 5;
+        self.undo_a_calls = self.undo_a_calls + 1;
+    }
+
+    action UndoBFirst(self) -> Void {
+        self.state = self.state - 3;
+        self.trace = self.trace * 10 + 4;
+        self.undo_b_first_calls = self.undo_b_first_calls + 1;
+    }
+
+    action UndoBSecond(self) -> Void {
+        self.trace = self.trace * 10 + 3;
+        self.undo_b_second_calls = self.undo_b_second_calls + 1;
+    }
+}
+
+role WorkflowActorRunnable for WorkflowActor {
+    impl ability WorkflowRunnable {
+        func CanRun() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone WorkflowZone {
+    subject slot actor: WorkflowActor
+    // Minimal admission scaffold only: the current self machine boundary
+    // requires a non-empty domain runtime plan. Empty legal topology remains
+    // a separate blocker and is not part of the intent-phase assertions.
+    object slot view: WorkflowActorView
+    tobject slot snapshot: WorkflowActorSnapshot
+    authority actor requires WorkflowRunnable
+
+    refresh view from actor by actor map {
+        state <- state;
+    }
+
+    publish snapshot from actor by actor map {
+        state <- state;
+    }
+}
+
+intent RunWorkflow(
+    work: WorkflowZone,
+    actor: WorkflowActor,
+    first_guard_ok: Bool,
+    guard_ok: Bool,
+    expect_ok: Bool,
+    post_ok: Bool
+) {
+    step ForwardA {
+        using: work;
+        on: actor.ForwardA();
+        compensate: actor.UndoA();
+        guard: first_guard_ok;
+        post: actor.state == 10;
+    }
+
+    step ForwardB {
+        using: work;
+        on: actor.ForwardB();
+        compensate: actor.UndoBFirst();
+        compensate: actor.UndoBSecond();
+        guard: guard_ok;
+        expect: expect_ok;
+        post: post_ok;
+    }
+
+}
+
+func Observe(label: String, ok: Bool, actor: WorkflowActor) -> Void {
+    Log(label + ".ok=" + ToString(ok));
+    Log(label + ".state=" + ToString(actor.state));
+    Log(label + ".trace=" + ToString(actor.trace));
+    Log(label + ".a_calls=" + ToString(actor.a_calls));
+    Log(label + ".b_calls=" + ToString(actor.b_calls));
+    Log(label + ".undo_a=" + ToString(actor.undo_a_calls));
+    Log(label + ".undo_b_first=" + ToString(actor.undo_b_first_calls));
+    Log(label + ".undo_b_second=" + ToString(actor.undo_b_second_calls));
+}
+
+func Main() -> Void {
+    let success_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let success_work = WorkflowZone(Clone(success_actor));
+    let success_ok = RunWorkflow(
+        success_work, success_actor, true, true, true, true
+    );
+    Observe("success", success_ok, success_actor);
+
+    let first_guard_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let first_guard_work = WorkflowZone(Clone(first_guard_actor));
+    let first_guard_ok = RunWorkflow(
+        first_guard_work, first_guard_actor, false, true, true, true
+    );
+    Observe("first_guard", first_guard_ok, first_guard_actor);
+
+    let guard_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let guard_work = WorkflowZone(Clone(guard_actor));
+    let guard_ok = RunWorkflow(
+        guard_work, guard_actor, true, false, true, true
+    );
+    Observe("guard", guard_ok, guard_actor);
+
+    let expect_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let expect_work = WorkflowZone(Clone(expect_actor));
+    let expect_ok = RunWorkflow(
+        expect_work, expect_actor, true, true, false, true
+    );
+    Observe("expect", expect_ok, expect_actor);
+
+    let post_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let post_work = WorkflowZone(Clone(post_actor));
+    let post_ok = RunWorkflow(
+        post_work, post_actor, true, true, true, false
+    );
+    Observe("post", post_ok, post_actor);
+}

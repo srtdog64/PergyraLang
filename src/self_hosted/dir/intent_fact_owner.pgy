@@ -9,6 +9,7 @@ import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
+import "intent_step_carriage_contract_owner.pgy";
 import "intent_outcome_contract_owner.pgy";
 
 struct SelfDirIntentFacts {
@@ -104,7 +105,13 @@ func SelfDirIntentFactsFromArtifact(
     let step_outcome_names: Array<String> = [];
     let step_outcome_type_names: Array<String> = [];
     let step_on_node_ids: Array<Int> = [];
+    let step_guard_node_ids: Array<Int> = [];
+    let step_post_node_ids: Array<Int> = [];
     let step_expect_node_ids: Array<Int> = [];
+    let step_compensate_starts: Array<Int> = [];
+    let step_compensate_counts: Array<Int> = [];
+    let step_compensate_node_ids: Array<Int> = [];
+    let step_child_counts: Array<Int> = [];
     let step_predecessor_indices: Array<Int> = [];
     let step_causes_names: Array<String> = [];
     let step_causes_declaration_indices: Array<Int> = [];
@@ -203,6 +210,14 @@ func SelfDirIntentFactsFromArtifact(
                     ArrayPush(authorized_names, resolved.authorized_names[i]);
                     i = i + 1;
                 }
+                let compensate_start: Int =
+                    ArrayLength(step_compensate_node_ids);
+                i = 0;
+                while i < ArrayLength(resolved.compensate_node_ids) {
+                    ArrayPush(step_compensate_node_ids,
+                        resolved.compensate_node_ids[i]);
+                    i = i + 1;
+                }
                 ArrayPush(step_node_ids, resolved.node_id);
                 ArrayPush(step_names, resolved.name);
                 ArrayPush(step_where_zone_names, resolved.where_zone_name);
@@ -218,7 +233,13 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_outcome_type_names,
                     resolved.outcome_type_name);
                 ArrayPush(step_on_node_ids, resolved.on_node_id);
+                ArrayPush(step_guard_node_ids, resolved.guard_node_id);
+                ArrayPush(step_post_node_ids, resolved.post_node_id);
                 ArrayPush(step_expect_node_ids, resolved.expect_node_id);
+                ArrayPush(step_compensate_starts, compensate_start);
+                ArrayPush(step_compensate_counts,
+                    ArrayLength(resolved.compensate_node_ids));
+                ArrayPush(step_child_counts, resolved.child_count);
                 ArrayPush(step_predecessor_indices,
                     resolved.predecessor_step_index);
                 ArrayPush(step_causes_names, resolved.causes_name);
@@ -262,7 +283,10 @@ func SelfDirIntentFactsFromArtifact(
             step_receiver_aliases, step_action_names,
             step_action_signature_indices, step_outcome_node_ids,
             step_outcome_names, step_outcome_type_names, step_on_node_ids,
-            step_expect_node_ids, step_predecessor_indices, step_causes_names,
+            step_guard_node_ids, step_post_node_ids, step_expect_node_ids,
+            step_compensate_starts, step_compensate_counts,
+            step_compensate_node_ids, step_child_counts,
+            step_predecessor_indices, step_causes_names,
             step_causes_declaration_indices, who_starts, who_counts, who_names,
             requires_starts, requires_counts, requires_names,
             requires_declaration_indices, authorized_starts, authorized_counts,
@@ -275,7 +299,6 @@ func SelfDirIntentFactsFromArtifact(
 func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
     let intents: Int = ArrayLength(facts.intent_node_ids);
     let participants: Int = ArrayLength(facts.participants.node_ids);
-    let steps: Int = ArrayLength(facts.steps.node_ids);
     return ArrayLength(facts.names) == intents &&
         ArrayLength(facts.participant_starts) == intents &&
         ArrayLength(facts.participant_counts) == intents &&
@@ -285,29 +308,7 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
         ArrayLength(facts.participants.aliases) == participants &&
         ArrayLength(facts.participants.type_names) == participants &&
         ArrayLength(facts.participants.declaration_indices) == participants &&
-        ArrayLength(facts.steps.names) == steps &&
-        ArrayLength(facts.steps.where_zone_names) == steps &&
-        ArrayLength(facts.steps.where_declaration_indices) == steps &&
-        ArrayLength(facts.steps.using_aliases) == steps &&
-        ArrayLength(facts.steps.receiver_aliases) == steps &&
-        ArrayLength(facts.steps.action_names) == steps &&
-        ArrayLength(facts.steps.action_signature_indices) == steps &&
-        ArrayLength(facts.steps.outcome_node_ids) == steps &&
-        ArrayLength(facts.steps.outcome_names) == steps &&
-        ArrayLength(facts.steps.outcome_type_names) == steps &&
-        ArrayLength(facts.steps.on_node_ids) == steps &&
-        ArrayLength(facts.steps.expect_node_ids) == steps &&
-        ArrayLength(facts.steps.predecessor_step_indices) == steps &&
-        ArrayLength(facts.steps.causes_names) == steps &&
-        ArrayLength(facts.steps.causes_declaration_indices) == steps &&
-        ArrayLength(facts.steps.who_starts) == steps &&
-        ArrayLength(facts.steps.who_counts) == steps &&
-        ArrayLength(facts.steps.requires_starts) == steps &&
-        ArrayLength(facts.steps.requires_counts) == steps &&
-        ArrayLength(facts.steps.authorized_starts) == steps &&
-        ArrayLength(facts.steps.authorized_counts) == steps &&
-        ArrayLength(facts.steps.requires_names) ==
-            ArrayLength(facts.steps.requires_declaration_indices);
+        SelfDirIntentStepCarriageShapeReady(facts.steps);
 }
 
 func SelfDirIntentFactsReady(
@@ -318,7 +319,8 @@ func SelfDirIntentFactsReady(
 ) -> Bool {
     if !facts.ok || !signatures.ok || facts.diagnostic_message != "" ||
         facts.artifact_node_count != artifact.count ||
-        !SelfDirIntentFactsShapeReady(facts) {
+        !SelfDirIntentFactsShapeReady(facts) ||
+        !SelfDirIntentStepCarriageReady(artifact, facts.steps) {
         return false;
     }
     let intent_count: Int = ArrayLength(facts.intent_node_ids);
@@ -455,24 +457,11 @@ func SelfDirIntentFactsReady(
     }
     i = 0;
     while i < step_count {
-        if !TypedAstArenaNodeKindIs(
-                artifact.arena, facts.steps.node_ids[i],
-                TypedAstKindIntentStepTag()
-             ) || facts.steps.names[i] == "" ||
-            facts.steps.receiver_aliases[i] == "" ||
+        if facts.steps.receiver_aliases[i] == "" ||
             facts.steps.action_names[i] == "" ||
             facts.steps.action_signature_indices[i] < 0 ||
             facts.steps.action_signature_indices[i] >=
                 SemanticAstFunctionSignatureCount(signatures) ||
-            !TypedAstArenaNodeKindIs(
-                artifact.arena, facts.steps.on_node_ids[i],
-                TypedAstKindIntentStepOnTag()
-            ) ||
-            (facts.steps.expect_node_ids[i] >= 0 &&
-             !TypedAstArenaNodeKindIs(
-                artifact.arena, facts.steps.expect_node_ids[i],
-                TypedAstKindIntentStepExpectTag()
-             )) ||
             facts.steps.where_zone_names[i] == "" ||
             facts.steps.where_declaration_indices[i] < 0 ||
             facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||

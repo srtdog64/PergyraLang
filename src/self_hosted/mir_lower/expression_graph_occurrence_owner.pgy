@@ -119,8 +119,13 @@ func MirExpressionGraphOccurrenceGraphSlot(
         return MirExpressionGraphSlotExpr0();
     }
     if kind == "stmt" && lane == AstExpressionLaneAtom() &&
-        IsSome(name_opt) && UnwrapOption(name_opt) == "IntentCheck" {
-        return MirExpressionGraphSlotExpr0();
+        IsSome(name_opt) {
+        let name: String = UnwrapOption(name_opt);
+        if name == "IntentCheck" ||
+            (name == "IntentEval" && IsSome(arg0_opt) &&
+             UnwrapOption(arg0_opt) == "compensate") {
+            return MirExpressionGraphSlotExpr0();
+        }
     }
     if kind == "branch" && lane == AstExpressionLaneAtom() {
         return MirExpressionGraphSlotExpr0();

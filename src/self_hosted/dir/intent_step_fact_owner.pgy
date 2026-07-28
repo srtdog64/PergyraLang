@@ -6,6 +6,7 @@ import "../semantic/ast_signature_fact_owner.pgy";
 import "../semantic/ast_intent_action_call_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
+import "intent_step_clause_fact_owner.pgy";
 
 struct SelfDirIntentStepHeader {
     ok: Bool;
@@ -29,7 +30,11 @@ struct SelfDirIntentResolvedStep {
     outcome_name: String;
     outcome_type_name: String;
     on_node_id: Int;
+    guard_node_id: Int;
+    post_node_id: Int;
     expect_node_id: Int;
+    compensate_node_ids: Array<Int>;
+    child_count: Int;
     predecessor_step_index: Int;
     causes_name: String;
     causes_declaration_index: Int;
@@ -47,31 +52,12 @@ func SelfDirIntentResolvedStepError(
     let requires_names: Array<String> = [];
     let requires_indices: Array<Int> = [];
     let authorized_names: Array<String> = [];
+    let compensate_node_ids: Array<Int> = [];
     return SelfDirIntentResolvedStep(
         false, message, -1, "", "", -1, "", "", "", -1, -1, "", "",
-        -1, -1, -1, "", -1,
+        -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names, 0
     );
-}
-
-func SelfDirIntentStepAppendUniqueNames(
-    payload: String, inout names: Array<String>
-) -> Bool {
-    let parts: Array<String> = Split(payload, ",");
-    if ArrayLength(parts) == 0 { return false; }
-    let i: Int = 0;
-    while i < ArrayLength(parts) {
-        let name: String = StringTrim(parts[i]);
-        if name == "" { return false; }
-        let prior: Int = 0;
-        while prior < ArrayLength(names) {
-            if names[prior] == name { return false; }
-            prior = prior + 1;
-        }
-        ArrayPush(names, name);
-        i = i + 1;
-    }
-    return ArrayLength(names) > 0;
 }
 
 func SelfDirIntentParticipantIndex(
@@ -192,115 +178,30 @@ func SelfDirIntentStepFromArtifact(
             "self-host DIR intent inline step header is unsupported"
         );
     }
-    let step_name: String = header.name;
-    let on_text: String = "";
-    let on_node_id: Int = -1;
-    let outcome_node_id: Int = -1;
-    let outcome_name: String = "";
-    let expect_node_id: Int = -1;
-    let explicit_using: String = header.using_alias;
-    let explicit_causes: String = "";
-    let who_names: Array<String> = [];
-    let requires_names: Array<String> = [];
-    let authorized_names: Array<String> = [];
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
-        artifact.arena, step_node_id, child_index
-    );
-    while IsSome(child) {
-        let row_id: Int = UnwrapOption(child);
-        let row_kind_opt: Option<Int> = TypedAstArenaNodeKind(
-            artifact.arena, row_id
-        );
-        let row_payload_opt: Option<String> = TypedAstArenaAtomText(
-            artifact.arena, row_id
-        );
-        if !IsSome(row_kind_opt) || !IsSome(row_payload_opt) {
-            return SelfDirIntentResolvedStepError(
-                "self-host DIR intent step row is incomplete"
-            );
-        }
-        let row_kind: Int = UnwrapOption(row_kind_opt);
-        let payload: String = UnwrapOption(row_payload_opt);
-        if row_kind == TypedAstKindIntentStepOnTag() {
-            if on_text != "" { return SelfDirIntentResolvedStepError(
-                "self-host DIR intent step has duplicate on rows"
-            ); }
-            on_text = payload;
-            on_node_id = row_id;
-        } else if row_kind == TypedAstKindIntentStepOutcomeTag() {
-            if outcome_node_id >= 0 || !IsIdentifier(payload) {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent outcome binding is invalid"
-                );
-            }
-            outcome_node_id = row_id;
-            outcome_name = payload;
-        } else if row_kind == TypedAstKindIntentStepWhoTag() {
-            if ArrayLength(who_names) > 0 ||
-                !SelfDirIntentStepAppendUniqueNames(payload, who_names) {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent who row is invalid"
-                );
-            }
-        } else if row_kind == TypedAstKindIntentStepUsingTag() {
-            if payload == "" ||
-                (explicit_using != "" && explicit_using != payload) {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent using row is invalid"
-                );
-            }
-            explicit_using = payload;
-        } else if row_kind == TypedAstKindActionRequiresTag() {
-            if ArrayLength(requires_names) > 0 ||
-                !SelfDirIntentStepAppendUniqueNames(payload, requires_names) {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent requires row is invalid"
-                );
-            }
-        } else if row_kind == TypedAstKindIntentStepAuthorizedByTag() {
-            if ArrayLength(authorized_names) > 0 ||
-                !SelfDirIntentStepAppendUniqueNames(payload, authorized_names) {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent authorized-by row is invalid"
-                );
-            }
-        } else if row_kind == TypedAstKindActionCausesTag() {
-            if explicit_causes != "" || payload == "" {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent causes row is invalid"
-                );
-            }
-            explicit_causes = payload;
-        } else if row_kind == TypedAstKindIntentStepExpectTag() {
-            if expect_node_id >= 0 || payload == "" {
-                return SelfDirIntentResolvedStepError(
-                    "self-host DIR intent step has an invalid expect row"
-                );
-            }
-            expect_node_id = row_id;
-        } else if row_kind == TypedAstKindIntentStepCompensateTag() {
-            return SelfDirIntentResolvedStepError(
-                "self-host DIR intent compensate carrier is not executable"
-            );
-        } else if row_kind == TypedAstKindIntentStepPostTag() {
-            return SelfDirIntentResolvedStepError(
-                "self-host DIR intent post carrier is not executable"
-            );
-        } else if row_kind == TypedAstKindIntentStepGuardTag() {
-            return SelfDirIntentResolvedStepError(
-                "self-host DIR intent guard carrier is not executable"
-            );
-        } else {
-            return SelfDirIntentResolvedStepError(
-                "self-host DIR intent step row kind is unsupported"
-            );
-        }
-        child_index = child_index + 1;
-        child = TypedAstArenaChildAt(
-            artifact.arena, step_node_id, child_index
-        );
+    let clauses: SelfDirIntentStepClauseFacts =
+        SelfDirIntentStepClauseFactsFromArtifact(artifact, step_node_id);
+    if !clauses.ok {
+        return SelfDirIntentResolvedStepError(clauses.diagnostic_message);
     }
+    let step_name: String = header.name;
+    let on_text: String = clauses.on_text;
+    let on_node_id: Int = clauses.on_node_id;
+    let outcome_node_id: Int = clauses.outcome_node_id;
+    let outcome_name: String = clauses.outcome_name;
+    let expect_node_id: Int = clauses.expect_node_id;
+    let explicit_using: String = header.using_alias;
+    if clauses.explicit_using != "" {
+        if explicit_using != "" && explicit_using != clauses.explicit_using {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent using row is invalid"
+            );
+        }
+        explicit_using = clauses.explicit_using;
+    }
+    let explicit_causes: String = clauses.explicit_causes;
+    let who_names: Array<String> = clauses.who_names;
+    let requires_names: Array<String> = clauses.requires_names;
+    let authorized_names: Array<String> = clauses.authorized_names;
 
     let on_call: SemanticAstIntentActionCallFact =
         SemanticAstIntentActionCallFromText(
@@ -462,7 +363,9 @@ func SelfDirIntentStepFromArtifact(
         true, "", step_node_id, step_name, where_zone, where_index,
         using_alias, on_call.receiver_alias, on_call.action_name,
         action_index, outcome_node_id, outcome_name, outcome_type_name,
-        on_node_id, expect_node_id, predecessor, cause_name, cause_index,
+        on_node_id, clauses.guard_node_id, clauses.post_node_id,
+        expect_node_id, clauses.compensate_node_ids, clauses.child_count,
+        predecessor, cause_name, cause_index,
         who_names, requires_names, requires_indices, authorized_names,
         edge_count
     );

@@ -1,0 +1,242 @@
+// One admitted intent phase plan derived from native-compatible MIR carriers.
+//
+// This owner validates phase vocabulary, exact step attachment, scalar shape,
+// expression-graph presence, singleton cardinality, and ordered compensation.
+// It never reads source or AST text.
+
+import "routine_fact_index_owner.pgy";
+
+struct MirIntentPhaseProjection {
+    ok: Bool;
+    diagnostic_message: String;
+    on_texts: Array<String>;
+    on_results: Array<String>;
+    on_type_names: Array<String>;
+    on_rows: Array<Int>;
+    guard_texts: Array<String>;
+    guard_rows: Array<Int>;
+    expect_texts: Array<String>;
+    expect_rows: Array<Int>;
+    post_texts: Array<String>;
+    post_rows: Array<Int>;
+    compensate_starts: Array<Int>;
+    compensate_counts: Array<Int>;
+    compensate_texts: Array<String>;
+    compensate_rows: Array<Int>;
+    carrier_count: Int;
+}
+
+func MirIntentPhaseProjectionError(
+    projection: MirIntentPhaseProjection,
+    message: String
+) -> MirIntentPhaseProjection {
+    projection.ok = false;
+    projection.diagnostic_message = message;
+    return projection;
+}
+
+func MirIntentPhaseGraphPresent(
+    ref routines: MirProgramRoutineIndex,
+    global_row: Int
+) -> Bool {
+    if global_row < 0 || global_row >=
+        ArrayLength(routines.instruction_starts) ||
+        ArrayLength(routines.instruction_ends) !=
+            ArrayLength(routines.instruction_starts) {
+        return false;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.instruction_starts[global_row],
+        routines.instruction_ends[global_row]
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    return JsonObjectFactTableReady(instruction) &&
+        JsonObjectFactTableReady(graph);
+}
+
+func MirIntentPhaseProjectionFromCarriers(
+    ref routines: MirProgramRoutineIndex,
+    step_names: Array<String>,
+    carrier_names: Array<String>,
+    carrier_arg0s: Array<String>,
+    carrier_arg1s: Array<String>,
+    carrier_slots: Array<String>,
+    carrier_results: Array<String>,
+    carrier_abi_type_names: Array<String>,
+    carrier_source_types: Array<String>,
+    carrier_expr0s: Array<String>,
+    carrier_rows: Array<Int>
+) -> MirIntentPhaseProjection {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    let projection: MirIntentPhaseProjection = MirIntentPhaseProjection(
+        true, "", strings, strings, strings, ints, strings, ints,
+        strings, ints, strings, ints, ints, ints, strings, ints, 0
+    );
+    let count: Int = ArrayLength(carrier_names);
+    if ArrayLength(carrier_arg0s) != count ||
+        ArrayLength(carrier_arg1s) != count ||
+        ArrayLength(carrier_slots) != count ||
+        ArrayLength(carrier_results) != count ||
+        ArrayLength(carrier_abi_type_names) != count ||
+        ArrayLength(carrier_source_types) != count ||
+        ArrayLength(carrier_expr0s) != count ||
+        ArrayLength(carrier_rows) != count || ArrayLength(step_names) == 0 {
+        return MirIntentPhaseProjectionError(
+            projection, "MIR intent phase carrier arrays are misaligned"
+        );
+    }
+    let step_i: Int = 0;
+    while step_i < ArrayLength(step_names) {
+        ArrayPush(projection.on_texts, "");
+        ArrayPush(projection.on_results, "");
+        ArrayPush(projection.on_type_names, "");
+        ArrayPush(projection.on_rows, -1);
+        ArrayPush(projection.guard_texts, "");
+        ArrayPush(projection.guard_rows, -1);
+        ArrayPush(projection.expect_texts, "");
+        ArrayPush(projection.expect_rows, -1);
+        ArrayPush(projection.post_texts, "");
+        ArrayPush(projection.post_rows, -1);
+        step_i = step_i + 1;
+    }
+
+    let row: Int = 0;
+    while row < count {
+        let name: String = carrier_names[row];
+        if name == "IntentCheck" || name == "IntentEval" {
+            let phase: String = carrier_arg0s[row];
+            let known_check: Bool = name == "IntentCheck" &&
+                (phase == "guard" || phase == "expect" || phase == "post");
+            let known_eval: Bool = name == "IntentEval" &&
+                (phase == "on" || phase == "compensate");
+            if !known_check && !known_eval {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent phase carrier names an unknown phase"
+                );
+            }
+            let step_match_count: Int = 0;
+            step_i = 0;
+            while step_i < ArrayLength(step_names) {
+                if step_names[step_i] == carrier_arg1s[row] {
+                    step_match_count = step_match_count + 1;
+                }
+                step_i = step_i + 1;
+            }
+            if step_match_count != 1 || carrier_arg1s[row] == "" ||
+                carrier_slots[row] != carrier_arg1s[row] {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent phase carrier step identity is invalid"
+                );
+            }
+            if carrier_source_types[row] == "" ||
+                carrier_expr0s[row] == "" ||
+                !MirIntentPhaseGraphPresent(routines, carrier_rows[row]) {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent phase carrier expression graph is missing"
+                );
+            }
+            let has_result: Bool = carrier_results[row] != "";
+            let has_type: Bool = carrier_abi_type_names[row] != "";
+            if known_check && (has_result || has_type) {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent check result/type shape is invalid"
+                );
+            }
+            if phase == "compensate" && (has_result || has_type) {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent compensate result/type shape is invalid"
+                );
+            }
+            if phase == "on" &&
+                (has_result != has_type ||
+                 (has_type &&
+                    (carrier_abi_type_names[row] == "Unknown" ||
+                     carrier_abi_type_names[row] == "Void"))) {
+                return MirIntentPhaseProjectionError(
+                    projection, "MIR intent on result/type shape is invalid"
+                );
+            }
+            projection.carrier_count = projection.carrier_count + 1;
+        }
+        row = row + 1;
+    }
+
+    step_i = 0;
+    while step_i < ArrayLength(step_names) {
+        ArrayPush(
+            projection.compensate_starts,
+            ArrayLength(projection.compensate_texts)
+        );
+        let compensate_count: Int = 0;
+        row = 0;
+        while row < count {
+            if carrier_arg1s[row] == step_names[step_i] &&
+                carrier_slots[row] == step_names[step_i] {
+                let name: String = carrier_names[row];
+                let phase: String = carrier_arg0s[row];
+                if name == "IntentEval" && phase == "on" {
+                    if projection.on_rows[step_i] >= 0 {
+                        return MirIntentPhaseProjectionError(
+                            projection, "MIR intent on phase cardinality is invalid"
+                        );
+                    }
+                    ArraySet(projection.on_texts, step_i, carrier_expr0s[row]);
+                    ArraySet(projection.on_results, step_i, carrier_results[row]);
+                    ArraySet(
+                        projection.on_type_names, step_i,
+                        carrier_abi_type_names[row]
+                    );
+                    ArraySet(projection.on_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentCheck" && phase == "guard" {
+                    if projection.guard_rows[step_i] >= 0 {
+                        return MirIntentPhaseProjectionError(
+                            projection, "MIR intent guard phase cardinality is invalid"
+                        );
+                    }
+                    ArraySet(
+                        projection.guard_texts, step_i, carrier_expr0s[row]
+                    );
+                    ArraySet(projection.guard_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentCheck" && phase == "expect" {
+                    if projection.expect_rows[step_i] >= 0 {
+                        return MirIntentPhaseProjectionError(
+                            projection, "MIR intent expect phase cardinality is invalid"
+                        );
+                    }
+                    ArraySet(
+                        projection.expect_texts, step_i, carrier_expr0s[row]
+                    );
+                    ArraySet(projection.expect_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentCheck" && phase == "post" {
+                    if projection.post_rows[step_i] >= 0 {
+                        return MirIntentPhaseProjectionError(
+                            projection, "MIR intent post phase cardinality is invalid"
+                        );
+                    }
+                    ArraySet(
+                        projection.post_texts, step_i, carrier_expr0s[row]
+                    );
+                    ArraySet(projection.post_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentEval" && phase == "compensate" {
+                    ArrayPush(
+                        projection.compensate_texts, carrier_expr0s[row]
+                    );
+                    ArrayPush(projection.compensate_rows, carrier_rows[row]);
+                    compensate_count = compensate_count + 1;
+                }
+            }
+            row = row + 1;
+        }
+        if projection.on_rows[step_i] < 0 {
+            return MirIntentPhaseProjectionError(
+                projection, "MIR intent on phase cardinality is invalid"
+            );
+        }
+        ArrayPush(projection.compensate_counts, compensate_count);
+        step_i = step_i + 1;
+    }
+    return projection;
+}
