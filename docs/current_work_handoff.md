@@ -6,74 +6,84 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - tobject outcome boundary and intent clause fail-close
+## Current resume checkpoint - executable intent phases and ordered compensation
 
-- Landing parent: `1e92b4acba178d1621a5d2c5ba0d61567b8dbb72` on `main`,
-  aligned with `origin/main` before this slice. Verify the landing revision and
-  dirty state with Git after commit/push.
-- Objective card:
-  - objective: audit whether `tobject` can own the pending two-action intent
-    solution and stop self-host `guard`/`post`/`compensate` clauses from being
-    silently accepted and erased;
-  - priority: preserve the tobject boundary, expose semantic loss, fail before
-    artifact output, keep the working `expect` outcome-binding rung green, then
-    design the exact typed transition owner;
-  - fact owner: `tobject` owns only detached immutable receipt/failure payload.
-    Semantic must own exact enum/variant/payload identity, DIR must own stable
-    step/dependency identity, and MIR must own branch successor, success-only
-    completion and compensation linkage. Those transition facts remain OPEN;
-  - last legitimate consumer: admitted self C and native C/LLVM intent emitters;
-  - forbidden fallback: make tobject an authority/graph object, classify variant
-    spelling, convert typed failure to generic Bool `expect`, infer predecessor
-    as `step_index - 1`, move all backend completion flags globally, or accept a
-    parser row that no executable carrier consumes;
-  - focused gates: `intent_post_compensate_fail_closed_owner.sh`,
-    `intent_outcome_frontend_parser_owner.sh`, and
-    `intent_typed_outcome_execution_owner.sh`.
-- Observed implementation defect: self parser preserves `guard`, `post` and
-  `compensate` rows, but DIR previously allowed them without carrying their node
-  identities into MIR. Self MIR then contained only `IntentCheck(expect)`,
-  `IntentOutcomeBinding`, and `IntentEval(on)`, so successful code generation
-  silently executed a different program.
-- Current safety boundary: `SelfDirIntentStepFromArtifact` rejects each of the
-  three unsupported executable clauses with a distinct diagnostic. The focused
-  gate runs both verified-MIR and verified-C entrypoints for each clause and
-  proves nonzero exit plus no MIR schema or C include before rejection. Parser
-  surface support remains intact.
-- The tobject audit result is explicit: success receipt and failure detail
-  should remain tobject payloads, but branch/completion/predecessor/rollback must
-  be a separate `IntentStepTransition` family. Current source has no step-local
-  exact variant branch, no later-step payload carriage, and no stable explicit
-  predecessor syntax. The `.todo` fixture must not be promoted by hiding these
-  facts in a helper Bool or subject field.
-- General `guard`/`expect`/`post` failure and typed action failure are different.
-  The former can happen after the action mutated state and may require current-
-  step compensation; the latter must have no success-completion fact and should
-  compensate only completed predecessors. Moving the existing C/LLVM completion
-  write after every predicate would merge these cases and can leak mutation, so
-  that tempting patch was audited and deliberately not retained.
-- Observed gates with one fresh current-source self driver:
-  - parser outcome frontend: PASS;
-  - guard/post/compensate verified MIR+C fail-closed gate: PASS;
-  - existing enum<tobject> exact-once execution, native C/LLVM/self parity and
-    MIR mutation gate: PASS;
-  - component contract: PASS;
-  - documentation quality: PASS;
-  - SoT authority edge: `61 authorities`, `63 derived carriers`,
-    `CLOSED=34`, `BRIDGE=27`, `ACTIVE=0`.
-- Grade: this is a safety ratchet, not `SUBSTITUTING` progress. The bounded
-  single-step outcome binding remains `REACHABLE`; compiler organization
-  `intent` remains `SURFACE`.
-- Next falsifier: first close existing guard/post/ordered-compensate node
-  carriage with native wire-compatible `IntentCheck`/`IntentEval` facts and an
-  executable current-step rollback fixture. Then freeze a source-level typed
-  variant/dependency syntax and land exact variant IDs, successor/completion,
-  stable predecessor and A-only compensation in one transition-owner rung.
-- Preserve and do not stage the three concurrent parity edits
+- Implementation landing: `4b7b6faeb46db975e107d52491ee5ee53c5c881e` on
+  `main`. Its parent was `6195ed4f3e82e5f4ca5e41394631f2e940162057`,
+  which matched `origin/main` before this session's push.
+- Snapshot dirty state after the implementation landing contains only concurrent
+  work that this slice did not stage: three tracked parity scripts
   (`driver_rung2_indexed_assignment_parity_owner.sh`,
   `driver_rung2_match_parity_owner.sh`, and
-  `driver_rung2_owner_field_parity_owner.sh`) or the untracked
+  `driver_rung2_owner_field_parity_owner.sh`) plus untracked
   `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+- Objective card:
+  - objective: replace the temporary self-host fail-close for
+    `guard`/`post`/`compensate` with lossless parser→DIR→MIR→admitted general C
+    execution while preserving `tobject` as payload rather than graph owner;
+  - priority: exact step/node/graph identity, ordered phase carriage, explicit
+    malformed-carrier failure, direct/admitted parity, native C/LLVM runtime
+    parity, then the typed transition rung;
+  - fact owner: parser owns singleton/ordered surface rows and expression graphs,
+    DIR owns exact step/node/range carriage, MIR owns phase wire identity, and
+    intent codegen owns completion/failure/compensation control flow. `tobject`
+    owns only detached immutable receipt/failure payload;
+  - last legitimate consumer: admitted general self C and native C/LLVM intent
+    emitters;
+  - forbidden fallback: silent clause deletion, AST/source rescan, phase or
+    predecessor recovery from source position/text, result/type hidden on a
+    non-`on` row, `tobject` authority/rollback ownership, or a second direct
+    orchestration path;
+  - focused gates: `intent_outcome_frontend_parser_owner.sh`,
+    `intent_phase_carrier_negative_owner.sh`,
+    `intent_guard_post_compensation_execution_owner.sh`, and
+    `intent_typed_outcome_execution_owner.sh`.
+- Implemented carriage:
+  - parser rejects duplicate `guard`/`expect`/`post`, preserves ordered multiple
+    `compensate` rows, and gives every clause its expression graph;
+  - DIR preserves exact guard/expect/post node IDs, compensate range/order and
+    typed-AST child census;
+  - MIR emits `IntentCheck(guard|expect|post)` and
+    `IntentEval(compensate)`, with result/type allowed only on `on`;
+  - mir_lower rejects unknown/orphan/wrong-step-or-slot phase, duplicate
+    singleton/on, check/compensate result-type contamination, on result/type
+    asymmetry and missing graphs before partial C.
+- Implemented runtime meaning follows the existing native contract: an action is
+  marked complete before `guard -> expect -> post`. Predicate failure therefore
+  compensates the current completed step; completed steps run in reverse order
+  and each step's compensate rows run in reverse order. Success compensates
+  nothing, and first-step failure excludes all future steps and their cleanup.
+- Observed gates with the same already-built current-source self driver:
+  - parser lossless on-binding AST + duplicate/ordering negatives: PASS;
+  - phase order + 9 admitted-MIR mutations with no partial C: PASS;
+  - success, first-step guard failure, and second-step guard/expect/post failure,
+    direct/admitted byte parity, ordered compensation and native C/LLVM/self
+    runtime parity: PASS;
+  - enum<tobject> exact-once binding + MIR negatives: PASS;
+  - component contract and object-to-action boundary contract: PASS;
+  - SoT authority edge: `61 authorities`, `64 derived carriers`,
+    `CLOSED=34`, `BRIDGE=27`, `ACTIVE=0`;
+  - build-source inventory and documentation quality: PASS.
+- Grade: the bounded input-language intent phase/compensation slice is
+  `REACHABLE`. Production bootstrap still calls no compiler intent, so compiler
+  organization `intent` remains `SURFACE` and this is not hard self-host
+  substitution progress.
+- Known blockers/debts:
+  - current self machine admission requires a non-empty admitted domain runtime
+    plan; empty legal topology remains a separate blocker. The runtime fixture's
+    object/tobject refresh/publish scaffold satisfies that admission boundary and
+    does not make tobject the rollback owner;
+  - mir_lower still joins an `on` carrier to its executable row through global
+    expression-text equality, so identical action text in different steps is the
+    next stable-identity negative debt;
+  - explicit intent `success`/`failure`, `concurrent`/`retry` carriage is outside
+    this legacy phase rung.
+- Next executable falsifier: land `mir.intent_step_transition` with source-
+  declared typed success/failure variant and payload bindings, success-only
+  completion, DIR-owned predecessor identity and failure-payload-driven
+  predecessor compensation. A typed action failure must leave the current step
+  incomplete and compensate only completed predecessors; it must not reuse the
+  current-step rollback rule for a post-action predicate failure.
 
 ## Current resume checkpoint - typed intent action outcome binding
 
