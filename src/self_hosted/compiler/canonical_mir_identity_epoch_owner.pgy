@@ -141,6 +141,7 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
     owner_name: String,
     indent: Int,
     ref topology: MirDomainTopologyFacts,
+    ref runtime_assignments: MirDomainRuntimeAssignmentFacts,
     inout output: String,
     inout node_count: Int,
     inout directive_node_ids: Array<Int>
@@ -160,6 +161,46 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
             );
             ArraySet(directive_node_ids, row, node_count);
             node_count = node_count + 1;
+            let assignment_row: Int = 0;
+            while assignment_row < ArrayLength(
+                runtime_assignments.projection_members.explicit_maps
+            ) {
+                if runtime_assignments.projection_members.
+                        topology_row_indices[assignment_row] == row &&
+                    runtime_assignments.projection_members.
+                        explicit_maps[assignment_row] {
+                    let segment_count: Int =
+                        runtime_assignments.projection_members.
+                            source_path_segment_counts[assignment_row];
+                    let segment_start: Int =
+                        runtime_assignments.projection_members.
+                            source_path_segment_starts[assignment_row];
+                    if segment_count <= 0 {
+                        return false;
+                    }
+                    let source_name: String =
+                        runtime_assignments.projection_members.
+                            source_path_segment_field_names[
+                            segment_start + segment_count - 1
+                        ];
+                    if source_name == "" ||
+                        runtime_assignments.projection_members.
+                            target_field_names[assignment_row] == "" {
+                        return false;
+                    }
+                    output = AppendLine(output, Concat(
+                        IndentStr(indent + 4), Concat(
+                            "ProjectionMap: ", Concat(
+                                runtime_assignments.projection_members.
+                                    target_field_names[assignment_row],
+                                Concat(" <- ", source_name)
+                            )
+                        )
+                    ));
+                    node_count = node_count + 1;
+                }
+                assignment_row = assignment_row + 1;
+            }
             matched = matched + 1;
         }
         row = row + 1;
@@ -208,6 +249,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
               !CanonicalMirIdentityEpochDirectSlotRow(line))) {
             if !CanonicalMirIdentityEpochAppendOwnerTopology(
                 active_owner, active_indent, admitted.domain_topology,
+                admitted.domain_runtime_assignments,
                 output, node_count, directive_node_ids
             ) {
                 return CanonicalMirIdentityEpochArtifact(
@@ -240,6 +282,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
     if active_owner != "" && !inserted {
         if !CanonicalMirIdentityEpochAppendOwnerTopology(
             active_owner, active_indent, admitted.domain_topology,
+            admitted.domain_runtime_assignments,
             output, node_count, directive_node_ids
         ) {
             return CanonicalMirIdentityEpochArtifact(

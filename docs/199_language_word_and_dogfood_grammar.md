@@ -239,12 +239,26 @@ publish→object, foreign valid field ID, zone layer storage의 constructor-argu
 재진입을 모두 fail closed로 거부한다. 따라서 이 `source -> typed DIR -> MIR`
 producer 대체는 `SUBSTITUTING`이다.
 
-반면 ID-keyed topology plan은 admission에서 한 번 검증돼 C/LLVM artifact에 exact
-schedule을 투영하는 `REACHABLE` consumer일 뿐이다. Apply row가 있어도 effect
-bearer/relation endpoint destination role, projection member map, `.poison`/`.trust`
-storage materialization, receiver carriage와 refresh/publish runtime sync가 없으므로
-self-emitted zone runtime의 `7`/`dst`는 아직 RED다. 계획 trace, same-name/ordinal
-추론이나 generic zero-fill을 실행 결과로 세지 않는다.
+그 뒤 runtime assignment rung에서 effect bearer, relation source/target destination,
+projection target/source path, callable receiver를 exact typed fact로 결속했다.
+ID-keyed topology plan은 여전히 admission receipt이고 의미 owner가 아니지만,
+production self source -> MIR -> general C가 admitted runtime plan을 소비해
+`.poison`/`.trust` storage를 bind/sync한다. Native C/LLVM과 self C가 모두 `7`과
+`dst`를 실행하므로 좁은 eager method-entry runtime path는 `SUBSTITUTING`이다.
+
+Explicit `map { target <- source }`도 이제 self parser가 directive child로
+보존한다. DIR은 parent/target uniqueness를, semantic owner는 exact source path와
+source-to-target assignability를, MIR은 lossless carriage를, backend는 마지막
+rendering만 소유한다. `life: Long <- hp: Int` fixture가 string equality를
+falsify하고, map 제거·type mismatch·missing source·duplicate target은 artifact 전에
+실패한다. 따라서 `map`은 단순 Pergyra풍 장식이 아니라 production runtime
+feature를 대체하는 실제 dogfood다.
+
+다만 이것을 self compiler 조직의 `effect`/`relation` dogfood로 세지는 않는다.
+사용자 프로그램의 domain feature를 Pergyra compiler가 구현한 증거와, compiler
+자체 orchestration이 `subject/action/effect/relation/intent`로 실행되는 증거는 다른
+축이다. 후자는 production entrypoint, 기존 C-owned bypass 삭제, 소비되는 outcome이
+있어야만 `SUBSTITUTING`이다.
 
 ---
 

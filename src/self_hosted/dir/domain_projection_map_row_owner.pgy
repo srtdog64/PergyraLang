@@ -1,0 +1,173 @@
+// DIR-owned exact association between a projection directive and its parser-
+// carried `target <- source` rows. Declaration-field and path resolution is
+// intentionally deferred to the semantic runtime-assignment producer.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+struct SelfDirDomainProjectionMapRows {
+    ok: Bool;
+    diagnostic_message: String;
+    directive_source_syntax_ids: Array<Int>;
+    entry_source_syntax_ids: Array<Int>;
+    target_names: Array<String>;
+    source_names: Array<String>;
+}
+
+struct SelfDirDomainProjectionMapLookup {
+    ok: Bool;
+    explicit_map: Bool;
+    source_name: String;
+}
+
+func SelfDirDomainProjectionMapRowsEmpty() -> SelfDirDomainProjectionMapRows {
+    let ids0: Array<Int> = [];
+    let ids1: Array<Int> = [];
+    let names0: Array<String> = [];
+    let names1: Array<String> = [];
+    return SelfDirDomainProjectionMapRows(
+        true, "", ids0, ids1, names0, names1
+    );
+}
+
+func SelfDirDomainProjectionMapRowsError(
+    message: String
+) -> SelfDirDomainProjectionMapRows {
+    let rows: SelfDirDomainProjectionMapRows =
+        SelfDirDomainProjectionMapRowsEmpty();
+    rows.ok = false;
+    rows.diagnostic_message = message;
+    return rows;
+}
+
+func SelfDirDomainProjectionMapParentKind(kind: Int) -> Bool {
+    return kind == TypedAstKindDomainRefreshTag() ||
+        kind == TypedAstKindDomainPublishTag() ||
+        kind == TypedAstKindDomainProjectionBindTag();
+}
+
+func SelfDirDomainProjectionMapRowsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SelfDirDomainProjectionMapRows {
+    if !AstTreeArtifactReady(artifact) {
+        return SelfDirDomainProjectionMapRowsError(
+            "self-host DIR projection map requires a ready typed artifact"
+        );
+    }
+    let directive_ids: Array<Int> = [];
+    let entry_ids: Array<Int> = [];
+    let targets: Array<String> = [];
+    let sources: Array<String> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id,
+            TypedAstKindDomainProjectionMapEntryTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let parent_opt: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        let target_opt: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        let source_opt: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, node_id
+        );
+        if !IsSome(parent_opt) || !IsSome(target_opt) ||
+            !IsSome(source_opt) {
+            return SelfDirDomainProjectionMapRowsError(
+                "self-host DIR projection map row is incomplete"
+            );
+        }
+        let parent_id: Int = UnwrapOption(parent_opt);
+        let parent_kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, parent_id
+        );
+        let target_name: String = UnwrapOption(target_opt);
+        let source_name: String = UnwrapOption(source_opt);
+        if parent_id <= 0 || !IsSome(parent_kind_opt) ||
+            !SelfDirDomainProjectionMapParentKind(
+                UnwrapOption(parent_kind_opt)
+            ) || target_name == "" || source_name == "" {
+            return SelfDirDomainProjectionMapRowsError(
+                "self-host DIR projection map parent or spelling is invalid"
+            );
+        }
+        let prior: Int = 0;
+        while prior < ArrayLength(targets) {
+            if directive_ids[prior] == parent_id &&
+                targets[prior] == target_name {
+                return SelfDirDomainProjectionMapRowsError(
+                    "self-host DIR projection map duplicates a target field"
+                );
+            }
+            prior = prior + 1;
+        }
+        ArrayPush(directive_ids, parent_id);
+        ArrayPush(entry_ids, node_id);
+        ArrayPush(targets, target_name);
+        ArrayPush(sources, source_name);
+        node_id = node_id + 1;
+    }
+    return SelfDirDomainProjectionMapRows(
+        true, "", directive_ids, entry_ids, targets, sources
+    );
+}
+
+func SelfDirDomainProjectionMapRowsReady(
+    rows: SelfDirDomainProjectionMapRows
+) -> Bool {
+    let count: Int = ArrayLength(rows.target_names);
+    if !rows.ok || rows.diagnostic_message != "" ||
+        ArrayLength(rows.directive_source_syntax_ids) != count ||
+        ArrayLength(rows.entry_source_syntax_ids) != count ||
+        ArrayLength(rows.source_names) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if rows.directive_source_syntax_ids[i] <= 0 ||
+            rows.entry_source_syntax_ids[i] <= 0 ||
+            rows.target_names[i] == "" || rows.source_names[i] == "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if rows.entry_source_syntax_ids[prior] ==
+                    rows.entry_source_syntax_ids[i] ||
+                (rows.directive_source_syntax_ids[prior] ==
+                    rows.directive_source_syntax_ids[i] &&
+                 rows.target_names[prior] == rows.target_names[i]) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfDirDomainProjectionMapSourceFor(
+    rows: SelfDirDomainProjectionMapRows,
+    directive_source_syntax_id: Int,
+    target_name: String
+) -> SelfDirDomainProjectionMapLookup {
+    if !SelfDirDomainProjectionMapRowsReady(rows) ||
+        directive_source_syntax_id <= 0 || target_name == "" {
+        return SelfDirDomainProjectionMapLookup(false, false, "");
+    }
+    let i: Int = 0;
+    while i < ArrayLength(rows.target_names) {
+        if rows.directive_source_syntax_ids[i] ==
+                directive_source_syntax_id &&
+            rows.target_names[i] == target_name {
+            return SelfDirDomainProjectionMapLookup(
+                true, true, rows.source_names[i]
+            );
+        }
+        i = i + 1;
+    }
+    return SelfDirDomainProjectionMapLookup(true, false, target_name);
+}

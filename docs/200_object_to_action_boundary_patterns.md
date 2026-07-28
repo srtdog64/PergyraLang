@@ -268,12 +268,18 @@ backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중
   declaration row에 declaration-level `source_syntax_id`가 없어 단발성 foreign
   positive declaration ID를 inventory와 완전 exact join하지 못한다.
 
-첫 executable falsifier였던 self MIR -> C `7`/`dst`는 GREEN이다. 다음 closure는
-explicit self `map { ... }` 보존과 semantic assignability parity, declaration-level
-identity carriage, 그리고 materialize/bind/sync/dirty/epoch/lifecycle operation을 한
-native/self target-neutral plan으로 통합하는 것이다. 현재 exact eager method-entry
-bind/sync는 이 fixture를 실제 대체하지만 전체 lifecycle scheduler의 완료 증거는
-아니다.
+첫 executable falsifier였던 self MIR -> C `7`/`dst`는 GREEN이다. Explicit self
+`map { ... }`도 parser child -> DIR parent association -> semantic exact path/
+assignability -> MIR carrier -> admitted plan -> general C를 통과한다. `life: Long <-
+hp: Int`가 문자열 equality를 falsify하며 no-map, type mismatch, missing source,
+duplicate target은 output 전에 실패한다.
+
+다음 closure는 declaration-level identity carriage와
+materialize/bind/sync/dirty/epoch/lifecycle operation을 한 native/self
+target-neutral plan으로 통합하고, 같은 map owner를 실제 world/intent production
+path에서 재사용하는 것이다. 현재 exact eager method-entry bind/sync와 explicit
+effect/relation map은 해당 fixture를 대체하지만 전체 lifecycle scheduler나 compiler
+자체의 subject/action orchestration 완료 증거는 아니다.
 
 ### 구현 근거
 
@@ -733,9 +739,10 @@ identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한�
   `TrustedLink.source <- player`, `TrustedLink.target <- enemy`를 만든다. 0/1 ordinal
   선택은 같은 경로에서 삭제됐다.
 - `view.hp <- bearer.hp`와 `packet.name <- target.name`은 field ID/name/type 및 source
-  path segment ID/name/type를 MIR wire까지 운반한다. Self의 implicit same-name
-  producer는 이 exact row를 만들지만 explicit `map { ... }` body와 native의 넓은
-  assignability 규칙 parity는 아직 열려 있다.
+  path segment ID/name/type를 MIR wire까지 운반한다. Self implicit same-name과
+  explicit `map { ... }`가 같은 exact assignment family로 수렴한다. Explicit
+  `life: Long <- hp: Int`는 self semantic assignability owner를 통과하므로 MIR이나
+  backend가 target/source 문자열 equality를 새 정책으로 소유하지 않는다.
 - Self runtime plan은 admission에서 한 번 검증되고 eager method-entry bind/sync를
   materialize한다. 이 실행 모델은 현재 fixture의 실제 결과를 대체하지만
   transition cause, ready/dirty/epoch, detach/unlink, pass-limit scheduler와 crash/
@@ -751,8 +758,9 @@ identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한�
   exact prologue가 hidden layer를 bind/sync하므로 generic zero-fill만으로 성공을
   주장하지 않는다. Native MIR/JSON graft도 금지한다.
 
-Self source -> MIR -> C의 `7`/`dst` 요구는 GREEN이며 이 좁은 runtime assignment/
-eager materialization 경로는 `SUBSTITUTING`이다. 전체 family는 위의 explicit-map,
+Self source -> MIR -> C의 `7`/`dst` 요구는 implicit/explicit map 모두 GREEN이며 이
+좁은 runtime assignment/eager materialization 경로는 `SUBSTITUTING`이다. 전체
+family는 self semantic fact가 아직 MIR producer boundary에서 만들어지는 구조,
 declaration identity, lifecycle/epoch, native shared-plan gap 때문에 `BRIDGE`다.
 
 ### 4.3 Artifact action의 commit 조건
@@ -945,10 +953,10 @@ subject CompilerExecution {
     self-host typed admission은 declaration field `(owner, name, ID, kind)` exact
     join까지 `REACHABLE`로 닫혔다. Non-empty canonical identity remap, self-host
     producer emission과 one-shot graph plan도 이후 닫혔다. Exact participant role과
-    implicit projection member/path assignment은 native/self MIR을 지나 self runtime
-    plan과 C/LLVM consumers에 도달했고 `7`/`dst`가 green이다. Native/self raw ID 숫자
-    수렴은 계약이 아니다. Declaration-level source ID carriage, explicit-map parity,
-    pool capacity, vessel/binding slot, dirty/epoch/lifecycle shared plan은 열려 있다.
+    implicit/explicit projection member/path assignment은 native/self MIR을 지나 self
+    runtime plan과 C/LLVM consumers에 도달했고 `7`/`dst`가 green이다. Native/self raw
+    ID 숫자 수렴은 계약이 아니다. Declaration-level source ID carriage, pool
+    capacity, vessel/binding slot, dirty/epoch/lifecycle shared plan은 열려 있다.
 15. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인

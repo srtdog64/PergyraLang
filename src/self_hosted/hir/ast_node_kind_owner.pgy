@@ -62,6 +62,7 @@ func TypedAstKindDomainStateTag() -> Int { return 59; }
 func TypedAstKindRoleIncludeTag() -> Int { return 60; }
 func TypedAstKindIntentDeclTag() -> Int { return 61; }
 func TypedAstKindRosterDeclTag() -> Int { return 62; }
+func TypedAstKindDomainProjectionMapEntryTag() -> Int { return 63; }
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
     return kind >= TypedAstKindDomainRefreshTag() &&
@@ -75,7 +76,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindRosterDeclTag();
+        kind <= TypedAstKindDomainProjectionMapEntryTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -148,14 +149,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindDomainLinkTag(), TypedAstKindDomainApplyTag(),
         TypedAstKindDomainDetachTag(), TypedAstKindDomainUnlinkTag(),
         TypedAstKindDomainStateTag(), TypedAstKindRoleIncludeTag(),
-        TypedAstKindIntentDeclTag(), TypedAstKindRosterDeclTag()
+        TypedAstKindIntentDeclTag(), TypedAstKindRosterDeclTag(),
+        TypedAstKindDomainProjectionMapEntryTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 62 {
+    if ArrayLength(tags) != 63 {
         return false;
     }
     let i: Int = 0;
@@ -185,6 +187,7 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindRoleIncludeTag()) &&
         TypedAstKindKnown(TypedAstKindIntentDeclTag()) &&
         TypedAstKindKnown(TypedAstKindRosterDeclTag()) &&
+        TypedAstKindKnown(TypedAstKindDomainProjectionMapEntryTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
         ) &&
@@ -195,7 +198,7 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindRosterDeclTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindDomainProjectionMapEntryTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

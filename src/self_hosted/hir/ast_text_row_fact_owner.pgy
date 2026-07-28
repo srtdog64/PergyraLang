@@ -146,6 +146,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == TypedAstKindDomainProjectionMapEntryTag() {
+        let arrow_pos: Int = StringIndexOf(payload, " <- ");
+        if arrow_pos > 0 {
+            return StringTrim(Substring(payload, 0, arrow_pos));
+        }
+        return "";
+    }
     if kind == TypedAstKindDomainLinkTag() {
         let between_pos: Int = StringIndexOf(payload, " between ");
         if between_pos > 0 {
@@ -387,6 +394,16 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
             let end: Int = StringIndexOf(payload, " by ");
             if end < start { end = StringLength(payload); }
             return StringTrim(Substring(payload, start, end - start));
+        }
+        return "";
+    }
+    if kind == TypedAstKindDomainProjectionMapEntryTag() {
+        let arrow_pos: Int = StringIndexOf(payload, " <- ");
+        if arrow_pos > 0 {
+            let start: Int = arrow_pos + 4;
+            return StringTrim(Substring(
+                payload, start, StringLength(payload) - start
+            ));
         }
         return "";
     }

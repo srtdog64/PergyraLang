@@ -349,6 +349,20 @@ done
 require_file "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh" 360
+require_file "tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh" 160
+require_text "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh" \
+    "domain_runtime_explicit_map_execution_owner.sh"
+require_file \
+    "src/self_hosted/semantic/domain_projection_assignability_owner.pgy"
+require_text \
+    "src/self_hosted/semantic/domain_projection_assignability_owner.pgy" \
+    "func SemanticDomainProjectionTypeAssignable"
+require_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
+    "SemanticDomainProjectionTypeAssignable("
+reject_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
+    "func SelfMirDomainProjectionTypeAssignable"
 require_text "Makefile" "self-host-domain-runtime-assignment-test-smoke"
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600

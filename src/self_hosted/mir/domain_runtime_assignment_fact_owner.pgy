@@ -6,7 +6,9 @@
 import "declaration_fact_owner.pgy";
 import "domain_topology_fact_owner.pgy";
 import "../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "../semantic/domain_projection_assignability_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
+import "../dir/domain_projection_map_row_owner.pgy";
 
 struct SelfMirDomainParticipantRoleFacts {
     ok: Bool;
@@ -333,7 +335,8 @@ func SelfMirDomainParticipantRolesFromDeclarations(
 func SelfMirDomainProjectionAssignmentsFromTopology(
     ref rows: SelfMirDeclarationRows,
     ref constructors: SemanticAstNominalConstructorFacts,
-    facts: SelfMirDomainTopologyFacts
+    facts: SelfMirDomainTopologyFacts,
+    projection_maps: SelfDirDomainProjectionMapRows
 ) -> SelfMirDomainProjectionMemberAssignmentFacts {
     let result: SelfMirDomainProjectionMemberAssignmentFacts =
         SelfMirDomainProjectionMemberAssignmentFactsEmpty(true);
@@ -387,13 +390,35 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
             if rows.field_kinds[target_field] != NominalFieldKindField() {
                 return SelfMirDomainProjectionMemberAssignmentFactsEmpty(false);
             }
+            let map_lookup: SelfDirDomainProjectionMapLookup =
+                SelfDirDomainProjectionMapSourceFor(
+                    projection_maps,
+                    ToInt(facts.source_syntax_ids[topology_row]),
+                    rows.field_names[target_field]
+                );
+            if !map_lookup.ok {
+                return SelfMirDomainProjectionMemberAssignmentFactsEmpty(false);
+            }
             let path: SelfMirDomainProjectionPathResolution =
                 SelfMirDomainProjectionPathResolve(
                     rows, source_decl_index,
-                    rows.field_names[target_field], 0
+                    map_lookup.source_name, 0
                 );
+            let source_leaf_decl_index: Int =
+                SelfMirDomainRuntimeDeclarationIndex(
+                    rows, path.leaf_type_name
+                );
+            let source_leaf_nominal_kind: String = "";
+            if source_leaf_decl_index >= 0 {
+                source_leaf_nominal_kind =
+                    rows.nominal_kinds[source_leaf_decl_index];
+            }
             if !path.ok || path.ambiguous ||
-                path.leaf_type_name != rows.field_types[target_field] {
+                !SemanticDomainProjectionTypeAssignable(
+                    path.leaf_type_name,
+                    source_leaf_nominal_kind,
+                    rows.field_types[target_field]
+                ) {
                 return SelfMirDomainProjectionMemberAssignmentFactsEmpty(false);
             }
             ArrayPush(result.owner_names, facts.owner_names[topology_row]);
@@ -434,7 +459,11 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
             ArrayPush(result.source_declaration_source_syntax_ids, source_decl_id);
             ArrayPush(result.source_paths, path.path);
             ArrayPush(result.source_leaf_type_names, path.leaf_type_name);
-            ArrayPush(result.explicit_maps, 0);
+            if map_lookup.explicit_map {
+                ArrayPush(result.explicit_maps, 1);
+            } else {
+                ArrayPush(result.explicit_maps, 0);
+            }
             ArrayPush(
                 result.source_path_segment_starts,
                 ArrayLength(result.source_path_segment_names)
@@ -469,7 +498,8 @@ func SelfMirDomainProjectionAssignmentsFromTopology(
 func SelfMirDomainRuntimeAssignmentsFromFacts(
     ref rows: SelfMirDeclarationRows,
     ref constructors: SemanticAstNominalConstructorFacts,
-    topology: SelfMirDomainTopologyFacts
+    topology: SelfMirDomainTopologyFacts,
+    projection_maps: SelfDirDomainProjectionMapRows
 ) -> SelfMirDomainRuntimeAssignmentFacts {
     if !topology.present {
         return SelfMirDomainRuntimeAssignmentFactsEmpty(topology.ok, false);
@@ -478,7 +508,7 @@ func SelfMirDomainRuntimeAssignmentsFromFacts(
         SelfMirDomainParticipantRolesFromDeclarations(rows, constructors);
     let projections: SelfMirDomainProjectionMemberAssignmentFacts =
         SelfMirDomainProjectionAssignmentsFromTopology(
-            rows, constructors, topology
+            rows, constructors, topology, projection_maps
         );
     if !roles.ok || !projections.ok {
         return SelfMirDomainRuntimeAssignmentFactsEmpty(false, true);

@@ -1,0 +1,68 @@
+// Parser-owned syntax carriage for `map { target <- source }` projection
+// entries.  This owner preserves spelling and parent structure only; DIR and
+// semantic owners resolve declaration and field identity later.
+
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+
+struct ParserDomainProjectionMapRows {
+    present: Bool;
+    entry_count: Int;
+    tree_rows: String;
+}
+
+func ParserDomainProjectionMapRowsAbsent() -> ParserDomainProjectionMapRows {
+    return ParserDomainProjectionMapRows(false, 0, "");
+}
+
+func ParseDomainProjectionMapRows(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserDomainProjectionMapRows {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    if !MatchLanguageWord(content, i, LanguageWordId.WordMap) {
+        ArraySet(cursor_out, 0, i);
+        return ParserDomainProjectionMapRowsAbsent();
+    }
+    i = LanguageWordEnd(i, LanguageWordId.WordMap);
+    i = Expect(content, i, "{");
+    if i < 0 { Exit(1); }
+
+    let rows: String = "";
+    let count: Int = 0;
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= StringLength(content) { Exit(1); }
+        if ParserCharAt(content, i) == "}" {
+            if count == 0 { Exit(1); }
+            i = i + 1;
+            break;
+        }
+
+        ArraySet(cursor_out, 0, i);
+        let target_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if target_name == "" { Exit(1); }
+        i = Expect(content, i, "<-");
+        if i < 0 { Exit(1); }
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let source_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if source_name == "" { Exit(1); }
+
+        rows = AppendLine(rows, Concat(
+            "      ProjectionMap: ", Concat(
+                target_name, Concat(" <- ", source_name)
+            )
+        ));
+        count = count + 1;
+        i = SkipWhitespaceAndComments(content, i);
+        if i < StringLength(content) && ParserCharAt(content, i) == ";" {
+            i = i + 1;
+        }
+    }
+    ArraySet(cursor_out, 0, i);
+    return ParserDomainProjectionMapRows(true, count, rows);
+}

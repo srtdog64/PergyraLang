@@ -6,87 +6,92 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - exact domain runtime assignment substitution
+## Current resume checkpoint - explicit projection-map substitution
 
-- The landing parent is `c1d4e099` on `main`; `origin/main` was `cc468aa7` at
-  the start of this slice. The three intervening local commits `07bc21b4`,
-  `07f9f592`, and `c1d4e099` belong to concurrent kernel/keyword/emitted-UB
-  work and were preserved. The landing commit contains this handoff; after
-  landing, use `git rev-parse HEAD` for the exact revision.
+- The landing parent is `880a83c348021f3e126176a2f71ff0ad872e8223` on
+  `main`, aligned with `origin/main` at the start of this slice. The landing
+  commit contains this handoff; use `git rev-parse HEAD` after landing for the
+  exact revision.
 - Objective card:
-  - objective: replace backend/self rediscovery of effect bearer, relation
-    source/target, and projection member paths with one semantic exact-fact
-    family carried through native and self MIR into executable consumers;
-  - priority: exact identity and type/path facts, one admission, no
-    same-name/ordinal/zero fallback, direct-source execution, negative ratchet,
-    then patch size;
-  - fact owner: `semantic.domain_runtime_assignment`; HIR/DIR/MIR and self
-    `MirDomainRuntimeAssignmentFacts` are lossless carriers, while
-    `MirDomainRuntimePlan` is a one-time admission receipt rather than a second
-    semantic owner;
+  - objective: preserve `map { target <- source }` as a typed child of its
+    refresh/publish directive, resolve it once to exact target/source
+    declaration-field identity and semantic assignability, and execute that
+    fact through production self C and native C/LLVM;
+  - priority: syntax parent/entry identity, exact path and type verdict,
+    canonical identity-epoch preservation, no explicit-to-implicit fold,
+    direct-source execution, negative ratchet, then patch size;
+  - fact owner: parser owns map spelling and parent structure;
+    `semantic.domain_runtime_assignment` owns the resolved assignment. Self
+    semantic `SemanticDomainProjectionTypeAssignable` owns compatibility;
+    DIR/HIR/MIR are carriers and `MirDomainRuntimePlan` is a one-time admission
+    receipt;
   - last legitimate consumers: native C/LLVM domain runtime renderers and the
     general self C method-prologue view reached by production
     `CompileSourceToCVerified`;
-  - forbidden fallback: source/AST rewalk, same-name member selection in a
-    backend, missing-source zero fill, first or 0/1 bindable participant slot,
-    `by participant` as destination role, native MIR graft, whole-plan
-    revalidation in lookup, or fixture-specific output;
+  - forbidden fallback: explicit map folded to implicit same-name, target/source
+    string equality as type policy, backend source/AST rewalk, missing-source
+    zero fill, native MIR graft, map-child omission followed by node-ID offset
+    repair, or fixture-specific output;
   - verification gate:
-    `tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh`
-    plus native C/LLVM execution, component/source/MIR/performance boundary
-    gates, and the SoT owner/adequacy gates.
-- Native semantic now records exact `DomainParticipantRoleFact` and
-  `DomainProjectionMemberAssignmentFact` rows, including each source path
-  segment. HIR, DIR, MIR validation/lifecycle and JSON copy/destroy these facts.
-  Semantic assignability remains the owner; downstream carriers preserve both
-  types and do not replace it with target/source string equality.
-- The self source producer emits the same role/member/path schema in its own
-  identity epoch. Machine admission joins it to declaration-field and topology
-  facts once, builds one runtime plan, and then exposes local per-owner
-  operation lookups without reopening full validation.
-- Native C and LLVM runtime sync consume exact MIR facts. Their old
-  same-name/nested-name and participant ordinal paths are absent from this
-  fixture path. General self C emits exact bearer/source/target and nested
-  projection assignments from the admitted plan.
-- Observed executable evidence on the final source tree:
-  - one integrated `make -j2 all` completed under MSYS2 with `/ucrt64/bin`
-    present in the child `PATH`, linking both `bin/pgy.exe` and
-    `bin/pgy-lsp.exe`;
-  - native C and LLVM `zone_layer_projection_runtime` both printed `7` and
-    `dst`;
-  - self explicit-MIR C and production direct-source C were byte-equal and both
-    printed `7` and `dst`;
-  - the focused runtime gate rejected missing/duplicate/foreign role, member,
-    path and directive rows, topology-operation mismatch, and identity-epoch
-    drift before partial C output;
-  - focused self runtime assignment, object/action boundary, self component,
-    build source inventory, MIR declaration inventory, performance, LSP
-    completion, 144-row keyword registry and both SoT gates passed; the last
-    performance compile observation was 396ms;
-  - Coq compilation was explicitly skipped because neither `rocq` nor `coqc`
-    is installed.
-- Grade this narrow implicit-map eager method-entry bind/sync path
-  `SUBSTITUTING`. Keep the whole `semantic.domain_runtime_assignment` family
-  `BRIDGE`: explicit map carriage, declaration-level `source_syntax_id`,
-  pool/materialization, dirty/epoch/detach/unlink/state lifecycle and one shared
-  native/self runtime plan remain open. This feature substitution also does not
-  imply that the self compiler is internally organized with executable
-  `effect`/`relation` declarations.
-- The next executable falsifier is the renamed explicit maps in
-  `world_zone_projection_visibility`, especially `label <- displayName` and
-  `user <- displayName`. A valid foreign source field ID/path, removed map body,
-  or assignability mismatch must fail before an artifact; implicit same-name or
-  native-MIR fallback is forbidden.
-- The gate audit also closed pre-existing contract drift: the full DRV-2 shell
-  guard no longer hardcodes `/usr/bin/bash` or uses a Bash-4 associative array;
-  the explicit LSP completion process cache is the only mutable-char-array
-  allowlist; and MIR/perf inventory gates now require the exact runtime fact
-  view while rejecting the removed name/ordinal/refresh-metadata path.
+    `tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh`,
+    invoked by `domain_runtime_assignment_execution_owner.sh`, plus component,
+    object/action, source/MIR inventory and SoT gates.
+- Parser emits a typed `ProjectionMap:` child for effect/relation/zone
+  refresh/publish directives. DIR binds each entry to its exact directive and
+  rejects duplicate targets. The self runtime producer resolves the selected
+  source path and calls the semantic assignability owner; the fixture uses
+  `Int -> Long` deliberately, so byte-equal type strings cannot satisfy it.
+- The canonical MIR identity epoch reconstructs admitted explicit-map children
+  before dependent callable IDs are issued. It does not compare raw native and
+  self producer IDs. General self C emits the exact assignments
+  `life <- hp` and `label <- name` from admitted runtime rows.
+- Observed executable evidence on this source tree:
+  - a fresh DRV-2 self compiler build completed with 0 Pergyra errors and 0
+    warnings; GCC emitted only the pre-existing unused-variable and unsupported
+    warning-option notes;
+  - native C, native LLVM and production self C for
+    `zone_layer_projection_explicit_map_runtime` all printed `7` and `dst`;
+  - production direct-source self C and explicit self-MIR C were byte-equal;
+  - no-map, type mismatch, missing source and duplicate target variants all
+    failed before an artifact;
+  - the explicit gate, the combined implicit/explicit runtime gate, the full
+    self component contract, object/action contract, build/MIR inventory,
+    144-row keyword registry, targeted backend comparison, documentation
+    quality and SoT edge/adequacy live-binding checks passed;
+  - the SoT edge audit found and closed a pre-existing registry/Coq projection
+    omission for `SFDomainRuntimeAssignment`. The final projection reports
+    `59 authorities, 60 derived fact carriers; CLOSED=34 BRIDGE=25 ACTIVE=0`;
+  - `make -j2 all` reported no pending native/LSP work. Coq proof compilation
+    was a declared skip because neither `rocq` nor `coqc` is installed; live
+    owner/consumer and mutation checks still ran and passed.
+- Grade the explicit effect/relation eager method-entry map path
+  `SUBSTITUTING`: it replaces a real source -> self MIR -> admitted plan -> C
+  execution path and is checked against both native backends. Keep the whole
+  `semantic.domain_runtime_assignment` family `BRIDGE`: self still produces
+  the resolved semantic family at the MIR boundary, declaration-level source
+  IDs, pool/materialization, dirty/epoch/detach/unlink/state scheduling and one
+  shared native/self runtime plan remain open.
+- The reusable `tobject -> object -> vessel -> subject -> action` rule is not a
+  nominal promotion ladder. It is a set of orthogonal protocols: detached
+  transfer, local observation, stable owned state, authority-bearing identity,
+  and observable transition. At every boundary use the same closure pattern:
+  semantic identity -> typed fact -> lossless carrier -> one admission receipt
+  -> last production consumer -> negative ratchet. `effect`/`relation` bind
+  exact destination roles and projection members; `zone` owns resource/lifetime
+  frontier; `action` owns the observable transition; `intent` only composes
+  multiple real actions.
+- The next executable falsifier is
+  `world_zone_projection_visibility`. Its renamed maps (`label <- displayName`,
+  `user <- displayName`) must first become reachable through the self semantic
+  artifact/world path; the current first blocker is the semantic initializer
+  artifact for that world/intent source, not projection codegen. The current
+  driver reports `ast_artifact_invalid`, `node_count: 96`, owner
+  `SemanticAstInitializerTypeFacts`. Do not bypass it with native MIR or a
+  fixture-specific reduced program.
 - Preserve and do not stage the three concurrent parity edits (indexed
-  assignment `1/0`, match `2/2`, owner-field `3/3`), the untracked
-  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`, and concurrent proof/cache
-  artifacts. Generated root I/O outputs and the NIA cache were removed and are
-  now covered by `.gitignore`; the oracle-bootstrap document remains untouched.
+  assignment `1/0`, match `2/2`, owner-field `3/3`) and the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`. They are not part of
+  this slice.
 
 ## Prior checkpoint - callable receiver carriage substitution
 

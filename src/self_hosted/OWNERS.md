@@ -70,6 +70,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_ability_owner.pgy` -- ability declarations.
 - `src/self_hosted/parser/decl_dispatch_owner.pgy` -- top-level declaration dispatch.
 - `src/self_hosted/parser/decl_effect_relation_owner.pgy` -- effect and relation declarations.
+- `src/self_hosted/parser/domain_projection_map_owner.pgy` -- exact parser
+  syntax carriage for projection `target <- source` map entries; semantic
+  field identity is deliberately not resolved here.
 - `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations and
   canonical variant parameter-type preservation.
 - `src/self_hosted/parser/decl_event_owner.pgy` -- event declarations.
@@ -142,6 +145,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy` --
   shared callable receiver-carriage vocabulary and nominal-kind policy consumed
   by semantic-derived codegen, MIR production, and machine admission.
+- `src/self_hosted/semantic/domain_projection_assignability_owner.pgy` --
+  canonical source-to-target projection assignability policy; MIR producers
+  consume this verdict instead of owning a second type-compatibility table.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- structured semantic
   diagnostic rendering, vocabulary, fixture manifest, and audit facts.
 - `src/self_hosted/semantic/diagnostic_contract_owner.pgy` -- executable
@@ -703,14 +709,17 @@ inventory must not become a second fact-family owner registry.
   directive rows, exact declaration-field identity joins, and non-empty row
   validation. It is the self-host producer-side `dir.domain_graph` authority;
   MIR carries its facts without reconstructing them.
+- `src/self_hosted/dir/domain_projection_map_row_owner.pgy` -- typed parent-
+  directive association, unique target spelling, and source spelling for
+  explicit projection-map rows consumed by the semantic assignment producer.
 - `src/self_hosted/mir/domain_topology_fact_owner.pgy` -- MIR carrier for the
   DIR-owned graph identity and complete typed topology row arrays; projects
   integer producer syntax IDs to the MIR wire representation without changing
   their producer epoch.
 - `src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy` -- derives
-  exact effect bearer, relation endpoint, and implicit projection member/path
-  assignments from the typed declaration and topology facts without a backend
-  same-name or ordinal policy.
+  exact effect bearer, relation endpoint, and implicit/explicit projection
+  member/path assignments from typed declaration, topology, and DIR map facts
+  without a backend same-name or ordinal policy.
 - `src/self_hosted/mir/domain_runtime_assignment_verify_owner.pgy` -- one
   structural verifier for the self-produced runtime-assignment carrier.
 - `src/self_hosted/mir/domain_runtime_assignment_json_owner.pgy` -- lossless

@@ -2,6 +2,42 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 explicit projection-map executable checkpoint
+
+- Self parser가 `map { target <- source }`를 버리지 않고 refresh/publish
+  directive의 typed `ProjectionMap:` child로 보존한다. DIR은 parent directive와
+  entry를 exact node identity로 결속하고 target 중복을 거부한다.
+- `semantic.domain_runtime_assignment`의 self producer가 explicit source spelling을
+  exact declaration-field path로 해석한다. Assignability는 새 semantic owner
+  `SemanticDomainProjectionTypeAssignable`가 native `type_is_assignable(from, to)`
+  방향으로 결정하며 MIR은 이 정책을 복제하지 않는다.
+- `zone_layer_projection_explicit_map_runtime`는 `life: Long <- hp: Int`와
+  `label: String <- name: String`을 사용한다. 따라서 단순 type-string equality나
+  same-name fallback으로는 통과할 수 없다. Self MIR과 native MIR의 semantic row는
+  producer-local 숫자 ID를 제외하고 일치한다.
+- Production direct-source self C와 explicit self-MIR C는 byte-equal이고 exact
+  `life <- hp`, `label <- name` assignment를 방출한다. Self C, native C, native LLVM
+  실행은 모두 `7`과 `dst`를 출력했다. no-map, type mismatch, missing source,
+  duplicate target은 artifact 전에 실패한다.
+- 이 좁은 explicit effect/relation eager map 경로는 실제 C-owned oracle 경로를
+  대체하므로 `SUBSTITUTING`이다. 전체 family는 self semantic fact가 아직 MIR
+  boundary에서 생산되고, declaration-level source ID, materialization/dirty/epoch/
+  lifecycle과 하나의 native/self shared plan이 없으므로 `BRIDGE`다.
+- `tobject`부터 `action`까지의 best practice는 nominal 승격이 아니라 경계별
+  protocol이다: tobject는 detached transfer, object는 local observation, vessel은
+  stable owned state, subject는 authority identity, action은 observable transition을
+  소유한다. 모든 경계는 `semantic owner -> typed fact -> lossless carrier -> one-time
+  admission -> last consumer -> negative gate`로 닫는다.
+- 다음 falsifier는 `world_zone_projection_visibility`다. renamed explicit map 자체는
+  이번 owner를 재사용하되, 먼저 world/intent source가 self semantic artifact를
+  통과해 production consumer에 도달해야 한다. native MIR graft나 축소 fixture로
+  reachability blocker를 숨기지 않는다.
+- Focused runtime/component/object-action/build-MIR inventory/keyword/documentation
+  gate와 targeted C/LLVM compare가 green이다. SoT edge 감사에서 기존
+  `SFDomainRuntimeAssignment`의 Coq authority projection 누락도 닫아 최종
+  `CLOSED=34 BRIDGE=25 ACTIVE=0`을 확인했다. `rocq`/`coqc`가 없어 proof compile은
+  명시적 skip이며 live owner/consumer·negative mutation 검사는 통과했다.
+
 ## 2026-07-28 exact domain runtime assignment executable checkpoint
 
 - `semantic.domain_runtime_assignment`가 effect bearer, relation source/target,

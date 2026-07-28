@@ -252,4 +252,7 @@ for negative in "$BUILD_DIR"/negative-*.mir.json; do
         || { cat "$negative.out" "$negative.err" >&2; fail "$name diagnostic drifted"; }
 done
 
+PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER" PGY_BIN="$PGY" \
+    "$ROOT_DIR/tests/self_hosted/parity/domain_runtime_explicit_map_execution_owner.sh"
+
 echo "[self-host-parity:domain-runtime-assignment] PASS"

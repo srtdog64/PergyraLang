@@ -1079,6 +1079,7 @@ main() {
         "tests/cases/backend_compare/zone_action_effect_runtime"
         "tests/cases/backend_compare/zone_effect_pool_runtime"
         "tests/cases/backend_compare/zone_layer_projection_runtime"
+        "tests/cases/backend_compare/zone_layer_projection_explicit_map_runtime"
         "tests/cases/backend_compare/world_embedded_branch_projection_visibility"
         "tests/cases/backend_compare/world_embedded_action_frontier"
         "tests/cases/backend_compare/world_embedded_action_pool_frontier"

@@ -462,32 +462,60 @@ runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 이 좁은 implicit-map eager method-entry bind/sync 경로는 실제 C-owned 결정을
 대체하므로 `SUBSTITUTING`이다. 전체 상태는 `BRIDGE`로 유지한다. Native C/LLVM은
 같은 semantic fact family를 소비하지만 self와 하나의 shared runtime plan을
-소비하지 않고, self parser는 explicit `map { ... }` body를 아직 typed artifact에
-보존하지 않으며 declaration row에는 declaration-level `source_syntax_id`가 없다.
+소비하지 않고, declaration row에는 declaration-level `source_syntax_id`가 없다.
 Dirty/epoch와 detach/unlink/state lifecycle도 아직 scheduler fact가 아니다.
+
+## 완료된 explicit projection-map 실행 rung objective card
+
+- Objective: `map { target <- source }`를 self source artifact와 MIR에 보존하고,
+  renamed member와 semantic assignability를 exact path fact로 admit해 production
+  self C가 native C/LLVM과 같은 결과를 실행하게 한다.
+- Priority: explicit-map parent/entry identity; target/source path와 assignability;
+  canonical identity epoch; 기존 implicit-map owner 재사용; direct-source 실행과
+  negative ratchet; 그 뒤 lifecycle/dirty/epoch 통합.
+- Fact owner: parser는 map spelling과 parent structure를 보존한다. Semantic
+  `DomainProjectionMemberAssignment`가 implicit/explicit 모두의 resolved exact
+  assignment를 소유하며 self
+  `SemanticDomainProjectionTypeAssignable`가 source-to-target compatibility를
+  결정한다. DIR/HIR/MIR과 self admission은 carrier/receipt다.
+- Forbidden fallback: explicit map을 implicit same-name으로 접기, member 이름만
+  운반하기, target/source type 문자열 equality로 assignability를 판정하기,
+  native MIR graft, backend AST/source 재탐색, map child를 버린 뒤 callable ID를
+  숫자 offset으로 복구하기.
+- Observed gate: `domain_runtime_explicit_map_execution_owner.sh`는
+  `life: Long <- hp: Int`, `label <- name`의 exact rows와 emitted C, direct-source /
+  explicit-MIR byte equality, C/LLVM/self의 `7`/`dst`를 고정한다. no-map, type
+  mismatch, missing source, duplicate target은 partial artifact 전에 실패한다.
+
+이 explicit effect/relation eager-map slice도 `SUBSTITUTING`이다. 다만 self의
+resolved semantic family는 아직 MIR producer boundary에서 만들어지므로 전체
+owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
+`subject/action/effect/relation`로 이주했다는 증거가 아니다.
 
 ## 다음 실행 rung objective card
 
-- Objective: `world_zone_projection_visibility`의 explicit `map { target <- source }`
-  두 개를 self source artifact와 MIR에 lossless하게 보존하고, renamed member와
-  semantic assignability를 exact path fact로 admit해 production self C가 native
-  C/LLVM과 같은 결과를 실행하게 한다.
-- Priority: explicit-map syntax identity; target/source path와 assignability;
-  declaration-level source identity; 기존 implicit-map owner 재사용; direct-source
-  실행과 mutation negative; 그 뒤 lifecycle/dirty/epoch 통합.
-- Fact owner: parser는 map syntax node를 보존하고 semantic
-  `DomainProjectionMemberAssignment`가 implicit/explicit 모두의 최종 exact
-  assignment를 소유한다. MIR과 self admission은 carrier/receipt일 뿐이다.
-- Forbidden fallback: explicit map을 implicit same-name으로 접기, member 이름만
-  운반하기, target/source type 문자열 equality로 semantic assignability를 다시
-  판정하기, native MIR graft, backend AST/source 재탐색, 기존 implicit fixture만
-  반복 실행하기.
-- Falsifying case: `label <- displayName` 또는 `user <- displayName` 중 한 source
-  field ID/path를 같은 문서의 다른 유효 ID로 바꿨는데도 artifact가 생기거나,
-  explicit map을 제거해도 same-name fallback으로 성공하는 경우.
-- Gate: direct source -> self MIR -> admission -> general C와 native C/LLVM의 실행
-  parity, exact renamed assignment rows, missing/duplicate/foreign path 및
-  assignability mutation, 그리고 partial artifact 부재를 한 focused gate에 둔다.
+- Objective: `world_zone_projection_visibility`를 self semantic artifact와
+  production world/zone call graph에 도달시켜 `label <- displayName`과
+  `user <- displayName`이 같은 explicit-map owner를 재사용하도록 한다.
+- Priority: 첫 semantic artifact blocker; world/intent reachability; exact renamed
+  assignment reuse; observable consumer; direct bypass 삭제; 그 뒤
+  lifecycle/dirty/epoch 통합.
+- Fact owner: world/intent parser와 semantic artifact owner가 reachability를
+  소유한다. 이미 닫힌 projection-map/parser/DIR/runtime owner는 재사용하며 새
+  world 전용 map table을 만들지 않는다.
+- Forbidden fallback: native MIR graft, fixture-specific 축소 world, map 전용
+  codegen branch, `Main -> old function` 병행, readiness-only action을 실행 증거로
+  세기.
+- Falsifying case: self source가 semantic initializer artifact에서 계속 중단되거나,
+  world/intent를 제거해도 같은 실행 결과가 나오거나, renamed source path를
+  foreign valid field identity로 바꿔도 artifact가 생기는 경우.
+- Current first blocker: current DRV-2는 이 fixture를
+  `ast_artifact_invalid`, `node_count: 96`, owner
+  `SemanticAstInitializerTypeFacts`에서 거부한다. 이 관측을 map/codegen 실패로
+  오기하지 않는다.
+- Gate: direct source -> self semantic artifact -> MIR -> admitted plan -> general C
+  실행과 native C/LLVM parity, production call-graph reachability, old bypass 부재,
+  malformed identity의 output-before-failure를 한 focused gate에 둔다.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을

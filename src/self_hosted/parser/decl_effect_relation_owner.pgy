@@ -3,6 +3,7 @@
 import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
+import "domain_projection_map_owner.pgy";
 
 func ParseEffectRelationProjectionDirective(
     content: String,
@@ -47,6 +48,11 @@ func ParseEffectRelationProjectionDirective(
         i = cursor_out[0];
         i = SkipWhitespaceAndComments(content, i);
     }
+    ArraySet(cursor_out, 0, i);
+    let projection_map: ParserDomainProjectionMapRows =
+        ParseDomainProjectionMapRows(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
     if i < StringLength(content) && ParserCharAt(content, i) == ";" {
         i = i + 1;
     }
@@ -59,6 +65,9 @@ func ParseEffectRelationProjectionDirective(
     );
     if participant_name != "" {
         row = Concat(row, Concat(" by ", participant_name));
+    }
+    if projection_map.present {
+        row = AppendLine(row, projection_map.tree_rows);
     }
     return row;
 }

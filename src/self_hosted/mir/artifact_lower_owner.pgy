@@ -7,6 +7,7 @@ import "routine_local_inventory_owner.pgy";
 import "routine_receiver_carriage_owner.pgy";
 import "routine_cfg_append_owner.pgy";
 import "../dir/domain_graph_fact_owner.pgy";
+import "../dir/domain_projection_map_row_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 
@@ -332,9 +333,12 @@ func SelfMirProgramFactsFromReadyArtifact(
     }
     let domain_topology: SelfMirDomainTopologyFacts =
         SelfMirDomainTopologyFactsFromSelfDir(domain_graph);
+    let domain_projection_maps: SelfDirDomainProjectionMapRows =
+        SelfDirDomainProjectionMapRowsFromArtifact(artifact);
     let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
         SelfMirDomainRuntimeAssignmentsFromFacts(
-            declarations, analysis.constructors, domain_topology
+            declarations, analysis.constructors, domain_topology,
+            domain_projection_maps
         );
     if !domain_runtime_assignments.ok {
         return SelfMirProgramFactsError(

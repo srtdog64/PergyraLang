@@ -1,0 +1,36 @@
+// Semantic projection assignability policy shared by the self-host domain
+// runtime fact producer.  MIR carries the verdict; it does not redefine the
+// language's source-to-target assignment direction.
+
+import "ast_type_name_canonical_owner.pgy";
+
+func SemanticDomainProjectionTypeAssignable(
+    source_type_name: String,
+    source_nominal_kind: String,
+    target_type_name: String
+) -> Bool {
+    let source: String = SemanticCanonicalTypeName(source_type_name);
+    let target: String = SemanticCanonicalTypeName(target_type_name);
+    if source == "" || target == "" { return false; }
+    if source == target { return true; }
+    if source == "Unknown" || target == "Unknown" { return true; }
+
+    let source_shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(source);
+    let target_shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(target);
+    if source_shape.ok && target_shape.ok &&
+        source_shape.nominal_base_name == "Option" &&
+        target_shape.nominal_base_name == "Option" &&
+        ArrayLength(source_shape.actual_type_names) == 1 &&
+        ArrayLength(target_shape.actual_type_names) == 1 &&
+        (source_shape.actual_type_names[0] == "Unknown" ||
+         target_shape.actual_type_names[0] == "Unknown") {
+        return true;
+    }
+    if source == "Int" && target == "Long" { return true; }
+    if source == "Float" && target == "Double" { return true; }
+    if source_nominal_kind == "enum" && target == "Int" { return true; }
+    return source_nominal_kind == "class" && target_shape.ok &&
+        target_shape.nominal_base_name == source;
+}

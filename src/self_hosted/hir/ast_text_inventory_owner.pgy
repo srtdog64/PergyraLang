@@ -98,6 +98,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Bind:") {
         return TypedAstKindDomainProjectionBindTag();
     }
+    if StartsWith(text, "ProjectionMap:") {
+        return TypedAstKindDomainProjectionMapEntryTag();
+    }
     if StartsWith(text, "Maintain:") { return TypedAstKindDomainMaintainTag(); }
     if StartsWith(text, "Link:") { return TypedAstKindDomainLinkTag(); }
     if StartsWith(text, "Apply:") { return TypedAstKindDomainApplyTag(); }
@@ -234,6 +237,11 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             ));
         }
         return "";
+    }
+    if kind == TypedAstKindDomainProjectionMapEntryTag() {
+        return StringTrim(Substring(
+            text, 14, StringLength(text) - 14
+        ));
     }
     if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Field: ") {

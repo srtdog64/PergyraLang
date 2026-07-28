@@ -1,0 +1,45 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    life: Long;
+}
+
+tobject PlayerDto {
+    label: String;
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer map {
+        life <- hp;
+    }
+}
+
+relation TrustedLink for source: Player, target: Player {
+    tobject slot packet: PlayerDto
+    publish packet from target map {
+        label <- name;
+    }
+}
+
+zone BattleZone {
+    subject slot player: Player
+    subject slot enemy: Player
+    effect slot poison: Poisoned
+    relation slot trust: TrustedLink
+    apply poison to player
+    link trust between player, enemy
+
+    func Show(self) -> Void {
+        Log(self.poison.view.life);
+        Log(self.trust.packet.label);
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7, "src"), Player(9, "dst"));
+    battle.Show();
+}

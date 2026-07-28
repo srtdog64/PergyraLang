@@ -5,6 +5,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
+import "domain_projection_map_owner.pgy";
 
 func ParseZoneDecl(
     content: String,
@@ -231,6 +232,7 @@ func ParseZoneDecl(
             i = i + ref_pub_kw_len;
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
+            let target_count: Int = 0;
             if ParserCharAt(content, i) == "[" {
                 i = i + 1;
                 while true {
@@ -239,6 +241,7 @@ func ParseZoneDecl(
                     let dummy: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(dummy) == 0 { Exit(1); }
+                    target_count = target_count + 1;
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
@@ -253,6 +256,7 @@ func ParseZoneDecl(
                 let dummy: String = ReadIdent(content, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(dummy) == 0 { Exit(1); }
+                target_count = 1;
             }
             i = SkipWhitespaceAndComments(content, i);
             if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) { Exit(1); }
@@ -269,31 +273,14 @@ func ParseZoneDecl(
             let by_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if MatchLanguageWord(content, i, LanguageWordId.WordMap) {
-                i = LanguageWordEnd(i, LanguageWordId.WordMap);
-                i = SkipWhitespaceAndComments(content, i);
-                i = Expect(content, i, "{");
-                if i < 0 { Exit(1); }
-                while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "}" {
-                        i = i + 1;
-                        break;
-                    }
-                    while i < n && ParserCharAt(content, i) != ";" && ParserCharAt(content, i) != "}" {
-                        i = i + 1;
-                    }
-                    if ParserCharAt(content, i) == ";" {
-                        i = i + 1;
-                    } else {
-                        Exit(1);
-                    }
-                }
-            } else {
-                i = SkipWhitespaceAndComments(content, i);
-                if ParserCharAt(content, i) == ";" {
-                    i = i + 1;
-                }
+            ArraySet(cursor_out, 0, i);
+            let projection_map: ParserDomainProjectionMapRows =
+                ParseDomainProjectionMapRows(content, i, cursor_out);
+            i = cursor_out[0];
+            if projection_map.present && target_count != 1 { Exit(1); }
+            i = SkipWhitespaceAndComments(content, i);
+            if i < n && ParserCharAt(content, i) == ";" {
+                i = i + 1;
             }
 
             let k: Int = list_start;
@@ -304,7 +291,8 @@ func ParseZoneDecl(
                     ArraySet(cursor_out, 0, k);
                     let t_name: String = ReadIdent(content, k, cursor_out);
                     k = cursor_out[0];
-                    bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+                    let projection_row: String = Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name)))))));
+                    bind_accum = AppendLine(bind_accum, projection_row);
                     k = SkipWhitespaceAndComments(content, k);
                     if ParserCharAt(content, k) == "," {
                         k = k + 1;
@@ -315,7 +303,13 @@ func ParseZoneDecl(
             } else {
                 ArraySet(cursor_out, 0, k);
                 let t_name: String = ReadIdent(content, k, cursor_out);
-                bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+                let projection_row: String = Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name)))))));
+                bind_accum = AppendLine(bind_accum, projection_row);
+                if projection_map.present {
+                    bind_accum = AppendLine(
+                        bind_accum, projection_map.tree_rows
+                    );
+                }
             }
             ArraySet(cursor_out, 0, i);
             continue;
