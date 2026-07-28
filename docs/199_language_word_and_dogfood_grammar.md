@@ -8,7 +8,7 @@ Pergyra의 **언어 단어(language word) 레지스트리**와, Pergyra를 Pergy
 
 ## 1. 언어 단어 레지스트리 (단일 권위)
 
-**SoT: `src/lexer/language_keyword_registry.def`** (145개 단어)
+**SoT: `src/lexer/language_keyword_registry.def`** (144개 단어)
 
 X-macro 한 줄이 단어 하나의 **9개 사실**을 동시에 선언한다:
 
@@ -30,22 +30,22 @@ LSP 완성/호버, TextMate 하이라이트. **단어를 추가하려면 이 파
 fact)**이지 구현 완료 증거가 아니다. 실제 대조는
 `docs/semantics/language_word_implementation_inventory.generated.md`가 한다.
 
-### 1.1 클래스 (145)
+### 1.1 클래스 (144)
 
 | 클래스 | 수 | 의미 |
 |---|---|---|
-| RESERVED | 71 | 진짜 예약어. 식별자로 못 씀 |
+| RESERVED | 70 | 진짜 예약어. 식별자로 못 씀 |
 | CONTEXTUAL | 71 | 렉서에선 **식별자로 남고**, 파서/툴링만 단어 ID를 선택 |
 | SOFT | 3 | 소프트 키워드 |
 
-절반이 contextual이라는 게 설계 의도다 — 도메인 어휘를 대량으로 들이면서도
+contextual이 거의 절반이라는 게 설계 의도다 — 도메인 어휘를 대량으로 들이면서도
 사용자 식별자 공간을 잠그지 않는다.
 
 ### 1.2 의미 축 (axis)
 
 | 축 | 수 | 성격 |
 |---|---|---|
-| EXECUTION | 48 | 제어·동시성·트랜잭션 |
+| EXECUTION | 47 | 제어·동시성·트랜잭션 |
 | DOMAIN | 46 | 세계/의도 모델링 — **Pergyra 고유 표면** |
 | TYPE_CONTRACT | 19 | 타입·계약 |
 | GENERAL | 17 | 범용 |
@@ -63,8 +63,8 @@ DOMAIN 46개가 이 언어를 구별짓는 지점이다. 다른 언어에 대응
 **RESOURCE (15)**
 `capacity* caps~ collapse forbids* inout~ local mut~ own pin* pool* ref secure shared slot with`
 
-**EXECUTION (48)**
-`async await backoff* blocking~ break channel compensate concurrent~ continue continuous~ current* defer else every~ exclusive~ expect~ fail failure~ for full* give* guard~ if invariant* join~ loop~ max* min* nondeterministic none* parallel post~ pre* priority* product* remote retry~ return rollback* select spawn step~ success~ sum* timeout* transaction unsafe while`
+**EXECUTION (47)**
+`async await backoff* blocking~ break compensate concurrent~ continue continuous~ current* defer else every~ exclusive~ expect~ fail failure~ for full* give* guard~ if invariant* join~ loop~ max* min* nondeterministic none* parallel post~ pre* priority* product* remote retry~ return rollback* select spawn step~ success~ sum* timeout* transaction unsafe while`
 
 **DOMAIN (46)**
 `action~ activate* apply~ authority~ authorized~ between~ bind by~ causes~ deactivate* detach* effect effects~ from~ intent involves* layer* lifecycle* link~ maintain* map~ move~ object objects* party projection* publish~ refresh~ relation relations* role roster state~ subject subjects* to~ tobject tobjects* transfer~ unlink* using~ vessel who~ within~ world zone`
@@ -84,7 +84,7 @@ native selector, typed self-host selector, raw direct selector를 따로 센 결
 | native + typed self-host selector | 80 |
 | native + self-host direct-string selector만 존재 | 18 |
 | native selector만 존재 | 46 |
-| 양쪽 parser selector 없음 | 1 (`channel`) |
+| 양쪽 parser selector 없음 | 0 (`channel` 행 제거, §5.2) |
 
 self-host direct-string selector는 34개 단어에 37회 남아 있다. 이는 구현
 진척이 아니라 typed identity로 옮겨야 할 migration debt다. 정확한 행별
@@ -315,7 +315,7 @@ self-emitted zone runtime의 `7`/`dst`는 아직 RED다. 계획 trace, same-name
 
 ---
 
-## 5. 키워드 적정성 감사 (145행 전수)
+## 5. 키워드 적정성 감사 (감사 시점 145행 전수)
 
 `docs/42_keyword_orthogonality.md`의 **키워드 적정성 규칙**은 핵심 키워드가
 (1) 구별되는 세계 모델링 좌표를 이름하고, (2) 컴파일러 fact owner를 가지며,
@@ -357,14 +357,38 @@ let channel: Int = 1;   → parse error: Expected variable name
 정상 파스되며 `spawn`/`async`/`await`도 통과하므로, async 계열 전체가 아니라
 **이 한 단어만 구멍**이다.
 
-조치:
-- `docs/grammar/00_cheatsheet.md`가 `channel<Int> ch;`를 작동 문법으로 광고하던
-  줄을 제거했다(문서 드리프트).
-- `tests/language_keyword_registry_smoke.sh`에 **적정성 래칫**을 추가했다:
-  "reserved인데 parser selector 0"인 행 집합을 `KNOWN_DEAD_RESERVED="channel"`로
-  핀 고정하고, 집합이 달라지면 fail-closed. 인벤토리는 이 상태를 **보고**만 했고
-  아무것도 실패시키지 않아 조용히 누적될 수 있었다. Coq axiom budget과 같은
-  방식 — 감춤이 아니라 **선언된 예외**이며, 이 목록은 줄어들 수만 있다.
+### 5.2 처분: 행 제거 (145 → 144)
 
-`channel`의 처분(구현 / contextual 강등으로 스펠링 반환 / 행 제거)은 언어 로드맵
-결정이므로 이 문서가 정하지 않는다. 어느 쪽이든 위 래칫을 갱신해야 한다.
+처음에는 contextual 강등을 시도했다. 게이트가 그것을 거부했다 —
+`registry contextual/soft rows and parser selectors disagree: registry-only=['channel']`.
+즉 이 저장소의 불변식은 예약어만이 아니라 **레지스트리의 모든 단어**가 파서
+selector를 가질 것을 요구한다. 강등은 죽은 표면을 예약어에서 contextual로
+옮길 뿐이므로 유효한 해가 아니었다.
+
+남은 선택지는 파서 배선 또는 행 제거뿐이었고, 배선은 성립하지 않는다:
+문서화된 `channel<Int> ch;`에는 용량 인자가 없어 실제 API
+(`Channel(4)`)로 내려갈 수 없다 — 애초에 완결된 문법이 아니었다. **소문자
+`channel`은 언어에 없는 단어**이므로 행을 제거했다.
+
+동반 갱신 (모두 결정론적 재생성 또는 핀 갱신):
+- `.def` 행 삭제 → 145 → **144** (reserved 71 → **70**, contextual 71 유지);
+- `render_language_keyword_registry.py`의 `EXPECTED_*_ROW_COUNT` 갱신 — 이
+  스크립트는 클래스 분포 드리프트에 **fail-closed**라 의도적 갱신을 요구했다;
+- 투영 7종 · TextMate · 인벤토리 재생성;
+- `all_keywords.pgy` / `all_keywords_tokens.txt` 재생성(70행);
+- `language_keyword_registry_probe.c`의 하드코딩 카운트 갱신;
+- `docs/grammar/00_cheatsheet.md`에서 `channel<Int> ch;` 줄 제거(문서 드리프트).
+
+### 5.3 적정성 래칫
+
+`tests/language_keyword_registry_smoke.sh`에 추가했다: "reserved인데 parser
+selector 0"인 행 집합을 `KNOWN_DEAD_RESERVED`로 핀 고정하고 달라지면
+fail-closed. 인벤토리는 이 상태를 **보고**만 했고 아무것도 실패시키지 않아
+조용히 누적될 수 있었다. `channel` 제거로 이 집합은 이제 **비어 있으며**, 그
+빈 상태가 유지할 불변식이다 — 여기 항목이 생기면 파서가 읽지 않는 예약어가
+추가됐다는 뜻이다.
+
+`TOKEN_CHANNEL` 열거자는 `src/lexer/lexer.h`에 남아 있다. 열거자 중간 삭제는
+후속 값을 전부 재번호하므로, 토큰 번호를 직렬화하는 산출물이 없는지 확인하기
+전에는 건드리지 않는다. 레지스트리가 더 이상 이 열거자를 생성하지 않으므로
+언어 표면에는 영향이 없다.

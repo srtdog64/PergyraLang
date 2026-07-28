@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Proves the 145-row language-word registry, full self-host metadata projection,
+# Proves the 144-row language-word registry, full self-host metadata projection,
 # reserved lexer compatibility view, editor scope projection, and generated
 # implementation inventory remain one source-of-truth chain.
 # SoT fallback IDs covered here or by the companion enforcement refs in the
@@ -267,12 +267,13 @@ grep -Fq 'all_keywords_tokens.txt' \
 # runtime/verifier obligation"). The generated inventory already REPORTS the
 # condition; nothing failed on it, so it could accumulate silently.
 #
-# `channel` is the one known row in this state and is named here rather than
-# hidden, in the same spirit as the Coq axiom budget: a declared exception, not
-# a blanket allowance. Its resolution -- implement it, demote it to contextual
-# so the spelling returns to users, or drop the row -- is a language-roadmap
-# decision, and whichever is chosen, this list must shrink and never grow.
-KNOWN_DEAD_RESERVED="channel"
+# The set is now EMPTY, which is the invariant to hold. `channel` was the only
+# row in this state and has been demoted to contextual: channels already ship
+# through the generic type `Channel<T>` plus the `<-` operator, and a lowercase
+# `channel` DECLARATION keyword was never built, so reserving the spelling only
+# took the identifier away from user code. An entry appearing here means a
+# reserved word was added that no parser reads.
+KNOWN_DEAD_RESERVED=""
 
 dead_reserved=$(awk -F'|' '
     /^\| `/ {
@@ -293,5 +294,5 @@ if [ "$dead_reserved" != "$expected_dead" ]; then
     exit 1
 fi
 
-echo "[language-keyword-registry] ok (145 rows; 71 reserved lexer rows; 74 parser selectors; 9 fixtures;" \
-     "dead reserved surface pinned at $(printf '%s\n' $KNOWN_DEAD_RESERVED | wc -w | tr -d '[:space:]'): $expected_dead)"
+echo "[language-keyword-registry] ok (144 rows; 70 reserved lexer rows; 74 parser selectors; 9 fixtures;" \
+     "no reserved word lacks a parser selector)"

@@ -59,7 +59,7 @@
         },
         {
           "name": "storage.type.pergyra",
-          "match": "\\b(?:ability|channel|class|effect|object|party|relation|role|roster|struct|subject|tobject|vessel|world|zone)\\b"
+          "match": "\\b(?:ability|class|effect|object|party|relation|role|roster|struct|subject|tobject|vessel|world|zone)\\b"
         }
       ]
     },
