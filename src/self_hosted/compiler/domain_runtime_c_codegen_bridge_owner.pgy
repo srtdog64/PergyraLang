@@ -1,0 +1,280 @@
+// C target view for the one machine-admitted domain runtime plan.
+//
+// This is the last consumer of exact role/member assignments.  It projects
+// only admitted plan row indexes and path segments; it never scans source,
+// reparses JSON, chooses a same-name member, or chooses a participant ordinal.
+
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../codegen/input/domain_runtime_codegen_view_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func CompilerDomainRuntimeCField(name: String) -> String {
+    if name == "" { Die("domain runtime C field name is missing"); }
+    return CompilerSymbolCFieldName(name);
+}
+
+func CompilerDomainRuntimeCPathSuffix(
+    ref assignments: MirDomainProjectionAssignmentFacts,
+    assignment_row: Int
+) -> String {
+    if assignment_row < 0 || assignment_row >= ArrayLength(
+        assignments.source_path_segment_starts
+    ) {
+        Die("domain runtime projection assignment row is outside admission");
+    }
+    let start: Int = assignments.source_path_segment_starts[assignment_row];
+    let count: Int = assignments.source_path_segment_counts[assignment_row];
+    if start < 0 || count <= 0 || start + count > ArrayLength(
+        assignments.source_path_segment_field_names
+    ) {
+        Die("domain runtime projection path escaped admitted segment bounds");
+    }
+    let suffix: String = "";
+    let segment: Int = 0;
+    while segment < count {
+        suffix = Concat(suffix, Concat(
+            ".", CompilerDomainRuntimeCField(
+                assignments.source_path_segment_field_names[start + segment]
+            )
+        ));
+        segment = segment + 1;
+    }
+    return suffix;
+}
+
+func CompilerDomainRuntimeCProjectionBlockForOwner(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    owner_name: String,
+    owner_c_expression: String
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    let operation_count: Int =
+        MirDomainRuntimePlanOperationCountForOwner(
+            admitted.domain_runtime_plan, owner_name
+        );
+    while ordinal < operation_count {
+        let plan_row: Int = MirDomainRuntimePlanOperationRowForOwnerAt(
+            admitted.domain_runtime_plan, owner_name, ordinal
+        );
+        if plan_row < 0 || plan_row >= ArrayLength(
+            admitted.domain_runtime_plan.operation_kinds
+        ) {
+            Die("domain runtime projection operation escaped admitted plan");
+        }
+        let kind: String =
+            admitted.domain_runtime_plan.operation_kinds[plan_row];
+        if kind == "refresh" || kind == "publish" || kind == "bind" {
+            let start: Int = admitted.domain_runtime_plan.
+                projection_assignment_starts[plan_row];
+            let count: Int = admitted.domain_runtime_plan.
+                projection_assignment_counts[plan_row];
+            if start < 0 || count <= 0 || start + count > ArrayLength(
+                admitted.domain_runtime_plan.projection_assignment_rows
+            ) {
+                Die("domain runtime projection rows escaped admitted plan");
+            }
+            let assignment_offset: Int = 0;
+            while assignment_offset < count {
+                let assignment_row: Int = admitted.domain_runtime_plan.
+                    projection_assignment_rows[start + assignment_offset];
+                if assignment_row < 0 || assignment_row >= ArrayLength(
+                    admitted.domain_runtime_assignments.projection_members.
+                        owner_names
+                ) || admitted.domain_runtime_assignments.projection_members.
+                    owner_names[assignment_row] != owner_name {
+                    Die("domain runtime projection owner identity is stale");
+                }
+                let target: String = Concat(
+                    owner_c_expression, Concat(".", Concat(
+                        CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.
+                                projection_members.
+                                projection_slot_names[assignment_row]
+                        ), Concat(".", CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.
+                                projection_members.
+                                target_field_names[assignment_row]
+                        ))
+                    ))
+                );
+                let source: String = Concat(
+                    owner_c_expression, Concat(".", Concat(
+                        CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.
+                                projection_members.
+                                source_slot_names[assignment_row]
+                        ), CompilerDomainRuntimeCPathSuffix(
+                            admitted.domain_runtime_assignments.
+                                projection_members,
+                            assignment_row
+                        )
+                    ))
+                );
+                output = Concat(output, Concat(
+                    "    ", Concat(target, Concat(" = ", Concat(source, ";\n")))
+                ));
+                assignment_offset = assignment_offset + 1;
+            }
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func CompilerDomainRuntimeCZoneOperationBlock(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    plan_row: Int
+) -> String {
+    if plan_row < 0 || plan_row >= ArrayLength(
+        admitted.domain_runtime_plan.topology_row_indices
+    ) {
+        Die("domain runtime zone operation escaped admitted plan");
+    }
+    let topology_row: Int =
+        admitted.domain_runtime_plan.topology_row_indices[plan_row];
+    if topology_row < 0 || topology_row >= ArrayLength(
+        admitted.domain_topology.kinds
+    ) {
+        Die("domain runtime zone operation has stale topology identity");
+    }
+    let layer_name: String =
+        admitted.domain_topology.layer_slot_names[topology_row];
+    let layer_expression: String = Concat(
+        "(*self).", CompilerDomainRuntimeCField(layer_name)
+    );
+    let role_start: Int =
+        admitted.domain_runtime_plan.participant_role_starts[plan_row];
+    let role_count: Int =
+        admitted.domain_runtime_plan.participant_role_counts[plan_row];
+    if role_start < 0 || role_count <= 0 || role_start + role_count >
+        ArrayLength(admitted.domain_runtime_plan.participant_role_rows) {
+        Die("domain runtime participant roles escaped admitted plan");
+    }
+    let output: String = "";
+    let layer_owner: String = "";
+    let role_offset: Int = 0;
+    while role_offset < role_count {
+        let role_row: Int = admitted.domain_runtime_plan.
+            participant_role_rows[role_start + role_offset];
+        if role_row < 0 || role_row >= ArrayLength(
+            admitted.domain_runtime_assignments.participant_roles.roles
+        ) {
+            Die("domain runtime participant role row is stale");
+        }
+        if layer_owner == "" {
+            layer_owner = admitted.domain_runtime_assignments.
+                participant_roles.owner_names[role_row];
+        } else if layer_owner != admitted.domain_runtime_assignments.
+            participant_roles.owner_names[role_row] {
+            Die("domain runtime zone operation crosses layer owners");
+        }
+        let participant_name: String = "";
+        if admitted.domain_runtime_plan.operation_kinds[plan_row] ==
+                "apply-effect" ||
+            admitted.domain_runtime_plan.operation_kinds[plan_row] ==
+                "maintain-effect" {
+            if role_count != 1 || admitted.domain_runtime_assignments.
+                participant_roles.roles[role_row] != "effect-bearer" {
+                Die("domain runtime effect operation lost its bearer role");
+            }
+            participant_name =
+                admitted.domain_topology.target_slot_names[topology_row];
+        } else if admitted.domain_runtime_plan.operation_kinds[plan_row] ==
+                "link-relation" {
+            if role_count != 2 { Die("domain runtime relation roles are incomplete"); }
+            if admitted.domain_runtime_assignments.participant_roles.
+                    roles[role_row] == "relation-source" {
+                participant_name =
+                    admitted.domain_topology.left_slot_names[topology_row];
+            } else if admitted.domain_runtime_assignments.participant_roles.
+                    roles[role_row] == "relation-target" {
+                participant_name =
+                    admitted.domain_topology.right_slot_names[topology_row];
+            } else {
+                Die("domain runtime relation operation has an unknown role");
+            }
+        } else {
+            Die("domain runtime zone operation kind is not materializable");
+        }
+        output = Concat(output, Concat(
+            "    ", Concat(layer_expression, Concat(".", Concat(
+                CompilerDomainRuntimeCField(
+                    admitted.domain_runtime_assignments.participant_roles.
+                        field_names[role_row]
+                ),
+                Concat(" = (*self).", Concat(
+                    CompilerDomainRuntimeCField(participant_name), ";\n"
+                ))
+            )))
+        ));
+        role_offset = role_offset + 1;
+    }
+    return Concat(output, CompilerDomainRuntimeCProjectionBlockForOwner(
+        admitted, layer_owner, layer_expression
+    ));
+}
+
+func CompilerDomainRuntimeCMethodPrologueForOwner(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    owner_name: String
+) -> String {
+    let output: String = CompilerDomainRuntimeCProjectionBlockForOwner(
+        admitted, owner_name, "(*self)"
+    );
+    let ordinal: Int = 0;
+    let operation_count: Int =
+        MirDomainRuntimePlanOperationCountForOwner(
+            admitted.domain_runtime_plan, owner_name
+        );
+    while ordinal < operation_count {
+        let plan_row: Int = MirDomainRuntimePlanOperationRowForOwnerAt(
+            admitted.domain_runtime_plan, owner_name, ordinal
+        );
+        let kind: String =
+            admitted.domain_runtime_plan.operation_kinds[plan_row];
+        if kind == "apply-effect" || kind == "maintain-effect" ||
+            kind == "link-relation" {
+            output = Concat(output,
+                CompilerDomainRuntimeCZoneOperationBlock(admitted, plan_row));
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func CodegenDomainRuntimeFactsFromAdmittedOrDie(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> CodegenDomainRuntimeFacts {
+    let result: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsEmpty(true);
+    if !admitted.domain_runtime_plan.present {
+        return result;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(admitted.domain_runtime_plan.owner_names) {
+        let owner_name: String =
+            admitted.domain_runtime_plan.owner_names[row];
+        let seen: Bool = false;
+        let prior: Int = 0;
+        while prior < ArrayLength(result.owner_names) {
+            if result.owner_names[prior] == owner_name { seen = true; }
+            prior = prior + 1;
+        }
+        if !seen {
+            let prologue: String =
+                CompilerDomainRuntimeCMethodPrologueForOwner(
+                    admitted, owner_name
+                );
+            if prologue != "" {
+                ArrayPush(result.owner_names, owner_name);
+                ArrayPush(result.method_prologues, prologue);
+            }
+        }
+        row = row + 1;
+    }
+    if !CodegenDomainRuntimeFactsReady(result) {
+        Die("domain runtime C view did not preserve admitted plan identity");
+    }
+    return result;
+}

@@ -6,6 +6,7 @@
 #include "hir.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 
@@ -359,6 +360,146 @@ hir_validate_region_escape_facts(const HIRProgram *hir,
     return true;
 }
 
+static bool
+hir_domain_runtime_text_present(const char *text)
+{
+    return text != NULL && text[0] != '\0';
+}
+
+static bool
+hir_validate_domain_runtime_facts(const HIRProgram *hir,
+                                  char **error_message)
+{
+    if (!hir->has_domain_runtime_facts) {
+        if (hir->domain_participant_role_facts != NULL
+            || hir->domain_participant_role_fact_count != 0
+            || hir->domain_projection_member_assignment_facts != NULL
+            || hir->domain_projection_member_assignment_fact_count != 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR domain runtime storage exists without semantic projection marker");
+            return false;
+        }
+        return true;
+    }
+    if ((hir->domain_participant_role_fact_count == 0
+         && hir->domain_participant_role_facts != NULL)
+        || (hir->domain_participant_role_fact_count != 0
+            && hir->domain_participant_role_facts == NULL)
+        || (hir->domain_projection_member_assignment_fact_count == 0
+            && hir->domain_projection_member_assignment_facts != NULL)
+        || (hir->domain_projection_member_assignment_fact_count != 0
+            && hir->domain_projection_member_assignment_facts == NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "HIR domain runtime semantic snapshot has incomplete storage");
+        return false;
+    }
+
+    for (size_t i = 0; i < hir->domain_participant_role_fact_count; i++) {
+        const PgyDomainParticipantRoleFact *fact =
+            &hir->domain_participant_role_facts[i];
+        if (fact->program_syntax_id == 0
+            || fact->program_syntax_id != hir->source_program_syntax_id
+            || fact->owner_syntax_id == 0
+            || fact->field_syntax_id == 0
+            || (unsigned)fact->role
+                > (unsigned)PGY_DOMAIN_PARTICIPANT_RELATION_TARGET
+            || !hir_domain_runtime_text_present(fact->owner_name)
+            || !hir_domain_runtime_text_present(fact->field_name)
+            || !hir_domain_runtime_text_present(fact->field_type_name)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR domain participant-role fact has incomplete exact identity, name, or type");
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const PgyDomainParticipantRoleFact *prior =
+                &hir->domain_participant_role_facts[j];
+            if ((prior->program_syntax_id == fact->program_syntax_id
+                 && prior->owner_syntax_id == fact->owner_syntax_id
+                 && prior->role == fact->role)
+                || prior->field_syntax_id == fact->field_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "HIR domain participant-role facts duplicate stable identity");
+                return false;
+            }
+        }
+    }
+
+    for (size_t i = 0;
+         i < hir->domain_projection_member_assignment_fact_count; i++) {
+        const PgyDomainProjectionMemberAssignmentFact *fact =
+            &hir->domain_projection_member_assignment_facts[i];
+        if (fact->program_syntax_id == 0
+            || fact->program_syntax_id != hir->source_program_syntax_id
+            || fact->owner_syntax_id == 0
+            || fact->directive_syntax_id == 0
+            || fact->projection_slot_syntax_id == 0
+            || fact->source_slot_syntax_id == 0
+            || fact->target_decl_syntax_id == 0
+            || fact->target_field_syntax_id == 0
+            || fact->source_decl_syntax_id == 0
+            || (unsigned)fact->operation
+                > (unsigned)PGY_DOMAIN_PROJECTION_BIND
+            || !hir_domain_runtime_text_present(fact->owner_name)
+            || !hir_domain_runtime_text_present(fact->projection_slot_name)
+            || !hir_domain_runtime_text_present(fact->source_slot_name)
+            || !hir_domain_runtime_text_present(fact->target_field_name)
+            || !hir_domain_runtime_text_present(
+                fact->target_field_type_name)
+            || !hir_domain_runtime_text_present(fact->source_path)
+            || !hir_domain_runtime_text_present(fact->source_leaf_type_name)
+            || fact->source_path_segment_count == 0
+            || fact->source_path_segments == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR domain projection assignment has incomplete exact identity, name, type, or path");
+            return false;
+        }
+        for (size_t s = 0; s < fact->source_path_segment_count; s++) {
+            const PgyDomainProjectionPathSegmentFact *segment =
+                &fact->source_path_segments[s];
+            if (segment->field_syntax_id == 0
+                || !hir_domain_runtime_text_present(segment->field_name)
+                || !hir_domain_runtime_text_present(
+                    segment->field_type_name)) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "HIR domain projection assignment has incomplete source-path identity");
+                return false;
+            }
+        }
+        if (strcmp(fact->source_path_segments[
+                       fact->source_path_segment_count - 1]
+                       .field_type_name,
+                   fact->source_leaf_type_name) != 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR domain projection assignment source path has leaf-type drift");
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const PgyDomainProjectionMemberAssignmentFact *prior =
+                &hir->domain_projection_member_assignment_facts[j];
+            if (prior->program_syntax_id == fact->program_syntax_id
+                && prior->owner_syntax_id == fact->owner_syntax_id
+                && prior->directive_syntax_id == fact->directive_syntax_id
+                && prior->projection_slot_syntax_id
+                    == fact->projection_slot_syntax_id
+                && prior->target_field_syntax_id
+                    == fact->target_field_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "HIR domain projection assignments duplicate stable member identity");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool
 hir_validate(const HIRProgram *hir, char **error_message)
 {
@@ -375,6 +516,8 @@ hir_validate(const HIRProgram *hir, char **error_message)
     hir_routine_inventory_from_program(hir, &inventory);
 
     if (!hir_validate_region_escape_facts(hir, error_message))
+        return false;
+    if (!hir_validate_domain_runtime_facts(hir, error_message))
         return false;
 
     for (size_t i = 0; i < inventory.count; i++) {

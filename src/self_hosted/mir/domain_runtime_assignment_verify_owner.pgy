@@ -1,0 +1,130 @@
+// Structural verifier for self-produced domain runtime assignment facts.
+
+import "domain_runtime_assignment_fact_owner.pgy";
+
+func SelfMirDomainRuntimeAssignmentFactsReady(
+    facts: SelfMirDomainRuntimeAssignmentFacts
+) -> Bool {
+    let roles: SelfMirDomainParticipantRoleFacts = facts.participant_roles;
+    let projections: SelfMirDomainProjectionMemberAssignmentFacts =
+        facts.projection_members;
+    let role_count: Int = ArrayLength(roles.roles);
+    let projection_count: Int = ArrayLength(projections.owner_names);
+    if !facts.present {
+        return facts.ok && facts.program_source_syntax_id == 0 &&
+            roles.ok && projections.ok && role_count == 0 &&
+            projection_count == 0;
+    }
+    if !facts.ok || facts.program_source_syntax_id <= 0 || !roles.ok ||
+        !projections.ok ||
+        ArrayLength(roles.owner_names) != role_count ||
+        ArrayLength(roles.owner_source_syntax_ids) != role_count ||
+        ArrayLength(roles.field_names) != role_count ||
+        ArrayLength(roles.field_source_syntax_ids) != role_count ||
+        ArrayLength(roles.field_type_names) != role_count ||
+        ArrayLength(projections.owner_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.directive_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.operations) != projection_count ||
+        ArrayLength(projections.projection_slot_names) != projection_count ||
+        ArrayLength(projections.projection_slot_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.source_slot_names) != projection_count ||
+        ArrayLength(projections.source_slot_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.target_declaration_names) != projection_count ||
+        ArrayLength(projections.target_declaration_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.target_field_names) != projection_count ||
+        ArrayLength(projections.target_field_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.target_field_type_names) != projection_count ||
+        ArrayLength(projections.source_declaration_names) != projection_count ||
+        ArrayLength(projections.source_declaration_source_syntax_ids) != projection_count ||
+        ArrayLength(projections.source_paths) != projection_count ||
+        ArrayLength(projections.source_leaf_type_names) != projection_count ||
+        ArrayLength(projections.explicit_maps) != projection_count ||
+        ArrayLength(projections.source_path_segment_starts) != projection_count ||
+        ArrayLength(projections.source_path_segment_counts) != projection_count ||
+        ArrayLength(projections.source_path_segment_names) !=
+            ArrayLength(projections.source_path_segment_source_syntax_ids) ||
+        ArrayLength(projections.source_path_segment_names) !=
+            ArrayLength(projections.source_path_segment_type_names) {
+        return false;
+    }
+    let role_row: Int = 0;
+    while role_row < role_count {
+        if (roles.roles[role_row] != "effect-bearer" &&
+            roles.roles[role_row] != "relation-source" &&
+            roles.roles[role_row] != "relation-target") ||
+            roles.owner_names[role_row] == "" ||
+            roles.owner_source_syntax_ids[role_row] <= 0 ||
+            roles.field_names[role_row] == "" ||
+            roles.field_source_syntax_ids[role_row] <= 0 ||
+            roles.field_type_names[role_row] == "" {
+            return false;
+        }
+        let prior_role: Int = 0;
+        while prior_role < role_row {
+            if (roles.owner_names[prior_role] == roles.owner_names[role_row] &&
+                roles.roles[prior_role] == roles.roles[role_row]) ||
+                ((roles.owner_names[prior_role] == roles.owner_names[role_row]) !=
+                 (roles.owner_source_syntax_ids[prior_role] ==
+                    roles.owner_source_syntax_ids[role_row])) {
+                return false;
+            }
+            prior_role = prior_role + 1;
+        }
+        role_row = role_row + 1;
+    }
+    let segment_cursor: Int = 0;
+    let projection: Int = 0;
+    while projection < projection_count {
+        let segment_count: Int =
+            projections.source_path_segment_counts[projection];
+        if projections.owner_names[projection] == "" ||
+            projections.owner_source_syntax_ids[projection] <= 0 ||
+            projections.directive_source_syntax_ids[projection] <= 0 ||
+            (projections.operations[projection] != "refresh" &&
+             projections.operations[projection] != "publish" &&
+             projections.operations[projection] != "bind") ||
+            projections.projection_slot_names[projection] == "" ||
+            projections.projection_slot_source_syntax_ids[projection] <= 0 ||
+            projections.source_slot_names[projection] == "" ||
+            projections.source_slot_source_syntax_ids[projection] <= 0 ||
+            projections.target_declaration_names[projection] == "" ||
+            projections.target_declaration_source_syntax_ids[projection] <= 0 ||
+            projections.target_field_names[projection] == "" ||
+            projections.target_field_source_syntax_ids[projection] <= 0 ||
+            projections.target_field_type_names[projection] == "" ||
+            projections.source_declaration_names[projection] == "" ||
+            projections.source_declaration_source_syntax_ids[projection] <= 0 ||
+            projections.source_paths[projection] == "" ||
+            (projections.explicit_maps[projection] != 0 &&
+             projections.explicit_maps[projection] != 1) ||
+            projections.source_path_segment_starts[projection] != segment_cursor ||
+            segment_count <= 0 {
+            return false;
+        }
+        let segment: Int = 0;
+        while segment < segment_count {
+            let row: Int = segment_cursor + segment;
+            if row >= ArrayLength(projections.source_path_segment_names) ||
+                projections.source_path_segment_names[row] == "" ||
+                projections.source_path_segment_source_syntax_ids[row] <= 0 ||
+                projections.source_path_segment_type_names[row] == "" {
+                return false;
+            }
+            segment = segment + 1;
+        }
+        let prior_projection: Int = 0;
+        while prior_projection < projection {
+            if projections.directive_source_syntax_ids[prior_projection] ==
+                    projections.directive_source_syntax_ids[projection] &&
+                projections.target_field_source_syntax_ids[prior_projection] ==
+                    projections.target_field_source_syntax_ids[projection] {
+                return false;
+            }
+            prior_projection = prior_projection + 1;
+        }
+        segment_cursor = segment_cursor + segment_count;
+        projection = projection + 1;
+    }
+    return segment_cursor ==
+        ArrayLength(projections.source_path_segment_names);
+}

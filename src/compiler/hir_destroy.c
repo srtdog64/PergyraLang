@@ -96,6 +96,12 @@ hir_destroy(HIRProgram *hir)
     free(hir->functions);
     free(hir->executables);
     free(hir->region_escape_facts);
+    pgy_domain_participant_role_facts_destroy(
+        hir->domain_participant_role_facts,
+        hir->domain_participant_role_fact_count);
+    pgy_domain_projection_member_assignment_facts_destroy(
+        hir->domain_projection_member_assignment_facts,
+        hir->domain_projection_member_assignment_fact_count);
     hir_destroy_synthetic_executable_func(hir->synthetic_executable_func);
     free(hir);
 }

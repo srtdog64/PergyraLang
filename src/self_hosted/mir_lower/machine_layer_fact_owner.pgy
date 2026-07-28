@@ -9,6 +9,8 @@
 import "json_fact_read.pgy";
 import "domain_topology_fact_owner.pgy";
 import "domain_topology_graph_plan_owner.pgy";
+import "domain_runtime_assignment_fact_owner.pgy";
+import "domain_runtime_plan_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -21,6 +23,8 @@ struct MirMachineLayerAdmittedJsonInput {
     let document: MirDocumentFactIndex;
     let domain_topology: MirDomainTopologyFacts;
     let domain_topology_plan: MirDomainTopologyGraphPlan;
+    let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts;
+    let domain_runtime_plan: MirDomainRuntimePlan;
     let routines: MirProgramRoutineIndex;
 }
 
@@ -252,6 +256,29 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
                 domain_topology.domain_graph_id) {
         return None;
     }
+    let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts =
+        MirDomainRuntimeAssignmentFactsFromDocument(
+            document, domain_topology
+        );
+    if (MirDomainTopologyRequiredForDocument(document) &&
+            (!domain_runtime_assignments.present ||
+             !domain_runtime_assignments.valid)) ||
+        (domain_runtime_assignments.present &&
+            !domain_runtime_assignments.valid) {
+        return None;
+    }
+    let domain_runtime_plan: MirDomainRuntimePlan =
+        MirDomainRuntimePlanFromFacts(
+            document, domain_topology, domain_runtime_assignments
+        );
+    if !MirDomainRuntimePlanReady(domain_runtime_plan) ||
+        domain_runtime_plan.present != domain_runtime_assignments.present ||
+        domain_runtime_plan.present != domain_topology.present ||
+        (domain_runtime_plan.present &&
+            domain_runtime_plan.domain_graph_id !=
+                domain_topology.domain_graph_id) {
+        return None;
+    }
     let json: String = document.routines.json;
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
@@ -278,7 +305,8 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
     );
     return Some(MirMachineLayerAdmittedJsonInput(
         machine_declaration, document, domain_topology,
-        domain_topology_plan, routines
+        domain_topology_plan, domain_runtime_assignments,
+        domain_runtime_plan, routines
     ));
 }
 

@@ -228,9 +228,10 @@ emit_relation_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
+    emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx,
         &slot_view,
-        &refresh_view,
+        name,
+        refresh_view.count,
         "relation_projection",
         true);
     ctx->indent--;
@@ -440,9 +441,10 @@ emit_effect_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
+    emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx,
         &slot_view,
-        &refresh_view,
+        name,
+        refresh_view.count,
         "effect_projection",
         true);
     ctx->indent--;

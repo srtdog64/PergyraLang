@@ -236,6 +236,12 @@ semantic_context_destroy(SemanticContext *ctx)
     pgy_match_binding_type_facts_destroy(
         ctx->match_binding_type_facts,
         ctx->match_binding_type_fact_count);
+    pgy_domain_participant_role_facts_destroy(
+        ctx->domain_participant_role_facts,
+        ctx->domain_participant_role_fact_count);
+    pgy_domain_projection_member_assignment_facts_destroy(
+        ctx->domain_projection_member_assignment_facts,
+        ctx->domain_projection_member_assignment_fact_count);
     for (size_t i = 0; i < ctx->type_resolution_stage_alias_diagnostic_name_count; i++)
         free(ctx->type_resolution_stage_alias_diagnostic_names[i]);
     free(ctx->type_resolution_stage_alias_diagnostic_names);

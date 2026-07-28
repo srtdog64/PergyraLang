@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "../parser/ast.h"
+#include "../semantic/domain_runtime_fact.h"
 #include "../semantic/resource_flow_fact.h"
 
 typedef struct DIRProgram DIRProgram;
@@ -197,6 +198,13 @@ struct DIRProgram
     PgyResourceFlowFact *resource_flow_facts;
     size_t               resource_flow_fact_count;
     bool                 has_resource_flow_facts;
+    /* Owned copy of the HIR-admitted domain-runtime semantic snapshot. */
+    bool                 has_domain_runtime_facts;
+    PgyDomainParticipantRoleFact *domain_participant_role_facts;
+    size_t            domain_participant_role_fact_count;
+    PgyDomainProjectionMemberAssignmentFact
+                     *domain_projection_member_assignment_facts;
+    size_t            domain_projection_member_assignment_fact_count;
     char         **owned_names;
     size_t         owned_name_count;
     size_t         owned_name_capacity;

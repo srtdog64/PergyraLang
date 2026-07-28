@@ -1,5 +1,6 @@
 // Structural verifier for the self-host MIR fact graph.
 import "program_fact_owner.pgy";
+import "domain_runtime_assignment_verify_owner.pgy";
 import "declaration_verify_owner.pgy";
 import "instruction_validation_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
@@ -536,6 +537,11 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     }
     if !SelfMirDomainTopologyFactsReady(facts.domain_topology) {
         return "MIR domain topology facts are invalid";
+    }
+    if !SelfMirDomainRuntimeAssignmentFactsReady(
+        facts.domain_runtime_assignments
+    ) {
+        return "MIR domain runtime assignment facts are invalid";
     }
     if !SelfMirGenericSpecializationRowsReady(
         facts.generic_specializations

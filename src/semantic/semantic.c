@@ -356,6 +356,18 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     result->match_binding_type_facts = ctx->match_binding_type_facts;
     result->match_binding_type_fact_count =
         ctx->match_binding_type_fact_count;
+    result->domain_participant_role_facts =
+        ctx->domain_participant_role_facts;
+    result->domain_participant_role_fact_count =
+        ctx->domain_participant_role_fact_count;
+    result->domain_participant_role_fact_capacity =
+        ctx->domain_participant_role_fact_capacity;
+    result->domain_projection_member_assignment_facts =
+        ctx->domain_projection_member_assignment_facts;
+    result->domain_projection_member_assignment_fact_count =
+        ctx->domain_projection_member_assignment_fact_count;
+    result->domain_projection_member_assignment_fact_capacity =
+        ctx->domain_projection_member_assignment_fact_capacity;
     result->region_escape_facts = region_escape_facts;
     result->region_escape_fact_count = region_escape_fact_count;
     result->loop_flow_summary_facts = ctx->loop_flow_summary_facts;
@@ -399,6 +411,12 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->match_binding_type_facts = NULL;
     ctx->match_binding_type_fact_count = 0;
     ctx->match_binding_type_fact_capacity = 0;
+    ctx->domain_participant_role_facts = NULL;
+    ctx->domain_participant_role_fact_count = 0;
+    ctx->domain_participant_role_fact_capacity = 0;
+    ctx->domain_projection_member_assignment_facts = NULL;
+    ctx->domain_projection_member_assignment_fact_count = 0;
+    ctx->domain_projection_member_assignment_fact_capacity = 0;
     ctx->loop_flow_summary_facts = NULL;
     ctx->loop_flow_summary_fact_count = 0;
     ctx->loop_flow_summary_fact_capacity = 0;
@@ -443,6 +461,12 @@ semantic_result_destroy(SemanticResult *result)
     pgy_match_binding_type_facts_destroy(
         result->match_binding_type_facts,
         result->match_binding_type_fact_count);
+    pgy_domain_participant_role_facts_destroy(
+        result->domain_participant_role_facts,
+        result->domain_participant_role_fact_count);
+    pgy_domain_projection_member_assignment_facts_destroy(
+        result->domain_projection_member_assignment_facts,
+        result->domain_projection_member_assignment_fact_count);
     free(result->loop_flow_summary_facts);
     free(result->loop_flow_state_facts);
     semantic_region_escape_facts_free(result->region_escape_facts);

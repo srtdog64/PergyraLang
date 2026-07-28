@@ -471,6 +471,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         t_mark = program_timing_now();
     }
 
+    /* Participant roles are declaration facts, not a byproduct of Pass 2
+     * source order.  Resolve them once after type metadata is materialized so
+     * an earlier zone can consume an effect/relation declared later. */
+    if (!semantic_collect_domain_participant_role_facts(program, ctx)
+        && !ctx->has_error) {
+        semantic_error(ctx, program,
+            "Semantic domain participant role prepass failed closed");
+    }
+
     /*
      * Pass 2: full type-check
      */

@@ -12,6 +12,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_domain_provenance_emit.h"
 #include "transpiler_domain_receiver_query.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_overlay_zone_bind.h"
@@ -369,8 +370,17 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         if (layer_name == NULL)
             continue;
 
-        target_slot_name = transpiler_domain_slot_view_bindable_name(
-            &effect_slot_view, 0);
+        {
+            const PgyDomainParticipantRoleFact *bearer_fact =
+                transpiler_require_domain_participant_role_fact(
+                    ctx, effect_type_name,
+                    PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER);
+            if (bearer_fact == NULL) {
+                codebuf_destroy(buf);
+                return NULL;
+            }
+            target_slot_name = bearer_fact->field_name;
+        }
         if (target_slot_name == NULL)
             continue;
 

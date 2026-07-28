@@ -27,7 +27,6 @@ import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 import "canonical_mir_identity_epoch_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
 import "codegen_callable_receiver_bridge_owner.pgy";
-
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
@@ -436,6 +435,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         MirDomainTopologyGraphPlanAttachAdmittedToC(
             admitted, GenerateCFromVerifiedSemanticArtifact(
                 artifact, verified.analysis, codegen_body_types, codegen_view.receivers,
+                codegen_view.domain_runtime,
                 admitted.machine_declaration, target_projection
             )
         ),

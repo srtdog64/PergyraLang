@@ -82,10 +82,13 @@ func CompileAstArtifactToC(
         );
     let receiver_facts: CodegenCallableReceiverFacts =
         CodegenCallableReceiverFactsFromAnalysis(semantic_analysis);
+    let domain_runtime: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsEmpty(true);
     let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
             artifact, semantic_analysis, body_types, receiver_facts,
+            domain_runtime,
             SelfHostMachineLayerDeclarationEmpty(), target_projection
         ),
         target_projection.schema,

@@ -6,7 +6,89 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - callable receiver carriage substitution
+## Current resume checkpoint - exact domain runtime assignment substitution
+
+- The landing parent is `c1d4e099` on `main`; `origin/main` was `cc468aa7` at
+  the start of this slice. The three intervening local commits `07bc21b4`,
+  `07f9f592`, and `c1d4e099` belong to concurrent kernel/keyword/emitted-UB
+  work and were preserved. The landing commit contains this handoff; after
+  landing, use `git rev-parse HEAD` for the exact revision.
+- Objective card:
+  - objective: replace backend/self rediscovery of effect bearer, relation
+    source/target, and projection member paths with one semantic exact-fact
+    family carried through native and self MIR into executable consumers;
+  - priority: exact identity and type/path facts, one admission, no
+    same-name/ordinal/zero fallback, direct-source execution, negative ratchet,
+    then patch size;
+  - fact owner: `semantic.domain_runtime_assignment`; HIR/DIR/MIR and self
+    `MirDomainRuntimeAssignmentFacts` are lossless carriers, while
+    `MirDomainRuntimePlan` is a one-time admission receipt rather than a second
+    semantic owner;
+  - last legitimate consumers: native C/LLVM domain runtime renderers and the
+    general self C method-prologue view reached by production
+    `CompileSourceToCVerified`;
+  - forbidden fallback: source/AST rewalk, same-name member selection in a
+    backend, missing-source zero fill, first or 0/1 bindable participant slot,
+    `by participant` as destination role, native MIR graft, whole-plan
+    revalidation in lookup, or fixture-specific output;
+  - verification gate:
+    `tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh`
+    plus native C/LLVM execution, component/source/MIR/performance boundary
+    gates, and the SoT owner/adequacy gates.
+- Native semantic now records exact `DomainParticipantRoleFact` and
+  `DomainProjectionMemberAssignmentFact` rows, including each source path
+  segment. HIR, DIR, MIR validation/lifecycle and JSON copy/destroy these facts.
+  Semantic assignability remains the owner; downstream carriers preserve both
+  types and do not replace it with target/source string equality.
+- The self source producer emits the same role/member/path schema in its own
+  identity epoch. Machine admission joins it to declaration-field and topology
+  facts once, builds one runtime plan, and then exposes local per-owner
+  operation lookups without reopening full validation.
+- Native C and LLVM runtime sync consume exact MIR facts. Their old
+  same-name/nested-name and participant ordinal paths are absent from this
+  fixture path. General self C emits exact bearer/source/target and nested
+  projection assignments from the admitted plan.
+- Observed executable evidence on the final source tree:
+  - one integrated `make -j2 all` completed under MSYS2 with `/ucrt64/bin`
+    present in the child `PATH`, linking both `bin/pgy.exe` and
+    `bin/pgy-lsp.exe`;
+  - native C and LLVM `zone_layer_projection_runtime` both printed `7` and
+    `dst`;
+  - self explicit-MIR C and production direct-source C were byte-equal and both
+    printed `7` and `dst`;
+  - the focused runtime gate rejected missing/duplicate/foreign role, member,
+    path and directive rows, topology-operation mismatch, and identity-epoch
+    drift before partial C output;
+  - focused self runtime assignment, object/action boundary, self component,
+    build source inventory, MIR declaration inventory, performance, LSP
+    completion, 144-row keyword registry and both SoT gates passed; the last
+    performance compile observation was 396ms;
+  - Coq compilation was explicitly skipped because neither `rocq` nor `coqc`
+    is installed.
+- Grade this narrow implicit-map eager method-entry bind/sync path
+  `SUBSTITUTING`. Keep the whole `semantic.domain_runtime_assignment` family
+  `BRIDGE`: explicit map carriage, declaration-level `source_syntax_id`,
+  pool/materialization, dirty/epoch/detach/unlink/state lifecycle and one shared
+  native/self runtime plan remain open. This feature substitution also does not
+  imply that the self compiler is internally organized with executable
+  `effect`/`relation` declarations.
+- The next executable falsifier is the renamed explicit maps in
+  `world_zone_projection_visibility`, especially `label <- displayName` and
+  `user <- displayName`. A valid foreign source field ID/path, removed map body,
+  or assignability mismatch must fail before an artifact; implicit same-name or
+  native-MIR fallback is forbidden.
+- The gate audit also closed pre-existing contract drift: the full DRV-2 shell
+  guard no longer hardcodes `/usr/bin/bash` or uses a Bash-4 associative array;
+  the explicit LSP completion process cache is the only mutable-char-array
+  allowlist; and MIR/perf inventory gates now require the exact runtime fact
+  view while rejecting the removed name/ordinal/refresh-metadata path.
+- Preserve and do not stage the three concurrent parity edits (indexed
+  assignment `1/0`, match `2/2`, owner-field `3/3`), the untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`, and concurrent proof/cache
+  artifacts. Generated root I/O outputs and the NIA cache were removed and are
+  now covered by `.gitignore`; the oracle-bootstrap document remains untouched.
+
+## Prior checkpoint - callable receiver carriage substitution
 
 - The final parent for this executable slice is `6837a34d` on `main`. During
   the slice, the concurrent language-word task landed `206e0697`, `8d4c34d4`,

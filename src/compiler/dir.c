@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
@@ -192,6 +193,255 @@ dir_domain_slot_is_projection(ASTNode *slot)
         && !ast_domain_slot_is_vessel(slot);
 }
 
+static bool
+dir_domain_runtime_text_present(const char *text)
+{
+    return text != NULL && text[0] != '\0';
+}
+
+static bool
+dir_validate_hir_domain_runtime_fact_source(const HIRProgram *hir,
+                                            char **error_message)
+{
+    if (!hir->has_domain_runtime_facts) {
+        if (hir->domain_participant_role_facts != NULL
+            || hir->domain_participant_role_fact_count != 0
+            || hir->domain_projection_member_assignment_facts != NULL
+            || hir->domain_projection_member_assignment_fact_count != 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "DIR lowering found HIR domain runtime storage without its semantic snapshot marker");
+            return false;
+        }
+        return true;
+    }
+    if ((hir->domain_participant_role_fact_count == 0
+         && hir->domain_participant_role_facts != NULL)
+        || (hir->domain_participant_role_fact_count != 0
+            && hir->domain_participant_role_facts == NULL)
+        || (hir->domain_projection_member_assignment_fact_count == 0
+            && hir->domain_projection_member_assignment_facts != NULL)
+        || (hir->domain_projection_member_assignment_fact_count != 0
+            && hir->domain_projection_member_assignment_facts == NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "DIR lowering found incomplete HIR domain runtime fact storage");
+        return false;
+    }
+    for (size_t i = 0; i < hir->domain_participant_role_fact_count; i++) {
+        const PgyDomainParticipantRoleFact *fact =
+            &hir->domain_participant_role_facts[i];
+        if (fact->program_syntax_id == 0
+            || fact->program_syntax_id != hir->source_program_syntax_id
+            || fact->owner_syntax_id == 0
+            || fact->field_syntax_id == 0
+            || (unsigned)fact->role
+                > (unsigned)PGY_DOMAIN_PARTICIPANT_RELATION_TARGET
+            || !dir_domain_runtime_text_present(fact->owner_name)
+            || !dir_domain_runtime_text_present(fact->field_name)
+            || !dir_domain_runtime_text_present(fact->field_type_name)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "DIR lowering rejected an incomplete HIR domain participant-role fact");
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const PgyDomainParticipantRoleFact *prior =
+                &hir->domain_participant_role_facts[j];
+            if ((prior->program_syntax_id == fact->program_syntax_id
+                 && prior->owner_syntax_id == fact->owner_syntax_id
+                 && prior->role == fact->role)
+                || prior->field_syntax_id == fact->field_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "DIR lowering rejected duplicate HIR domain participant-role identity");
+                return false;
+            }
+        }
+    }
+    for (size_t i = 0;
+         i < hir->domain_projection_member_assignment_fact_count; i++) {
+        const PgyDomainProjectionMemberAssignmentFact *fact =
+            &hir->domain_projection_member_assignment_facts[i];
+        if (fact->program_syntax_id == 0
+            || fact->program_syntax_id != hir->source_program_syntax_id
+            || fact->owner_syntax_id == 0
+            || fact->directive_syntax_id == 0
+            || fact->projection_slot_syntax_id == 0
+            || fact->source_slot_syntax_id == 0
+            || fact->target_decl_syntax_id == 0
+            || fact->target_field_syntax_id == 0
+            || fact->source_decl_syntax_id == 0
+            || (unsigned)fact->operation
+                > (unsigned)PGY_DOMAIN_PROJECTION_BIND
+            || !dir_domain_runtime_text_present(fact->owner_name)
+            || !dir_domain_runtime_text_present(fact->projection_slot_name)
+            || !dir_domain_runtime_text_present(fact->source_slot_name)
+            || !dir_domain_runtime_text_present(fact->target_field_name)
+            || !dir_domain_runtime_text_present(
+                fact->target_field_type_name)
+            || !dir_domain_runtime_text_present(fact->source_path)
+            || !dir_domain_runtime_text_present(fact->source_leaf_type_name)
+            || fact->source_path_segment_count == 0
+            || fact->source_path_segments == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "DIR lowering rejected an incomplete HIR domain projection assignment");
+            return false;
+        }
+        for (size_t s = 0; s < fact->source_path_segment_count; s++) {
+            const PgyDomainProjectionPathSegmentFact *segment =
+                &fact->source_path_segments[s];
+            if (segment->field_syntax_id == 0
+                || !dir_domain_runtime_text_present(segment->field_name)
+                || !dir_domain_runtime_text_present(
+                    segment->field_type_name)) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "DIR lowering rejected an incomplete HIR domain projection source path");
+                return false;
+            }
+        }
+        if (strcmp(fact->source_path_segments[
+                       fact->source_path_segment_count - 1]
+                       .field_type_name,
+                   fact->source_leaf_type_name) != 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "DIR lowering rejected HIR domain projection leaf-type drift");
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const PgyDomainProjectionMemberAssignmentFact *prior =
+                &hir->domain_projection_member_assignment_facts[j];
+            if (prior->program_syntax_id == fact->program_syntax_id
+                && prior->owner_syntax_id == fact->owner_syntax_id
+                && prior->directive_syntax_id == fact->directive_syntax_id
+                && prior->projection_slot_syntax_id
+                    == fact->projection_slot_syntax_id
+                && prior->target_field_syntax_id
+                    == fact->target_field_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "DIR lowering rejected duplicate HIR domain projection member identity");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static char *
+dir_domain_runtime_strdup(const char *source)
+{
+    return source != NULL ? pergyra_strdup(source) : NULL;
+}
+
+static bool
+dir_copy_hir_domain_runtime_facts(DIRProgram *dir,
+                                  const HIRProgram *hir,
+                                  char **error_message)
+{
+    if (dir == NULL || hir == NULL
+        || !dir_validate_hir_domain_runtime_fact_source(
+            hir, error_message)) {
+        return false;
+    }
+    dir->has_domain_runtime_facts = hir->has_domain_runtime_facts;
+    if (!hir->has_domain_runtime_facts)
+        return true;
+
+    if (hir->domain_participant_role_fact_count != 0) {
+        dir->domain_participant_role_facts = calloc(
+            hir->domain_participant_role_fact_count,
+            sizeof(*dir->domain_participant_role_facts));
+        if (dir->domain_participant_role_facts == NULL)
+            goto out_of_memory;
+        dir->domain_participant_role_fact_count =
+            hir->domain_participant_role_fact_count;
+        for (size_t i = 0;
+             i < hir->domain_participant_role_fact_count; i++) {
+            const PgyDomainParticipantRoleFact *source =
+                &hir->domain_participant_role_facts[i];
+            PgyDomainParticipantRoleFact *copy =
+                &dir->domain_participant_role_facts[i];
+            *copy = *source;
+            copy->owner_name = dir_domain_runtime_strdup(source->owner_name);
+            copy->field_name = dir_domain_runtime_strdup(source->field_name);
+            copy->field_type_name = dir_domain_runtime_strdup(
+                source->field_type_name);
+            if (copy->owner_name == NULL || copy->field_name == NULL
+                || copy->field_type_name == NULL) {
+                goto out_of_memory;
+            }
+        }
+    }
+
+    if (hir->domain_projection_member_assignment_fact_count != 0) {
+        dir->domain_projection_member_assignment_facts = calloc(
+            hir->domain_projection_member_assignment_fact_count,
+            sizeof(*dir->domain_projection_member_assignment_facts));
+        if (dir->domain_projection_member_assignment_facts == NULL)
+            goto out_of_memory;
+        dir->domain_projection_member_assignment_fact_count =
+            hir->domain_projection_member_assignment_fact_count;
+        for (size_t i = 0;
+             i < hir->domain_projection_member_assignment_fact_count; i++) {
+            const PgyDomainProjectionMemberAssignmentFact *source =
+                &hir->domain_projection_member_assignment_facts[i];
+            PgyDomainProjectionMemberAssignmentFact *copy =
+                &dir->domain_projection_member_assignment_facts[i];
+            *copy = *source;
+            copy->owner_name = dir_domain_runtime_strdup(source->owner_name);
+            copy->projection_slot_name = dir_domain_runtime_strdup(
+                source->projection_slot_name);
+            copy->source_slot_name = dir_domain_runtime_strdup(
+                source->source_slot_name);
+            copy->target_field_name = dir_domain_runtime_strdup(
+                source->target_field_name);
+            copy->target_field_type_name = dir_domain_runtime_strdup(
+                source->target_field_type_name);
+            copy->source_path = dir_domain_runtime_strdup(source->source_path);
+            copy->source_leaf_type_name = dir_domain_runtime_strdup(
+                source->source_leaf_type_name);
+            copy->source_path_segments = calloc(
+                source->source_path_segment_count,
+                sizeof(*copy->source_path_segments));
+            if (copy->owner_name == NULL
+                || copy->projection_slot_name == NULL
+                || copy->source_slot_name == NULL
+                || copy->target_field_name == NULL
+                || copy->target_field_type_name == NULL
+                || copy->source_path == NULL
+                || copy->source_leaf_type_name == NULL
+                || copy->source_path_segments == NULL) {
+                goto out_of_memory;
+            }
+            for (size_t s = 0; s < source->source_path_segment_count; s++) {
+                copy->source_path_segments[s] =
+                    source->source_path_segments[s];
+                copy->source_path_segments[s].field_name =
+                    dir_domain_runtime_strdup(
+                        source->source_path_segments[s].field_name);
+                copy->source_path_segments[s].field_type_name =
+                    dir_domain_runtime_strdup(
+                        source->source_path_segments[s].field_type_name);
+                if (copy->source_path_segments[s].field_name == NULL
+                    || copy->source_path_segments[s].field_type_name == NULL) {
+                    goto out_of_memory;
+                }
+            }
+        }
+    }
+    return true;
+
+out_of_memory:
+    if (error_message != NULL && *error_message == NULL)
+        *error_message = pergyra_strdup(
+            "Out of memory while copying HIR domain runtime facts into DIR");
+    return false;
+}
+
 static DIRProgram *
 dir_lower_with_resource_flow_facts_internal(
     ASTNode *annotated_ast,
@@ -227,6 +477,19 @@ dir_lower_with_resource_flow_facts_internal(
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "DIR lowering requires an anchored source program identity");
+        dir_destroy(dir);
+        return NULL;
+    }
+    if (hir != NULL
+        && hir->source_program_syntax_id != dir->source_program_syntax_id) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "DIR lowering rejected HIR domain facts from a different source program");
+        dir_destroy(dir);
+        return NULL;
+    }
+    if (hir != NULL
+        && !dir_copy_hir_domain_runtime_facts(dir, hir, error_message)) {
         dir_destroy(dir);
         return NULL;
     }
@@ -383,6 +646,12 @@ dir_destroy(DIRProgram *dir)
     free(dir->intents);
     pgy_resource_flow_facts_destroy(
         dir->resource_flow_facts, dir->resource_flow_fact_count);
+    pgy_domain_participant_role_facts_destroy(
+        dir->domain_participant_role_facts,
+        dir->domain_participant_role_fact_count);
+    pgy_domain_projection_member_assignment_facts_destroy(
+        dir->domain_projection_member_assignment_facts,
+        dir->domain_projection_member_assignment_fact_count);
     free(dir->owned_names);
     free(dir->error_message);
     free(dir);

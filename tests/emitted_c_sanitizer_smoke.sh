@@ -85,8 +85,11 @@ chmod +x "$WRAPPER"
 export ASAN_OPTIONS="detect_leaks=0:halt_on_error=1"
 export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
 
-mapfile -t SOURCES < <(find "$CASES_DIR" -mindepth 2 -maxdepth 2 -name main.pgy \
-                       | LC_ALL=C sort | head -n "$CASE_LIMIT")
+SOURCES=()
+while IFS= read -r source_path; do
+    [[ -n "$source_path" ]] && SOURCES+=("$source_path")
+done < <(find "$CASES_DIR" -mindepth 2 -maxdepth 2 -name main.pgy \
+         | LC_ALL=C sort | head -n "$CASE_LIMIT")
 
 # Wrapper self-check, before judging any case.
 #

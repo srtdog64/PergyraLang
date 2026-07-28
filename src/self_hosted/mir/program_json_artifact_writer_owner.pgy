@@ -5,6 +5,7 @@
 
 import "instruction_json_artifact_writer_owner.pgy";
 import "artifact_transaction_owner.pgy";
+import "domain_runtime_assignment_json_owner.pgy";
 
 func SelfMirJsonBlockWriteFile(
     facts: SelfMirProgramFacts,
@@ -301,6 +302,12 @@ func SelfMirProgramJsonWriteArtifactVerified(
     CompilerArtifactWrite(output, "]");
     CompilerArtifactWrite(
         output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology)
+    );
+    CompilerArtifactWrite(
+        output,
+        SelfMirDomainRuntimeAssignmentsJsonPrefix(
+            facts.domain_runtime_assignments
+        )
     );
     CompilerArtifactWrite(output, ",\"routines\":[");
     let routine_i: Int = 0;

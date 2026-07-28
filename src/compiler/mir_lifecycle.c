@@ -15,6 +15,7 @@
 #include "mir_generic_method_specialization.h"
 #include "mir_destructure_type_facts.h"
 #include "mir_domain_topology.h"
+#include "mir_domain_runtime.h"
 #include "mir_branch_source_facts.h"
 
 #include <stdint.h>
@@ -185,6 +186,7 @@ mir_destroy(MIRProgram *mir)
     }
     free(mir->decl_headers);
     mir_domain_topology_clear(mir);
+    mir_domain_runtime_clear(mir);
     mir_parallel_capture_facts_clear(mir);
     mir_clear_region_escape_facts(mir);
     mir_generic_method_specializations_clear(mir);

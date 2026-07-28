@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "domain_frontier_policy.h"
+#include "llvm_domain_runtime_facts.h"
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_internal_api.h"
@@ -27,22 +28,6 @@ llvm_projection_sync_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static const char *
-llvm_projection_sync_slot_type_name(const LLVMHostedDomainSlotView *slot_view,
-                                    const char *slot_name)
-{
-    if (slot_view == NULL || slot_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < slot_view->count; i++) {
-        const char *candidate =
-            llvm_hosted_domain_slot_view_name(slot_view, i);
-        if (candidate != NULL && strcmp(candidate, slot_name) == 0)
-            return llvm_hosted_domain_slot_view_type_name(slot_view, i);
-    }
-    return NULL;
-}
-
 void
 llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                                       LLVMClassTypeEntry *decl_cls,
@@ -50,8 +35,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                                       LLVMGenCtx *ctx)
 {
     const char *decl_name = NULL;
-    LLVMHostedDomainSlotView slot_view;
-    LLVMHostedZoneRefreshView refresh_view = {0};
+    LLVMDomainRuntimeProjectionView runtime_view;
 
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
@@ -62,24 +46,9 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         && stmt->type != AST_ZONE_DECL) {
         return;
     }
-    refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx, decl_name,
-        stmt);
-    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing domain refresh declaration metadata for '%s'",
-            decl_name != NULL ? decl_name : "(anonymous-domain)");
+    runtime_view = llvm_domain_runtime_projection_view(ctx, decl_name);
+    if (!runtime_view.valid || runtime_view.directive_count == 0)
         return;
-    }
-    if (refresh_view.count == 0)
-        return;
-
-    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
-    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing projection sync domain-slot metadata for '%s'",
-            decl_name != NULL ? decl_name : "(anonymous-domain)");
-        return;
-    }
 
     {
         LLVMValueRef pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
@@ -100,7 +69,9 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
 
-        for (size_t i = 0; i < refresh_view.count; i++) {
+        for (size_t i = 0; i < runtime_view.directive_count; i++) {
+            const PgyDomainProjectionMemberAssignmentFact *anchor =
+                llvm_domain_runtime_projection_anchor(&runtime_view, i);
             const char *target_slot_name = NULL;
             char field_name[256];
             int dirty_index;
@@ -109,17 +80,23 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             LLVMValueRef dirty_val;
             LLVMValueRef continue_val;
 
-            target_slot_name =
-                llvm_hosted_zone_refresh_view_object_slot_name(
-                    &refresh_view, i);
-            if (target_slot_name == NULL)
-                continue;
+            target_slot_name = anchor != NULL
+                ? anchor->projection_slot_name : NULL;
+            if (target_slot_name == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM domain projection runtime anchor is missing");
+                return;
+            }
             if (!llvm_projection_sync_field_name(field_name,
                     sizeof(field_name), "dirty", target_slot_name))
-                continue;
+                return;
             dirty_index = llvm_class_field_index(decl_cls, field_name);
-            if (dirty_index < 0)
-                continue;
+            if (dirty_index < 0) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM domain projection dirty field is missing for '%s.%s'",
+                    decl_name, target_slot_name);
+                return;
+            }
             self_ptr = LLVMGetParam(sync_fn, 0);
             dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                 self_ptr, (unsigned)dirty_index, llvm_tmp_name(ctx));
@@ -142,7 +119,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                 pass_addr, llvm_tmp_name(ctx));
             LLVMValueRef pass_limit = LLVMConstInt(ctx->type_i32,
                 (unsigned)pgy_domain_projection_frontier_pass_limit(
-                    refresh_view.count), 0);
+                    runtime_view.directive_count), 0);
             LLVMValueRef within_limit = LLVMBuildICmp(ctx->builder, LLVMIntULT,
                 pass_val, pass_limit, llvm_tmp_name(ctx));
             LLVMValueRef loop_cond = LLVMBuildAnd(ctx->builder, continue_val,
@@ -159,7 +136,11 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                 llvm_tmp_name(ctx)),
             pass_addr);
 
-        for (size_t i = 0; i < refresh_view.count; i++) {
+        for (size_t i = 0; i < runtime_view.directive_count; i++) {
+            const PgyDomainProjectionMemberAssignmentFact *anchor =
+                llvm_domain_runtime_projection_anchor(&runtime_view, i);
+            const MIRDeclField *target_slot;
+            const MIRDeclField *source_slot;
             LLVMClassTypeEntry *target_cls;
             LLVMClassTypeEntry *source_cls;
             int target_index;
@@ -172,21 +153,28 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             const char *target_type_name;
             const char *source_type_name;
 
-            target_slot_name =
-                llvm_hosted_zone_refresh_view_object_slot_name(
-                    &refresh_view, i);
-            source_slot_name =
-                llvm_hosted_zone_refresh_view_source_slot_name(
-                    &refresh_view, i);
-            if (target_slot_name == NULL || source_slot_name == NULL)
-                continue;
-
-            target_type_name = llvm_projection_sync_slot_type_name(
-                &slot_view, target_slot_name);
-            source_type_name = llvm_projection_sync_slot_type_name(
-                &slot_view, source_slot_name);
-            if (target_type_name == NULL || source_type_name == NULL)
-                continue;
+            if (anchor == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM domain projection runtime anchor is missing");
+                return;
+            }
+            target_slot_name = anchor->projection_slot_name;
+            source_slot_name = anchor->source_slot_name;
+            target_slot = llvm_domain_runtime_require_exact_field(ctx,
+                anchor->owner_name, anchor->projection_slot_syntax_id,
+                target_slot_name, NULL, "projection-sync-target-slot");
+            source_slot = llvm_domain_runtime_require_exact_field(ctx,
+                anchor->owner_name, anchor->source_slot_syntax_id,
+                source_slot_name, NULL, "projection-sync-source-slot");
+            if (target_slot == NULL || source_slot == NULL)
+                return;
+            target_type_name = llvm_mir_decl_field_type_name(target_slot);
+            source_type_name = llvm_mir_decl_field_type_name(source_slot);
+            if (target_type_name == NULL || source_type_name == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM domain projection runtime slot type is missing");
+                return;
+            }
 
             target_cls = llvm_lookup_class(ctx, target_type_name);
             source_cls = llvm_lookup_class(ctx, source_type_name);
@@ -196,16 +184,20 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                 char field_name[256];
                 if (!llvm_projection_sync_field_name(field_name,
                         sizeof(field_name), "dirty", target_slot_name))
-                    continue;
+                    return;
                 dirty_index = llvm_class_field_index(decl_cls, field_name);
                 if (!llvm_projection_sync_field_name(field_name,
                         sizeof(field_name), "ready", target_slot_name))
-                    continue;
+                    return;
                 ready_index = llvm_class_field_index(decl_cls, field_name);
             }
             if (target_cls == NULL || source_cls == NULL
-                || target_index < 0 || source_index < 0 || dirty_index < 0) {
-                continue;
+                || target_index < 0 || source_index < 0 || dirty_index < 0
+                || ready_index < 0) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM domain projection runtime layout is incomplete for '%s'",
+                    decl_name);
+                return;
             }
 
             self_ptr = LLVMGetParam(sync_fn, 0);
@@ -240,9 +232,9 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                     }
 
                     projected =
-                        llvm_build_domain_projection_value_from_zone_refresh_view(
+                        llvm_build_domain_projection_value_from_runtime_facts(
                             ctx, target_cls, source_cls, source_type_name,
-                            &refresh_view, i, source_ptr);
+                            &runtime_view, anchor, source_ptr);
                     if (projected == NULL || ctx->has_error)
                         return;
                     LLVMBuildStore(ctx->builder, projected, target_ptr);
@@ -259,42 +251,48 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                     llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
                         "projection", target_slot_name, PGY_PROP_CAUSE_REFRESH);
 
-                    for (size_t dep_i = 0; dep_i < refresh_view.count; dep_i++) {
+                    for (size_t dep_i = 0;
+                         dep_i < runtime_view.directive_count; dep_i++) {
+                        const PgyDomainProjectionMemberAssignmentFact
+                            *dependent = llvm_domain_runtime_projection_anchor(
+                                &runtime_view, dep_i);
                         const char *dependent_target_name = NULL;
-                        const char *dependent_source_name = NULL;
                         char dep_field_name[256];
                         int dep_dirty_index;
                         int dep_ready_index;
 
-                        dependent_target_name =
-                            llvm_hosted_zone_refresh_view_object_slot_name(
-                                &refresh_view, dep_i);
-                        dependent_source_name =
-                            llvm_hosted_zone_refresh_view_source_slot_name(
-                                &refresh_view, dep_i);
-                        if (dependent_target_name == NULL || dependent_source_name == NULL
-                            || strcmp(dependent_source_name, target_slot_name) != 0) {
+                        dependent_target_name = dependent != NULL
+                            ? dependent->projection_slot_name : NULL;
+                        if (dependent == NULL
+                            || dependent_target_name == NULL
+                            || dependent->source_slot_syntax_id
+                                != anchor->projection_slot_syntax_id) {
                             continue;
                         }
 
                         if (!llvm_projection_sync_field_name(dep_field_name,
                                 sizeof(dep_field_name), "dirty",
                                 dependent_target_name))
-                            continue;
+                            return;
                         dep_dirty_index = llvm_class_field_index(decl_cls, dep_field_name);
                         if (!llvm_projection_sync_field_name(dep_field_name,
                                 sizeof(dep_field_name), "ready",
                                 dependent_target_name))
-                            continue;
+                            return;
                         dep_ready_index = llvm_class_field_index(decl_cls, dep_field_name);
-                        if (dep_dirty_index >= 0) {
+                        if (dep_dirty_index < 0 || dep_ready_index < 0) {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "LLVM dependent domain projection layout is incomplete");
+                            return;
+                        }
+                        {
                             LLVMValueRef dep_dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
                                 decl_cls->struct_type, self_ptr, (unsigned)dep_dirty_index,
                                 llvm_tmp_name(ctx));
                             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
                                 dep_dirty_ptr);
                         }
-                        if (dep_ready_index >= 0) {
+                        {
                             LLVMValueRef dep_ready_ptr = LLVMBuildStructGEP2(ctx->builder,
                                 decl_cls->struct_type, self_ptr, (unsigned)dep_ready_index,
                                 llvm_tmp_name(ctx));

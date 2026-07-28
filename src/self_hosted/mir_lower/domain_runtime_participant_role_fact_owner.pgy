@@ -1,0 +1,200 @@
+// Typed admission owner for domain runtime participant-role rows.
+//
+// Participant role identity is joined once to the MIR declaration field
+// inventory.  Effect/relation cardinality and owner/name/id drift fail closed.
+
+import "json_fact_read.pgy";
+import "program_declaration_index_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct MirDomainParticipantRoleFacts {
+    let valid: Bool;
+    let program_syntax_ids: Array<String>;
+    let owner_syntax_ids: Array<String>;
+    let roles: Array<String>;
+    let field_syntax_ids: Array<String>;
+    let owner_names: Array<String>;
+    let field_names: Array<String>;
+    let field_type_names: Array<String>;
+}
+
+func EmptyMirDomainParticipantRoleFacts(valid: Bool
+) -> MirDomainParticipantRoleFacts {
+    let a0: Array<String> = [];
+    let a1: Array<String> = [];
+    let a2: Array<String> = [];
+    let a3: Array<String> = [];
+    let a4: Array<String> = [];
+    let a5: Array<String> = [];
+    let a6: Array<String> = [];
+    return MirDomainParticipantRoleFacts(
+        valid, a0, a1, a2, a3, a4, a5, a6
+    );
+}
+
+func MirDomainParticipantKnownRole(role: String) -> Bool {
+    return role == "effect-bearer" || role == "relation-source" ||
+        role == "relation-target";
+}
+
+func MirDomainParticipantRequiredString(
+    ref row: JsonObjectFactTable, field: String, inout values: Array<String>
+) -> Bool {
+    let value_opt: Option<String> = JsonObjectFactStringFieldOpt(row, field);
+    if !IsSome(value_opt) || StringLength(UnwrapOption(value_opt)) == 0 {
+        return false;
+    }
+    ArrayPush(values, UnwrapOption(value_opt));
+    return true;
+}
+
+func MirDomainParticipantRequiredId(
+    ref row: JsonObjectFactTable, field: String, inout values: Array<String>
+) -> Bool {
+    let value_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, field);
+    if !IsSome(value_opt) ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(value_opt)
+        ) {
+        return false;
+    }
+    ArrayPush(values, UnwrapOption(value_opt));
+    return true;
+}
+
+func MirDomainParticipantOwnerIdentityReady(
+    ref roles: MirDomainParticipantRoleFacts,
+    row: Int
+) -> Bool {
+    let prior: Int = 0;
+    while prior < row {
+        if roles.field_syntax_ids[prior] == roles.field_syntax_ids[row] ||
+            (roles.owner_names[prior] == roles.owner_names[row] &&
+             roles.owner_syntax_ids[prior] != roles.owner_syntax_ids[row]) ||
+            (roles.owner_names[prior] != roles.owner_names[row] &&
+             roles.owner_syntax_ids[prior] == roles.owner_syntax_ids[row]) ||
+            (roles.owner_syntax_ids[prior] == roles.owner_syntax_ids[row] &&
+             roles.roles[prior] == roles.roles[row]) {
+            return false;
+        }
+        prior = prior + 1;
+    }
+    return true;
+}
+
+func MirDomainParticipantRoleFactsFromTable(
+    ref rows: JsonArrayObjectFactTable,
+    ref declarations: MirProgramDeclarationIndex
+) -> MirDomainParticipantRoleFacts {
+    if !JsonArrayObjectFactTableReady(rows) || !declarations.valid ||
+        !declarations.field_identities.valid {
+        return EmptyMirDomainParticipantRoleFacts(false);
+    }
+    let program_ids: Array<String> = [];
+    let owner_ids: Array<String> = [];
+    let roles: Array<String> = [];
+    let field_ids: Array<String> = [];
+    let owner_names: Array<String> = [];
+    let field_names: Array<String> = [];
+    let field_types: Array<String> = [];
+    let row_index: Int = 0;
+    while row_index < JsonArrayObjectFactCount(rows) {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row_index);
+        if JsonObjectFactCount(row) != 7 ||
+            !MirDomainParticipantRequiredId(
+                row, "program_syntax_id", program_ids
+            ) || !MirDomainParticipantRequiredId(
+                row, "owner_syntax_id", owner_ids
+            ) || !MirDomainParticipantRequiredString(row, "role", roles) ||
+            !MirDomainParticipantRequiredId(
+                row, "field_syntax_id", field_ids
+            ) || !MirDomainParticipantRequiredString(
+                row, "owner_name", owner_names
+            ) || !MirDomainParticipantRequiredString(
+                row, "field_name", field_names
+            ) || !MirDomainParticipantRequiredString(
+                row, "field_type_name", field_types
+            ) {
+            return EmptyMirDomainParticipantRoleFacts(false);
+        }
+        if !MirDomainParticipantKnownRole(roles[row_index]) ||
+            (row_index > 0 && program_ids[row_index] != program_ids[0]) {
+            return EmptyMirDomainParticipantRoleFacts(false);
+        }
+        let owner_index: Int =
+            MirProgramDeclarationFieldIdentityDeclarationIndex(
+                declarations.field_identities, owner_names[row_index]
+            );
+        let field_index: Int =
+            MirProgramDeclarationFieldIdentityFieldIndex(
+                declarations.field_identities, owner_names[row_index],
+                field_names[row_index], field_ids[row_index]
+            );
+        if owner_index < 0 || field_index < 0 ||
+            declarations.field_identities.field_kinds[field_index] !=
+                NominalFieldKindSubjectSlot() ||
+            declarations.field_identities.field_type_names[field_index] !=
+                field_types[row_index] ||
+            ((declarations.field_identities.declaration_nominal_kinds[
+                    owner_index] == "effect") !=
+                (roles[row_index] == "effect-bearer")) ||
+            ((declarations.field_identities.declaration_nominal_kinds[
+                    owner_index] == "relation") !=
+                (roles[row_index] == "relation-source" ||
+                 roles[row_index] == "relation-target")) {
+            return EmptyMirDomainParticipantRoleFacts(false);
+        }
+        let current: MirDomainParticipantRoleFacts =
+            MirDomainParticipantRoleFacts(
+                true, program_ids, owner_ids, roles, field_ids,
+                owner_names, field_names, field_types
+            );
+        if !MirDomainParticipantOwnerIdentityReady(current, row_index) {
+            return EmptyMirDomainParticipantRoleFacts(false);
+        }
+        row_index = row_index + 1;
+    }
+    let declaration_row: Int = 0;
+    while declaration_row < ArrayLength(
+        declarations.field_identities.declaration_names
+    ) {
+        let nominal: String =
+            declarations.field_identities.declaration_nominal_kinds[
+                declaration_row];
+        if nominal == "effect" || nominal == "relation" {
+            let bearer_count: Int = 0;
+            let source_count: Int = 0;
+            let target_count: Int = 0;
+            let role_row: Int = 0;
+            while role_row < ArrayLength(roles) {
+                if owner_names[role_row] ==
+                    declarations.field_identities.declaration_names[
+                        declaration_row] {
+                    if roles[role_row] == "effect-bearer" {
+                        bearer_count = bearer_count + 1;
+                    }
+                    if roles[role_row] == "relation-source" {
+                        source_count = source_count + 1;
+                    }
+                    if roles[role_row] == "relation-target" {
+                        target_count = target_count + 1;
+                    }
+                }
+                role_row = role_row + 1;
+            }
+            if (nominal == "effect" &&
+                    (bearer_count != 1 || source_count != 0 ||
+                     target_count != 0)) ||
+                (nominal == "relation" &&
+                    (bearer_count != 0 || source_count != 1 ||
+                     target_count != 1)) {
+                return EmptyMirDomainParticipantRoleFacts(false);
+            }
+        }
+        declaration_row = declaration_row + 1;
+    }
+    return MirDomainParticipantRoleFacts(
+        true, program_ids, owner_ids, roles, field_ids,
+        owner_names, field_names, field_types
+    );
+}

@@ -17,6 +17,7 @@ size_t count_bindable_domain_slots(ASTNode **slots,
                                    size_t refresh_count);
 bool type_check_projection_contract(ASTNode **slots,
                                     size_t slot_count,
+                                    ASTNode *owner_decl,
                                     const char *owner_label,
                                     const char *owner_name,
                                     ASTNode *site,
@@ -26,6 +27,9 @@ bool type_check_projection_contract(ASTNode **slots,
                                     const char *action_name);
 bool type_check_projection_field_contracts(ASTNode *target_decl,
                                            ASTNode *source_decl,
+                                           ASTNode *owner_decl,
+                                           ASTNode *projection_slot,
+                                           ASTNode *source_slot,
                                            Type *target_type,
                                            Type *source_type,
                                            const char *owner_label,
@@ -35,6 +39,30 @@ bool type_check_projection_field_contracts(ASTNode *target_decl,
                                            const char *source_slot_name,
                                            SemanticContext *ctx,
                                            const char *action_name);
+bool semantic_collect_domain_participant_role_facts(
+    ASTNode *program,
+    SemanticContext *ctx);
+ASTNode *semantic_domain_participant_role_slot(
+    SemanticContext *ctx,
+    ASTNode *owner_decl,
+    PgyDomainParticipantRole role,
+    ASTNode *site);
+bool semantic_record_domain_projection_member_assignment(
+    SemanticContext *ctx,
+    ASTNode *owner_decl,
+    ASTNode *directive,
+    ASTNode *projection_slot,
+    ASTNode *source_slot,
+    ASTNode *target_decl,
+    uint32_t target_field_syntax_id,
+    const char *target_field_name,
+    Type *target_field_type,
+    ASTNode *source_decl,
+    bool explicit_map,
+    const char *source_path,
+    Type *source_leaf_type,
+    PgyDomainProjectionPathSegmentFact *source_path_segments,
+    size_t source_path_segment_count);
 bool type_check_overlay_decl_common(ASTNode *node,
                                     SemanticContext *ctx,
                                     const char *name,

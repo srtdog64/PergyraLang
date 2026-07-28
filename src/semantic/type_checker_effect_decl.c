@@ -37,7 +37,7 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         const char *action_name =
             ast_zone_refresh_derives_target_kind(refresh) ? "bind"
             : (ast_zone_refresh_requires_dto(refresh) ? "publish" : "refresh");
-        ok = type_check_projection_contract(slots, slot_count, "Effect",
+        ok = type_check_projection_contract(slots, slot_count, node, "Effect",
             ast_effect_name(node), refresh,
             ast_zone_refresh_object_slot_name(refresh),
             ast_zone_refresh_source_slot_name(refresh), ctx,

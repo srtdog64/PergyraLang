@@ -2,7 +2,7 @@
 
 Status: `post-beta-engineering-reference`
 
-Last updated: 2026-05-12
+Last updated: 2026-07-28
 
 Related documents:
 
@@ -337,3 +337,46 @@ a closed improvement. Parser 188/188 and semantic 111/111 expected artifacts
 match under both C and LLVM; C- and LLVM-built integrated drivers emit the same
 MIR-lower C artifact. `self-host-source-scan-owner-test-smoke` hashes the owner
 set and rejects allocation-returning reads in these hot regions.
+
+### 8.1 Troubleshooting: repeated whole-graph validation
+
+The multi-GiB self-host symptom was not evidence that a compiler of this size
+intrinsically needs tens of gigabytes. One production writer accepted an
+already verified `SelfMirProgramFacts` value and reopened the complete graph
+validator before serialization. The caller had already sealed the same graph,
+so the second walk repeated allocation-heavy validation over the integrated
+program. The fix was an ownership correction: the production path validates
+once at the artifact boundary and passes the verified value to
+`SelfMirProgramJsonWriteArtifactVerified`; the raw compatibility entrypoint
+keeps exactly one validation because it accepts untrusted facts.
+
+Use this diagnosis order when peak memory suddenly approaches the 3 GiB gate
+or appears to multiply across a run:
+
+1. Check whether the same graph or document is admitted more than once along
+   one call chain. A consumer of a verified value must use local bounds checks,
+   not reopen the whole validator.
+2. Check the process tree, not only one PID. Multiple Codex workers launching
+   the same full `make` or bootstrap concurrently add their private peaks; this
+   is orchestration overlap, not one compiler process consuming the sum.
+3. Reproduce with one focused fixture and one build owner. Record peak working
+   set/private bytes per process, elapsed time, input size, output hash, and the
+   exact revision.
+4. Do not raise the memory ceiling to hide either case. Add a negative/static
+   gate that forbids the repeated validator call or the duplicate full-build
+   orchestration path, then rerun under the unchanged limit.
+
+This incident is distinct from normal oracle cost. Native/self and C/LLVM
+parity may legitimately run separate bounded lanes, but each lane must admit
+its program-global graph once and hand downstream consumers a typed receipt or
+plan. Revalidating that entire graph in every accessor, writer, or backend is a
+source-of-truth lifetime bug.
+
+On Windows/MSYS2, also separate a toolchain-launch failure from an OOM. An
+observed `make` invocation started `/ucrt64/bin/gcc` but its child `cc1.exe`
+could not load the UCRT64 runtime because `/ucrt64/bin` was absent from the
+shell `PATH`; the parent returned failure without a compiler diagnostic. The
+same integrated build completed with the UCRT64 bin directory prepended to
+`PATH`. Check the child toolchain environment and exit code before attributing
+a silent compiler exit to memory pressure. This observation does not provide a
+new peak-memory measurement; use the process-tree procedure above for that.

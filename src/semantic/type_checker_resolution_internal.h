@@ -161,10 +161,18 @@ ASTNode *semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
                                                          const char *slot_name,
                                                          SemanticContext *ctx);
 int semantic_resolve_projection_source_field_path(SemanticContext *ctx,
-                                                  ASTNode *source_decl,
-                                                  const char *field_name,
-                                                  const char **path_out,
-                                                  Type **field_type_out);
+                                                   ASTNode *source_decl,
+                                                   const char *field_name,
+                                                   const char **path_out,
+                                                   Type **field_type_out);
+int semantic_resolve_projection_source_field_path_with_segments(
+    SemanticContext *ctx,
+    ASTNode *source_decl,
+    const char *field_name,
+    const char **path_out,
+    Type **field_type_out,
+    PgyDomainProjectionPathSegmentFact **segments_out,
+    size_t *segment_count_out);
 void semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
                                                          SemanticContext *ctx);
 void semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,

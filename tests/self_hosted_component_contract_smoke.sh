@@ -336,6 +336,20 @@ require_file "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pg
 require_max_lines "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
+for domain_runtime_owner in \
+    "src/self_hosted/mir_lower/domain_runtime_participant_role_fact_owner.pgy" \
+    "src/self_hosted/mir_lower/domain_runtime_assignment_fact_owner.pgy" \
+    "src/self_hosted/mir_lower/domain_runtime_plan_owner.pgy" \
+    "src/self_hosted/codegen/input/domain_runtime_codegen_view_owner.pgy" \
+    "src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy"; do
+    require_file "$domain_runtime_owner"
+    require_max_lines "$domain_runtime_owner" 600
+    require_text "src/self_hosted/OWNERS.md" "$domain_runtime_owner"
+done
+require_file "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh" 360
+require_text "Makefile" "self-host-domain-runtime-assignment-test-smoke"
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -530,6 +544,9 @@ for mir_producer_owner in \
     match_json_projection_owner.pgy \
     destructure_type_fact_owner.pgy \
     destructure_type_json_projection_owner.pgy \
+    domain_runtime_assignment_fact_owner.pgy \
+    domain_runtime_assignment_verify_owner.pgy \
+    domain_runtime_assignment_json_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy \
     instruction_json_artifact_writer_owner.pgy \
@@ -4487,6 +4504,10 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'mir_fixture_bases=()'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'mir_fixture_rows_by_base=()'
+reject_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'declare -A mir_fixture_row_by_base=()'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'MIR fixture base is empty or duplicated'

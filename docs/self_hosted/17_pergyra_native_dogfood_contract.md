@@ -63,8 +63,8 @@ composition boundary다. 다만 현재 호출되는 world/zone/subject/action은
 경로의 각 하나뿐이다. `world.pgy`의 기존 readiness action과 intent, 나머지
 18개 zone은 import-reachable surface이지만 production call site가 없다.
 
-재귀 import 감사에서 bootstrap closure는 450개 파일이고 missing import는
-0이다. 그 import-reachable 집합의 선언은 `func` 3,617개, `struct` 179개,
+재귀 import 감사에서 bootstrap closure는 477개 파일이고 missing import는
+0이다. 그 import-reachable 집합의 선언은 `func` 3,800개, `struct` 204개,
 `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개,
 `zone` 19개, `world` 1개, `intent` 14개, `role` 4개, `ability` 4개다.
 `class`/`vessel`/`effect`/`relation`/`party`/`roster`는 0개다. 이 수치는
@@ -77,7 +77,14 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload까지 소비된다. failure는 생성되지만 caller는 tag만 소비하고 payload는 버린다 |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
-| `effect`, `relation` | `SURFACE` | focused fixture와 syntax surface뿐이며 bootstrap closure 선언/production call은 0; field-kind carriage도 hard substitution 증거가 아님 |
+| `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
+
+이 표의 grade는 **self-host 컴파일러를 어떤 Pergyra 구성체로 조직했는가**를
+평가한다. 컴파일러가 입력 프로그램의 `effect`/`relation`을 정확히 구현했다는
+기능 대체 증거와 섞지 않는다. 현재 general C bridge는 Pergyra `func` owner이며
+production source 경로에서 실제 C-owned 결정을 대체하지만, 그 사실만으로
+self-host compiler 내부에 호출되는 `effect`/`relation` action graph가 생기지는
+않는다.
 
 production declaration과 composition은 다음처럼 나뉜다.
 
@@ -115,9 +122,13 @@ semantic compile 성공 역시 production call-site나 대체 증거를 대신�
    field-kind registry projection drift와 required effect participant 손실은
    fail closed한다. Stable declaration-field identity, relation declaration,
    non-empty canonical topology remap, self producer와 graph plan도 이후 좁게
-   닫혔다. 그러나 pool capacity, projection member map, layer destination role,
-   receiver carriage, zone state/lifecycle operation과 effect/relation runtime ABI는
-   RED이므로 이 성공을 runtime action 대체로 올려 기록하지 않는다.
+   닫혔다. Exact effect bearer/relation source·target destination role,
+   projection member/path와 callable receiver carriage도 이제 semantic ->
+   HIR/DIR/MIR -> self admission -> general C의 좁은 실행 slice에서 닫혔다.
+   그러나 explicit projection map, declaration-level identity join, pool capacity,
+   zone state/dirty/epoch/lifecycle operation, 그리고 native C/LLVM과 self가 함께
+   소비하는 단일 runtime plan은 열려 있다. 따라서 이 성공을 전체 runtime
+   action 폐쇄로 올려 기록하지 않는다.
 2. **Call binding**: 현재 C/LLVM hook은 direct world -> zone -> subject
    receiver와 `authorized by self` 단일 항목만 exact zone authority slot에
    결속한다. named participant, 복수 authority, indirect/direct-subject receiver의
@@ -152,14 +163,15 @@ native/self contract parity와 missing `within`, unknown zone, non-subject owner
 action-as-function, empty explicit caps/effects를 backend output 전에 거부한다.
 clause를 건너뛰어 `Body:`를 찾는 fallback은 없다.
 
-이 작업은 기존 production action을 정확히 운반하는 supporting semantic seam이며
-C-owned compiler path를 새로 대체하지 않는다. Callable contract vocabulary는
-이미 닫혔고, 현재 인접 blocker는 domain runtime assignment/receiver ABI와
-production source-mode action의 직접 우회다. 따라서 direct-MIR
-world/zone/subject/action은 계속 `REACHABLE`, not `SUBSTITUTING`이고 effect/relation은
-`SURFACE`다. Source-to-MIR을 `SUBSTITUTING`으로 올리려면 production entrypoint가
-새 action을 실제 호출하는 변경과 같은 rung에서 `Main -> CompileSourceTo*`
-직접 우회를 삭제하고 실행/parity/negative gate를 통과해야 한다.
+ActionContract carriage 자체는 기존 production action을 정확히 운반하는 supporting
+semantic seam이며 C-owned compiler path를 새로 대체하지 않는다. Callable contract
+vocabulary는 이미 닫혔고, domain runtime assignment/receiver의 첫 실행 slice도
+별도 `func` owner 경로에서 닫혔다. 그러나 production source mode의
+`Main -> CompileSourceTo*` 직접 호출은 아직 새 subject action으로 이주하지 않았다.
+따라서 direct-MIR world/zone/subject/action은 계속 `REACHABLE`, not
+`SUBSTITUTING`이다. Source-mode action을 `SUBSTITUTING`으로 올리려면 production
+entrypoint가 새 action을 실제 호출하는 변경과 같은 rung에서 그 직접 우회를
+삭제하고 실행/parity/negative gate를 통과해야 한다.
 
 `struct` hosted-func negative, 호출별 authority binding, runtime identity/token과
 ability authorization은 declaration carriage와 별도인 열린 fact family다.
@@ -421,7 +433,7 @@ typed atomic commit/rejected outcome 범위**는 현재 source에서 달성됐�
 `PgyCompilerWorld`는 direct-MIR slice의 실제 bootstrap composition root이지
 runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 
-## 다음 실행 rung objective card
+## 완료된 domain runtime assignment 실행 rung objective card
 
 - Objective: self-produced `zone_layer_projection_runtime` MIR에서 한 exact
   target-neutral runtime assignment plan을 만들고 self C 실행이 `7`/`dst`를
@@ -429,21 +441,57 @@ runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 - Priority: projection member path와 type; effect bearer/relation source·target
   destination role; receiver carriage; layer materialization/sync; missing-fact
   fail-closed; 그 뒤에 source -> MIR의 두 번째 실제 action 확장.
-- Fact owner: DIR `domain_runtime_assignments`가 directive, zone/layer/endpoint와
-  destination/source field path의 exact ID/type를 소유하고 MIR은 lossless하게
-  운반한다. C/LLVM은 admitted plan operation만 투영한다.
+- Fact owner: semantic `domain_runtime_assignments`가 directive,
+  zone/layer/endpoint와 destination/source field path의 exact ID/type를 소유하고
+  HIR/DIR/MIR은 lossless하게 운반한다. Self machine admission은 topology와 이
+  fact를 한 번 join한 plan receipt를 만들며 의미를 재소유하지 않는다.
 - Forbidden fallback: source/AST 재탐색, same-name member join, bindable slot 0/1
   ordinal, native MIR graft, zero-filled layer storage, by-value zone receiver,
   출력 문자열만 맞춘 fixture special case.
 - Falsifying case: member ID/type 또는 relation destination role 하나를 바꿔도
   artifact가 생성되거나, self C가 `.poison`/`.trust` zero storage를 읽거나,
   zone method가 by-value receiver로 방출되는 경우.
-- Blocker/unknown: self parser가 projection `map { ... }` body를 현재 typed
-  artifact에 보존하지 않으며 MIR wire에는 layer destination-role identity가 없다.
-  이 두 fact를 먼저 생산해야 runtime plan을 만들 수 있다.
+- Gate: `tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh`가
+  direct source와 explicit MIR의 byte-equal C, exact 5개 prologue assignment,
+  `7`/`dst` 실행과 missing/duplicate/foreign role·member·directive·epoch 변조의
+  output-before-failure를 함께 고정한다.
+- Observed result: native C, native LLVM, self explicit-MIR C와 production self
+  direct-source C가 모두 `7`과 `dst`를 출력했다. Self plan은 admission에서 한
+  번만 전체 검증되고 owner lookup은 local bounds/shape만 검사한다.
 
-전체 상태는 `BRIDGE`로 유지한다. direct-MIR 경계는 `REACHABLE`이며
-`SUBSTITUTING`이 아니다.
+이 좁은 implicit-map eager method-entry bind/sync 경로는 실제 C-owned 결정을
+대체하므로 `SUBSTITUTING`이다. 전체 상태는 `BRIDGE`로 유지한다. Native C/LLVM은
+같은 semantic fact family를 소비하지만 self와 하나의 shared runtime plan을
+소비하지 않고, self parser는 explicit `map { ... }` body를 아직 typed artifact에
+보존하지 않으며 declaration row에는 declaration-level `source_syntax_id`가 없다.
+Dirty/epoch와 detach/unlink/state lifecycle도 아직 scheduler fact가 아니다.
+
+## 다음 실행 rung objective card
+
+- Objective: `world_zone_projection_visibility`의 explicit `map { target <- source }`
+  두 개를 self source artifact와 MIR에 lossless하게 보존하고, renamed member와
+  semantic assignability를 exact path fact로 admit해 production self C가 native
+  C/LLVM과 같은 결과를 실행하게 한다.
+- Priority: explicit-map syntax identity; target/source path와 assignability;
+  declaration-level source identity; 기존 implicit-map owner 재사용; direct-source
+  실행과 mutation negative; 그 뒤 lifecycle/dirty/epoch 통합.
+- Fact owner: parser는 map syntax node를 보존하고 semantic
+  `DomainProjectionMemberAssignment`가 implicit/explicit 모두의 최종 exact
+  assignment를 소유한다. MIR과 self admission은 carrier/receipt일 뿐이다.
+- Forbidden fallback: explicit map을 implicit same-name으로 접기, member 이름만
+  운반하기, target/source type 문자열 equality로 semantic assignability를 다시
+  판정하기, native MIR graft, backend AST/source 재탐색, 기존 implicit fixture만
+  반복 실행하기.
+- Falsifying case: `label <- displayName` 또는 `user <- displayName` 중 한 source
+  field ID/path를 같은 문서의 다른 유효 ID로 바꿨는데도 artifact가 생기거나,
+  explicit map을 제거해도 same-name fallback으로 성공하는 경우.
+- Gate: direct source -> self MIR -> admission -> general C와 native C/LLVM의 실행
+  parity, exact renamed assignment rows, missing/duplicate/foreign path 및
+  assignability mutation, 그리고 partial artifact 부재를 한 focused gate에 둔다.
+
+Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
+rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을
+subject/action으로 이주하는 작업은 그 뒤 별도 executable rung으로 유지한다.
 
 ## 세션 메모리와 handoff 규칙
 

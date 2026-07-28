@@ -9,7 +9,7 @@ Updated: 2026-07-28 (Asia/Seoul)
 ## 1. 현재 어휘 권위
 
 - SoT는 `src/lexer/language_keyword_registry.def` 하나다.
-- 현재 registry는 145행이며 `RESERVED 71`, `CONTEXTUAL 71`, `SOFT 3`이다.
+- 현재 registry는 144행이며 `RESERVED 70`, `CONTEXTUAL 71`, `SOFT 3`이다.
 - 전체 단어와 axis 목록은 `docs/199_language_word_and_dogfood_grammar.md` 1.3,
   행별 parser/tooling 증거는 생성물
   `docs/semantics/language_word_implementation_inventory.generated.md`가 보여 준다.
@@ -25,7 +25,7 @@ Updated: 2026-07-28 (Asia/Seoul)
 | native + typed self-host selector | 80 |
 | native + self-host direct-string selector only | 18 |
 | native selector only | 46 |
-| parser selector 없음 | 1 (`channel`) |
+| parser selector 없음 | 0 |
 
 Typed selector가 있어도 direct-string selector는 34개 단어에 37회 남아 있다.
 이 수치는 migration debt이며, fixture 수나 support bit로 숨기지 않는다.
@@ -42,9 +42,9 @@ best practice는 `docs/200_object_to_action_boundary_patterns.md`가 소유한�
 | `vessel` | reserved | native + typed self-host | subject-owned pointer-self state/resource | production declaration 0, `SURFACE` |
 | `subject` | reserved | native + typed self-host | 복제 불가능한 결정·승인 identity | direct-MIR 한 slice가 `REACHABLE` |
 | `action` | contextual | native + typed self-host | subject가 소유하는 관측 가능한 transition | direct-MIR 한 action이 `REACHABLE` |
-| `effect` | reserved | native + typed self-host | participant에 적용·유지되는 typed layer | `refresh` row producer는 `SUBSTITUTING`; apply/runtime materialization은 열림 |
-| `relation` | reserved | native + typed self-host | 두 participant identity 사이의 materialized edge | `publish`/`link` row producer는 `SUBSTITUTING`; runtime materialization은 열림 |
-| `zone` | reserved | native + typed self-host | membership, authority, lifetime, topology frontier | direct-MIR zone과 ID-keyed plan은 `REACHABLE`; non-empty DIR producer slice는 `SUBSTITUTING` |
+| `effect` | reserved | native + typed self-host | participant에 적용·유지되는 typed layer | exact bearer + refresh member/path + self eager bind/sync 실행은 좁은 `SUBSTITUTING`; full lifecycle은 열림 |
+| `relation` | reserved | native + typed self-host | 두 participant identity 사이의 materialized edge | exact source/target + publish member/path + self eager bind/sync 실행은 좁은 `SUBSTITUTING`; unlink/epoch은 열림 |
+| `zone` | reserved | native + typed self-host | membership, authority, lifetime, topology frontier | direct source→self MIR→plan→general C의 `7`/`dst`는 `SUBSTITUTING`; 전체 lifecycle/authority는 `BRIDGE` |
 | `intent` | reserved | typed selector와 direct-selector debt 공존 | 여러 실제 action의 성공·실패·보상 protocol | production call 없음, `SURFACE` |
 | `world` | reserved | native + typed self-host | 여러 실제 zone을 묶는 하나의 composition root | direct-MIR 한 composition이 `REACHABLE` |
 
@@ -57,8 +57,8 @@ best practice는 `docs/200_object_to_action_boundary_patterns.md`가 소유한�
 
 | family | words | 현재 self-host selector 상태 | 폐쇄 조건 |
 | --- | --- | --- | --- |
-| projection | `refresh`, `publish`, `bind`, `from` | typed selector와 exact object/tobject slot join 존재 | `bind` 일반화와 runtime materialization; refresh→tobject/publish→object는 이미 fail closed |
-| layer transition | `apply`, `link`, `between`, `to` | `link` typed row, `apply` exact-field validation 존재 | apply row carriage와 effect/relation storage·sync runtime operation fact |
+| projection | `refresh`, `publish`, `bind`, `from` | implicit refresh/publish가 exact member/path ID/type로 self/native MIR과 runtime consumer까지 도달 | explicit self `map` 보존·assignability parity와 `bind` 일반화 |
+| layer transition | `apply`, `link`, `between`, `to` | apply/link topology와 exact bearer/source/target bind가 self/native runtime path에서 실행 | transition cause·dirty/epoch·unlink/detach와 shared native/self plan |
 | 열린 layer transition | `maintain`, `detach`, `unlink` | native-only | self-host typed parser/semantic/DIR/MIR/runtime와 negative gate |
 | authority | `authority`, `authorized`, `by`, `within`, `causes` | typed selector 존재하나 일부 direct debt 잔존 | declaration contract, call binding, runtime identity/ability evidence를 분리해 폐쇄 |
 | intent step | `step`, `using`, `who`, `expect`, `success`, `failure` | typed와 direct-only가 혼재 | explicit owner fact와 production intent call, consumed outcome |
@@ -98,13 +98,15 @@ highlight, fixture occurrence, import count, readiness `Bool`은 이 등급을 �
 3. 완료(`REACHABLE`): 한 ID-keyed graph plan이 admission에서 한 번 검증되고 C/LLVM에
    exact `nodes=3 edges=2 depth=2 pass_limit=2`, `trust <- player`,
    `trust <- enemy`를 투영한다. 이 trace는 runtime state materialization 증거가 아니다.
-4. 다음: 별도 `domain_runtime_assignments` owner가 effect bearer/relation endpoint
-   destination role, projection member exact path와 type, receiver carriage를 join한 뒤
-   `.poison`/`.trust` storage와 refresh/publish sync를 materialize해야 `7`/`dst`
-   runtime gate를 닫을 수 있다. Same-name/ordinal 추론, generic zero-fill과 native
-   graft는 금지다.
-5. 그 다음 state/layout/sync operation, `maintain`/`detach`/`unlink`를 각각 별도
-   fact와 falsifying fixture로 닫는다.
+4. 완료(좁은 `SUBSTITUTING`): `domain_runtime_assignments`가 bearer/source/target과
+   implicit member/path를 exact ID/type로 운반하고 self admission이 한 번 만든
+   target-neutral plan으로 direct source와 explicit MIR entrypoint가 byte-equal C를
+   생성해 `7`/`dst`를 실행한다. Native C/LLVM도 같은 MIR fact family로 같은 결과를
+   내며 same-name/ordinal/zero-fill runtime fallback은 fixture 경로에서 삭제됐다.
+5. 다음: explicit self `map`과 assignability parity, declaration-level source ID,
+   state/layout/dirty/epoch/lifecycle shared plan, `maintain`/`detach`/`unlink`를 각각
+   별도 falsifying fixture로 닫는다. 일반 projection builtin과 LLVM world-effect의
+   이름/ordinal bridge도 이때 ratchet한다.
 6. 실제 production action이 둘 이상 연결되기 전에는 root `intent`를 실행 진척으로
    세지 않는다.
 

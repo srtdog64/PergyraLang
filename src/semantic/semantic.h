@@ -24,6 +24,7 @@
 #include "destructure_type_fact.h"
 #include "match_binding_type_fact.h"
 #include "region_escape_fact.h"
+#include "domain_runtime_fact.h"
 #include "type_system.h"
 
 /*
@@ -86,6 +87,16 @@ typedef struct SemanticResult
      * stable rows into the verified plan; it must not rescan the AST. */
     PgyRegionEscapeFact *region_escape_facts;
     size_t               region_escape_fact_count;
+    /* Exact semantic domain runtime facts.  The capacities are transferred
+     * with the owning arrays so teardown remains symmetric even for a failed
+     * analysis that produced only a prefix before reporting an error. */
+    PgyDomainParticipantRoleFact *domain_participant_role_facts;
+    size_t       domain_participant_role_fact_count;
+    size_t       domain_participant_role_fact_capacity;
+    PgyDomainProjectionMemberAssignmentFact
+                *domain_projection_member_assignment_facts;
+    size_t       domain_projection_member_assignment_fact_count;
+    size_t       domain_projection_member_assignment_fact_capacity;
     /* Owns every Type this analysis allocated (WO-SEC-2). Borrowed Type*
      * held by symbols, IRs, or the backend stay valid until this result is
      * destroyed, which the driver does last. */

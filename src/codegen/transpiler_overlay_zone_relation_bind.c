@@ -10,6 +10,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_domain_provenance_emit.h"
 #include "transpiler_overlay_zone_bind.h"
 #include "transpiler_projection.h"
 
@@ -26,6 +27,8 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     const char *relation_type_name;
     const char *left_binding_name;
     const char *right_binding_name;
+    const PgyDomainParticipantRoleFact *source_fact;
+    const PgyDomainParticipantRoleFact *target_fact;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
@@ -65,13 +68,15 @@ emit_zone_bind_relation_layer(CodeBuf *out,
             relation_name);
         return;
     }
-    left_binding_name = transpiler_domain_slot_view_bindable_name(
-        &relation_slot_view, 0);
-    right_binding_name = transpiler_domain_slot_view_bindable_name(
-        &relation_slot_view, 1);
-    if (left_binding_name == NULL || right_binding_name == NULL) {
+    source_fact = transpiler_require_domain_participant_role_fact(
+        ctx, relation_name, PGY_DOMAIN_PARTICIPANT_RELATION_SOURCE);
+    target_fact = transpiler_require_domain_participant_role_fact(
+        ctx, relation_name, PGY_DOMAIN_PARTICIPANT_RELATION_TARGET);
+    if (source_fact == NULL || target_fact == NULL) {
         return;
     }
+    left_binding_name = source_fact->field_name;
+    right_binding_name = target_fact->field_name;
 
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",

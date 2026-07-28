@@ -109,7 +109,7 @@ grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_
     || { echo "[build-pressure-contract] initializer pressure stages are not observable" >&2; exit 1; }
 grep -Fq '"--pressure-owned-full-fixpoint"' "$DRIVER_BOOTSTRAP" \
     || { echo "[build-pressure-contract] full driver runner lacks the pressure-owned token" >&2; exit 1; }
-grep -Fq '*/Git/usr/bin/bash.exe)' "$DRIVER_PARITY" \
+grep -Fq '*"/Git/"*"/bash.exe")' "$DRIVER_PARITY" \
     || { echo "[build-pressure-contract] full DRV-2 matrix lacks the Git Bash orphan guard" >&2; exit 1; }
 grep -Fq 'full matrix requires MSYS2 bash' "$DRIVER_PARITY" \
     || { echo "[build-pressure-contract] full DRV-2 matrix shell diagnostic drifted" >&2; exit 1; }

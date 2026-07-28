@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_domain_runtime_facts.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "parser/ast_api.h"
@@ -79,34 +80,6 @@ llvm_stmt_zone_subject_slot_type_name(LLVMGenCtx *ctx,
     return NULL;
 }
 
-static const char *
-llvm_stmt_first_effect_subject_slot_name(LLVMGenCtx *ctx,
-                                         ASTNode *effect_decl)
-{
-    const char *effect_name;
-    LLVMHostedDomainSlotView slot_view;
-
-    if (ctx == NULL || effect_decl == NULL
-        || effect_decl->type != AST_EFFECT_DECL) {
-        return NULL;
-    }
-
-    effect_name = llvm_decl_node_name(effect_decl);
-    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, effect_name,
-        effect_decl);
-    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone action effect target-slot metadata");
-        return NULL;
-    }
-
-    for (size_t i = 0; i < slot_view.count; i++) {
-        if (llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i))
-            return llvm_hosted_domain_slot_view_name(&slot_view, i);
-    }
-    return NULL;
-}
-
 static bool
 llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
                                         const char **slot_name_out,
@@ -165,7 +138,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     LLVMVarEntry self_var;
     LLVMValueRef self_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
-    LLVMHostedZoneRefreshView refresh_view;
+    LLVMDomainRuntimeProjectionView projection_view;
+    const PgyDomainParticipantRoleFact *bearer_role;
     const char *subject_slot_name = NULL;
     const char *method_name;
     const char *receiver_slot_name = NULL;
@@ -249,18 +223,14 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             "MIR-only LLVM path missing zone layer-slot metadata for zone action emission");
         return;
     }
-    subject_slot_name = llvm_stmt_first_effect_subject_slot_name(ctx,
-        effect_decl);
-    if (subject_slot_name == NULL)
+    bearer_role = llvm_domain_runtime_require_participant_role(ctx,
+        effect_name, PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER);
+    projection_view = llvm_domain_runtime_projection_view(ctx, effect_name);
+    subject_slot_name = bearer_role != NULL
+        ? bearer_role->field_name : NULL;
+    if (bearer_role == NULL || !projection_view.valid
+        || subject_slot_name == NULL)
         return;
-    refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx, effect_name,
-        effect_decl);
-    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone action effect refresh metadata for '%s'",
-            effect_name != NULL ? effect_name : "(anonymous-effect)");
-        return;
-    }
 
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name;
@@ -319,22 +289,20 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                 layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, target_value, subject_ptr);
         }
-        for (size_t ri = 0; ri < refresh_view.count; ri++) {
+        for (size_t ri = 0; ri < projection_view.directive_count; ri++) {
+            const PgyDomainProjectionMemberAssignmentFact *projection =
+                llvm_domain_runtime_projection_anchor(&projection_view, ri);
             const char *projection_name;
-            const char *source_name;
             char dirty_field[256];
             char ready_field[256];
             int dirty_idx;
             int ready_idx;
 
-            projection_name =
-                llvm_hosted_zone_refresh_view_object_slot_name(
-                    &refresh_view, ri);
-            source_name =
-                llvm_hosted_zone_refresh_view_source_slot_name(
-                    &refresh_view, ri);
-            if (projection_name == NULL || source_name == NULL
-                || strcmp(source_name, subject_slot_name) != 0) {
+            projection_name = projection != NULL
+                ? projection->projection_slot_name : NULL;
+            if (projection == NULL || projection_name == NULL
+                || projection->source_slot_syntax_id
+                    != bearer_role->field_syntax_id) {
                 continue;
             }
 

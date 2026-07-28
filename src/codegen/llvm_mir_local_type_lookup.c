@@ -141,7 +141,8 @@ llvm_mir_local_array_access_type(const MIRRoutine *routine,
     LLVMTypeRef type;
 
     if (routine == NULL || ctx == NULL || expr == NULL
-        || expr->type != AST_ARRAY_ACCESS || !llvm_active_has_mir(ctx)) {
+        || expr->type != AST_ARRAY_ACCESS
+        || llvm_active_mir_identity(ctx) == NULL) {
         return NULL;
     }
     type_name = mir_source_local_expr_type_name(

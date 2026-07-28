@@ -1,0 +1,153 @@
+// Lossless pgy.mir.v1 projection of semantic domain runtime assignments.
+
+import "domain_runtime_assignment_verify_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirDomainParticipantRoleJsonRow(
+    facts: SelfMirDomainRuntimeAssignmentFacts,
+    row: Int
+) -> String {
+    let roles: SelfMirDomainParticipantRoleFacts = facts.participant_roles;
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "program_syntax_id", ToString(facts.program_source_syntax_id)
+        ),
+        JsonEmitFieldNumber(
+            "owner_syntax_id", ToString(roles.owner_source_syntax_ids[row])
+        ),
+        JsonEmitFieldString("role", roles.roles[row]),
+        JsonEmitFieldNumber(
+            "field_syntax_id", ToString(roles.field_source_syntax_ids[row])
+        ),
+        JsonEmitFieldString("owner_name", roles.owner_names[row]),
+        JsonEmitFieldString("field_name", roles.field_names[row]),
+        JsonEmitFieldString("field_type_name", roles.field_type_names[row])
+    ]);
+}
+
+func SelfMirDomainProjectionPathSegmentsJson(
+    ref projections: SelfMirDomainProjectionMemberAssignmentFacts,
+    assignment_row: Int
+) -> String {
+    let rows: Array<String> = [];
+    let start: Int = projections.source_path_segment_starts[assignment_row];
+    let count: Int = projections.source_path_segment_counts[assignment_row];
+    let offset: Int = 0;
+    while offset < count {
+        let row: Int = start + offset;
+        ArrayPush(rows, JsonEmitObject([
+            JsonEmitFieldNumber(
+                "field_syntax_id",
+                ToString(
+                    projections.source_path_segment_source_syntax_ids[row]
+                )
+            ),
+            JsonEmitFieldString(
+                "field_name", projections.source_path_segment_names[row]
+            ),
+            JsonEmitFieldString(
+                "field_type_name",
+                projections.source_path_segment_type_names[row]
+            )
+        ]));
+        offset = offset + 1;
+    }
+    return JsonEmitArray(rows);
+}
+
+func SelfMirDomainProjectionMemberJsonRow(
+    facts: SelfMirDomainRuntimeAssignmentFacts,
+    row: Int
+) -> String {
+    let projections: SelfMirDomainProjectionMemberAssignmentFacts =
+        facts.projection_members;
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "program_syntax_id", ToString(facts.program_source_syntax_id)
+        ),
+        JsonEmitFieldNumber(
+            "owner_syntax_id",
+            ToString(projections.owner_source_syntax_ids[row])
+        ),
+        JsonEmitFieldNumber(
+            "directive_syntax_id",
+            ToString(projections.directive_source_syntax_ids[row])
+        ),
+        JsonEmitFieldString("operation", projections.operations[row]),
+        JsonEmitFieldNumber(
+            "projection_slot_syntax_id",
+            ToString(projections.projection_slot_source_syntax_ids[row])
+        ),
+        JsonEmitFieldNumber(
+            "source_slot_syntax_id",
+            ToString(projections.source_slot_source_syntax_ids[row])
+        ),
+        JsonEmitFieldNumber(
+            "target_decl_syntax_id",
+            ToString(projections.target_declaration_source_syntax_ids[row])
+        ),
+        JsonEmitFieldNumber(
+            "target_field_syntax_id",
+            ToString(projections.target_field_source_syntax_ids[row])
+        ),
+        JsonEmitFieldNumber(
+            "source_decl_syntax_id",
+            ToString(projections.source_declaration_source_syntax_ids[row])
+        ),
+        JsonEmitFieldBool("explicit_map", projections.explicit_maps[row] == 1),
+        JsonEmitFieldString("owner_name", projections.owner_names[row]),
+        JsonEmitFieldString(
+            "projection_slot_name", projections.projection_slot_names[row]
+        ),
+        JsonEmitFieldString(
+            "source_slot_name", projections.source_slot_names[row]
+        ),
+        JsonEmitFieldString(
+            "target_field_name", projections.target_field_names[row]
+        ),
+        JsonEmitFieldString(
+            "target_field_type_name", projections.target_field_type_names[row]
+        ),
+        JsonEmitFieldString("source_path", projections.source_paths[row]),
+        JsonEmitFieldString(
+            "source_leaf_type_name", projections.source_leaf_type_names[row]
+        ),
+        JsonEmitFieldRaw(
+            "source_path_segments",
+            SelfMirDomainProjectionPathSegmentsJson(projections, row)
+        )
+    ]);
+}
+
+func SelfMirDomainRuntimeAssignmentsJsonPrefix(
+    facts: SelfMirDomainRuntimeAssignmentFacts
+) -> String {
+    if !facts.present { return ""; }
+    if !SelfMirDomainRuntimeAssignmentFactsReady(facts) { return ""; }
+    let roles: Array<String> = [];
+    let role_row: Int = 0;
+    while role_row < ArrayLength(facts.participant_roles.roles) {
+        ArrayPush(
+            roles, SelfMirDomainParticipantRoleJsonRow(facts, role_row)
+        );
+        role_row = role_row + 1;
+    }
+    let projections: Array<String> = [];
+    let projection_row: Int = 0;
+    while projection_row < ArrayLength(facts.projection_members.owner_names) {
+        ArrayPush(
+            projections,
+            SelfMirDomainProjectionMemberJsonRow(facts, projection_row)
+        );
+        projection_row = projection_row + 1;
+    }
+    return Concat(
+        ",\"domain_runtime_assignments\":{\"participant_roles\":",
+        Concat(
+            JsonEmitArray(roles),
+            Concat(",\"projection_members\":", Concat(
+                JsonEmitArray(projections), "}"
+            ))
+        )
+    );
+}

@@ -5,6 +5,7 @@
 bool
 type_check_projection_contract(ASTNode **slots,
                                size_t slot_count,
+                               ASTNode *owner_decl,
                                const char *owner_label,
                                const char *owner_name,
                                ASTNode *site,
@@ -234,8 +235,9 @@ type_check_projection_contract(ASTNode **slots,
     }
 
     return type_check_projection_field_contracts(target_decl, source_decl,
-        target_type, source_type, owner_label, owner_name, site,
-        object_slot_name, source_slot_name, ctx, action_name);
+        owner_decl, object_slot, source_slot, target_type, source_type,
+        owner_label, owner_name, site, object_slot_name, source_slot_name,
+        ctx, action_name);
 }
 
 bool
@@ -252,7 +254,7 @@ type_check_zone_projection_contract(ASTNode *zone,
     if (zone == NULL)
         return false;
     slots = ast_zone_slots(zone, &slot_count);
-    return type_check_projection_contract(slots, slot_count, "Zone",
+    return type_check_projection_contract(slots, slot_count, zone, "Zone",
         ast_zone_name(zone), site,
         object_slot_name, source_slot_name, ctx, action_name);
 }

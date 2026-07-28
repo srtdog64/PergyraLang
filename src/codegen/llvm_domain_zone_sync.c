@@ -119,7 +119,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "zone.frontier.continue.addr");
     if (!pgy_codegen_zone_frontier_graph_pass_limit_from_mir(
-            ctx->mir,
+            llvm_active_mir_identity(ctx),
             decl_name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
                 state_count, layer_view.count),

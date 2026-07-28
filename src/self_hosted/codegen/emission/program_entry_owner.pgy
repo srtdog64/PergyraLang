@@ -1,10 +1,9 @@
 // Public semantic and source entrypoints for the program emission core.
-
 import "program_emit.pgy";
 import "../text/text_owner.pgy";
+import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/target_projection_fact_owner.pgy";
-
 func GenerateCUnitFromSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
@@ -23,8 +22,11 @@ func GenerateCUnitFromSemanticArtifact(
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
             artifact, semantic_analysis, bundle, generic_specializations
         );
+    let domain_runtime: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsEmpty(true);
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
+        domain_runtime,
         require_entrypoint,
         machine_declaration
     );
@@ -35,6 +37,7 @@ func GenerateCFromVerifiedSemanticArtifact(
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
     receiver_facts: CodegenCallableReceiverFacts,
+    ref domain_runtime: CodegenDomainRuntimeFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
@@ -45,6 +48,7 @@ func GenerateCFromVerifiedSemanticArtifact(
     }
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
+        domain_runtime,
         true, machine_declaration
     );
 }

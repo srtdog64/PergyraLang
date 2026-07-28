@@ -15,6 +15,7 @@ struct MirProgramDeclarationFieldIdentityIndex {
     let field_names: Array<String>;
     let field_source_syntax_ids: Array<String>;
     let field_kinds: Array<String>;
+    let field_type_names: Array<String>;
 }
 
 func MirProgramDeclarationFieldIdentityPositiveDecimal(
@@ -44,9 +45,10 @@ func EmptyMirProgramDeclarationFieldIdentityIndex(
     let field_names: Array<String> = [];
     let field_ids: Array<String> = [];
     let field_kinds: Array<String> = [];
+    let field_types: Array<String> = [];
     return MirProgramDeclarationFieldIdentityIndex(
         false, names, kinds, nominal_kinds, owner_indices,
-        field_names, field_ids, field_kinds
+        field_names, field_ids, field_kinds, field_types
     );
 }
 
@@ -65,6 +67,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
     let field_names: Array<String> = [];
     let field_ids: Array<String> = [];
     let field_kinds: Array<String> = [];
+    let field_types: Array<String> = [];
     if ArrayLength(starts) != ArrayLength(ends) ||
         ArrayLength(starts) != ArrayLength(declaration_names) ||
         ArrayLength(starts) != ArrayLength(declaration_kinds) ||
@@ -111,13 +114,17 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
                     JsonObjectFactNumberFieldOpt(field, "source_syntax_id");
                 let field_kind_opt: Option<String> =
                     JsonObjectFactStringFieldOpt(field, "field_kind");
+                let field_type_opt: Option<String> =
+                    JsonObjectFactStringFieldOpt(field, "type");
                 if !IsSome(field_name_opt) ||
                     StringLength(UnwrapOption(field_name_opt)) == 0 ||
                     !IsSome(field_id_opt) ||
                     !MirProgramDeclarationFieldIdentityPositiveDecimal(
                         UnwrapOption(field_id_opt)
                     ) || !IsSome(field_kind_opt) ||
-                    StringLength(UnwrapOption(field_kind_opt)) == 0 {
+                    StringLength(UnwrapOption(field_kind_opt)) == 0 ||
+                    !IsSome(field_type_opt) ||
+                    StringLength(UnwrapOption(field_type_opt)) == 0 {
                     return EmptyMirProgramDeclarationFieldIdentityIndex();
                 }
                 let prior_field: Int = 0;
@@ -134,6 +141,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
                 ArrayPush(field_names, UnwrapOption(field_name_opt));
                 ArrayPush(field_ids, UnwrapOption(field_id_opt));
                 ArrayPush(field_kinds, UnwrapOption(field_kind_opt));
+                ArrayPush(field_types, UnwrapOption(field_type_opt));
                 field_index = field_index + 1;
             }
         }
@@ -141,8 +149,46 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
     }
     return MirProgramDeclarationFieldIdentityIndex(
         true, names, kinds, nominal_kinds, owner_indices,
-        field_names, field_ids, field_kinds
+        field_names, field_ids, field_kinds, field_types
     );
+}
+
+func MirProgramDeclarationFieldIdentityFieldIndex(
+    ref index: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String
+) -> Int {
+    let owner_index: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(index, owner_name);
+    if owner_index < 0 || StringLength(field_name) == 0 ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
+        return 0 - 1;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(index.field_names) {
+        if index.field_owner_indices[i] == owner_index &&
+            index.field_names[i] == field_name &&
+            index.field_source_syntax_ids[i] == source_syntax_id {
+            return i;
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+func MirProgramDeclarationFieldIdentityMatchesType(
+    ref index: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    source_syntax_id: String,
+    expected_type_name: String
+) -> Bool {
+    let i: Int = MirProgramDeclarationFieldIdentityFieldIndex(
+        index, owner_name, field_name, source_syntax_id
+    );
+    return i >= 0 && StringLength(expected_type_name) > 0 &&
+        index.field_type_names[i] == expected_type_name;
 }
 
 func MirProgramDeclarationFieldIdentityDeclarationIndex(

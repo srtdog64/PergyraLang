@@ -25,6 +25,7 @@
 #include "iteration_type_fact.h"
 #include "destructure_type_fact.h"
 #include "match_binding_type_fact.h"
+#include "domain_runtime_fact.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -159,6 +160,17 @@ struct SemanticContext
     PgyMatchBindingTypeFact *match_binding_type_facts;
     size_t       match_binding_type_fact_count;
     size_t       match_binding_type_fact_capacity;
+
+    /* Semantic-owned domain runtime identities.  Later stages may carry these
+     * rows losslessly, but must not reconstruct participant roles or member
+     * assignments from declaration order, spelling, or backend layout. */
+    PgyDomainParticipantRoleFact *domain_participant_role_facts;
+    size_t       domain_participant_role_fact_count;
+    size_t       domain_participant_role_fact_capacity;
+    PgyDomainProjectionMemberAssignmentFact
+                *domain_projection_member_assignment_facts;
+    size_t       domain_projection_member_assignment_fact_count;
+    size_t       domain_projection_member_assignment_fact_capacity;
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;

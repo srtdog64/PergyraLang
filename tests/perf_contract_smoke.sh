@@ -642,8 +642,15 @@ if [[ -n "$lexer_keyword_name_duplicates" ]]; then
     printf '%s\n' "$lexer_keyword_name_duplicates" >&2
     exit 1
 fi
-grep -Fq "kEffectWordSpecs" "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
-grep -Fq "bsearch(" "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
+grep -Fq "pgy_callable_contract_vocabulary_find(" \
+    "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
+grep -Fq "pgy_callable_contract_vocabulary_axis_count(" \
+    "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
+if grep -Fq "kEffectWordSpecs" \
+        "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"; then
+    echo "[perf-contract] effect words regressed to a local table" >&2
+    exit 1
+fi
 if grep -A28 -F "scope_lookup_current(Scope *scope" \
     "$ROOT_DIR/src/semantic/symbol_table.c" | \
     grep -Fq "scope->symbol_count"; then
@@ -1427,7 +1434,7 @@ if grep -Fq "transpiler_collection_infer_expression_type_name" \
     exit 1
 fi
 grep -Fq "transpiler_domain_provenance_emit.c" "$ROOT_DIR/Makefile"
-grep -Fq "void emit_zone_projection_sync_loop_from_mir_refresh_view(" \
+grep -Fq "void emit_domain_projection_sync_loop_from_mir_runtime_facts(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h"
 grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"
@@ -3587,7 +3594,12 @@ grep -Fq "transpiler_scratch_strdup(ctx, field_name)" "$ROOT_DIR/src/codegen/tra
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
 ! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 ! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
-grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "llvm_domain_runtime_projection_member_at(" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "llvm_domain_runtime_require_exact_field(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+! grep -Fq "llvm_resolve_domain_projection_source_path_by_name(" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
 grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 ! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
 ! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
@@ -3807,7 +3819,10 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(" "$ROOT_DIR/src/codegen/transpiler_
 grep -Fq "pergyra_func_signature_declarator_in_ctx(ctx" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+grep -Fq "emit_hosted_method_forward_decl_from_metadata(" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+! grep -Fq "ast_func_return_type(method)" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 grep -Fq "transpiler_slot_runtime_fn(" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "pgy_claim_%s()" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
@@ -4309,8 +4324,9 @@ grep -Fq "source_base = source_var.alloca" "$ROOT_DIR/src/codegen/llvm_expr_proj
 ! grep -Fq "source_var->" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 ! grep -Fq "llvm_scope_lookup(ctx," "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 grep -Fq "llvm_domain_projection_value_error" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
-grep -Fq "LLVM domain projection source path is ambiguous" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
-grep -Fq "LLVM domain projection source field path is missing" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "LLVM domain projection runtime path fact is incomplete" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "LLVM domain projection exact path field is absent from its class layout" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "LLVM domain projection runtime member view is incomplete" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
 ! grep -Fq "return LLVMConstInt(ctx->type_i32, 0, 0)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
 grep -Fq "llvm_projection_binding_error" "$ROOT_DIR/src/codegen/llvm_expr_host_spawn_literal_helpers.c"
 grep -Fq "LLVM projection binding requires target/source metadata and source storage" "$ROOT_DIR/src/codegen/llvm_expr_host_spawn_literal_helpers.c"

@@ -8,6 +8,7 @@
 #include "mir_fact_validate.h"
 #include "mir_machine_layer.h"
 #include "mir_domain_topology.h"
+#include "mir_domain_runtime.h"
 #include "mir_public_surface.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
@@ -552,6 +553,16 @@ mir_validate(const MIRProgram *mir, char **error_message)
         && !mir_domain_topology_validate(mir, error_message)) {
         return false;
     }
+    if ((mir->relation_count != 0 || mir->effect_count != 0
+         || mir->zone_count != 0)
+        && !mir->has_domain_runtime_facts) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR is missing DIR-owned domain runtime assignments");
+        return false;
+    }
+    if (!mir_domain_runtime_validate(mir, error_message))
+        return false;
     if (!mir_validate_program_inventory_shape(mir, error_message))
         return false;
     if (!mir_validate_receiver_carriage_facts(mir, error_message))

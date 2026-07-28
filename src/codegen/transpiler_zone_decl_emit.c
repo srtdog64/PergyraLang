@@ -174,7 +174,7 @@ transpiler_emit_zone_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass = 0;\n");
     size_t frontier_pass_limit = 0;
     if (!pgy_codegen_zone_frontier_graph_pass_limit_from_mir(
-            ctx->mir,
+            transpiler_active_mir_identity(ctx),
             name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
                 state_count, layer_view.count),
@@ -244,9 +244,10 @@ transpiler_emit_zone_decl_impl(ASTNode *node,
             layer_name);
     }
 
-    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
+    emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx,
         &slot_view,
-        &refresh_view,
+        name,
+        refresh_view.count,
         "zone_projection",
         false);
 

@@ -193,16 +193,19 @@ lsp_build_completion_items_json(char *out, size_t out_size,
 const char *
 lsp_completion_items_json(void)
 {
-    static char items[LSP_COMPLETION_ITEMS_CAPACITY] = "[]";
-    static bool initialized = false;
+    static char completion_items_process_cache[
+        LSP_COMPLETION_ITEMS_CAPACITY] = "[]";
+    static bool completion_items_process_cache_initialized = false;
 
     /* pgy-lsp dispatch is single-threaded; the immutable registry is projected
      * once and the same bounded JSON value is reused for later requests. */
-    if (!initialized) {
-        initialized = true;
-        (void)lsp_build_completion_items_json(items, sizeof(items), NULL);
+    if (!completion_items_process_cache_initialized) {
+        completion_items_process_cache_initialized = true;
+        (void)lsp_build_completion_items_json(
+            completion_items_process_cache,
+            sizeof(completion_items_process_cache), NULL);
     }
-    return items;
+    return completion_items_process_cache;
 }
 
 static const char *

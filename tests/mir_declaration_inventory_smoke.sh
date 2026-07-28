@@ -444,7 +444,6 @@ for rel in \
     fi
 done
 for rel in \
-    "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c"; do
     require_term "$rel" "pgy_arena_alloc(&ctx->scratch"
     if grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/$rel"; then
@@ -452,7 +451,7 @@ for rel in \
     fi
 done
 require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "LLVM domain projection nested path metadata is missing"
+    "LLVM domain projection exact nested path class is missing"
 require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "LLVM projection nested path requires field declaration metadata"
 require_term "src/codegen/llvm_internal_api.h" \
@@ -492,7 +491,6 @@ require_term "src/codegen/llvm_registry.c" \
     "llvm_class_field_type_at_index(LLVMClassTypeEntry *entry, int struct_index)"
 for rel in \
     "src/codegen/llvm_expr_constructor_calls.c" \
-    "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c" \
     "src/codegen/llvm_mir_emit.c" \
     "src/codegen/llvm_intent_zone.c" \
@@ -1646,7 +1644,7 @@ require_term "src/codegen/transpiler_zone_specialization_emit.c" \
 require_term "src/codegen/transpiler_zone_specialization_emit.c" \
     "transpiler_hosted_domain_slot_view_type(slot_view, i)"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
-    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"
+    "emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "TranspilerHostedZoneLayerSlotView layer_view"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
@@ -1839,7 +1837,6 @@ if grep -Fq "pgy_host_shared_field_compat_find" \
     fail "C nominal shared member type lookup must consume TranspilerHostedSharedFieldView"
 fi
 for rel in \
-    "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c"; do
     require_term "$rel" "llvm_hosted_class_field_view_from_decl("
     require_term "$rel" "llvm_hosted_field_view_missing_mir_metadata("
@@ -2598,12 +2595,14 @@ require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
     "llvm_hosted_zone_layer_slot_view_is_pool(&layer_view, i)"
 require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
     "llvm_hosted_zone_layer_slot_view_pool_capacity("
-require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
-    "LLVMHostedDomainSlotView effect_slot_view"
-require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
-    "LLVMHostedDomainSlotView relation_slot_view"
-require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
-    "llvm_domain_slot_view_bindable_name("
+for term in \
+    "llvm_domain_runtime_require_participant_role(ctx" \
+    "PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER" \
+    "PGY_DOMAIN_PARTICIPANT_RELATION_SOURCE" \
+    "PGY_DOMAIN_PARTICIPANT_RELATION_TARGET" \
+    "LLVMDomainRuntimeProjectionView projection_view"; do
+    require_term "src/codegen/llvm_domain_zone_bind_lowering.c" "$term"
+done
 if grep -Eq 'ast_zone_layer_slots|ast_zone_layer_slot_|ast_effect_slots|ast_relation_slots|ast_domain_slot_name\(|llvm_find_nth_bindable_domain_slot' \
     "$ROOT_DIR/src/codegen/llvm_domain_zone_bind_lowering.c"; then
     fail "LLVM zone bind emission must consume hosted zone/domain slot views"
@@ -2758,12 +2757,13 @@ require_term "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
 require_term "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)"
-require_term "src/codegen/llvm_stmt_zone_action.c" \
-    "LLVMHostedDomainSlotView slot_view"
-require_term "src/codegen/llvm_stmt_zone_action.c" \
-    "llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i)"
-require_term "src/codegen/llvm_stmt_zone_action.c" \
-    "llvm_stmt_first_effect_subject_slot_name(ctx,"
+for term in \
+    "LLVMHostedZoneLayerSlotView layer_view" \
+    "llvm_domain_runtime_require_participant_role(ctx" \
+    "PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER" \
+    "LLVMDomainRuntimeProjectionView projection_view"; do
+    require_term "src/codegen/llvm_stmt_zone_action.c" "$term"
+done
 if grep -Eq 'ast_zone_slots|ast_effect_slots|ast_domain_slot_(name|type|is_subject)\(|ast_zone_layer_slot_(is_relation|is_pool|pool_capacity)' \
     "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"; then
     fail "LLVM zone action emission must consume hosted domain/zone metadata views"
@@ -2814,10 +2814,6 @@ require_term "src/codegen/transpiler_projection.c" \
     "transpiler_hosted_domain_slot_view_is_tobject_like(slot_view, index)"
 require_term "src/codegen/transpiler_projection.c" \
     "transpiler_hosted_domain_slot_view_name(slot_view, index)"
-require_term "src/codegen/transpiler_projection.c" \
-    "transpiler_hosted_domain_slot_view_is_binding_like(slot_view, i)"
-require_term "src/codegen/llvm_domain_zone_bind_lowering.c" \
-    "llvm_hosted_domain_slot_view_is_binding_like(slot_view, i)"
 require_term "src/codegen/transpiler_decl_lookup.h" \
     "transpiler_hosted_domain_slot_view_is_binding_like"
 require_term "src/codegen/transpiler_decl_slot_view.c" \
@@ -2899,7 +2895,9 @@ require_term "src/codegen/transpiler_overlay_zone_bind.c" \
 require_term "src/codegen/transpiler_overlay_zone_bind.c" \
     "TranspilerHostedDomainSlotView effect_slot_view"
 require_term "src/codegen/transpiler_overlay_zone_bind.c" \
-    "transpiler_domain_slot_view_bindable_name("
+    "transpiler_require_domain_participant_role_fact("
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER"
 if grep -Eq 'ast_effect_slots|ast_domain_slot_name\(|find_nth_bindable_domain_slot_local' \
     "$ROOT_DIR/src/codegen/transpiler_overlay_zone_bind.c"; then
     fail "C zone effect bind must consume hosted domain-slot view for bind targets"
@@ -2909,7 +2907,11 @@ require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
 require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
     "TranspilerHostedDomainSlotView relation_slot_view"
 require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
-    "transpiler_domain_slot_view_bindable_name("
+    "transpiler_require_domain_participant_role_fact("
+require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "PGY_DOMAIN_PARTICIPANT_RELATION_SOURCE"
+require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "PGY_DOMAIN_PARTICIPANT_RELATION_TARGET"
 if grep -Eq 'ast_relation_slots|ast_domain_slot_name\(|find_nth_bindable_domain_slot_local' \
     "$ROOT_DIR/src/codegen/transpiler_overlay_zone_relation_bind.c"; then
     fail "C zone relation bind must consume hosted domain-slot view for bind targets"
@@ -2941,7 +2943,7 @@ require_term "src/codegen/transpiler_projection_sync.c" \
 require_term "src/codegen/transpiler_projection_sync.c" \
     "transpiler_hosted_domain_slot_view_from_decl(ctx, effect_type_name"
 require_term "src/codegen/transpiler_projection_sync.c" \
-    "transpiler_domain_slot_view_bindable_name("
+    "transpiler_require_domain_participant_role_fact("
 if grep -Eq 'ast_zone_layer_slots|ast_effect_slots|ast_domain_slot_name\(' \
     "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
     fail "C projection sync layer and effect source iteration must consume typed slot views"
@@ -3384,12 +3386,11 @@ for term in \
     require_term "src/codegen/llvm_expr_projection_path_helpers.c" "$term"
 done
 for term in \
-    "llvm_domain_projection_field_count" \
-    "llvm_domain_projection_field_name" \
-    "llvm_domain_projection_field_type_name" \
-    "llvm_domain_projection_field_view" \
-    "llvm_hosted_field_view_metadata(&view, index)" \
-    "llvm_mir_decl_field_type_name(field)"; do
+    "llvm_build_domain_projection_value_from_runtime_facts" \
+    "llvm_load_domain_projection_path_value_from_runtime_fact" \
+    "llvm_domain_runtime_require_exact_field" \
+    "fact->source_path_segment_count" \
+    "mir_decl_header_field_count(target_header)"; do
     require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
 done
 if grep -RIn "mir_decl_method_source_ast(" \
@@ -4649,7 +4650,7 @@ done
 
 raw_ctx_mir_hits="$(
     grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
-        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
+        grep -Ev 'src/codegen/(llvm_api\.c|llvm_domain_runtime_facts\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_domain_provenance_emit\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
 )"
 if [[ -n "$raw_ctx_mir_hits" ]]; then
     fail "raw ctx->mir access must stay in backend entrypoints, inventory view/lookup owners, or MIR emission contract probes:
@@ -5184,7 +5185,6 @@ for term in \
     "transpiler_active_decl_header_inventory(ctx, &inventory)" \
     "mir_decl_header_name(header)" \
     "MIR nominal declaration header is missing its name" \
-    "emit_class_decl_from_mir_header(header, ctx)" \
     "emit_relation_decl_from_mir_header(header, ctx)" \
     "emit_effect_decl_from_mir_header(header, ctx)" \
     "emit_party_decl_from_mir_header(header, ctx)" \
@@ -5368,16 +5368,14 @@ if grep -Eq 'llvm_(boundary_slot_param|expr_projection_path_helpers)\.h' \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then
     fail "LLVM boundary projection helper header must not re-export unrelated owner headers"
 fi
-require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "llvm_build_domain_projection_value_from_zone_refresh_view("
-require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "&refresh_view, i, source_ptr)"
-require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "LLVMHostedDomainSlotView slot_view"
-require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt)"
-require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "llvm_projection_sync_slot_type_name("
+for term in \
+    "LLVMDomainRuntimeProjectionView runtime_view" \
+    "llvm_domain_runtime_projection_view(ctx, decl_name)" \
+    "llvm_domain_runtime_projection_anchor(&runtime_view, i)" \
+    "llvm_domain_runtime_require_exact_field(ctx" \
+    "llvm_build_domain_projection_value_from_runtime_facts("; do
+    require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" "$term"
+done
 if grep -Eq 'ast_domain_slot_(name|type)\(|ASTNode \*\*slots|size_t slot_count' \
         "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c"; then
     fail "LLVM projection sync body must consume hosted domain-slot view for slot metadata"
@@ -5421,13 +5419,23 @@ if grep -RIn "llvm_load_projection_path_value(LLVMGenCtx *ctx" \
     fail "LLVM projection path loading must expose the by-name owner, not the AST source-decl wrapper"
 fi
 require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
-    "llvm_load_domain_projection_path_value_by_name("
-require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "llvm_resolve_domain_projection_source_path_by_name("
-require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "llvm_domain_projection_field_view_by_name("
-require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "llvm_domain_projection_type_is_vessel("
+    "llvm_build_domain_projection_value_from_runtime_facts("
+for term in \
+    "llvm_load_domain_projection_path_value_from_runtime_fact(" \
+    "llvm_domain_runtime_require_exact_field(" \
+    "PgyDomainProjectionMemberAssignmentFact"; do
+    require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
+done
+for legacy_term in \
+    "llvm_load_domain_projection_path_value_by_name(" \
+    "llvm_resolve_domain_projection_source_path_by_name(" \
+    "llvm_domain_projection_field_view_by_name("; do
+    if grep -Fq "$legacy_term" \
+            "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c" \
+            "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.h"; then
+        fail "LLVM domain runtime projection reintroduced name-based path selection: $legacy_term"
+    fi
+done
 for rel in \
     "src/codegen/llvm_expr_host_spawn_literal_helpers.c" \
     "src/codegen/llvm_expr_member_access.c"; do
@@ -6259,7 +6267,7 @@ if grep -Eq 'ast_zone_slots|ast_domain_slot_(name|type|is_subject)\(' \
     fail "C intent zone-slot resolution must consume TranspilerHostedDomainSlotView"
 fi
 require_term "src/codegen/transpiler_domain_provenance_emit.c" \
-    "emit_projection_literal_by_zone_refresh_metadata("
+    "domain_projection_literal_from_facts("
 if grep -Fq "target_decl = transpiler_find_projection_nominal_decl_local(" \
         "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c"; then
     fail "C domain provenance projection refresh must consume projection type/header facts instead of recovering target source declarations"
@@ -7169,7 +7177,8 @@ for term in \
     "pergyra_type_to_llvm(ctx, param_type_name)" \
     "pergyra_type_to_llvm(ctx, return_type_name)" \
     "llvm_hosted_method_view_from_decl(ctx, enum_name, stmt)" \
-    "llvm_hosted_method_view_from_decl(ctx, cls_name, stmt)" \
+    "class_method_view = llvm_hosted_method_view_from_decl(" \
+    "ctx, cls_name, stmt);" \
     "llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)" \
     "llvm_hosted_method_view_missing_mir_metadata(&class_method_view)" \
     "llvm_hosted_method_view_metadata(&enum_method_view, j)" \
@@ -7830,10 +7839,13 @@ for rel in \
     require_term "$rel" "mir_decl_method_param_type_name"
     require_term "$rel" "mir_decl_method_return_type_name"
 done
+require_term "src/compiler/mir_lifecycle.c" \
+    "mir_decl_method_metadata_clear(method)"
 for term in \
-    "method->param_type_names" \
-    "method->return_type_name"; do
-    require_term "src/compiler/mir_lifecycle.c" "$term"
+    "free(meta->param_type_names[i])" \
+    "free(meta->param_type_names)" \
+    "free(meta->return_type_name)"; do
+    require_term "src/compiler/mir_decl_headers.c" "$term"
 done
 for rel in \
     "src/codegen/transpiler_decl_lookup.h" \
@@ -8234,7 +8246,9 @@ for term in \
     "emit_projection_literal_by_zone_refresh_metadata" \
     "mir_decl_zone_refresh_mapped_target_field" \
     "mir_decl_zone_refresh_mapped_source_field"; do
-    require_term "src/codegen/transpiler_projection_emit.c" "$term"
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"; then
+        fail "C domain projection sync reintroduced the legacy refresh metadata path: $term"
+    fi
 done
 for term in \
     "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view" \
@@ -8244,15 +8258,15 @@ for term in \
         "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view"
 done
 for term in \
-    "emit_zone_projection_sync_loop_from_mir_refresh_view" \
-    "transpiler_hosted_zone_refresh_view_metadata" \
-    "emit_projection_literal_by_zone_refresh_metadata"; do
+    "emit_domain_projection_sync_loop_from_mir_runtime_facts" \
+    "domain_projection_literal_from_facts" \
+    "transpiler_require_domain_participant_role_fact"; do
     require_term "src/codegen/transpiler_domain_provenance_emit.c" "$term"
 done
 for term in \
     "TranspilerHostedZoneRefreshView refresh_view" \
     "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
-    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"; do
+    "emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx"; do
     require_term "src/codegen/transpiler_zone_decl_emit.c" "$term"
 done
 if grep -Fq "ast_zone_refreshes(node, &refresh_count)" \
@@ -8280,7 +8294,7 @@ fi
 for term in \
     "TranspilerHostedZoneRefreshView refresh_view" \
     "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
-    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"; do
+    "emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx"; do
     require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
 done
 if grep -Fq "ast_relation_refreshes(node, &refresh_count)" \
@@ -8371,19 +8385,17 @@ for term in \
     require_term "src/codegen/llvm_domain_projection_count.c" "$term"
     require_term "src/codegen/llvm_domain_projection_count_helpers.h" "$term"
 done
-for term in \
+for legacy_term in \
     "llvm_build_domain_projection_value_from_zone_refresh_metadata" \
     "mir_decl_zone_refresh_mapped_target_field" \
-    "mir_decl_zone_refresh_mapped_source_field"; do
-    require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
-done
-require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
-    "llvm_build_domain_projection_value_from_zone_refresh_metadata"
-for term in \
-    "LLVMHostedZoneRefreshView refresh_view" \
-    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "mir_decl_zone_refresh_mapped_source_field" \
     "llvm_build_domain_projection_value_from_zone_refresh_view"; do
-    require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" "$term"
+    if grep -Fq "$legacy_term" \
+            "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c" \
+            "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.h" \
+            "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c"; then
+        fail "LLVM domain projection sync reintroduced legacy refresh metadata: $legacy_term"
+    fi
 done
 for term in \
     "llvm_domain_add_projection_state_fields_from_zone_refresh_view" \
@@ -8422,11 +8434,10 @@ if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     fail "LLVM zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
 fi
 for term in \
-    "LLVMHostedZoneRefreshView effect_refresh_view" \
-    "LLVMHostedZoneRefreshView relation_refresh_view" \
-    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
-    "llvm_hosted_zone_refresh_view_object_slot_name" \
-    "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    "LLVMDomainRuntimeProjectionView projection_view" \
+    "llvm_domain_runtime_projection_view(ctx" \
+    "llvm_domain_runtime_projection_anchor(projection_view, i)" \
+    "llvm_zone_bind_mark_projection_source_dirty("; do
     require_term "src/codegen/llvm_domain_zone_bind_lowering.c" "$term"
 done
 if grep -Fq "ast_effect_refreshes(effect_decl, &effect_refresh_count)" \
@@ -8438,10 +8449,10 @@ if grep -Fq "ast_relation_refreshes(relation_decl, &relation_refresh_count)" \
     fail "LLVM zone relation bind invalidation must consume MIR refresh metadata"
 fi
 for term in \
-    "LLVMHostedZoneRefreshView refresh_view" \
-    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
-    "llvm_hosted_zone_refresh_view_object_slot_name" \
-    "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    "LLVMDomainRuntimeProjectionView projection_view" \
+    "llvm_domain_runtime_projection_view(ctx, effect_name)" \
+    "llvm_domain_runtime_projection_anchor(&projection_view, ri)" \
+    "bearer_role->field_syntax_id"; do
     require_term "src/codegen/llvm_stmt_zone_action.c" "$term"
 done
 if grep -Fq "ast_effect_refreshes(effect_decl, &refresh_count)" \

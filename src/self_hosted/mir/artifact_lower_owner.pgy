@@ -182,6 +182,7 @@ func SelfMirAppendRoutine(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations,
         facts.domain_topology,
+        facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, receiver_carriages, return_types,
@@ -246,6 +247,7 @@ func SelfMirCanonicalInstructionIds(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations,
         facts.domain_topology,
+        facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         facts.routines,
         SelfMirCfgRows(
@@ -328,9 +330,21 @@ func SelfMirProgramFactsFromReadyArtifact(
     if !SelfDirDomainGraphFactsReady(domain_graph) {
         return SelfMirProgramFactsError(facts, "mir_domain_graph_invalid", domain_graph.diagnostic_message);
     }
+    let domain_topology: SelfMirDomainTopologyFacts =
+        SelfMirDomainTopologyFactsFromSelfDir(domain_graph);
+    let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
+        SelfMirDomainRuntimeAssignmentsFromFacts(
+            declarations, analysis.constructors, domain_topology
+        );
+    if !domain_runtime_assignments.ok {
+        return SelfMirProgramFactsError(
+            facts, "mir_domain_runtime_assignment_invalid",
+            "MIR producer requires exact domain participant and projection assignment facts"
+        );
+    }
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count, declarations,
-        SelfMirDomainTopologyFactsFromSelfDir(domain_graph), generic_rows,
+        domain_topology, domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         artifact, analysis,

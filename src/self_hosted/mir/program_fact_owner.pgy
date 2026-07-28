@@ -16,6 +16,7 @@ import "routine_match_pattern_owner.pgy";
 import "generic_specialization_owner.pgy";
 import "runtime_call_abi_fact_owner.pgy";
 import "domain_topology_fact_owner.pgy";
+import "domain_runtime_assignment_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -103,6 +104,7 @@ struct SelfMirProgramFacts {
     artifact_node_count: Int;
     declarations: SelfMirDeclarationRows;
     domain_topology: SelfMirDomainTopologyFacts;
+    domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts;
     generic_specializations: SelfMirGenericSpecializationRows;
     parallel_captures: SelfMirParallelCaptureRows;
     routines: SelfMirRoutineRows;
@@ -180,6 +182,7 @@ func SelfMirProgramFactsEmpty(artifact_node_count: Int) -> SelfMirProgramFacts {
         true, "", "", artifact_node_count,
         SelfMirDeclarationRowsEmpty(),
         SelfMirDomainTopologyFactsAbsent(),
+        SelfMirDomainRuntimeAssignmentFactsEmpty(true, false),
         SelfMirGenericSpecializationRowsEmpty(),
         SelfMirParallelCaptureRowsEmpty(),
         SelfMirRoutineRowsEmpty(),
@@ -195,6 +198,7 @@ func SelfMirProgramFactsError(
     return SelfMirProgramFacts(
         false, code, message, facts.artifact_node_count,
         facts.declarations, facts.domain_topology,
+        facts.domain_runtime_assignments,
         facts.generic_specializations,
         facts.parallel_captures, facts.routines, facts.cfg
     );
@@ -207,6 +211,7 @@ func SelfMirProgramFactsWithDomainTopology(
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations, domain_topology,
+        facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg
     );

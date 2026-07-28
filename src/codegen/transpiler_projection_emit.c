@@ -243,31 +243,10 @@ resolve_projection_source_path_by_name(TranspilerCtx *ctx,
     return match_count > 1 ? 2 : 0;
 }
 
-static const char *
-projection_mir_refresh_mapped_source(const MIRDeclZoneRefresh *refresh,
-                                     const char *target_field_name)
-{
-    if (refresh == NULL || target_field_name == NULL)
-        return NULL;
-
-    for (size_t j = 0; j < mir_decl_zone_refresh_field_map_count(refresh); j++) {
-        const char *mapped_target =
-            mir_decl_zone_refresh_mapped_target_field(refresh, j);
-        const char *mapped_source =
-            mir_decl_zone_refresh_mapped_source_field(refresh, j);
-        if (mapped_target != NULL && mapped_source != NULL
-            && strcmp(mapped_target, target_field_name) == 0) {
-            return mapped_source;
-        }
-    }
-    return NULL;
-}
-
 static char *
 emit_projection_literal_by_name_internal(TranspilerCtx *ctx,
                                          const char *target_type_name,
                                          const char *source_type_name,
-                                         const MIRDeclZoneRefresh *mir_refresh,
                                          const char *source_expr)
 {
     CodeBuf *buf;
@@ -294,11 +273,7 @@ emit_projection_literal_by_name_internal(TranspilerCtx *ctx,
         if (target_field_name == NULL)
             continue;
 
-        source_field_name =
-            projection_mir_refresh_mapped_source(mir_refresh,
-                target_field_name);
-        if (source_field_name == NULL)
-            source_field_name = target_field_name;
+        source_field_name = target_field_name;
 
         source_status = resolve_projection_source_path_by_name(
             ctx, source_type_name, source_field_name, 0, &source_path);
@@ -329,21 +304,5 @@ emit_projection_literal_by_name(TranspilerCtx *ctx,
     return emit_projection_literal_by_name_internal(ctx,
         target_type_name,
         source_type_name,
-        NULL,
-        source_expr);
-}
-
-char *
-emit_projection_literal_by_zone_refresh_metadata(
-    TranspilerCtx *ctx,
-    const char *target_type_name,
-    const char *source_type_name,
-    const MIRDeclZoneRefresh *refresh,
-    const char *source_expr)
-{
-    return emit_projection_literal_by_name_internal(ctx,
-        target_type_name,
-        source_type_name,
-        refresh,
         source_expr);
 }

@@ -1,0 +1,500 @@
+// Typed admission owner for pgy.mir.v1 domain_runtime_assignments.
+//
+// Semantic/DIR owns assignability.  This consumer verifies exact identities,
+// names, declaration fields, paths, and topology joins; it deliberately does
+// not repeat assignability by comparing target and source leaf type strings.
+
+import "json_fact_read.pgy";
+import "domain_topology_fact_owner.pgy";
+import "program_declaration_index_owner.pgy";
+import "domain_runtime_participant_role_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct MirDomainProjectionAssignmentFacts {
+    let valid: Bool;
+    let program_syntax_ids: Array<String>;
+    let owner_syntax_ids: Array<String>;
+    let directive_syntax_ids: Array<String>;
+    let operations: Array<String>;
+    let projection_slot_syntax_ids: Array<String>;
+    let source_slot_syntax_ids: Array<String>;
+    let target_decl_syntax_ids: Array<String>;
+    let target_declaration_names: Array<String>;
+    let target_field_syntax_ids: Array<String>;
+    let source_decl_syntax_ids: Array<String>;
+    let source_declaration_names: Array<String>;
+    let explicit_maps: Array<Bool>;
+    let owner_names: Array<String>;
+    let projection_slot_names: Array<String>;
+    let source_slot_names: Array<String>;
+    let target_field_names: Array<String>;
+    let target_field_type_names: Array<String>;
+    let source_paths: Array<String>;
+    let source_leaf_type_names: Array<String>;
+    let source_path_segment_starts: Array<Int>;
+    let source_path_segment_counts: Array<Int>;
+    let source_path_segment_field_syntax_ids: Array<String>;
+    let source_path_segment_field_names: Array<String>;
+    let source_path_segment_field_type_names: Array<String>;
+    let topology_row_indices: Array<Int>;
+}
+
+struct MirDomainRuntimeAssignmentFacts {
+    let valid: Bool;
+    let present: Bool;
+    let program_syntax_id: String;
+    let participant_roles: MirDomainParticipantRoleFacts;
+    let projection_members: MirDomainProjectionAssignmentFacts;
+}
+
+func EmptyMirDomainProjectionAssignmentFacts(valid: Bool
+) -> MirDomainProjectionAssignmentFacts {
+    let a0: Array<String> = [];
+    let a1: Array<String> = [];
+    let a2: Array<String> = [];
+    let a3: Array<String> = [];
+    let a4: Array<String> = [];
+    let a5: Array<String> = [];
+    let a6: Array<String> = [];
+    let a7: Array<String> = [];
+    let a8: Array<String> = [];
+    let a8b: Array<String> = [];
+    let a8c: Array<String> = [];
+    let b0: Array<Bool> = [];
+    let a9: Array<String> = [];
+    let a10: Array<String> = [];
+    let a11: Array<String> = [];
+    let a12: Array<String> = [];
+    let a13: Array<String> = [];
+    let a14: Array<String> = [];
+    let a15: Array<String> = [];
+    let i0: Array<Int> = [];
+    let i1: Array<Int> = [];
+    let a16: Array<String> = [];
+    let a17: Array<String> = [];
+    let a18: Array<String> = [];
+    let i2: Array<Int> = [];
+    return MirDomainProjectionAssignmentFacts(
+        valid, a0, a1, a2, a3, a4, a5, a6, a7, a8b, a8, a8c, b0,
+        a9, a10, a11, a12, a13, a14, a15, i0, i1,
+        a16, a17, a18, i2
+    );
+}
+
+func EmptyMirDomainRuntimeAssignmentFacts(
+    present: Bool
+) -> MirDomainRuntimeAssignmentFacts {
+    return MirDomainRuntimeAssignmentFacts(
+        !present, present, "",
+        EmptyMirDomainParticipantRoleFacts(!present),
+        EmptyMirDomainProjectionAssignmentFacts(!present)
+    );
+}
+
+func MirDomainRuntimeProjectionOperation(operation: String) -> Bool {
+    return operation == "refresh" || operation == "publish" ||
+        operation == "bind";
+}
+
+func MirDomainRuntimeRequiredString(
+    ref row: JsonObjectFactTable, field: String, inout values: Array<String>
+) -> Bool {
+    let value_opt: Option<String> = JsonObjectFactStringFieldOpt(row, field);
+    if !IsSome(value_opt) || StringLength(UnwrapOption(value_opt)) == 0 {
+        return false;
+    }
+    ArrayPush(values, UnwrapOption(value_opt));
+    return true;
+}
+
+func MirDomainRuntimeRequiredId(
+    ref row: JsonObjectFactTable, field: String, inout values: Array<String>
+) -> Bool {
+    let value_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, field);
+    if !IsSome(value_opt) || !MirDomainTopologyPositiveDecimal(
+        UnwrapOption(value_opt)
+    ) {
+        return false;
+    }
+    ArrayPush(values, UnwrapOption(value_opt));
+    return true;
+}
+
+func MirDomainRuntimeFieldKindIsProjection(kind: String) -> Bool {
+    return kind == NominalFieldKindObjectSlot() ||
+        kind == NominalFieldKindTObjectSlot();
+}
+
+func MirDomainRuntimeFieldKindIsSource(kind: String) -> Bool {
+    return kind == NominalFieldKindSubjectSlot() ||
+        kind == NominalFieldKindObjectSlot() ||
+        kind == NominalFieldKindTObjectSlot() ||
+        kind == NominalFieldKindBindingSlot();
+}
+
+func MirDomainRuntimeExactTopologyRow(
+    ref topology: MirDomainTopologyFacts,
+    owner_name: String,
+    owner_id: String,
+    directive_id: String,
+    operation: String,
+    projection_name: String,
+    projection_id: String,
+    source_name: String,
+    source_id: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(topology.kinds) {
+        if topology.owner_names[row] == owner_name &&
+            topology.owner_source_syntax_ids[row] == owner_id &&
+            topology.source_syntax_ids[row] == directive_id &&
+            topology.kinds[row] == operation &&
+            topology.projection_slot_names[row] == projection_name &&
+            topology.projection_slot_source_syntax_ids[row] == projection_id &&
+            topology.source_slot_names[row] == source_name &&
+            topology.source_slot_source_syntax_ids[row] == source_id {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirDomainRuntimeProjectionIdentityReady(
+    ref facts: MirDomainProjectionAssignmentFacts,
+    row: Int
+) -> Bool {
+    let prior: Int = 0;
+    while prior < row {
+        if (facts.owner_names[prior] == facts.owner_names[row] &&
+             facts.owner_syntax_ids[prior] != facts.owner_syntax_ids[row]) ||
+            (facts.owner_names[prior] != facts.owner_names[row] &&
+             facts.owner_syntax_ids[prior] == facts.owner_syntax_ids[row]) ||
+            ((facts.target_decl_syntax_ids[prior] ==
+                facts.target_decl_syntax_ids[row]) !=
+             (facts.target_declaration_names[prior] ==
+                facts.target_declaration_names[row])) ||
+            ((facts.source_decl_syntax_ids[prior] ==
+                facts.source_decl_syntax_ids[row]) !=
+             (facts.source_declaration_names[prior] ==
+                facts.source_declaration_names[row])) ||
+            (facts.owner_syntax_ids[prior] == facts.owner_syntax_ids[row] &&
+             facts.directive_syntax_ids[prior] ==
+                facts.directive_syntax_ids[row] &&
+             facts.projection_slot_syntax_ids[prior] ==
+                facts.projection_slot_syntax_ids[row] &&
+             facts.target_field_syntax_ids[prior] ==
+                facts.target_field_syntax_ids[row]) {
+            return false;
+        }
+        prior = prior + 1;
+    }
+    return true;
+}
+
+func MirDomainRuntimePathJoinReady(
+    ref declarations: MirProgramDeclarationIndex,
+    source_declaration_name: String,
+    row: Int,
+    ref facts: MirDomainProjectionAssignmentFacts
+) -> Bool {
+    let owner_name: String = source_declaration_name;
+    let built_path: String = "";
+    let start: Int = facts.source_path_segment_starts[row];
+    let count: Int = facts.source_path_segment_counts[row];
+    let segment: Int = 0;
+    while segment < count {
+        let at: Int = start + segment;
+        let field_index: Int = MirProgramDeclarationFieldIdentityFieldIndex(
+            declarations.field_identities, owner_name,
+            facts.source_path_segment_field_names[at],
+            facts.source_path_segment_field_syntax_ids[at]
+        );
+        if field_index < 0 ||
+            declarations.field_identities.field_type_names[field_index] !=
+                facts.source_path_segment_field_type_names[at] {
+            return false;
+        }
+        if segment > 0 { built_path = Concat(built_path, "."); }
+        built_path = Concat(
+            built_path, facts.source_path_segment_field_names[at]
+        );
+        owner_name = facts.source_path_segment_field_type_names[at];
+        if segment + 1 < count &&
+            MirProgramDeclarationFieldIdentityDeclarationIndex(
+                declarations.field_identities, owner_name
+            ) < 0 {
+            return false;
+        }
+        segment = segment + 1;
+    }
+    return count > 0 && built_path == facts.source_paths[row] &&
+        facts.source_path_segment_field_type_names[start + count - 1] ==
+        facts.source_leaf_type_names[row];
+}
+
+func MirDomainProjectionAssignmentFactsFromTable(
+    ref rows: JsonArrayObjectFactTable,
+    ref declarations: MirProgramDeclarationIndex,
+    ref topology: MirDomainTopologyFacts
+) -> MirDomainProjectionAssignmentFacts {
+    if !JsonArrayObjectFactTableReady(rows) || !declarations.valid ||
+        !declarations.field_identities.valid || !topology.valid {
+        return EmptyMirDomainProjectionAssignmentFacts(false);
+    }
+    let program_ids: Array<String> = [];
+    let owner_ids: Array<String> = [];
+    let directive_ids: Array<String> = [];
+    let operations: Array<String> = [];
+    let projection_slot_ids: Array<String> = [];
+    let source_slot_ids: Array<String> = [];
+    let target_decl_ids: Array<String> = [];
+    let target_decl_names: Array<String> = [];
+    let target_field_ids: Array<String> = [];
+    let source_decl_ids: Array<String> = [];
+    let source_decl_names: Array<String> = [];
+    let explicit_maps: Array<Bool> = [];
+    let owner_names: Array<String> = [];
+    let projection_slot_names: Array<String> = [];
+    let source_slot_names: Array<String> = [];
+    let target_field_names: Array<String> = [];
+    let target_field_types: Array<String> = [];
+    let source_paths: Array<String> = [];
+    let source_leaf_types: Array<String> = [];
+    let path_starts: Array<Int> = [];
+    let path_counts: Array<Int> = [];
+    let path_field_ids: Array<String> = [];
+    let path_field_names: Array<String> = [];
+    let path_field_types: Array<String> = [];
+    let topology_rows: Array<Int> = [];
+    let row_index: Int = 0;
+    while row_index < JsonArrayObjectFactCount(rows) {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row_index);
+        if JsonObjectFactCount(row) != 18 ||
+            !MirDomainRuntimeRequiredId(row, "program_syntax_id", program_ids) ||
+            !MirDomainRuntimeRequiredId(row, "owner_syntax_id", owner_ids) ||
+            !MirDomainRuntimeRequiredId(row, "directive_syntax_id", directive_ids) ||
+            !MirDomainRuntimeRequiredString(row, "operation", operations) ||
+            !MirDomainRuntimeRequiredId(
+                row, "projection_slot_syntax_id", projection_slot_ids
+            ) || !MirDomainRuntimeRequiredId(
+                row, "source_slot_syntax_id", source_slot_ids
+            ) || !MirDomainRuntimeRequiredId(
+                row, "target_decl_syntax_id", target_decl_ids
+            ) || !MirDomainRuntimeRequiredId(
+                row, "target_field_syntax_id", target_field_ids
+            ) || !MirDomainRuntimeRequiredId(
+                row, "source_decl_syntax_id", source_decl_ids
+            ) || !MirDomainRuntimeRequiredString(
+                row, "owner_name", owner_names
+            ) || !MirDomainRuntimeRequiredString(
+                row, "projection_slot_name", projection_slot_names
+            ) || !MirDomainRuntimeRequiredString(
+                row, "source_slot_name", source_slot_names
+            ) || !MirDomainRuntimeRequiredString(
+                row, "target_field_name", target_field_names
+            ) || !MirDomainRuntimeRequiredString(
+                row, "target_field_type_name", target_field_types
+            ) || !MirDomainRuntimeRequiredString(
+                row, "source_path", source_paths
+            ) || !MirDomainRuntimeRequiredString(
+                row, "source_leaf_type_name", source_leaf_types
+            ) {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        if JsonObjectBoolFieldEqualsWithin(
+            row.json, row.start, row.end, "explicit_map", true
+        ) {
+            ArrayPush(explicit_maps, true);
+        } else if JsonObjectBoolFieldEqualsWithin(
+            row.json, row.start, row.end, "explicit_map", false
+        ) {
+            ArrayPush(explicit_maps, false);
+        } else {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        if !MirDomainRuntimeProjectionOperation(operations[row_index]) ||
+            (row_index > 0 && program_ids[row_index] != program_ids[0]) {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        let topology_row: Int = MirDomainRuntimeExactTopologyRow(
+            topology, owner_names[row_index], owner_ids[row_index],
+            directive_ids[row_index], operations[row_index],
+            projection_slot_names[row_index], projection_slot_ids[row_index],
+            source_slot_names[row_index], source_slot_ids[row_index]
+        );
+        if topology_row < 0 { return EmptyMirDomainProjectionAssignmentFacts(false); }
+        ArrayPush(topology_rows, topology_row);
+
+        let projection_field: Int =
+            MirProgramDeclarationFieldIdentityFieldIndex(
+                declarations.field_identities, owner_names[row_index],
+                projection_slot_names[row_index], projection_slot_ids[row_index]
+            );
+        let source_field: Int = MirProgramDeclarationFieldIdentityFieldIndex(
+            declarations.field_identities, owner_names[row_index],
+            source_slot_names[row_index], source_slot_ids[row_index]
+        );
+        if projection_field < 0 || source_field < 0 ||
+            !MirDomainRuntimeFieldKindIsProjection(
+                declarations.field_identities.field_kinds[projection_field]
+            ) || !MirDomainRuntimeFieldKindIsSource(
+                declarations.field_identities.field_kinds[source_field]
+            ) {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        let target_decl_name: String =
+            declarations.field_identities.field_type_names[projection_field];
+        let source_decl_name: String =
+            declarations.field_identities.field_type_names[source_field];
+        if MirProgramDeclarationFieldIdentityDeclarationIndex(
+                declarations.field_identities, target_decl_name
+            ) < 0 || MirProgramDeclarationFieldIdentityDeclarationIndex(
+                declarations.field_identities, source_decl_name
+            ) < 0 {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        ArrayPush(target_decl_names, target_decl_name);
+        ArrayPush(source_decl_names, source_decl_name);
+        let target_field: Int = MirProgramDeclarationFieldIdentityFieldIndex(
+            declarations.field_identities, target_decl_name,
+            target_field_names[row_index], target_field_ids[row_index]
+        );
+        if target_field < 0 ||
+            declarations.field_identities.field_type_names[target_field] !=
+                target_field_types[row_index] {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+
+        let path_rows: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(row, "source_path_segments");
+        if !JsonArrayObjectFactTableReady(path_rows) ||
+            JsonArrayObjectFactCount(path_rows) <= 0 {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        ArrayPush(path_starts, ArrayLength(path_field_ids));
+        ArrayPush(path_counts, JsonArrayObjectFactCount(path_rows));
+        let path_row: Int = 0;
+        while path_row < JsonArrayObjectFactCount(path_rows) {
+            let segment: JsonObjectFactTable = JsonArrayObjectFactAt(
+                path_rows, path_row
+            );
+            if JsonObjectFactCount(segment) != 3 ||
+                !MirDomainRuntimeRequiredId(
+                    segment, "field_syntax_id", path_field_ids
+                ) || !MirDomainRuntimeRequiredString(
+                    segment, "field_name", path_field_names
+                ) || !MirDomainRuntimeRequiredString(
+                    segment, "field_type_name", path_field_types
+                ) {
+                return EmptyMirDomainProjectionAssignmentFacts(false);
+            }
+            path_row = path_row + 1;
+        }
+        let current: MirDomainProjectionAssignmentFacts =
+            MirDomainProjectionAssignmentFacts(
+                true, program_ids, owner_ids, directive_ids, operations,
+                projection_slot_ids, source_slot_ids, target_decl_ids,
+                target_decl_names, target_field_ids, source_decl_ids,
+                source_decl_names, explicit_maps, owner_names,
+                projection_slot_names, source_slot_names,
+                target_field_names, target_field_types, source_paths,
+                source_leaf_types, path_starts, path_counts,
+                path_field_ids, path_field_names, path_field_types,
+                topology_rows
+            );
+        if !MirDomainRuntimePathJoinReady(
+                declarations, source_decl_name, row_index, current
+            ) || !MirDomainRuntimeProjectionIdentityReady(current, row_index) {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        row_index = row_index + 1;
+    }
+    let topology_row: Int = 0;
+    while topology_row < ArrayLength(topology.kinds) {
+        if MirDomainRuntimeProjectionOperation(topology.kinds[topology_row]) {
+            let matches: Int = 0;
+            let fact_row: Int = 0;
+            while fact_row < ArrayLength(topology_rows) {
+                if topology_rows[fact_row] == topology_row {
+                    matches = matches + 1;
+                }
+                fact_row = fact_row + 1;
+            }
+            if matches <= 0 {
+                return EmptyMirDomainProjectionAssignmentFacts(false);
+            }
+        }
+        topology_row = topology_row + 1;
+    }
+    return MirDomainProjectionAssignmentFacts(
+        true, program_ids, owner_ids, directive_ids, operations,
+        projection_slot_ids, source_slot_ids, target_decl_ids,
+        target_decl_names, target_field_ids, source_decl_ids,
+        source_decl_names, explicit_maps, owner_names,
+        projection_slot_names, source_slot_names, target_field_names,
+        target_field_types, source_paths, source_leaf_types,
+        path_starts, path_counts, path_field_ids, path_field_names,
+        path_field_types, topology_rows
+    );
+}
+
+func MirDomainRuntimeAssignmentFactsFromDocument(
+    ref document: MirDocumentFactIndex,
+    ref topology: MirDomainTopologyFacts
+) -> MirDomainRuntimeAssignmentFacts {
+    if !document.valid ||
+        !JsonObjectFactTableReady(document.domain_runtime_assignments) {
+        return EmptyMirDomainRuntimeAssignmentFacts(false);
+    }
+    if JsonObjectFactCount(document.domain_runtime_assignments) != 2 ||
+        !JsonObjectFactHasField(
+            document.domain_runtime_assignments, "participant_roles"
+        ) || !JsonObjectFactHasField(
+            document.domain_runtime_assignments, "projection_members"
+        ) {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    if !MirDomainTopologyDeclarationIndexReady(declarations) {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    }
+    let participant_rows: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            document.domain_runtime_assignments, "participant_roles"
+        );
+    let projection_rows: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            document.domain_runtime_assignments, "projection_members"
+        );
+    let participants: MirDomainParticipantRoleFacts =
+        MirDomainParticipantRoleFactsFromTable(participant_rows, declarations);
+    let projections: MirDomainProjectionAssignmentFacts =
+        MirDomainProjectionAssignmentFactsFromTable(
+            projection_rows, declarations, topology
+        );
+    if !participants.valid || !projections.valid {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    }
+    let program_id: String = "";
+    if ArrayLength(participants.program_syntax_ids) > 0 {
+        program_id = participants.program_syntax_ids[0];
+    }
+    if ArrayLength(projections.program_syntax_ids) > 0 {
+        if StringLength(program_id) > 0 &&
+            program_id != projections.program_syntax_ids[0] {
+            return EmptyMirDomainRuntimeAssignmentFacts(true);
+        }
+        program_id = projections.program_syntax_ids[0];
+    }
+    if MirDomainTopologyRequiredForDocument(document) &&
+        StringLength(program_id) == 0 {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    }
+    return MirDomainRuntimeAssignmentFacts(
+        true, true, program_id, participants, projections
+    );
+}

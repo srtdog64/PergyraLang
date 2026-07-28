@@ -11,30 +11,6 @@
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 
-static ASTNode *
-find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
-                              ASTNode **refreshes, size_t refresh_count,
-                              size_t ordinal)
-{
-    size_t seen = 0;
-    (void)refreshes;
-    (void)refresh_count;
-
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !ast_domain_slot_is_binding(slot)) {
-            continue;
-        }
-
-        if (seen == ordinal)
-            return slot;
-        seen++;
-    }
-
-    return NULL;
-}
-
 static const char *
 relation_endpoint_kind_label(RelationEndpointKind kind)
 {
@@ -119,10 +95,8 @@ type_check_zone_effect_contract(ASTNode *zone,
         return true;
     }
 
-    decl_target = find_nth_bindable_domain_slot(effect_slots,
-        effect_slot_count,
-        effect_refreshes,
-        effect_refresh_count, 0);
+    decl_target = semantic_domain_participant_role_slot(
+        ctx, effect_decl, PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER, apply_like);
     if (decl_target == NULL)
         return false;
 
@@ -369,14 +343,12 @@ type_check_zone_relation_contract(ASTNode *zone,
         return true;
     }
 
-    decl_left = find_nth_bindable_domain_slot(relation_slots,
-        relation_slot_count,
-        relation_refreshes,
-        relation_refresh_count, 0);
-    decl_right = find_nth_bindable_domain_slot(relation_slots,
-        relation_slot_count,
-        relation_refreshes,
-        relation_refresh_count, 1);
+    decl_left = semantic_domain_participant_role_slot(
+        ctx, relation_decl, PGY_DOMAIN_PARTICIPANT_RELATION_SOURCE,
+        link_like);
+    decl_right = semantic_domain_participant_role_slot(
+        ctx, relation_decl, PGY_DOMAIN_PARTICIPANT_RELATION_TARGET,
+        link_like);
     if (decl_left == NULL || decl_right == NULL)
         return false;
 

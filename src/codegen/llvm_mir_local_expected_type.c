@@ -67,8 +67,7 @@ llvm_mir_local_infer_expr_type(const MIRRoutine *routine,
         ctx->expected_callable_type = inst->expr1;
     }
     type = llvm_mir_local_array_access_type(routine, ctx, expr);
-    if (type == NULL && (expr->type != AST_ARRAY_ACCESS
-                         || !llvm_active_has_mir(ctx)))
+    if (type == NULL && expr->type != AST_ARRAY_ACCESS)
         type = llvm_stmt_infer_expr_type(ctx, expr);
     ctx->expected_callable_type = saved_expected_callable_type;
     ctx->expected_type_name = saved_expected_type_name;

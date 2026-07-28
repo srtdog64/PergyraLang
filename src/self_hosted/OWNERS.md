@@ -707,6 +707,15 @@ inventory must not become a second fact-family owner registry.
   DIR-owned graph identity and complete typed topology row arrays; projects
   integer producer syntax IDs to the MIR wire representation without changing
   their producer epoch.
+- `src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy` -- derives
+  exact effect bearer, relation endpoint, and implicit projection member/path
+  assignments from the typed declaration and topology facts without a backend
+  same-name or ordinal policy.
+- `src/self_hosted/mir/domain_runtime_assignment_verify_owner.pgy` -- one
+  structural verifier for the self-produced runtime-assignment carrier.
+- `src/self_hosted/mir/domain_runtime_assignment_json_owner.pgy` -- lossless
+  `pgy.mir.v1` projection of the verified participant-role and member/path
+  assignment rows.
 - `src/self_hosted/mir_lower/domain_topology_fact_owner.pgy` -- derived typed
   admission view of the program-global DIR-owned topology carrier,
   relation/field-kind joins, stable row identity checks, and
@@ -722,6 +731,16 @@ inventory must not become a second fact-family owner registry.
   program plan joining owner-local schedules, graph-derived depth/pass-limit,
   stable-ID edges, and a mutation-detecting digest. Machine admission is its
   sole full-plan validation boundary.
+- `src/self_hosted/mir_lower/domain_runtime_participant_role_fact_owner.pgy`
+  -- participant-role JSON parsing, cardinality, and exact declaration-field
+  admission.
+- `src/self_hosted/mir_lower/domain_runtime_assignment_fact_owner.pgy` --
+  projection/path JSON admission plus the top-level runtime-assignment bundle;
+  it composes the participant owner and exact topology joins.
+- `src/self_hosted/mir_lower/domain_runtime_plan_owner.pgy` -- one-time,
+  target-neutral admitted operation plan whose rows reference exact topology,
+  participant-role, and projection-assignment indexes. Last consumers perform
+  local lookups and never rerun whole-plan validation.
 - `src/self_hosted/mir_lower/loop_flow_fact_owner.pgy` -- native
   LoopFlowSummary and stable-indexed entry/exit state fact parsing.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
@@ -818,6 +837,9 @@ inventory must not become a second fact-family owner registry.
   prototypes, function environments, and member calls; MIR consumers exact-
   join admitted source ID/owner/name rows while source entrypoints derive the
   same fact from verified semantic declaration owners.
+- `src/self_hosted/codegen/input/domain_runtime_codegen_view_owner.pgy` --
+  admitted C-target view of owner identity to exact runtime method prologue;
+  lookup consumes the once-validated view without whole-table revalidation.
 - `src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy`
   -- ordered C specialization view shared by source entrypoints and MIR
   consumers; hard MIR codegen receives it from the MIR row decoder and does
@@ -1129,6 +1151,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy` --
   one-way bridge from the machine-admitted MIR routine inventory to the
   codegen callable-receiver fact; codegen never reopens MIR JSON.
+- `src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy` --
+  one-way renderer from the admitted target-neutral runtime plan to exact C
+  role binding and projection-sync prologues; it owns no source, JSON, ordinal,
+  or same-name recovery path.
 
 - `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
   contract: no mechanism without a consumer, or an explicit declaration that

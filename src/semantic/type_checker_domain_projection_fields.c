@@ -4,9 +4,31 @@
 
 #include <string.h>
 
+static bool
+projection_target_field_has_explicit_map(ASTNode *site,
+                                         const char *target_field_name)
+{
+    if (site == NULL || site->type != AST_ZONE_REFRESH
+        || target_field_name == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < ast_zone_refresh_field_map_count(site); i++) {
+        const char *mapped_target =
+            ast_zone_refresh_mapped_target_field(site, i);
+        if (mapped_target != NULL
+            && strcmp(mapped_target, target_field_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 type_check_projection_field_contracts(ASTNode *target_decl,
                                       ASTNode *source_decl,
+                                      ASTNode *owner_decl,
+                                      ASTNode *projection_slot,
+                                      ASTNode *source_slot,
                                       Type *target_type,
                                       Type *source_type,
                                       const char *owner_label,
@@ -114,6 +136,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
         Type *source_field_type;
         const char *source_field_name;
         const char *source_path = NULL;
+        PgyDomainProjectionPathSegmentFact *source_path_segments = NULL;
+        size_t source_path_segment_count = 0;
         int source_status;
 
         if (target_field.name == NULL
@@ -123,9 +147,20 @@ type_check_projection_field_contracts(ASTNode *target_decl,
 
         source_field_name = projection_refresh_source_field_name(site,
             target_field.name);
-        source_status = semantic_resolve_projection_source_field_path(
+        source_status =
+            semantic_resolve_projection_source_field_path_with_segments(
             ctx, source_decl, source_field_name,
-            &source_path, &source_field_type);
+            &source_path, &source_field_type,
+            &source_path_segments, &source_path_segment_count);
+        if (source_status < 0) {
+            semantic_error(ctx, site,
+                "%s %s projection path identity allocation failed closed",
+                owner_label != NULL ? owner_label : "Domain",
+                action_name != NULL ? action_name : "projection");
+            pgy_domain_projection_path_segments_destroy(
+                source_path_segments, source_path_segment_count);
+            continue;
+        }
         if (source_status == 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
@@ -156,6 +191,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 source_type != NULL && source_type->name != NULL
                     ? source_type->name
                     : "<unknown>");
+            pgy_domain_projection_path_segments_destroy(
+                source_path_segments, source_path_segment_count);
             continue;
         }
         if (source_status == 0 || source_field_type == NULL) {
@@ -232,6 +269,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                         ? source_type->name
                         : "<unknown>");
             }
+            pgy_domain_projection_path_segments_destroy(
+                source_path_segments, source_path_segment_count);
             continue;
         }
 
@@ -271,8 +310,20 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 type_name_or_unknown(source_field_type),
                 target_field.name,
                 type_name_or_unknown(target_field_type));
+            pgy_domain_projection_path_segments_destroy(
+                source_path_segments, source_path_segment_count);
             continue;
         }
+
+        (void)semantic_record_domain_projection_member_assignment(
+            ctx, owner_decl, site, projection_slot, source_slot,
+            target_decl, target_field.declaration_syntax_id,
+            target_field.name, target_field_type, source_decl,
+            projection_target_field_has_explicit_map(site, target_field.name),
+            source_path, source_field_type,
+            source_path_segments, source_path_segment_count);
+        source_path_segments = NULL;
+        source_path_segment_count = 0;
     }
 
     return true;

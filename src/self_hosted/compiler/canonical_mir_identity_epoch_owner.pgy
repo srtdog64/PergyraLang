@@ -9,6 +9,7 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/domain_topology_fact_owner.pgy";
+import "../mir/domain_runtime_assignment_verify_owner.pgy";
 import "../mir/program_fact_owner.pgy";
 import "../mir_lower/domain_topology_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
@@ -467,10 +468,18 @@ func CanonicalMirIdentityEpochRebindProgramFacts(
     if !SelfMirDomainTopologyFactsReady(topology) {
         return CanonicalMirProgramIdentityEpoch(false, facts);
     }
+    let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
+        facts.domain_runtime_assignments;
+    if !SelfMirDomainRuntimeAssignmentFactsReady(
+        domain_runtime_assignments
+    ) {
+        return CanonicalMirProgramIdentityEpoch(false, facts);
+    }
     let rebound: SelfMirProgramFacts = SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, declarations.declarations,
-        topology, facts.generic_specializations, facts.parallel_captures,
+        topology, domain_runtime_assignments,
+        facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg
     );
     return CanonicalMirProgramIdentityEpoch(

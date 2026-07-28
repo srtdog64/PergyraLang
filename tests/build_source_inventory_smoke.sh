@@ -673,6 +673,7 @@ mutable_static_char_arrays="$(
 unexpected_static_char_arrays="$(
     printf '%s\n' "$mutable_static_char_arrays" \
         | grep -v '^$' \
+        | grep -v '^src/lsp/pgy_lsp_protocol.c:.*completion_items_process_cache' \
         || true
 )"
 if [[ -n "$unexpected_static_char_arrays" ]]; then
@@ -1436,21 +1437,21 @@ grep -Fq "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(" 
     missing=1
 }
 
-grep -Fq "emit_zone_projection_sync_loop_from_mir_refresh_view" \
+grep -Fq "emit_domain_projection_sync_loop_from_mir_runtime_facts" \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c" || {
-    echo "[build-source-inventory] C projection sync must expose a domain slot-view consumer" >&2
+    echo "[build-source-inventory] C projection sync must expose the MIR runtime-fact consumer" >&2
     missing=1
 }
 
-grep -Fq "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx" \
+grep -Fq "emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx" \
     "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c" || {
-    echo "[build-source-inventory] relation/effect projection sync must consume the MIR refresh domain slot view" >&2
+    echo "[build-source-inventory] relation/effect projection sync must consume MIR runtime assignments" >&2
     missing=1
 }
 
-grep -Fq "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx" \
+grep -Fq "emit_domain_projection_sync_loop_from_mir_runtime_facts(ctx" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" || {
-    echo "[build-source-inventory] zone projection sync must consume the MIR refresh domain slot view" >&2
+    echo "[build-source-inventory] zone projection sync must consume MIR runtime assignments" >&2
     missing=1
 }
 

@@ -1,0 +1,66 @@
+// Codegen view of one machine-admitted domain runtime plan.
+//
+// The compiler bridge projects exact, already admitted operations into one C
+// prologue per identity-bearing owner.  Codegen consumes these strings as a
+// target view; it never reads MIR JSON or rebuilds participant/member policy.
+
+struct CodegenDomainRuntimeFacts {
+    let admitted: Bool;
+    let owner_names: Array<String>;
+    let method_prologues: Array<String>;
+}
+
+func CodegenDomainRuntimeFactsEmpty(
+    admitted: Bool
+) -> CodegenDomainRuntimeFacts {
+    let owner_names: Array<String> = [];
+    let prologues: Array<String> = [];
+    return CodegenDomainRuntimeFacts(admitted, owner_names, prologues);
+}
+
+func CodegenDomainRuntimeFactsReady(
+    ref facts: CodegenDomainRuntimeFacts
+) -> Bool {
+    if !facts.admitted ||
+        ArrayLength(facts.owner_names) !=
+            ArrayLength(facts.method_prologues) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(facts.owner_names) {
+        if facts.owner_names[row] == "" ||
+            facts.method_prologues[row] == "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.owner_names[prior] == facts.owner_names[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CodegenDomainRuntimeMethodPrologue(
+    ref facts: CodegenDomainRuntimeFacts,
+    owner_name: String
+) -> String {
+    // CodegenDomainRuntimeFactsReady runs once when the admitted target view is
+    // built.  A per-method lookup must not revalidate the whole owner table.
+    if !facts.admitted || owner_name == "" ||
+        ArrayLength(facts.owner_names) !=
+            ArrayLength(facts.method_prologues) {
+        return "";
+    }
+    let row: Int = 0;
+    while row < ArrayLength(facts.owner_names) {
+        if facts.owner_names[row] == owner_name {
+            return facts.method_prologues[row];
+        }
+        row = row + 1;
+    }
+    return "";
+}

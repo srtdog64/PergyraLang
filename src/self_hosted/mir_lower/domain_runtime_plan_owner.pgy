@@ -1,0 +1,279 @@
+// One-time, target-neutral runtime plan for admitted domain facts.
+//
+// Rows preserve topology order and refer to exact admitted assignment/role
+// rows.  Backends consume this plan; they do not rescan JSON or re-decide
+// semantic projection assignability.
+
+import "domain_runtime_assignment_fact_owner.pgy";
+import "program_declaration_index_owner.pgy";
+
+struct MirDomainRuntimePlan {
+    let valid: Bool;
+    let present: Bool;
+    let program_syntax_id: String;
+    let domain_graph_id: String;
+    let topology_row_indices: Array<Int>;
+    let owner_names: Array<String>;
+    let owner_syntax_ids: Array<String>;
+    let directive_syntax_ids: Array<String>;
+    let operation_kinds: Array<String>;
+    let projection_assignment_starts: Array<Int>;
+    let projection_assignment_counts: Array<Int>;
+    let projection_assignment_rows: Array<Int>;
+    let participant_role_starts: Array<Int>;
+    let participant_role_counts: Array<Int>;
+    let participant_role_rows: Array<Int>;
+}
+
+func EmptyMirDomainRuntimePlan(present: Bool) -> MirDomainRuntimePlan {
+    let i0: Array<Int> = [];
+    let s0: Array<String> = [];
+    let s1: Array<String> = [];
+    let s2: Array<String> = [];
+    let s3: Array<String> = [];
+    let i1: Array<Int> = [];
+    let i2: Array<Int> = [];
+    let i3: Array<Int> = [];
+    let i4: Array<Int> = [];
+    let i5: Array<Int> = [];
+    let i6: Array<Int> = [];
+    return MirDomainRuntimePlan(
+        !present, present, "", "", i0, s0, s1, s2, s3,
+        i1, i2, i3, i4, i5, i6
+    );
+}
+
+func MirDomainRuntimePlanRoleRow(
+    ref roles: MirDomainParticipantRoleFacts,
+    owner_name: String,
+    role: String,
+    field_type_name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(roles.roles) {
+        if roles.owner_names[row] == owner_name &&
+            roles.roles[row] == role &&
+            roles.field_type_names[row] == field_type_name {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirDomainRuntimePlanFieldType(
+    ref identities: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    field_name: String,
+    field_id: String
+) -> String {
+    let row: Int = MirProgramDeclarationFieldIdentityFieldIndex(
+        identities, owner_name, field_name, field_id
+    );
+    if row < 0 { return ""; }
+    return identities.field_type_names[row];
+}
+
+func MirDomainRuntimePlanFromFacts(
+    ref document: MirDocumentFactIndex,
+    ref topology: MirDomainTopologyFacts,
+    ref facts: MirDomainRuntimeAssignmentFacts
+) -> MirDomainRuntimePlan {
+    if !facts.present { return EmptyMirDomainRuntimePlan(false); }
+    if !document.valid || !topology.valid || !facts.valid ||
+        !topology.present || StringLength(facts.program_syntax_id) == 0 {
+        return EmptyMirDomainRuntimePlan(true);
+    }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    if !MirDomainTopologyDeclarationIndexReady(declarations) {
+        return EmptyMirDomainRuntimePlan(true);
+    }
+    let topology_rows: Array<Int> = [];
+    let owner_names: Array<String> = [];
+    let owner_ids: Array<String> = [];
+    let directive_ids: Array<String> = [];
+    let operations: Array<String> = [];
+    let projection_starts: Array<Int> = [];
+    let projection_counts: Array<Int> = [];
+    let projection_rows: Array<Int> = [];
+    let role_starts: Array<Int> = [];
+    let role_counts: Array<Int> = [];
+    let role_rows: Array<Int> = [];
+    let topology_row: Int = 0;
+    while topology_row < ArrayLength(topology.kinds) {
+        ArrayPush(topology_rows, topology_row);
+        ArrayPush(owner_names, topology.owner_names[topology_row]);
+        ArrayPush(owner_ids, topology.owner_source_syntax_ids[topology_row]);
+        ArrayPush(directive_ids, topology.source_syntax_ids[topology_row]);
+        ArrayPush(operations, topology.kinds[topology_row]);
+        ArrayPush(projection_starts, ArrayLength(projection_rows));
+        ArrayPush(role_starts, ArrayLength(role_rows));
+        let projection_count: Int = 0;
+        let role_count: Int = 0;
+        if MirDomainRuntimeProjectionOperation(topology.kinds[topology_row]) {
+            let assignment_row: Int = 0;
+            while assignment_row < ArrayLength(
+                facts.projection_members.topology_row_indices
+            ) {
+                if facts.projection_members.topology_row_indices[
+                        assignment_row] == topology_row {
+                    ArrayPush(projection_rows, assignment_row);
+                    projection_count = projection_count + 1;
+                }
+                assignment_row = assignment_row + 1;
+            }
+            if projection_count <= 0 {
+                return EmptyMirDomainRuntimePlan(true);
+            }
+        } else {
+            let layer_type: String = MirDomainRuntimePlanFieldType(
+                declarations.field_identities,
+                topology.owner_names[topology_row],
+                topology.layer_slot_names[topology_row],
+                topology.layer_slot_source_syntax_ids[topology_row]
+            );
+            if StringLength(layer_type) == 0 {
+                return EmptyMirDomainRuntimePlan(true);
+            }
+            if topology.kinds[topology_row] == "apply-effect" ||
+                topology.kinds[topology_row] == "maintain-effect" {
+                let target_type: String = MirDomainRuntimePlanFieldType(
+                    declarations.field_identities,
+                    topology.owner_names[topology_row],
+                    topology.target_slot_names[topology_row],
+                    topology.target_slot_source_syntax_ids[topology_row]
+                );
+                let bearer_row: Int = MirDomainRuntimePlanRoleRow(
+                    facts.participant_roles, layer_type, "effect-bearer",
+                    target_type
+                );
+                if StringLength(target_type) == 0 || bearer_row < 0 {
+                    return EmptyMirDomainRuntimePlan(true);
+                }
+                ArrayPush(role_rows, bearer_row);
+                role_count = 1;
+            } else if topology.kinds[topology_row] == "link-relation" {
+                let left_type: String = MirDomainRuntimePlanFieldType(
+                    declarations.field_identities,
+                    topology.owner_names[topology_row],
+                    topology.left_slot_names[topology_row],
+                    topology.left_slot_source_syntax_ids[topology_row]
+                );
+                let right_type: String = MirDomainRuntimePlanFieldType(
+                    declarations.field_identities,
+                    topology.owner_names[topology_row],
+                    topology.right_slot_names[topology_row],
+                    topology.right_slot_source_syntax_ids[topology_row]
+                );
+                let source_row: Int = MirDomainRuntimePlanRoleRow(
+                    facts.participant_roles, layer_type, "relation-source",
+                    left_type
+                );
+                let target_row: Int = MirDomainRuntimePlanRoleRow(
+                    facts.participant_roles, layer_type, "relation-target",
+                    right_type
+                );
+                if StringLength(left_type) == 0 ||
+                    StringLength(right_type) == 0 || source_row < 0 ||
+                    target_row < 0 || source_row == target_row {
+                    return EmptyMirDomainRuntimePlan(true);
+                }
+                ArrayPush(role_rows, source_row);
+                ArrayPush(role_rows, target_row);
+                role_count = 2;
+            } else {
+                return EmptyMirDomainRuntimePlan(true);
+            }
+        }
+        ArrayPush(projection_counts, projection_count);
+        ArrayPush(role_counts, role_count);
+        topology_row = topology_row + 1;
+    }
+    return MirDomainRuntimePlan(
+        true, true, facts.program_syntax_id, topology.domain_graph_id,
+        topology_rows, owner_names, owner_ids, directive_ids, operations,
+        projection_starts, projection_counts, projection_rows,
+        role_starts, role_counts, role_rows
+    );
+}
+
+func MirDomainRuntimePlanReady(ref plan: MirDomainRuntimePlan) -> Bool {
+    if !plan.present { return plan.valid; }
+    let count: Int = ArrayLength(plan.topology_row_indices);
+    if !plan.valid || StringLength(plan.program_syntax_id) == 0 ||
+        !MirDomainTopologyPositiveDecimal(plan.program_syntax_id) ||
+        !MirDomainTopologyPositiveDecimal(plan.domain_graph_id) ||
+        count != ArrayLength(plan.owner_names) ||
+        count != ArrayLength(plan.owner_syntax_ids) ||
+        count != ArrayLength(plan.directive_syntax_ids) ||
+        count != ArrayLength(plan.operation_kinds) ||
+        count != ArrayLength(plan.projection_assignment_starts) ||
+        count != ArrayLength(plan.projection_assignment_counts) ||
+        count != ArrayLength(plan.participant_role_starts) ||
+        count != ArrayLength(plan.participant_role_counts) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if plan.topology_row_indices[row] != row ||
+            StringLength(plan.owner_names[row]) == 0 ||
+            !MirDomainTopologyPositiveDecimal(plan.owner_syntax_ids[row]) ||
+            !MirDomainTopologyPositiveDecimal(plan.directive_syntax_ids[row]) ||
+            !MirDomainTopologyKnownKind(plan.operation_kinds[row]) ||
+            plan.projection_assignment_starts[row] < 0 ||
+            plan.projection_assignment_counts[row] < 0 ||
+            plan.projection_assignment_starts[row] +
+                plan.projection_assignment_counts[row] >
+                ArrayLength(plan.projection_assignment_rows) ||
+            plan.participant_role_starts[row] < 0 ||
+            plan.participant_role_counts[row] < 0 ||
+            plan.participant_role_starts[row] +
+                plan.participant_role_counts[row] >
+                ArrayLength(plan.participant_role_rows) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func MirDomainRuntimePlanOperationCountForOwner(
+    ref plan: MirDomainRuntimePlan, owner_name: String
+) -> Int {
+    // Admission already ran MirDomainRuntimePlanReady once.  Last consumers
+    // perform only local bounds/identity checks; they must not revalidate the
+    // whole program graph for each lookup.
+    if !plan.valid || !plan.present || StringLength(owner_name) == 0 {
+        return 0;
+    }
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.owner_names) {
+        if plan.owner_names[row] == owner_name { count = count + 1; }
+        row = row + 1;
+    }
+    return count;
+}
+
+func MirDomainRuntimePlanOperationRowForOwnerAt(
+    ref plan: MirDomainRuntimePlan, owner_name: String, ordinal: Int
+) -> Int {
+    if !plan.valid || !plan.present || ordinal < 0 ||
+        ArrayLength(plan.owner_names) !=
+            ArrayLength(plan.topology_row_indices) {
+        return 0 - 1;
+    }
+    let seen: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.owner_names) {
+        if plan.owner_names[row] == owner_name {
+            if seen == ordinal { return row; }
+            seen = seen + 1;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}

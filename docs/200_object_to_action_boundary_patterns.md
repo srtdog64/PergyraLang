@@ -247,29 +247,33 @@ destination role이 아니다. implicit same-name mapping은 Pergyra의 좋은 �
 유지할 수 있지만 **semantic owner가 한 번 exact assignment로 확정**해야 한다.
 backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중 권위다.
 
-현재 native 경로의 실제 금지 read path는 다음과 같다.
+현재 runtime 경로의 폐쇄 상태는 다음과 같다.
 
-- C `transpiler_projection_emit.c`는 map이 없으면 target 이름을 source 이름으로
-  다시 쓰고, source path를 못 찾으면 `.field = 0`을 방출한다.
-- LLVM `llvm_domain_projection_value_helpers.c`도 same-name을 다시 선택하지만
-  실패 의미는 C와 달리 NULL/error다.
-- C/LLVM effect binder는 첫 bindable slot, relation binder는 0/1번째 slot을
-  destination role로 사용한다.
-- native/self MIR은 callable별 `receiver_carriage`를 JSON wire에 필수로
-  운반하고 self-host general C는 zone method를 `BattleZone *self`로 내린다.
-  남은 결함은 native C/LLVM과 일반 parameter ABI가 callable 전용 fact 대신
-  더 넓은 `uses_pointer_self` compatibility policy를 계속 재사용한다는 점이다.
-- zone constructor와 self-host constructor projection은 숨은 layer storage의
-  zero-init을 실제 materialization/sync와 구분하지 못한다.
+- Native semantic은 effect bearer와 relation source/target role 및 projection
+  member/path를 exact declaration·field ID/type로 한 번 결정한다. HIR/DIR/MIR과
+  `pgy.mir.v1`은 이 사실을 lossless하게 운반한다.
+- Native C의 domain sync는 더 이상 `emit_projection_literal_by_zone_refresh_metadata`
+  또는 missing-source `.field = 0`을 쓰지 않는다. LLVM domain sync도 same-name/
+  nested-name value 탐색과 participant ordinal을 삭제하고 같은 MIR fact family를
+  소비한다.
+- Self source producer도 같은 typed row를 만들고, machine admission이 topology,
+  role, member/path를 한 번 exact join해 target-neutral plan을 만든다. 이후 lookup과
+  codegen view는 whole-plan/whole-owner validation을 반복하지 않는다.
+- Production DRV-2 직접 source entrypoint는 source -> self MIR -> admission -> general
+  C를 통과한다. `zone_layer_projection_runtime`의 명시적 MIR 경로와 byte-equal C를
+  만들며 둘 다 `7`과 `dst`를 실행한다.
+- 아직 남은 금지 경로는 일반 명시적 projection builtin의 이름 기반 변환,
+  LLVM world-effect의 first-subject helper, constructor/dirty scheduling의 옛
+  refresh metadata, native C/LLVM별 runtime-fact validation 중복이다. 또한 MIR
+  declaration row에 declaration-level `source_syntax_id`가 없어 단발성 foreign
+  positive declaration ID를 inventory와 완전 exact join하지 못한다.
 
-따라서 다음 executable runtime slice는 parser-only map 보존이나 backend patch가
-아니다. semantic이 implicit/explicit map, participant role, receiver carriage,
-layer lifecycle을 각각 typed fact로 만든 뒤 MIR이 identity epoch을 포함해
-lossless하게 운반하고, machine admission이 target-neutral runtime plan을 정확히
-한 번 만드는 순서여야 한다. 첫 실행 falsifier는 self MIR -> C의 `7`/`dst`이며,
-같은 plan을 C/LLVM이 소비해야 한다. member ID/type, bearer role, relation
-source/target destination, receiver mode, materialization/sync operation 중 하나를
-유효한 다른 값으로 바꿔도 artifact 생성 전에 실패해야 한다.
+첫 executable falsifier였던 self MIR -> C `7`/`dst`는 GREEN이다. 다음 closure는
+explicit self `map { ... }` 보존과 semantic assignability parity, declaration-level
+identity carriage, 그리고 materialize/bind/sync/dirty/epoch/lifecycle operation을 한
+native/self target-neutral plan으로 통합하는 것이다. 현재 exact eager method-entry
+bind/sync는 이 fixture를 실제 대체하지만 전체 lifecycle scheduler의 완료 증거는
+아니다.
 
 ### 구현 근거
 
@@ -305,9 +309,9 @@ storage sharing은 구현 세부사항이고 nominal kind가 의미 identity다.
 
 ### 실제 corpus 판정
 
-2026-07-28의 `driver_bootstrap_main.pgy` 재귀 import closure는 450개 파일이며
-missing import는 0이다. 이 import-reachable 집합에는 `func` 3,617개,
-`struct` 179개, `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개,
+2026-07-28의 `driver_bootstrap_main.pgy` 재귀 import closure는 477개 파일이며
+missing import는 0이다. 이 import-reachable 집합에는 `func` 3,800개,
+`struct` 204개, `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개,
 `action` 17개, `zone` 19개, `world` 1개, `intent` 14개, `role` 4개,
 `ability` 4개가 선언돼 있다. `class`/`vessel`/`effect`/`relation`/`party`/
 `roster` 선언은 0이다.
@@ -708,9 +712,9 @@ DRV-2의 self source -> typed AST/DIR -> MIR 경로로 non-empty topology를 직
 `[refresh, publish, apply-effect, link-relation]`가 declaration의 `(owner, field
 name, source_syntax_id, field_kind)`에 같은 identity epoch 안에서 join된다. Apply는
 maintain과 별도 typed identity이며 `poison` effect slot과 `player` subject slot을
-exact ID로 결속한다. 이 좁은 producer 경로만 `SUBSTITUTING`이다. Target-neutral
-graph plan은 이 MIR을 실제로 읽는 `REACHABLE` 단계이며 runtime substitution은
-아직 아니다.
+exact ID로 결속한다. 이 producer 경로와 exact runtime-assignment producer가
+`SUBSTITUTING`이다. Graph plan은 여전히 topology receipt이고, 별도 runtime plan이
+role/member/path를 join해 self general C의 마지막 소비자를 구동한다.
 
 Native의 `apply stateAlias`는 semantic owner가 state declaration을 정확히
 effect/target slot로 해석하고 AST carrier에 결속한 뒤 같은 `apply-effect` row를
@@ -720,24 +724,22 @@ self source parser는 state declaration/apply alias를 아직 typed artifact로 
 다시 찾는 임시 fallback을 넣지 말고, state declaration identity와 resolved slot
 identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한다.
 
-남은 runtime blocker는 다음처럼 정확히 기록한다.
+현재 runtime owner의 닫힌 범위와 남은 blocker는 다음처럼 기록한다.
 
-- `apply poison to player`의 distinct topology identity는 운반되지만, graph row는
-  runtime assignment 자체가 아니다. Effect declaration 내부의 어느 participant
-  field가 zone target을 받을지 명시하는 destination role identity가 없다. Directive의
-  optional `by participant`는 transition initiator/provenance이며 effect의 `bearer`
-  destination role을 대신하지 않는다.
-- Relation도 zone의 left/right slot identity는 있지만 `TrustedLink.source`와
-  `TrustedLink.target` destination role identity가 없다. Backend가 participant
-  declaration의 0/1번째 bindable field를 고르는 것은 임시 AST/ordinal authority다.
-- `refresh view from bearer`와 `publish packet from target`은 projection slot/source
-  slot까지만 topology에 있다. `view.hp <- bearer.hp`,
-  `packet.name <- target.name` 같은 member map의 exact field name/ID/type가 topology
-  wire에 없다. Self parser는 현재 `map { ... }` body를 검증 없이 건너뛰고 typed
-  artifact에 보존하지 않는다.
-- plan/runtime owner는 zone storage `.poison`/`.trust` materialization, transition
-  cause, ready/dirty/epoch, final execution pass limit, method-entry sync를 아직
-  소유하지 않는다.
+- `apply poison to player`는 exact `effect-bearer` role로 `Poisoned.bearer`를
+  `BattleZone.player`에 결속한다. `by participant`를 destination으로 쓰거나 첫
+  bindable field를 고르는 경로는 C/LLVM/self fixture 경로에서 삭제됐다.
+- Relation은 exact `relation-source`/`relation-target` role로
+  `TrustedLink.source <- player`, `TrustedLink.target <- enemy`를 만든다. 0/1 ordinal
+  선택은 같은 경로에서 삭제됐다.
+- `view.hp <- bearer.hp`와 `packet.name <- target.name`은 field ID/name/type 및 source
+  path segment ID/name/type를 MIR wire까지 운반한다. Self의 implicit same-name
+  producer는 이 exact row를 만들지만 explicit `map { ... }` body와 native의 넓은
+  assignability 규칙 parity는 아직 열려 있다.
+- Self runtime plan은 admission에서 한 번 검증되고 eager method-entry bind/sync를
+  materialize한다. 이 실행 모델은 현재 fixture의 실제 결과를 대체하지만
+  transition cause, ready/dirty/epoch, detach/unlink, pass-limit scheduler와 crash/
+  re-entry lifecycle까지 소유하지 않는다.
 - callable receiver carriage는 이제 self MIR에서 `none | value |
   mutable-identity`로 필수 운반되고, machine admission이 exact callable 및
   declaration identity와 함께 검증한다. General self C의 zone method는
@@ -745,17 +747,13 @@ identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한�
   Missing/unknown/value-zone/foreign-owner/temporary-receiver 변조는 output 전에
   거부된다. 다만 일반 parameter carriage와 native C/LLVM receiver 소비자는
   아직 더 넓은 `uses_pointer_self` compatibility policy를 공유한다.
-- 따라서 constructor는 caller가 subject/object/tobject/binding input만 넘기게
-  하되, 누락된 layer storage를 generic compound-literal zero-fill로 성공 처리하면
-  안 된다. Native MIR/JSON graft도 금지한다.
+- Constructor caller는 계속 subject/object/tobject/binding input만 넘긴다. 현재 self
+  exact prologue가 hidden layer를 bind/sync하므로 generic zero-fill만으로 성공을
+  주장하지 않는다. Native MIR/JSON graft도 금지한다.
 
-이 blocker가 닫히기 전 self MIR -> C의 `7`/`dst` runtime 요구는 RED로 남는다.
-다음 rung은 topology graph와 별개인 target-neutral runtime plan을 만든다. 이 plan은
-zone/layer/endpoint, layer 내부 destination role, projection member map, field type,
-receiver carriage와 transition state를 exact identity로 한 번 join한다. C/LLVM은
-검증된 plan operation만 투영하며 source AST, same-name member join, 0/1 ordinal
-participant lookup을 다시 사용하지 않는다. `.poison` 또는 `.trust`가 zero-fill된 C,
-by-value zone receiver, map/role 누락은 output 생성 전에 거부해야 한다.
+Self source -> MIR -> C의 `7`/`dst` 요구는 GREEN이며 이 좁은 runtime assignment/
+eager materialization 경로는 `SUBSTITUTING`이다. 전체 family는 위의 explicit-map,
+declaration identity, lifecycle/epoch, native shared-plan gap 때문에 `BRIDGE`다.
 
 ### 4.3 Artifact action의 commit 조건
 
@@ -946,10 +944,11 @@ subject CompilerExecution {
     directive/slot identity를 운반한다. MIR JSON relation/topology carriage와
     self-host typed admission은 declaration field `(owner, name, ID, kind)` exact
     join까지 `REACHABLE`로 닫혔다. Non-empty canonical identity remap, self-host
-    producer emission과 one-shot graph plan도 이후 닫혔다. Native/self raw ID 숫자
-    수렴은 계약이 아니며, owner declaration ID join, pool capacity,
-    vessel/binding slot, runtime assignment plan과 나머지 zone runtime topology는
-    열려 있다.
+    producer emission과 one-shot graph plan도 이후 닫혔다. Exact participant role과
+    implicit projection member/path assignment은 native/self MIR을 지나 self runtime
+    plan과 C/LLVM consumers에 도달했고 `7`/`dst`가 green이다. Native/self raw ID 숫자
+    수렴은 계약이 아니다. Declaration-level source ID carriage, explicit-map parity,
+    pool capacity, vessel/binding slot, dirty/epoch/lifecycle shared plan은 열려 있다.
 15. native/self `pgy.mir.v1` declaration JSON은 action identity와 전체 contract를
     운반하고 `mir_lower`가 이를 fail closed로 소비한다. 이것은 declaration
     carriage 증거이며 호출별 authority binding 또는 runtime identity/token 승인

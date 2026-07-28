@@ -153,6 +153,8 @@ func MachineProbeFacts(
     return SelfMirProgramFacts(
         true, "", "", 1,
         SelfMirDeclarationRowsEmpty(),
+        SelfMirDomainTopologyFactsAbsent(),
+        SelfMirDomainRuntimeAssignmentFactsEmpty(true, false),
         SelfMirGenericSpecializationRowsEmpty(),
         SelfMirParallelCaptureRowsEmpty(),
         routines, cfg5

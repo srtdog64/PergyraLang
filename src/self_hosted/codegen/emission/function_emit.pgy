@@ -6,6 +6,7 @@ import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/callable_receiver_codegen_view_owner.pgy";
+import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/builtin_signature_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -41,7 +42,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    base_env: CodegenTypeEnv, uses_args: Bool,
                    machine_startup: String,
                    specialized_name: String,
-                   generic_actuals: Array<String>) -> String {
+                   generic_actuals: Array<String>, ref domain_runtime: CodegenDomainRuntimeFacts) -> String {
     let function_node_id: Int = cur[0];
     let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
         signatures, function_node_id
@@ -75,6 +76,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         CodegenCallableReceiverCarriageForSignatureOrDie(
             receiver_facts, signatures, signature_index
         );
+    let domain_runtime_prologue: String = CodegenDomainRuntimeMethodPrologue(
+        domain_runtime, owner_name);
+    if domain_runtime_prologue != "" && receiver_carriage != CallableReceiverCarriageMutableIdentity() {
+        Die("domain runtime owner method requires mutable identity receiver");
+    }
     let role_erased: Bool =
         CodegenCallableReceiverRoleErasedForSignatureOrDie(
             receiver_facts, signatures, signature_index
@@ -229,9 +235,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     );
 
     let signature: String = "";
-    let body_full: String = Concat(
-        prologue, Concat(body, Concat(routine_defers[0], copyout))
-    );
+    let body_full: String = Concat(prologue, Concat(domain_runtime_prologue, Concat(body, Concat(routine_defers[0], copyout))));
     if is_main {
         body_full = Concat(machine_startup, body_full);
         signature = HostIORuntimeCEntrypointSignature(uses_args);
@@ -270,17 +274,16 @@ func EmitFunction(count: Int, arena: AstArena,
                    ref body_types: CodegenSemanticBodyTypeFacts,
                    expression_surfaces: SemanticAstExpressionSurfaceFacts,
                    inout cur: Array<Int>, f_indent: Int,
-                   base_env: CodegenTypeEnv, machine_startup: String,
-                   uses_args: Bool) -> String {
+                   base_env: CodegenTypeEnv, machine_startup: String, uses_args: Bool,
+                   ref domain_runtime: CodegenDomainRuntimeFacts) -> String {
     let no_actuals: Array<String> = [];
     return EmitFunctionWithSpecialization(
         count, arena, signatures, roles, receiver_facts,
         local_bindings, assignments,
         statements, body_types, expression_surfaces, cur, f_indent,
-        base_env, uses_args, machine_startup, "", no_actuals
+        base_env, uses_args, machine_startup, "", no_actuals, domain_runtime
     );
 }
-
 func BuildFunctionEnv(
     signatures: SemanticAstFunctionSignatureFacts,
     specializations: CodegenGenericSpecializationFacts,

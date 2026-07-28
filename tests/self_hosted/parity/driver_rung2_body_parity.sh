@@ -41,9 +41,10 @@ pgy_prepend_windows_runtime_paths
 
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
 if [[ -z "$MIR_FIXTURE_FILTER" ]] && command -v cygpath >/dev/null 2>&1; then
-    driver_shell_native="$(cygpath -am /usr/bin/bash 2>/dev/null || true)"
+    driver_shell_command="$(command -v bash 2>/dev/null || true)"
+    driver_shell_native="$(cygpath -am "$driver_shell_command" 2>/dev/null || true)"
     case "$driver_shell_native" in
-        */Git/usr/bin/bash.exe)
+        *"/Git/"*"/bash.exe")
             echo "[self-host-parity:driver-rung2] full matrix requires MSYS2 bash; Git Bash can orphan the long-running worker" >&2
             echo "[self-host-parity:driver-rung2] use PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER for a focused Git Bash gate" >&2
             exit 1
@@ -175,27 +176,41 @@ fi
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
     filtered_mir_fixture_rows=()
     mir_fixture_filters=()
-    declare -A mir_fixture_row_by_base=()
+    mir_fixture_bases=()
+    mir_fixture_rows_by_base=()
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         fixture_base=""
         pgy_selfhost_driver_rung2_fixture_base "$fixture_rel" fixture_base
-        if [[ -z "$fixture_base" ||
-            -n "${mir_fixture_row_by_base[$fixture_base]+present}" ]]; then
+        fixture_base_duplicate=0
+        for existing_fixture_base in "${mir_fixture_bases[@]}"; do
+            if [[ "$existing_fixture_base" == "$fixture_base" ]]; then
+                fixture_base_duplicate=1
+                break
+            fi
+        done
+        if [[ -z "$fixture_base" || "$fixture_base_duplicate" -ne 0 ]]; then
             echo "[self-host-parity:driver-rung2] MIR fixture base is empty or duplicated: $fixture_base" >&2
             exit 1
         fi
-        mir_fixture_row_by_base["$fixture_base"]="$fixture_rel"
+        mir_fixture_bases+=("$fixture_base")
+        mir_fixture_rows_by_base+=("$fixture_rel")
     done
     IFS=',' read -r -a mir_fixture_filters <<<"$MIR_FIXTURE_FILTER"
     for wanted_fixture in "${mir_fixture_filters[@]}"; do
-        if [[ -z "$wanted_fixture" ||
-            -z "${mir_fixture_row_by_base[$wanted_fixture]+present}" ]]; then
+        selected_fixture_row=""
+        fixture_index=0
+        while [[ "$fixture_index" -lt "${#mir_fixture_bases[@]}" ]]; do
+            if [[ "${mir_fixture_bases[$fixture_index]}" == "$wanted_fixture" ]]; then
+                selected_fixture_row="${mir_fixture_rows_by_base[$fixture_index]}"
+                break
+            fi
+            fixture_index=$((fixture_index + 1))
+        done
+        if [[ -z "$wanted_fixture" || -z "$selected_fixture_row" ]]; then
             echo "[self-host-parity:driver-rung2] MIR fixture filter did not select a row: $wanted_fixture" >&2
             exit 1
         fi
-        filtered_mir_fixture_rows+=(
-            "${mir_fixture_row_by_base[$wanted_fixture]}"
-        )
+        filtered_mir_fixture_rows+=("$selected_fixture_row")
     done
     mir_fixture_rows=("${filtered_mir_fixture_rows[@]}")
     # A MIR fixture filter owns a focused producer/consumer gate.  The

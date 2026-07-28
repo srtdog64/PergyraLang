@@ -15,9 +15,6 @@ bool transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
     const TranspilerHostedDomainSlotView *slot_view,
     size_t index,
     const TranspilerHostedZoneRefreshView *refresh_view);
-const char *transpiler_domain_slot_view_bindable_name(
-    const TranspilerHostedDomainSlotView *slot_view,
-    size_t nth);
 const char *transpiler_current_overlay_domain_slot_type_name(
     TranspilerCtx *ctx,
     const char *slot_name);
@@ -52,12 +49,6 @@ char *emit_projection_literal_by_name(TranspilerCtx *ctx,
                                       const char *target_type_name,
                                       const char *source_type_name,
                                       const char *source_expr);
-char *emit_projection_literal_by_zone_refresh_metadata(
-    TranspilerCtx *ctx,
-    const char *target_type_name,
-    const char *source_type_name,
-    const MIRDeclZoneRefresh *refresh,
-    const char *source_expr);
 bool transpiler_projection_type_is_struct_like(TranspilerCtx *ctx,
                                                const char *type_name);
 bool is_subject_type_name(TranspilerCtx *ctx, const char *type_name);

@@ -15,6 +15,7 @@
 #include "../semantic/destructure_type_fact.h"
 #include "../semantic/match_binding_type_fact.h"
 #include "../semantic/region_escape_fact.h"
+#include "../semantic/domain_runtime_fact.h"
 
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
@@ -30,6 +31,7 @@ typedef enum
     HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE,
     HIR_SEMANTIC_PROJECTION_MATCH_BINDING_TYPE,
     HIR_SEMANTIC_PROJECTION_REGION_ESCAPE,
+    HIR_SEMANTIC_PROJECTION_DOMAIN_RUNTIME_FACT,
     HIR_SEMANTIC_PROJECTION_VALIDATE
 } HIRSemanticProjectionFailure;
 
@@ -378,6 +380,14 @@ struct HIRProgram
     bool              has_region_escape_facts;
     PgyRegionEscapeFact *region_escape_facts;
     size_t            region_escape_fact_count;
+    /* Lossless semantic snapshot for the object/tobject -> layer runtime
+     * boundary.  HIR owns every nested string and path-segment allocation. */
+    bool              has_domain_runtime_facts;
+    PgyDomainParticipantRoleFact *domain_participant_role_facts;
+    size_t            domain_participant_role_fact_count;
+    PgyDomainProjectionMemberAssignmentFact
+                     *domain_projection_member_assignment_facts;
+    size_t            domain_projection_member_assignment_fact_count;
     uint32_t          source_program_syntax_id;
 };
 

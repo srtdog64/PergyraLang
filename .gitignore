@@ -67,6 +67,11 @@ examples/**/results.txt
 examples/**/results.*.txt
 !examples/raid_graph_fsm/results.txt
 
+# Root outputs written by backend-compare I/O fixtures when they are launched
+# from the repository root. These are runtime evidence products, not fixtures.
+/io.txt
+/backend_compare_file_handle_io.txt
+
 # Example expected output: keep ONE canonical expected_stdout.txt per project,
 # ignore backend-specific variants
 examples/**/expected_stdout.c.txt
@@ -135,6 +140,7 @@ tests/cases/backend_compare/**/main.c
 *.glob
 .*.aux
 .lia.cache
+.nia.cache
 
 # Editor / OS
 *.backup

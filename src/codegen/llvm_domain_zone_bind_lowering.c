@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "llvm_domain_runtime_facts.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
@@ -39,24 +40,67 @@ llvm_zone_bind_projection_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static const char *
-llvm_domain_slot_view_bindable_name(const LLVMHostedDomainSlotView *slot_view,
-                                    size_t nth)
+static bool
+llvm_zone_bind_mark_projection_source_dirty(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *layer_cls,
+    LLVMValueRef layer_ptr,
+    const LLVMDomainRuntimeProjectionView *projection_view,
+    uint32_t source_slot_syntax_id)
 {
-    size_t seen = 0;
-
-    if (slot_view == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < slot_view->count; i++) {
-        if (!llvm_hosted_domain_slot_view_is_binding_like(slot_view, i))
-            continue;
-        if (seen == nth)
-            return llvm_hosted_domain_slot_view_name(slot_view, i);
-        seen++;
+    if (ctx == NULL || layer_cls == NULL || layer_ptr == NULL
+        || projection_view == NULL || !projection_view->valid
+        || source_slot_syntax_id == 0) {
+        return false;
     }
+    for (size_t i = 0; i < projection_view->directive_count; i++) {
+        const PgyDomainProjectionMemberAssignmentFact *projection =
+            llvm_domain_runtime_projection_anchor(projection_view, i);
+        const char *projection_name;
+        char dirty_field[256];
+        char ready_field[256];
+        int dirty_idx;
+        int ready_idx;
 
-    return NULL;
+        if (projection == NULL || projection->projection_slot_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM domain binding projection runtime anchor is missing");
+            return false;
+        }
+        if (projection->source_slot_syntax_id != source_slot_syntax_id)
+            continue;
+        projection_name = projection->projection_slot_name;
+        if (!llvm_zone_bind_projection_field_name(dirty_field,
+                sizeof(dirty_field), "dirty", projection_name)
+            || !llvm_zone_bind_projection_field_name(ready_field,
+                sizeof(ready_field), "ready", projection_name)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM domain binding projection state name is invalid");
+            return false;
+        }
+        dirty_idx = llvm_class_field_index(layer_cls, dirty_field);
+        ready_idx = llvm_class_field_index(layer_cls, ready_field);
+        if (dirty_idx < 0 || ready_idx < 0) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM domain binding projection state layout is incomplete");
+            return false;
+        }
+        {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                layer_cls->struct_type, layer_ptr, (unsigned)dirty_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                dirty_ptr);
+        }
+        {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                layer_cls->struct_type, layer_ptr, (unsigned)ready_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
+                ready_ptr);
+        }
+    }
+    return true;
 }
 
 static bool
@@ -118,6 +162,8 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
 {
     ASTNode *effect_decl;
     LLVMClassTypeEntry *effect_cls;
+    const PgyDomainParticipantRoleFact *bearer_role;
+    LLVMDomainRuntimeProjectionView projection_view;
     const char *effect_name;
     const char *effect_type_name = NULL;
     const char *target_binding_name;
@@ -146,37 +192,25 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     if (effect_decl == NULL)
         return;
     effect_name = llvm_decl_node_name(effect_decl);
-    LLVMHostedZoneRefreshView effect_refresh_view =
-        llvm_hosted_zone_refresh_view_from_decl(ctx, effect_name,
-                                                effect_decl);
-    LLVMHostedDomainSlotView effect_slot_view =
-        llvm_hosted_domain_slot_view_from_decl(ctx, effect_name, effect_decl);
-    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
-            &effect_refresh_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone effect bind refresh metadata for '%s'",
-            effect_name != NULL ? effect_name : "(anonymous-effect)");
-        return;
-    }
-    if (llvm_hosted_domain_slot_view_missing_mir_metadata(
-            &effect_slot_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone effect bind domain-slot metadata for '%s'",
-            effect_name != NULL ? effect_name : "(anonymous-effect)");
-        return;
-    }
+    bearer_role = llvm_domain_runtime_require_participant_role(ctx,
+        effect_name, PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER);
+    projection_view = llvm_domain_runtime_projection_view(ctx, effect_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
-    target_binding_name = llvm_domain_slot_view_bindable_name(
-        &effect_slot_view, 0);
-    if (effect_cls == NULL || target_binding_name == NULL) {
+    target_binding_name = bearer_role != NULL
+        ? bearer_role->field_name : NULL;
+    if (bearer_role == NULL || !projection_view.valid
+        || effect_cls == NULL || target_binding_name == NULL) {
         return;
     }
 
     layer_idx = llvm_class_field_index(zone_cls, layer_slot_name);
     target_idx = llvm_class_field_index(zone_cls, target_slot_name);
     subject_idx = llvm_class_field_index(effect_cls, target_binding_name);
-    if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
+    if (layer_idx < 0 || target_idx < 0 || subject_idx < 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM effect binding layout is missing an exact runtime fact field");
         return;
+    }
     self_ptr = LLVMGetParam(sync_fn, 0);
     layer_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
         self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
@@ -212,6 +246,11 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
             tmp_effect, (unsigned)subject_idx, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
+        if (!llvm_zone_bind_mark_projection_source_dirty(ctx, effect_cls,
+                tmp_effect, &projection_view,
+                bearer_role->field_syntax_id)) {
+            return;
+        }
 
         if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name), effect_name))
             return;
@@ -300,47 +339,9 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
     }
-    for (size_t i = 0; i < effect_refresh_view.count; i++) {
-        const char *projection_name;
-        const char *source_name;
-        char dirty_field[256];
-        char ready_field[256];
-        int dirty_idx;
-        int ready_idx;
-
-        projection_name =
-            llvm_hosted_zone_refresh_view_object_slot_name(
-                &effect_refresh_view, i);
-        source_name =
-            llvm_hosted_zone_refresh_view_source_slot_name(
-                &effect_refresh_view, i);
-        if (projection_name == NULL || source_name == NULL
-            || strcmp(source_name, target_binding_name) != 0) {
-            continue;
-        }
-
-        if (!llvm_zone_bind_projection_field_name(dirty_field,
-                sizeof(dirty_field), "dirty", projection_name))
-            continue;
-        if (!llvm_zone_bind_projection_field_name(ready_field,
-                sizeof(ready_field), "ready", projection_name))
-            continue;
-        dirty_idx = llvm_class_field_index(effect_cls, dirty_field);
-        ready_idx = llvm_class_field_index(effect_cls, ready_field);
-        if (dirty_idx >= 0) {
-            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
-                effect_cls->struct_type, layer_ptr, (unsigned)dirty_idx,
-                llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
-                dirty_ptr);
-        }
-        if (ready_idx >= 0) {
-            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
-                effect_cls->struct_type, layer_ptr, (unsigned)ready_idx,
-                llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
-                ready_ptr);
-        }
+    if (!llvm_zone_bind_mark_projection_source_dirty(ctx, effect_cls,
+            layer_ptr, &projection_view, bearer_role->field_syntax_id)) {
+        return;
     }
     {
         char sync_name[256];
@@ -365,6 +366,9 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
 {
     ASTNode *relation_decl;
     LLVMClassTypeEntry *relation_cls;
+    const PgyDomainParticipantRoleFact *source_role;
+    const PgyDomainParticipantRoleFact *target_role;
+    LLVMDomainRuntimeProjectionView projection_view;
     const char *relation_name;
     const char *relation_type_name = NULL;
     const char *left_binding_name;
@@ -398,32 +402,18 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     if (relation_decl == NULL)
         return;
     relation_name = llvm_decl_node_name(relation_decl);
-    LLVMHostedZoneRefreshView relation_refresh_view =
-        llvm_hosted_zone_refresh_view_from_decl(ctx, relation_name,
-                                                relation_decl);
-    LLVMHostedDomainSlotView relation_slot_view =
-        llvm_hosted_domain_slot_view_from_decl(ctx, relation_name,
-                                               relation_decl);
-    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
-            &relation_refresh_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone relation bind refresh metadata for '%s'",
-            relation_name != NULL ? relation_name : "(anonymous-relation)");
-        return;
-    }
-    if (llvm_hosted_domain_slot_view_missing_mir_metadata(
-            &relation_slot_view)) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing zone relation bind domain-slot metadata for '%s'",
-            relation_name != NULL ? relation_name : "(anonymous-relation)");
-        return;
-    }
+    source_role = llvm_domain_runtime_require_participant_role(ctx,
+        relation_name, PGY_DOMAIN_PARTICIPANT_RELATION_SOURCE);
+    target_role = llvm_domain_runtime_require_participant_role(ctx,
+        relation_name, PGY_DOMAIN_PARTICIPANT_RELATION_TARGET);
+    projection_view = llvm_domain_runtime_projection_view(ctx,
+        relation_name);
     relation_cls = llvm_lookup_class(ctx, relation_name);
-    left_binding_name = llvm_domain_slot_view_bindable_name(
-        &relation_slot_view, 0);
-    right_binding_name = llvm_domain_slot_view_bindable_name(
-        &relation_slot_view, 1);
-    if (relation_cls == NULL || left_binding_name == NULL
+    left_binding_name = source_role != NULL ? source_role->field_name : NULL;
+    right_binding_name = target_role != NULL ? target_role->field_name : NULL;
+    if (source_role == NULL || target_role == NULL
+        || !projection_view.valid || relation_cls == NULL
+        || left_binding_name == NULL
         || right_binding_name == NULL) {
         return;
     }
@@ -435,6 +425,8 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     right_subject_idx = llvm_class_field_index(relation_cls, right_binding_name);
     if (layer_idx < 0 || left_idx < 0 || right_idx < 0
         || left_subject_idx < 0 || right_subject_idx < 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM relation binding layout is missing an exact runtime fact field");
         return;
     }
 
@@ -465,49 +457,11 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, right_value, subject_ptr);
     }
-    for (size_t i = 0; i < relation_refresh_view.count; i++) {
-        const char *projection_name;
-        const char *source_name;
-        char dirty_field[256];
-        char ready_field[256];
-        int dirty_idx;
-        int ready_idx;
-
-        projection_name =
-            llvm_hosted_zone_refresh_view_object_slot_name(
-                &relation_refresh_view, i);
-        source_name =
-            llvm_hosted_zone_refresh_view_source_slot_name(
-                &relation_refresh_view, i);
-        if (projection_name == NULL || source_name == NULL)
-            continue;
-        if (strcmp(source_name, left_binding_name) != 0
-            && strcmp(source_name, right_binding_name) != 0) {
-            continue;
-        }
-
-        if (!llvm_zone_bind_projection_field_name(dirty_field,
-                sizeof(dirty_field), "dirty", projection_name))
-            continue;
-        if (!llvm_zone_bind_projection_field_name(ready_field,
-                sizeof(ready_field), "ready", projection_name))
-            continue;
-        dirty_idx = llvm_class_field_index(relation_cls, dirty_field);
-        ready_idx = llvm_class_field_index(relation_cls, ready_field);
-        if (dirty_idx >= 0) {
-            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
-                relation_cls->struct_type, layer_ptr, (unsigned)dirty_idx,
-                llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
-                dirty_ptr);
-        }
-        if (ready_idx >= 0) {
-            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
-                relation_cls->struct_type, layer_ptr, (unsigned)ready_idx,
-                llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
-                ready_ptr);
-        }
+    if (!llvm_zone_bind_mark_projection_source_dirty(ctx, relation_cls,
+            layer_ptr, &projection_view, source_role->field_syntax_id)
+        || !llvm_zone_bind_mark_projection_source_dirty(ctx, relation_cls,
+            layer_ptr, &projection_view, target_role->field_syntax_id)) {
+        return;
     }
     {
         char sync_name[256];

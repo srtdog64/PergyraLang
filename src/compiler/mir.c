@@ -21,6 +21,7 @@
 #include "mir_source_local_types.h"
 #include "mir_destructure_type_facts.h"
 #include "mir_domain_topology.h"
+#include "mir_domain_runtime.h"
 #include "mir_branch_source_facts.h"
 #include "mir_speculation_facts.h"
 
@@ -233,6 +234,12 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
 
     if (dir != NULL
         && !mir_domain_topology_project_from_dir(
+            mir, dir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
+    if (dir != NULL
+        && !mir_domain_runtime_project_from_dir(
             mir, dir, error_message)) {
         mir_destroy(mir);
         return NULL;

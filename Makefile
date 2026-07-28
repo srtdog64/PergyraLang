@@ -585,6 +585,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_role_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection_fields.c \
+                   $(SEMANTIC_DIR)/domain_runtime_fact.c \
                    $(SEMANTIC_DIR)/type_checker_overlay_common.c \
                    $(SEMANTIC_DIR)/type_checker_projection_path.c \
                    $(SEMANTIC_DIR)/type_checker_world_embedding.c \
@@ -949,6 +950,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
                    $(COMPILER_DIR)/mir_json_dump_decl.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_topology.c \
+                   $(COMPILER_DIR)/mir_json_dump_domain_runtime.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
                    $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
@@ -979,6 +981,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_text_builder_abi.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_domain_topology.c \
+                   $(COMPILER_DIR)/mir_domain_runtime.c \
                    $(COMPILER_DIR)/verified_projection_plan.c \
                    $(COMPILER_DIR)/verified_parallel_capture_plan.c \
                    $(COMPILER_DIR)/verified_region_plan.c \
@@ -1261,6 +1264,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_method_emit.c \
                         $(CODEGEN_DIR)/llvm_domain_event.c \
                         $(CODEGEN_DIR)/llvm_domain_lookup.c \
+                        $(CODEGEN_DIR)/llvm_domain_runtime_facts.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_count.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_value_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_sync_helpers.c \
@@ -1553,6 +1557,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_topology.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump_domain_runtime.o \
                    $(BUILD_DIR)/compiler/mir_json_expression_graph.o \
                    $(BUILD_DIR)/compiler/mir_json_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
@@ -1581,6 +1586,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_text_builder_abi.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_domain_topology.o \
+                   $(BUILD_DIR)/compiler/mir_domain_runtime.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate_resource.o \
@@ -3100,6 +3106,9 @@ self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler
 	PGY_SELFHOST_DRIVER_BACKENDS=hard \
 	PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="$${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-$(SELFHOST_HARD_DRIVER_FRONTIER)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
 
 self-host-hard-driver-rung2-parity-full-test-smoke: self-host-compiler
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
@@ -3179,6 +3188,10 @@ self-host-mir-json-parity-test-smoke: $(PGY)
 self-host-domain-topology-admission-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain_topology_admission_owner.sh
 
+self-host-domain-runtime-assignment-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
+
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh
 
@@ -3191,7 +3204,7 @@ self-host-json-bounded-string-test-smoke: $(PGY)
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
 
-.PHONY: self-host-domain-topology-admission-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
+.PHONY: self-host-domain-topology-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh

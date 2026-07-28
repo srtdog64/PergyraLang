@@ -86,27 +86,6 @@ transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
 }
 
 const char *
-transpiler_domain_slot_view_bindable_name(
-    const TranspilerHostedDomainSlotView *slot_view,
-    size_t nth)
-{
-    size_t seen = 0;
-
-    if (slot_view == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < slot_view->count; i++) {
-        if (!transpiler_hosted_domain_slot_view_is_binding_like(slot_view, i))
-            continue;
-        if (seen == nth)
-            return transpiler_hosted_domain_slot_view_name(slot_view, i);
-        seen++;
-    }
-
-    return NULL;
-}
-
-const char *
 transpiler_current_overlay_domain_slot_type_name(TranspilerCtx *ctx,
                                                  const char *slot_name)
 {

@@ -5,10 +5,13 @@ import "../mir_lower/machine_layer_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../codegen/input/callable_receiver_codegen_view_owner.pgy";
 import "../codegen/input/semantic_body_type_codegen_view_owner.pgy";
+import "../codegen/input/domain_runtime_codegen_view_owner.pgy";
+import "domain_runtime_c_codegen_bridge_owner.pgy";
 
 struct CodegenAdmittedCView {
     receivers: CodegenCallableReceiverFacts;
     body_types: CodegenSemanticBodyTypeFacts;
+    domain_runtime: CodegenDomainRuntimeFacts;
 }
 
 func CodegenCallableReceiverFactsFromAdmittedOrDie(
@@ -42,5 +45,7 @@ func CodegenAdmittedCViewFromFactsOrDie(
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
             artifact, analysis, semantic_body_types, generic_specializations
         );
-    return CodegenAdmittedCView(receivers, body_types);
+    let domain_runtime: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsFromAdmittedOrDie(admitted);
+    return CodegenAdmittedCView(receivers, body_types, domain_runtime);
 }

@@ -2,6 +2,47 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 exact domain runtime assignment executable checkpoint
+
+- `semantic.domain_runtime_assignment`가 effect bearer, relation source/target,
+  projection target/source member path의 exact declaration·field ID/name/type을
+  한 번 결정한다. HIR/DIR/MIR과 `pgy.mir.v1`은 이 사실을 lossless하게 운반하며,
+  self source producer도 자기 identity epoch 안에서 같은 typed row를 만든다.
+- Self machine admission은 topology와 runtime row를 한 번 exact join해
+  target-neutral plan receipt를 만든다. 이후 owner lookup과 codegen view는 plan이나
+  프로그램 graph 전체를 다시 검증하지 않는다. 3 GiB 부근의 과거 결함은 이미
+  sealed graph를 writer/accessor가 반복 검증한 owner-lifetime 오류였으며, 병렬 full
+  build의 process peak 합산과도 구분한다.
+- Native C/LLVM은 runtime sync에서 same-name/nested-name 재탐색, missing-source
+  zero-fill과 effect/relation 0/1 ordinal 결정을 제거하고 exact MIR fact를 소비한다.
+  Self general C는 admitted plan으로 다섯 assignment를 방출한다:
+  bearer, effect view, relation source/target, relation packet sync다.
+- Production `CompileSourceToCVerified`의 direct source 경로와 explicit self MIR
+  경로는 byte-equal C를 만들었고 native C, native LLVM, 두 self C 실행 모두
+  `7`과 `dst`를 출력했다. Missing/duplicate/foreign role·member·directive,
+  operation/topology mismatch와 identity-epoch drift는 partial C 없이 실패한다.
+- 이 implicit-map eager method-entry bind/sync slice는 실제 C-owned 결정을
+  대체하므로 `SUBSTITUTING`이다. 전체 object-to-action runtime은 explicit map,
+  declaration-level source identity, pool/materialization, dirty/epoch/lifecycle,
+  native/self shared-plan 부채 때문에 `BRIDGE`다. Self compiler 내부에서
+  `effect`/`relation` action graph를 개사료로 썼다는 주장과도 구분한다.
+- 다음 executable falsifier는 `world_zone_projection_visibility`의
+  `label <- displayName`, `user <- displayName` explicit map이다. Self parser가
+  map syntax identity를 보존하고 semantic assignability를 다시 추정하지 않은 채
+  exact path row로 general C까지 운반해야 한다.
+- 최종 소스에서 `make -j2 all`로 compiler/LSP를 함께 링크했고 focused self
+  runtime gate, native C/LLVM `7`/`dst`, component cap, build/MIR inventory,
+  performance contract, object/action contract, 144-row keyword registry와 SoT
+  owner/adequacy gate가 모두 통과했다. Performance gate의 마지막 관측 compile은
+  396ms였다. Coq compile만 `rocq`/`coqc` 부재로 선언된 skip이며 다른 성공과
+  합치지 않는다.
+- Gate 감사 중 기존 모순도 함께 닫았다. Full DRV-2 shell guard는 `/usr/bin/bash`
+  하드코딩과 Bash 4 associative array를 버리고 actual `command -v bash` 및 Bash
+  3.2 indexed-array lookup을 사용한다. LSP completion의 27-item registry projection
+  process cache는 명시적 한 owner로만 allowlist되며, MIR/perf inventory는 삭제된
+  name/ordinal/refresh-metadata helper를 다시 요구하지 않고 exact runtime fact
+  view를 negative ratchet으로 고정한다.
+
 ## 2026-07-28 callable receiver carriage executable checkpoint
 
 - `CallableReceiverCarriage`를 `none | value | mutable-identity`의 필수

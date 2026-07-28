@@ -10,6 +10,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_domain_provenance_emit.h"
 #include "transpiler_projection.h"
 
 bool
@@ -74,6 +75,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     const char *effect_name;
     const char *effect_type_name;
     const char *target_binding_name;
+    const PgyDomainParticipantRoleFact *bearer_fact;
     bool layer_is_pool = false;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
@@ -114,10 +116,11 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
             effect_name);
         return;
     }
-    target_binding_name = transpiler_domain_slot_view_bindable_name(
-        &effect_slot_view, 0);
-    if (target_binding_name == NULL)
+    bearer_fact = transpiler_require_domain_participant_role_fact(
+        ctx, effect_name, PGY_DOMAIN_PARTICIPANT_EFFECT_BEARER);
+    if (bearer_fact == NULL)
         return;
+    target_binding_name = bearer_fact->field_name;
 
     if (layer_is_pool) {
         write_indent_to(out, ctx->indent);

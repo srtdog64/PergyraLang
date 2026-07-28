@@ -191,8 +191,8 @@ call chain으로 연결됐다. root intent와 나머지 resource zone은 아직 
 canonical bootstrap entrypoint에서 import를 재귀 해석한 감사 결과는 다음과
 같다.
 
-- import closure 450개, missing import 0;
-- import-reachable 선언은 `func` 3,617개, `struct` 179개, `enum` 6개,
+- import closure 477개, missing import 0;
+- import-reachable 선언은 `func` 3,800개, `struct` 204개, `enum` 6개,
   `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개, `zone` 19개,
   `world` 1개, `intent` 14개, `role` 4개, `ability` 4개;
 - `class`/`vessel`/`effect`/`relation`/`party`/`roster` 선언은 0개;
