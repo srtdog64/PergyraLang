@@ -6,6 +6,73 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - typed intent transition frontend and tobject audit
+
+- Landing parent: `0827955016862f8b498c25f87d4254342621b74e` on `main`.
+  Verify the final landing revision and `origin/main` before resuming.
+- Objective card:
+  - objective: preserve source-declared typed intent outcomes and explicit
+    predecessor topology until one admitted execution plan can branch, complete,
+    compensate and return exact `tobject` payloads;
+  - priority: exact routine return identity, enum/variant/payload identity,
+    explicit predecessor, success-only completion, one admission read, CFG and
+    backend parity, then production root substitution;
+  - fact owners: enum/tobject declarations own payload shape, semantic owns exact
+    action/variant/payload resolution, DIR owns step/predecessor identity,
+    `mir.intent_step_transition` owns branch/completion/compensation facts and
+    `mir.intent_terminal_transition` owns typed exits;
+  - last legitimate consumer: one admitted intent execution plan projected to C
+    and LLVM;
+  - forbidden fallback: Bool collapse, variant-spelling inference, source-order
+    predecessor recovery, call-implies-completed, AST/source compensation rescan,
+    or making `tobject` own authority/topology/control flow;
+  - falsifier: success, failure A and failure B must return distinct exact payloads;
+    B failure compensates completed A once and B zero times; cross-wired valid IDs
+    reject before a partial artifact.
+- Landed supporting surface:
+  - native and self frontend carry `IntentReturns`, explicit `after`, step
+    success/failure payload patterns and labeled terminals;
+  - native semantic/DIR reject missing or duplicate per-step failure coverage;
+  - self `intent_execution_fact_owner.pgy` seals typed step and terminal facts,
+    predecessor cycles, payload kinds and mutation digest;
+  - `after` is owned by the 146-row language keyword registry and generated into
+    self lexer plus VS Code tooling;
+  - native C match projection reads an enum payload only after its tag matches and
+    reads the bound payload exactly once.
+- Exact observed evidence:
+  - full LLVM-enabled native compiler build: PASS;
+  - complete native parser test: PASS;
+  - native AST/DIR for the typed two-step fixture: 0 errors/warnings and lossless
+    return/predecessor/branch/terminal rows;
+  - `intent_typed_transition_frontend_owner.sh`: PASS;
+  - `intent_execution_fact_contract_owner.sh`: PASS;
+  - existing `intent_typed_outcome_execution_owner.sh`: PASS with fresh self
+    driver and self/native C/LLVM parity;
+  - `action_tobject_outcome_probe.pgy`: native C and LLVM both `ok=7`, `error=9`;
+  - `tobject_boundary_execution_owner.sh`, object/action contract, keyword
+    registry, VS Code language graph and self-host component contract: PASS.
+- Exact OPEN boundary:
+  - native MIR intent routine has no `WorkflowOutcome` return signature;
+  - native MIR JSON has zero `intent_step_transition`,
+    `intent_terminal_transition` and predecessor rows;
+  - HIR intent CFG has no outcome-tag success/failure successors;
+  - native C emitter still fixes the intent return to `Bool` and marks steps
+    completed without typed branch evidence.
+  The two-step native C fixture therefore fails with `_Bool` versus
+  `WorkflowOutcome` and undefined `receipt_a`. This is the next implementation
+  frontier, not a tobject defect and not substitution evidence.
+- TObject implementation truth: immutable detached publication, constructor input
+  exclusion and projection-source exclusion are executable and green. Canonical
+  method-free enforcement and complete bare/nested/indexed immutable-write closure
+  remain explicit semantic debt.
+- Grade: typed frontend/DIR and fact validation are `REACHABLE`; compiler intent
+  remains `SURFACE` and no new C-owned production path was replaced.
+- Preserve and do not stage the concurrent edits in
+  `driver_rung2_indexed_assignment_parity_owner.sh`,
+  `driver_rung2_match_parity_owner.sh`,
+  `driver_rung2_owner_field_parity_owner.sh`, or untracked
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+
 ## Current resume checkpoint - executable intent phases and ordered compensation
 
 - Implementation landing: `4b7b6faeb46db975e107d52491ee5ee53c5c881e` on

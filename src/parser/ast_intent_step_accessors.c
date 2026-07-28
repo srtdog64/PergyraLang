@@ -17,6 +17,31 @@ ast_intent_step_name(const ASTNode* node)
     return node->data.intent_step.name;
 }
 
+const char*
+ast_intent_step_predecessor_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.predecessor_step_name;
+}
+
+uint32_t
+ast_intent_step_predecessor_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.predecessor_step_syntax_id;
+}
+
+bool
+ast_intent_step_set_predecessor_syntax_id(ASTNode* node, uint32_t syntax_id)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP || syntax_id == 0)
+        return false;
+    node->data.intent_step.predecessor_step_syntax_id = syntax_id;
+    return true;
+}
+
 ASTNode*
 ast_intent_step_where_type(const ASTNode* node)
 {
@@ -160,6 +185,124 @@ ast_intent_step_outcome_action_decl_syntax_id(const ASTNode* node)
     if (node == NULL || node->type != AST_INTENT_STEP)
         return 0;
     return node->data.intent_step.outcome_action_decl_syntax_id;
+}
+
+const char*
+ast_intent_step_success_variant_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.success_branch.variant_name;
+}
+
+const char*
+ast_intent_step_success_payload_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.success_branch.payload_name;
+}
+
+const char*
+ast_intent_step_failure_variant_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.failure_branch.variant_name;
+}
+
+const char*
+ast_intent_step_failure_payload_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.failure_branch.payload_name;
+}
+
+const char*
+ast_intent_step_success_payload_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.success_branch.payload_type_name;
+}
+
+const char*
+ast_intent_step_failure_payload_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.failure_branch.payload_type_name;
+}
+
+const char*
+ast_intent_step_outcome_enum_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.success_branch.enum_type_name;
+}
+
+uint32_t
+ast_intent_step_outcome_enum_decl_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.success_branch.enum_decl_syntax_id;
+}
+
+size_t
+ast_intent_step_success_variant_index(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return SIZE_MAX;
+    return node->data.intent_step.success_branch.variant_index;
+}
+
+size_t
+ast_intent_step_failure_variant_index(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return SIZE_MAX;
+    return node->data.intent_step.failure_branch.variant_index;
+}
+
+bool
+ast_intent_step_set_outcome_branch_resolution_copy(
+    ASTNode* node,
+    bool success_branch,
+    const char* enum_type_name,
+    uint32_t enum_decl_syntax_id,
+    size_t variant_index,
+    const char* payload_type_name)
+{
+    ASTIntentOutcomeBranchData *branch;
+    char *enum_copy;
+    char *payload_copy;
+
+    if (node == NULL || node->type != AST_INTENT_STEP
+        || enum_type_name == NULL || enum_type_name[0] == '\0'
+        || enum_decl_syntax_id == 0 || variant_index == SIZE_MAX
+        || payload_type_name == NULL || payload_type_name[0] == '\0') {
+        return false;
+    }
+    enum_copy = pergyra_strdup(enum_type_name);
+    payload_copy = pergyra_strdup(payload_type_name);
+    if (enum_copy == NULL || payload_copy == NULL) {
+        free(enum_copy);
+        free(payload_copy);
+        return false;
+    }
+    branch = success_branch
+        ? &node->data.intent_step.success_branch
+        : &node->data.intent_step.failure_branch;
+    free(branch->enum_type_name);
+    free(branch->payload_type_name);
+    branch->enum_type_name = enum_copy;
+    branch->enum_decl_syntax_id = enum_decl_syntax_id;
+    branch->variant_index = variant_index;
+    branch->payload_type_name = payload_copy;
+    return true;
 }
 
 bool

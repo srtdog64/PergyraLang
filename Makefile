@@ -494,6 +494,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_world_state.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_typed_outcome.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_intent_ability.c \
                    $(SEMANTIC_DIR)/type_checker_intent_on_inference.c \
@@ -3370,6 +3371,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-typed-outcome-execution-test-smoke \
 	self-host-intent-guard-post-compensation-execution-test-smoke \
 	self-host-intent-phase-carrier-negative-test-smoke \
+	self-host-intent-execution-fact-contract-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
 	lsp-completion-registry-test-smoke \
@@ -3411,6 +3413,10 @@ self-host-intent-guard-post-compensation-execution-test-smoke: $(PGY)
 self-host-intent-phase-carrier-negative-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh
+
+self-host-intent-execution-fact-contract-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_execution_fact_contract_owner.sh
 
 self-host-tobject-boundary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

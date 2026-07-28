@@ -1,0 +1,47 @@
+// One exact legacy or step-labelled intent terminal expression clause.
+
+import "cursor_owner.pgy";
+import "expr_owner.pgy";
+
+struct ParserIntentTerminalClause {
+    ok: Bool;
+    step_name: String;
+    expression: ParserExpressionFact;
+}
+
+func ParseIntentTerminalClause(
+    content: String, start: Int, inout cursor_out: Array<Int>
+) -> ParserIntentTerminalClause {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    let step_name: String = "";
+    if ParserCharAt(content, i) != ":" {
+        ArraySet(cursor_out, 0, i);
+        step_name = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if step_name == "" {
+            return ParserIntentTerminalClause(
+                false, "", ParserExpressionInvalid()
+            );
+        }
+    }
+    i = Expect(content, i, ":");
+    if i < 0 {
+        return ParserIntentTerminalClause(
+            false, "", ParserExpressionInvalid()
+        );
+    }
+    ArraySet(cursor_out, 0, i);
+    let expression: ParserExpressionFact = ParseExprFact(
+        content, i, cursor_out
+    );
+    i = cursor_out[0];
+    if !expression.ok {
+        return ParserIntentTerminalClause(false, "", expression);
+    }
+    i = Expect(content, i, ";");
+    if i < 0 {
+        return ParserIntentTerminalClause(false, "", expression);
+    }
+    ArraySet(cursor_out, 0, i);
+    return ParserIntentTerminalClause(true, step_name, expression);
+}

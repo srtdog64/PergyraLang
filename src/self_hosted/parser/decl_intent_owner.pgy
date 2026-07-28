@@ -1,10 +1,10 @@
 // Self-host parser intent declaration owner.
-
 import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
-
+import "intent_variant_binding_owner.pgy";
+import "intent_terminal_clause_owner.pgy";
 func ParseIntentDecl(
     content: String, start: Int, inout cursor_out: Array<Int>,
     decl_prefix: String, inout involve_types: Array<String>,
@@ -83,6 +83,16 @@ func ParseIntentDecl(
     if i < 0 {
         Exit(1);
     }
+    let intent_return_type: String = "";
+    i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        intent_return_type = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if intent_return_type == "" { Exit(1); }
+    }
     let intent_retry: String = "";
     i = SkipWhitespaceAndComments(content, i);
     if MatchLanguageWord(content, i, LanguageWordId.WordWith) {
@@ -117,6 +127,12 @@ func ParseIntentDecl(
     let step_blocks: String = "";
     let success_text: String = "";
     let failure_text: String = "";
+    let terminal_success_steps: Array<String> = [];
+    let terminal_success_texts: Array<String> = [];
+    let terminal_success_facts: Array<ParserExpressionFact> = [];
+    let terminal_failure_steps: Array<String> = [];
+    let terminal_failure_texts: Array<String> = [];
+    let terminal_failure_facts: Array<ParserExpressionFact> = [];
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -146,31 +162,39 @@ func ParseIntentDecl(
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
             i = LanguageWordEnd(i, LanguageWordId.WordSuccess);
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
             ArraySet(cursor_out, 0, i);
-            success_text = ParseExpr(content, i, cursor_out);
+            let terminal: ParserIntentTerminalClause =
+                ParseIntentTerminalClause(
+                content, i, cursor_out
+            );
+            if !terminal.ok { Exit(1); }
             i = cursor_out[0];
-            i = Expect(content, i, ";");
-            if i < 0 {
-                Exit(1);
+            if terminal.step_name == "" {
+                if success_text != "" { Exit(1); }
+                success_text = terminal.expression.text;
+            } else {
+                ArrayPush(terminal_success_steps, terminal.step_name);
+                ArrayPush(terminal_success_texts, terminal.expression.text);
+                ArrayPush(terminal_success_facts, terminal.expression);
             }
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordFailure) {
             i = LanguageWordEnd(i, LanguageWordId.WordFailure);
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
             ArraySet(cursor_out, 0, i);
-            failure_text = ParseExpr(content, i, cursor_out);
+            let terminal: ParserIntentTerminalClause =
+                ParseIntentTerminalClause(
+                content, i, cursor_out
+            );
+            if !terminal.ok { Exit(1); }
             i = cursor_out[0];
-            i = Expect(content, i, ";");
-            if i < 0 {
-                Exit(1);
+            if terminal.step_name == "" {
+                if failure_text != "" { Exit(1); }
+                failure_text = terminal.expression.text;
+            } else {
+                ArrayPush(terminal_failure_steps, terminal.step_name);
+                ArrayPush(terminal_failure_texts, terminal.expression.text);
+                ArrayPush(terminal_failure_facts, terminal.expression);
             }
             continue;
         }
@@ -183,6 +207,17 @@ func ParseIntentDecl(
             if StringLength(step_name) == 0 {
                 Exit(1);
             }
+            let predecessor_name: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if MatchLanguageWord(content, i, LanguageWordId.WordAfter) {
+                if intent_return_type == "" { Exit(1); }
+                i = LanguageWordEnd(i, LanguageWordId.WordAfter);
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                predecessor_name = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if predecessor_name == "" { Exit(1); }
+            }
             i = Expect(content, i, "{");
             if i < 0 {
                 Exit(1);
@@ -192,6 +227,8 @@ func ParseIntentDecl(
             let s_who: String = "";
             let s_on: String = "";
             let s_outcome: String = "";
+            let s_success_pattern: String = "";
+            let s_failure_pattern: String = "";
             let s_on_seen: Bool = false;
             let s_guard: String = "";
             let s_guard_seen: Bool = false;
@@ -254,6 +291,31 @@ func ParseIntentDecl(
                         Exit(1);
                     }
                     s_transfer = Concat(t_from, Concat(" -> ", t_to));
+                    continue;
+                }
+
+                if clause == "success" || clause == "failure" {
+                    if intent_return_type == "" { Exit(1); }
+                    if clause == "success" && s_success_pattern != "" {
+                        Exit(1);
+                    }
+                    if clause == "failure" && s_failure_pattern != "" {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, ":");
+                    if i < 0 { Exit(1); }
+                    ArraySet(cursor_out, 0, i);
+                    let pattern: ParserIntentVariantBinding =
+                        ParseIntentVariantBinding(content, i, cursor_out);
+                    if !pattern.ok { Exit(1); }
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 { Exit(1); }
+                    if clause == "success" {
+                        s_success_pattern = pattern.text;
+                    } else {
+                        s_failure_pattern = pattern.text;
+                    }
                     continue;
                 }
 
@@ -355,6 +417,11 @@ func ParseIntentDecl(
                 }
             }
             let step_header: String = Concat("    IntentStep: ", step_name);
+            if predecessor_name != "" {
+                step_header = Concat(
+                    step_header, Concat(" after ", predecessor_name)
+                );
+            }
             if StringLength(s_intent) > 0 {
                 step_header = Concat(step_header, Concat(" intent ", s_intent));
             }
@@ -385,6 +452,16 @@ func ParseIntentDecl(
             }
             if StringLength(s_on) > 0 {
                 step_out = AppendLine(step_out, Concat("      On: ", s_on));
+            }
+            if StringLength(s_success_pattern) > 0 {
+                step_out = AppendLine(step_out, Concat(
+                    "      IntentStepSuccess: ", s_success_pattern
+                ));
+            }
+            if StringLength(s_failure_pattern) > 0 {
+                step_out = AppendLine(step_out, Concat(
+                    "      IntentStepFailure: ", s_failure_pattern
+                ));
             }
             let compensate_i: Int = 0;
             while compensate_i < ArrayLength(s_compensates) {
@@ -445,11 +522,28 @@ func ParseIntentDecl(
                 ));
             }
             step_blocks = AppendLine(step_blocks, step_out);
+            if intent_return_type != "" &&
+                (s_outcome == "" || s_success_pattern == "" ||
+                 s_failure_pattern == "" ||
+                 s_success_pattern == s_failure_pattern) {
+                Exit(1); }
             continue;
         }
         Exit(1);
     }
+    let typed_result: Bool = intent_return_type != "";
+    if typed_result {
+        if success_text != "" || failure_text != "" ||
+            ArrayLength(terminal_success_steps) != 1 ||
+            ArrayLength(terminal_failure_steps) == 0 {
+            Exit(1); }
+    } else if ArrayLength(terminal_success_steps) > 0 ||
+        ArrayLength(terminal_failure_steps) > 0 {
+        Exit(1);
+    }
     out = AppendLine(out, Concat("  Intent: ", Concat(decl_prefix, intent_name)));
+    if typed_result { out = AppendLine(out, Concat(
+        "    IntentReturns: ", intent_return_type)); }
     out = AppendLine(out, Concat("    IntentMode: ", intent_mode));
     out = AppendLine(out, "    IntentRollback: full");
     if StringLength(intent_retry) > 0 {
@@ -475,6 +569,32 @@ func ParseIntentDecl(
     }
     if StringLength(failure_text) > 0 {
         out = AppendLine(out, Concat("    IntentFailure: ", failure_text));
+    }
+    let terminal_i: Int = 0;
+    while terminal_i < ArrayLength(terminal_success_steps) {
+        out = AppendLine(out, Concat(
+            "    IntentTerminalSuccess: ", Concat(
+                terminal_success_steps[terminal_i],
+                Concat(" => ", terminal_success_texts[terminal_i]))
+        ));
+        ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindIntentTerminalSuccessTag(),
+            AstExpressionLaneAtom(), terminal_success_facts[terminal_i]
+        ));
+        terminal_i = terminal_i + 1;
+    }
+    terminal_i = 0;
+    while terminal_i < ArrayLength(terminal_failure_steps) {
+        out = AppendLine(out, Concat(
+            "    IntentTerminalFailure: ", Concat(
+                terminal_failure_steps[terminal_i],
+                Concat(" => ", terminal_failure_texts[terminal_i]))
+        ));
+        ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindIntentTerminalFailureTag(),
+            AstExpressionLaneAtom(), terminal_failure_facts[terminal_i]
+        ));
+        terminal_i = terminal_i + 1;
     }
     ArraySet(cursor_out, 0, i); return out;
 }

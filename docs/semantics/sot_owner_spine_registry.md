@@ -319,7 +319,7 @@ The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact
 family, and which last consumers must eventually lose every alternate read.
 
-### Planned intent step transition seam (OPEN, not a registry row)
+### Planned intent execution transition seams (OPEN, not registry rows)
 
 The bounded action-result and legacy phase carriers now exist: exact action
 stable identity, result name and declared return type reach
@@ -330,12 +330,14 @@ bridge and have executable missing/drift/phase/graph negatives. Legacy action
 completion before predicate evaluation and current-step rollback do not claim
 typed success/failure branch or success-only completion semantics.
 
-The remaining typed branch/compensation rung needs an execution fact family
-that does not turn `selfhost.intent_declaration_rows` into a second MIR
-authority. The candidate identity is `mir.intent_step_transition`, with stable handle
-`IntentStepTransitionId`, target Coq fact/owner
-`SFIntentStepTransition`/`SOMir`, and a target authority that binds these
-subfacts under one step identity:
+The remaining typed branch/compensation rung needs execution fact families
+that do not turn `selfhost.intent_declaration_rows` into a second MIR
+authority. The identities are `mir.intent_step_transition`, with stable handle
+`IntentStepTransitionId` and target Coq fact/owner
+`SFIntentStepTransition`/`SOMir`, plus `mir.intent_terminal_transition`, with
+stable handle `IntentTerminalTransitionId`. The target-neutral in-memory fact
+owner is now `src/self_hosted/mir/intent_execution_fact_owner.pgy`; it binds
+these subfacts under one step identity:
 
 - action outcome result definition and declared type;
 - source-declared success/failure variant and payload bindings;
@@ -344,13 +346,21 @@ subfacts under one step identity:
 - the DIR-owned predecessor identity carried without source-order recovery;
 - compensation expression/action identity guarded by that completion fact.
 
+The terminal family separately binds the exact source step/role/payload to an
+intent result constructor and result definition. `MIRRoutine.return_type`
+remains the routine return-type authority; a terminal row may only prove the
+exact construction and last consumption of that declared result. This keeps
+`failure A` and `failure B` distinct instead of collapsing them into a generic
+failure exit.
+
 This paragraph is deliberately not inside the machine-gated registry block.
-The typed branch/completion Coq fact, authority path, producer term, complete
-C/LLVM/self-host consumer inventory, missing-fact diagnostics, and focused
-failure-payload compensation gate do not exist yet. Until they land together,
-that seam is `OPEN`; it must not be represented as `ACTIVE`, `CLOSED`, or as an
-implemented protocol projection. Green binding and legacy predicate/
-compensation gates are not evidence that these later facts exist.
+The in-memory owner and focused structural/mutation gate now exist, but the
+typed branch/completion Coq facts, DIR-to-MIR producer, JSON protocol
+projection/admission, complete C/LLVM/self-host consumer inventory, and
+failure-payload execution/parity gate do not. Until they land together, both
+seams are `OPEN`; they must not be represented as `ACTIVE`, `CLOSED`, or as an
+implemented protocol projection. Green structural facts, binding, and legacy
+predicate/compensation gates are not substitution evidence.
 
 The planned forbidden fallbacks are outcome-to-Bool collapse, variant spelling
 classification, payload-type reinference, predecessor reconstruction from
@@ -360,6 +370,11 @@ rescan, native MIR grafting, and coexistence with the old direct orchestration
 path. The planned gate must cross-wire otherwise-valid result/type, variant/
 successor, predecessor, and completion identities and reject each mutation
 before emitting a partial C artifact.
+
+The current focused non-substitution gate is
+`tests/self_hosted/parity/intent_execution_fact_contract_owner.sh`; its exact
+wire and executable promotion requirements are recorded in
+`docs/self_hosted/19_intent_execution_transition_contract.md`.
 
 For `semantic.machine_layer_transition`, the self-host physical declaration
 consumer is `src/self_hosted/compiler/machine_layer_declaration_consumer.pgy`.

@@ -6,6 +6,9 @@
 #include "ast_constructors_internal.h"
 #include "../common/string_compat.h"
 
+#include <stdint.h>
+#include <string.h>
+
 ASTNode* ast_create_intent_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_INTENT_DECL);
     node->data.intent_decl.name = name ? pergyra_strdup(name) : NULL;
@@ -23,9 +26,15 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.step_capacity = 0;
     node->data.intent_decl.is_concurrent = false;
     node->data.intent_decl.rollback_policy = INTENT_ROLLBACK_FULL;
+    node->data.intent_decl.return_type = NULL;
     node->data.intent_decl.priority_expr = NULL;
     node->data.intent_decl.success_expr = NULL;
     node->data.intent_decl.failure_expr = NULL;
+    memset(&node->data.intent_decl.success_terminal, 0,
+           sizeof(node->data.intent_decl.success_terminal));
+    node->data.intent_decl.failure_terminals = NULL;
+    node->data.intent_decl.failure_terminal_count = 0;
+    node->data.intent_decl.failure_terminal_capacity = 0;
     node->data.intent_decl.doc_comment = NULL;
     node->data.intent_decl.default_who_names = NULL;
     node->data.intent_decl.default_who_count = 0;
@@ -52,6 +61,8 @@ ASTNode* ast_create_intent_value(const char* alias) {
 ASTNode* ast_create_intent_step(const char* name) {
     ASTNode* node = ast_create_node(AST_INTENT_STEP);
     node->data.intent_step.name = name ? pergyra_strdup(name) : NULL;
+    node->data.intent_step.predecessor_step_name = NULL;
+    node->data.intent_step.predecessor_step_syntax_id = 0;
     node->data.intent_step.where_type = NULL;
     node->data.intent_step.using_expr = NULL;
     node->data.intent_step.intent_expr = NULL;
@@ -68,6 +79,12 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.outcome_binding_column = 0;
     node->data.intent_step.outcome_binding_type_name = NULL;
     node->data.intent_step.outcome_action_decl_syntax_id = 0;
+    memset(&node->data.intent_step.success_branch, 0,
+           sizeof(node->data.intent_step.success_branch));
+    memset(&node->data.intent_step.failure_branch, 0,
+           sizeof(node->data.intent_step.failure_branch));
+    node->data.intent_step.success_branch.variant_index = SIZE_MAX;
+    node->data.intent_step.failure_branch.variant_index = SIZE_MAX;
     node->data.intent_step.compensate_exprs = NULL;
     node->data.intent_step.compensate_expr_count = 0;
     node->data.intent_step.compensate_expr_capacity = 0;

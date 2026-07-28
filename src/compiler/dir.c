@@ -634,6 +634,7 @@ dir_destroy(DIRProgram *dir)
                 free((void *)dir->intents[i].steps[j].authorized_by);
             }
             free(dir->intents[i].steps);
+            free(dir->intents[i].failure_terminals);
         }
     }
     if (dir->owned_names != NULL) {

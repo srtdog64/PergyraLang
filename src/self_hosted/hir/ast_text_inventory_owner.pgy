@@ -135,6 +135,21 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "IntentFailure:") {
         return TypedAstKindIntentFailureTag();
     }
+    if StartsWith(text, "IntentReturns:") {
+        return TypedAstKindIntentReturnsTag();
+    }
+    if StartsWith(text, "IntentStepSuccess:") {
+        return TypedAstKindIntentStepSuccessTag();
+    }
+    if StartsWith(text, "IntentStepFailure:") {
+        return TypedAstKindIntentStepFailureTag();
+    }
+    if StartsWith(text, "IntentTerminalSuccess:") {
+        return TypedAstKindIntentTerminalSuccessTag();
+    }
+    if StartsWith(text, "IntentTerminalFailure:") {
+        return TypedAstKindIntentTerminalFailureTag();
+    }
     if StartsWith(text, "Who:") {
         return TypedAstKindIntentStepWhoTag();
     }
@@ -336,6 +351,16 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindRoleDeclTag() {
         return Substring(text, 6, StringLength(text) - 6);
     }
+    if kind == TypedAstKindIntentTerminalSuccessTag() ||
+        kind == TypedAstKindIntentTerminalFailureTag() {
+        let arrow: Int = StringIndexOf(text, " => ");
+        if arrow >= 0 {
+            return StringTrim(Substring(
+                text, arrow + 4, StringLength(text) - arrow - 4
+            ));
+        }
+        return "";
+    }
     if TypedAstKindIsIntentRow(kind) {
         let colon: Int = StringIndexOf(text, ":");
         if colon >= 0 {
@@ -462,6 +487,17 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
 }
 
 func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
+    if kind == TypedAstKindIntentTerminalSuccessTag() ||
+        kind == TypedAstKindIntentTerminalFailureTag() {
+        let colon: Int = StringIndexOf(text, ":");
+        let arrow: Int = StringIndexOf(text, " => ");
+        if colon >= 0 && arrow > colon {
+            return StringTrim(Substring(
+                text, colon + 1, arrow - colon - 1
+            ));
+        }
+        return "";
+    }
     if kind == TypedAstKindEnumDeclTag() {
         let brace: Int = StringIndexOf(text, " { ");
         let n: Int = StringLength(text);

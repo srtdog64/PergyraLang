@@ -124,6 +124,20 @@ ast_intent_decl_rollback_policy(const ASTNode* node)
 }
 
 ASTNode*
+ast_intent_decl_return_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return NULL;
+    return node->data.intent_decl.return_type;
+}
+
+bool
+ast_intent_decl_has_typed_result(const ASTNode* node)
+{
+    return ast_intent_decl_return_type(node) != NULL;
+}
+
+ASTNode*
 ast_intent_decl_priority_expr(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_INTENT_DECL)
@@ -145,6 +159,92 @@ ast_intent_decl_failure_expr(const ASTNode* node)
     if (node == NULL || node->type != AST_INTENT_DECL)
         return NULL;
     return node->data.intent_decl.failure_expr;
+}
+
+const char*
+ast_intent_decl_success_terminal_step(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return NULL;
+    return node->data.intent_decl.success_terminal.step_name;
+}
+
+uint32_t
+ast_intent_decl_success_terminal_step_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return 0;
+    return node->data.intent_decl.success_terminal.step_syntax_id;
+}
+
+ASTNode*
+ast_intent_decl_success_terminal_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return NULL;
+    return node->data.intent_decl.success_terminal.expr;
+}
+
+size_t
+ast_intent_decl_failure_terminal_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return 0;
+    return node->data.intent_decl.failure_terminal_count;
+}
+
+const char*
+ast_intent_decl_failure_terminal_step(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL
+        || index >= node->data.intent_decl.failure_terminal_count) {
+        return NULL;
+    }
+    return node->data.intent_decl.failure_terminals[index].step_name;
+}
+
+uint32_t
+ast_intent_decl_failure_terminal_step_syntax_id(const ASTNode* node,
+                                                size_t index)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL
+        || index >= node->data.intent_decl.failure_terminal_count) {
+        return 0;
+    }
+    return node->data.intent_decl.failure_terminals[index].step_syntax_id;
+}
+
+ASTNode*
+ast_intent_decl_failure_terminal_expr(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL
+        || index >= node->data.intent_decl.failure_terminal_count) {
+        return NULL;
+    }
+    return node->data.intent_decl.failure_terminals[index].expr;
+}
+
+bool
+ast_intent_decl_set_success_terminal_step_syntax_id(ASTNode* node,
+                                                    uint32_t syntax_id)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL || syntax_id == 0)
+        return false;
+    node->data.intent_decl.success_terminal.step_syntax_id = syntax_id;
+    return true;
+}
+
+bool
+ast_intent_decl_set_failure_terminal_step_syntax_id(ASTNode* node,
+                                                    size_t index,
+                                                    uint32_t syntax_id)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL || syntax_id == 0
+        || index >= node->data.intent_decl.failure_terminal_count) {
+        return false;
+    }
+    node->data.intent_decl.failure_terminals[index].step_syntax_id = syntax_id;
+    return true;
 }
 
 char**

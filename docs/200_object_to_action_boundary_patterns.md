@@ -1296,10 +1296,12 @@ receipt/failure payload일 뿐 completion/rollback owner가 아니다.
   모든 이전 step을 역순 보상, compensate AST/source 재스캔, native MIR graft,
   missing carrier 성공, 기존 `Main -> action` 직행 orchestration 병존이다.
 - **Planned gate:**
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`와
-  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy.todo`는
-  executable gate/fixture가 아니라 fail-case 설계 초안이다. Makefile 또는 aggregate
-  gate에 등록하지 않으며, 실행하면 미구현으로 실패해야 한다.
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`는
+  실행 producer/admission/consumer가 닫힐 때까지 unconditional failure인 실행 설계
+  초안이며 aggregate gate에 등록하지 않는다. 반면
+  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy`는 이제
+  frontend/DIR/fact validation의 활성 fixture다. 이 fixture가 parse된다는 사실은
+  runtime 또는 substitution 증거가 아니다.
 - **First falsifier:** action A가 typed success payload를 반환하고 그 payload가 action
   B의 입력이나 후속 결정을 바꾼다. B의 typed failure payload는 exact failure
   diagnostic 또는 관측 상태를 바꾼다. B는 completed가 아니므로 B compensation은

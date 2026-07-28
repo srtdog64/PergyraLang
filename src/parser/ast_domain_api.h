@@ -115,9 +115,24 @@ ASTNode** ast_intent_decl_steps(const ASTNode* node, size_t* count_out);
 size_t ast_intent_decl_step_count(const ASTNode* node);
 bool ast_intent_decl_is_concurrent(const ASTNode* node);
 IntentRollbackPolicy ast_intent_decl_rollback_policy(const ASTNode* node);
+ASTNode* ast_intent_decl_return_type(const ASTNode* node);
+bool ast_intent_decl_has_typed_result(const ASTNode* node);
 ASTNode* ast_intent_decl_priority_expr(const ASTNode* node);
 ASTNode* ast_intent_decl_success_expr(const ASTNode* node);
 ASTNode* ast_intent_decl_failure_expr(const ASTNode* node);
+const char* ast_intent_decl_success_terminal_step(const ASTNode* node);
+uint32_t ast_intent_decl_success_terminal_step_syntax_id(const ASTNode* node);
+ASTNode* ast_intent_decl_success_terminal_expr(const ASTNode* node);
+size_t ast_intent_decl_failure_terminal_count(const ASTNode* node);
+const char* ast_intent_decl_failure_terminal_step(const ASTNode* node, size_t index);
+uint32_t ast_intent_decl_failure_terminal_step_syntax_id(const ASTNode* node,
+                                                         size_t index);
+ASTNode* ast_intent_decl_failure_terminal_expr(const ASTNode* node, size_t index);
+bool ast_intent_decl_set_success_terminal_step_syntax_id(ASTNode* node,
+                                                         uint32_t syntax_id);
+bool ast_intent_decl_set_failure_terminal_step_syntax_id(ASTNode* node,
+                                                         size_t index,
+                                                         uint32_t syntax_id);
 char** ast_intent_decl_default_who_names(const ASTNode* node, size_t* count_out);
 size_t ast_intent_decl_default_who_count(const ASTNode* node);
 ASTNode* ast_intent_decl_default_where_type(const ASTNode* node);
@@ -127,6 +142,10 @@ ASTNode* ast_intent_involves_subject_type(const ASTNode* node);
 const char* ast_intent_value_alias(const ASTNode* node);
 ASTNode* ast_intent_value_type(const ASTNode* node);
 const char* ast_intent_step_name(const ASTNode* node);
+const char* ast_intent_step_predecessor_name(const ASTNode* node);
+uint32_t ast_intent_step_predecessor_syntax_id(const ASTNode* node);
+bool ast_intent_step_set_predecessor_syntax_id(ASTNode* node,
+                                               uint32_t syntax_id);
 ASTNode* ast_intent_step_where_type(const ASTNode* node);
 ASTNode* ast_intent_step_using_expr(const ASTNode* node);
 ASTNode* ast_intent_step_intent_expr(const ASTNode* node);
@@ -143,6 +162,23 @@ uint32_t ast_intent_step_outcome_binding_line(const ASTNode* node);
 uint32_t ast_intent_step_outcome_binding_column(const ASTNode* node);
 const char* ast_intent_step_outcome_binding_type_name(const ASTNode* node);
 uint32_t ast_intent_step_outcome_action_decl_syntax_id(const ASTNode* node);
+const char* ast_intent_step_success_variant_name(const ASTNode* node);
+const char* ast_intent_step_success_payload_name(const ASTNode* node);
+const char* ast_intent_step_failure_variant_name(const ASTNode* node);
+const char* ast_intent_step_failure_payload_name(const ASTNode* node);
+const char* ast_intent_step_success_payload_type_name(const ASTNode* node);
+const char* ast_intent_step_failure_payload_type_name(const ASTNode* node);
+const char* ast_intent_step_outcome_enum_type_name(const ASTNode* node);
+uint32_t ast_intent_step_outcome_enum_decl_syntax_id(const ASTNode* node);
+size_t ast_intent_step_success_variant_index(const ASTNode* node);
+size_t ast_intent_step_failure_variant_index(const ASTNode* node);
+bool ast_intent_step_set_outcome_branch_resolution_copy(
+    ASTNode* node,
+    bool success_branch,
+    const char* enum_type_name,
+    uint32_t enum_decl_syntax_id,
+    size_t variant_index,
+    const char* payload_type_name);
 bool ast_intent_step_set_outcome_binding_copy(ASTNode* node,
                                               const char* name,
                                               size_t length,

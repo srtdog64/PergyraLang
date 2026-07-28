@@ -1,6 +1,7 @@
 // Step-local outcome environment derived from one exact subject-action contract.
 import "ast_intent_action_call_fact_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
+import "ast_intent_transition_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "env_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
@@ -10,12 +11,45 @@ func SemanticAstIntentExpressionSeedOutcome(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstIntentSignatureFacts,
+    ref transitions: SemanticAstIntentTransitionFacts,
     intent_node_id: Int,
     expression_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
+    if !SemanticAstIntentTransitionFactsReady(artifact, transitions) {
+        return false;
+    }
+    let is_terminal: Bool = TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentTerminalSuccessTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentTerminalFailureTag()
+    );
+    if is_terminal {
+        let terminal_index: Int = -1;
+        let t: Int = 0;
+        while t < ArrayLength(transitions.terminal_expression_node_ids) {
+            if transitions.terminal_expression_node_ids[t] ==
+                expression_node_id {
+                if terminal_index >= 0 { return false; }
+                terminal_index = t;
+            }
+            t = t + 1;
+        }
+        if terminal_index < 0 || EnvContainsName(
+            names, transitions.terminal_payload_source_names[terminal_index]
+        ) { return false; }
+        ArrayPush(names,
+            transitions.terminal_payload_source_names[terminal_index]);
+        ArrayPush(types,
+            transitions.terminal_payload_type_names[terminal_index]);
+        ArrayPush(modes, "intent_terminal_payload");
+        return ArrayLength(names) == ArrayLength(types) &&
+            ArrayLength(names) == ArrayLength(modes);
+    }
     let eligible: Bool = TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id,
         TypedAstKindIntentStepCompensateTag()
@@ -23,6 +57,8 @@ func SemanticAstIntentExpressionSeedOutcome(
         artifact.arena, expression_node_id, TypedAstKindIntentStepPostTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepExpectTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
     );
     if !eligible { return true; }
     let step: Option<Int> = TypedAstArenaParentId(
@@ -31,6 +67,44 @@ func SemanticAstIntentExpressionSeedOutcome(
     if !IsSome(step) || !TypedAstArenaNodeKindIs(
         artifact.arena, UnwrapOption(step), TypedAstKindIntentStepTag()
     ) { return false; }
+    if TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
+    ) {
+        let transition_index: Int = -1;
+        let r: Int = 0;
+        while r < ArrayLength(transitions.step_node_ids) {
+            if transitions.step_node_ids[r] == UnwrapOption(step) {
+                if transition_index >= 0 { return false; }
+                transition_index = r;
+            }
+            r = r + 1;
+        }
+        if transition_index < 0 { return false; }
+        let predecessor_index: Int =
+            transitions.predecessor_step_indices[transition_index];
+        if predecessor_index < 0 { return true; }
+        let intent_index: Int = 0;
+        while intent_index < ArrayLength(transitions.intent_starts) {
+            let start: Int = transitions.intent_starts[intent_index];
+            let count: Int = transitions.intent_counts[intent_index];
+            if transition_index >= start && transition_index < start + count {
+                let predecessor_row: Int = start + predecessor_index;
+                let payload_name: String =
+                    transitions.success_payload_names[predecessor_row];
+                if payload_name == "" || EnvContainsName(names, payload_name) {
+                    return false;
+                }
+                ArrayPush(names, payload_name);
+                ArrayPush(types,
+                    transitions.success_payload_type_names[predecessor_row]);
+                ArrayPush(modes, "intent_predecessor_success_payload");
+                return ArrayLength(names) == ArrayLength(types) &&
+                    ArrayLength(names) == ArrayLength(modes);
+            }
+            intent_index = intent_index + 1;
+        }
+        return false;
+    }
     let outcome_name: String = "";
     let on_text: String = "";
     let child_index: Int = 0;

@@ -384,6 +384,17 @@ void type_check_intent_resolve_binding_types(ASTNode *intent,
 void type_check_intent_declare_binding_symbols(ASTNode *intent,
                                                SemanticContext *ctx);
 Type *intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+bool intent_typed_validate_topology(ASTNode *intent, SemanticContext *ctx);
+bool intent_typed_resolve_step_branches(ASTNode *step,
+                                        Type *outcome_type,
+                                        SemanticContext *ctx,
+                                        Type **success_payload_out,
+                                        Type **failure_payload_out);
+bool intent_typed_declare_payload_binding(ASTNode *step,
+                                          bool success_branch,
+                                          Type *payload_type,
+                                          SemanticContext *ctx);
+ASTNode *intent_typed_step_for_failure_terminal(ASTNode *intent, size_t index);
 Type *intent_normalize_type(Type *type);
 Type *intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx);
 Type *intent_resolve_value_type(ASTNode *value, SemanticContext *ctx);

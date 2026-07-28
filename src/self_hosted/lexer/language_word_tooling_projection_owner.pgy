@@ -7,148 +7,149 @@ func LanguageWordToolingFlagsAt(index: Int) -> Int {
     if index == 0 { return 5; }
     if index == 1 { return 7; }
     if index == 2 { return 0; }
-    if index == 3 { return 0; }
+    if index == 3 { return 4; }
     if index == 4 { return 0; }
     if index == 5 { return 0; }
-    if index == 6 { return 4; }
-    if index == 7 { return 5; }
-    if index == 8 { return 3; }
-    if index == 9 { return 7; }
-    if index == 10 { return 5; }
-    if index == 11 { return 0; }
+    if index == 6 { return 0; }
+    if index == 7 { return 4; }
+    if index == 8 { return 5; }
+    if index == 9 { return 3; }
+    if index == 10 { return 7; }
+    if index == 11 { return 5; }
     if index == 12 { return 0; }
-    if index == 13 { return 4; }
-    if index == 14 { return 7; }
-    if index == 15 { return 0; }
-    if index == 16 { return 4; }
-    if index == 17 { return 6; }
-    if index == 18 { return 0; }
+    if index == 13 { return 0; }
+    if index == 14 { return 4; }
+    if index == 15 { return 7; }
+    if index == 16 { return 0; }
+    if index == 17 { return 4; }
+    if index == 18 { return 6; }
     if index == 19 { return 0; }
-    if index == 20 { return 4; }
-    if index == 21 { return 7; }
-    if index == 22 { return 6; }
-    if index == 23 { return 4; }
+    if index == 20 { return 0; }
+    if index == 21 { return 4; }
+    if index == 22 { return 7; }
+    if index == 23 { return 6; }
     if index == 24 { return 4; }
     if index == 25 { return 4; }
     if index == 26 { return 4; }
-    if index == 27 { return 0; }
+    if index == 27 { return 4; }
     if index == 28 { return 0; }
     if index == 29 { return 0; }
-    if index == 30 { return 4; }
+    if index == 30 { return 0; }
     if index == 31 { return 4; }
-    if index == 32 { return 0; }
-    if index == 33 { return 4; }
+    if index == 32 { return 4; }
+    if index == 33 { return 0; }
     if index == 34 { return 4; }
-    if index == 35 { return 2; }
-    if index == 36 { return 4; }
+    if index == 35 { return 4; }
+    if index == 36 { return 2; }
     if index == 37 { return 4; }
     if index == 38 { return 4; }
-    if index == 39 { return 0; }
-    if index == 40 { return 4; }
-    if index == 41 { return 0; }
-    if index == 42 { return 4; }
+    if index == 39 { return 4; }
+    if index == 40 { return 0; }
+    if index == 41 { return 4; }
+    if index == 42 { return 0; }
     if index == 43 { return 4; }
     if index == 44 { return 4; }
     if index == 45 { return 4; }
     if index == 46 { return 4; }
     if index == 47 { return 4; }
-    if index == 48 { return 0; }
-    if index == 49 { return 4; }
-    if index == 50 { return 0; }
+    if index == 48 { return 4; }
+    if index == 49 { return 0; }
+    if index == 50 { return 4; }
     if index == 51 { return 0; }
     if index == 52 { return 0; }
-    if index == 53 { return 7; }
-    if index == 54 { return 0; }
-    if index == 55 { return 4; }
+    if index == 53 { return 0; }
+    if index == 54 { return 7; }
+    if index == 55 { return 0; }
     if index == 56 { return 4; }
     if index == 57 { return 4; }
-    if index == 58 { return 6; }
-    if index == 59 { return 4; }
+    if index == 58 { return 4; }
+    if index == 59 { return 6; }
     if index == 60 { return 4; }
     if index == 61 { return 4; }
-    if index == 62 { return 0; }
-    if index == 63 { return 5; }
-    if index == 64 { return 4; }
+    if index == 62 { return 4; }
+    if index == 63 { return 0; }
+    if index == 64 { return 5; }
     if index == 65 { return 4; }
-    if index == 66 { return 0; }
+    if index == 66 { return 4; }
     if index == 67 { return 0; }
     if index == 68 { return 0; }
-    if index == 69 { return 7; }
-    if index == 70 { return 0; }
+    if index == 69 { return 0; }
+    if index == 70 { return 7; }
     if index == 71 { return 0; }
-    if index == 72 { return 4; }
-    if index == 73 { return 0; }
+    if index == 72 { return 0; }
+    if index == 73 { return 4; }
     if index == 74 { return 0; }
     if index == 75 { return 0; }
-    if index == 76 { return 6; }
-    if index == 77 { return 0; }
+    if index == 76 { return 0; }
+    if index == 77 { return 6; }
     if index == 78 { return 0; }
     if index == 79 { return 0; }
-    if index == 80 { return 4; }
+    if index == 80 { return 0; }
     if index == 81 { return 4; }
     if index == 82 { return 4; }
-    if index == 83 { return 0; }
-    if index == 84 { return 7; }
-    if index == 85 { return 0; }
-    if index == 86 { return 4; }
+    if index == 83 { return 4; }
+    if index == 84 { return 0; }
+    if index == 85 { return 7; }
+    if index == 86 { return 0; }
     if index == 87 { return 4; }
     if index == 88 { return 4; }
-    if index == 89 { return 7; }
-    if index == 90 { return 6; }
-    if index == 91 { return 0; }
+    if index == 89 { return 4; }
+    if index == 90 { return 7; }
+    if index == 91 { return 6; }
     if index == 92 { return 0; }
-    if index == 93 { return 4; }
+    if index == 93 { return 0; }
     if index == 94 { return 4; }
-    if index == 95 { return 0; }
-    if index == 96 { return 4; }
-    if index == 97 { return 0; }
-    if index == 98 { return 4; }
+    if index == 95 { return 4; }
+    if index == 96 { return 0; }
+    if index == 97 { return 4; }
+    if index == 98 { return 0; }
     if index == 99 { return 4; }
-    if index == 100 { return 0; }
-    if index == 101 { return 4; }
+    if index == 100 { return 4; }
+    if index == 101 { return 0; }
     if index == 102 { return 4; }
-    if index == 103 { return 0; }
-    if index == 104 { return 4; }
-    if index == 105 { return 0; }
-    if index == 106 { return 4; }
-    if index == 107 { return 7; }
-    if index == 108 { return 0; }
-    if index == 109 { return 4; }
-    if index == 110 { return 5; }
-    if index == 111 { return 0; }
-    if index == 112 { return 7; }
-    if index == 113 { return 4; }
-    if index == 114 { return 5; }
-    if index == 115 { return 4; }
+    if index == 103 { return 4; }
+    if index == 104 { return 0; }
+    if index == 105 { return 4; }
+    if index == 106 { return 0; }
+    if index == 107 { return 4; }
+    if index == 108 { return 7; }
+    if index == 109 { return 0; }
+    if index == 110 { return 4; }
+    if index == 111 { return 5; }
+    if index == 112 { return 0; }
+    if index == 113 { return 7; }
+    if index == 114 { return 4; }
+    if index == 115 { return 5; }
     if index == 116 { return 4; }
-    if index == 117 { return 5; }
-    if index == 118 { return 4; }
+    if index == 117 { return 4; }
+    if index == 118 { return 5; }
     if index == 119 { return 4; }
-    if index == 120 { return 6; }
-    if index == 121 { return 7; }
-    if index == 122 { return 0; }
-    if index == 123 { return 4; }
-    if index == 124 { return 0; }
+    if index == 120 { return 4; }
+    if index == 121 { return 6; }
+    if index == 122 { return 7; }
+    if index == 123 { return 0; }
+    if index == 124 { return 4; }
     if index == 125 { return 0; }
     if index == 126 { return 0; }
-    if index == 127 { return 7; }
-    if index == 128 { return 0; }
-    if index == 129 { return 4; }
-    if index == 130 { return 3; }
-    if index == 131 { return 4; }
+    if index == 127 { return 0; }
+    if index == 128 { return 7; }
+    if index == 129 { return 0; }
+    if index == 130 { return 4; }
+    if index == 131 { return 3; }
     if index == 132 { return 4; }
-    if index == 133 { return 0; }
-    if index == 134 { return 4; }
+    if index == 133 { return 4; }
+    if index == 134 { return 0; }
     if index == 135 { return 4; }
-    if index == 136 { return 3; }
-    if index == 137 { return 4; }
-    if index == 138 { return 7; }
-    if index == 139 { return 4; }
-    if index == 140 { return 7; }
+    if index == 136 { return 4; }
+    if index == 137 { return 3; }
+    if index == 138 { return 4; }
+    if index == 139 { return 7; }
+    if index == 140 { return 4; }
     if index == 141 { return 7; }
     if index == 142 { return 7; }
-    if index == 143 { return 5; }
+    if index == 143 { return 7; }
     if index == 144 { return 5; }
+    if index == 145 { return 5; }
     return -1;
 }
 
@@ -156,148 +157,149 @@ func LanguageWordHighlightScopeAt(index: Int) -> String {
     if index == 0 { return "storage.type.pergyra"; }
     if index == 1 { return "keyword.declaration.pergyra"; }
     if index == 2 { return ""; }
-    if index == 3 { return ""; }
+    if index == 3 { return "keyword.other.intent.pergyra"; }
     if index == 4 { return ""; }
     if index == 5 { return ""; }
-    if index == 6 { return "keyword.control.pergyra"; }
-    if index == 7 { return "storage.modifier.pergyra"; }
-    if index == 8 { return ""; }
-    if index == 9 { return "keyword.other.domain.pergyra"; }
-    if index == 10 { return "keyword.control.pergyra"; }
-    if index == 11 { return ""; }
+    if index == 6 { return ""; }
+    if index == 7 { return "keyword.control.pergyra"; }
+    if index == 8 { return "storage.modifier.pergyra"; }
+    if index == 9 { return ""; }
+    if index == 10 { return "keyword.other.domain.pergyra"; }
+    if index == 11 { return "keyword.control.pergyra"; }
     if index == 12 { return ""; }
-    if index == 13 { return "keyword.other.domain.pergyra"; }
+    if index == 13 { return ""; }
     if index == 14 { return "keyword.other.domain.pergyra"; }
-    if index == 15 { return ""; }
-    if index == 16 { return "keyword.control.pergyra"; }
-    if index == 17 { return "keyword.other.domain.pergyra"; }
-    if index == 18 { return ""; }
+    if index == 15 { return "keyword.other.domain.pergyra"; }
+    if index == 16 { return ""; }
+    if index == 17 { return "keyword.control.pergyra"; }
+    if index == 18 { return "keyword.other.domain.pergyra"; }
     if index == 19 { return ""; }
-    if index == 20 { return "keyword.control.pergyra"; }
-    if index == 21 { return "keyword.other.domain.pergyra"; }
-    if index == 22 { return "storage.type.pergyra"; }
-    if index == 23 { return "keyword.control.pergyra"; }
+    if index == 20 { return ""; }
+    if index == 21 { return "keyword.control.pergyra"; }
+    if index == 22 { return "keyword.other.domain.pergyra"; }
+    if index == 23 { return "storage.type.pergyra"; }
     if index == 24 { return "keyword.control.pergyra"; }
-    if index == 25 { return "keyword.other.intent.pergyra"; }
-    if index == 26 { return "keyword.control.pergyra"; }
-    if index == 27 { return ""; }
+    if index == 25 { return "keyword.control.pergyra"; }
+    if index == 26 { return "keyword.other.intent.pergyra"; }
+    if index == 27 { return "keyword.control.pergyra"; }
     if index == 28 { return ""; }
     if index == 29 { return ""; }
-    if index == 30 { return "keyword.control.pergyra"; }
+    if index == 30 { return ""; }
     if index == 31 { return "keyword.control.pergyra"; }
-    if index == 32 { return ""; }
-    if index == 33 { return "storage.modifier.pergyra"; }
-    if index == 34 { return "storage.type.pergyra"; }
-    if index == 35 { return ""; }
-    if index == 36 { return "keyword.control.pergyra"; }
-    if index == 37 { return "keyword.declaration.pergyra"; }
-    if index == 38 { return "keyword.other.domain.pergyra"; }
-    if index == 39 { return ""; }
-    if index == 40 { return "keyword.other.intent.pergyra"; }
-    if index == 41 { return ""; }
-    if index == 42 { return "keyword.declaration.pergyra"; }
+    if index == 32 { return "keyword.control.pergyra"; }
+    if index == 33 { return ""; }
+    if index == 34 { return "storage.modifier.pergyra"; }
+    if index == 35 { return "storage.type.pergyra"; }
+    if index == 36 { return ""; }
+    if index == 37 { return "keyword.control.pergyra"; }
+    if index == 38 { return "keyword.declaration.pergyra"; }
+    if index == 39 { return "keyword.other.domain.pergyra"; }
+    if index == 40 { return ""; }
+    if index == 41 { return "keyword.other.intent.pergyra"; }
+    if index == 42 { return ""; }
     if index == 43 { return "keyword.declaration.pergyra"; }
     if index == 44 { return "keyword.declaration.pergyra"; }
-    if index == 45 { return "keyword.control.pergyra"; }
-    if index == 46 { return "keyword.other.intent.pergyra"; }
-    if index == 47 { return "constant.language.pergyra"; }
-    if index == 48 { return ""; }
-    if index == 49 { return "keyword.control.pergyra"; }
-    if index == 50 { return ""; }
+    if index == 45 { return "keyword.declaration.pergyra"; }
+    if index == 46 { return "keyword.control.pergyra"; }
+    if index == 47 { return "keyword.other.intent.pergyra"; }
+    if index == 48 { return "constant.language.pergyra"; }
+    if index == 49 { return ""; }
+    if index == 50 { return "keyword.control.pergyra"; }
     if index == 51 { return ""; }
     if index == 52 { return ""; }
-    if index == 53 { return "keyword.declaration.pergyra"; }
-    if index == 54 { return ""; }
-    if index == 55 { return "keyword.other.intent.pergyra"; }
-    if index == 56 { return "keyword.control.pergyra"; }
-    if index == 57 { return "keyword.declaration.pergyra"; }
+    if index == 53 { return ""; }
+    if index == 54 { return "keyword.declaration.pergyra"; }
+    if index == 55 { return ""; }
+    if index == 56 { return "keyword.other.intent.pergyra"; }
+    if index == 57 { return "keyword.control.pergyra"; }
     if index == 58 { return "keyword.declaration.pergyra"; }
-    if index == 59 { return "keyword.control.pergyra"; }
-    if index == 60 { return "keyword.declaration.pergyra"; }
-    if index == 61 { return "storage.modifier.pergyra"; }
-    if index == 62 { return ""; }
-    if index == 63 { return "keyword.other.intent.pergyra"; }
+    if index == 59 { return "keyword.declaration.pergyra"; }
+    if index == 60 { return "keyword.control.pergyra"; }
+    if index == 61 { return "keyword.declaration.pergyra"; }
+    if index == 62 { return "storage.modifier.pergyra"; }
+    if index == 63 { return ""; }
     if index == 64 { return "keyword.other.intent.pergyra"; }
     if index == 65 { return "keyword.other.intent.pergyra"; }
-    if index == 66 { return ""; }
+    if index == 66 { return "keyword.other.intent.pergyra"; }
     if index == 67 { return ""; }
     if index == 68 { return ""; }
-    if index == 69 { return "keyword.declaration.pergyra"; }
-    if index == 70 { return ""; }
+    if index == 69 { return ""; }
+    if index == 70 { return "keyword.declaration.pergyra"; }
     if index == 71 { return ""; }
-    if index == 72 { return "storage.modifier.pergyra"; }
-    if index == 73 { return ""; }
+    if index == 72 { return ""; }
+    if index == 73 { return "storage.modifier.pergyra"; }
     if index == 74 { return ""; }
     if index == 75 { return ""; }
-    if index == 76 { return "keyword.control.pergyra"; }
-    if index == 77 { return ""; }
+    if index == 76 { return ""; }
+    if index == 77 { return "keyword.control.pergyra"; }
     if index == 78 { return ""; }
     if index == 79 { return ""; }
-    if index == 80 { return "storage.modifier.pergyra"; }
-    if index == 81 { return "keyword.declaration.pergyra"; }
-    if index == 82 { return "storage.modifier.pergyra"; }
-    if index == 83 { return ""; }
-    if index == 84 { return "storage.type.pergyra"; }
-    if index == 85 { return ""; }
-    if index == 86 { return "keyword.other.intent.pergyra"; }
-    if index == 87 { return "storage.modifier.pergyra"; }
+    if index == 80 { return ""; }
+    if index == 81 { return "storage.modifier.pergyra"; }
+    if index == 82 { return "keyword.declaration.pergyra"; }
+    if index == 83 { return "storage.modifier.pergyra"; }
+    if index == 84 { return ""; }
+    if index == 85 { return "storage.type.pergyra"; }
+    if index == 86 { return ""; }
+    if index == 87 { return "keyword.other.intent.pergyra"; }
     if index == 88 { return "storage.modifier.pergyra"; }
-    if index == 89 { return "keyword.control.pergyra"; }
-    if index == 90 { return "storage.type.pergyra"; }
-    if index == 91 { return ""; }
+    if index == 89 { return "storage.modifier.pergyra"; }
+    if index == 90 { return "keyword.control.pergyra"; }
+    if index == 91 { return "storage.type.pergyra"; }
     if index == 92 { return ""; }
-    if index == 93 { return "keyword.other.intent.pergyra"; }
+    if index == 93 { return ""; }
     if index == 94 { return "keyword.other.intent.pergyra"; }
-    if index == 95 { return ""; }
-    if index == 96 { return "storage.modifier.pergyra"; }
-    if index == 97 { return ""; }
-    if index == 98 { return "keyword.other.domain.pergyra"; }
-    if index == 99 { return "storage.modifier.pergyra"; }
-    if index == 100 { return ""; }
-    if index == 101 { return "storage.modifier.pergyra"; }
+    if index == 95 { return "keyword.other.intent.pergyra"; }
+    if index == 96 { return ""; }
+    if index == 97 { return "storage.modifier.pergyra"; }
+    if index == 98 { return ""; }
+    if index == 99 { return "keyword.other.domain.pergyra"; }
+    if index == 100 { return "storage.modifier.pergyra"; }
+    if index == 101 { return ""; }
     if index == 102 { return "storage.modifier.pergyra"; }
-    if index == 103 { return ""; }
-    if index == 104 { return "storage.type.pergyra"; }
-    if index == 105 { return ""; }
-    if index == 106 { return "storage.modifier.pergyra"; }
-    if index == 107 { return "keyword.other.domain.pergyra"; }
-    if index == 108 { return ""; }
-    if index == 109 { return "keyword.control.pergyra"; }
-    if index == 110 { return "storage.type.pergyra"; }
-    if index == 111 { return ""; }
-    if index == 112 { return "storage.type.pergyra"; }
-    if index == 113 { return "storage.modifier.pergyra"; }
-    if index == 114 { return "keyword.control.pergyra"; }
-    if index == 115 { return "keyword.other.domain.pergyra"; }
+    if index == 103 { return "storage.modifier.pergyra"; }
+    if index == 104 { return ""; }
+    if index == 105 { return "storage.type.pergyra"; }
+    if index == 106 { return ""; }
+    if index == 107 { return "storage.modifier.pergyra"; }
+    if index == 108 { return "keyword.other.domain.pergyra"; }
+    if index == 109 { return ""; }
+    if index == 110 { return "keyword.control.pergyra"; }
+    if index == 111 { return "storage.type.pergyra"; }
+    if index == 112 { return ""; }
+    if index == 113 { return "storage.type.pergyra"; }
+    if index == 114 { return "storage.modifier.pergyra"; }
+    if index == 115 { return "keyword.control.pergyra"; }
     if index == 116 { return "keyword.other.domain.pergyra"; }
-    if index == 117 { return "keyword.control.pergyra"; }
-    if index == 118 { return "keyword.other.domain.pergyra"; }
-    if index == 119 { return "keyword.other.intent.pergyra"; }
-    if index == 120 { return "storage.type.pergyra"; }
+    if index == 117 { return "keyword.other.domain.pergyra"; }
+    if index == 118 { return "keyword.control.pergyra"; }
+    if index == 119 { return "keyword.other.domain.pergyra"; }
+    if index == 120 { return "keyword.other.intent.pergyra"; }
     if index == 121 { return "storage.type.pergyra"; }
-    if index == 122 { return ""; }
-    if index == 123 { return "keyword.other.intent.pergyra"; }
-    if index == 124 { return ""; }
+    if index == 122 { return "storage.type.pergyra"; }
+    if index == 123 { return ""; }
+    if index == 124 { return "keyword.other.intent.pergyra"; }
     if index == 125 { return ""; }
     if index == 126 { return ""; }
-    if index == 127 { return "storage.type.pergyra"; }
-    if index == 128 { return ""; }
-    if index == 129 { return "keyword.control.pergyra"; }
-    if index == 130 { return ""; }
-    if index == 131 { return "constant.language.pergyra"; }
-    if index == 132 { return "keyword.declaration.pergyra"; }
-    if index == 133 { return ""; }
-    if index == 134 { return "storage.modifier.pergyra"; }
-    if index == 135 { return "keyword.declaration.pergyra"; }
-    if index == 136 { return ""; }
-    if index == 137 { return "storage.type.pergyra"; }
-    if index == 138 { return "keyword.other.intent.pergyra"; }
-    if index == 139 { return "keyword.control.pergyra"; }
-    if index == 140 { return "keyword.other.intent.pergyra"; }
-    if index == 141 { return "keyword.control.pergyra"; }
-    if index == 142 { return "keyword.other.domain.pergyra"; }
-    if index == 143 { return "storage.type.pergyra"; }
+    if index == 127 { return ""; }
+    if index == 128 { return "storage.type.pergyra"; }
+    if index == 129 { return ""; }
+    if index == 130 { return "keyword.control.pergyra"; }
+    if index == 131 { return ""; }
+    if index == 132 { return "constant.language.pergyra"; }
+    if index == 133 { return "keyword.declaration.pergyra"; }
+    if index == 134 { return ""; }
+    if index == 135 { return "storage.modifier.pergyra"; }
+    if index == 136 { return "keyword.declaration.pergyra"; }
+    if index == 137 { return ""; }
+    if index == 138 { return "storage.type.pergyra"; }
+    if index == 139 { return "keyword.other.intent.pergyra"; }
+    if index == 140 { return "keyword.control.pergyra"; }
+    if index == 141 { return "keyword.other.intent.pergyra"; }
+    if index == 142 { return "keyword.control.pergyra"; }
+    if index == 143 { return "keyword.other.domain.pergyra"; }
     if index == 144 { return "storage.type.pergyra"; }
+    if index == 145 { return "storage.type.pergyra"; }
     return "";
 }
 
@@ -309,22 +311,22 @@ func LanguageWordCompletionEnabledAt(index: Int) -> Bool {
     if index == 4 { return false; }
     if index == 5 { return false; }
     if index == 6 { return false; }
-    if index == 7 { return true; }
+    if index == 7 { return false; }
     if index == 8 { return true; }
     if index == 9 { return true; }
     if index == 10 { return true; }
-    if index == 11 { return false; }
+    if index == 11 { return true; }
     if index == 12 { return false; }
     if index == 13 { return false; }
-    if index == 14 { return true; }
-    if index == 15 { return false; }
+    if index == 14 { return false; }
+    if index == 15 { return true; }
     if index == 16 { return false; }
     if index == 17 { return false; }
     if index == 18 { return false; }
     if index == 19 { return false; }
     if index == 20 { return false; }
-    if index == 21 { return true; }
-    if index == 22 { return false; }
+    if index == 21 { return false; }
+    if index == 22 { return true; }
     if index == 23 { return false; }
     if index == 24 { return false; }
     if index == 25 { return false; }
@@ -355,8 +357,8 @@ func LanguageWordCompletionEnabledAt(index: Int) -> Bool {
     if index == 50 { return false; }
     if index == 51 { return false; }
     if index == 52 { return false; }
-    if index == 53 { return true; }
-    if index == 54 { return false; }
+    if index == 53 { return false; }
+    if index == 54 { return true; }
     if index == 55 { return false; }
     if index == 56 { return false; }
     if index == 57 { return false; }
@@ -365,14 +367,14 @@ func LanguageWordCompletionEnabledAt(index: Int) -> Bool {
     if index == 60 { return false; }
     if index == 61 { return false; }
     if index == 62 { return false; }
-    if index == 63 { return true; }
-    if index == 64 { return false; }
+    if index == 63 { return false; }
+    if index == 64 { return true; }
     if index == 65 { return false; }
     if index == 66 { return false; }
     if index == 67 { return false; }
     if index == 68 { return false; }
-    if index == 69 { return true; }
-    if index == 70 { return false; }
+    if index == 69 { return false; }
+    if index == 70 { return true; }
     if index == 71 { return false; }
     if index == 72 { return false; }
     if index == 73 { return false; }
@@ -386,13 +388,13 @@ func LanguageWordCompletionEnabledAt(index: Int) -> Bool {
     if index == 81 { return false; }
     if index == 82 { return false; }
     if index == 83 { return false; }
-    if index == 84 { return true; }
-    if index == 85 { return false; }
+    if index == 84 { return false; }
+    if index == 85 { return true; }
     if index == 86 { return false; }
     if index == 87 { return false; }
     if index == 88 { return false; }
-    if index == 89 { return true; }
-    if index == 90 { return false; }
+    if index == 89 { return false; }
+    if index == 90 { return true; }
     if index == 91 { return false; }
     if index == 92 { return false; }
     if index == 93 { return false; }
@@ -409,44 +411,45 @@ func LanguageWordCompletionEnabledAt(index: Int) -> Bool {
     if index == 104 { return false; }
     if index == 105 { return false; }
     if index == 106 { return false; }
-    if index == 107 { return true; }
-    if index == 108 { return false; }
+    if index == 107 { return false; }
+    if index == 108 { return true; }
     if index == 109 { return false; }
-    if index == 110 { return true; }
-    if index == 111 { return false; }
-    if index == 112 { return true; }
-    if index == 113 { return false; }
-    if index == 114 { return true; }
-    if index == 115 { return false; }
+    if index == 110 { return false; }
+    if index == 111 { return true; }
+    if index == 112 { return false; }
+    if index == 113 { return true; }
+    if index == 114 { return false; }
+    if index == 115 { return true; }
     if index == 116 { return false; }
-    if index == 117 { return true; }
-    if index == 118 { return false; }
+    if index == 117 { return false; }
+    if index == 118 { return true; }
     if index == 119 { return false; }
     if index == 120 { return false; }
-    if index == 121 { return true; }
-    if index == 122 { return false; }
+    if index == 121 { return false; }
+    if index == 122 { return true; }
     if index == 123 { return false; }
     if index == 124 { return false; }
     if index == 125 { return false; }
     if index == 126 { return false; }
-    if index == 127 { return true; }
-    if index == 128 { return false; }
+    if index == 127 { return false; }
+    if index == 128 { return true; }
     if index == 129 { return false; }
-    if index == 130 { return true; }
-    if index == 131 { return false; }
+    if index == 130 { return false; }
+    if index == 131 { return true; }
     if index == 132 { return false; }
     if index == 133 { return false; }
     if index == 134 { return false; }
     if index == 135 { return false; }
-    if index == 136 { return true; }
-    if index == 137 { return false; }
-    if index == 138 { return true; }
-    if index == 139 { return false; }
-    if index == 140 { return true; }
+    if index == 136 { return false; }
+    if index == 137 { return true; }
+    if index == 138 { return false; }
+    if index == 139 { return true; }
+    if index == 140 { return false; }
     if index == 141 { return true; }
     if index == 142 { return true; }
     if index == 143 { return true; }
     if index == 144 { return true; }
+    if index == 145 { return true; }
     return false;
 }
 

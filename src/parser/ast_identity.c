@@ -433,9 +433,17 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
                          node->data.intent_decl.binding_count, next_id);
         ast_assign_array(node->data.intent_decl.steps,
                          node->data.intent_decl.step_count, next_id);
+        ast_assign_node(node->data.intent_decl.return_type, next_id);
         ast_assign_node(node->data.intent_decl.priority_expr, next_id);
         ast_assign_node(node->data.intent_decl.success_expr, next_id);
         ast_assign_node(node->data.intent_decl.failure_expr, next_id);
+        ast_assign_node(node->data.intent_decl.success_terminal.expr, next_id);
+        for (size_t i = 0;
+             i < node->data.intent_decl.failure_terminal_count;
+             i++) {
+            ast_assign_node(node->data.intent_decl.failure_terminals[i].expr,
+                            next_id);
+        }
         ast_assign_node(node->data.intent_decl.default_where_type, next_id);
         break;
     case AST_INTENT_INVOLVES:

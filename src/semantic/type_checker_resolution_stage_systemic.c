@@ -250,6 +250,12 @@ semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx)
             "intent value type lookup");
     }
     (void)semantic_stage_resolve_type_quiet(
+        ast_intent_decl_return_type(decl),
+        ctx,
+        decl,
+        intent_name,
+        "intent return-type lookup");
+    (void)semantic_stage_resolve_type_quiet(
         ast_intent_decl_default_where_type(decl),
         ctx,
         decl,

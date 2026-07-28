@@ -98,6 +98,12 @@ ast_print_intent_node(ASTNode *node, int indent)
     switch (node->type) {
         case AST_INTENT_DECL:
             printf("Intent: %s\n", node->data.intent_decl.name);
+            if (node->data.intent_decl.return_type != NULL) {
+                ast_print_indent(indent + 1);
+                printf("IntentReturns: ");
+                ast_print_inline(node->data.intent_decl.return_type);
+                printf("\n");
+            }
             if (node->data.intent_decl.is_concurrent) {
                 ast_print_indent(indent + 1);
                 printf("IntentMode: concurrent\n");
@@ -148,6 +154,23 @@ ast_print_intent_node(ASTNode *node, int indent)
                 ast_print_inline(node->data.intent_decl.failure_expr);
                 printf("\n");
             }
+            if (node->data.intent_decl.success_terminal.expr != NULL) {
+                ast_print_indent(indent + 1);
+                printf("IntentTerminalSuccess: %s => ",
+                    node->data.intent_decl.success_terminal.step_name);
+                ast_print_inline(node->data.intent_decl.success_terminal.expr);
+                printf("\n");
+            }
+            for (size_t i = 0;
+                 i < node->data.intent_decl.failure_terminal_count;
+                 i++) {
+                ast_print_indent(indent + 1);
+                printf("IntentTerminalFailure: %s => ",
+                    node->data.intent_decl.failure_terminals[i].step_name);
+                ast_print_inline(
+                    node->data.intent_decl.failure_terminals[i].expr);
+                printf("\n");
+            }
             break;
 
         case AST_INTENT_INVOLVES:
@@ -164,6 +187,10 @@ ast_print_intent_node(ASTNode *node, int indent)
 
         case AST_INTENT_STEP:
             printf("IntentStep: %s", node->data.intent_step.name);
+            if (node->data.intent_step.predecessor_step_name != NULL) {
+                printf(" after %s",
+                    node->data.intent_step.predecessor_step_name);
+            }
             if (node->data.intent_step.where_type != NULL) {
                 printf(" where ");
                 ast_print_inline(node->data.intent_step.where_type);
@@ -224,6 +251,18 @@ ast_print_intent_node(ASTNode *node, int indent)
                     ast_print_inline(node->data.intent_step.on_exprs[i]);
                     printf("\n");
                 }
+            }
+            if (node->data.intent_step.success_branch.variant_name != NULL) {
+                ast_print_indent(indent + 1);
+                printf("IntentStepSuccess: %s(%s)\n",
+                    node->data.intent_step.success_branch.variant_name,
+                    node->data.intent_step.success_branch.payload_name);
+            }
+            if (node->data.intent_step.failure_branch.variant_name != NULL) {
+                ast_print_indent(indent + 1);
+                printf("IntentStepFailure: %s(%s)\n",
+                    node->data.intent_step.failure_branch.variant_name,
+                    node->data.intent_step.failure_branch.payload_name);
             }
             if (node->data.intent_step.compensate_expr_count > 0) {
                 for (size_t i = 0; i < node->data.intent_step.compensate_expr_count; i++) {

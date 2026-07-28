@@ -1,29 +1,251 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# PLANNED/OPEN gate skeleton. The .todo suffix intentionally keeps this file
-# out of Makefile/aggregate execution. Running it must not report PASS until the
-# typed intent step transition owner and executable fixture exist.
+# PLANNED/OPEN executable typed intent transition contract. The `.todo`
+# suffix and unconditional failure keep this blueprint out of aggregate gates
+# until MIR production, one admission read, and native/self-hosted consumers
+# all exist. A passing frontend-only or documentation-only substitute is
+# forbidden.
+#
+# Once promoted, an action outcome is matched by exact enum variant identity.
+# Only the success successor marks the current step complete. Failure preserves
+# its payload, compensates completed explicit predecessors, and returns the
+# step-labeled typed terminal result.
 
-echo "[self-host-intent-outcome] OPEN: typed outcome/compensation rung is not implemented" >&2
+echo "[self-host-intent-typed-compensation] OPEN: execution producer/admission/consumer are not implemented" >&2
 exit 1
 
-# Required positive matrix once implemented:
-#   1. self source -> self MIR -> admitted general C, direct/admitted C equal
-#   2. self runtime == native C runtime == native LLVM runtime
-#   3. success: A/B payloads consumed, UndoA=0, UndoB=0
-#   4. B failure: exact failure payload consumed, UndoA=1, UndoB=0, state restored
-#
-# Required valid-identity MIR mutations, each rejected before any C artifact:
-#   outcome-binding-definition-or-type-cross-wire
-#     diagnostic: MIR intent step outcome binding is invalid
-#   outcome-variant-or-successor-cross-wire
-#     diagnostic: MIR intent step outcome branch identity is invalid
-#   predecessor-self-future-or-mixed-identity
-#     diagnostic: MIR intent compensation predecessor evidence is invalid
-#   missing-success-completion-with-compensation-present
-#     diagnostic: MIR intent step completion evidence is missing
-#
-# This gate may be renamed to .sh and registered only in the same change that
-# supplies the real owner, fixture, observed positive/parity results, and all
-# fail-closed mutations. A documentation-only PASS is forbidden.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+export PATH
+
+fail() {
+    echo "[self-host-intent-typed-compensation] $*" >&2
+    exit 1
+}
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+PGY="$(pgy_select_optional_exe_binary "$PGY")"
+pgy_require_runnable_binary_here "self-host-intent-typed-compensation" "$PGY" \
+    || fail "PGY_BIN is not runnable"
+
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "python is required"
+CC_BIN="${CC:-gcc}"
+command -v "$CC_BIN" >/dev/null 2>&1 || fail "C compiler is required"
+
+FIXTURE_REL="tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy"
+BUILD_DIR="${PGY_SELFHOST_INTENT_TYPED_COMPENSATION_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_typed_outcome_compensation}"
+DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
+mkdir -p "$BUILD_DIR"
+
+if [[ -n "$DRIVER" ]]; then
+    DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
+    pgy_require_runnable_binary_here "self-host-intent-typed-compensation" "$DRIVER" \
+        || fail "prebuilt driver is not runnable"
+else
+    DRIVER="$BUILD_DIR/driver_rung2.exe"
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER")" \
+        >"$BUILD_DIR/driver.compile.log" 2>&1) \
+        || { tail -c 65536 "$BUILD_DIR/driver.compile.log" >&2; fail "driver build failed"; }
+fi
+
+SELF_MIR="$BUILD_DIR/self.mir.json"
+SELF_FROM_MIR_C="$BUILD_DIR/self.from-mir.c"
+SELF_DIRECT_C="$BUILD_DIR/self.direct.c"
+SELF_EXE="$BUILD_DIR/self.exe"
+NATIVE_C_EXE="$BUILD_DIR/native.c.exe"
+NATIVE_LLVM_EXE="$BUILD_DIR/native.llvm.exe"
+NATIVE_EMITTED_C="$BUILD_DIR/native.emitted.c"
+
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$FIXTURE_REL" \
+    >"$SELF_MIR" 2>"$BUILD_DIR/self.mir.err") \
+    || { cat "$SELF_MIR" "$BUILD_DIR/self.mir.err" >&2; fail "self MIR production failed"; }
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "${SELF_MIR#"$ROOT_DIR/"}" \
+    >"$SELF_FROM_MIR_C" 2>"$BUILD_DIR/self.from-mir.err") \
+    || { cat "$SELF_FROM_MIR_C" "$BUILD_DIR/self.from-mir.err" >&2; fail "admitted MIR C emission failed"; }
+(cd "$ROOT_DIR" && "$DRIVER" "$FIXTURE_REL" --emit-c-verified \
+    >"$SELF_DIRECT_C" 2>"$BUILD_DIR/self.direct.err") \
+    || { cat "$SELF_DIRECT_C" "$BUILD_DIR/self.direct.err" >&2; fail "direct source C emission failed"; }
+cmp -s "$SELF_FROM_MIR_C" "$SELF_DIRECT_C" \
+    || fail "direct source entrypoint bypassed admitted intent transition MIR"
+
+"$PYTHON_BIN" - "$SELF_MIR" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+intent = next(row for row in document["routines"]
+              if row["kind"] == "intent" and row["name"] == "RunWorkflow")
+rows = [instruction for block in intent["blocks"]
+        for instruction in block["instructions"]]
+
+transitions = [row for row in rows
+               if row.get("name") == "IntentStepTransition"]
+terminals = [row for row in rows
+             if row.get("name") == "IntentTerminalTransition"]
+completions = [row for row in rows
+               if row.get("name") == "IntentStepCompletion"]
+assert len(transitions) == 2, transitions
+assert len(terminals) == 3, terminals
+assert len(completions) == 2, completions
+
+by_step = {row["slot_anchor"]: row for row in transitions}
+assert set(by_step) == {"A", "B"}, by_step
+assert by_step["A"].get("predecessor_step") in (None, "")
+assert by_step["B"]["predecessor_step"] == "A"
+for step, row in by_step.items():
+    assert row["success_variant"] == f"Workflow{step}Succeeded"
+    assert row["failure_variant"] == f"Workflow{step}Failed"
+    assert row["success_payload"] == f"receipt_{step.lower()}"
+    assert row["failure_payload"] == f"problem_{step.lower()}"
+PY
+
+"$PYTHON_BIN" - "$SELF_DIRECT_C" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = text.index("WorkflowOutcome RunWorkflow(")
+end = text.index("\n}\n\n", start)
+body = text[start:end]
+for step in (0, 1):
+    mark = f"__intent_step_completed[{step}] = true;"
+    assert body.count(mark) == 1, body
+    success = body.index(f"__intent_step_{step}_success:")
+    completed = body.index(mark)
+    assert success < completed, body
+failure_b = body.index("__intent_step_1_failure:")
+cleanup = body.index("__intent_cleanup:", failure_b)
+assert failure_b < cleanup, body
+assert "WorkflowActor_UndoB" not in body[cleanup:body.index("WorkflowActor_UndoA", cleanup)]
+PY
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
+    "$SELF_DIRECT_C" -o "$SELF_EXE"
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c -o "$NATIVE_C_EXE" \
+    >"$BUILD_DIR/native.c.compile.log" 2>&1) \
+    || { cat "$BUILD_DIR/native.c.compile.log" >&2; fail "native C compile failed"; }
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c --emit-c \
+    -o "$(pgy_path_for_compiler "$PGY" "$NATIVE_EMITTED_C")" \
+    >"$BUILD_DIR/native.c.emit.log" 2>&1) \
+    || { cat "$BUILD_DIR/native.c.emit.log" >&2; fail "native C emission failed"; }
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=llvm -o "$NATIVE_LLVM_EXE" \
+    >"$BUILD_DIR/native.llvm.compile.log" 2>&1) \
+    || { cat "$BUILD_DIR/native.llvm.compile.log" >&2; fail "native LLVM compile failed"; }
+
+"$PYTHON_BIN" - "$NATIVE_EMITTED_C" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = text.rindex("void Observe(")
+end = text.index("\n}\n\n", start)
+body = text[start:end]
+for variant in ("WorkflowCommitted", "WorkflowFailedA", "WorkflowFailedB"):
+    tag = f".tag == WorkflowOutcome_TAG_{variant}"
+    payload = f".{variant}._0"
+    assert body.count(tag) == 1, (variant, body)
+    assert body.count(payload) == 1, (variant, body)
+    assert body.index(tag) < body.index(payload), (variant, body)
+PY
+
+"$SELF_EXE" | tr -d '\r' >"$BUILD_DIR/self.run"
+"$NATIVE_C_EXE" | tr -d '\r' >"$BUILD_DIR/native.c.run"
+"$NATIVE_LLVM_EXE" | tr -d '\r' >"$BUILD_DIR/native.llvm.run"
+printf '%s\n' \
+    'success.kind=committed' \
+    'success.payload=20' \
+    'success.state=20' \
+    'success.a_calls=1' \
+    'success.b_calls=1' \
+    'success.undo_a=0' \
+    'success.undo_b=0' \
+    'first_failure.kind=failed-a' \
+    'first_failure.payload=101' \
+    'first_failure.state=0' \
+    'first_failure.a_calls=1' \
+    'first_failure.b_calls=0' \
+    'first_failure.undo_a=0' \
+    'first_failure.undo_b=0' \
+    'second_failure.kind=failed-b' \
+    'second_failure.payload=202' \
+    'second_failure.state=0' \
+    'second_failure.a_calls=1' \
+    'second_failure.b_calls=1' \
+    'second_failure.undo_a=1' \
+    'second_failure.undo_b=0' >"$BUILD_DIR/expected.run"
+cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/self.run" \
+    || { cat "$BUILD_DIR/self.run" >&2; fail "self runtime output drifted"; }
+cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.c.run" \
+    || fail "self/native C typed compensation execution differs"
+cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.llvm.run" \
+    || fail "self/native LLVM typed compensation execution differs"
+
+"$PYTHON_BIN" - "$SELF_MIR" "$BUILD_DIR" <<'PY'
+import copy
+import json
+from pathlib import Path
+import sys
+
+base = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+
+def rows(document):
+    intent = next(row for row in document["routines"]
+                  if row["kind"] == "intent" and row["name"] == "RunWorkflow")
+    return [instruction for block in intent["blocks"]
+            for instruction in block["instructions"]]
+
+def one(document, name, slot):
+    matches = [row for row in rows(document)
+               if row.get("name") == name and row.get("slot_anchor") == slot]
+    assert len(matches) == 1, (name, slot, matches)
+    return matches[0]
+
+mutations = {}
+
+document = copy.deepcopy(base)
+one(document, "IntentStepTransition", "B")["predecessor_step"] = "B"
+mutations["predecessor-self"] = document
+
+document = copy.deepcopy(base)
+one(document, "IntentStepTransition", "A")["success_variant"] = "WorkflowAFailed"
+mutations["success-variant"] = document
+
+document = copy.deepcopy(base)
+one(document, "IntentStepTransition", "B")["failure_payload"] = "problem_a"
+mutations["failure-payload"] = document
+
+document = copy.deepcopy(base)
+target = one(document, "IntentStepCompletion", "B")
+for block in next(row for row in document["routines"]
+                  if row["kind"] == "intent" and row["name"] == "RunWorkflow")["blocks"]:
+    if target in block["instructions"]:
+        block["instructions"].remove(target)
+        break
+mutations["missing-completion"] = document
+
+for name, document in mutations.items():
+    (Path(sys.argv[2]) / f"negative-{name}.mir.json").write_text(
+        json.dumps(document, separators=(",", ":")), encoding="utf-8"
+    )
+PY
+
+for negative in "$BUILD_DIR"/negative-*.mir.json; do
+    name="$(basename "$negative" .mir.json)"
+    if (cd "$ROOT_DIR" && "$DRIVER" --mir-json \
+        "${negative#"$ROOT_DIR/"}" >"$negative.out" 2>"$negative.err"); then
+        fail "$name was accepted"
+    fi
+    if grep -Eq '^#include|^typedef|WorkflowOutcome RunWorkflow\(' \
+        "$negative.out" "$negative.err"; then
+        fail "$name emitted a partial C artifact before rejection"
+    fi
+done
+
+echo "[self-host-intent-typed-compensation] typed payload + success-only completion + predecessor compensation parity: PASS"

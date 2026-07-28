@@ -173,7 +173,11 @@ type_check_intent_update_existing_signature(ASTNode *intent,
         }
     }
 
-    function_type = type_create_function(param_types, param_count, TYPE_BOOL);
+    Type *intent_result = ast_intent_decl_has_typed_result(intent)
+        ? intent_resolve_type_ref(ast_intent_decl_return_type(intent), ctx)
+        : TYPE_BOOL;
+    function_type = type_create_function(param_types, param_count,
+                                         intent_result);
     free(param_types);
     if (function_type != NULL)
         existing->type = function_type;

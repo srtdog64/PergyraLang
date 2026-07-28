@@ -22,6 +22,8 @@ struct SemanticAstIntentSignatureFacts {
     artifact_node_count: Int;
     intent_node_ids: Array<Int>;
     names: Array<String>;
+    result_modes: Array<String>;
+    return_type_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_node_ids: Array<Int>;
@@ -66,6 +68,8 @@ func SemanticAstIntentSignatureFactsFromArtifact(
 ) -> SemanticAstIntentSignatureFacts {
     let intent_node_ids: Array<Int> = [];
     let names: Array<String> = [];
+    let result_modes: Array<String> = [];
+    let return_type_names: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
     let param_node_ids: Array<Int> = [];
@@ -116,6 +120,9 @@ func SemanticAstIntentSignatureFactsFromArtifact(
             continue;
         }
         let param_start: Int = ArrayLength(param_node_ids);
+        let result_mode: String = "legacy_bool";
+        let return_type_name: String = "Bool";
+        let return_seen: Bool = false;
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, node_id, child_index
@@ -125,6 +132,28 @@ func SemanticAstIntentSignatureFactsFromArtifact(
             let provenance: Option<String> = TypedAstArenaProvenanceText(
                 artifact.arena, child_id
             );
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindIntentReturnsTag()
+            ) {
+                let result_atom: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, child_id
+                );
+                if return_seen || !IsSome(result_atom) ||
+                    UnwrapOption(result_atom) == "" {
+                    ok = false;
+                    diagnostic_code = "intent_signature_invalid";
+                    diagnostic_message = SemanticError1(
+                        "intent_signature_invalid", "missing_fact",
+                        "intent_return_type"
+                    );
+                } else {
+                    return_seen = true;
+                    result_mode = "typed_enum";
+                    return_type_name = SemanticCanonicalTypeName(
+                        UnwrapOption(result_atom)
+                    );
+                }
+            }
             if IsSome(provenance) &&
                 (StartsWith(UnwrapOption(provenance), "IntentInvolves: ") ||
                  StartsWith(UnwrapOption(provenance), "IntentValue: ")) {
@@ -166,20 +195,23 @@ func SemanticAstIntentSignatureFactsFromArtifact(
         if !ok { continue; }
         ArrayPush(intent_node_ids, node_id);
         ArrayPush(names, UnwrapOption(name));
+        ArrayPush(result_modes, result_mode);
+        ArrayPush(return_type_names, return_type_name);
         ArrayPush(param_starts, param_start);
         ArrayPush(param_counts, ArrayLength(param_node_ids) - param_start);
         node_id = node_id + 1;
     }
     return SemanticAstIntentSignatureFacts(
         ok, diagnostic_code, diagnostic_message, artifact.count,
-        intent_node_ids, names, param_starts, param_counts,
+        intent_node_ids, names, result_modes, return_type_names,
+        param_starts, param_counts,
         param_node_ids, param_is_values, param_names, param_types
     );
 }
 
 func SemanticAstIntentSignatureFactsReady(
     artifact: AstTreeArtifact,
-    facts: SemanticAstIntentSignatureFacts
+    ref facts: SemanticAstIntentSignatureFacts
 ) -> Bool {
     let count: Int = ArrayLength(facts.intent_node_ids);
     let param_count: Int = ArrayLength(facts.param_node_ids);
@@ -187,6 +219,8 @@ func SemanticAstIntentSignatureFactsReady(
         facts.diagnostic_code != "" || facts.diagnostic_message != "" ||
         facts.artifact_node_count != artifact.count ||
         ArrayLength(facts.names) != count ||
+        ArrayLength(facts.result_modes) != count ||
+        ArrayLength(facts.return_type_names) != count ||
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count ||
         ArrayLength(facts.param_is_values) != param_count ||
@@ -206,6 +240,9 @@ func SemanticAstIntentSignatureFactsReady(
         }
         if fact_index >= count || facts.intent_node_ids[fact_index] != node_id ||
             facts.names[fact_index] == "" ||
+            (facts.result_modes[fact_index] != "legacy_bool" &&
+             facts.result_modes[fact_index] != "typed_enum") ||
+            facts.return_type_names[fact_index] == "" ||
             facts.param_starts[fact_index] != expected_start ||
             facts.param_counts[fact_index] < 0 ||
             expected_start + facts.param_counts[fact_index] > param_count {

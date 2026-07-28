@@ -82,6 +82,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations,
   singleton guard/post/expect admission, ordered compensation rows, and their
   parser-owned expression graphs.
+- `src/self_hosted/parser/intent_variant_binding_owner.pgy` -- exact
+  one-payload variant-pattern syntax for typed intent step transitions.
+- `src/self_hosted/parser/intent_terminal_clause_owner.pgy` -- exact legacy or
+  step-labelled terminal intent expression clause parsing.
 - `src/self_hosted/parser/decl_nominal_owner.pgy` -- class/subject/object/tobject/vessel declarations.
 - `src/self_hosted/parser/decl_role_owner.pgy` -- role declarations.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
@@ -379,6 +383,13 @@ inventory must not become a second fact-family owner registry.
   parser-artifact projection of intent declaration identity and ordered
   `involves`/`value` parameter facts used to admit intent calls without
   pretending that an intent is a function or action declaration.
+- `src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy` -- exact
+  enum-scoped step variant, explicit predecessor, and labelled terminal
+  payload identity for typed intents; spelling-only and source-order fallback
+  are forbidden.
+- `src/self_hosted/semantic/ast_intent_transition_row_owner.pgy` -- canonical
+  typed-intent row parsing and enum-node/local-index variant seals consumed by
+  the transition fact owner.
 - `src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy` --
   intent-body expression environment dispatcher; it identifies the owning
   intent step and composes parameter plus step-local outcome facts.
@@ -389,8 +400,8 @@ inventory must not become a second fact-family owner registry.
   participant receiver to subject-action signature and return-type join for one
   intent `on` expression.
 - `src/self_hosted/semantic/ast_intent_outcome_environment_owner.pgy` --
-  step-local outcome name and exact action return type exposed only to
-  `expect`, `post`, and compensation expressions in the same intent step.
+  step-local outcome plus explicit-predecessor and terminal payload bindings
+  exposed only at their typed intent expression boundaries.
 - `src/self_hosted/semantic/ast_body_expression_environment_owner.pgy` -- one
   body environment dispatcher that seeds either ordinary callable scope facts
   or exact intent participant facts before call-target resolution.
@@ -648,6 +659,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
   receiver, authorization, effects, phase/rollback, and commit boundaries.
+- `src/self_hosted/mir/intent_execution_fact_owner.pgy` -- target-neutral
+  `mir.intent_step_transition` and `mir.intent_terminal_transition` execution
+  facts: exact enum/payload identities, explicit predecessor handles,
+  success-only completion, compensation action/graph seals, terminal result
+  construction, and an admission digest.  It does not infer branch roles from
+  variant spelling or predecessor identity from row position.
 - `src/self_hosted/mir/intent_instruction_append_owner.pgy` -- canonical
   intent instruction append plus atomic result, slot-anchor, and ABI type-name
   scalar attachment; callers cannot leave a partially-carried outcome row.
@@ -1629,7 +1646,7 @@ inventory must not become a second fact-family owner registry.
 
 - `src/self_hosted/lsp/main.pgy` -- LSP-0 runnable artifact boundary.
 - `src/self_hosted/lsp/completion_owner.pgy` -- registry-directed LSP completion
-  projection over all 145 language-word identities; exposure remains owned by
+  projection over all 146 language-word identities; exposure remains owned by
   the language keyword registry flags.
 - `src/self_hosted/lsp/diagnostics_owner.pgy` -- semantic diagnostic block to
   `publishDiagnostics` JSON payload projection.

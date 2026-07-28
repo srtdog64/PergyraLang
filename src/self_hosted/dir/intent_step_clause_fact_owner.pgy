@@ -171,6 +171,13 @@ func SelfDirIntentStepClauseFactsFromArtifact(
                 );
             }
             ArrayPush(compensate_node_ids, row_id);
+        } else if kind == TypedAstKindIntentStepSuccessTag() ||
+            kind == TypedAstKindIntentStepFailureTag() {
+            if payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step transition row is invalid"
+                );
+            }
         } else {
             return SelfDirIntentStepClauseFactsError(
                 "self-host DIR intent step row kind is unsupported"

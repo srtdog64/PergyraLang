@@ -126,13 +126,33 @@ typedef struct
 
 typedef struct
 {
+    const char *variant_name;
+    size_t      variant_index;
+    const char *payload_name;
+    const char *payload_type_name;
+    const char *enum_type_name;
+    uint32_t    enum_decl_syntax_id;
+} DIRIntentOutcomeBranch;
+
+typedef struct
+{
+    const char *step_name;
+    size_t      step_index;
+    uint32_t    step_syntax_id;
+    ASTNode    *expr;
+} DIRIntentTerminal;
+
+typedef struct
+{
     size_t      index;
     const char *name;
+    uint32_t    syntax_id;
     const char *where_type_name;
     size_t      where_type_node_id;
     const char *using_alias;
     const char *predecessor_step_name;
     size_t      predecessor_step_index;
+    uint32_t    predecessor_step_syntax_id;
     const char *transfer_from_alias;
     const char *transfer_to_alias;
     bool        who_inherited_from_intent;
@@ -165,6 +185,8 @@ typedef struct
     const char *outcome_binding_name;
     const char *outcome_binding_type_name;
     uint32_t    outcome_action_decl_syntax_id;
+    DIRIntentOutcomeBranch success_branch;
+    DIRIntentOutcomeBranch failure_branch;
     size_t      on_expr_count;
     ASTNode    *ast;
 } DIRIntentStep;
@@ -172,12 +194,17 @@ typedef struct
 typedef struct
 {
     size_t                 node_id;
+    bool                   has_typed_result;
+    const char            *return_type_name;
     DIRIntentParticipant  *participants;
     size_t                 participant_count;
     size_t                 participant_capacity;
     DIRIntentStep         *steps;
     size_t                 step_count;
     size_t                 step_capacity;
+    DIRIntentTerminal      success_terminal;
+    DIRIntentTerminal     *failure_terminals;
+    size_t                 failure_terminal_count;
 } DIRIntentInfo;
 
 struct DIRProgram

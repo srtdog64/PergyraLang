@@ -73,6 +73,13 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
     }
 
     semantic_type_resolution_collect_type_refs(
+        ast_intent_decl_return_type(intent_decl),
+        ctx,
+        intent_decl,
+        intent_name != NULL ? intent_name : "<intent>",
+        "intent return-type lookup");
+
+    semantic_type_resolution_collect_type_refs(
         ast_intent_decl_default_where_type(intent_decl),
         ctx,
         intent_decl,

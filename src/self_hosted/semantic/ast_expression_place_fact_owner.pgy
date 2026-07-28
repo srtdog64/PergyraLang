@@ -181,6 +181,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                 } else if environment_ok && IsSome(intent_node_id) {
                     environment_ok = SemanticAstIntentExpressionSeedEnvironment(
                         artifact, analysis.signatures, intent_signatures,
+                        analysis.intent_transitions,
                         UnwrapOption(intent_node_id), use_node_id,
                         names, types, modes
                     );

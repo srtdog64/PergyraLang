@@ -2,6 +2,45 @@
 
 마지막 업데이트: 2026-07-29
 
+## 2026-07-29 typed intent transition frontend + tobject boundary audit checkpoint
+
+- `tobject`의 현재 핵심 방향은 맞다. action 경계를 넘는 immutable detached
+  receipt/problem payload이며, step identity, predecessor, completion, compensation,
+  authority, topology 또는 projection freshness를 소유하지 않는다. 새 native
+  compiler로 `action_tobject_outcome_probe.pgy`를 C와 LLVM에서 실행해 두 backend
+  모두 `ok=7`, `error=9`를 관측했고, `tobject_boundary_execution_owner.sh`도
+  detached publication, constructor-input 차단, projection-source 재사용 차단,
+  self MIR admission을 포함해 PASS했다.
+- Typed intent frontend는 `intent ... -> Outcome`, `step B after A`, step-local
+  success/failure variant payload, labeled success/failure terminal을 native AST/DIR와
+  self parser/semantic/DIR까지 lossless하게 운반한다. `after`는 146-row language
+  keyword registry에서 파생되며 lexer/self/LSP/VS Code projection gate가 PASS했다.
+- `mir.intent_step_transition`과 `mir.intent_terminal_transition`의 self in-memory
+  fact owner 및 mutation gate가 착지했다. 이 fact는 exact enum/variant/payload,
+  explicit predecessor, success-only completion, compensation identity와 terminal
+  coverage를 묶는다. 현재 증거 등급은 `REACHABLE` supporting fact이며
+  `SUBSTITUTING`이 아니다.
+- 실제 실행 frontier는 아직 OPEN이다. Native MIR JSON에는
+  `intent_step_transition`, `intent_terminal_transition`, `depends-on` row가 0개이며,
+  intent routine return signature도 아직 없다. HIR CFG는 outcome tag success/failure
+  successor를 만들지 않고 native C emitter는 `RunWorkflow`를 `Bool`로 고정한다.
+  따라서 다단계 fixture의 native C compile은 `_Bool` 대 `WorkflowOutcome` 불일치와
+  branch payload `receipt_a` 미정의로 fail한다. Codegen이 AST를 다시 읽어 이를
+  복원하는 우회는 금지한다.
+- 다음 executable rung의 순서는 intent MIR routine return signature -> typed
+  transition producer/JSON projection -> one admission read -> outcome-tag HIR CFG ->
+  C/LLVM consumer -> success/failure A/B runtime parity와 malformed-MIR negative다.
+- Canonical contract와 현재 implementation 사이의 별도 tobject debt도 남아 있다.
+  Semantic은 아직 tobject 안의 passive `func`를 허용하고, immutable field-write
+  검사는 단순 member target 중심이라 bare/nested/indexed mutation을 모두 닫았다고
+  주장할 수 없다. 이 debt는 typed intent control-flow owner를 tobject에 떠넘기지
+  않고 별도 fail-closed semantic closure에서 해결한다.
+- 관측 gate: full LLVM-enabled native compiler build PASS, complete parser test PASS,
+  typed frontend PASS, typed transition fact negatives PASS, existing single-step
+  enum<tobject> self/native C/LLVM gate PASS, object/action boundary PASS, self-host
+  component contract PASS. 이번 순차 gate 실행에서도 20 GiB 재검증 회귀는
+  관측되지 않았다.
+
 ## 2026-07-29 intent predicate와 ordered compensation 실행 checkpoint
 
 - 직전 fail-closed 경계가 실제 실행 경계로 대체됐다. Parser는 step별

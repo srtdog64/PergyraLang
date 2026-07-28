@@ -110,9 +110,19 @@ ast_destroy_domain_node(ASTNode* node) {
             for (size_t i = 0; i < node->data.intent_decl.step_count; i++)
                 ast_destroy(node->data.intent_decl.steps[i]);
             free(node->data.intent_decl.steps);
+            ast_destroy(node->data.intent_decl.return_type);
             ast_destroy(node->data.intent_decl.priority_expr);
             ast_destroy(node->data.intent_decl.success_expr);
             ast_destroy(node->data.intent_decl.failure_expr);
+            free(node->data.intent_decl.success_terminal.step_name);
+            ast_destroy(node->data.intent_decl.success_terminal.expr);
+            for (size_t i = 0;
+                 i < node->data.intent_decl.failure_terminal_count;
+                 i++) {
+                free(node->data.intent_decl.failure_terminals[i].step_name);
+                ast_destroy(node->data.intent_decl.failure_terminals[i].expr);
+            }
+            free(node->data.intent_decl.failure_terminals);
             ast_destroy_structured_comment(node->data.intent_decl.doc_comment);
             for (size_t i = 0; i < node->data.intent_decl.default_who_count; i++)
                 free(node->data.intent_decl.default_who_names[i]);
@@ -131,6 +141,7 @@ ast_destroy_domain_node(ASTNode* node) {
 
         case AST_INTENT_STEP:
             free(node->data.intent_step.name);
+            free(node->data.intent_step.predecessor_step_name);
             ast_destroy(node->data.intent_step.where_type);
             ast_destroy(node->data.intent_step.using_expr);
             ast_destroy(node->data.intent_step.intent_expr);
@@ -144,6 +155,14 @@ ast_destroy_domain_node(ASTNode* node) {
             free(node->data.intent_step.on_exprs);
             free(node->data.intent_step.outcome_binding_name);
             free(node->data.intent_step.outcome_binding_type_name);
+            free(node->data.intent_step.success_branch.variant_name);
+            free(node->data.intent_step.success_branch.payload_name);
+            free(node->data.intent_step.success_branch.enum_type_name);
+            free(node->data.intent_step.success_branch.payload_type_name);
+            free(node->data.intent_step.failure_branch.variant_name);
+            free(node->data.intent_step.failure_branch.payload_name);
+            free(node->data.intent_step.failure_branch.enum_type_name);
+            free(node->data.intent_step.failure_branch.payload_type_name);
             for (size_t i = 0; i < node->data.intent_step.compensate_expr_count; i++)
                 ast_destroy(node->data.intent_step.compensate_exprs[i]);
             free(node->data.intent_step.compensate_exprs);

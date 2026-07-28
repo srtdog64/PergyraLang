@@ -48,6 +48,7 @@ func SemanticAstBodyExpressionEnvironmentSeed(
             analysis.enums, names, types, modes
         ) && SemanticAstIntentExpressionSeedEnvironment(
             artifact, analysis.signatures, intent_signatures,
+            analysis.intent_transitions,
             UnwrapOption(intent_node_id), use_node_id, names, types, modes
         );
     }

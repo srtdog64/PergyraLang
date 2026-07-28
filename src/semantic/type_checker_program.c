@@ -387,7 +387,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         ptypes[j] = TYPE_UNKNOWN;
                     }
                 }
-                Type *ft = type_create_function(ptypes, ipc, TYPE_BOOL);
+                Type *intent_result = ast_intent_decl_has_typed_result(stmt)
+                    ? program_lookup_dag_type_ref_or_unknown(
+                        ast_intent_decl_return_type(stmt), ctx)
+                    : TYPE_BOOL;
+                Type *ft = type_create_function(ptypes, ipc, intent_result);
                 if (ft == NULL) {
                     free(ptypes);
                     return program_report_resolution_oom(ctx, stmt,

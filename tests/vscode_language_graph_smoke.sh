@@ -136,8 +136,8 @@ for row_index, body in enumerate(macro_bodies(registry_source), start=1):
         fail(f"registry row {row_index} has invalid spelling {fields[0]!r}")
     registry_rows.append((spelling_match.group(1), fields[7], fields[8]))
 
-if len(registry_rows) != 145:
-    fail(f"registry closure is incomplete: {len(registry_rows)} rows, expected 145")
+if len(registry_rows) != 146:
+    fail(f"registry closure is incomplete: {len(registry_rows)} rows, expected 146")
 registry_spellings = [spelling for spelling, _, _ in registry_rows]
 if len(registry_spellings) != len(set(registry_spellings)):
     duplicates = sorted(

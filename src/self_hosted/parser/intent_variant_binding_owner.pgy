@@ -1,0 +1,41 @@
+// Exact one-payload variant pattern used by typed intent step transitions.
+
+import "cursor_owner.pgy";
+
+struct ParserIntentVariantBinding {
+    ok: Bool;
+    variant_name: String;
+    payload_name: String;
+    text: String;
+}
+
+func ParserIntentVariantBindingInvalid() -> ParserIntentVariantBinding {
+    return ParserIntentVariantBinding(false, "", "", "");
+}
+
+func ParseIntentVariantBinding(
+    content: String, start: Int, inout cursor_out: Array<Int>
+) -> ParserIntentVariantBinding {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    ArraySet(cursor_out, 0, i);
+    let variant_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if variant_name == "" { return ParserIntentVariantBindingInvalid(); }
+    i = Expect(content, i, "(");
+    if i < 0 { return ParserIntentVariantBindingInvalid(); }
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let payload_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if payload_name == "" { return ParserIntentVariantBindingInvalid(); }
+    i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) != ")" {
+        return ParserIntentVariantBindingInvalid();
+    }
+    i = i + 1;
+    ArraySet(cursor_out, 0, i);
+    return ParserIntentVariantBinding(
+        true, variant_name, payload_name,
+        Concat(variant_name, Concat("(", Concat(payload_name, ")")))
+    );
+}

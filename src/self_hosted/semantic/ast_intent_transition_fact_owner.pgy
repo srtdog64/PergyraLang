@@ -1,0 +1,576 @@
+// Exact typed-intent step and terminal transition facts.
+// Variant identity is always scoped by the declaring enum node and local index.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "ast_intent_action_call_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
+import "ast_intent_transition_row_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+
+struct SemanticAstIntentTransitionFacts {
+    ok: Bool;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    intent_starts: Array<Int>;
+    intent_counts: Array<Int>;
+    step_requireds: Array<Bool>;
+    step_node_ids: Array<Int>;
+    step_names: Array<String>;
+    predecessor_names: Array<String>;
+    predecessor_step_node_ids: Array<Int>;
+    predecessor_step_indices: Array<Int>;
+    outcome_enum_names: Array<String>;
+    outcome_enum_node_ids: Array<Int>;
+    success_pattern_node_ids: Array<Int>;
+    success_variant_names: Array<String>;
+    success_variant_indices: Array<Int>;
+    success_payload_names: Array<String>;
+    success_payload_type_names: Array<String>;
+    failure_pattern_node_ids: Array<Int>;
+    failure_variant_names: Array<String>;
+    failure_variant_indices: Array<Int>;
+    failure_payload_names: Array<String>;
+    failure_payload_type_names: Array<String>;
+    terminal_starts: Array<Int>;
+    terminal_counts: Array<Int>;
+    terminal_roles: Array<String>;
+    terminal_expression_node_ids: Array<Int>;
+    terminal_source_step_names: Array<String>;
+    terminal_source_step_node_ids: Array<Int>;
+    terminal_source_step_indices: Array<Int>;
+    terminal_result_enum_names: Array<String>;
+    terminal_result_enum_node_ids: Array<Int>;
+    terminal_variant_names: Array<String>;
+    terminal_variant_indices: Array<Int>;
+    terminal_payload_source_names: Array<String>;
+    terminal_payload_type_names: Array<String>;
+}
+
+func SemanticAstIntentTransitionFactsBase(
+    ok: Bool, message: String, artifact_node_count: Int
+) -> SemanticAstIntentTransitionFacts {
+    let ints: Array<Int> = [];
+    let bools: Array<Bool> = [];
+    let strings: Array<String> = [];
+    return SemanticAstIntentTransitionFacts(
+        ok, message, artifact_node_count, ints, ints, bools,
+        ints, strings, strings, ints, ints, strings, ints, ints, strings,
+        ints, strings, strings, ints, strings, ints, strings, strings,
+        ints, ints, strings, ints, strings, ints, ints, strings, ints,
+        strings, ints, strings, strings
+    );
+}
+
+func SemanticAstIntentTransitionFactsEmpty(
+    artifact_node_count: Int
+) -> SemanticAstIntentTransitionFacts {
+    return SemanticAstIntentTransitionFactsBase(
+        true, "", artifact_node_count
+    );
+}
+
+func SemanticAstIntentTransitionFactsError(
+    message: String, artifact_node_count: Int
+) -> SemanticAstIntentTransitionFacts {
+    return SemanticAstIntentTransitionFactsBase(
+        false, message, artifact_node_count
+    );
+}
+
+func SemanticAstIntentTransitionFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref intent_signatures: SemanticAstIntentSignatureFacts
+) -> SemanticAstIntentTransitionFacts {
+    let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    if !AstTreeArtifactReady(artifact) || !signatures.ok ||
+        !SemanticAstEnumRowsReady(enums) ||
+        !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) {
+        return SemanticAstIntentTransitionFactsError(
+            "typed intent transition inputs are incomplete", artifact.count
+        );
+    }
+    let intent_starts: Array<Int> = [];
+    let intent_counts: Array<Int> = [];
+    let requireds: Array<Bool> = [];
+    let node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let predecessor_names: Array<String> = [];
+    let predecessor_node_ids: Array<Int> = [];
+    let predecessor_indices: Array<Int> = [];
+    let outcome_enum_names: Array<String> = [];
+    let outcome_enum_node_ids: Array<Int> = [];
+    let success_node_ids: Array<Int> = [];
+    let success_variant_names: Array<String> = [];
+    let success_variant_indices: Array<Int> = [];
+    let success_payload_names: Array<String> = [];
+    let success_payload_types: Array<String> = [];
+    let failure_node_ids: Array<Int> = [];
+    let failure_variant_names: Array<String> = [];
+    let failure_variant_indices: Array<Int> = [];
+    let failure_payload_names: Array<String> = [];
+    let failure_payload_types: Array<String> = [];
+    let terminal_starts: Array<Int> = [];
+    let terminal_counts: Array<Int> = [];
+    let terminal_roles: Array<String> = [];
+    let terminal_node_ids: Array<Int> = [];
+    let terminal_step_names: Array<String> = [];
+    let terminal_step_node_ids: Array<Int> = [];
+    let terminal_step_indices: Array<Int> = [];
+    let terminal_enum_names: Array<String> = [];
+    let terminal_enum_node_ids: Array<Int> = [];
+    let terminal_variant_names: Array<String> = [];
+    let terminal_variant_indices: Array<Int> = [];
+    let terminal_payload_names: Array<String> = [];
+    let terminal_payload_types: Array<String> = [];
+
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intent_signatures) {
+        let intent_node_id: Int = intent_signatures.intent_node_ids[intent_index];
+        let step_start: Int = ArrayLength(node_ids);
+        let terminal_start: Int = ArrayLength(terminal_node_ids);
+        let typed: Bool = intent_signatures.result_modes[intent_index] ==
+            "typed_enum";
+        let result_enum_name: String =
+            intent_signatures.return_type_names[intent_index];
+        let result_enum_index: Option<Int> = SemanticAstEnumIndexForName(
+            enums, result_enum_name
+        );
+        if typed && !IsSome(result_enum_index) {
+            return SemanticAstIntentTransitionFactsError(
+                "typed intent return enum is unresolved", artifact.count
+            );
+        }
+
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, intent_node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindIntentStepTag()
+            ) {
+                let atom: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, child_id
+                );
+                if !IsSome(atom) {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent step identity is missing", artifact.count
+                    );
+                }
+                let header: SemanticAstIntentStepHeaderRow =
+                    SemanticAstIntentStepHeaderFromText(UnwrapOption(atom));
+                if !header.ok {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent step header is invalid", artifact.count
+                    );
+                }
+                let prior_name: Int = step_start;
+                while prior_name < ArrayLength(names) {
+                    if names[prior_name] == header.name {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent step name is duplicated", artifact.count
+                        );
+                    }
+                    prior_name = prior_name + 1;
+                }
+                ArrayPush(node_ids, child_id);
+                ArrayPush(names, header.name);
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, intent_node_id, child_index
+            );
+        }
+        let step_count: Int = ArrayLength(node_ids) - step_start;
+
+        let local_step: Int = 0;
+        while local_step < step_count {
+            let step_row: Int = step_start + local_step;
+            let step_node_id: Int = node_ids[step_row];
+            let atom: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, step_node_id
+            );
+            let header: SemanticAstIntentStepHeaderRow =
+                SemanticAstIntentStepHeaderFromText(UnwrapOption(atom));
+            let predecessor_index: Int = -1;
+            let predecessor_node_id: Int = -1;
+            if header.predecessor_name != "" {
+                let p: Int = 0;
+                while p < local_step {
+                    if names[step_start + p] == header.predecessor_name {
+                        if predecessor_index >= 0 {
+                            return SemanticAstIntentTransitionFactsError(
+                                "typed intent predecessor identity is ambiguous",
+                                artifact.count
+                            );
+                        }
+                        predecessor_index = p;
+                        predecessor_node_id = node_ids[step_start + p];
+                    }
+                    p = p + 1;
+                }
+            }
+            if typed && ((local_step == 0 && header.predecessor_name != "") ||
+                (local_step > 0 && (header.predecessor_name == "" ||
+                 predecessor_index < 0))) {
+                return SemanticAstIntentTransitionFactsError(
+                    "typed intent predecessor evidence is invalid", artifact.count
+                );
+            }
+            if !typed && header.predecessor_name != "" {
+                return SemanticAstIntentTransitionFactsError(
+                    "legacy intent cannot carry typed predecessor evidence",
+                    artifact.count
+                );
+            }
+
+            let outcome_name: String = "";
+            let on_text: String = "";
+            let success_node_id: Int = -1;
+            let failure_node_id: Int = -1;
+            let success_binding: SemanticAstIntentVariantBindingRow =
+                SemanticAstIntentVariantBindingRow(false, "", "");
+            let failure_binding: SemanticAstIntentVariantBindingRow =
+                SemanticAstIntentVariantBindingRow(false, "", "");
+            let step_child_index: Int = 0;
+            let step_child: Option<Int> = TypedAstArenaChildAt(
+                artifact.arena, step_node_id, step_child_index
+            );
+            while IsSome(step_child) {
+                let row_node_id: Int = UnwrapOption(step_child);
+                let row_atom: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, row_node_id
+                );
+                if TypedAstArenaNodeKindIs(
+                    artifact.arena, row_node_id,
+                    TypedAstKindIntentStepOutcomeTag()
+                ) {
+                    if outcome_name != "" || !IsSome(row_atom) {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent outcome binding is duplicated",
+                            artifact.count
+                        );
+                    }
+                    outcome_name = UnwrapOption(row_atom);
+                } else if TypedAstArenaNodeKindIs(
+                    artifact.arena, row_node_id, TypedAstKindIntentStepOnTag()
+                ) {
+                    if on_text != "" || !IsSome(row_atom) {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent action expression is duplicated",
+                            artifact.count
+                        );
+                    }
+                    on_text = UnwrapOption(row_atom);
+                } else if TypedAstArenaNodeKindIs(
+                    artifact.arena, row_node_id,
+                    TypedAstKindIntentStepSuccessTag()
+                ) {
+                    if success_node_id >= 0 || !IsSome(row_atom) {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent success pattern is duplicated",
+                            artifact.count
+                        );
+                    }
+                    success_node_id = row_node_id;
+                    success_binding = SemanticAstIntentVariantBindingFromText(
+                        UnwrapOption(row_atom)
+                    );
+                } else if TypedAstArenaNodeKindIs(
+                    artifact.arena, row_node_id,
+                    TypedAstKindIntentStepFailureTag()
+                ) {
+                    if failure_node_id >= 0 || !IsSome(row_atom) {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent failure pattern is duplicated",
+                            artifact.count
+                        );
+                    }
+                    failure_node_id = row_node_id;
+                    failure_binding = SemanticAstIntentVariantBindingFromText(
+                        UnwrapOption(row_atom)
+                    );
+                }
+                step_child_index = step_child_index + 1;
+                step_child = TypedAstArenaChildAt(
+                    artifact.arena, step_node_id, step_child_index
+                );
+            }
+            if typed && (outcome_name == "" || on_text == "" ||
+                !success_binding.ok || !failure_binding.ok) {
+                return SemanticAstIntentTransitionFactsError(
+                    "typed intent step transition is incomplete", artifact.count
+                );
+            }
+            let outcome_enum_name: String = "";
+            let outcome_enum_node_id: Int = -1;
+            let success_seal: SemanticAstIntentVariantSeal =
+                SemanticAstIntentVariantSeal(false, -1, -1, "");
+            let failure_seal: SemanticAstIntentVariantSeal =
+                SemanticAstIntentVariantSeal(false, -1, -1, "");
+            if typed {
+                let call: SemanticAstIntentActionCallFact =
+                    SemanticAstIntentActionCallFromText(
+                        signatures, intent_signatures.param_names,
+                        intent_signatures.param_types,
+                        intent_signatures.param_is_values,
+                        intent_signatures.param_starts[intent_index],
+                        intent_signatures.param_counts[intent_index], on_text
+                    );
+                if !call.ok {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent action contract is unresolved", artifact.count
+                    );
+                }
+                outcome_enum_name = call.return_type_name;
+                success_seal = SemanticAstIntentExactVariantSeal(
+                    enums, outcome_enum_name, success_binding.variant_name
+                );
+                failure_seal = SemanticAstIntentExactVariantSeal(
+                    enums, outcome_enum_name, failure_binding.variant_name
+                );
+                if !success_seal.ok || !failure_seal.ok ||
+                    success_seal.enum_node_id != failure_seal.enum_node_id ||
+                    success_seal.variant_index == failure_seal.variant_index {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent outcome variant identity is invalid",
+                        artifact.count
+                    );
+                }
+                outcome_enum_node_id = success_seal.enum_node_id;
+            }
+            ArrayPush(requireds, typed);
+            ArrayPush(predecessor_names, header.predecessor_name);
+            ArrayPush(predecessor_node_ids, predecessor_node_id);
+            ArrayPush(predecessor_indices, predecessor_index);
+            ArrayPush(outcome_enum_names, outcome_enum_name);
+            ArrayPush(outcome_enum_node_ids, outcome_enum_node_id);
+            ArrayPush(success_node_ids, success_node_id);
+            ArrayPush(success_variant_names, success_binding.variant_name);
+            ArrayPush(success_variant_indices, success_seal.variant_index);
+            ArrayPush(success_payload_names, success_binding.payload_name);
+            ArrayPush(success_payload_types, success_seal.payload_type_name);
+            ArrayPush(failure_node_ids, failure_node_id);
+            ArrayPush(failure_variant_names, failure_binding.variant_name);
+            ArrayPush(failure_variant_indices, failure_seal.variant_index);
+            ArrayPush(failure_payload_names, failure_binding.payload_name);
+            ArrayPush(failure_payload_types, failure_seal.payload_type_name);
+            local_step = local_step + 1;
+        }
+
+        child_index = 0;
+        child = TypedAstArenaChildAt(artifact.arena, intent_node_id, child_index);
+        while IsSome(child) {
+            let terminal_node_id: Int = UnwrapOption(child);
+            let terminal_role: String = "";
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, terminal_node_id,
+                TypedAstKindIntentTerminalSuccessTag()
+            ) { terminal_role = "success"; }
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, terminal_node_id,
+                TypedAstKindIntentTerminalFailureTag()
+            ) { terminal_role = "failure"; }
+            if terminal_role != "" {
+                if !typed {
+                    return SemanticAstIntentTransitionFactsError(
+                        "legacy intent cannot carry typed terminal mapping",
+                        artifact.count
+                    );
+                }
+                let terminal_atom: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, terminal_node_id
+                );
+                let terminal_step: Option<String> =
+                    TypedAstArenaAuxValueText(
+                        artifact.arena, terminal_node_id
+                    );
+                if !IsSome(terminal_atom) || !IsSome(terminal_step) {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent terminal mapping is missing", artifact.count
+                    );
+                }
+                let source_step_name: String = UnwrapOption(terminal_step);
+                let expression: String = UnwrapOption(terminal_atom);
+                let result_binding: SemanticAstIntentVariantBindingRow =
+                    SemanticAstIntentVariantBindingFromText(expression);
+                let source_step_index: Int = -1;
+                let source_step_node_id: Int = -1;
+                let source_payload_name: String = "";
+                let source_payload_type: String = "";
+                let s: Int = 0;
+                while s < step_count {
+                    let step_row: Int = step_start + s;
+                    if names[step_row] == source_step_name {
+                        if source_step_index >= 0 {
+                            return SemanticAstIntentTransitionFactsError(
+                                "typed intent terminal step is ambiguous",
+                                artifact.count
+                            );
+                        }
+                        source_step_index = s;
+                        source_step_node_id = node_ids[step_row];
+                        if terminal_role == "success" {
+                            source_payload_name = success_payload_names[step_row];
+                            source_payload_type = success_payload_types[step_row];
+                        } else {
+                            source_payload_name = failure_payload_names[step_row];
+                            source_payload_type = failure_payload_types[step_row];
+                        }
+                    }
+                    s = s + 1;
+                }
+                let result_seal: SemanticAstIntentVariantSeal =
+                    SemanticAstIntentExactVariantSeal(
+                        enums, result_enum_name, result_binding.variant_name
+                    );
+                if source_step_index < 0 || !result_binding.ok ||
+                    !result_seal.ok ||
+                    result_binding.payload_name != source_payload_name ||
+                    result_seal.payload_type_name != source_payload_type {
+                    return SemanticAstIntentTransitionFactsError(
+                        "typed intent terminal payload identity is invalid",
+                        artifact.count
+                    );
+                }
+                let duplicate: Int = terminal_start;
+                while duplicate < ArrayLength(terminal_node_ids) {
+                    if terminal_roles[duplicate] == terminal_role &&
+                        terminal_step_indices[duplicate] == source_step_index {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent terminal mapping is duplicated",
+                            artifact.count
+                        );
+                    }
+                    if terminal_variant_indices[duplicate] ==
+                        result_seal.variant_index {
+                        return SemanticAstIntentTransitionFactsError(
+                            "typed intent terminal variant identity is duplicated",
+                            artifact.count
+                        );
+                    }
+                    duplicate = duplicate + 1;
+                }
+                ArrayPush(terminal_roles, terminal_role);
+                ArrayPush(terminal_node_ids, terminal_node_id);
+                ArrayPush(terminal_step_names, source_step_name);
+                ArrayPush(terminal_step_node_ids, source_step_node_id);
+                ArrayPush(terminal_step_indices, source_step_index);
+                ArrayPush(terminal_enum_names, result_enum_name);
+                ArrayPush(terminal_enum_node_ids,
+                    enums.node_ids[UnwrapOption(result_enum_index)]);
+                ArrayPush(terminal_variant_names, result_binding.variant_name);
+                ArrayPush(terminal_variant_indices, result_seal.variant_index);
+                ArrayPush(terminal_payload_names, source_payload_name);
+                ArrayPush(terminal_payload_types, source_payload_type);
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, intent_node_id, child_index
+            );
+        }
+        let terminal_count: Int = ArrayLength(terminal_node_ids) - terminal_start;
+        if typed {
+            let success_count: Int = 0;
+            let failure_count: Int = 0;
+            let t: Int = terminal_start;
+            while t < ArrayLength(terminal_node_ids) {
+                if terminal_roles[t] == "success" { success_count = success_count + 1; }
+                if terminal_roles[t] == "failure" { failure_count = failure_count + 1; }
+                t = t + 1;
+            }
+            if success_count != 1 || failure_count != step_count ||
+                terminal_count != step_count + 1 {
+                return SemanticAstIntentTransitionFactsError(
+                    "typed intent terminal mapping coverage is incomplete",
+                    artifact.count
+                );
+            }
+            let success_step: Int = -1;
+            t = terminal_start;
+            while t < ArrayLength(terminal_node_ids) {
+                if terminal_roles[t] == "success" {
+                    success_step = terminal_step_indices[t];
+                }
+                t = t + 1;
+            }
+            let has_successor: Bool = false;
+            let s: Int = 0;
+            while s < step_count {
+                if predecessor_indices[step_start + s] == success_step {
+                    has_successor = true;
+                }
+                s = s + 1;
+            }
+            if success_step < 0 || has_successor {
+                return SemanticAstIntentTransitionFactsError(
+                    "typed intent success terminal is not a leaf step",
+                    artifact.count
+                );
+            }
+        } else if terminal_count != 0 {
+            return SemanticAstIntentTransitionFactsError(
+                "legacy intent terminal facts are not empty", artifact.count
+            );
+        }
+        ArrayPush(intent_starts, step_start);
+        ArrayPush(intent_counts, step_count);
+        ArrayPush(terminal_starts, terminal_start);
+        ArrayPush(terminal_counts, terminal_count);
+        intent_index = intent_index + 1;
+    }
+    return SemanticAstIntentTransitionFacts(
+        true, "", artifact.count, intent_starts, intent_counts, requireds,
+        node_ids, names, predecessor_names, predecessor_node_ids,
+        predecessor_indices, outcome_enum_names, outcome_enum_node_ids,
+        success_node_ids, success_variant_names, success_variant_indices,
+        success_payload_names, success_payload_types, failure_node_ids,
+        failure_variant_names, failure_variant_indices, failure_payload_names,
+        failure_payload_types, terminal_starts, terminal_counts,
+        terminal_roles, terminal_node_ids, terminal_step_names,
+        terminal_step_node_ids, terminal_step_indices, terminal_enum_names,
+        terminal_enum_node_ids, terminal_variant_names,
+        terminal_variant_indices, terminal_payload_names,
+        terminal_payload_types
+    );
+}
+
+func SemanticAstIntentTransitionFactsReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstIntentTransitionFacts
+) -> Bool {
+    let steps: Int = ArrayLength(facts.step_node_ids);
+    let terminals: Int = ArrayLength(facts.terminal_expression_node_ids);
+    return facts.ok && facts.diagnostic_message == "" &&
+        facts.artifact_node_count == artifact.count &&
+        ArrayLength(facts.step_requireds) == steps &&
+        ArrayLength(facts.step_names) == steps &&
+        ArrayLength(facts.predecessor_names) == steps &&
+        ArrayLength(facts.predecessor_step_node_ids) == steps &&
+        ArrayLength(facts.predecessor_step_indices) == steps &&
+        ArrayLength(facts.outcome_enum_names) == steps &&
+        ArrayLength(facts.outcome_enum_node_ids) == steps &&
+        ArrayLength(facts.success_pattern_node_ids) == steps &&
+        ArrayLength(facts.success_variant_names) == steps &&
+        ArrayLength(facts.success_variant_indices) == steps &&
+        ArrayLength(facts.success_payload_names) == steps &&
+        ArrayLength(facts.success_payload_type_names) == steps &&
+        ArrayLength(facts.failure_pattern_node_ids) == steps &&
+        ArrayLength(facts.failure_variant_names) == steps &&
+        ArrayLength(facts.failure_variant_indices) == steps &&
+        ArrayLength(facts.failure_payload_names) == steps &&
+        ArrayLength(facts.failure_payload_type_names) == steps &&
+        ArrayLength(facts.terminal_roles) == terminals &&
+        ArrayLength(facts.terminal_source_step_names) == terminals &&
+        ArrayLength(facts.terminal_source_step_node_ids) == terminals &&
+        ArrayLength(facts.terminal_source_step_indices) == terminals &&
+        ArrayLength(facts.terminal_result_enum_names) == terminals &&
+        ArrayLength(facts.terminal_result_enum_node_ids) == terminals &&
+        ArrayLength(facts.terminal_variant_names) == terminals &&
+        ArrayLength(facts.terminal_variant_indices) == terminals &&
+        ArrayLength(facts.terminal_payload_source_names) == terminals &&
+        ArrayLength(facts.terminal_payload_type_names) == terminals;
+}

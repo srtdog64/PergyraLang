@@ -6,6 +6,7 @@ enum LanguageWordId {
     WordAbility,
     WordAction,
     WordActivate,
+    WordAfter,
     WordAll,
     WordAny,
     WordApply,
@@ -151,13 +152,14 @@ enum LanguageWordId {
 }
 
 func LanguageWordRegistryCount() -> Int {
-    return 145;
+    return 146;
 }
 
 func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordAbility { return "ability"; }
     if id == LanguageWordId.WordAction { return "action"; }
     if id == LanguageWordId.WordActivate { return "activate"; }
+    if id == LanguageWordId.WordAfter { return "after"; }
     if id == LanguageWordId.WordAll { return "all"; }
     if id == LanguageWordId.WordAny { return "any"; }
     if id == LanguageWordId.WordApply { return "apply"; }

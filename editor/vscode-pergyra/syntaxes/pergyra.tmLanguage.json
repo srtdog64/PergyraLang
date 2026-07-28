@@ -75,7 +75,7 @@
       "patterns": [
         {
           "name": "keyword.other.intent.pergyra",
-          "match": "\\b(?:concurrent|exclusive|failure|guard|intent|invariant|involves|on|post|pre|step|success|where|who)\\b"
+          "match": "\\b(?:after|concurrent|exclusive|failure|guard|intent|invariant|involves|on|post|pre|step|success|where|who)\\b"
         }
       ]
     },

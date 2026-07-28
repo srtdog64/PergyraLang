@@ -1137,6 +1137,16 @@ require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir/intent_execution_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_execution_fact_owner.pgy" 720
+require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
+    "struct MirIntentStepTransitionFacts"
+require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
+    "struct MirIntentTerminalTransitionFacts"
+require_text "src/self_hosted/mir/intent_execution_fact_owner.pgy" \
+    "func MirIntentExecutionPlanReady"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_execution_fact_owner.pgy"
 require_file "src/self_hosted/mir/intent_phase_contract_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_phase_contract_owner.pgy" 80
 require_file "src/self_hosted/mir/intent_phase_emission_owner.pgy"
@@ -1165,6 +1175,9 @@ require_text "Makefile" \
 require_file "tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh"
 require_text "Makefile" \
     "self-host-intent-phase-carrier-negative-test-smoke"
+require_file "tests/self_hosted/parity/intent_execution_fact_contract_owner.sh"
+require_text "Makefile" \
+    "self-host-intent-execution-fact-contract-test-smoke"
 require_text "src/self_hosted/dir/intent_row_owner.pgy" \
     "compensate_starts: Array<Int>"
 require_text "src/self_hosted/dir/intent_row_owner.pgy" \

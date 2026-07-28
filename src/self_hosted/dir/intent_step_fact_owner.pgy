@@ -11,6 +11,7 @@ import "intent_step_clause_fact_owner.pgy";
 struct SelfDirIntentStepHeader {
     ok: Bool;
     name: String;
+    predecessor_name: String;
     where_zone_name: String;
     using_alias: String;
 }
@@ -93,17 +94,26 @@ func SelfDirIntentStepHeaderFromText(
 ) -> SelfDirIntentStepHeader {
     if text == "" || StringIndexOf(text, " intent ") >= 0 ||
         StringIndexOf(text, " transfer ") >= 0 {
-        return SelfDirIntentStepHeader(false, "", "", "");
+        return SelfDirIntentStepHeader(false, "", "", "", "");
     }
     let where_at: Int = StringIndexOf(text, " where ");
     let using_at: Int = StringIndexOf(text, " using ");
     if where_at >= 0 && using_at >= 0 && using_at < where_at {
-        return SelfDirIntentStepHeader(false, "", "", "");
+        return SelfDirIntentStepHeader(false, "", "", "", "");
     }
     let name_end: Int = StringLength(text);
     if where_at >= 0 { name_end = where_at; }
     if using_at >= 0 && using_at < name_end { name_end = using_at; }
-    let name: String = StringTrim(Substring(text, 0, name_end));
+    let topology: String = StringTrim(Substring(text, 0, name_end));
+    let after_at: Int = StringIndexOf(topology, " after ");
+    let name: String = topology;
+    let predecessor_name: String = "";
+    if after_at >= 0 {
+        name = Substring(topology, 0, after_at);
+        predecessor_name = Substring(
+            topology, after_at + 7, StringLength(topology) - after_at - 7
+        );
+    }
     let where_zone: String = "";
     let using_alias: String = "";
     if where_at >= 0 {
@@ -119,6 +129,9 @@ func SelfDirIntentStepHeaderFromText(
         ));
     }
     let canonical: String = name;
+    if predecessor_name != "" {
+        canonical = Concat(canonical, Concat(" after ", predecessor_name));
+    }
     if where_zone != "" {
         canonical = Concat(canonical, Concat(" where ", where_zone));
     }
@@ -126,8 +139,10 @@ func SelfDirIntentStepHeaderFromText(
         canonical = Concat(canonical, Concat(" using ", using_alias));
     }
     return SelfDirIntentStepHeader(
-        name != "" && StringIndexOf(name, " ") < 0 && canonical == text,
-        name, where_zone, using_alias
+        IsIdentifier(name) &&
+            (predecessor_name == "" || IsIdentifier(predecessor_name)) &&
+            canonical == text,
+        name, predecessor_name, where_zone, using_alias
     );
 }
 
@@ -161,7 +176,8 @@ func SelfDirIntentStepFromArtifact(
     participant_is_values: Array<Bool>,
     participant_start: Int,
     participant_count: Int,
-    local_step_index: Int
+    local_step_index: Int,
+    typed_transition: Bool
 ) -> SelfDirIntentResolvedStep {
     let step_header_opt: Option<String> = TypedAstArenaAtomText(
         artifact.arena, step_node_id
@@ -354,7 +370,9 @@ func SelfDirIntentStepFromArtifact(
         i = i + 1;
     }
     let predecessor: Int = -1;
-    if local_step_index > 0 { predecessor = local_step_index - 1; }
+    if !typed_transition && local_step_index > 0 {
+        predecessor = local_step_index - 1;
+    }
     let edge_count: Int = 1 + ArrayLength(who_names) +
         ArrayLength(requires_names) + ArrayLength(authorized_names);
     if cause_name != "" { edge_count = edge_count + 1; }

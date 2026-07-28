@@ -43,6 +43,71 @@ intent_has_step_name(ASTNode *intent, const char *name)
     return false;
 }
 
+static bool
+intent_has_failure_terminal_step(const ASTNode *intent, const char *step_name)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL
+        || step_name == NULL) {
+        return false;
+    }
+    for (size_t i = 0;
+         i < intent->data.intent_decl.failure_terminal_count;
+         i++) {
+        const char *existing =
+            intent->data.intent_decl.failure_terminals[i].step_name;
+        if (existing != NULL && strcmp(existing, step_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+intent_append_failure_terminal(Parser *parser,
+                               ASTNode *intent,
+                               Token step,
+                               ASTNode *expr)
+{
+    ASTIntentTerminalData *grown;
+    ASTIntentTerminalData *terminal;
+    size_t next_capacity;
+
+    if (intent->data.intent_decl.failure_terminal_count
+        >= intent->data.intent_decl.failure_terminal_capacity) {
+        next_capacity =
+            intent->data.intent_decl.failure_terminal_capacity == 0
+                ? 4
+                : intent->data.intent_decl.failure_terminal_capacity * 2;
+        if (next_capacity
+            > (size_t)-1 / sizeof(ASTIntentTerminalData)) {
+            parser_error(parser,
+                         "Too many typed intent failure terminals");
+            return false;
+        }
+        grown = realloc(intent->data.intent_decl.failure_terminals,
+                        next_capacity * sizeof(ASTIntentTerminalData));
+        if (grown == NULL) {
+            parser_error(parser,
+                         "Out of memory while recording typed intent failure terminal");
+            return false;
+        }
+        intent->data.intent_decl.failure_terminals = grown;
+        intent->data.intent_decl.failure_terminal_capacity = next_capacity;
+    }
+
+    terminal = &intent->data.intent_decl.failure_terminals[
+        intent->data.intent_decl.failure_terminal_count];
+    memset(terminal, 0, sizeof(*terminal));
+    terminal->step_name = pergyra_strdup(step.text);
+    if (terminal->step_name == NULL) {
+        parser_error(parser,
+                     "Out of memory while recording typed intent failure terminal step");
+        return false;
+    }
+    terminal->expr = expr;
+    intent->data.intent_decl.failure_terminal_count++;
+    return true;
+}
+
 ASTNode *
 parse_intent_declaration(Parser *parser)
 {
@@ -56,6 +121,9 @@ parse_intent_declaration(Parser *parser)
 
     if (parser_check(parser, TOKEN_LPAREN))
         parse_intent_param_list(parser, intent);
+
+    if (parser_match(parser, TOKEN_ARROW))
+        intent->data.intent_decl.return_type = parse_type(parser);
 
     /* Optional resilience modifiers before the body:
      *   intent X with retry(n) { ... }
@@ -279,6 +347,26 @@ parse_intent_declaration(Parser *parser)
                 return intent;
             }
             seen_success_clause = true;
+            if (intent->data.intent_decl.return_type != NULL) {
+                Token step = consume_decl_name_token(
+                    parser,
+                    "Expected terminal step name after typed intent 'success'");
+                parser_consume(parser, TOKEN_COLON,
+                               "Expected ':' after typed intent success step");
+                intent->data.intent_decl.success_terminal.step_name =
+                    pergyra_strdup(step.text);
+                if (intent->data.intent_decl.success_terminal.step_name == NULL) {
+                    parser_error(parser,
+                                 "Out of memory while recording typed intent success terminal");
+                    return intent;
+                }
+                intent->data.intent_decl.success_terminal.expr =
+                    parser_parse_expression(parser);
+                parser_consume(
+                    parser, TOKEN_SEMICOLON,
+                    "Expected ';' after typed intent success terminal");
+                continue;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'success'");
             ast_destroy(intent->data.intent_decl.success_expr);
             intent->data.intent_decl.success_expr = parser_parse_expression(parser);
@@ -287,11 +375,36 @@ parse_intent_declaration(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "failure")) {
-            if (seen_failure_clause) {
+            if (intent->data.intent_decl.return_type == NULL
+                && seen_failure_clause) {
                 parser_error(parser, "Duplicate 'failure' clause in intent declaration");
                 return intent;
             }
             seen_failure_clause = true;
+            if (intent->data.intent_decl.return_type != NULL) {
+                Token step = consume_decl_name_token(
+                    parser,
+                    "Expected source step name after typed intent 'failure'");
+                ASTNode *expr;
+                if (intent_has_failure_terminal_step(intent, step.text)) {
+                    parser_error(parser,
+                                 "Duplicate typed intent failure terminal for step '%s'",
+                                 step.text);
+                    return intent;
+                }
+                parser_consume(parser, TOKEN_COLON,
+                               "Expected ':' after typed intent failure step");
+                expr = parser_parse_expression(parser);
+                parser_consume(
+                    parser, TOKEN_SEMICOLON,
+                    "Expected ';' after typed intent failure terminal");
+                if (!intent_append_failure_terminal(
+                        parser, intent, step, expr)) {
+                    ast_destroy(expr);
+                    return intent;
+                }
+                continue;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'failure'");
             ast_destroy(intent->data.intent_decl.failure_expr);
             intent->data.intent_decl.failure_expr = parser_parse_expression(parser);
@@ -303,7 +416,7 @@ parse_intent_declaration(Parser *parser)
             "Unsupported intent declaration item; expected one of: "
             "exclusive;, concurrent;, priority:, rollback:, who:, who <alias>: <Type>;, "
             "where:, involves <alias>: <Type>;, with <alias>: <Type>;, "
-            "step <Name> { ... }, success:, failure:");
+            "step <Name> [after <Step>] { ... }, success [<Step>]:, failure [<Step>]:");
         return intent;
     }
 

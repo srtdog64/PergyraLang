@@ -1,0 +1,190 @@
+tobject WorkflowReceiptA {
+    value: Int;
+}
+
+tobject WorkflowProblemA {
+    code: Int;
+}
+
+tobject WorkflowReceiptB {
+    value: Int;
+}
+
+tobject WorkflowProblemB {
+    code: Int;
+}
+
+enum WorkflowOutcomeA {
+    WorkflowASucceeded(WorkflowReceiptA),
+    WorkflowAFailed(WorkflowProblemA),
+}
+
+enum WorkflowOutcomeB {
+    WorkflowBSucceeded(WorkflowReceiptB),
+    WorkflowBFailed(WorkflowProblemB),
+}
+
+enum WorkflowOutcome {
+    WorkflowCommitted(WorkflowReceiptB),
+    WorkflowFailedA(WorkflowProblemA),
+    WorkflowFailedB(WorkflowProblemB),
+}
+
+ability WorkflowRunnable {
+    func CanRun() -> Bool;
+}
+
+object WorkflowActorView {
+    state: Int;
+}
+
+tobject WorkflowActorSnapshot {
+    state: Int;
+}
+
+subject WorkflowActor {
+    let mut state: Int;
+    let mut a_calls: Int;
+    let mut b_calls: Int;
+    let mut undo_a_calls: Int;
+    let mut undo_b_calls: Int;
+
+    action ForwardA(self, succeed: Bool) -> WorkflowOutcomeA
+        requires WorkflowRunnable
+        within WorkflowZone
+        authorized by self
+    {
+        self.a_calls = self.a_calls + 1;
+        if succeed {
+            self.state = self.state + 10;
+            return WorkflowASucceeded(WorkflowReceiptA(self.state));
+        }
+        return WorkflowAFailed(WorkflowProblemA(101));
+    }
+
+    action ForwardB(
+        self,
+        predecessor_value: Int,
+        succeed: Bool
+    ) -> WorkflowOutcomeB
+        requires WorkflowRunnable
+        within WorkflowZone
+        authorized by self
+    {
+        self.b_calls = self.b_calls + 1;
+        if succeed {
+            self.state = self.state + predecessor_value;
+            return WorkflowBSucceeded(WorkflowReceiptB(self.state));
+        }
+        return WorkflowBFailed(WorkflowProblemB(202));
+    }
+
+    action UndoA(self) -> Void {
+        self.state = self.state - 10;
+        self.undo_a_calls = self.undo_a_calls + 1;
+    }
+
+    action UndoB(self) -> Void {
+        self.state = 0;
+        self.undo_b_calls = self.undo_b_calls + 1;
+    }
+}
+
+role WorkflowActorRunnable for WorkflowActor {
+    impl ability WorkflowRunnable {
+        func CanRun() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone WorkflowZone {
+    subject slot actor: WorkflowActor
+    object slot view: WorkflowActorView
+    tobject slot snapshot: WorkflowActorSnapshot
+    authority actor requires WorkflowRunnable
+
+    refresh view from actor by actor map {
+        state <- state;
+    }
+
+    publish snapshot from actor by actor map {
+        state <- state;
+    }
+}
+
+intent RunWorkflow(
+    work: WorkflowZone,
+    actor: WorkflowActor,
+    first_succeeds: Bool,
+    second_succeeds: Bool
+) -> WorkflowOutcome {
+    step A {
+        using: work;
+        on outcome_a: actor.ForwardA(first_succeeds);
+        success: WorkflowASucceeded(receipt_a);
+        failure: WorkflowAFailed(problem_a);
+        compensate: actor.UndoA();
+    }
+
+    step B after A {
+        using: work;
+        on outcome_b: actor.ForwardB(receipt_a.value, second_succeeds);
+        success: WorkflowBSucceeded(receipt_b);
+        failure: WorkflowBFailed(problem_b);
+        compensate: actor.UndoB();
+    }
+
+    success B: WorkflowCommitted(receipt_b);
+    failure A: WorkflowFailedA(problem_a);
+    failure B: WorkflowFailedB(problem_b);
+}
+
+func Observe(
+    label: String,
+    outcome: WorkflowOutcome,
+    actor: WorkflowActor
+) -> Void {
+    match outcome {
+        case WorkflowCommitted(receipt):
+            Log(label + ".kind=committed");
+            Log(label + ".payload=" + ToString(receipt.value));
+        case WorkflowFailedA(problem):
+            Log(label + ".kind=failed-a");
+            Log(label + ".payload=" + ToString(problem.code));
+        case WorkflowFailedB(problem):
+            Log(label + ".kind=failed-b");
+            Log(label + ".payload=" + ToString(problem.code));
+    }
+    Log(label + ".state=" + ToString(actor.state));
+    Log(label + ".a_calls=" + ToString(actor.a_calls));
+    Log(label + ".b_calls=" + ToString(actor.b_calls));
+    Log(label + ".undo_a=" + ToString(actor.undo_a_calls));
+    Log(label + ".undo_b=" + ToString(actor.undo_b_calls));
+}
+
+func Main() -> Void {
+    let success_actor = WorkflowActor(0, 0, 0, 0, 0);
+    let success_work = WorkflowZone(Clone(success_actor));
+    Observe(
+        "success",
+        RunWorkflow(success_work, success_actor, true, true),
+        success_actor
+    );
+
+    let first_failure_actor = WorkflowActor(0, 0, 0, 0, 0);
+    let first_failure_work = WorkflowZone(Clone(first_failure_actor));
+    Observe(
+        "first_failure",
+        RunWorkflow(first_failure_work, first_failure_actor, false, true),
+        first_failure_actor
+    );
+
+    let second_failure_actor = WorkflowActor(0, 0, 0, 0, 0);
+    let second_failure_work = WorkflowZone(Clone(second_failure_actor));
+    Observe(
+        "second_failure",
+        RunWorkflow(second_failure_work, second_failure_actor, true, false),
+        second_failure_actor
+    );
+}

@@ -247,6 +247,20 @@ func SemanticAstGenericSpecializationFactsFromBody(
             actual_type_names
         );
     }
+    let intent_transitions: SemanticAstIntentTransitionFacts =
+        SemanticAstIntentTransitionFactsFromArtifact(
+            artifact, signatures, intent_signatures
+        );
+    if !SemanticAstIntentTransitionFactsReady(artifact, intent_transitions) {
+        return SemanticAstGenericSpecializationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_intent_transition"
+            ),
+            call_node_ids, signature_indexes, actual_starts, actual_counts,
+            actual_type_names
+        );
+    }
     let surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(
         expression_surfaces
@@ -309,7 +323,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
             );
         } else if environment_ok && IsSome(intent_node) {
             environment_ok = SemanticAstIntentExpressionSeedEnvironment(
-                artifact, signatures, intent_signatures,
+                artifact, signatures, intent_signatures, intent_transitions,
                 UnwrapOption(intent_node), use_node_id,
                 names, types, modes
             );

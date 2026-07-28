@@ -50,6 +50,7 @@ SELF_DIRECT_C="$BUILD_DIR/self.direct.c"
 SELF_EXE="$BUILD_DIR/self.exe"
 NATIVE_C_EXE="$BUILD_DIR/native.c.exe"
 NATIVE_LLVM_EXE="$BUILD_DIR/native.llvm.exe"
+NATIVE_EMITTED_C="$BUILD_DIR/native.emitted.c"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$FIXTURE_REL" \
     >"$SELF_MIR" 2>"$BUILD_DIR/self.mir.err") \
@@ -101,9 +102,29 @@ grep -Eq 'if[[:space:]]+\(!\([[:space:]]*IntentRunAccepted\([[:space:]]*outcome[
 (cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c -o "$NATIVE_C_EXE" \
     >"$BUILD_DIR/native.c.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.c.compile.log" >&2; fail "native C compile failed"; }
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c --emit-c \
+    -o "$(pgy_path_for_compiler "$PGY" "$NATIVE_EMITTED_C")" \
+    >"$BUILD_DIR/native.c.emit.log" 2>&1) \
+    || { cat "$BUILD_DIR/native.c.emit.log" >&2; fail "native C emission failed"; }
 (cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=llvm -o "$NATIVE_LLVM_EXE" \
     >"$BUILD_DIR/native.llvm.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.llvm.compile.log" >&2; fail "native LLVM compile failed"; }
+
+"$PYTHON_BIN" - "$NATIVE_EMITTED_C" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = text.rindex("bool IntentRunAccepted(")
+end = text.index("\n}\n\n", start)
+body = text[start:end]
+for variant in ("IntentRunCommitted", "IntentRunRejected"):
+    tag = f".tag == IntentRunOutcome_TAG_{variant}"
+    payload = f".{variant}._0"
+    assert body.count(tag) == 1, (variant, body)
+    assert body.count(payload) == 1, (variant, body)
+    assert body.index(tag) < body.index(payload), (variant, body)
+PY
 
 "$SELF_EXE" | tr -d '\r' >"$BUILD_DIR/self.run"
 "$NATIVE_C_EXE" | tr -d '\r' >"$BUILD_DIR/native.c.run"

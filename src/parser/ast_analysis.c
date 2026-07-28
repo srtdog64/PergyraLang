@@ -15,6 +15,27 @@ static bool ast_array_contains_identifier_call(ASTNode *const *nodes,
                                                void *userdata);
 
 static bool
+ast_intent_failure_terminals_contain_identifier_call(
+    const ASTNode *node,
+    ASTIdentifierPredicate predicate,
+    void *userdata)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return false;
+    for (size_t i = 0;
+         i < node->data.intent_decl.failure_terminal_count;
+         i++) {
+        if (ast_contains_identifier_call(
+                node->data.intent_decl.failure_terminals[i].expr,
+                predicate,
+                userdata)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 ast_params_contain_identifier_call(FuncParam *const *params,
                                    size_t count,
                                    ASTIdentifierPredicate predicate,
@@ -354,9 +375,14 @@ ast_contains_identifier_call(const ASTNode *node,
             || ast_array_contains_identifier_call(
                 node->data.intent_decl.steps, node->data.intent_decl.step_count,
                 predicate, userdata)
+            || ast_contains_identifier_call(node->data.intent_decl.return_type, predicate, userdata)
             || ast_contains_identifier_call(node->data.intent_decl.priority_expr, predicate, userdata)
             || ast_contains_identifier_call(node->data.intent_decl.success_expr, predicate, userdata)
             || ast_contains_identifier_call(node->data.intent_decl.failure_expr, predicate, userdata)
+            || ast_contains_identifier_call(
+                node->data.intent_decl.success_terminal.expr, predicate, userdata)
+            || ast_intent_failure_terminals_contain_identifier_call(
+                node, predicate, userdata)
             || ast_contains_identifier_call(
                 node->data.intent_decl.default_where_type, predicate, userdata);
     case AST_INTENT_INVOLVES:

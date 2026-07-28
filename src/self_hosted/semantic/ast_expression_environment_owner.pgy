@@ -303,7 +303,9 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
                 param_index = param_index + 1;
             }
             ArrayPushOwnedString(names, intent_name);
-            ArrayPushOwnedString(returns, "Bool");
+            ArrayPushOwnedString(
+                returns, intents.return_type_names[intent_index]
+            );
             ArrayPushOwnedString(params, intent_params);
             intent_index = intent_index + 1;
         }

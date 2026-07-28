@@ -82,10 +82,15 @@ func TypedAstKindIntentStepAuthorizedByTag() -> Int { return 79; }
 func TypedAstKindIntentStepExpectTag() -> Int { return 80; }
 // Appended to preserve every previously published compact kind identity.
 func TypedAstKindIntentStepOutcomeTag() -> Int { return 81; }
+func TypedAstKindIntentReturnsTag() -> Int { return 82; }
+func TypedAstKindIntentStepSuccessTag() -> Int { return 83; }
+func TypedAstKindIntentStepFailureTag() -> Int { return 84; }
+func TypedAstKindIntentTerminalSuccessTag() -> Int { return 85; }
+func TypedAstKindIntentTerminalFailureTag() -> Int { return 86; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return kind >= TypedAstKindIntentModeTag() &&
-        kind <= TypedAstKindIntentStepOutcomeTag();
+        kind <= TypedAstKindIntentTerminalFailureTag();
 }
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
@@ -100,7 +105,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindIntentStepOutcomeTag();
+        kind <= TypedAstKindIntentTerminalFailureTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -185,14 +190,18 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindIntentStepPostTag(),
         TypedAstKindIntentStepAuthorizedByTag(),
         TypedAstKindIntentStepExpectTag(),
-        TypedAstKindIntentStepOutcomeTag()
+        TypedAstKindIntentStepOutcomeTag(), TypedAstKindIntentReturnsTag(),
+        TypedAstKindIntentStepSuccessTag(),
+        TypedAstKindIntentStepFailureTag(),
+        TypedAstKindIntentTerminalSuccessTag(),
+        TypedAstKindIntentTerminalFailureTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 81 {
+    if ArrayLength(tags) != 86 {
         return false;
     }
     let i: Int = 0;
@@ -228,8 +237,13 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindIntentStepAuthorizedByTag()) &&
         TypedAstKindKnown(TypedAstKindIntentStepExpectTag()) &&
         TypedAstKindKnown(TypedAstKindIntentStepOutcomeTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentReturnsTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepSuccessTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepFailureTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentTerminalSuccessTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
-        TypedAstKindIsIntentRow(TypedAstKindIntentStepOutcomeTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         !TypedAstKindIsIntentRow(TypedAstKindIntentDeclTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
@@ -241,7 +255,7 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindIntentStepOutcomeTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindIntentTerminalFailureTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

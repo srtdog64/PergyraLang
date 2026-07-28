@@ -718,10 +718,12 @@ explicit predecessor/branch/completion fact는 아직 존재하지 않는다.
 - Planned negatives: valid foreign outcome definition/type, swapped variant/successor,
   self/future or mixed-identity predecessor, missing success completion evidence를
   각각 주입하고 partial C 전에 exact admission diagnostic으로 거부한다.
-- Draft-only files:
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`와
-  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy.todo`.
-  둘은 aggregate gate에 등록되지 않았고 현재 미구현 실패 설계만 소유한다.
+- Draft execution file:
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`는
+  aggregate gate에 등록되지 않은 unconditional-failure 실행 설계다.
+  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy`는
+  frontend/DIR/fact validation에 활성화됐지만 runtime 또는 substitution 증거는
+  아니다.
 - Grade: draft/owner/document/fixture 수는 진척이 아니다. 현재 single-step typed
   binding은 general self C와 native C/LLVM에서 `REACHABLE`이지만 C-owned compiler
   path를 대체하지 않았다. Production root가 intent를 호출하되 direct bypass가

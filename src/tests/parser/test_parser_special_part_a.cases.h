@@ -691,6 +691,92 @@ run_intent_step_duplicate_outcome_binding_parse_test(void)
 }
 
 static int
+run_typed_intent_tobject_transition_parse_test(void)
+{
+    const char *code =
+        "intent Workflow(actor: Actor) -> WorkflowOutcome {\n"
+        "    step A {\n"
+        "        on outcome_a: actor.ForwardA();\n"
+        "        success: ACommitted(receipt_a);\n"
+        "        failure: ARejected(problem_a);\n"
+        "    }\n"
+        "    step B after A {\n"
+        "        on outcome_b: actor.ForwardB(receipt_a);\n"
+        "        success: BCommitted(receipt_b);\n"
+        "        failure: BRejected(problem_b);\n"
+        "    }\n"
+        "    success B: WorkflowCommitted(receipt_b);\n"
+        "    failure A: WorkflowFailedA(problem_a);\n"
+        "    failure B: WorkflowFailedB(problem_b);\n"
+        "}\n";
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *program = NULL;
+    ASTNode *intent = NULL;
+    ASTNode **steps = NULL;
+    int failed = 0;
+
+    printf("\n=== Test: Typed Intent TObject Transition Parse ===\n");
+    if (lexer == NULL)
+        return 1;
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        return 1;
+    }
+    program = parser_parse_program(parser);
+    if (program != NULL && ast_program_statement_count(program) == 1)
+        intent = ast_program_statement(program, 0);
+    if (intent != NULL)
+        steps = ast_intent_decl_steps(intent, NULL);
+
+    if (parser_has_error(parser) || intent == NULL
+        || !ast_intent_decl_has_typed_result(intent)
+        || ast_intent_decl_return_type(intent) == NULL
+        || strcmp(ast_type_name(ast_intent_decl_return_type(intent)),
+                  "WorkflowOutcome") != 0
+        || ast_intent_decl_step_count(intent) != 2
+        || steps == NULL
+        || ast_intent_step_predecessor_name(steps[0]) != NULL
+        || ast_intent_step_predecessor_name(steps[1]) == NULL
+        || strcmp(ast_intent_step_predecessor_name(steps[1]), "A") != 0
+        || ast_intent_step_success_variant_name(steps[0]) == NULL
+        || strcmp(ast_intent_step_success_variant_name(steps[0]),
+                  "ACommitted") != 0
+        || ast_intent_step_success_payload_name(steps[0]) == NULL
+        || strcmp(ast_intent_step_success_payload_name(steps[0]),
+                  "receipt_a") != 0
+        || ast_intent_step_failure_variant_name(steps[1]) == NULL
+        || strcmp(ast_intent_step_failure_variant_name(steps[1]),
+                  "BRejected") != 0
+        || ast_intent_step_failure_payload_name(steps[1]) == NULL
+        || strcmp(ast_intent_step_failure_payload_name(steps[1]),
+                  "problem_b") != 0
+        || ast_intent_decl_success_terminal_step(intent) == NULL
+        || strcmp(ast_intent_decl_success_terminal_step(intent), "B") != 0
+        || ast_intent_decl_success_terminal_expr(intent) == NULL
+        || ast_intent_decl_failure_terminal_count(intent) != 2
+        || ast_intent_decl_failure_terminal_step(intent, 0) == NULL
+        || strcmp(ast_intent_decl_failure_terminal_step(intent, 0), "A") != 0
+        || ast_intent_decl_failure_terminal_step(intent, 1) == NULL
+        || strcmp(ast_intent_decl_failure_terminal_step(intent, 1), "B") != 0
+        || !ast_print_contains(intent, "IntentReturns: WorkflowOutcome")
+        || !ast_print_contains(intent, "IntentStep: B after A")
+        || !ast_print_contains(intent,
+            "IntentTerminalFailure: B => WorkflowFailedB(problem_b)")) {
+        printf("[FAIL] Typed intent transition AST facts drifted: %s\n",
+            parser_get_error(parser) != NULL
+                ? parser_get_error(parser) : "<no parser diagnostic>");
+        failed = 1;
+    }
+
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_parser_reentry_cleanup_test(void)
 {
     const char *valid_code =

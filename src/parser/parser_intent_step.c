@@ -1,6 +1,50 @@
 #include "parser_internal.h"
 
 static bool
+parse_intent_outcome_branch(Parser *parser,
+                            ASTIntentOutcomeBranchData *branch,
+                            const char *clause_name)
+{
+    Token variant;
+    Token payload;
+
+    if (branch == NULL)
+        return false;
+    if (branch->variant_name != NULL) {
+        parser_error(parser, "Duplicate '%s' clause in intent step",
+                     clause_name);
+        return false;
+    }
+
+    parser_consume(parser, TOKEN_COLON,
+                   strcmp(clause_name, "success") == 0
+                       ? "Expected ':' after step 'success'"
+                       : "Expected ':' after step 'failure'");
+    variant = consume_name_token(
+        parser,
+        strcmp(clause_name, "success") == 0
+            ? "Expected exact action-result variant after step 'success:'"
+            : "Expected exact action-result variant after step 'failure:'");
+    parser_consume(parser, TOKEN_LPAREN,
+                   "Expected '(' after action-result variant");
+    payload = consume_binding_name_token(
+        parser, "Expected payload binding in action-result variant pattern");
+    parser_consume(parser, TOKEN_RPAREN,
+                   "Expected ')' after action-result payload binding");
+    parser_consume(parser, TOKEN_SEMICOLON,
+                   "Expected ';' after intent step outcome branch");
+
+    branch->variant_name = pergyra_strdup(variant.text);
+    branch->payload_name = pergyra_strdup(payload.text);
+    if (branch->variant_name == NULL || branch->payload_name == NULL) {
+        parser_error(parser,
+                     "Out of memory while recording intent step outcome branch");
+        return false;
+    }
+    return true;
+}
+
+static bool
 parser_intent_step_append_required_ability(Parser *parser, ASTNode *step,
                                            ASTNode *ability)
 {
@@ -90,6 +134,18 @@ parse_intent_step(Parser *parser)
     ASTNode *step = ast_create_intent_step(name_tok.text);
     step->line = name_tok.line;
     step->column = name_tok.column;
+
+    if (parser_intent_match_keyword(parser, "after")) {
+        Token predecessor = consume_decl_name_token(
+            parser, "Expected predecessor step name after 'after'");
+        step->data.intent_step.predecessor_step_name =
+            pergyra_strdup(predecessor.text);
+        if (step->data.intent_step.predecessor_step_name == NULL) {
+            parser_error(parser,
+                         "Out of memory while recording intent step predecessor");
+            return step;
+        }
+    }
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after step name");
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -197,6 +253,24 @@ parse_intent_step(Parser *parser)
                 &step->data.intent_step.compensate_expr_count,
                 &step->data.intent_step.compensate_expr_capacity, expr);
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step compensate clause");
+            continue;
+        }
+
+        if (parser_intent_match_keyword(parser, "success")) {
+            if (!parse_intent_outcome_branch(
+                    parser, &step->data.intent_step.success_branch,
+                    "success")) {
+                return step;
+            }
+            continue;
+        }
+
+        if (parser_intent_match_keyword(parser, "failure")) {
+            if (!parse_intent_outcome_branch(
+                    parser, &step->data.intent_step.failure_branch,
+                    "failure")) {
+                return step;
+            }
             continue;
         }
 
@@ -330,7 +404,7 @@ parse_intent_step(Parser *parser)
         parser_error(parser,
             "Unsupported intent step clause; expected one of: "
             "where:, who:, using:, intent:, transfer:, move, on:, compensate:, "
-            "pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:. "
+            "success:, failure:, pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:. "
             "Action-only clauses such as 'within' and 'with effects' belong on the matching action contract.");
         return step;
     }

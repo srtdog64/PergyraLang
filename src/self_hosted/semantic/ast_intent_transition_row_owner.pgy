@@ -1,0 +1,107 @@
+// Canonical typed-intent row parsing and enum-scoped variant seals.
+
+import "../hir/ast_text_scan_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+
+struct SemanticAstIntentVariantBindingRow {
+    ok: Bool;
+    variant_name: String;
+    payload_name: String;
+}
+
+struct SemanticAstIntentStepHeaderRow {
+    ok: Bool;
+    name: String;
+    predecessor_name: String;
+}
+
+struct SemanticAstIntentVariantSeal {
+    ok: Bool;
+    enum_node_id: Int;
+    variant_index: Int;
+    payload_type_name: String;
+}
+
+func SemanticAstIntentVariantBindingFromText(
+    text: String
+) -> SemanticAstIntentVariantBindingRow {
+    let open: Int = StringIndexOf(text, "(");
+    let close: Int = StringIndexOf(text, ")");
+    if open <= 0 || close != StringLength(text) - 1 ||
+        StringIndexOf(Substring(text, open + 1, close - open - 1), ",") >= 0 {
+        return SemanticAstIntentVariantBindingRow(false, "", "");
+    }
+    let variant_name: String = Substring(text, 0, open);
+    let payload_name: String = Substring(text, open + 1, close - open - 1);
+    return SemanticAstIntentVariantBindingRow(
+        IsIdentifier(variant_name) && IsIdentifier(payload_name),
+        variant_name, payload_name
+    );
+}
+
+func SemanticAstIntentStepHeaderFromText(
+    text: String
+) -> SemanticAstIntentStepHeaderRow {
+    let end: Int = StringLength(text);
+    let where_at: Int = StringIndexOf(text, " where ");
+    let using_at: Int = StringIndexOf(text, " using ");
+    if where_at >= 0 && where_at < end { end = where_at; }
+    if using_at >= 0 && using_at < end { end = using_at; }
+    let topology: String = Substring(text, 0, end);
+    let after_at: Int = StringIndexOf(topology, " after ");
+    let name: String = topology;
+    let predecessor_name: String = "";
+    if after_at >= 0 {
+        name = Substring(topology, 0, after_at);
+        predecessor_name = Substring(
+            topology, after_at + 7, StringLength(topology) - after_at - 7
+        );
+    }
+    return SemanticAstIntentStepHeaderRow(
+        IsIdentifier(name) &&
+            (predecessor_name == "" || IsIdentifier(predecessor_name)),
+        name, predecessor_name
+    );
+}
+
+func SemanticAstIntentExactVariantSeal(
+    ref enums: SemanticAstEnumFacts,
+    enum_name: String,
+    variant_name: String
+) -> SemanticAstIntentVariantSeal {
+    let enum_node_id: Int = -1;
+    let enum_matches: Int = 0;
+    let e: Int = 0;
+    while e < ArrayLength(enums.enum_names) {
+        if enums.enum_names[e] == enum_name {
+            enum_matches = enum_matches + 1;
+            enum_node_id = enums.node_ids[e];
+        }
+        e = e + 1;
+    }
+    let variant_index: Int = -1;
+    let variant_matches: Int = 0;
+    let local_index: Int = 0;
+    let row: Int = 0;
+    let payload_type_name: String = "";
+    while row < ArrayLength(enums.variant_names) {
+        if enums.variant_enum_names[row] == enum_name {
+            if enums.variant_names[row] == variant_name {
+                variant_matches = variant_matches + 1;
+                variant_index = local_index;
+                if enums.variant_param_counts[row] == 1 {
+                    payload_type_name = enums.variant_param_type_names[
+                        enums.variant_param_starts[row]
+                    ];
+                }
+            }
+            local_index = local_index + 1;
+        }
+        row = row + 1;
+    }
+    return SemanticAstIntentVariantSeal(
+        enum_matches == 1 && variant_matches == 1 &&
+            variant_index >= 0 && payload_type_name != "",
+        enum_node_id, variant_index, payload_type_name
+    );
+}

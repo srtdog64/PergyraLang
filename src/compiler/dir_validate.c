@@ -33,6 +33,45 @@ dir_validate_strdup_fmt(const char *fmt, ...)
     return result;
 }
 
+static bool
+dir_nullable_string_equal(const char *left, const char *right)
+{
+    if (left == NULL || right == NULL)
+        return left == right;
+    return strcmp(left, right) == 0;
+}
+
+static bool
+dir_intent_branch_matches_ast(const DIRIntentOutcomeBranch *branch,
+                              const ASTNode *step,
+                              bool success)
+{
+    const char *variant = success
+        ? ast_intent_step_success_variant_name(step)
+        : ast_intent_step_failure_variant_name(step);
+    const char *payload = success
+        ? ast_intent_step_success_payload_name(step)
+        : ast_intent_step_failure_payload_name(step);
+    const char *payload_type = success
+        ? ast_intent_step_success_payload_type_name(step)
+        : ast_intent_step_failure_payload_type_name(step);
+    size_t variant_index = success
+        ? ast_intent_step_success_variant_index(step)
+        : ast_intent_step_failure_variant_index(step);
+
+    return branch != NULL
+        && dir_nullable_string_equal(branch->variant_name, variant)
+        && branch->variant_index == variant_index
+        && dir_nullable_string_equal(branch->payload_name, payload)
+        && dir_nullable_string_equal(
+            branch->payload_type_name, payload_type)
+        && dir_nullable_string_equal(
+            branch->enum_type_name,
+            ast_intent_step_outcome_enum_type_name(step))
+        && branch->enum_decl_syntax_id
+            == ast_intent_step_outcome_enum_decl_syntax_id(step);
+}
+
 const char *
 dir_node_kind_name(DIRNodeKind kind)
 {
@@ -954,6 +993,15 @@ dir_validate(const DIRProgram *dir, char **error_message)
             }
             return false;
         }
+        if (intent->return_type_name == NULL
+            || intent->return_type_name[0] == '\0') {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR intent[%llu] has no explicit result carrier",
+                    (unsigned long long)i);
+            }
+            return false;
+        }
         for (size_t j = 0; j < intent->participant_count; j++) {
             const DIRIntentParticipant *participant = &intent->participants[j];
             if (!participant->is_value_binding
@@ -987,6 +1035,16 @@ dir_validate(const DIRProgram *dir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = dir_validate_strdup_fmt(
                         "DIR intent[%llu] step '%s' has no exact AST step owner",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->syntax_id == 0
+                || step->syntax_id != ast_node_stable_id(step->ast)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' stable identity drifted",
                         (unsigned long long)i,
                         step->name != NULL ? step->name : "-");
                 }
@@ -1124,6 +1182,120 @@ dir_validate(const DIRProgram *dir, char **error_message)
                 }
                 return false;
             }
+            if (intent->has_typed_result) {
+                if ((j == 0
+                        && (step->predecessor_step_name != NULL
+                            || step->predecessor_step_index != SIZE_MAX
+                            || step->predecessor_step_syntax_id != 0))
+                    || (j > 0
+                        && (step->predecessor_step_name == NULL
+                            || step->predecessor_step_index + 1 != j
+                            || step->predecessor_step_syntax_id
+                                != intent->steps[j - 1].syntax_id
+                            || !dir_nullable_string_equal(
+                                step->predecessor_step_name,
+                                intent->steps[j - 1].name)))) {
+                    if (error_message != NULL) {
+                        *error_message = dir_validate_strdup_fmt(
+                            "DIR typed intent[%llu] step '%s' explicit predecessor identity drifted",
+                            (unsigned long long)i,
+                            step->name != NULL ? step->name : "-");
+                    }
+                    return false;
+                }
+                if (!dir_intent_branch_matches_ast(
+                        &step->success_branch, step->ast, true)
+                    || !dir_intent_branch_matches_ast(
+                        &step->failure_branch, step->ast, false)
+                    || step->success_branch.enum_decl_syntax_id == 0
+                    || step->success_branch.enum_decl_syntax_id
+                        != step->failure_branch.enum_decl_syntax_id
+                    || step->success_branch.variant_index == SIZE_MAX
+                    || step->failure_branch.variant_index == SIZE_MAX
+                    || step->success_branch.variant_index
+                        == step->failure_branch.variant_index) {
+                    if (error_message != NULL) {
+                        *error_message = dir_validate_strdup_fmt(
+                            "DIR typed intent[%llu] step '%s' outcome branch seal drifted",
+                            (unsigned long long)i,
+                            step->name != NULL ? step->name : "-");
+                    }
+                    return false;
+                }
+            }
+        }
+        if (intent->has_typed_result) {
+            if (intent->step_count == 0
+                || intent->success_terminal.step_index + 1
+                    != intent->step_count
+                || intent->success_terminal.step_syntax_id
+                    != intent->steps[intent->step_count - 1].syntax_id
+                || !dir_nullable_string_equal(
+                    intent->success_terminal.step_name,
+                    intent->steps[intent->step_count - 1].name)
+                || intent->success_terminal.expr == NULL
+                || intent->failure_terminal_count != intent->step_count
+                || (intent->failure_terminal_count > 0
+                    && intent->failure_terminals == NULL)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR typed intent[%llu] terminal coverage drifted",
+                        (unsigned long long)i);
+                }
+                return false;
+            }
+            for (size_t j = 0; j < intent->failure_terminal_count; j++) {
+                const DIRIntentTerminal *terminal =
+                    &intent->failure_terminals[j];
+                if (terminal->step_index >= intent->step_count
+                    || terminal->step_syntax_id
+                        != intent->steps[terminal->step_index].syntax_id
+                    || !dir_nullable_string_equal(
+                        terminal->step_name,
+                        intent->steps[terminal->step_index].name)
+                    || terminal->expr == NULL) {
+                    if (error_message != NULL) {
+                        *error_message = dir_validate_strdup_fmt(
+                            "DIR typed intent[%llu] failure terminal[%llu] identity drifted",
+                            (unsigned long long)i,
+                            (unsigned long long)j);
+                    }
+                    return false;
+                }
+            }
+            for (size_t step_index = 0;
+                 step_index < intent->step_count;
+                 step_index++) {
+                size_t matching_terminal_count = 0;
+
+                for (size_t terminal_index = 0;
+                     terminal_index < intent->failure_terminal_count;
+                     terminal_index++) {
+                    if (intent->failure_terminals[terminal_index].step_syntax_id
+                        == intent->steps[step_index].syntax_id) {
+                        matching_terminal_count++;
+                    }
+                }
+                if (matching_terminal_count != 1) {
+                    if (error_message != NULL) {
+                        *error_message = dir_validate_strdup_fmt(
+                            "DIR typed intent[%llu] step '%s' failure terminal coverage drifted",
+                            (unsigned long long)i,
+                            intent->steps[step_index].name != NULL
+                                ? intent->steps[step_index].name : "-");
+                    }
+                    return false;
+                }
+            }
+        } else if (intent->failure_terminal_count != 0
+                   || intent->failure_terminals != NULL
+                   || intent->success_terminal.expr != NULL) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR legacy intent[%llu] contains typed terminal facts",
+                    (unsigned long long)i);
+            }
+            return false;
         }
     }
 

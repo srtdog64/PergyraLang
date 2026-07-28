@@ -9,6 +9,22 @@ func SemanticAstIntentExpressionOwnerNodeId(
     artifact: AstTreeArtifact,
     expression_node_id: Int
 ) -> Option<Int> {
+    if TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentTerminalSuccessTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id,
+        TypedAstKindIntentTerminalFailureTag()
+    ) {
+        let terminal_owner: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, expression_node_id
+        );
+        if IsSome(terminal_owner) && TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(terminal_owner),
+            TypedAstKindIntentDeclTag()
+        ) { return terminal_owner; }
+        return None;
+    }
     if !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
     ) && !TypedAstArenaNodeKindIs(
@@ -20,6 +36,8 @@ func SemanticAstIntentExpressionOwnerNodeId(
         artifact.arena, expression_node_id, TypedAstKindIntentStepPostTag()
     ) && !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepExpectTag()
+    ) && !TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
     ) {
         return None;
     }
@@ -46,6 +64,7 @@ func SemanticAstIntentExpressionSeedEnvironment(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstIntentSignatureFacts,
+    ref transitions: SemanticAstIntentTransitionFacts,
     intent_node_id: Int,
     expression_node_id: Int,
     inout names: Array<String>,
@@ -55,7 +74,8 @@ func SemanticAstIntentExpressionSeedEnvironment(
     return SemanticAstIntentExpressionSeedParameters(
         facts, intent_node_id, names, types, modes
     ) && SemanticAstIntentExpressionSeedOutcome(
-        artifact, signatures, facts, intent_node_id, expression_node_id,
+        artifact, signatures, facts, transitions,
+        intent_node_id, expression_node_id,
         names, types, modes
     );
 }

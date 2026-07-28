@@ -1,0 +1,232 @@
+// Focused contract probe for typed intent MIR execution facts.
+
+import "../../../../src/self_hosted/mir/intent_execution_fact_owner.pgy";
+import "../../../../src/self_hosted/mir_lower/error_owner.pgy";
+
+func AppendIntentStepA(
+    steps: MirIntentStepTransitionFacts
+) -> MirIntentStepTransitionFacts {
+    ArrayPush(steps.transition_ids, 101);
+    ArrayPush(steps.routine_syntax_ids, 10);
+    ArrayPush(steps.step_syntax_ids, 101);
+    ArrayPush(steps.step_names, "A");
+    ArrayPush(steps.predecessor_transition_ids, 0);
+    ArrayPush(steps.predecessor_step_syntax_ids, 0);
+    ArrayPush(steps.predecessor_step_names, "");
+    ArrayPush(steps.action_syntax_ids, 201);
+    ArrayPush(steps.outcome_instruction_block_ids, 0);
+    ArrayPush(steps.outcome_instruction_ids, 10);
+    ArrayPush(steps.outcome_result_names, "outcomeA");
+    ArrayPush(steps.outcome_type_names, "ActionOutcomeA");
+    ArrayPush(steps.outcome_enum_names, "ActionOutcomeA");
+    ArrayPush(steps.outcome_enum_syntax_ids, 301);
+    ArrayPush(steps.branch_block_ids, 0);
+    ArrayPush(steps.branch_instruction_ids, 11);
+    ArrayPush(steps.success_variant_indices, 0);
+    ArrayPush(steps.success_variant_names, "ACommitted");
+    ArrayPush(steps.success_payload_names, "receiptA");
+    ArrayPush(steps.success_payload_type_names, "ReceiptA");
+    ArrayPush(steps.success_successor_block_ids, 1);
+    ArrayPush(steps.failure_variant_indices, 1);
+    ArrayPush(steps.failure_variant_names, "ARejected");
+    ArrayPush(steps.failure_payload_names, "problemA");
+    ArrayPush(steps.failure_payload_type_names, "ProblemA");
+    ArrayPush(steps.failure_successor_block_ids, 2);
+    ArrayPush(steps.completion_block_ids, 1);
+    ArrayPush(steps.completion_instruction_ids, 12);
+    ArrayPush(steps.compensation_starts, 0);
+    ArrayPush(steps.compensation_counts, 1);
+    ArrayPush(steps.compensations.transition_ids, 101);
+    ArrayPush(steps.compensations.expression_syntax_ids, 401);
+    ArrayPush(steps.compensations.instruction_block_ids, 2);
+    ArrayPush(steps.compensations.instruction_ids, 13);
+    ArrayPush(steps.compensations.graph_root_ids, 1);
+    ArrayPush(steps.compensations.graph_digests, 5001);
+    ArrayPush(steps.compensations.call_target_names, "Worker_UndoA");
+    ArrayPush(steps.compensations.call_target_syntax_ids, 601);
+    return steps;
+}
+
+func AppendIntentStepB(
+    steps: MirIntentStepTransitionFacts
+) -> MirIntentStepTransitionFacts {
+    ArrayPush(steps.transition_ids, 102);
+    ArrayPush(steps.routine_syntax_ids, 10);
+    ArrayPush(steps.step_syntax_ids, 102);
+    ArrayPush(steps.step_names, "B");
+    ArrayPush(steps.predecessor_transition_ids, 101);
+    ArrayPush(steps.predecessor_step_syntax_ids, 101);
+    ArrayPush(steps.predecessor_step_names, "A");
+    ArrayPush(steps.action_syntax_ids, 202);
+    ArrayPush(steps.outcome_instruction_block_ids, 3);
+    ArrayPush(steps.outcome_instruction_ids, 20);
+    ArrayPush(steps.outcome_result_names, "outcomeB");
+    ArrayPush(steps.outcome_type_names, "ActionOutcomeB");
+    ArrayPush(steps.outcome_enum_names, "ActionOutcomeB");
+    ArrayPush(steps.outcome_enum_syntax_ids, 302);
+    ArrayPush(steps.branch_block_ids, 3);
+    ArrayPush(steps.branch_instruction_ids, 21);
+    ArrayPush(steps.success_variant_indices, 0);
+    ArrayPush(steps.success_variant_names, "BCommitted");
+    ArrayPush(steps.success_payload_names, "receiptB");
+    ArrayPush(steps.success_payload_type_names, "ReceiptB");
+    ArrayPush(steps.success_successor_block_ids, 4);
+    ArrayPush(steps.failure_variant_indices, 1);
+    ArrayPush(steps.failure_variant_names, "BRejected");
+    ArrayPush(steps.failure_payload_names, "problemB");
+    ArrayPush(steps.failure_payload_type_names, "ProblemB");
+    ArrayPush(steps.failure_successor_block_ids, 5);
+    ArrayPush(steps.completion_block_ids, 4);
+    ArrayPush(steps.completion_instruction_ids, 22);
+    ArrayPush(steps.compensation_starts, 1);
+    ArrayPush(steps.compensation_counts, 1);
+    ArrayPush(steps.compensations.transition_ids, 102);
+    ArrayPush(steps.compensations.expression_syntax_ids, 402);
+    ArrayPush(steps.compensations.instruction_block_ids, 5);
+    ArrayPush(steps.compensations.instruction_ids, 23);
+    ArrayPush(steps.compensations.graph_root_ids, 1);
+    ArrayPush(steps.compensations.graph_digests, 5002);
+    ArrayPush(steps.compensations.call_target_names, "Worker_UndoB");
+    ArrayPush(steps.compensations.call_target_syntax_ids, 602);
+    return steps;
+}
+
+func AppendIntentTerminal(
+    rows: MirIntentTerminalTransitionFacts,
+    terminal_id: Int,
+    role: String,
+    source_transition_id: Int,
+    source_step_name: String,
+    source_variant_index: Int,
+    source_variant_name: String,
+    source_payload_name: String,
+    source_payload_type: String,
+    result_variant_index: Int,
+    result_variant_name: String,
+    result_block_id: Int
+) -> MirIntentTerminalTransitionFacts {
+    ArrayPush(rows.terminal_transition_ids, terminal_id);
+    ArrayPush(rows.routine_syntax_ids, 10);
+    ArrayPush(rows.roles, role);
+    ArrayPush(rows.source_transition_ids, source_transition_id);
+    ArrayPush(rows.source_step_syntax_ids, source_transition_id);
+    ArrayPush(rows.source_step_names, source_step_name);
+    ArrayPush(rows.source_variant_indices, source_variant_index);
+    ArrayPush(rows.source_variant_names, source_variant_name);
+    ArrayPush(rows.source_payload_names, source_payload_name);
+    ArrayPush(rows.source_payload_type_names, source_payload_type);
+    ArrayPush(rows.result_instruction_block_ids, result_block_id);
+    ArrayPush(rows.result_instruction_ids, terminal_id + 1000);
+    ArrayPush(rows.result_definition_names, Concat("intentResult", ToString(terminal_id)));
+    ArrayPush(rows.result_type_names, "WorkflowOutcome");
+    ArrayPush(rows.result_enum_names, "WorkflowOutcome");
+    ArrayPush(rows.result_enum_syntax_ids, 700);
+    ArrayPush(rows.result_variant_indices, result_variant_index);
+    ArrayPush(rows.result_variant_names, result_variant_name);
+    ArrayPush(rows.result_payload_names, source_payload_name);
+    ArrayPush(rows.result_payload_type_names, source_payload_type);
+    ArrayPush(rows.expression_syntax_ids, terminal_id + 2000);
+    ArrayPush(rows.graph_root_ids, 1);
+    ArrayPush(rows.graph_digests, terminal_id + 3000);
+    return rows;
+}
+
+func IntentExecutionFactsForProbe(
+) -> MirIntentExecutionPlan {
+    let steps: MirIntentStepTransitionFacts =
+        AppendIntentStepB(AppendIntentStepA(
+            MirIntentStepTransitionFactsEmpty()
+        ));
+    let terminals: MirIntentTerminalTransitionFacts =
+        MirIntentTerminalTransitionFactsEmpty();
+    terminals = AppendIntentTerminal(
+        terminals, 501, "failure", 101, "A", 1, "ARejected",
+        "problemA", "ProblemA", 1, "WorkflowFailedA", 2
+    );
+    terminals = AppendIntentTerminal(
+        terminals, 502, "success", 102, "B", 0, "BCommitted",
+        "receiptB", "ReceiptB", 0, "WorkflowCommitted", 4
+    );
+    terminals = AppendIntentTerminal(
+        terminals, 503, "failure", 102, "B", 1, "BRejected",
+        "problemB", "ProblemB", 2, "WorkflowFailedB", 5
+    );
+    return MirIntentExecutionPlanFromFacts(steps, terminals);
+}
+
+func Main() -> Void {
+    let plan: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
+    if !MirIntentExecutionPlanReady(plan) {
+        MirLowerFailClosed("valid intent execution plan was rejected");
+    }
+
+    let outcome_crosswire: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(outcome_crosswire.steps.outcome_type_names, 1, "ActionOutcomeA");
+    outcome_crosswire = MirIntentExecutionPlanFromFacts(
+        outcome_crosswire.steps, outcome_crosswire.terminals
+    );
+    if outcome_crosswire.valid {
+        MirLowerFailClosed("outcome definition/type crosswire was accepted");
+    }
+
+    let variant_crosswire: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(
+        variant_crosswire.steps.success_variant_indices, 1,
+        variant_crosswire.steps.failure_variant_indices[1]
+    );
+    variant_crosswire = MirIntentExecutionPlanFromFacts(
+        variant_crosswire.steps, variant_crosswire.terminals
+    );
+    if variant_crosswire.valid {
+        MirLowerFailClosed("outcome variant identity crosswire was accepted");
+    }
+
+    let predecessor_crosswire: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(predecessor_crosswire.steps.predecessor_transition_ids, 1, 102);
+    ArraySet(predecessor_crosswire.steps.predecessor_step_syntax_ids, 1, 102);
+    ArraySet(predecessor_crosswire.steps.predecessor_step_names, 1, "B");
+    predecessor_crosswire = MirIntentExecutionPlanFromFacts(
+        predecessor_crosswire.steps, predecessor_crosswire.terminals
+    );
+    if predecessor_crosswire.valid {
+        MirLowerFailClosed("self predecessor evidence was accepted");
+    }
+
+    let completion_missing: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(completion_missing.steps.completion_instruction_ids, 1, 0 - 1);
+    completion_missing = MirIntentExecutionPlanFromFacts(
+        completion_missing.steps, completion_missing.terminals
+    );
+    if completion_missing.valid {
+        MirLowerFailClosed("missing success completion was accepted");
+    }
+
+    let tobject_crosswire: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(
+        tobject_crosswire.terminals.source_payload_type_names, 2, "ProblemA"
+    );
+    tobject_crosswire = MirIntentExecutionPlanFromFacts(
+        tobject_crosswire.steps, tobject_crosswire.terminals
+    );
+    if tobject_crosswire.valid {
+        MirLowerFailClosed("tobject payload type crosswire was accepted");
+    }
+
+    let stale: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
+    ArraySet(stale.terminals.result_variant_names, 2, "WorkflowFailedA");
+    if MirIntentExecutionPlanReady(stale) {
+        MirLowerFailClosed("post-admission intent execution mutation was accepted");
+    }
+
+    let absent: MirIntentExecutionPlan =
+        MirIntentExecutionPlanEmpty(true, false);
+    if !MirIntentExecutionPlanReady(absent) {
+        MirLowerFailClosed("canonical absent intent execution plan was rejected");
+    }
+    Log("intent execution fact contract: PASS");
+}

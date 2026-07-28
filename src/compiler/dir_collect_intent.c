@@ -124,6 +124,20 @@ append_intent_step(DIRIntentStep **items,
     return true;
 }
 
+static size_t
+intent_step_index_for_syntax_id(ASTNode **steps,
+                                size_t step_count,
+                                uint32_t syntax_id)
+{
+    if (syntax_id == 0)
+        return SIZE_MAX;
+    for (size_t i = 0; i < step_count; i++) {
+        if (ast_node_stable_id(steps[i]) == syntax_id)
+            return i;
+    }
+    return SIZE_MAX;
+}
+
 bool
 dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
@@ -136,6 +150,10 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
     size_t step_count;
     memset(&info, 0, sizeof(info));
     info.node_id = from_id;
+    info.has_typed_result = ast_intent_decl_has_typed_result(node);
+    info.return_type_name = info.has_typed_result
+        ? type_name(dir, ast_intent_decl_return_type(node))
+        : "Bool";
 
     involves_nodes = ast_intent_decl_involves(node, &involve_count);
     values = ast_intent_decl_values(node, &value_count);
@@ -198,6 +216,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         memset(&step, 0, sizeof(step));
         step.index = i;
         step.name = ast_intent_step_name(step_node);
+        step.syntax_id = ast_node_stable_id(step_node);
         step.ast = step_node;
         step.where_type_name = type_name(dir, ast_intent_step_where_type(step_node));
         {
@@ -208,10 +227,14 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             && ast_intent_step_using_expr(step_node)->type == AST_IDENTIFIER
             ? ast_identifier_name(ast_intent_step_using_expr(step_node))
             : NULL;
-        step.predecessor_step_name = (i > 0 && steps[i - 1] != NULL)
-            ? ast_intent_step_name(steps[i - 1])
-            : NULL;
-        step.predecessor_step_index = i > 0 ? (i - 1) : SIZE_MAX;
+        step.predecessor_step_name = info.has_typed_result
+            ? ast_intent_step_predecessor_name(step_node)
+            : (i > 0 ? ast_intent_step_name(steps[i - 1]) : NULL);
+        step.predecessor_step_syntax_id = info.has_typed_result
+            ? ast_intent_step_predecessor_syntax_id(step_node)
+            : (i > 0 ? ast_node_stable_id(steps[i - 1]) : 0);
+        step.predecessor_step_index = intent_step_index_for_syntax_id(
+            steps, step_count, step.predecessor_step_syntax_id);
         step.transfer_from_alias = ast_intent_step_transfer_from_alias(step_node);
         step.transfer_to_alias = ast_intent_step_transfer_to_alias(step_node);
         step.who_inherited_from_intent =
@@ -249,6 +272,30 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             ast_intent_step_outcome_binding_type_name(step_node);
         step.outcome_action_decl_syntax_id =
             ast_intent_step_outcome_action_decl_syntax_id(step_node);
+        step.success_branch.variant_name =
+            ast_intent_step_success_variant_name(step_node);
+        step.success_branch.variant_index =
+            ast_intent_step_success_variant_index(step_node);
+        step.success_branch.payload_name =
+            ast_intent_step_success_payload_name(step_node);
+        step.success_branch.payload_type_name =
+            ast_intent_step_success_payload_type_name(step_node);
+        step.success_branch.enum_type_name =
+            ast_intent_step_outcome_enum_type_name(step_node);
+        step.success_branch.enum_decl_syntax_id =
+            ast_intent_step_outcome_enum_decl_syntax_id(step_node);
+        step.failure_branch.variant_name =
+            ast_intent_step_failure_variant_name(step_node);
+        step.failure_branch.variant_index =
+            ast_intent_step_failure_variant_index(step_node);
+        step.failure_branch.payload_name =
+            ast_intent_step_failure_payload_name(step_node);
+        step.failure_branch.payload_type_name =
+            ast_intent_step_failure_payload_type_name(step_node);
+        step.failure_branch.enum_type_name =
+            ast_intent_step_outcome_enum_type_name(step_node);
+        step.failure_branch.enum_decl_syntax_id =
+            ast_intent_step_outcome_enum_decl_syntax_id(step_node);
         step.on_expr_count = ast_intent_step_on_expr_count(step_node);
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);
@@ -336,12 +383,42 @@ step_oom:
         goto oom;
     }
 
+    if (info.has_typed_result) {
+        info.success_terminal.step_name =
+            ast_intent_decl_success_terminal_step(node);
+        info.success_terminal.step_syntax_id =
+            ast_intent_decl_success_terminal_step_syntax_id(node);
+        info.success_terminal.step_index = intent_step_index_for_syntax_id(
+            steps, step_count, info.success_terminal.step_syntax_id);
+        info.success_terminal.expr =
+            ast_intent_decl_success_terminal_expr(node);
+        info.failure_terminal_count =
+            ast_intent_decl_failure_terminal_count(node);
+        info.failure_terminals = calloc(
+            info.failure_terminal_count, sizeof(DIRIntentTerminal));
+        if (info.failure_terminal_count > 0
+            && info.failure_terminals == NULL) {
+            goto oom;
+        }
+        for (size_t i = 0; i < info.failure_terminal_count; i++) {
+            DIRIntentTerminal *terminal = &info.failure_terminals[i];
+            terminal->step_name =
+                ast_intent_decl_failure_terminal_step(node, i);
+            terminal->step_syntax_id =
+                ast_intent_decl_failure_terminal_step_syntax_id(node, i);
+            terminal->step_index = intent_step_index_for_syntax_id(
+                steps, step_count, terminal->step_syntax_id);
+            terminal->expr = ast_intent_decl_failure_terminal_expr(node, i);
+        }
+    }
+
     if (!append_intent_info(&dir->intents, &dir->intent_count, &dir->intent_capacity, info))
         goto oom;
     return true;
 
 oom:
     free(info.participants);
+    free(info.failure_terminals);
     if (info.steps != NULL) {
         for (size_t i = 0; i < info.step_count; i++) {
             clear_intent_step_names(&info.steps[i]);

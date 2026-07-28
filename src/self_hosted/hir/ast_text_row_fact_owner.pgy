@@ -255,6 +255,10 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
     if kind == TypedAstKindFieldTag() {
         return input.aux_payload;
     }
+    if kind == TypedAstKindIntentTerminalSuccessTag() ||
+        kind == TypedAstKindIntentTerminalFailureTag() {
+        return input.aux_payload;
+    }
     if kind == TypedAstKindAssignStmtTag() {
         let target: String = CodegenAstTextNameFactFor(input);
         let open: Int = StringIndexOf(target, "[");

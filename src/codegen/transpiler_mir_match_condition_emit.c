@@ -199,6 +199,18 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                 binding_name = enum_bindings[b];
                 if (strcmp(binding_name, "_") == 0)
                     continue;
+                if (mir_instruction_match_guard(branch_inst) != NULL) {
+                    transpiler_mir_match_binding_name(case_stable_id,
+                                                      binding_name,
+                                                      emitted_name,
+                                                      sizeof(emitted_name));
+                    if (!transpiler_mir_set_payload_binding_name(
+                            ctx, ssa_map, binding_name, emitted_name)) {
+                        free(subject);
+                        return false;
+                    }
+                    continue;
+                }
                 if (enum_binding_type_names != NULL
                     && enum_binding_type_names[b] != NULL) {
                     if (!transpiler_require_type_name_c_type_copy(
@@ -399,47 +411,65 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                 for (size_t b = 0; b < enum_bind_count; b++) {
                     if (enum_bindings == NULL || enum_bindings[b] == NULL)
                         continue;
-                    char bt_buf[256];
-                    const char *bt_c_type = "int32_t";
-                    if (enum_binding_type_names != NULL
-                        && enum_binding_type_names[b] != NULL) {
-                        if (!transpiler_require_type_name_c_type_copy(
-                                ctx, enum_binding_type_names[b],
-                                "MIR enum match payload binding",
-                                bt_buf, sizeof(bt_buf))) {
+                    if (has_guard && strcmp(enum_bindings[b], "_") != 0) {
+                        char bt_buf[256];
+                        const char *bt_c_type = "int32_t";
+                        char emitted_name[256];
+                        char *assignment;
+                        char *joined;
+                        if (enum_binding_type_names != NULL
+                            && enum_binding_type_names[b] != NULL) {
+                            if (!transpiler_require_type_name_c_type_copy(
+                                    ctx, enum_binding_type_names[b],
+                                    "MIR enum match guard payload binding",
+                                    bt_buf, sizeof(bt_buf))) {
+                                free(subject);
+                                free(cond);
+                                free(guard);
+                                free(guard_payload_assign);
+                                return NULL;
+                            }
+                            bt_c_type = bt_buf;
+                        }
+                        transpiler_mir_match_binding_name(
+                            case_stable_id, enum_bindings[b], emitted_name,
+                            sizeof(emitted_name));
+                        write_indent_to(ctx->out, ctx->indent);
+                        codebuf_write(ctx->out, "%s %s;\n",
+                            bt_c_type, emitted_name);
+                        if (!transpiler_mir_set_payload_binding_name(
+                                ctx, ssa_map, enum_bindings[b], emitted_name)) {
                             free(subject);
                             free(cond);
                             free(guard);
+                            free(guard_payload_assign);
                             return NULL;
                         }
-                        bt_c_type = bt_buf;
-                    }
-                    /*
-                     * Wildcard `_` bindings are discarded — body never
-                     * references them. Rename per-(variant, slot) to avoid
-                     * C function-scope redefinition when multiple cases
-                     * use `_`. Non-wildcard names keep their identity so
-                     * the SSA-map-driven body resolution still works.
-                     */
-                    const char *emitted_name = enum_bindings[b];
-                    char wildcard_buf[64];
-                    if (emitted_name != NULL
-                        && strcmp(emitted_name, "_") == 0) {
-                        int wn = snprintf(wildcard_buf, sizeof(wildcard_buf),
-                            "_pgy_match_discard_%s_%zu",
-                            enum_vname, b);
-                        if (wn > 0
-                            && (size_t)wn < sizeof(wildcard_buf)) {
-                            emitted_name = wildcard_buf;
+                        assignment = strdup_fmt(
+                            "%s = (%s).%s._%zu",
+                            emitted_name, subject, enum_vname, b);
+                        if (assignment == NULL) {
+                            free(subject);
+                            free(cond);
+                            free(guard);
+                            free(guard_payload_assign);
+                            return NULL;
                         }
-                    }
-                    write_indent_to(ctx->out, ctx->indent);
-                    codebuf_write(ctx->out,
-                        "%s %s = (%s).%s._%zu;\n",
-                        bt_c_type, emitted_name, subject, enum_vname, b);
-                    if (emitted_name != enum_bindings[b]) {
-                        write_indent_to(ctx->out, ctx->indent);
-                        codebuf_write(ctx->out, "(void)%s;\n", emitted_name);
+                        if (guard_payload_assign == NULL) {
+                            guard_payload_assign = assignment;
+                        } else {
+                            joined = strdup_fmt("%s, %s",
+                                guard_payload_assign, assignment);
+                            free(guard_payload_assign);
+                            free(assignment);
+                            guard_payload_assign = joined;
+                            if (guard_payload_assign == NULL) {
+                                free(subject);
+                                free(cond);
+                                free(guard);
+                                return NULL;
+                            }
+                        }
                     }
                 }
                 cond = strdup_fmt("(%s).tag == %s_TAG_%s",

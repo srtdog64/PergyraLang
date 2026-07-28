@@ -137,6 +137,27 @@ typedef struct {
     size_t input_count;
 } ASTWorldStateData;
 
+/* A typed intent terminal maps one exact step branch into the intent's
+   declared return value.  The step name is source-owned; semantic analysis
+   seals it to the step stable ID before DIR/MIR may consume the mapping. */
+typedef struct {
+    char* step_name;
+    uint32_t step_syntax_id;
+    ASTNode* expr;
+} ASTIntentTerminalData;
+
+/* Step-local typed outcome pattern.  `variant_name` and `payload_name` are
+   parser facts.  Semantic resolution adds the compound stable variant seal:
+   enum declaration ID + enum-local variant index + exact variant name. */
+typedef struct {
+    char* variant_name;
+    char* payload_name;
+    char* enum_type_name;
+    uint32_t enum_decl_syntax_id;
+    size_t variant_index;
+    char* payload_type_name;
+} ASTIntentOutcomeBranchData;
+
 typedef struct {
     char* name;
     ASTNode** involves;
@@ -153,9 +174,14 @@ typedef struct {
     size_t step_capacity;
     bool is_concurrent;
     IntentRollbackPolicy rollback_policy;
+    ASTNode* return_type;       /* NULL keeps the legacy Bool intent ABI. */
     ASTNode* priority_expr;
     ASTNode* success_expr;
     ASTNode* failure_expr;
+    ASTIntentTerminalData success_terminal;
+    ASTIntentTerminalData* failure_terminals;
+    size_t failure_terminal_count;
+    size_t failure_terminal_capacity;
     StructuredComment* doc_comment;
     char** default_who_names;
     size_t default_who_count;
@@ -176,6 +202,8 @@ typedef struct {
 
 typedef struct {
     char* name;
+    char* predecessor_step_name;       /* explicit `step B after A` only */
+    uint32_t predecessor_step_syntax_id;
     ASTNode* where_type;
     ASTNode* using_expr;
     ASTNode* intent_expr;
@@ -197,6 +225,8 @@ typedef struct {
     uint32_t outcome_binding_column;
     char* outcome_binding_type_name;
     uint32_t outcome_action_decl_syntax_id;
+    ASTIntentOutcomeBranchData success_branch;
+    ASTIntentOutcomeBranchData failure_branch;
     ASTNode** compensate_exprs;
     size_t compensate_expr_count;
     size_t compensate_expr_capacity;
