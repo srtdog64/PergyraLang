@@ -2,6 +2,35 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 binding production self-C substitution checkpoint
+
+- `binding_slot_constructor_source_order`가 이제 production Pergyra-built
+  `CompileSourceToCVerified`를 통과한다. Direct source C와 admitted-MIR C는
+  byte-equal이며, self C/native C/native LLVM은 모두 `door=5`, `key=9`,
+  `view=5`를 출력한다.
+- Positive MIR의 stable field ID를 유지한 채 `door: binding_slot`을
+  `object_slot`으로, `key: binding_slot`을 `tobject_slot`으로 바꾸면 두 경우
+  모두 nominal constructor policy가 `expected: at_most_1`, `actual: 2`로
+  거부한다. C preamble/body는 출력되지 않는다.
+- 따라서 이 좁은 binding admission/runtime 입력 기능 slice만
+  `SUBSTITUTING`으로 승격했다. `object`, `tobject`, `zone`, `world`, `intent`의
+  compiler-organization 등급과 world/tobject query rung은 승격하지 않았다.
+- `semantic.nominal_field_kind`, `semantic.domain_runtime_assignment`,
+  `dir.domain_graph` registry row에는 실행·negative gate를 추가했지만, 남은
+  vessel/lifecycle/epoch/shared-plan 범위 때문에 세 family 모두 `BRIDGE`를 유지한다.
+- 다음 falsifier는 실제 fallible action/intent가 detached `tobject` receipt의
+  success와 failure payload를 반환하고 caller가 둘 다 소비하는 경로다. Receipt에서
+  graph authority나 source freshness를 복구하는 우회는 금지한다.
+- Hard self-host contract의 stale owner anchor도 현재 구조로 맞췄다. MIR fixture
+  inventory는 `driver_rung2_mir_manifest_owner.pgy`, body call environment는 shared
+  environment owner, graph traversal은 accessor가 소유한다. Collection mutation은
+  old generic simple-statement lane에서 제거했고 ArraySet secondary graph attach는
+  graph-owned lane 한 곳만 남겼다.
+- 현재 source로 fresh driver를 다시 빌드한 binding gate는 PASS다. Indexed
+  assignment direct/admitted C byte parity, runtime `2`, missing-target-graph negative도
+  PASS다. 다만 넓은 filtered producer-parity runner는 그 검사 전에 기존 oracle MIR
+  machine-layer admission 오류로 멈췄으므로 전체 runner GREEN은 주장하지 않는다.
+
 ## 2026-07-28 tobject publication + domain admission boundary checkpoint
 
 - `object`/`tobject`는 zone/relation/effect constructor input이 아니라

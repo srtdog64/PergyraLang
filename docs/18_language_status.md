@@ -30,6 +30,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, `for ...` header가 선언한 binding participant만 caller input으로 받는다.
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` 최소 표면까지 parser/semantic에 반영됐고, zone의 caller-admitted object endpoint는 별도 `binding slot`으로 선언한다.
+- `binding slot`의 production self-C 실행은 direct source와 admitted MIR에서 byte-equal하며 native C/LLVM과 `door=5`, `key=9`, `view=5` parity를 가진다. 유효 ID wrong-kind 변조도 partial C 전에 거부되어 이 좁은 input-feature slice만 `SUBSTITUTING`이다.
 - `relation`, `effect`, `zone`의 projection slot은 initializer를 받지 않는다. `object`는 `refresh`, `tobject`는 `publish`, target kind에 맡길 때는 `bind`가 source identity와 runtime materialization을 유일하게 소유한다.
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 고정하는 최소 표면까지 반영됨

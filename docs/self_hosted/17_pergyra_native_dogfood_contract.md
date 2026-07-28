@@ -75,6 +75,7 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | `struct` | `REACHABLE` supporting construct | production typed 계산에 사용되지만 독립 C-path 대체 등급은 아님 |
 | `class`, `object`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt는 생성되고 payload까지 소비된다. failure는 생성되지만 caller는 tag만 소비하고 payload는 버린다 |
+| 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
@@ -548,6 +549,26 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   positive single-step graph matches native at 14 nodes/30 edges and a two-step
   explicit-using mutation matches the native predecessor-edge graph. This
   remains `REACHABLE`, not `SUBSTITUTING`.
+
+## Completed binding admission/runtime execution rung objective card
+
+- Objective: make `binding slot` the only object-valued caller-admission role
+  without reopening `object`/`tobject` projection storage as constructor input.
+- Production entrypoint: Pergyra-built `driver_rung2_main.pgy` reaches
+  `CompileSourceToCVerified`; direct source C is byte-equal to C emitted from
+  the separately admitted self MIR.
+- Observed execution: self C, native C, and native LLVM all print `door=5`,
+  `key=9`, `view=5`. The projection assignment is exactly `view.hp <- door.hp`.
+- Negative ratchet: the positive source IDs remain valid while `door` is
+  changed from `binding_slot` to `object_slot` and `key` from `binding_slot` to
+  `tobject_slot`. Both are rejected by the nominal constructor policy as
+  `expected: at_most_1`, `actual: 2` before any C preamble or body is emitted.
+- Grade only this bounded input-feature slice `SUBSTITUTING`. The compiler
+  organization grades for `object`, `tobject`, `zone`, `world`, and `intent`,
+  and the separate world/tobject query rung, remain unchanged.
+- Next falsifier: return a detached tobject receipt from a real fallible
+  action/intent and consume both success and failure payloads without recovering
+  graph authority or source freshness from the receipt.
 
 ## Intent successful-path execution rung objective card
 

@@ -20,6 +20,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   meant both caller input and derived projection destination.
 - Migrated active grammar samples, examples, ABI fixtures, and backend/axis
   fixtures to the canonical slot-declaration plus projection-directive form.
+- The production self-host source-to-C entrypoint now executes the explicit
+  binding fixture with byte-identical direct/admitted MIR C and native C/LLVM
+  output parity. Valid-ID binding-to-object/tobject role mutations fail before
+  partial C emission.
+- Removed collection mutations from the legacy generic simple-statement lane.
+  ArraySet secondary graph attachment now has one graph-owned path, guarded by
+  the hard self-host contract.
 
 ### Self-Hosted Loop CFG Rung (2026-07-27)
 

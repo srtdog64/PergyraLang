@@ -8,9 +8,6 @@ import "../semantic/ast_expression_graph_fact_owner.pgy";
 func SelfMirSimpleStatementKind(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() ||
         kind == TypedAstKindBareCallStmtTag() ||
-        kind == TypedAstKindArrayPopStmtTag() ||
-        kind == TypedAstKindArraySetStmtTag() ||
-        kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindExitStmtTag() ||
         kind == TypedAstKindBindStmtTag();
 }

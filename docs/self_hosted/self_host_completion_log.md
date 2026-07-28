@@ -9340,6 +9340,23 @@ Released/default replacement remains 0%.
   `tobject_boundary_execution_owner.sh` and the language-word, declaration-field,
   object/action-boundary, and canonical VS Code grammar gates all passed against
   the regenerated owner projections.
+- The binding fixture now also reaches production `CompileSourceToCVerified`.
+  Direct source C and admitted-MIR C are byte-equal; the resulting self C and
+  native C/LLVM all execute `door=5`, `key=9`, `view=5`.
+- Two valid-ID mutations reclassify `door` as `object_slot` and `key` as
+  `tobject_slot`. Both fail in the nominal constructor policy with
+  `expected: at_most_1`, `actual: 2` before partial C. This closes only the
+  bounded binding admission/runtime slice as `SUBSTITUTING`; broader object,
+  tobject, zone, world, and intent compiler-organization grades remain unchanged.
+- A fresh driver rebuilt after the source changes repeated the complete binding
+  gate. The hard self-host contract now points at the current MIR manifest,
+  graph-accessor, and shared body-environment owners. The dead generic
+  collection-mutation lane was removed, leaving exactly one ArraySet secondary
+  graph attachment in the graph-owned collection path.
+- Focused indexed-assignment source/MIR C is byte-equal, executes `2`, and
+  rejects a removed target graph. The wider filtered producer-parity runner
+  stopped before this check at its existing oracle MIR machine-layer admission
+  error, so no full producer-matrix success is claimed.
 - This is `REACHABLE` for the self binding path, not a new `SUBSTITUTING`
   claim. The next executable rung is production general-self-C execution of
   the binding fixture plus valid-ID binding/projection kind mutations, followed

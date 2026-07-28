@@ -281,6 +281,12 @@ backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중
 - `binding slot`은 object-valued endpoint를 zone에 들이는 명시적 admission 역할이다.
   `object slot`을 admission과 projection에 동시에 쓰지 않으므로 constructor ABI가
   projection directive 유무에 따라 암묵적으로 바뀌지 않는다.
+- 이 좁은 binding admission/runtime slice는 production
+  `CompileSourceToCVerified`에서 direct-source C와 admitted-MIR C가 byte-equal하고,
+  self/native C/LLVM이 `door=5`, `key=9`, `view=5`를 동일하게 실행한다. 유효한 field
+  ID를 유지한 `binding_slot -> object_slot|tobject_slot` 변조도 constructor policy가
+  partial C 전에 거부하므로 이 slice만 `SUBSTITUTING`이다. 이것은 `tobject`나
+  compiler root 전체의 승격 근거가 아니다.
 - `object slot ... = ...`와 `tobject slot ... = ...`도 projection materialization
   경로가 아니다. 이 syntax는 한때 parser/semantic에서 받아들였지만 DIR/MIR과 두
   backend가 initializer를 소유하지 않아 실제 실행에서는 zero-filled storage로

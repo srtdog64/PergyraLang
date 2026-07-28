@@ -103,7 +103,7 @@ require_text "docs/self_hosted/10_hard_self_host_contract.md" \
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "PgyCompilerWorld"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" \
-    'PgyCompilerWorld` is the self-host compiler owner.'
+    'PgyCompilerWorld` is the self-host compiler orchestration owner.'
 require_text "src/self_hosted/compiler/world.pgy" \
     "world PgyCompilerWorld"
 require_text "src/self_hosted/compiler/world.pgy" \
@@ -237,11 +237,11 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CanonicalizeOracleMirJsonBridge("
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
     'args[0] == "--canonicalize-oracle-mir-json"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_remote/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_routine/main.pgy"'
 require_file "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
@@ -308,7 +308,7 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" \
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "AstExpressionNodeCallArgument()"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
-    "graphs.left_children[receiver_wrapper]"
+    "SemanticExpressionGraphLeftChild("
 forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]"
 forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
@@ -505,7 +505,7 @@ require_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
     "EmitAssign" 'LookupKindType(env, name, "cbind")'
 forbid_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
     "EmitAssign" "CompilerSymbolCBindingName(name)"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/owner_field_assignment.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
     '"uses":["balance.0"]'
@@ -521,19 +521,19 @@ require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy
 require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy" \
     "AstTreeArtifactBindExpressionOwnerKinds" \
     "UnwrapOption(provenance) == graph_text"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/class_method_self_access/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/action_outcome_dispatch/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/aggregate_param_loop_phi/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/and_or_mix_chain_branches/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/arith_grand_total/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/arithmetic_overflow_check/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/array_avg_class/main.pgy"'
 for array_mir_fixture in \
     array_avg_dev_chain \
@@ -606,12 +606,12 @@ for array_mir_fixture in \
     bool_to_string_concat \
     break_continue \
     bubble_sort_inline; do
-    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/array_elem_class_literal/main.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/array_elem_class_method/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     'expected_members=(P_V)'
@@ -630,6 +630,10 @@ require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_
 require_function_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "SemanticAstBodyExpressionEnvironmentSeed("
+require_function_text \
+    "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" \
+    "SemanticAstBodyExpressionEnvironmentSeed" \
     "SemanticAstIterationSeedVisibleBindings("
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "EmitLet" 'LookupKindType(env, type_name, "enum") != ""'
@@ -652,5 +656,12 @@ array_set_index_attach_count="$(grep -Fc -- \
     "$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy")"
 [[ "$array_set_index_attach_count" -eq 1 ]] ||
     fail "ArraySet index graph must be attached exactly once"
+for collection_kind in \
+    "TypedAstKindArrayPopStmtTag()" \
+    "TypedAstKindArrayPushStmtTag()" \
+    "TypedAstKindArraySetStmtTag()"; do
+    forbid_function_text "src/self_hosted/mir/routine_statement_owner.pgy" \
+        "SelfMirSimpleStatementKind" "$collection_kind"
+done
 
 echo "[self-host-hard-contract] hard substitution contract is wired"

@@ -8,7 +8,7 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - tobject publication and domain admission boundary
 
-- Landing parent: `5f6b764d381350bcee6cae21e3a9d10df3d83656` on `main`, aligned
+- Landing parent: `553af9793433798a8b7c6bdea3badc80b1d345a6` on `main`, aligned
   with `origin/main` at the start of this slice. The landing commit contains
   this handoff; use `git rev-parse HEAD` and `git status --short --branch` after
   landing for the exact revision and dirty state.
@@ -51,11 +51,20 @@ owner, and the named executable gate.
   - a clean native `make compiler` rebuild completed successfully, then
     `tobject_boundary_execution_owner.sh` passed with the rebuilt `pgy` and the
     current Pergyra-built self driver;
+  - production `CompileSourceToCVerified` emits byte-equal C from the binding
+    source and its admitted MIR, and that C executes `door=5`, `key=9`,
+    `view=5`, exactly matching native C and LLVM;
+  - valid positive field IDs remain unchanged while `door` is mutated from
+    `binding_slot` to `object_slot` and `key` from `binding_slot` to
+    `tobject_slot`; both mutations fail in the nominal constructor policy with
+    `expected: at_most_1`, `actual: 2` before any partial C artifact;
   - `language_keyword_registry_smoke.sh`,
     `mir_decl_field_kind_vocabulary_smoke.sh`,
     `object_action_boundary_contract_smoke.sh`, and
     `vscode_language_graph_smoke.sh` all passed after regenerating their owned
     projections;
+  - a fresh Pergyra-built driver from the current source repeated the complete
+    binding production gate after the collection-lane cleanup;
   - self MIR for `intent_callable_execution` is 46,384 bytes and for
     `binding_slot_constructor_source_order` is 10,394 bytes; the latter carries
     exact `binding_slot` identities and projection source IDs;
@@ -66,17 +75,29 @@ owner, and the named executable gate.
     `door=5`, `key=9`, `view=5` on both backends;
   - the keyword registry now contains 145 words, including contextual
     `binding`, with one generated self/LSP/TextMate projection.
-- Grade this `binding slot` source-to-self-MIR path `REACHABLE`, not
-  `SUBSTITUTING`: self general C execution of the binding positive is not yet
-  the production replacement witness. Existing explicit domain-assignment
-  execution remains independently `SUBSTITUTING`; this boundary repair does
-  not inflate that grade.
-- Next executable falsifier: run `binding_slot_constructor_source_order`
-  through production `CompileSourceToCVerified`, execute the resulting general
-  self C with the exact native output, and reject a valid-ID mutation that
-  substitutes an object/tobject projection slot for either admitted binding.
-  After that, carry a detached tobject receipt as the explicit outcome of a
-  real fallible action/intent without reopening its source graph.
+- The hard self-host contract was realigned with current owners: the MIR
+  fixture inventory belongs to `driver_rung2_mir_manifest_owner.pgy`, resource
+  receiver traversal uses the expression-graph accessor, and body call-target
+  resolution consumes the shared expression-environment owner. Collection
+  mutations were removed from `SelfMirSimpleStatementKind`; ArraySet secondary
+  graph attachment now exists exactly once in the graph-owned collection lane.
+- Focused current-source indexed-assignment evidence is green: direct-source C
+  and admitted-MIR C are byte-equal, runtime prints `2`, and removing the target
+  graph fails with `MIR instruction expression graph is missing or invalid`.
+  The broader filtered `driver_rung2_body_parity.sh` run was not green: its
+  oracle canonicalization stopped earlier at `MIR machine-layer facts are
+  missing or invalid`. Do not report that broader runner as executed past this
+  pre-existing admission blocker.
+- Grade only the bounded binding admission/runtime slice `SUBSTITUTING`:
+  production self source -> admitted MIR -> general C now replaces the C-owned
+  oracle for this fixture, has byte-equal direct/MIR artifacts, exact native
+  C/LLVM output parity, and valid-ID negative ratchets. Do not promote the
+  compiler-organization grade of `object`, `tobject`, `zone`, `world`, or
+  `intent`; their independently recorded grades remain unchanged.
+- Next executable falsifier: carry a detached tobject receipt as the explicit
+  outcome of a real fallible action/intent, consume both the success and
+  failure payload at the caller, and reject any attempt to recover authority or
+  source freshness from that receipt.
 - The stale tracked `testall_run.txt` transcript was removed and is ignored;
   generated builders remain under `.tmp/`.
 - Preserve and do not stage the three concurrent parity edits
