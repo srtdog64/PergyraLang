@@ -1,0 +1,51 @@
+// Callable-specific receiver carriage derived from one exact declaration row.
+
+import "declaration_fact_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+
+struct SelfMirRoutineReceiverFact {
+    ok: Bool;
+    owner: String;
+    routine_kind: String;
+    carriage: String;
+}
+
+func SelfMirRoutineReceiverForOwner(
+    declarations: SelfMirDeclarationRows,
+    owner_name: String
+) -> SelfMirRoutineReceiverFact {
+    if owner_name == "" {
+        return SelfMirRoutineReceiverFact(
+            true, "", "function", CallableReceiverCarriageNone()
+        );
+    }
+    let match_count: Int = 0;
+    let match_index: Int = -1;
+    let i: Int = 0;
+    while i < ArrayLength(declarations.names) {
+        if declarations.names[i] == owner_name {
+            match_count = match_count + 1;
+            match_index = i;
+        }
+        i = i + 1;
+    }
+    if match_count != 1 || match_index < 0 {
+        return SelfMirRoutineReceiverFact(false, owner_name, "", "");
+    }
+    if declarations.uses_pointer_self[match_index] == 1 {
+        return SelfMirRoutineReceiverFact(
+            true, owner_name, "method",
+            CallableReceiverCarriageMutableIdentity()
+        );
+    }
+    if declarations.uses_pointer_self[match_index] == 0 {
+        return SelfMirRoutineReceiverFact(
+            true, owner_name, "method", CallableReceiverCarriageValue()
+        );
+    }
+    return SelfMirRoutineReceiverFact(false, owner_name, "", "");
+}
+
+func SelfMirReceiverCarriageNameKnown(name: String) -> Bool {
+    return CallableReceiverCarriageKnown(name);
+}

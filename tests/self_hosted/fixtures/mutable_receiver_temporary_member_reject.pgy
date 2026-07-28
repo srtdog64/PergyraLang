@@ -1,0 +1,13 @@
+zone Cell {
+    func Touch(self) -> Void { return; }
+}
+
+class Habitat {
+    let cell: Cell;
+}
+
+func MakeHabitat(seed: Int) -> Habitat { return Habitat(Cell()); }
+
+func Main() -> Void {
+    MakeHabitat(0).cell.Touch();
+}

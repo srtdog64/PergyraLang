@@ -440,9 +440,8 @@ func SelfMirJsonRoutine(
     let fields3: Array<String> = [
         JsonEmitFieldString("name", rows.names[routine_index]),
         JsonEmitFieldString("kind", rows.kinds[routine_index]),
-        JsonEmitFieldNumber(
-            "source_syntax_id", ToString(rows.node_ids[routine_index])
-        )
+        JsonEmitFieldNumber("source_syntax_id", ToString(rows.node_ids[routine_index])),
+        JsonEmitFieldString("receiver_carriage", rows.receiver_carriages[routine_index])
     ];
     if rows.owners[routine_index] != "" {
         ArrayPush(fields3, JsonEmitFieldString("owner", rows.owners[routine_index]));

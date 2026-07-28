@@ -1,0 +1,41 @@
+// One self-host semantic policy for callable receiver carriage vocabulary.
+
+func CallableReceiverCarriageNone() -> String { return "none"; }
+func CallableReceiverCarriageValue() -> String { return "value"; }
+func CallableReceiverCarriageMutableIdentity() -> String {
+    return "mutable-identity";
+}
+
+func CallableReceiverCarriageKnown(carriage: String) -> Bool {
+    return carriage == CallableReceiverCarriageNone() ||
+        carriage == CallableReceiverCarriageValue() ||
+        carriage == CallableReceiverCarriageMutableIdentity();
+}
+
+func CallableReceiverNominalKindKnown(nominal_kind: String) -> Bool {
+    return nominal_kind == "class" || nominal_kind == "struct" ||
+        nominal_kind == "subject" || nominal_kind == "object" ||
+        nominal_kind == "tobject" || nominal_kind == "vessel" ||
+        nominal_kind == "zone" || nominal_kind == "world" ||
+        nominal_kind == "party" || nominal_kind == "roster" ||
+        nominal_kind == "effect" || nominal_kind == "relation" ||
+        nominal_kind == "role" || nominal_kind == "ability" ||
+        nominal_kind == "enum";
+}
+
+func CallableReceiverNominalKindUsesMutableIdentity(
+    nominal_kind: String
+) -> Bool {
+    return nominal_kind == "subject" || nominal_kind == "vessel" ||
+        nominal_kind == "party" || nominal_kind == "roster" ||
+        nominal_kind == "world" || nominal_kind == "relation" ||
+        nominal_kind == "effect" || nominal_kind == "role" ||
+        nominal_kind == "zone";
+}
+
+func CallableReceiverNominalKindUsesValue(nominal_kind: String) -> Bool {
+    // ability is known but owns compile-time contracts, not runtime receivers.
+    return nominal_kind == "struct" || nominal_kind == "class" ||
+        nominal_kind == "object" || nominal_kind == "tobject" ||
+        nominal_kind == "enum";
+}

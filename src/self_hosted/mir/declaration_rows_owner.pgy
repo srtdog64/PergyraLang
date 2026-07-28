@@ -165,6 +165,7 @@ func SelfMirDeclarationsFromAnalysis(
     let nominal_kinds: Array<String> = rows.nominal_kinds;
     let names: Array<String> = rows.names;
     let target_types: Array<String> = rows.target_types;
+    let uses_pointer_self: Array<Int> = rows.uses_pointer_self;
     let field_starts: Array<Int> = rows.field_starts;
     let field_counts: Array<Int> = rows.field_counts;
     let field_names: Array<String> = rows.field_names;
@@ -229,6 +230,12 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(names, analysis.constructors.names[i]);
         ArrayPush(target_types, "");
+        ArrayPush(
+            uses_pointer_self,
+            SelfMirDeclarationUsesPointerSelf(
+                analysis.constructors.nominal_kinds[i]
+            )
+        );
         ArrayPush(generic_starts, ArrayLength(generic_names));
         ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
@@ -338,6 +345,9 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, "role");
         ArrayPush(names, role_name);
         ArrayPush(target_types, target_type);
+        ArrayPush(
+            uses_pointer_self, SelfMirDeclarationUsesPointerSelf("role")
+        );
         ArrayPush(generic_starts, ArrayLength(generic_names));
         ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
@@ -438,6 +448,9 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, "ability");
         ArrayPush(names, ability_name);
         ArrayPush(target_types, "");
+        ArrayPush(
+            uses_pointer_self, SelfMirDeclarationUsesPointerSelf("ability")
+        );
         ArrayPush(generic_starts, ArrayLength(generic_names));
         let ability_generic_count: Int =
             analysis.roles.ability_generic_counts[ability_i];
@@ -522,6 +535,9 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(nominal_kinds, "enum");
         ArrayPush(names, enum_name);
         ArrayPush(target_types, "");
+        ArrayPush(
+            uses_pointer_self, SelfMirDeclarationUsesPointerSelf("enum")
+        );
         ArrayPush(generic_starts, ArrayLength(generic_names));
         ArrayPush(generic_counts, 0);
         ArrayPush(field_starts, ArrayLength(field_names));
@@ -573,7 +589,8 @@ func SelfMirDeclarationsFromAnalysis(
         enum_i = enum_i + 1;
     }
     return SelfMirDeclarationRows(
-        kinds, nominal_kinds, names, target_types, field_starts, field_counts,
+        kinds, nominal_kinds, names, target_types, uses_pointer_self,
+        field_starts, field_counts,
         field_names, field_kinds, field_types, field_source_syntax_ids,
         method_starts, method_counts,
         method_names, method_returns,

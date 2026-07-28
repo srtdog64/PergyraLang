@@ -62,6 +62,7 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     if !SelfMirDeclarationParallelStringCount(count, rows.kinds) ||
         !SelfMirDeclarationParallelStringCount(count, rows.nominal_kinds) ||
         !SelfMirDeclarationParallelStringCount(count, rows.target_types) ||
+        !SelfMirDeclarationParallelCount(count, rows.uses_pointer_self) ||
         !SelfMirDeclarationParallelCount(count, rows.field_starts) ||
         !SelfMirDeclarationParallelCount(count, rows.field_counts) ||
         !SelfMirDeclarationParallelCount(count, rows.method_starts) ||
@@ -133,6 +134,9 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     while i < count {
         if rows.names[i] == "" || rows.kinds[i] == "" ||
             rows.nominal_kinds[i] == "" ||
+            !CallableReceiverNominalKindKnown(rows.nominal_kinds[i]) ||
+            rows.uses_pointer_self[i] !=
+                SelfMirDeclarationUsesPointerSelf(rows.nominal_kinds[i]) ||
             (rows.kinds[i] == "role" && rows.target_types[i] == "") ||
             rows.field_starts[i] != field_cursor || rows.field_counts[i] < 0 ||
             rows.method_starts[i] != method_cursor ||

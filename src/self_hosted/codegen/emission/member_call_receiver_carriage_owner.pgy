@@ -1,0 +1,39 @@
+// Stable-address and fail-closed C ABI decision for hosted member receivers.
+
+import "../../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenMemberCallReceiverArgument(
+    call_symbol: String,
+    receiver_value: String,
+    stable_addressable: Bool,
+    env: CodegenTypeEnv
+) -> String {
+    if call_symbol == "" || receiver_value == "" ||
+        !LookupKindTypeRowPresent(env, call_symbol, "rc") {
+        Die("member-call receiver carriage fact is missing");
+    }
+    let carriage: String = LookupKindType(env, call_symbol, "rc");
+    let role_erased: Bool = LookupKindType(env, call_symbol, "rce") == "1";
+    if role_erased {
+        if carriage != CallableReceiverCarriageMutableIdentity() {
+            Die("role receiver carriage fact is mutated");
+        }
+        if !stable_addressable {
+            Die("role-erased member call requires a stable receiver address");
+        }
+        return Concat("&(", Concat(receiver_value, ")"));
+    }
+    if carriage == CallableReceiverCarriageMutableIdentity() {
+        if !stable_addressable {
+            Die("mutable-identity member call requires a stable receiver address");
+        }
+        return Concat("&(", Concat(receiver_value, ")"));
+    }
+    if carriage == CallableReceiverCarriageValue() {
+        return receiver_value;
+    }
+    Die("member-call receiver carriage fact is invalid");
+    return "";
+}

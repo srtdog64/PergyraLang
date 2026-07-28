@@ -255,9 +255,10 @@ backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중
   실패 의미는 C와 달리 NULL/error다.
 - C/LLVM effect binder는 첫 bindable slot, relation binder는 0/1번째 slot을
   destination role로 사용한다.
-- native in-memory MIR의 `uses_pointer_self`는 JSON wire에서 사라지고, self-host
-  general C는 zone method를 `BattleZone_Show(BattleZone self)`처럼 by-value로
-  내릴 수 있다.
+- native/self MIR은 callable별 `receiver_carriage`를 JSON wire에 필수로
+  운반하고 self-host general C는 zone method를 `BattleZone *self`로 내린다.
+  남은 결함은 native C/LLVM과 일반 parameter ABI가 callable 전용 fact 대신
+  더 넓은 `uses_pointer_self` compatibility policy를 계속 재사용한다는 점이다.
 - zone constructor와 self-host constructor projection은 숨은 layer storage의
   zero-init을 실제 materialization/sync와 구분하지 못한다.
 
@@ -273,10 +274,10 @@ source/target destination, receiver mode, materialization/sync operation 중 하
 ### 구현 근거
 
 - parser는 여섯 nominal을 서로 다른 `NOMINAL_DECL_*`으로 만든다.
-- MIR declaration header는 `subject`와 `vessel`의 hosted receiver가
-  `uses_pointer_self`임을 운반한다. 현재 C/LLVM 일반 parameter ABI가 이 receiver
-  fact를 재사용하는 것은 열린 결함이며 별도 parameter-carriage owner로
-  분리해야 한다.
+- MIR declaration header의 hosted self policy에서 callable별
+  `receiver_carriage`가 파생되어 native/self JSON과 machine admission을 통과한다.
+  현재 C/LLVM 일반 parameter ABI가 더 넓은 `uses_pointer_self` fact를
+  재사용하는 것은 열린 결함이며 별도 parameter-carriage owner로 분리해야 한다.
 - semantic은 subject의 plain copy/rebind/value return을 거부하고 기본
   parameter를 reference semantics로 취급한다.
 - semantic은 `object`와 `tobject` field assignment를 각각 refresh/publish
@@ -737,9 +738,13 @@ identity를 함께 운반하는 별도 self parser/DIR closure로 닫아야 한�
 - plan/runtime owner는 zone storage `.poison`/`.trust` materialization, transition
   cause, ready/dirty/epoch, final execution pass limit, method-entry sync를 아직
   소유하지 않는다.
-- self-host general C는 zone hosted receiver를 by-value로 방출한다. Receiver
-  carriage와 일반 parameter carriage를 별도 fact로 닫기 전에는 method-local
-  출력이 우연히 맞아도 persistent zone identity parity가 아니다.
+- callable receiver carriage는 이제 self MIR에서 `none | value |
+  mutable-identity`로 필수 운반되고, machine admission이 exact callable 및
+  declaration identity와 함께 검증한다. General self C의 zone method는
+  `BattleZone *self`, named stable binding 호출은 `&(battle)`로 방출된다.
+  Missing/unknown/value-zone/foreign-owner/temporary-receiver 변조는 output 전에
+  거부된다. 다만 일반 parameter carriage와 native C/LLVM receiver 소비자는
+  아직 더 넓은 `uses_pointer_self` compatibility policy를 공유한다.
 - 따라서 constructor는 caller가 subject/object/tobject/binding input만 넘기게
   하되, 누락된 layer storage를 generic compound-literal zero-fill로 성공 처리하면
   안 된다. Native MIR/JSON graft도 금지한다.
@@ -892,20 +897,23 @@ subject CompilerExecution {
 4. `class` hosted func는 value-self이므로 내부 mutation 결과가 호출자에 남지
    않는다. mutator처럼 보이는 이름은 피하고 새 class 값을 반환하는 형태를
    쓴다.
-5. vessel의 receiver carriage와 parameter carriage가 한 predicate로 합쳐져 있다.
-   `func Touch(state: HealthState) { state.Advance(); }` probe는 initial 7을 C와
-   LLVM 모두 8로 바꿨다. MIR default carriage는 value인데 backend ABI는 mutable
-   pointer이며 `ref vessel`도 C에서 const 경계보다 pointer-self 분기가 먼저다.
-   수정 전에는 vessel을 free-function default/ref 파라미터로 넘기지 않고 subject
-   owner 안의 stable storage에서만 호출한다.
+5. self MIR -> general C의 callable receiver carriage는 별도 fact로 분리됐지만,
+   native C/LLVM의 receiver와 일반 parameter carriage는 아직 한
+   `uses_pointer_self` predicate를 공유한다. `func Touch(state: HealthState) {
+   state.Advance(); }` probe는 initial 7을 C와 LLVM 모두 8로 바꿨고 `ref vessel`도
+   C에서 const 경계보다 pointer-self 분기가 먼저다. 따라서 callable closure를
+   일반 parameter ABI closure로 오인하지 않으며, parameter-carriage owner와
+   C/LLVM 소비자 migration 전에는 vessel을 free-function default/ref 파라미터로
+   넘기지 않고 subject owner 안의 stable storage에서만 호출한다.
 6. production self-host import graph에는 `PgyCompilerWorld`와 19개 zone을 포함한
    domain 표면이 들어와 있다. 그러나 실제 direct-MIR call chain이 통과하는
    Pergyra-native 경계는 world 1개, direct-MIR zone 1개, subject/action 1개다.
    import-reachable 선언 수나 fixture 수를 self-host substitution으로 세지 않는다.
-7. `MakeSubject().Action()` 같은 temporary subject receiver는 C에서
-   address-of-rvalue가 되고 LLVM에서는 임시 alloca로 보존될 가능성이 있다.
-   두 backend가 다른 lifetime을 만들지 않도록 semantic에서 stable subject
-   binding만 receiver로 허용하는 negative가 필요하다.
+7. `MakeSubject().Action()` 같은 temporary subject receiver는 backend마다 다른
+   lifetime을 만들 수 있다. Self general C는 이제 node-kind를 재추론하지 않고
+   semantic place fact를 소비해 임시 member receiver를 C output 전에 거부한다.
+   Native C/LLVM도 같은 stable-binding owner를 직접 소비하게 만들기 전까지
+   전체 backend closure로 세지 않는다.
 8. `MIRDeclMethod`와 native/self `pgy.mir.v1`은 action identity, `requires`,
    `within`, `causes`, `authorized by`, declared caps/effects를 한 method contract로
    운반한다. 그러나 zone authority ability와 호출별 participant binding은
@@ -982,6 +990,15 @@ subject CompilerExecution {
     수 있다. `subject-owned vessel`은 storage spelling이 아니라 별도 field-role
     fact여야 하며, native/self negative와 carriage fixture가 생기기 전까지 이
     경계를 구현 완료로 세지 않는다.
+26. Role-erased method ABI는 concrete target이 mutable identity이면 `_raw_self`를
+    값으로 복사하지 않고 `T *self`로 유지해야 하며 direct call도 안정된
+    receiver의 주소를 전달해야 한다. 이 local ABI owner는 별도 gate로 고정하지만,
+    production direct role call은 native semantic의 `Player.TakeDamage` 해석 부재와
+    role method canonical source ID `13` 대 `6` 불일치 때문에 아직 unreachable이다.
+    Role body의 `return self.health`도 self semantic statement-type fact가
+    unresolved라 C emit 전에 실패한다. Synthetic call이나 local emitter gate를
+    `SUBSTITUTING`으로 세지 말고 role callable identity epoch, production
+    call-target resolution, role-body field type fact를 먼저 닫아야 한다.
 
 다음 semantic closure의 첫 falsifying fixtures는 `tobject` hosted method,
 `object`/`tobject` bare·nested-field mutation, class/subject의 bare/`self.` mutability

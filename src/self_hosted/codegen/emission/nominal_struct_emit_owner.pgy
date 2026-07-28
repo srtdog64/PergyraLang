@@ -25,6 +25,7 @@ func CollectStructsSelected(
         }
         let struct_env_rows: Array<String> = [];
         let sname: String = CodegenSemanticNominalNameOrDie(facts, i);
+        let nominal_kind: String = CodegenSemanticNominalKindOrDie(facts, i);
         let c_sname: String = AbiLayoutCStructTypeName(sname);
         let fields_c: Array<String> = [];
         let field_names: Array<String> = [];
@@ -104,6 +105,9 @@ func CollectStructsSelected(
         }
         ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
         ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+        ArrayPush(struct_env_rows, Concat(
+            sname, Concat("=nk:", Concat(nominal_kind, "|"))
+        ));
         ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
         ArrayPush(struct_env_rows, Concat(
             sname, Concat("=constructor_fields:", Concat(

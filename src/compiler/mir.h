@@ -171,6 +171,8 @@ MIRScopeKind mir_routine_kind(const MIRRoutine *routine);
 const char *mir_routine_name(const MIRRoutine *routine);
 const char *mir_routine_owner_name(const MIRRoutine *routine);
 ASTNodeType mir_routine_owner_ast_type(const MIRRoutine *routine);
+MIRReceiverCarriage mir_routine_receiver_carriage(const MIRRoutine *routine);
+const char *mir_receiver_carriage_name(MIRReceiverCarriage carriage);
 bool        mir_routine_has_signature(const MIRRoutine *routine);
 size_t      mir_routine_generic_param_count(const MIRRoutine *routine);
 const char *mir_routine_generic_param_name(const MIRRoutine *routine,

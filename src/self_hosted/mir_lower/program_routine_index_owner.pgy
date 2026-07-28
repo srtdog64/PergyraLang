@@ -1,10 +1,9 @@
-// MIR program routine inventory index.
-//
-// Captured once from the pgy.mir.v1 routines array. Declaration and top-level
-// lowering consume the same identity rows instead of rescanning JSON to locate
-// owner-qualified methods.
+// One pgy.mir.v1 routine/block/instruction inventory shared by declaration,
+// machine admission, and reconstruction consumers.
 
 import "json_fact_read.pgy";
+import "program_declaration_index_owner.pgy";
+import "program_routine_receiver_identity_owner.pgy";
 
 func MirProgramRoutineArrayCursorAtEnd(
     json: String,
@@ -145,11 +144,16 @@ struct MirProgramRoutineIndex {
     let valid: Bool;
     let source_json: String;
     let source_length: Int;
+    let declarations: MirProgramDeclarationIndex;
     let starts: Array<Int>;
     let ends: Array<Int>;
     let kinds: Array<String>;
     let owners: Array<String>;
     let names: Array<String>;
+    let source_syntax_ids: Array<String>;
+    let receiver_carriages: Array<String>;
+    let owner_nominal_kinds: Array<String>;
+    let owner_declaration_rows: Array<Int>;
     let routine_block_starts: Array<Int>;
     let routine_block_counts: Array<Int>;
     let block_starts: Array<Int>;
@@ -175,6 +179,10 @@ func BuildMirProgramRoutineIndexFromTable(
     let kinds: Array<String> = [];
     let owners: Array<String> = [];
     let names: Array<String> = [];
+    let source_syntax_ids: Array<String> = [];
+    let receiver_carriages: Array<String> = [];
+    let owner_nominal_kinds: Array<String> = [];
+    let owner_declaration_rows: Array<Int> = [];
     let routine_block_starts: Array<Int> = [];
     let routine_block_counts: Array<Int> = [];
     let block_starts: Array<Int> = [];
@@ -189,11 +197,16 @@ func BuildMirProgramRoutineIndexFromTable(
     let instruction_machine_contact_ends: Array<Int> = [];
     let instruction_machine_layer_starts: Array<Int> = [];
     let instruction_machine_layer_ends: Array<Int> = [];
-    let valid: Bool = true;
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(json);
+    let valid: Bool =
+        declarations.valid && declarations.field_identities.valid;
     if !JsonArrayObjectFactTableReady(routines) {
         return MirProgramRoutineIndex(
-            false, json, StringLength(json),
+            false, json, StringLength(json), declarations,
             starts, ends, kinds, owners, names,
+            source_syntax_ids, receiver_carriages, owner_nominal_kinds,
+            owner_declaration_rows,
             routine_block_starts, routine_block_counts,
             block_starts, block_ends,
             block_instruction_starts, block_instruction_counts,
@@ -217,12 +230,31 @@ func BuildMirProgramRoutineIndexFromTable(
         let routine_name: String = MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "name"
         );
-        if routine_kind == "" || routine_name == "" { valid = false; }
-        ArrayPush(kinds, routine_kind);
-        ArrayPush(owners, MirObjectStringFactAtBounds(
+        let owner: String = MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "owner"
-        ));
+        );
+        let source_syntax_id: String = MirObjectNumberFactAtBounds(
+            json, bounds[0], bounds[1], "source_syntax_id"
+        );
+        let receiver_carriage: String = MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "receiver_carriage"
+        );
+        let receiver_identity: MirProgramRoutineReceiverIdentityCapture =
+            CaptureMirProgramRoutineReceiverIdentity(
+                declarations, routine_kind, owner, source_syntax_id,
+                receiver_carriage, source_syntax_ids);
+        if routine_kind == "" || routine_name == "" ||
+            !receiver_identity.valid {
+            valid = false;
+        }
+        ArrayPush(kinds, routine_kind);
+        ArrayPush(owners, owner);
         ArrayPush(names, routine_name);
+        ArrayPush(source_syntax_ids, receiver_identity.source_syntax_id);
+        ArrayPush(receiver_carriages, receiver_identity.receiver_carriage);
+        ArrayPush(owner_nominal_kinds, receiver_identity.owner_nominal_kind);
+        ArrayPush(owner_declaration_rows,
+            receiver_identity.owner_declaration_row);
         ArrayPush(routine_block_starts, ArrayLength(block_starts));
         let routine_block_count: Int = 0;
         let blocks_bounds: Array<Int> = [0, 0];
@@ -307,8 +339,10 @@ func BuildMirProgramRoutineIndexFromTable(
         valid = false;
     }
     return MirProgramRoutineIndex(
-        valid, json, StringLength(json),
+        valid, json, StringLength(json), declarations,
         starts, ends, kinds, owners, names,
+        source_syntax_ids, receiver_carriages, owner_nominal_kinds,
+        owner_declaration_rows,
         routine_block_starts, routine_block_counts,
         block_starts, block_ends,
         block_instruction_starts, block_instruction_counts,
@@ -340,6 +374,10 @@ func MirProgramRoutineIndexRowReady(
         routine_count != ArrayLength(index.kinds) ||
         routine_count != ArrayLength(index.owners) ||
         routine_count != ArrayLength(index.names) ||
+        routine_count != ArrayLength(index.source_syntax_ids) ||
+        routine_count != ArrayLength(index.receiver_carriages) ||
+        routine_count != ArrayLength(index.owner_nominal_kinds) ||
+        routine_count != ArrayLength(index.owner_declaration_rows) ||
         routine_count != ArrayLength(index.routine_block_starts) ||
         routine_count != ArrayLength(index.routine_block_counts) {
         return false;
@@ -349,6 +387,12 @@ func MirProgramRoutineIndexRowReady(
     return index.starts[row] >= 0 && index.ends[row] > index.starts[row] &&
         index.ends[row] <= index.source_length &&
         index.kinds[row] != "" && index.names[row] != "" &&
+        MirProgramRoutineReceiverIdentityRowReady(
+            index.declarations, index.kinds[row], index.owners[row],
+            index.source_syntax_ids[row], index.receiver_carriages[row],
+            index.owner_nominal_kinds[row], index.owner_declaration_rows[row],
+            index.source_syntax_ids, row
+        ) &&
         block_start >= 0 && block_count >= 0 &&
         block_start + block_count <= ArrayLength(index.block_starts);
 }
@@ -433,6 +477,10 @@ func MirProgramRoutineIndexStructureReady(
     }
     if routine_count != ArrayLength(index.owners) ||
         routine_count != ArrayLength(index.names) ||
+        routine_count != ArrayLength(index.source_syntax_ids) ||
+        routine_count != ArrayLength(index.receiver_carriages) ||
+        routine_count != ArrayLength(index.owner_nominal_kinds) ||
+        routine_count != ArrayLength(index.owner_declaration_rows) ||
         routine_count != ArrayLength(index.routine_block_starts) ||
         routine_count != ArrayLength(index.routine_block_counts) ||
         block_count != ArrayLength(index.block_ends) ||
@@ -459,6 +507,15 @@ func MirProgramRoutineIndexStructureReady(
             index.ends[routine_row] > index.source_length ||
             index.ends[routine_row] <= index.starts[routine_row] ||
             index.kinds[routine_row] == "" || index.names[routine_row] == "" ||
+            !MirProgramRoutineReceiverIdentityRowReady(
+                index.declarations, index.kinds[routine_row],
+                index.owners[routine_row],
+                index.source_syntax_ids[routine_row],
+                index.receiver_carriages[routine_row],
+                index.owner_nominal_kinds[routine_row],
+                index.owner_declaration_rows[routine_row],
+                index.source_syntax_ids, routine_row
+            ) ||
             index.routine_block_starts[routine_row] != expected_block ||
             count < 0 || expected_block + count > block_count {
             return false;

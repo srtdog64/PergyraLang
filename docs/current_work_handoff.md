@@ -6,7 +6,92 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - domain runtime assignment boundary audit
+## Current resume checkpoint - callable receiver carriage substitution
+
+- The final parent for this executable slice is `6837a34d` on `main`. During
+  the slice, the concurrent language-word task landed `206e0697`, `8d4c34d4`,
+  and `6837a34d` above the original `ca01b7c0` base; this receiver commit
+  preserves those commits and updates the SoT keyword evidence from 145 to 144 rows. The
+  landing commit contains this handoff; after landing, use `git rev-parse HEAD`
+  for the exact revision.
+- Objective card:
+  - objective: replace self general C's by-value identity receiver path with one
+    callable-owned `none | value | mutable-identity` fact carried from native or
+    self MIR through exact machine admission into signature and call emission;
+  - priority: callable identity, exact declaration join, mandatory wire fact,
+    semantic place/addressability fact, output-before-failure negatives, then
+    patch size;
+  - fact owner: `semantic.callable_receiver_carriage`, with the current self
+    policy in `callable_receiver_carriage_policy_owner.pgy`; MIR rows and
+    codegen views are projections, not second semantic owners;
+  - last legitimate consumer: general self C function/prototype emission and
+    member-call receiver argument emission;
+  - forbidden fallback: missing or unknown carriage success, owner-name-only
+    join, mutable identity by value, `Leaf || MemberAccess` addressability
+    reconstruction, address-of-temporary, role/non-role guessing, or use of the
+    callable fact as a general parameter ABI decision;
+  - verification gate: receiver admission native/self parity plus production
+    `zone_layer_projection_runtime` hard emission, exact canonical IDs, pointer
+    signature/address call, carried-value mutation, temporary receiver negative,
+    generated-C syntax, routine-index C/LLVM regression, and component caps.
+- Native and self MIR now emit mandatory routine `receiver_carriage` rows.
+  Admission binds each row to a positive unique routine `source_syntax_id` and,
+  for methods, one exact declaration owner. The current wire values are `none`,
+  `value`, and `mutable-identity`.
+- The production canonical identities observed by the focused gate are
+  `27 | method | BattleZone | Show | mutable-identity` and
+  `35 | function | Main | none`. General self C emits
+  `BattleZone_Show(BattleZone *self)` and calls it as
+  `BattleZone_Show(&(battle))`; a `value` mutation is rejected before C output.
+- Stable-address eligibility must come from the semantic expression place fact.
+  Node-kind reconstruction such as `Leaf || MemberAccess` is forbidden because
+  `factory().field` is a member node but not stable storage. The focused gate
+  carries an executable temporary-receiver negative.
+- Role-erased local ABI preserves a concrete mutable target as `T *self` behind
+  `void *_pgy_raw_self`, and its direct-call projection requires a stable
+  address. This is a local owner closure only: native semantic currently rejects
+  a direct `Player.TakeDamage` lookup, while the observed native/self role
+  method source IDs are `13` and `6`. Do not count the synthetic/local role gate
+  as production reachability or substitution. A role body `return self.health`
+  also fails closed at `statement_type_unresolved`, so close call-target
+  resolution, the canonical role callable identity epoch, and role-body field
+  type facts first.
+- This is `SUBSTITUTING` progress for the self MIR -> general C receiver path.
+  The registry remains `BRIDGE` because native C/LLVM and general parameter ABI
+  still reuse the broader `uses_pointer_self` compatibility policy.
+- The routine-index regression encountered during integration was a missing
+  mandatory `reachable` fact in positive fixtures. The fixtures now state it;
+  validation was not weakened. The C/LLVM routine-index smoke and the full
+  self-host component contract are green, with the main index owner at its
+  600-line cap.
+- Last observed focused evidence on the final source tree:
+  - fresh `driver_rung2_main.pgy` C build: 0 self-host errors and 0 warnings;
+  - hard `zone_layer_projection_runtime` receiver gate: one MIR fixture PASS,
+    including carriage mutation, semantic-place temporary receiver rejection,
+    role owner positive/three negatives, ordinary self-codegen role definition,
+    and generated-C GCC syntax;
+  - MIR receiver admission: native/self value and mutable rows plus ten
+    fail-closed mutations PASS;
+  - routine-index C/LLVM smoke and self-host component contract PASS;
+  - SoT authority live owner/consumer and negative gate PASS; the Coq compile
+    was explicitly declared skipped because neither `rocq` nor `coqc` is
+    installed on this runner.
+- The protected concurrent user changes remain unstaged and must preserve these
+  numstats exactly: indexed-assignment `1/0`, match `2/2`, owner-field `3/3`.
+  They are not part of this executable commit.
+- The concurrent language-word registry task is now committed in the three parent
+  revisions above. Its separate untracked oracle-bootstrap document is not part
+  of this receiver commit. The receiver registry gate and component contract
+  passed from an isolated 54-path staged-snapshot worktree: the registry
+  observed 58 authorities, 57 derived fact carriers, `CLOSED=34`, and
+  `BRIDGE=24`; the protected parity edits were absent from that snapshot.
+- The next falsifying runtime fixture remains `zone_layer_projection_runtime`
+  output `7` and `dst`. Receiver identity is no longer its blocker. The active
+  next seam is exact projection member assignment plus effect bearer/relation
+  source-target destination roles, followed by layer materialization and
+  refresh/publish synchronization in one admitted runtime plan.
+
+## Prior checkpoint - domain runtime assignment boundary audit
 
 - Exact checkout at the start of this supporting slice is
   `e8440ac3cf1bcdb5469a8dff75041bc416078714` on `main`, aligned with

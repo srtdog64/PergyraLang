@@ -1,0 +1,184 @@
+// CFG row append and offset-rebinding owner.
+
+import "program_fact_owner.pgy";
+
+func SelfMirAppendCfg(
+    target: SelfMirCfgRows,
+    source: SelfMirCfgRows
+) -> SelfMirCfgRows {
+    let target_blocks: SelfMirBlockRows = target.blocks;
+    let block_ids: Array<Int> = target_blocks.ids;
+    let reachable: Array<Int> = target_blocks.reachable;
+    let instruction_starts: Array<Int> = target_blocks.instruction_starts;
+    let instruction_counts: Array<Int> = target_blocks.instruction_counts;
+    let has_true: Array<Int> = target_blocks.has_succ_true;
+    let succ_true: Array<Int> = target_blocks.succ_true;
+    let has_false: Array<Int> = target_blocks.has_succ_false;
+    let succ_false: Array<Int> = target_blocks.succ_false;
+    let instruction_offset: Int = ArrayLength(target.instructions.ids);
+    let block_i: Int = 0;
+    while block_i < ArrayLength(source.blocks.ids) {
+        ArrayPush(block_ids, source.blocks.ids[block_i]);
+        ArrayPush(reachable, source.blocks.reachable[block_i]);
+        ArrayPush(
+            instruction_starts,
+            source.blocks.instruction_starts[block_i] + instruction_offset
+        );
+        ArrayPush(
+            instruction_counts, source.blocks.instruction_counts[block_i]
+        );
+        ArrayPush(has_true, source.blocks.has_succ_true[block_i]);
+        ArrayPush(succ_true, source.blocks.succ_true[block_i]);
+        ArrayPush(has_false, source.blocks.has_succ_false[block_i]);
+        ArrayPush(succ_false, source.blocks.succ_false[block_i]);
+        block_i = block_i + 1;
+    }
+
+    let target_instructions: SelfMirInstructionRows = target.instructions;
+    let ids: Array<Int> = target_instructions.ids;
+    let kinds: Array<String> = target_instructions.kinds;
+    let names: Array<String> = target_instructions.names;
+    let results: Array<String> = target_instructions.results;
+    let arg0s: Array<String> = target_instructions.arg0s;
+    let arg1s: Array<String> = target_instructions.arg1s;
+    let slot_anchors: Array<String> = target_instructions.slot_anchors;
+    let expr0s: Array<String> = target_instructions.expr0s;
+    let expr1s: Array<String> = target_instructions.expr1s;
+    let source_types: Array<String> = target_instructions.source_types;
+    let machine_contact_kinds: Array<String> =
+        target_instructions.machine_contact_kinds;
+    let machine_layer_manifest_ids: Array<String> =
+        target_instructions.machine_layer_manifest_ids;
+    let machine_layer_physical_grant_ids: Array<String> =
+        target_instructions.machine_layer_physical_grant_ids;
+    let machine_layer_physical_bases: Array<Int> =
+        target_instructions.machine_layer_physical_bases;
+    let machine_layer_physical_sizes: Array<Int> =
+        target_instructions.machine_layer_physical_sizes;
+    let machine_layer_physical_modes: Array<String> =
+        target_instructions.machine_layer_physical_modes;
+    let machine_layer_runtime_operations: Array<String> =
+        target_instructions.machine_layer_runtime_operations;
+    let machine_layer_hardware_adequate: Array<Int> =
+        target_instructions.machine_layer_hardware_adequate;
+    let machine_layer_authority_required: Array<Int> =
+        target_instructions.machine_layer_authority_required;
+    let machine_layer_live_lease_required: Array<Int> =
+        target_instructions.machine_layer_live_lease_required;
+    let use_starts: Array<Int> = target_instructions.use_starts;
+    let use_counts: Array<Int> = target_instructions.use_counts;
+    let uses: Array<String> = target_instructions.uses;
+    let use_offset: Int = ArrayLength(uses);
+    let instruction_i: Int = 0;
+    while instruction_i < ArrayLength(source.instructions.ids) {
+        ArrayPush(ids, source.instructions.ids[instruction_i]);
+        ArrayPush(kinds, source.instructions.kinds[instruction_i]);
+        ArrayPush(names, source.instructions.names[instruction_i]);
+        ArrayPush(results, source.instructions.results[instruction_i]);
+        ArrayPush(arg0s, source.instructions.arg0s[instruction_i]);
+        ArrayPush(arg1s, source.instructions.arg1s[instruction_i]);
+        ArrayPush(
+            slot_anchors, source.instructions.slot_anchors[instruction_i]
+        );
+        ArrayPush(expr0s, source.instructions.expr0s[instruction_i]);
+        ArrayPush(expr1s, source.instructions.expr1s[instruction_i]);
+        ArrayPush(
+            source_types, source.instructions.source_types[instruction_i]
+        );
+        ArrayPush(
+            machine_contact_kinds,
+            source.instructions.machine_contact_kinds[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_manifest_ids,
+            source.instructions.machine_layer_manifest_ids[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_physical_grant_ids,
+            source.instructions.machine_layer_physical_grant_ids[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_physical_bases,
+            source.instructions.machine_layer_physical_bases[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_physical_sizes,
+            source.instructions.machine_layer_physical_sizes[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_physical_modes,
+            source.instructions.machine_layer_physical_modes[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_runtime_operations,
+            source.instructions.machine_layer_runtime_operations[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_hardware_adequate,
+            source.instructions.machine_layer_hardware_adequate[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_authority_required,
+            source.instructions.machine_layer_authority_required[instruction_i]
+        );
+        ArrayPush(
+            machine_layer_live_lease_required,
+            source.instructions.machine_layer_live_lease_required[instruction_i]
+        );
+        ArrayPush(
+            use_starts,
+            source.instructions.use_starts[instruction_i] + use_offset
+        );
+        ArrayPush(use_counts, source.instructions.use_counts[instruction_i]);
+        instruction_i = instruction_i + 1;
+    }
+    let use_i: Int = 0;
+    while use_i < ArrayLength(source.instructions.uses) {
+        ArrayPush(uses, source.instructions.uses[use_i]);
+        use_i = use_i + 1;
+    }
+    let expr0_graphs: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRowsAppendRows(
+            target.instructions.expr0_graphs,
+            source.instructions.expr0_graphs
+        );
+    let expr1_graphs: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRowsAppendRows(
+            target.instructions.expr1_graphs,
+            source.instructions.expr1_graphs
+        );
+    let runtime_call_abi: SelfMirRuntimeCallAbiRows =
+        SelfMirRuntimeCallAbiRowsAppendRows(
+            target.instructions.runtime_call_abi,
+            source.instructions.runtime_call_abi
+        );
+    let match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsAppend(
+        target.instructions.match_facts,
+        source.instructions.match_facts,
+        instruction_offset
+    );
+    let destructure_facts: SelfMirDestructureFactRows =
+        SelfMirDestructureFactRowsAppend(
+            target.instructions.destructure_facts,
+            source.instructions.destructure_facts,
+            instruction_offset
+        );
+    return SelfMirCfgRows(
+        SelfMirBlockRows(
+            block_ids, reachable, instruction_starts, instruction_counts,
+            has_true, succ_true, has_false, succ_false
+        ),
+        SelfMirInstructionRows(
+            ids, kinds, names, results, arg0s, arg1s, slot_anchors,
+            expr0s, expr1s,
+            source_types, machine_contact_kinds, machine_layer_manifest_ids,
+            machine_layer_physical_grant_ids, machine_layer_physical_bases,
+            machine_layer_physical_sizes, machine_layer_physical_modes,
+            machine_layer_runtime_operations, machine_layer_hardware_adequate,
+            machine_layer_authority_required, machine_layer_live_lease_required,
+            use_starts, use_counts, uses,
+            expr0_graphs, expr1_graphs, match_facts, destructure_facts,
+            runtime_call_abi
+        )
+    );
+}

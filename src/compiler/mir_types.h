@@ -64,6 +64,13 @@ typedef enum
 
 typedef enum
 {
+    MIR_RECEIVER_CARRIAGE_NONE = 0,
+    MIR_RECEIVER_CARRIAGE_VALUE,
+    MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY
+} MIRReceiverCarriage;
+
+typedef enum
+{
     MIR_INST_DEF,
     MIR_INST_RESOURCE_OP,
     MIR_INST_PHI,
@@ -340,6 +347,7 @@ typedef struct
     MIRScopeKind       kind;
     const char        *owner_name;
     ASTNodeType        owner_ast_type;
+    MIRReceiverCarriage receiver_carriage;
     const char        *name;
     ASTNode           *ast;
     bool               is_action_like;

@@ -1,0 +1,20 @@
+subject Player {
+    let health: Int;
+}
+
+ability Damageable {
+    fields health: Int;
+    func CurrentHealth(self) -> Int;
+}
+
+role PlayerDamageable for Player {
+    impl ability Damageable {
+        func CurrentHealth(self) -> Int {
+            return 1;
+        }
+    }
+}
+
+func Main() -> Void {
+    return;
+}

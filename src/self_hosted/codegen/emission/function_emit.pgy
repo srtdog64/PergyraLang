@@ -1,5 +1,3 @@
-// src/self_hosted/codegen/emission/function_emit.pgy
-//
 // Function/declaration scan and signature emission owner for self-host C emission.
 import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
@@ -7,6 +5,7 @@ import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
+import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/builtin_signature_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -14,6 +13,7 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "function_binding_env_owner.pgy";
+import "role_receiver_binding_owner.pgy";
 import "stmt_emit.pgy";
 func ParamModeCsvAppend(csv: String, mode: Int) -> String {
     let next: String = CodegenParamModeName(mode);
@@ -28,11 +28,10 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
     }
     return Concat(csv, Concat(",", type_name));
 }
-// Emit one function definition starting at the `Function: <Name>` line at
-// cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
+                   receiver_facts: CodegenCallableReceiverFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
                    statements: SemanticAstStatementFacts,
@@ -65,13 +64,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         signatures, signature_index
     );
     let function_env_rows: Array<String> = [];
-    if owner_name != "" &&
-        LookupKindType(base_env, owner_name, "s") == "struct" {
-        ArrayPush(
-            function_env_rows,
-            CodegenFunctionOwnerFieldEnvRows(owner_name, base_env)
-        );
-    }
     let env_state: Array<String> = [base_env.global_rows, ""];
     let prologue: String = "";
     let copyout: String = "";
@@ -79,6 +71,47 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         roles, function_node_id
     );
     let role_receiver: Bool = IsSome(role_receiver_type);
+    let receiver_carriage: String =
+        CodegenCallableReceiverCarriageForSignatureOrDie(
+            receiver_facts, signatures, signature_index
+        );
+    let role_erased: Bool =
+        CodegenCallableReceiverRoleErasedForSignatureOrDie(
+            receiver_facts, signatures, signature_index
+        );
+    if role_receiver != role_erased {
+        Die("callable receiver role-erasure fact is stale");
+    }
+    let role_binding: CodegenRoleReceiverBinding =
+        CodegenRoleReceiverBinding(false, "", "");
+    if role_receiver {
+        role_binding = CodegenRoleReceiverBindingOrDie(
+            UnwrapOption(role_receiver_type), receiver_carriage, base_env
+        );
+    }
+    let mutable_identity_receiver: Bool =
+        receiver_carriage == CallableReceiverCarriageMutableIdentity() &&
+        !role_receiver;
+    let owner_receiver_c_expression: String =
+        CompilerSymbolCBindingName("self");
+    if mutable_identity_receiver ||
+        (role_receiver && role_binding.pointer_identity) {
+        owner_receiver_c_expression = role_binding.self_c_expression;
+        if mutable_identity_receiver {
+            owner_receiver_c_expression = Concat(
+                "(*", Concat(CompilerSymbolCBindingName("self"), ")")
+            );
+        }
+    }
+    if owner_name != "" &&
+        LookupKindType(base_env, owner_name, "s") == "struct" {
+        ArrayPush(
+            function_env_rows,
+            CodegenFunctionOwnerFieldEnvRows(
+                owner_name, owner_receiver_c_expression, base_env
+            )
+        );
+    }
     let role_declares_self: Bool = false;
     let signature_param_index: Int = 0;
     while signature_param_index < expected_param_count {
@@ -91,7 +124,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     }
     if role_receiver && !role_declares_self {
         params = "void *_pgy_raw_self";
-        prologue = "    (void)_pgy_raw_self;\n";
+        prologue = role_binding.prologue;
     }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
@@ -112,31 +145,30 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             CodegenFunctionValueBindingFactFor(
                 p_name, p_type, base_env.global_rows
             );
+        let p_env_binding: CodegenFunctionValueBindingFact = p_binding;
+        if p_name == "self" && (mutable_identity_receiver ||
+            (role_receiver && role_binding.pointer_identity)) {
+            p_env_binding = CodegenFunctionValueBindingFactForCExpression(
+                p_name, p_type, base_env.global_rows,
+                owner_receiver_c_expression
+            );
+        }
         let c_p_name: String = p_binding.c_name;
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
-        if p_name == "self" && role_receiver {
-            let raw_self_name: String = "_pgy_raw_self";
-            c_param = Concat("void *", Concat(" ", raw_self_name));
-            let receiver_c_type: String = AbiLayoutCLocalType(
-                p_type, base_env
-            );
-            let cast_line: String = Concat("    ", receiver_c_type);
-            cast_line = Concat(cast_line, Concat(" ", c_p_name));
-            cast_line = Concat(
-                cast_line, Concat(" = ", raw_self_name)
-            );
-            cast_line = Concat(cast_line, Concat(
-                " ? *(", Concat(receiver_c_type, Concat(
-                    " *)", Concat(raw_self_name, Concat(
-                        " : (", Concat(receiver_c_type, "){0};\n")
-                    ))
-                ))
-            ));
-            prologue = Concat(prologue, cast_line);
+        if p_name == "self" && mutable_identity_receiver {
+            if p_mode != 0 {
+                Die("mutable-identity receiver cannot use a parameter carriage mode");
+            }
+            c_param = Concat(c_param_type, Concat(" *", c_p_name));
+        } else if p_name == "self" && role_receiver {
+            c_param = "void *_pgy_raw_self";
+            prologue = Concat(prologue, role_binding.prologue);
         }
         let c_ref_name: String = c_p_name;
-        if p_mode == 1 {
+        if p_name == "self" &&
+            (mutable_identity_receiver || role_receiver) {
+        } else if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);
             c_param = Concat(c_param_type, Concat(" *", inout_name));
             prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
@@ -157,7 +189,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 p_name, p_type, p_binding.value_kind, c_ref_name
             ));
         } else {
-            ArrayPush(function_env_rows, p_binding.env_rows);
+            ArrayPush(function_env_rows, p_env_binding.env_rows);
         }
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
@@ -185,8 +217,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = name == "Main";
-    // Main lowers through the host/process entrypoint ABI. Its body still uses
-    // the Int return lane so bare `Return:` emits the C success value.
     let body_ret: String = ret_type;
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
@@ -233,6 +263,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
 func EmitFunction(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
+                   receiver_facts: CodegenCallableReceiverFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
                    statements: SemanticAstStatementFacts,
@@ -243,18 +274,22 @@ func EmitFunction(count: Int, arena: AstArena,
                    uses_args: Bool) -> String {
     let no_actuals: Array<String> = [];
     return EmitFunctionWithSpecialization(
-        count, arena, signatures, roles, local_bindings, assignments,
+        count, arena, signatures, roles, receiver_facts,
+        local_bindings, assignments,
         statements, body_types, expression_surfaces, cur, f_indent,
         base_env, uses_args, machine_startup, "", no_actuals
     );
 }
 
-// Project semantic signature facts into the C emitter's compact type env.
 func BuildFunctionEnv(
     signatures: SemanticAstFunctionSignatureFacts,
-    specializations: CodegenGenericSpecializationFacts
+    specializations: CodegenGenericSpecializationFacts,
+    receiver_facts: CodegenCallableReceiverFacts
 ) -> String {
     let rows: Array<String> = ["|"];
+    ArrayPush(rows, CodegenCallableReceiverEnvRows(
+        receiver_facts, signatures
+    ));
     let builtin_names: Array<String> = [];
     let builtin_returns: Array<String> = [];
     let builtin_params: Array<String> = [];
@@ -365,6 +400,18 @@ func BuildFunctionEnv(
                 ), "|"
             ))
         ));
+        ArrayPush(rows, Concat(
+            c_name, Concat("=rc:", Concat(
+                CodegenCallableReceiverCarriageForSignatureOrDie(
+                    receiver_facts, signatures, signature_index
+                ), "|"
+            ))
+        ));
+        if CodegenCallableReceiverRoleErasedForSignatureOrDie(
+            receiver_facts, signatures, signature_index
+        ) {
+            ArrayPush(rows, Concat(c_name, "=rce:1|"));
+        }
         i = i + 1;
     }
     ArrayPush(rows, CodegenGenericSpecializationCallEnvRows(specializations));
@@ -373,6 +420,7 @@ func BuildFunctionEnv(
 
 func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
+                   receiver_facts: CodegenCallableReceiverFacts,
                    struct_env: CodegenTypeEnv,
                    specializations: CodegenGenericSpecializationFacts) -> String {
     let rows: Array<String> = [];
@@ -397,6 +445,14 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
             );
             let role_receiver_type: Option<String> =
                 CodegenSemanticRoleReceiverType(roles, function_node);
+            let receiver_carriage: String =
+                CodegenCallableReceiverCarriageForSignatureOrDie(
+                    receiver_facts, signatures, i
+                );
+            let mutable_identity_receiver: Bool =
+                receiver_carriage ==
+                    CallableReceiverCarriageMutableIdentity() &&
+                !IsSome(role_receiver_type);
             let role_declares_self: Bool = false;
             let signature_param_index: Int = 0;
             while signature_param_index < param_count {
@@ -433,7 +489,12 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                     ).c_name;
                 let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                 let cp: String = Concat(cpt, Concat(" ", c_p_name));
-                if role_receiver_param {
+                if p_name == "self" && mutable_identity_receiver {
+                    if p_mode != 0 {
+                        Die("mutable-identity receiver prototype mode is invalid");
+                    }
+                    cp = Concat(cpt, Concat(" *", c_p_name));
+                } else if role_receiver_param {
                     cp = "void *_pgy_raw_self";
                 } else if p_mode == 1 {
                     cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
@@ -474,6 +535,14 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
         let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
             signatures, signature_index
         );
+        let specialized_carriage: String =
+            CodegenCallableReceiverCarriageForSignatureOrDie(
+                receiver_facts, signatures, signature_index
+            );
+        let specialized_role_erased: Bool =
+            CodegenCallableReceiverRoleErasedForSignatureOrDie(
+                receiver_facts, signatures, signature_index
+            );
         while pn < param_count {
             let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
                 signatures, signature_index, pn
@@ -489,7 +558,15 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
             ).c_name;
             let cpt: String = AbiLayoutCParamType(p_type, struct_env);
             let cp: String = Concat(cpt, Concat(" ", c_p_name));
-            if p_mode == 1 {
+            if p_name == "self" && specialized_role_erased {
+                cp = "void *_pgy_raw_self";
+            } else if p_name == "self" && specialized_carriage ==
+                CallableReceiverCarriageMutableIdentity() {
+                if p_mode != 0 {
+                    Die("mutable-identity receiver prototype mode is invalid");
+                }
+                cp = Concat(cpt, Concat(" *", c_p_name));
+            } else if p_mode == 1 {
                 cp = Concat(cpt, Concat(
                     " *", CompilerSymbolCInoutParamName(p_name)
                 ));

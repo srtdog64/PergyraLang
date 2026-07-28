@@ -196,6 +196,7 @@ func GenerateCUnitFromSemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
+    receiver_facts: CodegenCallableReceiverFacts,
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
@@ -225,6 +226,9 @@ func GenerateCUnitFromSemanticFacts(
     }
     let signatures: SemanticAstFunctionSignatureFacts =
         semantic_analysis.signatures;
+    if !CodegenCallableReceiverFactsReady(receiver_facts, signatures) {
+        Die("codegen callable receiver facts are missing or stale");
+    }
     let local_bindings: SemanticAstLocalBindingFacts =
         semantic_analysis.local_bindings;
     let assignments: SemanticAstAssignmentFacts =
@@ -264,7 +268,7 @@ func GenerateCUnitFromSemanticFacts(
         ));
     }
     let env_acc: Array<String> = [BuildFunctionEnv(
-        signatures, specializations
+        signatures, specializations, receiver_facts
     )];
     let value_wrappers: CodegenValueWrapperUsageFacts =
         CodegenValueWrapperUsageFactsFromSemantic(
@@ -343,6 +347,7 @@ func GenerateCUnitFromSemanticFacts(
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunctionSet(
                         count, arena, signatures, semantic_analysis.roles,
+                        receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
                         specializations,
@@ -362,6 +367,7 @@ func GenerateCUnitFromSemanticFacts(
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunctionSet(
                         count, arena, signatures, semantic_analysis.roles,
+                        receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
                         specializations,
@@ -377,6 +383,7 @@ func GenerateCUnitFromSemanticFacts(
             cur_indent == f_indent {
             let def: String = EmitFunctionSet(
                 count, arena, signatures, semantic_analysis.roles,
+                receiver_facts,
                 local_bindings, assignments, statements, body_types,
                 semantic_analysis.expression_surfaces,
                 specializations,
@@ -389,7 +396,8 @@ func GenerateCUnitFromSemanticFacts(
     }
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(
-        signatures, semantic_analysis.roles, base_env, specializations
+        signatures, semantic_analysis.roles, receiver_facts,
+        base_env, specializations
     );
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;

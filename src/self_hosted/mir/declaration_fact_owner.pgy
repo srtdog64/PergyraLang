@@ -1,10 +1,13 @@
 // Flat MIR declaration rows shared by producer, verifier, JSON, and lowering.
 
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+
 struct SelfMirDeclarationRows {
     kinds: Array<String>;
     nominal_kinds: Array<String>;
     names: Array<String>;
     target_types: Array<String>;
+    uses_pointer_self: Array<Int>;
     field_starts: Array<Int>;
     field_counts: Array<Int>;
     field_names: Array<String>;
@@ -62,7 +65,7 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfMirDeclarationRows(
-        strings, strings, strings, strings, ints, ints, strings, strings,
+        strings, strings, strings, strings, ints, ints, ints, strings, strings,
         strings, ints,
         ints, ints, strings, strings,
         ints, ints, ints, strings, strings, strings,
@@ -74,4 +77,11 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
         ints, ints, strings, strings, ints,
         ints, ints, strings, ints, ints
     );
+}
+
+func SelfMirDeclarationUsesPointerSelf(nominal_kind: String) -> Int {
+    if CallableReceiverNominalKindUsesMutableIdentity(nominal_kind) {
+        return 1;
+    }
+    return 0;
 }

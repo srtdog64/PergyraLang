@@ -462,6 +462,77 @@ mir_validate_non_cfg_fallback_inventory(const MIRProgram *mir,
     return true;
 }
 
+static bool
+mir_validate_receiver_carriage_facts(const MIRProgram *mir,
+                                     char **error_message)
+{
+    MIRRoutineInventory inventory;
+
+    mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        const char *owner_name;
+        const MIRDeclHeader *owner = NULL;
+        size_t owner_count = 0;
+        MIRReceiverCarriage expected;
+
+        if (routine == NULL)
+            return false;
+        owner_name = routine->owner_name;
+        if (routine->kind != MIR_SCOPE_METHOD) {
+            if (routine->receiver_carriage != MIR_RECEIVER_CARRIAGE_NONE) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR non-method routine '%s' carries a receiver",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                return false;
+            }
+            continue;
+        }
+        if (owner_name == NULL || owner_name[0] == '\0') {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR method '%s' receiver carriage has no declaration owner",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            return false;
+        }
+        for (size_t j = 0; j < mir->decl_header_count; j++) {
+            const MIRDeclHeader *candidate = &mir->decl_headers[j];
+            if (candidate->name != NULL
+                && strcmp(candidate->name, owner_name) == 0) {
+                owner = candidate;
+                owner_count++;
+            }
+        }
+        if (owner_count != 1 || owner == NULL
+            || owner->ast_type != routine->owner_ast_type) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' receiver carriage has no unique exact declaration owner '%s'",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    owner_name);
+            }
+            return false;
+        }
+        expected = owner->uses_pointer_self
+            ? MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY
+            : MIR_RECEIVER_CARRIAGE_VALUE;
+        if (routine->receiver_carriage != expected) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' receiver carriage '%s' disagrees with declaration owner '%s'",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    mir_receiver_carriage_name(routine->receiver_carriage),
+                    owner_name);
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
 {
@@ -482,6 +553,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
     }
     if (!mir_validate_program_inventory_shape(mir, error_message))
+        return false;
+    if (!mir_validate_receiver_carriage_facts(mir, error_message))
         return false;
     if (!mir_validate_inventory_surface_usage(mir, error_message))
         return false;

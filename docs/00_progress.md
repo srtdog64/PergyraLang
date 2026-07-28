@@ -2,6 +2,37 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 callable receiver carriage executable checkpoint
+
+- `CallableReceiverCarriage`를 `none | value | mutable-identity`의 필수
+  callable fact로 고정했다. Native MIR와 self MIR producer가 routine
+  `source_syntax_id` 및 exact declaration owner에 결속해 JSON으로 운반하고,
+  self MIR admission은 누락·unknown·중복 ID·foreign owner·nominal/carriage
+  불일치를 모두 output 생성 전에 거부한다.
+- `tobject`/`object`/`class` method는 value receiver, `subject`/`vessel`/`party`/
+  `roster`/`zone`/`world`/`effect`/`relation`/`role` method는 mutable identity
+  receiver, free function과 intent는 `none`이다. `ability`는 compile-time
+  contract이므로 runtime method receiver로 승격하지 않는다.
+- Production `zone_layer_projection_runtime`의 canonical row는
+  `27 | method | BattleZone | Show | mutable-identity`와
+  `35 | function | Main | none`이다. General self C는 이를
+  `BattleZone_Show(BattleZone *self)` 및 `BattleZone_Show(&(battle))`로
+  방출한다. `value` 변조와 semantic place fact가 addressable하지 않은 임시
+  mutable receiver는 C output 전에 실패한다.
+- 이 slice는 self MIR -> general C의 실제 by-value zone receiver 경로를
+  대체하므로 `SUBSTITUTING`이다. 다만 native C/LLVM의 일반 parameter ABI는
+  여전히 넓은 `uses_pointer_self` compatibility policy를 재사용하므로
+  `semantic.callable_receiver_carriage` 전체는 `BRIDGE`로 남긴다.
+- Role-erased local ABI도 concrete mutable target을 `_raw_self`에서 `T *self`로
+  보존하고 stable direct receiver 주소만 받도록 고정했다. 다만 production
+  direct role call은 native semantic method resolution 부재와 role method
+  canonical ID `13` 대 `6` 불일치로 unreachable이다. Role body의
+  `return self.health`도 self semantic statement-type fact가 unresolved라
+  fail closed하므로 이 local gate를 `SUBSTITUTING`으로 세지 않는다.
+- Runtime `7`/`dst`는 아직 RED다. 다음 활성 owner seam은 projection member
+  assignment와 effect/relation destination role이며, layer materialization과
+  refresh/publish sync까지 같은 exact identity epoch에서 닫혀야 한다.
+
 ## 2026-07-28 domain runtime assignment boundary audit
 
 - `tobject -> object -> vessel -> subject -> action`은 nominal 승격 계층이

@@ -1,0 +1,58 @@
+// Concrete self binding behind the erased direct-role method ABI.
+
+import "../../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../text/text_owner.pgy";
+
+struct CodegenRoleReceiverBinding {
+    pointer_identity: Bool;
+    self_c_expression: String;
+    prologue: String;
+}
+
+func CodegenRoleReceiverBindingOrDie(
+    target_type: String,
+    receiver_carriage: String,
+    env: CodegenTypeEnv
+) -> CodegenRoleReceiverBinding {
+    if target_type == "" || receiver_carriage !=
+        CallableReceiverCarriageMutableIdentity() {
+        Die("role receiver target or erased carriage fact is invalid");
+    }
+    if !LookupKindTypeRowPresent(env, target_type, "nk") {
+        Die("role receiver target nominal-kind fact is missing");
+    }
+    let nominal_kind: String = LookupKindType(env, target_type, "nk");
+    if !CallableReceiverNominalKindKnown(nominal_kind) ||
+        (!CallableReceiverNominalKindUsesMutableIdentity(nominal_kind) &&
+            !CallableReceiverNominalKindUsesValue(nominal_kind)) {
+        Die("role receiver target nominal-kind fact is invalid");
+    }
+    let c_type: String = AbiLayoutCLocalType(target_type, env);
+    let c_self: String = CompilerSymbolCBindingName("self");
+    let raw_self: String = "_pgy_raw_self";
+    let pointer_identity: Bool =
+        CallableReceiverNominalKindUsesMutableIdentity(nominal_kind);
+    if pointer_identity {
+        return CodegenRoleReceiverBinding(
+            true, Concat("(*", Concat(c_self, ")")),
+            Concat("    ", Concat(c_type, Concat(" *", Concat(
+                c_self, Concat(" = (", Concat(c_type, Concat(
+                    " *)", Concat(raw_self, ";\n")
+                )))
+            ))))
+        );
+    }
+    return CodegenRoleReceiverBinding(
+        false, c_self,
+        Concat("    ", Concat(c_type, Concat(" ", Concat(
+            c_self, Concat(" = ", Concat(raw_self, Concat(
+                " ? *(", Concat(c_type, Concat(" *)", Concat(
+                    raw_self, Concat(" : (", Concat(c_type, "){0};\n"))
+                )))
+            )))
+        ))))
+    );
+}

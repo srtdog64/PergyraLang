@@ -300,6 +300,74 @@ require_stage_owner_line_cap() {
 
 require_file "src/self_hosted/OWNERS.md"
 require_text "src/self_hosted/OWNERS.md" 'main.pgy` files are entrypoints only'
+require_file "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy"
+require_max_lines "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy" 160
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy"
+require_text "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy" \
+    "func CallableReceiverNominalKindUsesMutableIdentity("
+require_file "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy" 240
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    'import "program_routine_receiver_identity_owner.pgy";'
+require_text "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy" \
+    "func CaptureMirProgramRoutineReceiverIdentity("
+require_text "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy" \
+    "func MirProgramRoutineReceiverIdentityRowReady("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "MirProgramRoutineOwnerDeclarationRow("
+require_file "src/self_hosted/mir/routine_receiver_carriage_owner.pgy"
+require_max_lines "src/self_hosted/mir/routine_receiver_carriage_owner.pgy" 160
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/routine_receiver_carriage_owner.pgy"
+require_file "src/self_hosted/mir/routine_cfg_append_owner.pgy"
+require_max_lines "src/self_hosted/mir/routine_cfg_append_owner.pgy" 320
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/routine_cfg_append_owner.pgy"
+require_file "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
+require_max_lines "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
+require_file "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
+require_max_lines "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
+require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
+require_file "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy"
+require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
+    "func CodegenRoleReceiverBindingOrDie("
+require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
+    'LookupKindTypeRowPresent(env, target_type, "nk")'
+require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
+    'Concat("(*", Concat(c_self, ")"))'
+require_text "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" \
+    "role-erased member call requires a stable receiver address"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionGraphPlaceKind("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionPlaceKindAddressable("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionGraphNodeKind(graph, member.receiver_node)"
+require_file "tests/self_hosted/fixtures/mutable_receiver_temporary_member_reject.pgy"
+require_file "tests/self_hosted/fixtures/codegen_role_receiver_carriage_owner.pgy"
+require_file "tests/self_hosted/fixtures/mutable_role_receiver_runtime.pgy"
+require_file "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh" 240
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh" \
+    '"$CC" -std=c11 -Wall -Wextra -fsyntax-only "$role_c"'
 require_file "src/self_hosted/lib/json.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json.pgy"
 require_max_lines "src/self_hosted/lib/json.pgy" 600
@@ -3529,9 +3597,13 @@ reject_function_text \
     "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionOwnerFieldEnvRows(" 'if fields == ""'
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionValueBindingFactForCExpression("
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "receiver_c_expression"
+reject_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'CompilerSymbolCBindingName("self")'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    "CodegenFunctionOwnerFieldEnvRows(owner_name, base_env)"
+    "owner_name, owner_receiver_c_expression, base_env"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "func CodegenFunctionLocalEnvRows("
 require_file "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy"
@@ -6461,6 +6533,8 @@ require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy
 require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleMethodNodeOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalNameOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalIs"
+require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalKindOrDie"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" 'Concat("=nk:", Concat(nominal_kind, "|"))'
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorIndexForNode"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldCountOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldNameOrDie"

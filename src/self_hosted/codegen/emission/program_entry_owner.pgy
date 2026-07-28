@@ -11,6 +11,8 @@ func GenerateCUnitFromSemanticArtifact(
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
+    let receiver_facts: CodegenCallableReceiverFacts =
+        CodegenCallableReceiverFactsFromAnalysis(semantic_analysis);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
     let generic_specializations: CodegenGenericSpecializationFacts =
@@ -22,7 +24,8 @@ func GenerateCUnitFromSemanticArtifact(
             artifact, semantic_analysis, bundle, generic_specializations
         );
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, body_types, require_entrypoint,
+        artifact, semantic_analysis, body_types, receiver_facts,
+        require_entrypoint,
         machine_declaration
     );
 }
@@ -31,6 +34,7 @@ func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
+    receiver_facts: CodegenCallableReceiverFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
@@ -40,7 +44,8 @@ func GenerateCFromVerifiedSemanticArtifact(
         Die("self-host C emission target projection fact is missing or invalid");
     }
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, body_types, true, machine_declaration
+        artifact, semantic_analysis, body_types, receiver_facts,
+        true, machine_declaration
     );
 }
 
@@ -86,10 +91,6 @@ func GenerateCFromSemanticArtifact(
     );
 }
 
-func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
-    return GenerateCUnitFromAstArtifact(artifact, true);
-}
+func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String { return GenerateCUnitFromAstArtifact(artifact, true); }
 
-func GenerateCFromTypedAstArtifact(artifact: AstTreeArtifact) -> String {
-    return GenerateCUnitFromTypedAstArtifact(artifact, true);
-}
+func GenerateCFromTypedAstArtifact(artifact: AstTreeArtifact) -> String { return GenerateCUnitFromTypedAstArtifact(artifact, true); }

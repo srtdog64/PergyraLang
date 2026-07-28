@@ -18,6 +18,7 @@ import "function_binding_env_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 import "literal_rewrite.pgy";
 import "array_value_emit_owner.pgy";
+import "member_call_receiver_carriage_owner.pgy";
 func RewriteExpr(e: String, env: CodegenTypeEnv) -> String {
     return RewriteRoleOperators(e, env);
 }
@@ -110,8 +111,14 @@ func RewriteMemberCalls(e: String, env: CodegenTypeEnv) -> String {
                         }
                         let close: Int = UnwrapOption(close_opt);
                         let args: String = Substring(e, j + 1, close - j - 1);
+                        let receiver_argument: String =
+                            CodegenMemberCallReceiverArgument(
+                                c_name, receiver, true, env
+                            );
                         out = Substring(out, 0, start);
-                        out = Concat(out, Concat(c_name, Concat("(", receiver)));
+                        out = Concat(out, Concat(
+                            c_name, Concat("(", receiver_argument)
+                        ));
                         if StringLength(StringTrim(args)) > 0 {
                             out = Concat(out, Concat(", ", args));
                         }

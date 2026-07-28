@@ -20,6 +20,16 @@ func EmitClassMethods(
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
     let out: String = "";
+    let direct_hosted_methods: Bool = nominal_kind == "zone" ||
+        nominal_kind == "world" || nominal_kind == "party" ||
+        nominal_kind == "roster" || nominal_kind == "effect" ||
+        nominal_kind == "relation";
+    let routine_indent: String = "      ";
+    let contract_indent: String = "        ";
+    if direct_hosted_methods {
+        routine_indent = "    ";
+        contract_indent = "      ";
+    }
     let method_bounds: Array<Int> = [0, 0];
     let row: Int = 0;
     while MirObjectArrayObjectBoundsAt(
@@ -79,15 +89,16 @@ func EmitClassMethods(
             ));
         }
         let contract_rows: String = MirDeclarationMethodContractRows(
-            contract, "        "
+            contract, contract_indent
         );
         out = Concat(out, EmitRoutineTreeWithContractAtRowWithExpressionOrder(
-            routines, UnwrapOption(routine_row), "      ", "",
+            routines, UnwrapOption(routine_row), routine_indent, "",
             contract.callable_kind, contract_rows, false, false,
             expression_order, abi_validation
         ));
         row = row + 1;
     }
+    if direct_hosted_methods { return out; }
     if StringLength(out) > 0 { return Concat("    Methods:\n", out); }
     return "";
 }

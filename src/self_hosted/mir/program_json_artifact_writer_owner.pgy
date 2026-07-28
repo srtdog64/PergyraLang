@@ -62,6 +62,10 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, JsonEmitFieldNumber(
         "source_syntax_id", ToString(rows.node_ids[routine_index])
     ));
+    CompilerArtifactWrite(output, ",");
+    CompilerArtifactWrite(output, JsonEmitFieldString(
+        "receiver_carriage", rows.receiver_carriages[routine_index]
+    ));
     if rows.owners[routine_index] != "" {
         CompilerArtifactWrite(output, ",");
         CompilerArtifactWrite(output, JsonEmitFieldString(

@@ -25,23 +25,23 @@ func Main() -> Void {
     let third_instruction: String =
         "{\"kind\":\"phi\",\"source_type\":null,\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let first_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(first_instruction, Concat(",", Concat(second_instruction, "]}")))
     );
     let second_block: String = Concat(
-        "{\"id\":0,\"instructions\":[", Concat(third_instruction, "]}")
+        "{\"id\":0,\"reachable\":true,\"instructions\":[", Concat(third_instruction, "]}")
     );
-    let empty_block: String = "{\"id\":1,\"instructions\":[]}";
+    let empty_block: String = "{\"id\":1,\"reachable\":true,\"instructions\":[]}";
     let first_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"A\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"A\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
         Concat(first_block, "]}")
     );
     let second_routine: String = Concat(
-        "{\"kind\":\"method\",\"owner\":\"Box\",\"name\":\"Ping\",\"blocks\":[",
+        "{\"kind\":\"method\",\"owner\":\"Box\",\"name\":\"Ping\",\"source_syntax_id\":2,\"receiver_carriage\":\"value\",\"blocks\":[",
         Concat(second_block, Concat(",", Concat(empty_block, "]}")))
     );
     let prefix: String =
-        "{\"schema\":\"pgy.mir.v1\",\"decls\":[],\"parallel_capture_boundaries\":[],\"routines\":[";
+        "{\"schema\":\"pgy.mir.v1\",\"decls\":[{\"kind\":\"class\",\"nominal_kind\":\"class\",\"name\":\"Box\",\"fields\":[]}],\"parallel_capture_boundaries\":[],\"routines\":[";
     let json: String = Concat(
         prefix, Concat(first_routine, Concat(",", Concat(second_routine, "]}")))
     );
@@ -55,6 +55,14 @@ func Main() -> Void {
         MirProgramRoutineIndexRowReady(index, 0 - 1) ||
         MirProgramRoutineIndexRowReady(index, 2) ||
         ArrayLength(index.starts) != 2 ||
+        index.source_syntax_ids[0] != "1" ||
+        index.source_syntax_ids[1] != "2" ||
+        index.receiver_carriages[0] != "none" ||
+        index.receiver_carriages[1] != "value" ||
+        index.owner_nominal_kinds[0] != "none" ||
+        index.owner_nominal_kinds[1] != "class" ||
+        index.owner_declaration_rows[0] != (0 - 1) ||
+        index.owner_declaration_rows[1] != 0 ||
         index.routine_block_starts[0] != 0 ||
         index.routine_block_counts[0] != 1 ||
         index.routine_block_starts[1] != 1 ||
@@ -118,13 +126,13 @@ func Main() -> Void {
     let match_binding_instruction: String =
         "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"bound\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let match_binding_block: String = Concat(
-        "{\"id\":0,\"instructions\":[", Concat(
+        "{\"id\":0,\"reachable\":true,\"instructions\":[", Concat(
             nonmatch_binding_instruction,
             Concat(",", Concat(match_binding_instruction, "]}"))
         )
     );
     let match_binding_routine_prefix: String =
-        "{\"kind\":\"function\",\"name\":\"MatchBindings\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[";
+        "{\"kind\":\"function\",\"name\":\"MatchBindings\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[";
     let match_binding_routine: String = Concat(
         match_binding_routine_prefix, Concat(match_binding_block, "]}")
     );
@@ -148,7 +156,7 @@ func Main() -> Void {
     let forged_stmt_match_instruction: String =
         "{\"kind\":\"stmt\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"forged\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let forged_stmt_match_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(forged_stmt_match_instruction, "]}")
     );
     let forged_stmt_match_routine: String = Concat(
@@ -171,7 +179,7 @@ func Main() -> Void {
     let missing_match_type_instruction: String =
         "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"missing_type\"],\"match_binding_types\":[],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let missing_match_type_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(missing_match_type_instruction, "]}")
     );
     let missing_match_type_routine: String = Concat(
@@ -229,7 +237,10 @@ func Main() -> Void {
     let zero_block_parallel_gap: MirProgramRoutineIndex =
         MirProgramRoutineIndex(
             index.valid, index.source_json, index.source_length,
+            index.declarations,
             index.starts, index.ends, index.kinds, index.owners, index.names,
+            index.source_syntax_ids, index.receiver_carriages,
+            index.owner_nominal_kinds, index.owner_declaration_rows,
             index.routine_block_starts, zero_block_routine_counts,
             index.block_starts, missing_parallel_block_ends,
             index.block_instruction_starts,
@@ -290,11 +301,11 @@ func Main() -> Void {
     let branch_instruction: String =
         "{\"kind\":\"branch\",\"source_type\":\"AST_IF_STMT\",\"expr0\":\"%0\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let branch_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(first_instruction, Concat(",", Concat(branch_instruction, "]}")))
     );
     let branch_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"Branch\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"Branch\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
         Concat(branch_block, "]}")
     );
     let branch_json: String = Concat(
@@ -352,13 +363,13 @@ func Main() -> Void {
         failures = failures + 1;
     }
     let cross_block_first: String = Concat(
-        "{\"id\":0,\"instructions\":[", Concat(first_instruction, "]}")
+        "{\"id\":0,\"reachable\":true,\"instructions\":[", Concat(first_instruction, "]}")
     );
     let cross_block_second: String = Concat(
-        "{\"id\":1,\"instructions\":[", Concat(branch_instruction, "]}")
+        "{\"id\":1,\"reachable\":true,\"instructions\":[", Concat(branch_instruction, "]}")
     );
     let cross_block_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"CrossBlock\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"CrossBlock\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"blocks\":[",
         Concat(cross_block_first, Concat(",", Concat(cross_block_second, "]}")))
     );
     let cross_block_json: String = Concat(
@@ -399,7 +410,7 @@ func Main() -> Void {
     let for_instruction: String =
         "{\"kind\":\"branch\",\"source_type\":\"AST_FOR_LOOP\",\"arg0\":\"i\",\"expr0\":\"0\",\"expr1\":\"10\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let for_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"ForProjection\",\"source_syntax_id\":1,\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"loop_flow_summary_count\":1,\"loop_flow_summaries\":[{\"loop_syntax_id\":1,\"kind\":\"for\",\"effect_base\":0,\"effect_delta\":0,\"flags\":0,\"entry_state_start\":0,\"entry_state_count\":0,\"exit_state_start\":0,\"exit_state_count\":0}],\"loop_flow_state_count\":0,\"loop_flow_states\":[],\"blocks\":[{\"id\":0,\"instructions\":[",
+        "{\"kind\":\"function\",\"name\":\"ForProjection\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"iteration_type_fact_count\":0,\"iteration_type_facts\":[],\"resource_flow_symbol_count\":0,\"resource_flow_symbols\":[],\"loop_flow_summary_count\":1,\"loop_flow_summaries\":[{\"loop_syntax_id\":1,\"kind\":\"for\",\"effect_base\":0,\"effect_delta\":0,\"flags\":0,\"entry_state_start\":0,\"entry_state_count\":0,\"exit_state_start\":0,\"exit_state_count\":0}],\"loop_flow_state_count\":0,\"loop_flow_states\":[],\"blocks\":[{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(for_instruction, "]}]}")
     );
     let for_json: String = Concat(prefix, Concat(for_routine, "]}"));
@@ -470,11 +481,11 @@ func Main() -> Void {
         failures = failures + 1;
     }
     let duplicate_branch_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(branch_instruction, Concat(",", Concat(branch_instruction, "]}")))
     );
     let duplicate_branch_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"DuplicateBranch\",\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"DuplicateBranch\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"blocks\":[",
         Concat(duplicate_branch_block, "]}")
     );
     let duplicate_branch_json: String = Concat(
@@ -495,13 +506,13 @@ func Main() -> Void {
     }
 
     let phi_prefix_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(third_instruction, Concat(",", Concat(
             third_instruction, Concat(",", Concat(second_instruction, "]}"))
         )))
     );
     let phi_prefix_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"PhiPrefix\",\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"PhiPrefix\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"blocks\":[",
         Concat(phi_prefix_block, "]}")
     );
     let phi_prefix_json: String = Concat(
@@ -520,11 +531,11 @@ func Main() -> Void {
         failures = failures + 1;
     }
     let late_phi_block: String = Concat(
-        "{\"id\":0,\"instructions\":[",
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
         Concat(second_instruction, Concat(",", Concat(third_instruction, "]}")))
     );
     let late_phi_routine: String = Concat(
-        "{\"kind\":\"function\",\"name\":\"LatePhi\",\"blocks\":[",
+        "{\"kind\":\"function\",\"name\":\"LatePhi\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"blocks\":[",
         Concat(late_phi_block, "]}")
     );
     let late_phi_json: String = Concat(
@@ -547,7 +558,7 @@ func Main() -> Void {
     let missing_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(index, 0);
     let negative_successor_routine: String =
-        "{\"kind\":\"function\",\"name\":\"N\",\"source_syntax_id\":1,\"blocks\":[{\"id\":0,\"succ_true\":-1,\"instructions\":[]}]}";
+        "{\"kind\":\"function\",\"name\":\"N\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"blocks\":[{\"id\":0,\"reachable\":true,\"succ_true\":-1,\"instructions\":[]}]}";
     let negative_successor_json: String = Concat(
         prefix, Concat(negative_successor_routine, "]}")
     );
@@ -558,7 +569,7 @@ func Main() -> Void {
     let negative_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(negative_successor_program, 0);
     let out_of_range_successor_routine: String =
-        "{\"kind\":\"function\",\"name\":\"O\",\"source_syntax_id\":1,\"blocks\":[{\"id\":0,\"succ_true\":1,\"instructions\":[]}]}";
+        "{\"kind\":\"function\",\"name\":\"O\",\"source_syntax_id\":1,\"receiver_carriage\":\"none\",\"blocks\":[{\"id\":0,\"reachable\":true,\"succ_true\":1,\"instructions\":[]}]}";
     let out_of_range_successor_json: String = Concat(
         prefix, Concat(out_of_range_successor_routine, "]}")
     );

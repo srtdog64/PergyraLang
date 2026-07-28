@@ -42,17 +42,31 @@ func CodegenFunctionValueBindingFactFor(
     type_name: String,
     global_env: String
 ) -> CodegenFunctionValueBindingFact {
+    return CodegenFunctionValueBindingFactForCExpression(
+        source_name, type_name, global_env,
+        CompilerSymbolCBindingName(source_name)
+    );
+}
+
+func CodegenFunctionValueBindingFactForCExpression(
+    source_name: String,
+    type_name: String,
+    global_env: String,
+    c_expression: String
+) -> CodegenFunctionValueBindingFact {
     if source_name == "" || type_name == "" {
         Die("function value binding identity or type is missing");
+    }
+    if c_expression == "" {
+        Die("function value binding C expression is missing");
     }
     let value_kind: String = CodegenBindingEnvKind(
         type_name, global_env
     );
-    let c_name: String = CompilerSymbolCBindingName(source_name);
     return CodegenFunctionValueBindingFact(
-        source_name, type_name, value_kind, c_name,
+        source_name, type_name, value_kind, c_expression,
         TypeEnvTypedValueBindingRows(
-            source_name, type_name, value_kind, c_name
+            source_name, type_name, value_kind, c_expression
         )
     );
 }
@@ -69,9 +83,13 @@ func CodegenCollectionTargetCBindingOrDie(
 
 func CodegenFunctionOwnerFieldEnvRows(
     owner_name: String,
+    receiver_c_expression: String,
     env: CodegenTypeEnv
 ) -> String {
     if owner_name == "" { return ""; }
+    if receiver_c_expression == "" {
+        Die("method owner receiver C expression is missing");
+    }
     let fields: String = LookupKindType(env, owner_name, "fields");
     if !LookupKindTypeRowPresent(env, owner_name, "fields") {
         Die("method owner field inventory is missing");
@@ -90,7 +108,7 @@ func CodegenFunctionOwnerFieldEnvRows(
             field_name, field_type,
             CodegenBindingEnvKind(field_type, env.global_rows),
             Concat(
-                CompilerSymbolCBindingName("self"),
+                receiver_c_expression,
                 Concat(".", CompilerSymbolCFieldName(field_name))
             )
         ));

@@ -222,4 +222,4 @@ grep -Fq 'size_t _pgy_zone_frontier_pass_limit = 3;' \
     "$tmp_dir/topology.c" \
     || fail "C output did not preserve the count floor above the graph depth"
 
-echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology is identical and AST bypasses are absent"
+echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology and declaration field identity are exact; AST bypasses are absent"

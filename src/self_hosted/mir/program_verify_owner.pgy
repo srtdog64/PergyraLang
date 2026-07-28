@@ -3,6 +3,7 @@ import "program_fact_owner.pgy";
 import "declaration_verify_owner.pgy";
 import "instruction_validation_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
+import "routine_receiver_carriage_owner.pgy";
 import "../semantic/assignment_binding_mode_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
@@ -416,12 +417,14 @@ func SelfMirBlockRowsReady(
 
 func SelfMirRoutineRowsReady(
     rows: SelfMirRoutineRows,
-    blocks: SelfMirBlockRows
+    blocks: SelfMirBlockRows,
+    declarations: SelfMirDeclarationRows
 ) -> Bool {
     let count: Int = ArrayLength(rows.node_ids);
     if !SelfMirParallelStringCount(count, rows.names) ||
         !SelfMirParallelStringCount(count, rows.kinds) ||
         !SelfMirParallelStringCount(count, rows.owners) ||
+        !SelfMirParallelStringCount(count, rows.receiver_carriages) ||
         !SelfMirParallelStringCount(count, rows.return_types) ||
         !SelfMirParallelCount(count, rows.generic_starts) ||
         !SelfMirParallelCount(count, rows.generic_counts) ||
@@ -448,9 +451,15 @@ func SelfMirRoutineRowsReady(
     let local_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
+        let receiver: SelfMirRoutineReceiverFact =
+            SelfMirRoutineReceiverForOwner(declarations, rows.owners[i]);
         if rows.names[i] == "" || rows.return_types[i] == "" ||
             (rows.kinds[i] != "function" && rows.kinds[i] != "method") ||
             (rows.kinds[i] == "method" && rows.owners[i] == "") ||
+            (rows.kinds[i] == "function" && rows.owners[i] != "") ||
+            !receiver.ok || rows.kinds[i] != receiver.routine_kind ||
+            !SelfMirReceiverCarriageNameKnown(rows.receiver_carriages[i]) ||
+            rows.receiver_carriages[i] != receiver.carriage ||
             rows.generic_starts[i] != generic_cursor ||
             rows.generic_counts[i] < 0 ||
             rows.param_starts[i] != param_cursor || rows.param_counts[i] < 0 ||
@@ -560,7 +569,9 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
         }
         return block_error;
     }
-    if !SelfMirRoutineRowsReady(facts.routines, facts.cfg.blocks) {
+    if !SelfMirRoutineRowsReady(
+        facts.routines, facts.cfg.blocks, facts.declarations
+    ) {
         return "MIR routine rows are invalid";
     }
     if ArrayLength(facts.routines.node_ids) == 0 {

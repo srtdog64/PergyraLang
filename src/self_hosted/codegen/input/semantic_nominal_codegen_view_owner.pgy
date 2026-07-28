@@ -24,6 +24,17 @@ func CodegenSemanticNominalNameOrDie(
     return UnwrapOption(name);
 }
 
+func CodegenSemanticNominalKindOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> String {
+    if !facts.ok || constructor_index < 0 || constructor_index >=
+        SemanticAstNominalConstructorCount(facts) {
+        Die("semantic nominal declaration kind fact missing");
+    }
+    return facts.nominal_kinds[constructor_index];
+}
+
 func CodegenSemanticNominalFieldCountOrDie(
     facts: SemanticAstNominalConstructorFacts,
     constructor_index: Int

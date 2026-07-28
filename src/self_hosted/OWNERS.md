@@ -139,6 +139,9 @@ inventory must not become a second fact-family owner registry.
 ## Semantic
 
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
+- `src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy` --
+  shared callable receiver-carriage vocabulary and nominal-kind policy consumed
+  by semantic-derived codegen, MIR production, and machine admission.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- structured semantic
   diagnostic rendering, vocabulary, fixture manifest, and audit facts.
 - `src/self_hosted/semantic/diagnostic_contract_owner.pgy` -- executable
@@ -593,6 +596,10 @@ inventory must not become a second fact-family owner registry.
   instruction; initializer uses are resolved before new bindings enter scope.
 - `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
   signature parameter seeding, and routine-lowering entry.
+- `src/self_hosted/mir/routine_receiver_carriage_owner.pgy` -- exact declaration
+  owner join that projects the routine owner/kind/receiver-carriage tuple.
+- `src/self_hosted/mir/routine_cfg_append_owner.pgy` -- CFG row append and
+  instruction/use offset rebinding across routine-local MIR graphs.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
@@ -754,6 +761,9 @@ inventory must not become a second fact-family owner registry.
   document-order routine/block/instruction structure view, including
   instruction identity and raw machine spans, shared by machine admission,
   declaration lookup, and routine reconstruction.
+- `src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy` --
+  exact routine source-ID uniqueness, declaration-owner join, and receiver
+  carriage admission shared by routine index construction and validation.
 - `src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy` -- one
   routine-local pass over admitted instruction spans that captures result and
   render scalars plus raw ABI value bounds without mixing local facts into the
@@ -803,6 +813,11 @@ inventory must not become a second fact-family owner registry.
   fail-closed codegen view over semantic function signature facts, including
   selected entrypoint or library function-node projection without an arena
   name scan.
+- `src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy` --
+  callable-identity receiver carriage rows shared by C definitions,
+  prototypes, function environments, and member calls; MIR consumers exact-
+  join admitted source ID/owner/name rows while source entrypoints derive the
+  same fact from verified semantic declaration owners.
 - `src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy`
   -- ordered C specialization view shared by source entrypoints and MIR
   consumers; hard MIR codegen receives it from the MIR row decoder and does
@@ -811,8 +826,8 @@ inventory must not become a second fact-family owner registry.
   fail-closed role name, target-type, and method-identity projection from
   semantic role facts.
 - `src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy` --
-  fail-closed codegen projection of semantic nominal names and ordered field
-  name/type rows.
+  fail-closed codegen projection of semantic nominal names, declaration kinds,
+  and ordered field name/type rows.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity, target/base/index/RHS rows, and verified expected-type facts, including `Assign` routing.
 - `src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy` -- fail-closed projection of the semantic-owned body type bundle consumed by C emission; it does not synthesize semantic facts.
@@ -836,6 +851,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy` -- canonical
   recursive by-value Option/Result wrapper inventory derived from semantic type
   surfaces.
+- `src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy` --
+  fail-closed member receiver ABI decision: role erasure, value carriage, and
+  stable-address materialization for mutable identity share one consumer.
+- `src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy` --
+  fail-closed concrete-self binding behind the erased direct-role method ABI;
+  semantic nominal kind chooses pointer identity versus value carriage.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
@@ -1104,6 +1125,10 @@ inventory must not become a second fact-family owner registry.
   `tests/selfhost_spawn_lane_plan_smoke.sh`).
 
 ## Compiler World
+
+- `src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy` --
+  one-way bridge from the machine-admitted MIR routine inventory to the
+  codegen callable-receiver fact; codegen never reopens MIR JSON.
 
 - `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
   contract: no mechanism without a consumer, or an explicit declaration that

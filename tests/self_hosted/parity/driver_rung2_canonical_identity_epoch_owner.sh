@@ -221,6 +221,26 @@ canonical_topology = canonical["domain_topology"]
 assert raw_topology["domain_graph_id"] == canonical_topology["domain_graph_id"]
 assert len(raw_topology["rows"]) == len(canonical_topology["rows"]) == 4
 
+# A hosted-domain callable is a direct declaration child in the source parser.
+# Its canonical reconstruction must preserve that exact tree position instead
+# of inserting a synthetic Methods node and then compensating numerically.
+raw_show = [
+    row for row in raw["routines"]
+    if row.get("owner") == "BattleZone"
+    and row.get("name") == "Show"
+    and row.get("kind") == "method"
+]
+canonical_show = [
+    row for row in canonical["routines"]
+    if row.get("owner") == "BattleZone"
+    and row.get("name") == "Show"
+    and row.get("kind") == "method"
+]
+assert len(raw_show) == len(canonical_show) == 1
+assert raw_show[0]["source_syntax_id"] == 27, raw_show
+assert canonical_show[0]["source_syntax_id"] == \
+    raw_show[0]["source_syntax_id"], (raw_show, canonical_show)
+
 slot_prefixes = (
     "projection_slot", "source_slot", "layer_slot", "target_slot",
     "left_slot", "right_slot", "participant_slot",
@@ -356,4 +376,4 @@ for mutation in \
         || fail "identity mutation missed the topology boundary: $(basename "$mutation")"
 done
 
-echo "[self-host-parity:canonical-identity-epoch] exact apply/link epoch remap and stale/wrong-kind field-ID negatives ok"
+echo "[self-host-parity:canonical-identity-epoch] exact hosted-method tree ID, apply/link epoch remap, and stale/wrong-kind field-ID negatives ok"

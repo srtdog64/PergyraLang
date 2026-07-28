@@ -403,8 +403,11 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_str_or_null(out, routine->name);
     fputs(",\"kind\":", out);
     mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
-    fprintf(out, ",\"source_syntax_id\":%u,\"function_param_flow_summary_count\":%zu",
-            routine->source_syntax_id,
+    fprintf(out, ",\"source_syntax_id\":%u,\"receiver_carriage\":",
+            routine->source_syntax_id);
+    mir_json_emit_str(out,
+        mir_receiver_carriage_name(routine->receiver_carriage));
+    fprintf(out, ",\"function_param_flow_summary_count\":%zu",
             routine->function_param_flow_summary_count);
     fputs(",\"function_param_flow_summaries\":[", out);
     for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {

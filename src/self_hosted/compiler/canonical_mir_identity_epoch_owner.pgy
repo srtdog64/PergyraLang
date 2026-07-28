@@ -262,6 +262,16 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
     );
 }
 
+func CanonicalMirIdentityArtifactFromTreeTextOrDie(
+    tree_text: String,
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> AstTreeArtifact {
+    let epoch: CanonicalMirIdentityEpochArtifact =
+        CanonicalMirIdentityEpochArtifactFromTreeText(tree_text, admitted);
+    if !epoch.ok { Die("MIR-to-C canonical identity epoch is invalid"); }
+    return epoch.artifact;
+}
+
 func CanonicalMirIdentityEpochOwnerId(
     ref source_index: MirProgramDeclarationFieldIdentityIndex,
     ref constructors: SemanticAstNominalConstructorFacts,

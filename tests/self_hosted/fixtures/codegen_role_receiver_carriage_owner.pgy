@@ -1,0 +1,44 @@
+import "../../../src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy";
+import "../../../src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy";
+
+func RoleReceiverEnv(carriage: String) -> CodegenTypeEnv {
+    return CodegenTypeEnv(
+        Concat(
+            "|Player=s:struct||Player=nk:subject||PlayerDamageable_TakeDamage=rc:",
+            Concat(carriage, "||PlayerDamageable_TakeDamage=rce:1|")
+        ),
+        ""
+    );
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    let carriage: String = CallableReceiverCarriageMutableIdentity();
+    if ArrayLength(args) > 0 && args[0] == "--value-role" {
+        carriage = CallableReceiverCarriageValue();
+    }
+    let env: CodegenTypeEnv = RoleReceiverEnv(carriage);
+    if ArrayLength(args) > 0 && args[0] == "--missing-kind" {
+        CodegenRoleReceiverBindingOrDie(
+            "MissingPlayer", carriage, env
+        );
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--temporary" {
+        Log(CodegenMemberCallReceiverArgument(
+            "PlayerDamageable_TakeDamage", "MakePlayer().member", false, env
+        ));
+        return;
+    }
+    let argument: String = CodegenMemberCallReceiverArgument(
+        "PlayerDamageable_TakeDamage", "player", true, env
+    );
+    let binding: CodegenRoleReceiverBinding =
+        CodegenRoleReceiverBindingOrDie("Player", carriage, env);
+    if argument != "&(player)" || !binding.pointer_identity ||
+        binding.self_c_expression != "(*self)" ||
+        !StringContains(binding.prologue, "Player *self = (Player *)_pgy_raw_self;") {
+        Exit(1);
+    }
+    Log(argument);
+}

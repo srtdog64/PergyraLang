@@ -68,6 +68,53 @@ mir_lower_request_bind_dir(MIRLowerRequest *request, const DIRProgram *dir)
         request->dir = dir;
 }
 
+static bool
+mir_capture_receiver_carriage(const MIRProgram *mir,
+                              MIRRoutine *routine,
+                              char **error_message)
+{
+    const char *owner_name;
+    const MIRDeclHeader *owner = NULL;
+    size_t owner_count = 0;
+
+    if (mir == NULL || routine == NULL)
+        return false;
+    owner_name = routine->owner_name;
+    if (routine->kind != MIR_SCOPE_METHOD) {
+        routine->receiver_carriage = MIR_RECEIVER_CARRIAGE_NONE;
+        return true;
+    }
+    if (owner_name == NULL || owner_name[0] == '\0') {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR method '%s' receiver carriage requires a declaration owner",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        }
+        return false;
+    }
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *candidate = &mir->decl_headers[i];
+        if (candidate->name != NULL && strcmp(candidate->name, owner_name) == 0) {
+            owner = candidate;
+            owner_count++;
+        }
+    }
+    if (owner_count != 1 || owner == NULL
+        || owner->ast_type != routine->owner_ast_type) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' receiver carriage requires one exact declaration owner '%s'",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                owner_name);
+        }
+        return false;
+    }
+    routine->receiver_carriage = owner->uses_pointer_self
+        ? MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY
+        : MIR_RECEIVER_CARRIAGE_VALUE;
+    return true;
+}
+
 MIRProgram *
 mir_lower(const MIRLowerRequest *request, char **error_message)
 {
@@ -323,6 +370,11 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             ? routine.rir_scope->owner_name
             : hir_routine->owner_name;
         routine.owner_ast_type = hir_routine->owner_ast_type;
+        if (!mir_capture_receiver_carriage(mir, &routine, error_message)) {
+            pgy_arena_destroy(&routine.scratch);
+            mir_destroy(mir);
+            return NULL;
+        }
         if (routine.ast != NULL && routine.ast->type == AST_FUNC_DECL) {
             routine.generic_param_count = ast_generic_param_count(
                 ast_declaration_generic_params(routine.ast));

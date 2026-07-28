@@ -8,6 +8,7 @@ func EmitFunctionSet(
     arena: AstArena,
     signatures: SemanticAstFunctionSignatureFacts,
     roles: SemanticAstRoleFacts,
+    receiver_facts: CodegenCallableReceiverFacts,
     local_bindings: SemanticAstLocalBindingFacts,
     assignments: SemanticAstAssignmentFacts,
     statements: SemanticAstStatementFacts,
@@ -28,7 +29,8 @@ func EmitFunctionSet(
         signatures, signature_index
     ) == 0 {
         return EmitFunction(
-            count, arena, signatures, roles, local_bindings, assignments,
+            count, arena, signatures, roles, receiver_facts,
+            local_bindings, assignments,
             statements, body_types, expression_surfaces, cur, f_indent,
             base_env, machine_startup, uses_args
         );
@@ -47,7 +49,7 @@ func EmitFunctionSet(
                     specializations, specialization_index
                 );
             let definition: String = EmitFunctionWithSpecialization(
-                count, arena, signatures, roles, local_bindings,
+                count, arena, signatures, roles, receiver_facts, local_bindings,
                 assignments, statements, body_types, expression_surfaces,
                 local_cur, f_indent, base_env, uses_args,
                 machine_startup,

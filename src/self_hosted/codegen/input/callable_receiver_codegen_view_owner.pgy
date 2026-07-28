@@ -1,0 +1,301 @@
+// Callable-identity-bound receiver carriage consumed by every C ABI surface.
+//
+// Semantic entrypoints derive these rows from the verified declaration facts.
+// MIR entrypoints must additionally exact-join the carried routine identity
+// `(source_syntax_id, owner, name)` and reject a missing or mutated carriage.
+
+import "semantic_signature_codegen_view_owner.pgy";
+import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "../../semantic/ast_role_fact_owner.pgy";
+import "../../semantic/ast_enum_fact_owner.pgy";
+import "../../semantic/ast_artifact_verdict_owner.pgy";
+import "../../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CodegenCallableReceiverFacts {
+    let ok: Bool;
+    let admitted: Bool;
+    let source_syntax_ids: Array<String>;
+    let owners: Array<String>;
+    let names: Array<String>;
+    let carriages: Array<String>;
+    let role_erased: Array<Bool>;
+}
+
+func CodegenCallableReceiverNominalKind(
+    constructors: SemanticAstNominalConstructorFacts,
+    owner: String
+) -> String {
+    let found: String = "";
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.names[i] == owner {
+            if found != "" { Die("callable receiver nominal owner is duplicated"); }
+            found = constructors.nominal_kinds[i];
+        }
+        i = i + 1;
+    }
+    return found;
+}
+
+func CodegenCallableReceiverFactsFromSemantic(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    enums: SemanticAstEnumFacts
+) -> CodegenCallableReceiverFacts {
+    let source_ids: Array<String> = [];
+    let owners: Array<String> = [];
+    let names: Array<String> = [];
+    let carriages: Array<String> = [];
+    let role_erased: Array<Bool> = [];
+    let ok: Bool = signatures.ok && constructors.ok && roles.ok && enums.ok;
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let source_id: String = ToString(
+            CodegenSemanticFunctionNodeOrDie(signatures, i)
+        );
+        let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
+        let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
+        let carriage: String = CallableReceiverCarriageNone();
+        let erased: Bool = false;
+        if owner != "" {
+            let role_index: Option<Int> = SemanticAstRoleIndexForName(
+                roles, owner
+            );
+            if IsSome(role_index) {
+                carriage = CallableReceiverCarriageMutableIdentity();
+                erased = true;
+            } else {
+                let nominal_kind: String =
+                    CodegenCallableReceiverNominalKind(constructors, owner);
+                if CallableReceiverNominalKindUsesMutableIdentity(
+                    nominal_kind
+                ) {
+                    carriage = CallableReceiverCarriageMutableIdentity();
+                } else if CallableReceiverNominalKindUsesValue(nominal_kind) ||
+                    IsSome(SemanticAstEnumIndexForName(enums, owner)) {
+                    carriage = CallableReceiverCarriageValue();
+                } else if !CodegenSemanticFunctionRuntimeCallableOrDie(
+                    signatures, i
+                ) {
+                    // Ability declaration signatures are compile-time
+                    // contracts and have no runtime receiver ABI.
+                    carriage = CallableReceiverCarriageNone();
+                } else {
+                    Die("callable receiver semantic owner kind is missing");
+                }
+            }
+        }
+        ArrayPush(source_ids, source_id);
+        ArrayPush(owners, owner);
+        ArrayPush(names, name);
+        ArrayPush(carriages, carriage);
+        ArrayPush(role_erased, erased);
+        i = i + 1;
+    }
+    return CodegenCallableReceiverFacts(
+        ok, false, source_ids, owners, names, carriages, role_erased
+    );
+}
+
+func CodegenCallableReceiverFactsFromAnalysis(
+    analysis: SemanticAstArtifactAnalysis
+) -> CodegenCallableReceiverFacts {
+    return CodegenCallableReceiverFactsFromSemantic(
+        analysis.signatures, analysis.constructors,
+        analysis.roles, analysis.enums
+    );
+}
+
+func CodegenCallableReceiverFactCount(
+    facts: CodegenCallableReceiverFacts
+) -> Int {
+    return ArrayLength(facts.source_syntax_ids);
+}
+
+func CodegenCallableReceiverFactsReady(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let count: Int = SemanticAstFunctionSignatureCount(signatures);
+    if !facts.ok || CodegenCallableReceiverFactCount(facts) != count ||
+        ArrayLength(facts.owners) != count ||
+        ArrayLength(facts.names) != count ||
+        ArrayLength(facts.carriages) != count ||
+        ArrayLength(facts.role_erased) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.source_syntax_ids[i] != ToString(
+                CodegenSemanticFunctionNodeOrDie(signatures, i)
+            ) ||
+            facts.owners[i] !=
+                CodegenSemanticFunctionOwnerOrDie(signatures, i) ||
+            facts.names[i] != CodegenSemanticFunctionNameOrDie(signatures, i) ||
+            !CallableReceiverCarriageKnown(facts.carriages[i]) ||
+            (facts.role_erased[i] &&
+                facts.carriages[i] !=
+                    CallableReceiverCarriageMutableIdentity()) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if facts.source_syntax_ids[prior] == facts.source_syntax_ids[i] ||
+                (facts.owners[prior] == facts.owners[i] &&
+                    facts.names[prior] == facts.names[i]) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    enums: SemanticAstEnumFacts,
+    routine_source_syntax_ids: Array<String>,
+    routine_kinds: Array<String>,
+    routine_owners: Array<String>,
+    routine_names: Array<String>,
+    routine_receiver_carriages: Array<String>
+) -> CodegenCallableReceiverFacts {
+    let facts: CodegenCallableReceiverFacts =
+        CodegenCallableReceiverFactsFromSemantic(
+            signatures, constructors, roles, enums
+        );
+    let routine_count: Int = ArrayLength(routine_names);
+    if !CodegenCallableReceiverFactsReady(facts, signatures) ||
+        ArrayLength(routine_source_syntax_ids) != routine_count ||
+        ArrayLength(routine_kinds) != routine_count ||
+        ArrayLength(routine_owners) != routine_count ||
+        ArrayLength(routine_receiver_carriages) != routine_count {
+        Die("admitted callable receiver rows are incomplete");
+    }
+    let matched: Array<Bool> = [];
+    let r0: Int = 0;
+    while r0 < routine_count {
+        ArrayPush(matched, false);
+        r0 = r0 + 1;
+    }
+    let i: Int = 0;
+    while i < CodegenCallableReceiverFactCount(facts) {
+        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
+            i = i + 1;
+            continue;
+        }
+        let found: Int = 0 - 1;
+        let r: Int = 0;
+        while r < routine_count {
+            if routine_source_syntax_ids[r] == facts.source_syntax_ids[i] &&
+                routine_owners[r] == facts.owners[i] &&
+                routine_names[r] == facts.names[i] {
+                if found >= 0 {
+                    Die(Concat(
+                        "admitted callable receiver identity is duplicated: source_syntax_id=",
+                        Concat(facts.source_syntax_ids[i], Concat(
+                            " owner=", Concat(facts.owners[i], Concat(
+                                " name=", facts.names[i]
+                            ))
+                        ))
+                    ));
+                }
+                found = r;
+            }
+            r = r + 1;
+        }
+        if found < 0 {
+            Die(Concat(
+                "admitted callable receiver identity is missing: source_syntax_id=",
+                Concat(facts.source_syntax_ids[i], Concat(
+                    " owner=", Concat(facts.owners[i], Concat(
+                        " name=", facts.names[i]
+                    ))
+                ))
+            ));
+        }
+        let expected_kind: String = "function";
+        if facts.owners[i] != "" { expected_kind = "method"; }
+        if routine_kinds[found] != expected_kind ||
+            routine_receiver_carriages[found] != facts.carriages[i] {
+            Die(Concat(
+                "admitted callable receiver carriage is missing or mutated: source_syntax_id=",
+                Concat(facts.source_syntax_ids[i], Concat(
+                    " owner=", Concat(facts.owners[i], Concat(
+                        " name=", facts.names[i]
+                    ))
+                ))
+            ));
+        }
+        ArraySet(matched, found, true);
+        i = i + 1;
+    }
+    let r: Int = 0;
+    while r < routine_count {
+        if !matched[r] &&
+            (routine_kinds[r] != "intent" ||
+                routine_receiver_carriages[r] !=
+                    CallableReceiverCarriageNone()) {
+            Die("admitted routine has no semantic callable identity");
+        }
+        r = r + 1;
+    }
+    return CodegenCallableReceiverFacts(
+        true, true, facts.source_syntax_ids, facts.owners, facts.names,
+        facts.carriages, facts.role_erased
+    );
+}
+
+func CodegenCallableReceiverCarriageForSignatureOrDie(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> String {
+    if !CodegenCallableReceiverFactsReady(facts, signatures) ||
+        signature_index < 0 ||
+        signature_index >= CodegenCallableReceiverFactCount(facts) {
+        Die("callable receiver fact is missing or stale");
+    }
+    return facts.carriages[signature_index];
+}
+
+func CodegenCallableReceiverRoleErasedForSignatureOrDie(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Bool {
+    CodegenCallableReceiverCarriageForSignatureOrDie(
+        facts, signatures, signature_index
+    );
+    return facts.role_erased[signature_index];
+}
+
+func CodegenCallableReceiverEnvRows(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> String {
+    if !CodegenCallableReceiverFactsReady(facts, signatures) {
+        Die("callable receiver facts cannot populate the function environment");
+    }
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < CodegenCallableReceiverFactCount(facts) {
+        let c_name: String = CompilerSymbolCQualifiedName(
+            facts.owners[i], facts.names[i]
+        );
+        ArrayPush(rows, Concat(
+            c_name, Concat("=rc:", Concat(facts.carriages[i], "|"))
+        ));
+        if facts.role_erased[i] {
+            ArrayPush(rows, Concat(c_name, "=rce:1|"));
+        }
+        i = i + 1;
+    }
+    return StringJoin(rows, "");
+}

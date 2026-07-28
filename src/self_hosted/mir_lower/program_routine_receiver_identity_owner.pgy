@@ -1,0 +1,175 @@
+// MIR program routine receiver identity admission owner.
+//
+// A routine source identity and receiver carriage are admitted together. A
+// method must join one exact declaration row and derive its carriage from that
+// declaration's nominal kind. Free functions and intents carry no receiver
+// identity. Source identities are positive and unique within the routine set.
+
+import "program_declaration_index_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+
+struct MirProgramRoutineReceiverIdentityCapture {
+    let valid: Bool;
+    let source_syntax_id: String;
+    let receiver_carriage: String;
+    let owner_nominal_kind: String;
+    let owner_declaration_row: Int;
+}
+
+func MirProgramRoutineOwnerDeclarationRow(
+    ref declarations: MirProgramDeclarationIndex,
+    owner: String
+) -> Int {
+    if !declarations.valid || !declarations.field_identities.valid ||
+        owner == "" {
+        return 0 - 1;
+    }
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(declarations.names) {
+        if declarations.names[row] == owner {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirProgramRoutineOwnerNominalKindAt(
+    ref declarations: MirProgramDeclarationIndex,
+    declaration_row: Int
+) -> String {
+    if !declarations.valid || !declarations.field_identities.valid ||
+        declaration_row < 0 ||
+        declaration_row >= ArrayLength(declarations.names) {
+        return "";
+    }
+    let nominal_kind: String = declarations.nominal_kinds[declaration_row];
+    if nominal_kind == "" { nominal_kind = declarations.kinds[declaration_row]; }
+    if !CallableReceiverNominalKindKnown(nominal_kind) { return ""; }
+    return nominal_kind;
+}
+
+func MirProgramRoutineOwnerDeclarationJoinReady(
+    ref declarations: MirProgramDeclarationIndex,
+    routine_kind: String,
+    owner: String,
+    owner_declaration_row: Int,
+    owner_nominal_kind: String
+) -> Bool {
+    if routine_kind != "method" {
+        return owner_declaration_row == (0 - 1) &&
+            owner_nominal_kind == CallableReceiverCarriageNone();
+    }
+    if owner_declaration_row < 0 ||
+        owner_declaration_row >= ArrayLength(declarations.names) ||
+        declarations.names[owner_declaration_row] != owner ||
+        MirProgramRoutineOwnerDeclarationRow(declarations, owner) !=
+            owner_declaration_row {
+        return false;
+    }
+    return MirProgramRoutineOwnerNominalKindAt(
+        declarations, owner_declaration_row
+    ) == owner_nominal_kind;
+}
+
+func MirProgramRoutineReceiverIdentityReady(
+    routine_kind: String,
+    owner: String,
+    owner_nominal_kind: String,
+    receiver_carriage: String
+) -> Bool {
+    if routine_kind == "function" {
+        return owner == "" &&
+            owner_nominal_kind == CallableReceiverCarriageNone() &&
+            receiver_carriage == CallableReceiverCarriageNone();
+    }
+    if routine_kind == "intent" {
+        return owner_nominal_kind == CallableReceiverCarriageNone() &&
+            receiver_carriage == CallableReceiverCarriageNone();
+    }
+    if routine_kind != "method" || owner == "" ||
+        !CallableReceiverNominalKindKnown(owner_nominal_kind) ||
+        !CallableReceiverCarriageKnown(receiver_carriage) {
+        return false;
+    }
+    if CallableReceiverNominalKindUsesMutableIdentity(owner_nominal_kind) {
+        return receiver_carriage == CallableReceiverCarriageMutableIdentity();
+    }
+    if CallableReceiverNominalKindUsesValue(owner_nominal_kind) {
+        return receiver_carriage == CallableReceiverCarriageValue();
+    }
+    return false;
+}
+
+func MirProgramRoutineSourceSyntaxIdentityUniqueExcept(
+    source_syntax_ids: Array<String>,
+    source_syntax_id: String,
+    except_row: Int
+) -> Bool {
+    if !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(source_syntax_ids) {
+        if row != except_row && source_syntax_ids[row] == source_syntax_id {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CaptureMirProgramRoutineReceiverIdentity(
+    ref declarations: MirProgramDeclarationIndex,
+    routine_kind: String,
+    owner: String,
+    source_syntax_id: String,
+    receiver_carriage: String,
+    prior_source_syntax_ids: Array<String>
+) -> MirProgramRoutineReceiverIdentityCapture {
+    let owner_nominal_kind: String = CallableReceiverCarriageNone();
+    let owner_declaration_row: Int = 0 - 1;
+    if routine_kind == "method" && owner != "" {
+        owner_declaration_row =
+            MirProgramRoutineOwnerDeclarationRow(declarations, owner);
+        owner_nominal_kind = MirProgramRoutineOwnerNominalKindAt(
+            declarations, owner_declaration_row
+        );
+    }
+    let valid: Bool =
+        MirProgramRoutineSourceSyntaxIdentityUniqueExcept(
+            prior_source_syntax_ids, source_syntax_id, 0 - 1
+        ) && MirProgramRoutineReceiverIdentityReady(
+            routine_kind, owner, owner_nominal_kind, receiver_carriage
+        ) && MirProgramRoutineOwnerDeclarationJoinReady(
+            declarations, routine_kind, owner,
+            owner_declaration_row, owner_nominal_kind
+        );
+    return MirProgramRoutineReceiverIdentityCapture(
+        valid, source_syntax_id, receiver_carriage,
+        owner_nominal_kind, owner_declaration_row
+    );
+}
+
+func MirProgramRoutineReceiverIdentityRowReady(
+    ref declarations: MirProgramDeclarationIndex,
+    routine_kind: String,
+    owner: String,
+    source_syntax_id: String,
+    receiver_carriage: String,
+    owner_nominal_kind: String,
+    owner_declaration_row: Int,
+    source_syntax_ids: Array<String>,
+    row: Int
+) -> Bool {
+    return MirProgramRoutineSourceSyntaxIdentityUniqueExcept(
+        source_syntax_ids, source_syntax_id, row
+    ) && MirProgramRoutineReceiverIdentityReady(
+        routine_kind, owner, owner_nominal_kind, receiver_carriage
+    ) && MirProgramRoutineOwnerDeclarationJoinReady(
+        declarations, routine_kind, owner,
+        owner_declaration_row, owner_nominal_kind
+    );
+}

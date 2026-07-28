@@ -113,6 +113,28 @@ mir_routine_owner_ast_type(const MIRRoutine *routine)
     return routine != NULL ? routine->owner_ast_type : AST_PROGRAM;
 }
 
+MIRReceiverCarriage
+mir_routine_receiver_carriage(const MIRRoutine *routine)
+{
+    return routine != NULL
+        ? routine->receiver_carriage
+        : MIR_RECEIVER_CARRIAGE_NONE;
+}
+
+const char *
+mir_receiver_carriage_name(MIRReceiverCarriage carriage)
+{
+    switch (carriage) {
+    case MIR_RECEIVER_CARRIAGE_NONE:
+        return "none";
+    case MIR_RECEIVER_CARRIAGE_VALUE:
+        return "value";
+    case MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY:
+        return "mutable-identity";
+    }
+    return "unknown";
+}
+
 bool
 mir_routine_has_signature(const MIRRoutine *routine)
 {

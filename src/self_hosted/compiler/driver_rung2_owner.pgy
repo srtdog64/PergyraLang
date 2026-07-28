@@ -26,6 +26,7 @@ import "driver_rung2_readiness_owner.pgy";
 import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 import "canonical_mir_identity_epoch_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
+import "codegen_callable_receiver_bridge_owner.pgy";
 
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
@@ -267,7 +268,7 @@ func CanonicalizeMirJsonVerified(
     let identity_epoch: CanonicalMirIdentityEpochArtifact =
         CanonicalMirIdentityEpochArtifactFromTreeText(emission.text, admitted);
     if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(emission.text);
+    let artifact: AstTreeArtifact = identity_epoch.artifact;
     let graph: SemanticExpressionGraphFacts =
         MirExpressionGraphFactsForArtifact(
             routines, artifact, emission.expression_order
@@ -325,7 +326,7 @@ func CanonicalizeOracleMirJsonBridge(
     let identity_epoch: CanonicalMirIdentityEpochArtifact =
         CanonicalMirIdentityEpochArtifactFromTreeText(tree_text, admitted);
     if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let artifact: AstTreeArtifact = identity_epoch.artifact;
     return CanonicalizeMirArtifactWithAdmittedTopology(artifact,
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true), admitted,
         machine_declaration, identity_epoch);
@@ -347,7 +348,8 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     if !tree_emission.ok {
         Die("MIR program tree emission projection is invalid");
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_emission.text);
+    let artifact: AstTreeArtifact = CanonicalMirIdentityArtifactFromTreeTextOrDie(
+        tree_emission.text, admitted);
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:done"
     );
@@ -419,14 +421,13 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(
         observe_pressure, "consumer:codegen-view:start"
     );
-    let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, verified.analysis, semantic_body_types,
-            mir_generic_specializations
-        );
+    let codegen_view: CodegenAdmittedCView =
+        CodegenAdmittedCViewFromFactsOrDie(admitted, verified.analysis,
+            artifact, semantic_body_types, mir_generic_specializations);
     DriverRung2PressureStage(
         observe_pressure, "consumer:codegen-view:done"
     );
+    let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;
     DriverRung2PressureStage(
         observe_pressure, "consumer:c-emission:start"
     );
@@ -434,7 +435,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         "emitted-c",
         MirDomainTopologyGraphPlanAttachAdmittedToC(
             admitted, GenerateCFromVerifiedSemanticArtifact(
-                artifact, verified.analysis, body_types,
+                artifact, verified.analysis, codegen_body_types, codegen_view.receivers,
                 admitted.machine_declaration, target_projection
             )
         ),

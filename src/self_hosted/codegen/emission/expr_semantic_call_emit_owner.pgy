@@ -1,5 +1,3 @@
-// Call and member emission from parser-owned expression graph nodes.
-
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
@@ -20,7 +18,7 @@ import "set_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
-
+import "member_call_receiver_carriage_owner.pgy";
 func RewriteSemanticStructCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
@@ -250,9 +248,14 @@ func RewriteSemanticMemberCall(
             Die("semantic member-call method fact is missing");
         }
         param_offset = 1;
-        prefix_argument = RewriteExprFromSemanticGraph(
-            graph, member.receiver_node, env
-        );
+        let receiver_value: String = RewriteExprFromSemanticGraph(
+            graph, member.receiver_node, env);
+        let receiver_place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
+            graph, member.receiver_node);
+        if !IsSome(receiver_place_kind) { Die("semantic member-call receiver place fact is missing"); }
+        let stable_addressable: Bool = SemanticExpressionPlaceKindAddressable(UnwrapOption(receiver_place_kind));
+        prefix_argument = CodegenMemberCallReceiverArgument(
+            call_symbol, receiver_value, stable_addressable, env);
     } else {
         Die("semantic member-call target fact is missing");
     }
@@ -264,7 +267,6 @@ func RewriteSemanticMemberCall(
     );
     return Concat(call_symbol, Concat("(", Concat(args, ")")));
 }
-
 func RewriteSemanticMachineCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
