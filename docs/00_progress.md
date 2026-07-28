@@ -2,6 +2,29 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 intent callable + observability SoT checkpoint
+
+- Self semantic call resolution now derives source `intent` signatures from
+  exact typed-AST declaration and ordered `involves`/`value` child identity.
+  Intent remains a distinct purpose boundary; it is not inserted into the
+  function/action signature owner.
+- The 51 native `Intent*` observability calls now have one append-only owner,
+  `src/common/intent_observability_abi.def`. Native C includes it directly and
+  a checked generator projects stable ID, source/runtime name, arity, result,
+  and parameter signatures into self-host semantics. The omitted
+  `IntentHistoryCount` row is no longer hand-maintained drift.
+- The original world/zone/tobject fixture and the focused variant now converge
+  at `self-host DIR authority shape is unsupported`; the old
+  `undefined_function Checkout` and incomplete call-target failures are gone.
+  Wrong arity, wrong participant type, and renamed intent fail earlier with
+  stable diagnostics and no partial MIR.
+- Grade is `REACHABLE`, not `SUBSTITUTING`. The next rung must add a typed DIR
+  intent fact owner for participant and step authority/topology edges before
+  removing the current `IntentDecl` rejection. A count-only bypass is forbidden.
+- The rebuilt native-current DRV-2 sampled about 674 MiB private in `pgy` and
+  791 MiB private in `cc1`; no 20 GiB-class graph-revalidation regression was
+  observed.
+
 ## 2026-07-28 world/tobject query reachability checkpoint
 
 - Self semantic은 명목 생성자 호출을 일반 함수의 exact-arity 경로와 분리한다.

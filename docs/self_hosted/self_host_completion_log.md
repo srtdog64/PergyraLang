@@ -6,6 +6,27 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-28 - Intent callable and observability ABI reach self DIR
+
+- Added an artifact-exact self semantic intent signature owner. It preserves
+  declaration node identity and ordered `involves`/`value` parameter node,
+  name, and canonical type facts while keeping intent outside function/action
+  declaration ownership.
+- Moved the 51 native intent observability rows into one append-only `.def`
+  owner and generated the self-host ABI projection from it. Native lookup,
+  stable ID 25 for `IntentHistoryCount`, arity/result facts, and self semantic
+  builtin admission now derive from the same registry.
+- The full world/zone/tobject fixture with `IntentHistoryCount` and its focused
+  variant both advance past semantic call-target resolution and stop at the
+  same next boundary, `self-host DIR authority shape is unsupported`. Arity,
+  type, and renamed-intent mutations fail with owned diagnostics before MIR.
+- This is `REACHABLE`, not `SUBSTITUTING`. The next session must create a typed
+  DIR intent participant/step fact owner before removing the current explicit
+  `IntentDecl` rejection; a count-only bypass would be false progress.
+- A native-current DRV-2 rebuild completed with 0 Pergyra errors/warnings.
+  Observed samples were roughly 674 MiB private for `pgy` and 791 MiB for
+  `cc1`, with no 20 GiB graph-revalidation recurrence.
+
 ## 2026-07-27 - Loop break CFG reaches both backends (v74)
 
 - Admitted the unchanged 7,054-byte `break_after_stmt.pgy` MIR with SHA-256

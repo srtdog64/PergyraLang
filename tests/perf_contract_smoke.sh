@@ -1500,13 +1500,13 @@ grep -Fq "MIR DCE does not preserve user Intent-prefixed statements" "$ROOT_DIR/
 ! grep -Fq "strncmp(inst->name, \"Intent\", 6)" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "strncmp(inst->name, \"Intent\", 6)" "$ROOT_DIR/src/compiler/mir_stmt_population_source.c"
 common_intent_obs_names="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.c" \
+    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.def" \
         | tr -d '"' \
         | grep -vx "Intent" \
         | sort -u
 )"
 common_intent_obs_names_in_order="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.c" \
+    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.def" \
         | tr -d '"' \
         | grep -vx "Intent"
 )"

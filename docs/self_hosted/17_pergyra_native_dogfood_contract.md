@@ -520,9 +520,10 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   `buyerPacket:TObjectSlot` from the nominal field graph and suppresses the
   undefined-value check only for those exact validated leaf node identities.
   It does not put `buyerPacket` into the runtime variable environment.
-- Current next blocker: the same full fixture now reaches the intent call and
-  reports `undefined_function`, `func: Checkout`. This is an intent callable
-  graph/reachability seam, not a tobject, projection-map, or backend failure.
+- Closed semantic blocker: the same full fixture now resolves `Checkout` from
+  an exact parser-artifact intent signature and resolves `IntentHistoryCount`
+  from the generated projection of the canonical native observability ABI.
+  It reaches `self-host DIR authority shape is unsupported`.
 - A fresh Pergyra-built DRV-2 now emits typed MIR for the bounded
   `world_tobject_projection_query` fixture. The focused gate observes the exact
   tobject/world/query facts, compares native C/LLVM output `true`, and rejects
@@ -538,7 +539,26 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - Gate: `tests/self_hosted/parity/world_tobject_projection_query_owner.sh` owns
   self source -> semantic/DIR -> typed MIR reachability, current native C/LLVM
   execution parity, and the missing declaration-identity negative. The full
-  fixture remains the next intent-callable falsifier.
+  fixture is now also pinned by
+  `tests/self_hosted/parity/intent_callable_reachability_owner.sh`: arity, type,
+  and renamed-intent negatives fail before MIR, while the positive reaches the
+  next honest DIR boundary. This remains `REACHABLE`, not `SUBSTITUTING`.
+
+### Next intent DIR objective card
+
+- Objective: carry exact intent participant and step authority/topology facts
+  into self DIR, then remove the current unconditional `IntentDecl` rejection.
+- Fact owner: a dedicated typed DIR intent owner, sourced from parser artifact
+  identity and declaration rows. `tobject` owns immutable detached handoff data;
+  it does not own intent step identity or authority.
+- Required edges: participant type, step zone, who, requires, authorized-by,
+  causes, and predecessor dependency, matching the native DIR fact families.
+- Forbidden fallback: incrementing only node/edge counts, accepting unknown
+  participant types, rescanning raw source in MIR/backend, importing native MIR,
+  or lowering `Checkout` to a constant `Bool` stub.
+- Falsifier: mutate the focused `Checkout` participant type, action receiver,
+  required ability, authorization source, caused effect, or step order. The
+  typed DIR owner must reject the exact changed fact before any MIR artifact.
 
 Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
 rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을

@@ -1083,6 +1083,23 @@ require_file "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.p
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "TypedAstKindAbilityDeclTag()"
+require_file "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" 320
+require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
+    "TypedAstKindIntentDeclTag()"
+require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
+    '"IntentInvolves: "'
+require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
+    '"IntentValue: "'
+require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
+    "func SemanticAstIntentSignatureFactsReady"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    'import "ast_intent_signature_fact_owner.pgy";'
+reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    '"Checkout"'
+require_file "tests/self_hosted/parity/intent_callable_reachability_owner.sh"
+require_text "Makefile" \
+    'tests/self_hosted/parity/intent_callable_reachability_owner.sh'
 reject_regex_under "src/self_hosted" "ZeroArtifactDecl"
 require_file "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
@@ -1145,6 +1162,13 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "body_ch
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "builtin_signature_owner.pgy";'
 require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
+require_file "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy"
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    'import "../lib/intent_observability_abi_projection_owner.pgy";'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    "IntentObservabilityAbiSignatureRows()"
+reject_regex "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    '"Intent[A-Za-z0-9_]*\^(Int|Bool|String)\^'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SeedSemanticBuiltinSignatures"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SemanticBuiltinSignatureContractReady"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArraySort^Unknown^Unknown"'

@@ -344,7 +344,7 @@ func SemanticAstIterationTypeFactsFromArtifact(
         SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, enum_facts
+            artifact, signatures, constructors, enum_facts
         );
     return SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
         artifact, signatures, constructors, locals, initializer_types,

@@ -1,0 +1,274 @@
+// Semantic callable signatures projected from parser-owned intent rows.
+//
+// Intent is not a function declaration and must not be inserted into the
+// function/action signature owner. This owner preserves the intent declaration
+// identity and its ordered involves/value bindings for call admission only.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstIntentParameterRow {
+    ok: Bool;
+    name: String;
+    type_name: String;
+}
+
+struct SemanticAstIntentSignatureFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    intent_node_ids: Array<Int>;
+    names: Array<String>;
+    param_starts: Array<Int>;
+    param_counts: Array<Int>;
+    param_node_ids: Array<Int>;
+    param_names: Array<String>;
+    param_types: Array<String>;
+}
+
+func SemanticAstIntentParameterRowFromProvenance(
+    provenance: String
+) -> SemanticAstIntentParameterRow {
+    let prefix: String = "";
+    if StartsWith(provenance, "IntentInvolves: ") {
+        prefix = "IntentInvolves: ";
+    } else if StartsWith(provenance, "IntentValue: ") {
+        prefix = "IntentValue: ";
+    } else {
+        return SemanticAstIntentParameterRow(false, "", "");
+    }
+    let row: String = Substring(
+        provenance, StringLength(prefix),
+        StringLength(provenance) - StringLength(prefix)
+    );
+    let colon: Int = StringIndexOf(row, ": ");
+    if colon <= 0 || colon + 2 >= StringLength(row) {
+        return SemanticAstIntentParameterRow(false, "", "");
+    }
+    let name: String = StringTrim(Substring(row, 0, colon));
+    let type_name: String = SemanticCanonicalTypeName(StringTrim(Substring(
+        row, colon + 2, StringLength(row) - colon - 2
+    )));
+    if name == "" || type_name == "" || type_name == "Unknown" {
+        return SemanticAstIntentParameterRow(false, "", "");
+    }
+    return SemanticAstIntentParameterRow(true, name, type_name);
+}
+
+func SemanticAstIntentSignatureFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstIntentSignatureFacts {
+    let intent_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let param_starts: Array<Int> = [];
+    let param_counts: Array<Int> = [];
+    let param_node_ids: Array<Int> = [];
+    let param_names: Array<String> = [];
+    let param_types: Array<String> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let diagnostic_code: String = "";
+    let diagnostic_message: String = "";
+    if !ok {
+        diagnostic_code = "ast_artifact_invalid";
+        diagnostic_message = SemanticError1(
+            "ast_artifact_invalid", "owner", "intent_signature"
+        );
+    }
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindIntentDeclTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        if !IsSome(name) || UnwrapOption(name) == "" {
+            ok = false;
+            diagnostic_code = "intent_signature_invalid";
+            diagnostic_message = SemanticError2(
+                "intent_signature_invalid", "node_id", ToString(node_id),
+                "missing_fact", "intent_name"
+            );
+            continue;
+        }
+        let prior: Int = 0;
+        while prior < ArrayLength(names) {
+            if names[prior] == UnwrapOption(name) {
+                ok = false;
+            }
+            prior = prior + 1;
+        }
+        if !ok {
+            diagnostic_code = "intent_signature_invalid";
+            diagnostic_message = SemanticError1(
+                "intent_signature_invalid", "duplicate", UnwrapOption(name)
+            );
+            continue;
+        }
+        let param_start: Int = ArrayLength(param_node_ids);
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+        while IsSome(child) && ok {
+            let child_id: Int = UnwrapOption(child);
+            let provenance: Option<String> = TypedAstArenaProvenanceText(
+                artifact.arena, child_id
+            );
+            if IsSome(provenance) &&
+                (StartsWith(UnwrapOption(provenance), "IntentInvolves: ") ||
+                 StartsWith(UnwrapOption(provenance), "IntentValue: ")) {
+                let row: SemanticAstIntentParameterRow =
+                    SemanticAstIntentParameterRowFromProvenance(
+                        UnwrapOption(provenance)
+                    );
+                if !row.ok {
+                    ok = false;
+                    diagnostic_code = "intent_signature_invalid";
+                    diagnostic_message = SemanticError2(
+                        "intent_signature_invalid", "node_id",
+                        ToString(child_id), "missing_fact", "parameter_row"
+                    );
+                    continue;
+                }
+                let p: Int = param_start;
+                while p < ArrayLength(param_names) {
+                    if param_names[p] == row.name { ok = false; }
+                    p = p + 1;
+                }
+                if !ok {
+                    diagnostic_code = "intent_signature_invalid";
+                    diagnostic_message = SemanticError1(
+                        "intent_signature_invalid", "duplicate", row.name
+                    );
+                    continue;
+                }
+                ArrayPush(param_node_ids, child_id);
+                ArrayPush(param_names, row.name);
+                ArrayPush(param_types, row.type_name);
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, node_id, child_index
+            );
+        }
+        if !ok { continue; }
+        ArrayPush(intent_node_ids, node_id);
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(param_starts, param_start);
+        ArrayPush(param_counts, ArrayLength(param_node_ids) - param_start);
+        node_id = node_id + 1;
+    }
+    return SemanticAstIntentSignatureFacts(
+        ok, diagnostic_code, diagnostic_message, artifact.count,
+        intent_node_ids, names, param_starts, param_counts,
+        param_node_ids, param_names, param_types
+    );
+}
+
+func SemanticAstIntentSignatureFactsReady(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstIntentSignatureFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.intent_node_ids);
+    let param_count: Int = ArrayLength(facts.param_node_ids);
+    if !AstTreeArtifactReady(artifact) || !facts.ok ||
+        facts.diagnostic_code != "" || facts.diagnostic_message != "" ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.names) != count ||
+        ArrayLength(facts.param_starts) != count ||
+        ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.param_names) != param_count ||
+        ArrayLength(facts.param_types) != param_count {
+        return false;
+    }
+    let expected_start: Int = 0;
+    let fact_index: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindIntentDeclTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        if fact_index >= count || facts.intent_node_ids[fact_index] != node_id ||
+            facts.names[fact_index] == "" ||
+            facts.param_starts[fact_index] != expected_start ||
+            facts.param_counts[fact_index] < 0 ||
+            expected_start + facts.param_counts[fact_index] > param_count {
+            return false;
+        }
+        let name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        if !IsSome(name) ||
+            UnwrapOption(name) != facts.names[fact_index] {
+            return false;
+        }
+        let prior_intent: Int = 0;
+        while prior_intent < fact_index {
+            if facts.names[prior_intent] == facts.names[fact_index] {
+                return false;
+            }
+            prior_intent = prior_intent + 1;
+        }
+        let local_count: Int = 0;
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            let provenance: Option<String> = TypedAstArenaProvenanceText(
+                artifact.arena, child_id
+            );
+            if IsSome(provenance) &&
+                (StartsWith(UnwrapOption(provenance), "IntentInvolves: ") ||
+                 StartsWith(UnwrapOption(provenance), "IntentValue: ")) {
+                let row: SemanticAstIntentParameterRow =
+                    SemanticAstIntentParameterRowFromProvenance(
+                        UnwrapOption(provenance)
+                    );
+                let param_index: Int = expected_start + local_count;
+                if !row.ok || local_count >= facts.param_counts[fact_index] ||
+                    param_index >= param_count ||
+                    facts.param_node_ids[param_index] != child_id ||
+                    facts.param_names[param_index] != row.name ||
+                    facts.param_types[param_index] != row.type_name {
+                    return false;
+                }
+                let prior_param: Int = expected_start;
+                while prior_param < param_index {
+                    if facts.param_names[prior_param] == row.name {
+                        return false;
+                    }
+                    prior_param = prior_param + 1;
+                }
+                local_count = local_count + 1;
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, node_id, child_index
+            );
+        }
+        if local_count != facts.param_counts[fact_index] {
+            return false;
+        }
+        expected_start = expected_start + local_count;
+        fact_index = fact_index + 1;
+        node_id = node_id + 1;
+    }
+    return fact_index == count && expected_start == param_count;
+}
+
+func SemanticAstIntentSignatureCount(
+    ref facts: SemanticAstIntentSignatureFacts
+) -> Int {
+    return ArrayLength(facts.intent_node_ids);
+}

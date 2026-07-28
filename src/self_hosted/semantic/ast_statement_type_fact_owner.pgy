@@ -563,7 +563,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
     let enum_facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, enum_facts
+            artifact, signatures, constructors, enum_facts
         );
     let rebuilt: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(

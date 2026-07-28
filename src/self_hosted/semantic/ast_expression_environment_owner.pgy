@@ -13,6 +13,7 @@ import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
 
 func SemanticAstExpressionMemberRootNames(
     constructors: SemanticAstNominalConstructorFacts,
@@ -265,6 +266,7 @@ func SemanticAstExpressionFunctionTables(
 }
 
 func SemanticAstExpressionFunctionTableFactsFromArtifact(
+    artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts
@@ -275,6 +277,39 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
     let ok: Bool = SemanticAstExpressionFunctionTables(
         signatures, constructors, enums, names, returns, params
     );
+    let intents: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    if ok && SemanticAstIntentSignatureFactsReady(artifact, intents) {
+        let intent_index: Int = 0;
+        while intent_index < SemanticAstIntentSignatureCount(intents) {
+            let intent_name: String = intents.names[intent_index];
+            if SemanticAstExpressionFunctionRowIndex(names, intent_name) >= 0 {
+                ok = false;
+                intent_index = intent_index + 1;
+                continue;
+            }
+            let intent_params: String = "";
+            let param_index: Int = 0;
+            while param_index < intents.param_counts[intent_index] {
+                if intent_params != "" {
+                    intent_params = Concat(intent_params, "|");
+                }
+                intent_params = Concat(
+                    intent_params,
+                    intents.param_types[
+                        intents.param_starts[intent_index] + param_index
+                    ]
+                );
+                param_index = param_index + 1;
+            }
+            ArrayPushOwnedString(names, intent_name);
+            ArrayPushOwnedString(returns, "Bool");
+            ArrayPushOwnedString(params, intent_params);
+            intent_index = intent_index + 1;
+        }
+    } else if ok {
+        ok = false;
+    }
     return SemanticAstExpressionFunctionTableFacts(
         ok, names, returns, params
     );
@@ -495,6 +530,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
+    let builtin_count: Int = ArrayLength(SemanticBuiltinSignatureRows());
     let modes: Array<String> = [];
     let inferred: Array<String> = ["Int", "Int"];
     if !SemanticAstExpressionFunctionTables(
@@ -526,14 +562,15 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         modes[2] != "local" {
         return false;
     }
-    if ArrayLength(function_names) != 125 ||
+    if ArrayLength(function_names) != builtin_count + 1 ||
         !SemanticBuiltinSignatureProjectionPrefixReady(
             function_names, function_returns, function_params
         ) {
         return false;
     }
-    if function_names[124] != "F" || function_returns[124] != "Void" ||
-        function_params[124] != "Int" {
+    if function_names[builtin_count] != "F" ||
+        function_returns[builtin_count] != "Void" ||
+        function_params[builtin_count] != "Int" {
         return false;
     }
     return SemanticAstExpressionEnumValueContractReady() &&

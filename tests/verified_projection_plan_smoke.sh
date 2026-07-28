@@ -177,9 +177,8 @@ if grep -RIn 'BUILTIN_INTENT_\(LAST\|HISTORY\|ACTIVE\|CURRENT\|RECENT\)' \
 fi
 
 abi_names="$(
-    sed -n '/kIntentObservabilityAbiRows\[\]/,/^};/p' \
-        "$ROOT_DIR/src/common/intent_observability_abi.c" \
-        | grep -o '"Intent[A-Za-z0-9_]*"' | tr -d '"'
+    grep -o '"Intent[A-Za-z0-9_]*"' \
+        "$ROOT_DIR/src/common/intent_observability_abi.def" | tr -d '"'
 )"
 if [[ "$(printf '%s\n' "$abi_names" | sed '/^$/d' | wc -l | tr -d ' ')" != "51" ]]; then
     echo "[verified-projection-plan] expected 51 canonical observability ABI rows" >&2

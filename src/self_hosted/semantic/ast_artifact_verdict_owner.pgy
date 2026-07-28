@@ -137,7 +137,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, enums
+            artifact, signatures, constructors, enums
         );
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
         input_expression_surfaces;

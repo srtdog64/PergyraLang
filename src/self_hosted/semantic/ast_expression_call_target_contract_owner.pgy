@@ -15,7 +15,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, enums
+            artifact, signatures, constructors, enums
         );
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];

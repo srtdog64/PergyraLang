@@ -28,6 +28,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
 - `src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy` --
   generated stable MIR declaration-field wire spelling and AST-label projection.
+- `src/self_hosted/lib/intent_observability_abi_projection_owner.pgy` --
+  generated stable ID, source/runtime name, argument, result, and semantic
+  signature projection from the native intent observability ABI registry.
 - `src/self_hosted/lib/nominal_field_kind_owner.pgy` -- declaration-family
   compatibility and shape policy over the generated field-kind vocabulary.
 
@@ -369,6 +372,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_call_identity_owner.pgy` -- stable
   statement SyntaxNodeId, expression lane, and local-call ordinal identity for
   semantic call rows that cross into MIR; global graph indexes are not IDs.
+- `src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy` -- exact
+  parser-artifact projection of intent declaration identity and ordered
+  `involves`/`value` parameter facts used to admit intent calls without
+  pretending that an intent is a function or action declaration.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.

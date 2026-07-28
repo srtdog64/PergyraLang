@@ -1,5 +1,6 @@
 // Canonical self-host semantic builtin signature table.
 
+import "../lib/intent_observability_abi_projection_owner.pgy";
 import "wrapper_type_owner.pgy";
 
 func SemanticBuiltinSignatureRows() -> Array<String> {
@@ -129,6 +130,14 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "CompilerArtifactCommit^Int^Int",
         "CompilerArtifactWrite^Bool^Int|String"
     ];
+    if !IntentObservabilityAbiReady() { return []; }
+    let observability_rows: Array<String> =
+        IntentObservabilityAbiSignatureRows();
+    let observability_index: Int = 0;
+    while observability_index < ArrayLength(observability_rows) {
+        ArrayPush(rows, observability_rows[observability_index]);
+        observability_index = observability_index + 1;
+    }
     return rows;
 }
 
@@ -306,9 +315,23 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         );
     if !SeedSemanticBuiltinSignatures(names, returns, params) ||
         !SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params) ||
-        ArrayLength(names) != 124 || ArrayLength(returns) != 124 ||
-        ArrayLength(params) != 124 {
+        !IntentObservabilityAbiReady() ||
+        ArrayLength(names) != 124 + IntentObservabilityAbiCount() ||
+        ArrayLength(returns) != ArrayLength(names) ||
+        ArrayLength(params) != ArrayLength(names) {
         return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == "" || returns[i] == "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if names[prior] == names[i] { return false; }
+            prior = prior + 1;
+        }
+        i = i + 1;
     }
     if !IsSome(contextual_list) || UnwrapOption(contextual_list) !=
         "List<HashMap<String, Int>>" {

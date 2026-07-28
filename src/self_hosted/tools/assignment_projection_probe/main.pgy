@@ -53,7 +53,7 @@ func ProbeExpressionGraph(
             SemanticAstEnumFactsFromArtifact(artifact);
         let function_tables: SemanticAstExpressionFunctionTableFacts =
             SemanticAstExpressionFunctionTableFactsFromArtifact(
-                signatures, constructors, enums
+                artifact, signatures, constructors, enums
             );
         facts = SemanticExpressionGraphCallTargetsFromSignatures(
             source, signatures, constructors, enums, false, function_tables

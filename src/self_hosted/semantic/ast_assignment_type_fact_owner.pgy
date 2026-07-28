@@ -401,7 +401,7 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
 ) -> Bool {
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, enum_facts
+            artifact, signatures, constructors, enum_facts
         );
     let rebuilt: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
@@ -468,7 +468,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
     let valid_enum_facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(valid);
     let valid_function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            signatures, constructors, valid_enum_facts
+            valid, signatures, constructors, valid_enum_facts
         );
     let valid_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
@@ -555,7 +555,8 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
     let mismatch_enum_facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(mismatch);
     let mismatch_function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
-            mismatch_signatures, mismatch_constructors, mismatch_enum_facts
+            mismatch, mismatch_signatures, mismatch_constructors,
+            mismatch_enum_facts
         );
     let mismatch_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(

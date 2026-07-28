@@ -6,53 +6,60 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - world/tobject query reachability
+## Current resume checkpoint - intent callable and observability reachability
 
-- Landing parent: `ea6138a1e3242c34d597e57d7f7373cd62768c76` on `main`, aligned
+- Landing parent: `f97428894d376a9bf4d1f2e3fd2095967349df7c` on `main`, aligned
   with `origin/main` at the start of this slice. The landing commit contains
   this handoff; use `git rev-parse HEAD` after landing for the exact revision.
 - Objective card:
-  - objective: carry the canonical `subject source -> tobject slot -> publish`
-    path through self semantic/DIR/MIR and make world projection queries consume
-    exact declaration identity;
-  - priority: constructor admission, symbolic query identity, bounded world/zone
-    DIR graph, provenance, negative ratchet, then backend execution;
-  - fact owner: `selfhost.nominal_declaration_rows` retains nominal/field identity;
-    the constructor and domain-query semantic owners are bounded verdict
-    consumers. Existing domain topology/runtime-assignment owners retain
-    `publish` and exact member paths;
-  - last legitimate consumers: current self MIR producer and native C/LLVM query
-    lowering; self query backend lowering is the next explicit consumer;
-  - forbidden fallback: putting query names in the value environment, matching
-    field spelling without kind/owner identity, native MIR graft, fixture-only
-    output, or claiming parser/direct-`ToTObject` support as execution;
-  - verification: `tests/self_hosted/parity/world_tobject_projection_query_owner.sh`
-    plus `domain_runtime_assignment_execution_owner.sh`, component, boundary,
-    documentation, and SoT gates.
+  - objective: admit a source `intent` by its parser-owned declaration identity
+    and project the canonical native `Intent*` observability ABI into self-host
+    semantic call resolution without duplicating a builtin table;
+  - priority: exact declaration/parameter identity, one append-only ABI owner,
+    native/self projection parity, negative call diagnostics, then DIR lowering;
+  - fact owners: `ast_intent_signature_fact_owner.pgy` owns the artifact-exact
+    intent callable view; `src/common/intent_observability_abi.def` owns stable
+    runtime-call ABI ID, source/runtime names, arity, and result kind;
+  - last legitimate consumers: self expression call-target resolution for the
+    current slice; native C/LLVM runtime call emitters and the future self DIR/MIR
+    intent carrier remain downstream consumers;
+  - forbidden fallback: treating an intent as a function/action declaration,
+    literal `IntentHistoryCount` rows in the self builtin table, deriving stable
+    ABI IDs from sorted indexes, deleting the DIR rejection without carrying
+    participant/step facts, or claiming later failure as substitution;
+  - verification: `tests/intent_observability_abi_registry_smoke.sh`,
+    `tests/self_hosted/parity/intent_callable_reachability_owner.sh`, and
+    `tests/self_hosted_component_contract_smoke.sh`.
 - Observed evidence:
-  - fresh `bin/pgy-self-driver.exe` installed successfully from the modified
-    self-host graph; sampled peak was 1,173.0 MiB private / 1,071.1 MiB working
-    set in one `gen2.exe`, with no 20+ GiB recurrence;
-  - the focused positive source emits typed self MIR containing
-    `BuyerPacket:tobject`, `buyerPacket:tobject_slot`, `PaymentWorld.payment`
-    with `world_zone`, explicit refresh/publish assignments, and both
-    `HasZoneProjection` call targets;
-  - current native C and LLVM both execute the same fixture and print `true`;
-  - `missingPacket` fails with `undefined_symbol` and no partial MIR;
-  - existing implicit/explicit domain runtime assignment execution gates pass
-    with the same fresh driver and current `bin/pgy.exe`.
-- Grade: `REACHABLE`, not `SUBSTITUTING`. Self MIR reaches the world/tobject query
-  facts, but self query backend lowering does not execute them yet. Direct
-  `ToTObject(Target, source)` self semantic/codegen and post-construction
-  tobject immutability remain open.
-- Next executable falsifier: the full
-  `tests/cases/backend_compare/world_zone_projection_visibility/main.pgy` now
-  passes constructors and queries, then fails exactly at `undefined_function`,
-  `func: Checkout`. Close intent callable reachability without bypassing the
-  existing projection/map facts.
-- The two production builders touched in this slice now accumulate local arrays
-  and construct immutable fact records once. Component negatives reject
-  reintroducing `ArrayPush(result.member, ...)` in those owners.
+  - the modified native-current DRV-2 compiled with 0 Pergyra errors/warnings;
+    generated C completed with three existing unused-variable warnings;
+  - sampled build memory was about 673.6 MiB private for `pgy` and 791.3 MiB
+    private for `cc1`; no 20 GiB-class recurrence was observed;
+  - the full `world_zone_projection_visibility` source, including
+    `IntentHistoryCount()`, and the focused source without that call now both
+    pass semantic call-target resolution and stop at the same next boundary:
+    `self-host DIR authority shape is unsupported`;
+  - wrong arity fails with `call_arity_mismatch`, wrong participant type with
+    `call_arg_type_mismatch`, and a renamed intent with `undefined_function`,
+    all before a partial MIR artifact;
+  - the canonical registry has 51 sorted rows; `IntentHistoryCount` retains ABI
+    ID 25, zero arguments, `Int`, and `pgy_intent_history_count_export`.
+  - `verified_projection_plan_smoke.sh` still fails at its pre-existing broad
+    `ast_` forbidden-pattern check because current HEAD contains
+    `ast_node_stable_id` in `verified_projection_plan.c`. The registry-reading
+    portion was migrated to the `.def` owner, but the full gate is not claimed
+    green and that unrelated planner seam was not changed in this slice.
+- Grade: `REACHABLE`, not `SUBSTITUTING`. This replaces the previous
+  `undefined_function Checkout` and missing observability-builtin seams, but no
+  Pergyra intent routine executes yet.
+- Next executable falsifier: replace the unconditional `IntentDecl` rejection
+  in `SelfDirDomainAuthorityEdges` only after a typed DIR intent owner carries
+  exact participant aliases/types and step zone/who/requires/authorized/causes/
+  predecessor edges. The focused fixture must then advance beyond DIR without a
+  count-only or native-MIR graft fallback.
+- `tobject` remains the immutable detached handoff on the already reached
+  `subject source -> tobject slot -> publish` path. It is not the missing intent
+  authority owner and should not absorb step identity or mutable orchestration.
 - Preserve and do not stage the three concurrent parity edits
   (`driver_rung2_indexed_assignment_parity_owner.sh`,
   `driver_rung2_match_parity_owner.sh`, and

@@ -2,7 +2,7 @@
 
 import "ast_statement_type_fact_owner.pgy";
 func SemanticAstStatementFunctionTables(artifact: AstTreeArtifact, signatures: SemanticAstFunctionSignatureFacts, constructors: SemanticAstNominalConstructorFacts) -> SemanticAstExpressionFunctionTableFacts {
-    return SemanticAstExpressionFunctionTableFactsFromArtifact(signatures, constructors, SemanticAstEnumFactsFromArtifact(artifact));
+    return SemanticAstExpressionFunctionTableFactsFromArtifact(artifact, signatures, constructors, SemanticAstEnumFactsFromArtifact(artifact));
 }
 func SemanticAstScalarMatchContractArtifact(
     tree_text: String
