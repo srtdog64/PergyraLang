@@ -1,9 +1,9 @@
 (*
   Pergyra Formal Semantics -- First composition over the shared core.
-  Status: PENDING kernel-check (rocq9 CI). Written to close with Qed and add 0
-  axioms, but not yet run through coqc on the authoring machine (no local
-  prover) -- these are newly authored proofs, not a verbatim lift, so CI is the
-  first real check. coq_kernel_check.sh is the authority.
+  Status: kernel-verified under Coq 8.18 (coqc + coqchk): compiles, closes with
+  Qed, and adds 0 axioms -- the budget stays at SlotCalculus's two declared
+  abstractions. Rocq 9.0.1 in CI remains the authority; 8.18 accepts the `Coq.`
+  namespace prefix that Rocq 9 deprecates, so it cannot speak for that.
 
   This is the corpus's FIRST cross-file proof edge. Until now every .v Required
   only the Coq standard library, so no theorem built on another file's. Here the
@@ -59,8 +59,10 @@ Theorem acquire_then_release_steps : forall gz ge ga ct c s,
         (with_store (with_store c s Filled) s Released).
 Proof.
   intros gz ge ga ct c s Hcap Hempty.
+  (* `eapply` leaves the intermediate configuration as an evar, and `assumption`
+     will not instantiate one -- `eassumption` does. *)
   eapply SStep.
-  - apply SAcquire; assumption.
+  - apply SAcquire; eassumption.
   - eapply SStep.
     + apply SRelease. apply store_after_fill.
     + apply SRefl.

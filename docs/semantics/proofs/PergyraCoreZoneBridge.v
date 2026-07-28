@@ -1,6 +1,9 @@
 (*
   Pergyra Formal Semantics -- Zone corner, re-derived on the shared core.
-  Status: PENDING kernel-check (rocq9 CI). Newly authored; no local prover.
+  Status: kernel-verified under Coq 8.18 (coqc + coqchk): compiles, closes with
+  Qed, and adds 0 axioms -- the budget stays at SlotCalculus's two declared
+  abstractions. Rocq 9.0.1 in CI remains the authority; 8.18 accepts the `Coq.`
+  namespace prefix that Rocq 9 deprecates, so it cannot speak for that.
 
   ZoneCrossingCore.v proves three obligations (no ambient authority, capability
   soundness of a crossing, fail-closed) on its OWN 2-field machine

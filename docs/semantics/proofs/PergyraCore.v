@@ -1,10 +1,10 @@
 (*
   Pergyra Formal Semantics -- Shared Core (the vertical spine's root)
-  Status: PENDING kernel-check (rocq9 CI). The model and both lemmas are lifted
-  verbatim from the already-verified UnifiedCore.v, so they are written to close
-  with Qed and add 0 axioms -- but this file has not itself been through coqc on
-  the authoring machine (no local prover); coq_kernel_check.sh in CI is the
-  authority. Definitions only, plus two foundational lemmas.
+  Status: kernel-verified under Coq 8.18 (coqc + coqchk): compiles, closes with
+  Qed, and adds 0 axioms -- the budget stays at SlotCalculus's two declared
+  abstractions. Rocq 9.0.1 in CI remains the authority; 8.18 accepts the `Coq.`
+  namespace prefix that Rocq 9 deprecates, so it cannot speak for that.
+  Definitions only, plus two foundational lemmas, lifted verbatim from UnifiedCore.v.
 
   Why this file exists. The proof corpus grew as ~38 INDEPENDENT models: each
   file re-defines its own principal/zone/cap/slot/config/step and Requires only

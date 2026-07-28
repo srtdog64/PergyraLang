@@ -1,9 +1,11 @@
 (*
   Pergyra Formal Semantics -- Unified Core Machine (capstone of the four corners)
   Target: docs/semantics/19 "Pergyra Abstract Machine Obligation"
-  Status: theorems machine-verified previously (0 admits / 0 axioms, all Qed);
-  now REBUILT on the shared PergyraCore root -- pending re-kernel-check in rocq9
-  CI after the migration (no local prover on the authoring machine).
+  Status: REBUILT on the shared PergyraCore root and re-kernel-verified under
+  Coq 8.18 (coqc + coqchk) after the migration: every theorem still closes with
+  Qed and the corpus axiom budget stays at SlotCalculus's two declared
+  abstractions. Rocq 9.0.1 in CI remains the authority; 8.18 accepts the `Coq.`
+  namespace prefix that Rocq 9 deprecates, so it cannot speak for that.
 
   Change: the abstract-machine model (principal/zone/cap/slot, config, the with_*
   constructors, cmap/smap, `step`, `steps`, has_cap, in_circulation, slot_in,

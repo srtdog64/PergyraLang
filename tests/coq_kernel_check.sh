@@ -75,16 +75,36 @@ compile_proof() {
     (cd "$PROOFS_DIR" && $coq_compile "${LOADPATH[@]}" "$1")
 }
 
+# Drop compiled output whose .v is gone. `.vo` files are gitignored build
+# artifacts, so a renamed or deleted proof leaves one behind -- and the kernel
+# stage below used to glob `*.vo`, which pulled those orphans in. That is a
+# correctness hole in BOTH directions: an orphan built by a different prover
+# aborts the run (a stale Rocq 9 `MachineContactCore.vo` did exactly that
+# against Coq 8.18), and an orphan built by the SAME prover would be
+# kernel-checked as if it were still part of the corpus, so a deleted proof
+# could keep vouching for the axiom budget.
+for stale in "$PROOFS_DIR"/*.vo; do
+    [ -e "$stale" ] || continue
+    base="$(basename "$stale" .vo)"
+    if [ ! -f "$PROOFS_DIR/$base.v" ]; then
+        echo "coq-kernel-check: dropping orphaned $base.vo (no $base.v)"
+        rm -f "$PROOFS_DIR/$base".{vo,vok,vos,glob} "$PROOFS_DIR/.$base.aux"
+    fi
+done
+
 proof_count=0
+COMPILED_MODULES=()
 for base in "${FOUNDATION_FIRST[@]}"; do
     [ -f "$PROOFS_DIR/$base" ] || continue
     compile_proof "$base"
+    COMPILED_MODULES+=("${base%.v}")
     proof_count=$((proof_count + 1))
 done
 for proof_abs in "$PROOFS_DIR"/*.v; do
     base="$(basename "$proof_abs")"
     case " ${FOUNDATION_FIRST[*]} " in *" $base "*) continue;; esac
     compile_proof "$base"
+    COMPILED_MODULES+=("${base%.v}")
     proof_count=$((proof_count + 1))
 done
 
@@ -94,7 +114,19 @@ if [ "$proof_count" -eq 0 ]; then
 fi
 echo "coq-kernel-check: $proof_count proofs compiled"
 
-report=$(cd "$PROOFS_DIR" && $coq_check "${LOADPATH[@]}" -silent -o $(ls *.vo | sed 's/\.vo$//') 2>&1)
+# Check exactly the modules just compiled, not whatever `*.vo` happens to be on
+# disk, so the kernel verdict is about this run's corpus and nothing else.
+# `set -e` would abort here with the message trapped inside the assignment, so
+# capture the status and print the report before judging it.
+set +e
+report=$(cd "$PROOFS_DIR" && $coq_check "${LOADPATH[@]}" -silent -o "${COMPILED_MODULES[@]}" 2>&1)
+check_status=$?
+set -e
+if [ "$check_status" -ne 0 ]; then
+    echo "coq-kernel-check: FAIL -- $coq_check exited $check_status:" >&2
+    printf '%s\n' "$report" | sed 's/^/  | /' >&2
+    exit 1
+fi
 echo "$report"
 
 # Each escape hatch must be reported and must be empty. A missing section is
