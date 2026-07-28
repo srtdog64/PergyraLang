@@ -2,6 +2,42 @@
 
 마지막 업데이트: 2026-07-28
 
+## 2026-07-28 domain runtime assignment boundary audit
+
+- `tobject -> object -> vessel -> subject -> action`은 nominal 승격 계층이
+  아니라 detached transfer, local observation, subject-owned state, stable
+  identity, observable transition이라는 서로 다른 경계 프로토콜이다.
+  `effect`/`relation`/`zone`까지 내려가면 같은 규칙이 explicit destination
+  role, exact member assignment, callable receiver carriage, lifecycle operation,
+  materialization/sync fact로 반복된다.
+- Native semantic은 implicit same-name projection을 합법적인 편의로 선택하지만
+  exact member ID/type/path를 저장하지 않는다. Native MIR header도 explicit map을
+  문자열 pair로만 들고 JSON wire에는 내보내지 않는다. C/LLVM은 이를 다시
+  same-name으로 해석하고, C는 missing source를 `.field = 0`으로 숨기는 반면
+  LLVM은 NULL/error로 실패해 두 backend의 실패 의미도 다르다.
+- Effect declaration에는 explicit bearer destination role이 없고 relation의
+  source/target destination도 ordered generic slot뿐이다. Native C/LLVM binder는
+  각각 첫 slot과 0/1번째 slot을 선택한다. `by participant`는 transition
+  initiator/provenance이며 이 destination role을 대신하지 않는다.
+- Receiver carriage도 별도 owner가 아니다. Native in-memory MIR의
+  `uses_pointer_self`는 JSON wire에서 사라지고 receiver와 일반 parameter ABI를
+  섞는다. Self general C는 zone method를 by-value로 방출할 수 있다. 따라서
+  receiver는 DIR topology가 아니라 callable ABI가 callable ID별로 소유해야 한다.
+- 다음 owner family는 `DomainParticipantRoleFact`,
+  `DomainProjectionMemberAssignment`, `DomainLifecycleOperation`,
+  `DomainLayerMaterialization`, `CallableReceiverCarriage`로 분리한다.
+  `VerifiedDomainRuntimePlan`은 이들을 exact join한 admission receipt일 뿐 원본
+  의미의 새 owner가 아니다.
+- Public compact AST에 `ProjectionMap:` 행만 추가하는 임시 patch는 채택하지
+  않았다. Native AST parity의 source identity를 바꾸고 MIR consumer에서 다시
+  유실되기 때문이다. Explicit/implicit mapping은 semantic fact에서 시작해
+  canonical identity epoch과 함께 MIR JSON을 lossless하게 지나야 한다.
+- 다음 executable falsifier는 그대로 self MIR -> C의 `7`/`dst`다. Member ID/type,
+  bearer role, relation destination role, receiver mode, materialization/sync op 중
+  하나를 바꾼 artifact가 admission 전에 실패하고 같은 target-neutral plan을
+  C/LLVM이 소비해야 한다. 이번 감사·문서 갱신은 supporting slice이며 새
+  `SUBSTITUTING` 진척으로 세지 않는다.
+
 ## 2026-07-28 self-host non-empty topology executable checkpoint
 
 - `zone_layer_projection_runtime`의 production DRV-2 source 경로가 이제 native

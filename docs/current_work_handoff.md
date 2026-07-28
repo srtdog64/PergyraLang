@@ -6,6 +6,79 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - domain runtime assignment boundary audit
+
+- Exact checkout at the start of this supporting slice is
+  `e8440ac3cf1bcdb5469a8dff75041bc416078714` on `main`, aligned with
+  `origin/main`. The landing commit contains this handoff; after landing, use
+  `git rev-parse HEAD` for the exact revision.
+- Objective card:
+  - objective: fix the repeated runtime boundary protocol from `tobject` through
+    `object`, `vessel`, `subject`, `action`, `effect`, `relation`, and `zone`,
+    then define the first lossless runtime-assignment carrier without creating
+    another backend or AST-text authority;
+  - priority: exact source/destination identity, owner-specific fact lifetime,
+    callable receiver carriage, explicit lifecycle/materialization, one
+    admitted target-neutral plan, then patch size;
+  - fact owners: semantic callable ABI for `CallableReceiverCarriage`, domain
+    semantic/DIR for participant roles and projection member assignments, domain
+    runtime owner for lifecycle/materialization operations, MIR as lossless
+    carrier, and `VerifiedDomainRuntimePlan` only as an admission receipt;
+  - last legitimate consumers: general self-host C codegen view and direct C/LLVM
+    target renderers after machine admission has built and fully validated the
+    plan once;
+  - forbidden fallback: backend same-name member search, missing-source
+    `.field = 0`, first/0/1 bindable destination selection, `by participant` as
+    destination role, aggregate zero as successful layer materialization,
+    by-value zone identity, backend lifecycle AST rewalk, or old-epoch plan
+    reuse;
+  - verification gate: explicit/implicit map carrier parity; wrong valid member
+    ID/type, bearer role and relation destination mutations; missing receiver,
+    materialization and sync operations; structural fallback ratchet; final
+    self MIR -> C and shared-plan C/LLVM execution output `7` and `dst`.
+- Boundary judgment is now fixed in
+  `docs/200_object_to_action_boundary_patterns.md`. These constructs are not a
+  promotion ladder: tobject owns detached transfer, object local observation,
+  vessel subject-owned state, subject stable identity, and action observable
+  transition. Effect/relation/zone repeat the same identity-carriage-binding-
+  operation-outcome protocol at the domain frontier.
+- The native fact-lifetime audit found five distinct missing families:
+  `DomainParticipantRoleFact`, `DomainProjectionMemberAssignment`,
+  `DomainLifecycleOperation`, `DomainLayerMaterialization`, and
+  `CallableReceiverCarriage`. A future `domain_runtime_assignments` namespace
+  may carry them together, but one nullable mega-row or a DIR-owned receiver
+  decision is forbidden.
+- Projection mapping is currently lossy. Native semantic resolves explicit and
+  implicit same-name paths only locally; native MIR retains explicit names in
+  memory but does not serialize them. C and LLVM therefore re-decide mapping,
+  and C hides a missing path with zero while LLVM fails. Implicit same-name
+  remains a sound Pergyra default only when semantic resolves it once into exact
+  field ID/type/path rows.
+- Effect bearer and relation source/target destinations do not have role facts;
+  native C/LLVM use first and 0/1 ordinal bindable slots. Receiver carriage is
+  also lost from the MIR JSON wire, and self general C can emit
+  `BattleZone_Show(BattleZone self)`. Zone layer storage can remain aggregate
+  zero without a proved materialize/bind/sync operation.
+- A trial parser/DIR-only `ProjectionMap:` patch was deliberately discarded.
+  It inserted public compact-tree rows that change native parity/source IDs and
+  still disappear at the MIR JSON consumer. The coherent implementation slice
+  must start at semantic ownership and preserve all dependent identities through
+  canonicalization; no source reparse or public-tree side channel is allowed.
+- The next implementation order is: add lossless explicit/implicit member and
+  participant-role facts; add callable-specific receiver carriage; serialize
+  lifecycle/materialization operations; remap declaration/member/directive IDs
+  atomically; index `domain_runtime_assignments` once in `MirDocumentFactIndex`;
+  build and fully validate one runtime plan immediately after topology admission;
+  pass it into the general C codegen view and direct C/LLVM renderers.
+- No compiler source was landed in this audit slice. The observed evidence is
+  source/read-path inspection plus document contract gates and `git diff
+  --check`; the prior executable `e8440ac3` remains the last substitution
+  checkpoint. This is supporting commit one after that executable checkpoint.
+- The next executable falsifier remains self MIR -> C `7`/`dst`. A parser-only
+  map row, plan comment/digest, zero-filled `.poison/.trust`, or by-value zone
+  receiver cannot satisfy it. The three protected concurrent user parity files
+  remain unstaged and unchanged by this slice.
+
 ## Current resume checkpoint - distinct apply topology and boundary contract
 
 - Checkout base before this executable slice is

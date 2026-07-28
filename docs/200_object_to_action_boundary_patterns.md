@@ -201,6 +201,75 @@ typed computation facts (struct/class/func)
 필요한 키워드 하나를 쓰고 그 typed fact가 production consumer까지 살아남는
 구현이다.
 
+### 2.4 Runtime 경계의 반복 패턴과 owner 분리
+
+Native C/LLVM과 self-host 경로를 함께 감사하면, `object`부터 `zone`까지는
+겉모양이 달라도 런타임에서 같은 다섯 질문을 반복한다.
+
+1. 어느 선언·필드·callable identity의 사실인가?
+2. 값인가, immutable snapshot인가, stable mutable identity인가?
+3. source를 destination의 어느 **역할과 member**에 결속하는가?
+4. 어떤 operation이 materialize/mutate/synchronize하는가?
+5. 성공·실패·freshness·receipt 중 무엇을 caller가 관측하는가?
+
+이 질문들은 하나의 nullable mega-row가 아니라 수명이 다른 owner fact로 나눈다.
+
+| Fact family | semantic owner가 결정할 것 | 마지막 소비자 | 금지 fallback |
+| --- | --- | --- | --- |
+| `NominalBoundaryFact` | object/tobject/vessel/subject/effect/relation/zone identity와 field role | layout·constructor admission | C layout 또는 이름으로 nominal kind 복원 |
+| `CallableReceiverCarriage` | callable ID별 value-self, readonly-reference, mutable-identity self | C/LLVM callable ABI | nominal kind 하나로 일반 parameter ABI까지 결정 |
+| `DomainParticipantRoleFact` | effect bearer, relation source destination, relation target destination의 exact field ID/type | lifecycle bind operation | 첫 bindable field, 0/1 ordinal, `by participant` 대용 |
+| `DomainProjectionMemberAssignment` | directive/slot identity와 target/source member path의 각 field ID/type | refresh/publish renderer | backend same-name 탐색, field order, missing source zero-fill |
+| `DomainLifecycleOperation` | apply/maintain/detach/link/unlink와 필수 zone/layer/endpoint/state identity | target-neutral runtime scheduler | backend AST lifecycle 재순회, unknown operation 무시 |
+| `DomainLayerMaterialization` | storage identity/type/capacity, initial state, required bind/sync operation | constructor와 sync emitter | aggregate zero를 materialization 성공으로 간주 |
+
+`VerifiedDomainRuntimePlan`은 위 fact를 exact join한 **admission receipt**일 수는
+있지만 원본 의미의 새 owner가 아니다. receiver carriage는 callable ABI owner에,
+participant role과 member assignment는 semantic/DIR owner에, materialization과
+lifecycle operation은 domain runtime owner에 남긴다. C/LLVM은 같은 admitted
+operation 배열을 렌더링할 뿐 다시 선택하지 않는다.
+
+구성체별 best practice와 현재 falsifier는 다음과 같다.
+
+| 경계 | canonical runtime 규칙 | 현재 닫아야 할 falsifier |
+| --- | --- | --- |
+| `object` | local source-bound value projection. semantic이 refresh member assignment를 exact ID/type/path로 확정 | 같은 이름의 다른 field ID, missing source, 직접 mutation |
+| `tobject` | source lifecycle과 분리된 immutable publish snapshot. routine receiver를 두지 않음 | borrowed/live state 포함, passive hosted method, publish 없는 전달 |
+| `vessel` | subject-owned stable cell. hosted receiver만 pointer-self이고 일반 parameter carriage와 분리 | default/ref parameter가 의도 없이 caller state를 바꾸는 경우 |
+| `subject` | stable identity가 func/action transition을 소유. temporary receiver 금지 | by-value self, address-of-rvalue, copy/rebind/value return |
+| `action` | subject-owned callable contract와 호출별 authority binding, 명시적 outcome을 소유 | `*Ready()` facade, first-authority 선택, 실패 후 old path 재진입 |
+| `effect` | zone target을 declaration의 explicit bearer destination에 bind하고 apply/maintain/detach 뒤 sync | 첫 bindable slot 사용, missing role에서 silent return |
+| `relation` | zone left/right를 explicit source/target destination에 bind하고 link/unlink 뒤 sync | declaration field 0/1을 endpoint role로 간주 |
+| `zone` | slot/layer storage, membership, lifecycle, frontier와 pointer-self sync를 소유 | layer zero-fill 성공, by-value self, backend별 lifecycle 재구축 |
+
+`by participant`는 transition initiator/provenance이지 effect bearer나 relation
+destination role이 아니다. implicit same-name mapping은 Pergyra의 좋은 기본값으로
+유지할 수 있지만 **semantic owner가 한 번 exact assignment로 확정**해야 한다.
+backend에서 다시 same-name을 선택하는 것은 편의가 아니라 이중 권위다.
+
+현재 native 경로의 실제 금지 read path는 다음과 같다.
+
+- C `transpiler_projection_emit.c`는 map이 없으면 target 이름을 source 이름으로
+  다시 쓰고, source path를 못 찾으면 `.field = 0`을 방출한다.
+- LLVM `llvm_domain_projection_value_helpers.c`도 same-name을 다시 선택하지만
+  실패 의미는 C와 달리 NULL/error다.
+- C/LLVM effect binder는 첫 bindable slot, relation binder는 0/1번째 slot을
+  destination role로 사용한다.
+- native in-memory MIR의 `uses_pointer_self`는 JSON wire에서 사라지고, self-host
+  general C는 zone method를 `BattleZone_Show(BattleZone self)`처럼 by-value로
+  내릴 수 있다.
+- zone constructor와 self-host constructor projection은 숨은 layer storage의
+  zero-init을 실제 materialization/sync와 구분하지 못한다.
+
+따라서 다음 executable runtime slice는 parser-only map 보존이나 backend patch가
+아니다. semantic이 implicit/explicit map, participant role, receiver carriage,
+layer lifecycle을 각각 typed fact로 만든 뒤 MIR이 identity epoch을 포함해
+lossless하게 운반하고, machine admission이 target-neutral runtime plan을 정확히
+한 번 만드는 순서여야 한다. 첫 실행 falsifier는 self MIR -> C의 `7`/`dst`이며,
+같은 plan을 C/LLVM이 소비해야 한다. member ID/type, bearer role, relation
+source/target destination, receiver mode, materialization/sync operation 중 하나를
+유효한 다른 값으로 바꿔도 artifact 생성 전에 실패해야 한다.
+
 ### 구현 근거
 
 - parser는 여섯 nominal을 서로 다른 `NOMINAL_DECL_*`으로 만든다.
