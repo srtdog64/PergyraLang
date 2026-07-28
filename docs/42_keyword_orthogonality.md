@@ -63,7 +63,7 @@ The learning contract is:
 ```text
 core programming        -> let / func / if / for / while / match / return
 resource register       -> slot / own / ref / pin / unsafe / extern
-execution register      -> parallel / spawn / async / await / select / channel
+execution register      -> parallel / spawn / async / await / select
 domain topology register-> subject / intent / zone / world / relation / effect
 contract register       -> class / struct / object / tobject / ability / role
 ```
@@ -93,7 +93,7 @@ orthogonality proof.
 | Axis | Question | Surface |
 | --- | --- | --- |
 | Resource | Which resource or handle is held across which boundary? | `slot`, `own`, `ref`, `pin`, `unsafe`, `extern` |
-| Execution | When, where, and under what concurrency relation does work run? | `parallel`, `spawn`, `async`, `await`, `select`, `channel` |
+| Execution | When, where, and under what concurrency relation does work run? | `parallel`, `spawn`, `async`, `await`, `select` |
 | Domain | Who acts, in which boundary, under which authority, relation, or effect? | `subject`, `intent`, `zone`, `world`, `authority`, `relation`, `effect`, `projection` |
 | Type/Contract | Which shape or ability contract must a value satisfy? | `class`, `struct`, `ability`, `role`, generic `where` |
 
@@ -240,7 +240,7 @@ User-facing diagnostics should expose the layer that owns the failure:
 - `syntax` for parse/lex errors.
 - `type` for type and contract mismatches.
 - `resource` for Slot, Pin, raw escape, cleanup, and handle violations.
-- `concurrency` for `parallel`, `spawn`, `await`, `select`, and `channel`
+- `concurrency` for `parallel`, `spawn`, `await`, and `select`
   boundary failures.
 - `domain` for `intent`, `zone`, `world`, `authority`, `relation`, `effect`,
   and projection failures.
