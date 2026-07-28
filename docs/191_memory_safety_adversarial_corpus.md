@@ -106,3 +106,42 @@ These numbers establish competitiveness on one workload, not a general
 language ranking. There is no committed Rust leg in this benchmark, so a Rust
 comparison remains unmeasured. Compiler build time and compiler peak memory are
 separate maturity problems and must not be inferred from generated-code runtime.
+
+## Emitted-code UB: first measurement (2026-07-28)
+
+`tests/sanitizer_compile_smoke.sh` asks whether the **compiler** commits UB while
+compiling. `tests/emitted_c_sanitizer_smoke.sh` asks the other half — whether the
+code the compiler **emits** commits UB when it runs — and until now that surface
+had never been measured. It matters here specifically because Pergyra lowers to
+C, so the language-level safety claims are delivered *through* emitted C, and
+because `backend_compare` compares the C lowering against the LLVM lowering: UB
+present in **both** passes that comparison unnoticed. A sanitizer is the
+independent judge a differential oracle structurally lacks.
+
+First full run, Ubuntu 24.04 / gcc 13.3, every case built with
+`-fsanitize=undefined,address -fno-sanitize-recover=all` and executed:
+
+| | count |
+|---|---:|
+| cases in corpus | 923 |
+| **built and run under ASan+UBSan** | **914** |
+| **UB or memory errors found** | **0** |
+| not measurable (did not build) | 9 |
+
+The nine are pre-existing and reproduce with a plain `gcc`, so they are not
+sanitizer artifacts — the gate reports them as skips rather than blaming the
+sanitizer for unrelated breakage:
+
+- 2 fail in the C compiler on emitted code (`forward_ability_order` emits a
+  `pgy_region_destroy(&__pgy_region_2)` referencing an undeclared identifier;
+  `generic_class_method` likewise);
+- 7 are refused by `pgy` itself, fail-closed, with "C MIR source operation has
+  no active instruction-owned runtime-call ABI row" (`object_layer_binding`,
+  `secure_slot_view`, `zone_effect_pool_runtime`, and four `pin_*` view cases).
+
+Scope: this covers out-of-bounds access, use-after-free, null/misaligned pointer
+use, bad shift widths, division by zero, and invalid bool/enum loads. It does
+**not** cover uninitialized reads (MemorySanitizer, not run) and says nothing
+about the LLVM lowering, which was not exercised here. Two classic emitted-C
+traps are already defused by construction in `compiler.c` (`-fwrapv`,
+`-fno-strict-aliasing`), so they are outside what this run could have found.
