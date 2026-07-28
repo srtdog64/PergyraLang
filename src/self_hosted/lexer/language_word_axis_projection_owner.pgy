@@ -25,130 +25,129 @@ func LanguageWordAxisAt(index: Int) -> Int {
     if index == 18 { return 1; }
     if index == 19 { return 0; }
     if index == 20 { return 3; }
-    if index == 21 { return 2; }
-    if index == 22 { return 4; }
-    if index == 23 { return 1; }
+    if index == 21 { return 4; }
+    if index == 22 { return 1; }
+    if index == 23 { return 2; }
     if index == 24 { return 2; }
     if index == 25 { return 2; }
     if index == 26 { return 2; }
     if index == 27 { return 2; }
-    if index == 28 { return 2; }
-    if index == 29 { return 3; }
-    if index == 30 { return 0; }
-    if index == 31 { return 2; }
-    if index == 32 { return 3; }
-    if index == 33 { return 4; }
+    if index == 28 { return 3; }
+    if index == 29 { return 0; }
+    if index == 30 { return 2; }
+    if index == 31 { return 3; }
+    if index == 32 { return 4; }
+    if index == 33 { return 3; }
     if index == 34 { return 3; }
-    if index == 35 { return 3; }
-    if index == 36 { return 2; }
+    if index == 35 { return 2; }
+    if index == 36 { return 4; }
     if index == 37 { return 4; }
-    if index == 38 { return 4; }
+    if index == 38 { return 2; }
     if index == 39 { return 2; }
     if index == 40 { return 2; }
-    if index == 41 { return 2; }
-    if index == 42 { return 0; }
-    if index == 43 { return 4; }
-    if index == 44 { return 0; }
+    if index == 41 { return 0; }
+    if index == 42 { return 4; }
+    if index == 43 { return 0; }
+    if index == 44 { return 2; }
     if index == 45 { return 2; }
-    if index == 46 { return 2; }
-    if index == 47 { return 0; }
-    if index == 48 { return 4; }
-    if index == 49 { return 2; }
-    if index == 50 { return 1; }
-    if index == 51 { return 3; }
-    if index == 52 { return 2; }
-    if index == 53 { return 4; }
+    if index == 46 { return 0; }
+    if index == 47 { return 4; }
+    if index == 48 { return 2; }
+    if index == 49 { return 1; }
+    if index == 50 { return 3; }
+    if index == 51 { return 2; }
+    if index == 52 { return 4; }
+    if index == 53 { return 2; }
     if index == 54 { return 2; }
     if index == 55 { return 2; }
-    if index == 56 { return 2; }
-    if index == 57 { return 4; }
+    if index == 56 { return 4; }
+    if index == 57 { return 0; }
     if index == 58 { return 0; }
-    if index == 59 { return 0; }
+    if index == 59 { return 4; }
     if index == 60 { return 4; }
-    if index == 61 { return 4; }
-    if index == 62 { return 1; }
-    if index == 63 { return 3; }
-    if index == 64 { return 2; }
-    if index == 65 { return 3; }
-    if index == 66 { return 4; }
-    if index == 67 { return 2; }
-    if index == 68 { return 3; }
-    if index == 69 { return 0; }
+    if index == 61 { return 1; }
+    if index == 62 { return 3; }
+    if index == 63 { return 2; }
+    if index == 64 { return 3; }
+    if index == 65 { return 4; }
+    if index == 66 { return 2; }
+    if index == 67 { return 3; }
+    if index == 68 { return 0; }
+    if index == 69 { return 3; }
     if index == 70 { return 3; }
-    if index == 71 { return 3; }
-    if index == 72 { return 1; }
-    if index == 73 { return 2; }
+    if index == 71 { return 1; }
+    if index == 72 { return 2; }
+    if index == 73 { return 3; }
     if index == 74 { return 3; }
-    if index == 75 { return 3; }
-    if index == 76 { return 0; }
+    if index == 75 { return 0; }
+    if index == 76 { return 2; }
     if index == 77 { return 2; }
-    if index == 78 { return 2; }
-    if index == 79 { return 3; }
-    if index == 80 { return 1; }
-    if index == 81 { return 0; }
+    if index == 78 { return 3; }
+    if index == 79 { return 1; }
+    if index == 80 { return 0; }
+    if index == 81 { return 2; }
     if index == 82 { return 2; }
-    if index == 83 { return 2; }
+    if index == 83 { return 3; }
     if index == 84 { return 3; }
-    if index == 85 { return 3; }
-    if index == 86 { return 0; }
-    if index == 87 { return 4; }
-    if index == 88 { return 1; }
-    if index == 89 { return 2; }
-    if index == 90 { return 3; }
+    if index == 85 { return 0; }
+    if index == 86 { return 4; }
+    if index == 87 { return 1; }
+    if index == 88 { return 2; }
+    if index == 89 { return 3; }
+    if index == 90 { return 1; }
     if index == 91 { return 1; }
-    if index == 92 { return 1; }
+    if index == 92 { return 2; }
     if index == 93 { return 2; }
     if index == 94 { return 2; }
-    if index == 95 { return 2; }
-    if index == 96 { return 0; }
-    if index == 97 { return 2; }
-    if index == 98 { return 3; }
-    if index == 99 { return 0; }
-    if index == 100 { return 3; }
-    if index == 101 { return 1; }
-    if index == 102 { return 4; }
+    if index == 95 { return 0; }
+    if index == 96 { return 2; }
+    if index == 97 { return 3; }
+    if index == 98 { return 0; }
+    if index == 99 { return 3; }
+    if index == 100 { return 1; }
+    if index == 101 { return 4; }
+    if index == 102 { return 3; }
     if index == 103 { return 3; }
     if index == 104 { return 3; }
-    if index == 105 { return 3; }
-    if index == 106 { return 2; }
-    if index == 107 { return 4; }
+    if index == 105 { return 2; }
+    if index == 106 { return 4; }
+    if index == 107 { return 2; }
     if index == 108 { return 2; }
-    if index == 109 { return 2; }
-    if index == 110 { return 3; }
-    if index == 111 { return 2; }
-    if index == 112 { return 3; }
-    if index == 113 { return 1; }
-    if index == 114 { return 2; }
+    if index == 109 { return 3; }
+    if index == 110 { return 2; }
+    if index == 111 { return 3; }
+    if index == 112 { return 1; }
+    if index == 113 { return 2; }
+    if index == 114 { return 1; }
     if index == 115 { return 1; }
-    if index == 116 { return 1; }
-    if index == 117 { return 2; }
-    if index == 118 { return 3; }
-    if index == 119 { return 2; }
-    if index == 120 { return 4; }
+    if index == 116 { return 2; }
+    if index == 117 { return 3; }
+    if index == 118 { return 2; }
+    if index == 119 { return 4; }
+    if index == 120 { return 3; }
     if index == 121 { return 3; }
-    if index == 122 { return 3; }
+    if index == 122 { return 2; }
     if index == 123 { return 2; }
     if index == 124 { return 2; }
-    if index == 125 { return 2; }
+    if index == 125 { return 3; }
     if index == 126 { return 3; }
     if index == 127 { return 3; }
-    if index == 128 { return 3; }
-    if index == 129 { return 2; }
-    if index == 130 { return 3; }
-    if index == 131 { return 0; }
-    if index == 132 { return 4; }
-    if index == 133 { return 3; }
-    if index == 134 { return 2; }
-    if index == 135 { return 0; }
+    if index == 128 { return 2; }
+    if index == 129 { return 3; }
+    if index == 130 { return 0; }
+    if index == 131 { return 4; }
+    if index == 132 { return 3; }
+    if index == 133 { return 2; }
+    if index == 134 { return 0; }
+    if index == 135 { return 3; }
     if index == 136 { return 3; }
-    if index == 137 { return 3; }
-    if index == 138 { return 4; }
-    if index == 139 { return 2; }
-    if index == 140 { return 3; }
-    if index == 141 { return 1; }
+    if index == 137 { return 4; }
+    if index == 138 { return 2; }
+    if index == 139 { return 3; }
+    if index == 140 { return 1; }
+    if index == 141 { return 3; }
     if index == 142 { return 3; }
     if index == 143 { return 3; }
-    if index == 144 { return 3; }
     return -1;
 }
 
@@ -174,129 +173,128 @@ func LanguageWordAxisNameAt(index: Int) -> String {
     if index == 18 { return "resource"; }
     if index == 19 { return "general"; }
     if index == 20 { return "domain"; }
-    if index == 21 { return "execution"; }
-    if index == 22 { return "type-contract"; }
-    if index == 23 { return "resource"; }
+    if index == 21 { return "type-contract"; }
+    if index == 22 { return "resource"; }
+    if index == 23 { return "execution"; }
     if index == 24 { return "execution"; }
     if index == 25 { return "execution"; }
     if index == 26 { return "execution"; }
     if index == 27 { return "execution"; }
-    if index == 28 { return "execution"; }
-    if index == 29 { return "domain"; }
-    if index == 30 { return "general"; }
-    if index == 31 { return "execution"; }
-    if index == 32 { return "domain"; }
-    if index == 33 { return "type-contract"; }
+    if index == 28 { return "domain"; }
+    if index == 29 { return "general"; }
+    if index == 30 { return "execution"; }
+    if index == 31 { return "domain"; }
+    if index == 32 { return "type-contract"; }
+    if index == 33 { return "domain"; }
     if index == 34 { return "domain"; }
-    if index == 35 { return "domain"; }
-    if index == 36 { return "execution"; }
+    if index == 35 { return "execution"; }
+    if index == 36 { return "type-contract"; }
     if index == 37 { return "type-contract"; }
-    if index == 38 { return "type-contract"; }
+    if index == 38 { return "execution"; }
     if index == 39 { return "execution"; }
     if index == 40 { return "execution"; }
-    if index == 41 { return "execution"; }
-    if index == 42 { return "general"; }
-    if index == 43 { return "type-contract"; }
-    if index == 44 { return "general"; }
+    if index == 41 { return "general"; }
+    if index == 42 { return "type-contract"; }
+    if index == 43 { return "general"; }
+    if index == 44 { return "execution"; }
     if index == 45 { return "execution"; }
-    if index == 46 { return "execution"; }
-    if index == 47 { return "general"; }
-    if index == 48 { return "type-contract"; }
-    if index == 49 { return "execution"; }
-    if index == 50 { return "resource"; }
-    if index == 51 { return "domain"; }
-    if index == 52 { return "execution"; }
-    if index == 53 { return "type-contract"; }
+    if index == 46 { return "general"; }
+    if index == 47 { return "type-contract"; }
+    if index == 48 { return "execution"; }
+    if index == 49 { return "resource"; }
+    if index == 50 { return "domain"; }
+    if index == 51 { return "execution"; }
+    if index == 52 { return "type-contract"; }
+    if index == 53 { return "execution"; }
     if index == 54 { return "execution"; }
     if index == 55 { return "execution"; }
-    if index == 56 { return "execution"; }
-    if index == 57 { return "type-contract"; }
+    if index == 56 { return "type-contract"; }
+    if index == 57 { return "general"; }
     if index == 58 { return "general"; }
-    if index == 59 { return "general"; }
+    if index == 59 { return "type-contract"; }
     if index == 60 { return "type-contract"; }
-    if index == 61 { return "type-contract"; }
-    if index == 62 { return "resource"; }
-    if index == 63 { return "domain"; }
-    if index == 64 { return "execution"; }
-    if index == 65 { return "domain"; }
-    if index == 66 { return "type-contract"; }
-    if index == 67 { return "execution"; }
-    if index == 68 { return "domain"; }
-    if index == 69 { return "general"; }
+    if index == 61 { return "resource"; }
+    if index == 62 { return "domain"; }
+    if index == 63 { return "execution"; }
+    if index == 64 { return "domain"; }
+    if index == 65 { return "type-contract"; }
+    if index == 66 { return "execution"; }
+    if index == 67 { return "domain"; }
+    if index == 68 { return "general"; }
+    if index == 69 { return "domain"; }
     if index == 70 { return "domain"; }
-    if index == 71 { return "domain"; }
-    if index == 72 { return "resource"; }
-    if index == 73 { return "execution"; }
+    if index == 71 { return "resource"; }
+    if index == 72 { return "execution"; }
+    if index == 73 { return "domain"; }
     if index == 74 { return "domain"; }
-    if index == 75 { return "domain"; }
-    if index == 76 { return "general"; }
+    if index == 75 { return "general"; }
+    if index == 76 { return "execution"; }
     if index == 77 { return "execution"; }
-    if index == 78 { return "execution"; }
-    if index == 79 { return "domain"; }
-    if index == 80 { return "resource"; }
-    if index == 81 { return "general"; }
+    if index == 78 { return "domain"; }
+    if index == 79 { return "resource"; }
+    if index == 80 { return "general"; }
+    if index == 81 { return "execution"; }
     if index == 82 { return "execution"; }
-    if index == 83 { return "execution"; }
+    if index == 83 { return "domain"; }
     if index == 84 { return "domain"; }
-    if index == 85 { return "domain"; }
-    if index == 86 { return "general"; }
-    if index == 87 { return "type-contract"; }
-    if index == 88 { return "resource"; }
-    if index == 89 { return "execution"; }
-    if index == 90 { return "domain"; }
+    if index == 85 { return "general"; }
+    if index == 86 { return "type-contract"; }
+    if index == 87 { return "resource"; }
+    if index == 88 { return "execution"; }
+    if index == 89 { return "domain"; }
+    if index == 90 { return "resource"; }
     if index == 91 { return "resource"; }
-    if index == 92 { return "resource"; }
+    if index == 92 { return "execution"; }
     if index == 93 { return "execution"; }
     if index == 94 { return "execution"; }
-    if index == 95 { return "execution"; }
-    if index == 96 { return "general"; }
-    if index == 97 { return "execution"; }
-    if index == 98 { return "domain"; }
-    if index == 99 { return "general"; }
-    if index == 100 { return "domain"; }
-    if index == 101 { return "resource"; }
-    if index == 102 { return "type-contract"; }
+    if index == 95 { return "general"; }
+    if index == 96 { return "execution"; }
+    if index == 97 { return "domain"; }
+    if index == 98 { return "general"; }
+    if index == 99 { return "domain"; }
+    if index == 100 { return "resource"; }
+    if index == 101 { return "type-contract"; }
+    if index == 102 { return "domain"; }
     if index == 103 { return "domain"; }
     if index == 104 { return "domain"; }
-    if index == 105 { return "domain"; }
-    if index == 106 { return "execution"; }
-    if index == 107 { return "type-contract"; }
+    if index == 105 { return "execution"; }
+    if index == 106 { return "type-contract"; }
+    if index == 107 { return "execution"; }
     if index == 108 { return "execution"; }
-    if index == 109 { return "execution"; }
-    if index == 110 { return "domain"; }
-    if index == 111 { return "execution"; }
-    if index == 112 { return "domain"; }
-    if index == 113 { return "resource"; }
-    if index == 114 { return "execution"; }
+    if index == 109 { return "domain"; }
+    if index == 110 { return "execution"; }
+    if index == 111 { return "domain"; }
+    if index == 112 { return "resource"; }
+    if index == 113 { return "execution"; }
+    if index == 114 { return "resource"; }
     if index == 115 { return "resource"; }
-    if index == 116 { return "resource"; }
-    if index == 117 { return "execution"; }
-    if index == 118 { return "domain"; }
-    if index == 119 { return "execution"; }
-    if index == 120 { return "type-contract"; }
+    if index == 116 { return "execution"; }
+    if index == 117 { return "domain"; }
+    if index == 118 { return "execution"; }
+    if index == 119 { return "type-contract"; }
+    if index == 120 { return "domain"; }
     if index == 121 { return "domain"; }
-    if index == 122 { return "domain"; }
+    if index == 122 { return "execution"; }
     if index == 123 { return "execution"; }
     if index == 124 { return "execution"; }
-    if index == 125 { return "execution"; }
+    if index == 125 { return "domain"; }
     if index == 126 { return "domain"; }
     if index == 127 { return "domain"; }
-    if index == 128 { return "domain"; }
-    if index == 129 { return "execution"; }
-    if index == 130 { return "domain"; }
-    if index == 131 { return "general"; }
-    if index == 132 { return "type-contract"; }
-    if index == 133 { return "domain"; }
-    if index == 134 { return "execution"; }
-    if index == 135 { return "general"; }
+    if index == 128 { return "execution"; }
+    if index == 129 { return "domain"; }
+    if index == 130 { return "general"; }
+    if index == 131 { return "type-contract"; }
+    if index == 132 { return "domain"; }
+    if index == 133 { return "execution"; }
+    if index == 134 { return "general"; }
+    if index == 135 { return "domain"; }
     if index == 136 { return "domain"; }
-    if index == 137 { return "domain"; }
-    if index == 138 { return "type-contract"; }
-    if index == 139 { return "execution"; }
-    if index == 140 { return "domain"; }
-    if index == 141 { return "resource"; }
+    if index == 137 { return "type-contract"; }
+    if index == 138 { return "execution"; }
+    if index == 139 { return "domain"; }
+    if index == 140 { return "resource"; }
+    if index == 141 { return "domain"; }
     if index == 142 { return "domain"; }
     if index == 143 { return "domain"; }
-    if index == 144 { return "domain"; }
     return "";
 }

@@ -28,127 +28,126 @@ func LanguageWordClassAt(index: Int) -> Int {
     if index == 21 { return 1; }
     if index == 22 { return 1; }
     if index == 23 { return 1; }
-    if index == 24 { return 1; }
-    if index == 25 { return 2; }
-    if index == 26 { return 1; }
-    if index == 27 { return 2; }
-    if index == 28 { return 3; }
-    if index == 29 { return 2; }
+    if index == 24 { return 2; }
+    if index == 25 { return 1; }
+    if index == 26 { return 2; }
+    if index == 27 { return 3; }
+    if index == 28 { return 2; }
+    if index == 29 { return 1; }
     if index == 30 { return 1; }
-    if index == 31 { return 1; }
-    if index == 32 { return 2; }
+    if index == 31 { return 2; }
+    if index == 32 { return 1; }
     if index == 33 { return 1; }
-    if index == 34 { return 1; }
-    if index == 35 { return 2; }
+    if index == 34 { return 2; }
+    if index == 35 { return 1; }
     if index == 36 { return 1; }
     if index == 37 { return 1; }
-    if index == 38 { return 1; }
+    if index == 38 { return 2; }
     if index == 39 { return 2; }
     if index == 40 { return 2; }
-    if index == 41 { return 2; }
+    if index == 41 { return 1; }
     if index == 42 { return 1; }
     if index == 43 { return 1; }
     if index == 44 { return 1; }
-    if index == 45 { return 1; }
-    if index == 46 { return 2; }
-    if index == 47 { return 1; }
-    if index == 48 { return 2; }
-    if index == 49 { return 1; }
+    if index == 45 { return 2; }
+    if index == 46 { return 1; }
+    if index == 47 { return 2; }
+    if index == 48 { return 1; }
+    if index == 49 { return 2; }
     if index == 50 { return 2; }
-    if index == 51 { return 2; }
-    if index == 52 { return 3; }
-    if index == 53 { return 1; }
+    if index == 51 { return 3; }
+    if index == 52 { return 1; }
+    if index == 53 { return 2; }
     if index == 54 { return 2; }
-    if index == 55 { return 2; }
+    if index == 55 { return 1; }
     if index == 56 { return 1; }
     if index == 57 { return 1; }
     if index == 58 { return 1; }
     if index == 59 { return 1; }
     if index == 60 { return 1; }
-    if index == 61 { return 1; }
-    if index == 62 { return 2; }
-    if index == 63 { return 1; }
+    if index == 61 { return 2; }
+    if index == 62 { return 1; }
+    if index == 63 { return 2; }
     if index == 64 { return 2; }
     if index == 65 { return 2; }
     if index == 66 { return 2; }
     if index == 67 { return 2; }
-    if index == 68 { return 2; }
-    if index == 69 { return 1; }
+    if index == 68 { return 1; }
+    if index == 69 { return 2; }
     if index == 70 { return 2; }
-    if index == 71 { return 2; }
-    if index == 72 { return 1; }
+    if index == 71 { return 1; }
+    if index == 72 { return 2; }
     if index == 73 { return 2; }
     if index == 74 { return 2; }
-    if index == 75 { return 2; }
-    if index == 76 { return 1; }
+    if index == 75 { return 1; }
+    if index == 76 { return 2; }
     if index == 77 { return 2; }
     if index == 78 { return 2; }
     if index == 79 { return 2; }
-    if index == 80 { return 2; }
+    if index == 80 { return 1; }
     if index == 81 { return 1; }
-    if index == 82 { return 1; }
-    if index == 83 { return 3; }
-    if index == 84 { return 1; }
+    if index == 82 { return 3; }
+    if index == 83 { return 1; }
+    if index == 84 { return 2; }
     if index == 85 { return 2; }
-    if index == 86 { return 2; }
+    if index == 86 { return 1; }
     if index == 87 { return 1; }
     if index == 88 { return 1; }
     if index == 89 { return 1; }
-    if index == 90 { return 1; }
+    if index == 90 { return 2; }
     if index == 91 { return 2; }
     if index == 92 { return 2; }
     if index == 93 { return 2; }
     if index == 94 { return 2; }
-    if index == 95 { return 2; }
-    if index == 96 { return 1; }
+    if index == 95 { return 1; }
+    if index == 96 { return 2; }
     if index == 97 { return 2; }
-    if index == 98 { return 2; }
-    if index == 99 { return 1; }
-    if index == 100 { return 2; }
+    if index == 98 { return 1; }
+    if index == 99 { return 2; }
+    if index == 100 { return 1; }
     if index == 101 { return 1; }
-    if index == 102 { return 1; }
-    if index == 103 { return 2; }
-    if index == 104 { return 1; }
-    if index == 105 { return 2; }
-    if index == 106 { return 1; }
+    if index == 102 { return 2; }
+    if index == 103 { return 1; }
+    if index == 104 { return 2; }
+    if index == 105 { return 1; }
+    if index == 106 { return 2; }
     if index == 107 { return 2; }
-    if index == 108 { return 2; }
+    if index == 108 { return 1; }
     if index == 109 { return 1; }
-    if index == 110 { return 1; }
-    if index == 111 { return 2; }
+    if index == 110 { return 2; }
+    if index == 111 { return 1; }
     if index == 112 { return 1; }
     if index == 113 { return 1; }
     if index == 114 { return 1; }
     if index == 115 { return 1; }
     if index == 116 { return 1; }
-    if index == 117 { return 1; }
+    if index == 117 { return 2; }
     if index == 118 { return 2; }
-    if index == 119 { return 2; }
+    if index == 119 { return 1; }
     if index == 120 { return 1; }
-    if index == 121 { return 1; }
+    if index == 121 { return 2; }
     if index == 122 { return 2; }
     if index == 123 { return 2; }
     if index == 124 { return 2; }
     if index == 125 { return 2; }
-    if index == 126 { return 2; }
-    if index == 127 { return 1; }
-    if index == 128 { return 2; }
-    if index == 129 { return 1; }
-    if index == 130 { return 2; }
+    if index == 126 { return 1; }
+    if index == 127 { return 2; }
+    if index == 128 { return 1; }
+    if index == 129 { return 2; }
+    if index == 130 { return 1; }
     if index == 131 { return 1; }
-    if index == 132 { return 1; }
-    if index == 133 { return 2; }
+    if index == 132 { return 2; }
+    if index == 133 { return 1; }
     if index == 134 { return 1; }
-    if index == 135 { return 1; }
-    if index == 136 { return 2; }
+    if index == 135 { return 2; }
+    if index == 136 { return 1; }
     if index == 137 { return 1; }
     if index == 138 { return 1; }
-    if index == 139 { return 1; }
-    if index == 140 { return 2; }
-    if index == 141 { return 1; }
-    if index == 142 { return 2; }
+    if index == 139 { return 2; }
+    if index == 140 { return 1; }
+    if index == 141 { return 2; }
+    if index == 142 { return 1; }
     if index == 143 { return 1; }
-    if index == 144 { return 1; }
     return -1;
 }
 
@@ -177,126 +176,125 @@ func LanguageWordClassNameAt(index: Int) -> String {
     if index == 21 { return "reserved"; }
     if index == 22 { return "reserved"; }
     if index == 23 { return "reserved"; }
-    if index == 24 { return "reserved"; }
-    if index == 25 { return "contextual"; }
-    if index == 26 { return "reserved"; }
-    if index == 27 { return "contextual"; }
-    if index == 28 { return "soft"; }
-    if index == 29 { return "contextual"; }
+    if index == 24 { return "contextual"; }
+    if index == 25 { return "reserved"; }
+    if index == 26 { return "contextual"; }
+    if index == 27 { return "soft"; }
+    if index == 28 { return "contextual"; }
+    if index == 29 { return "reserved"; }
     if index == 30 { return "reserved"; }
-    if index == 31 { return "reserved"; }
-    if index == 32 { return "contextual"; }
+    if index == 31 { return "contextual"; }
+    if index == 32 { return "reserved"; }
     if index == 33 { return "reserved"; }
-    if index == 34 { return "reserved"; }
-    if index == 35 { return "contextual"; }
+    if index == 34 { return "contextual"; }
+    if index == 35 { return "reserved"; }
     if index == 36 { return "reserved"; }
     if index == 37 { return "reserved"; }
-    if index == 38 { return "reserved"; }
+    if index == 38 { return "contextual"; }
     if index == 39 { return "contextual"; }
     if index == 40 { return "contextual"; }
-    if index == 41 { return "contextual"; }
+    if index == 41 { return "reserved"; }
     if index == 42 { return "reserved"; }
     if index == 43 { return "reserved"; }
     if index == 44 { return "reserved"; }
-    if index == 45 { return "reserved"; }
-    if index == 46 { return "contextual"; }
-    if index == 47 { return "reserved"; }
-    if index == 48 { return "contextual"; }
-    if index == 49 { return "reserved"; }
+    if index == 45 { return "contextual"; }
+    if index == 46 { return "reserved"; }
+    if index == 47 { return "contextual"; }
+    if index == 48 { return "reserved"; }
+    if index == 49 { return "contextual"; }
     if index == 50 { return "contextual"; }
-    if index == 51 { return "contextual"; }
-    if index == 52 { return "soft"; }
-    if index == 53 { return "reserved"; }
+    if index == 51 { return "soft"; }
+    if index == 52 { return "reserved"; }
+    if index == 53 { return "contextual"; }
     if index == 54 { return "contextual"; }
-    if index == 55 { return "contextual"; }
+    if index == 55 { return "reserved"; }
     if index == 56 { return "reserved"; }
     if index == 57 { return "reserved"; }
     if index == 58 { return "reserved"; }
     if index == 59 { return "reserved"; }
     if index == 60 { return "reserved"; }
-    if index == 61 { return "reserved"; }
-    if index == 62 { return "contextual"; }
-    if index == 63 { return "reserved"; }
+    if index == 61 { return "contextual"; }
+    if index == 62 { return "reserved"; }
+    if index == 63 { return "contextual"; }
     if index == 64 { return "contextual"; }
     if index == 65 { return "contextual"; }
     if index == 66 { return "contextual"; }
     if index == 67 { return "contextual"; }
-    if index == 68 { return "contextual"; }
-    if index == 69 { return "reserved"; }
+    if index == 68 { return "reserved"; }
+    if index == 69 { return "contextual"; }
     if index == 70 { return "contextual"; }
-    if index == 71 { return "contextual"; }
-    if index == 72 { return "reserved"; }
+    if index == 71 { return "reserved"; }
+    if index == 72 { return "contextual"; }
     if index == 73 { return "contextual"; }
     if index == 74 { return "contextual"; }
-    if index == 75 { return "contextual"; }
-    if index == 76 { return "reserved"; }
+    if index == 75 { return "reserved"; }
+    if index == 76 { return "contextual"; }
     if index == 77 { return "contextual"; }
     if index == 78 { return "contextual"; }
     if index == 79 { return "contextual"; }
-    if index == 80 { return "contextual"; }
+    if index == 80 { return "reserved"; }
     if index == 81 { return "reserved"; }
-    if index == 82 { return "reserved"; }
-    if index == 83 { return "soft"; }
-    if index == 84 { return "reserved"; }
+    if index == 82 { return "soft"; }
+    if index == 83 { return "reserved"; }
+    if index == 84 { return "contextual"; }
     if index == 85 { return "contextual"; }
-    if index == 86 { return "contextual"; }
+    if index == 86 { return "reserved"; }
     if index == 87 { return "reserved"; }
     if index == 88 { return "reserved"; }
     if index == 89 { return "reserved"; }
-    if index == 90 { return "reserved"; }
+    if index == 90 { return "contextual"; }
     if index == 91 { return "contextual"; }
     if index == 92 { return "contextual"; }
     if index == 93 { return "contextual"; }
     if index == 94 { return "contextual"; }
-    if index == 95 { return "contextual"; }
-    if index == 96 { return "reserved"; }
+    if index == 95 { return "reserved"; }
+    if index == 96 { return "contextual"; }
     if index == 97 { return "contextual"; }
-    if index == 98 { return "contextual"; }
-    if index == 99 { return "reserved"; }
-    if index == 100 { return "contextual"; }
+    if index == 98 { return "reserved"; }
+    if index == 99 { return "contextual"; }
+    if index == 100 { return "reserved"; }
     if index == 101 { return "reserved"; }
-    if index == 102 { return "reserved"; }
-    if index == 103 { return "contextual"; }
-    if index == 104 { return "reserved"; }
-    if index == 105 { return "contextual"; }
-    if index == 106 { return "reserved"; }
+    if index == 102 { return "contextual"; }
+    if index == 103 { return "reserved"; }
+    if index == 104 { return "contextual"; }
+    if index == 105 { return "reserved"; }
+    if index == 106 { return "contextual"; }
     if index == 107 { return "contextual"; }
-    if index == 108 { return "contextual"; }
+    if index == 108 { return "reserved"; }
     if index == 109 { return "reserved"; }
-    if index == 110 { return "reserved"; }
-    if index == 111 { return "contextual"; }
+    if index == 110 { return "contextual"; }
+    if index == 111 { return "reserved"; }
     if index == 112 { return "reserved"; }
     if index == 113 { return "reserved"; }
     if index == 114 { return "reserved"; }
     if index == 115 { return "reserved"; }
     if index == 116 { return "reserved"; }
-    if index == 117 { return "reserved"; }
+    if index == 117 { return "contextual"; }
     if index == 118 { return "contextual"; }
-    if index == 119 { return "contextual"; }
+    if index == 119 { return "reserved"; }
     if index == 120 { return "reserved"; }
-    if index == 121 { return "reserved"; }
+    if index == 121 { return "contextual"; }
     if index == 122 { return "contextual"; }
     if index == 123 { return "contextual"; }
     if index == 124 { return "contextual"; }
     if index == 125 { return "contextual"; }
-    if index == 126 { return "contextual"; }
-    if index == 127 { return "reserved"; }
-    if index == 128 { return "contextual"; }
-    if index == 129 { return "reserved"; }
-    if index == 130 { return "contextual"; }
+    if index == 126 { return "reserved"; }
+    if index == 127 { return "contextual"; }
+    if index == 128 { return "reserved"; }
+    if index == 129 { return "contextual"; }
+    if index == 130 { return "reserved"; }
     if index == 131 { return "reserved"; }
-    if index == 132 { return "reserved"; }
-    if index == 133 { return "contextual"; }
+    if index == 132 { return "contextual"; }
+    if index == 133 { return "reserved"; }
     if index == 134 { return "reserved"; }
-    if index == 135 { return "reserved"; }
-    if index == 136 { return "contextual"; }
+    if index == 135 { return "contextual"; }
+    if index == 136 { return "reserved"; }
     if index == 137 { return "reserved"; }
     if index == 138 { return "reserved"; }
-    if index == 139 { return "reserved"; }
-    if index == 140 { return "contextual"; }
-    if index == 141 { return "reserved"; }
-    if index == 142 { return "contextual"; }
+    if index == 139 { return "contextual"; }
+    if index == 140 { return "reserved"; }
+    if index == 141 { return "contextual"; }
+    if index == 142 { return "reserved"; }
     if index == 143 { return "reserved"; }
-    if index == 144 { return "reserved"; }
     return "";
 }

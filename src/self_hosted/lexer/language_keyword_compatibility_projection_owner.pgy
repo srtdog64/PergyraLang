@@ -3,7 +3,7 @@
 // Responsibility: reserved lexer compatibility view.
 
 func LanguageKeywordRegistryCount() -> Int {
-    return 71;
+    return 70;
 }
 
 func LanguageKeywordSpellingAt(index: Int) -> String {
@@ -14,70 +14,69 @@ func LanguageKeywordSpellingAt(index: Int) -> String {
     if index == 4 { return "bind"; }
     if index == 5 { return "break"; }
     if index == 6 { return "case"; }
-    if index == 7 { return "channel"; }
-    if index == 8 { return "class"; }
-    if index == 9 { return "collapse"; }
-    if index == 10 { return "compensate"; }
-    if index == 11 { return "continue"; }
-    if index == 12 { return "default"; }
-    if index == 13 { return "defer"; }
-    if index == 14 { return "dyn"; }
-    if index == 15 { return "effect"; }
-    if index == 16 { return "else"; }
-    if index == 17 { return "enum"; }
-    if index == 18 { return "event"; }
-    if index == 19 { return "export"; }
-    if index == 20 { return "extends"; }
-    if index == 21 { return "extern"; }
-    if index == 22 { return "fail"; }
-    if index == 23 { return "false"; }
-    if index == 24 { return "for"; }
-    if index == 25 { return "func"; }
-    if index == 26 { return "if"; }
-    if index == 27 { return "impl"; }
-    if index == 28 { return "import"; }
-    if index == 29 { return "in"; }
-    if index == 30 { return "include"; }
-    if index == 31 { return "innate"; }
-    if index == 32 { return "intent"; }
-    if index == 33 { return "let"; }
-    if index == 34 { return "local"; }
-    if index == 35 { return "match"; }
-    if index == 36 { return "namespace"; }
-    if index == 37 { return "nondeterministic"; }
-    if index == 38 { return "object"; }
-    if index == 39 { return "override"; }
-    if index == 40 { return "own"; }
-    if index == 41 { return "parallel"; }
-    if index == 42 { return "party"; }
-    if index == 43 { return "private"; }
-    if index == 44 { return "public"; }
-    if index == 45 { return "ref"; }
-    if index == 46 { return "reflect"; }
-    if index == 47 { return "relation"; }
-    if index == 48 { return "remote"; }
-    if index == 49 { return "return"; }
-    if index == 50 { return "role"; }
-    if index == 51 { return "roster"; }
-    if index == 52 { return "secure"; }
-    if index == 53 { return "select"; }
-    if index == 54 { return "shared"; }
-    if index == 55 { return "slot"; }
-    if index == 56 { return "spawn"; }
-    if index == 57 { return "struct"; }
-    if index == 58 { return "subject"; }
-    if index == 59 { return "tobject"; }
-    if index == 60 { return "transaction"; }
-    if index == 61 { return "true"; }
-    if index == 62 { return "type"; }
-    if index == 63 { return "unsafe"; }
-    if index == 64 { return "use"; }
-    if index == 65 { return "vessel"; }
-    if index == 66 { return "where"; }
-    if index == 67 { return "while"; }
-    if index == 68 { return "with"; }
-    if index == 69 { return "world"; }
-    if index == 70 { return "zone"; }
+    if index == 7 { return "class"; }
+    if index == 8 { return "collapse"; }
+    if index == 9 { return "compensate"; }
+    if index == 10 { return "continue"; }
+    if index == 11 { return "default"; }
+    if index == 12 { return "defer"; }
+    if index == 13 { return "dyn"; }
+    if index == 14 { return "effect"; }
+    if index == 15 { return "else"; }
+    if index == 16 { return "enum"; }
+    if index == 17 { return "event"; }
+    if index == 18 { return "export"; }
+    if index == 19 { return "extends"; }
+    if index == 20 { return "extern"; }
+    if index == 21 { return "fail"; }
+    if index == 22 { return "false"; }
+    if index == 23 { return "for"; }
+    if index == 24 { return "func"; }
+    if index == 25 { return "if"; }
+    if index == 26 { return "impl"; }
+    if index == 27 { return "import"; }
+    if index == 28 { return "in"; }
+    if index == 29 { return "include"; }
+    if index == 30 { return "innate"; }
+    if index == 31 { return "intent"; }
+    if index == 32 { return "let"; }
+    if index == 33 { return "local"; }
+    if index == 34 { return "match"; }
+    if index == 35 { return "namespace"; }
+    if index == 36 { return "nondeterministic"; }
+    if index == 37 { return "object"; }
+    if index == 38 { return "override"; }
+    if index == 39 { return "own"; }
+    if index == 40 { return "parallel"; }
+    if index == 41 { return "party"; }
+    if index == 42 { return "private"; }
+    if index == 43 { return "public"; }
+    if index == 44 { return "ref"; }
+    if index == 45 { return "reflect"; }
+    if index == 46 { return "relation"; }
+    if index == 47 { return "remote"; }
+    if index == 48 { return "return"; }
+    if index == 49 { return "role"; }
+    if index == 50 { return "roster"; }
+    if index == 51 { return "secure"; }
+    if index == 52 { return "select"; }
+    if index == 53 { return "shared"; }
+    if index == 54 { return "slot"; }
+    if index == 55 { return "spawn"; }
+    if index == 56 { return "struct"; }
+    if index == 57 { return "subject"; }
+    if index == 58 { return "tobject"; }
+    if index == 59 { return "transaction"; }
+    if index == 60 { return "true"; }
+    if index == 61 { return "type"; }
+    if index == 62 { return "unsafe"; }
+    if index == 63 { return "use"; }
+    if index == 64 { return "vessel"; }
+    if index == 65 { return "where"; }
+    if index == 66 { return "while"; }
+    if index == 67 { return "with"; }
+    if index == 68 { return "world"; }
+    if index == 69 { return "zone"; }
     return "";
 }
 
@@ -89,70 +88,69 @@ func LanguageKeywordDebugIdentityAt(index: Int) -> String {
     if index == 4 { return "BIND"; }
     if index == 5 { return "BREAK"; }
     if index == 6 { return "CASE"; }
-    if index == 7 { return "CHANNEL"; }
-    if index == 8 { return "CLASS"; }
-    if index == 9 { return "COLLAPSE"; }
-    if index == 10 { return "COMPENSATE"; }
-    if index == 11 { return "CONTINUE"; }
-    if index == 12 { return "DEFAULT"; }
-    if index == 13 { return "DEFER"; }
-    if index == 14 { return "DYN"; }
-    if index == 15 { return "EFFECT"; }
-    if index == 16 { return "ELSE"; }
-    if index == 17 { return "ENUM"; }
-    if index == 18 { return "EVENT"; }
-    if index == 19 { return "EXPORT"; }
-    if index == 20 { return "EXTENDS"; }
-    if index == 21 { return "EXTERN"; }
-    if index == 22 { return "FAIL"; }
-    if index == 23 { return "FALSE"; }
-    if index == 24 { return "FOR"; }
-    if index == 25 { return "FUNC"; }
-    if index == 26 { return "IF"; }
-    if index == 27 { return "IMPL"; }
-    if index == 28 { return "IMPORT"; }
-    if index == 29 { return "IN"; }
-    if index == 30 { return "INCLUDE"; }
-    if index == 31 { return "INNATE"; }
-    if index == 32 { return "INTENT"; }
-    if index == 33 { return "LET"; }
-    if index == 34 { return "LOCAL"; }
-    if index == 35 { return "MATCH"; }
-    if index == 36 { return "NAMESPACE"; }
-    if index == 37 { return "NONDETERMINISTIC"; }
-    if index == 38 { return "OBJECT"; }
-    if index == 39 { return "OVERRIDE"; }
-    if index == 40 { return "OWN"; }
-    if index == 41 { return "PARALLEL"; }
-    if index == 42 { return "PARTY"; }
-    if index == 43 { return "PRIVATE"; }
-    if index == 44 { return "PUBLIC"; }
-    if index == 45 { return "REF"; }
-    if index == 46 { return "REFLECT"; }
-    if index == 47 { return "RELATION"; }
-    if index == 48 { return "REMOTE"; }
-    if index == 49 { return "RETURN"; }
-    if index == 50 { return "ROLE"; }
-    if index == 51 { return "ROSTER"; }
-    if index == 52 { return "SECURE"; }
-    if index == 53 { return "SELECT"; }
-    if index == 54 { return "SHARED"; }
-    if index == 55 { return "SLOT"; }
-    if index == 56 { return "SPAWN"; }
-    if index == 57 { return "STRUCT"; }
-    if index == 58 { return "SUBJECT"; }
-    if index == 59 { return "TOBJECT"; }
-    if index == 60 { return "TRANSACTION"; }
-    if index == 61 { return "TRUE"; }
-    if index == 62 { return "TYPE"; }
-    if index == 63 { return "UNSAFE"; }
-    if index == 64 { return "USE"; }
-    if index == 65 { return "VESSEL"; }
-    if index == 66 { return "WHERE"; }
-    if index == 67 { return "WHILE"; }
-    if index == 68 { return "WITH"; }
-    if index == 69 { return "WORLD"; }
-    if index == 70 { return "ZONE"; }
+    if index == 7 { return "CLASS"; }
+    if index == 8 { return "COLLAPSE"; }
+    if index == 9 { return "COMPENSATE"; }
+    if index == 10 { return "CONTINUE"; }
+    if index == 11 { return "DEFAULT"; }
+    if index == 12 { return "DEFER"; }
+    if index == 13 { return "DYN"; }
+    if index == 14 { return "EFFECT"; }
+    if index == 15 { return "ELSE"; }
+    if index == 16 { return "ENUM"; }
+    if index == 17 { return "EVENT"; }
+    if index == 18 { return "EXPORT"; }
+    if index == 19 { return "EXTENDS"; }
+    if index == 20 { return "EXTERN"; }
+    if index == 21 { return "FAIL"; }
+    if index == 22 { return "FALSE"; }
+    if index == 23 { return "FOR"; }
+    if index == 24 { return "FUNC"; }
+    if index == 25 { return "IF"; }
+    if index == 26 { return "IMPL"; }
+    if index == 27 { return "IMPORT"; }
+    if index == 28 { return "IN"; }
+    if index == 29 { return "INCLUDE"; }
+    if index == 30 { return "INNATE"; }
+    if index == 31 { return "INTENT"; }
+    if index == 32 { return "LET"; }
+    if index == 33 { return "LOCAL"; }
+    if index == 34 { return "MATCH"; }
+    if index == 35 { return "NAMESPACE"; }
+    if index == 36 { return "NONDETERMINISTIC"; }
+    if index == 37 { return "OBJECT"; }
+    if index == 38 { return "OVERRIDE"; }
+    if index == 39 { return "OWN"; }
+    if index == 40 { return "PARALLEL"; }
+    if index == 41 { return "PARTY"; }
+    if index == 42 { return "PRIVATE"; }
+    if index == 43 { return "PUBLIC"; }
+    if index == 44 { return "REF"; }
+    if index == 45 { return "REFLECT"; }
+    if index == 46 { return "RELATION"; }
+    if index == 47 { return "REMOTE"; }
+    if index == 48 { return "RETURN"; }
+    if index == 49 { return "ROLE"; }
+    if index == 50 { return "ROSTER"; }
+    if index == 51 { return "SECURE"; }
+    if index == 52 { return "SELECT"; }
+    if index == 53 { return "SHARED"; }
+    if index == 54 { return "SLOT"; }
+    if index == 55 { return "SPAWN"; }
+    if index == 56 { return "STRUCT"; }
+    if index == 57 { return "SUBJECT"; }
+    if index == 58 { return "TOBJECT"; }
+    if index == 59 { return "TRANSACTION"; }
+    if index == 60 { return "TRUE"; }
+    if index == 61 { return "TYPE"; }
+    if index == 62 { return "UNSAFE"; }
+    if index == 63 { return "USE"; }
+    if index == 64 { return "VESSEL"; }
+    if index == 65 { return "WHERE"; }
+    if index == 66 { return "WHILE"; }
+    if index == 67 { return "WITH"; }
+    if index == 68 { return "WORLD"; }
+    if index == 69 { return "ZONE"; }
     return "";
 }
 
@@ -164,7 +162,6 @@ func LanguageKeywordDebugIdentity(text: String) -> String {
     if text == "bind" { return "BIND"; }
     if text == "break" { return "BREAK"; }
     if text == "case" { return "CASE"; }
-    if text == "channel" { return "CHANNEL"; }
     if text == "class" { return "CLASS"; }
     if text == "collapse" { return "COLLAPSE"; }
     if text == "compensate" { return "COMPENSATE"; }
