@@ -24,16 +24,16 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 
 ## 현재 관측된 상태
 
-2026-07-28 현재 실제 부트스트랩 진입점은
+2026-07-29 현재 실제 부트스트랩 진입점은
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`이다. 이 파일은
 `driver_rung2_owner.pgy`와 `compiler_world_direct_mir_owner.pgy`를 import한다.
-source/MIR 생성 및 기존 C 호환 mode는 아직 다음 일반 함수들로 분기한다.
+source-to-C 및 기존 MIR-to-C 호환 mode는 아직 다음 일반 함수들로 분기한다.
 
 - `CompileSourceToCVerified`;
-- `CompileSourceToMirJsonFileVerified` 및 pressure-observed 변형;
 - `CompileMirJsonToCVerified` 및 observed 변형.
 
-`--mir-json-backend=c|llvm` mode는 다음 한 경로를 호출한다.
+`--mir-json-backend=c|llvm`과 `--emit-mir-json-verified` mode는 각각 다음
+경로를 호출한다.
 
 ```text
 driver_bootstrap_main.Main
@@ -43,6 +43,15 @@ driver_bootstrap_main.Main
   -> DriverRung2DirectMirZone.execution
   -> DriverRung2Execution.EmitDirectMir
   -> existing target/projection/emission owners
+
+driver_bootstrap_main.Main
+  -> EmitSourceMirThroughPgyCompilerWorld
+  -> PgyCompilerWorld.EmitSourceMir
+  -> PgyCompilerWorld.source_mir
+  -> DriverSourceMirZone.execution
+  -> DriverSourceMirExecution.EmitSourceMir
+  -> CompileSourceToMirJsonVerified | CompileSourceToMirJsonPressureObserved
+  -> SelfMirArtifactCommitPayload
 ```
 
 action이 request를 typed target projection으로 admit하고, 기존
@@ -51,6 +60,13 @@ artifact identity를 확인한 뒤 shared compiler-artifact transaction을 commi
 `Main`의 target-fact 생성, direct backend 호출, direct-mode raw writer 우회는
 삭제됐다.
 
+source-to-MIR action은 subject/topology identity와 pressure request를 admit하고,
+기존 typed source-to-MIR producer 중 정확히 하나를 호출한 뒤 shared artifact
+transaction을 한 번 commit한다. Full driver source는 pressure-observed 요청만
+허용하고 일반 fixture는 그 요청을 거부한다. `Main`은 typed outcome과 diagnostic만
+소비하며, 옛 `CompileSourceToMirJsonFileVerified` 및 pressure file-helper 정의와
+직접 호출은 삭제됐다.
+
 `DriverRung2Executed`는 `tobject SelfMirArtifactReceipt`의 exact target/path,
 `atomic_visibility=true`, `crash_durable=false`가 확인된 경우에만 반환된다.
 Wrong identity/target은 typed rejection이고 commit 실패는 원래
@@ -58,26 +74,22 @@ Wrong identity/target은 typed rejection이고 commit 실패는 원래
 boundary이며 이 실패를 transaction rejection과 하나로 과장하지 않는다.
 
 `src/self_hosted/compiler/world.pgy`는 이제 composition owner를 통해 bootstrap
-import/call graph에 들어오며 `PgyCompilerWorld`는 direct-MIR slice의 실제
-composition boundary다. 다만 현재 호출되는 world/zone/subject/action은 위
-경로의 각 하나뿐이다. `world.pgy`의 기존 readiness action과 intent, 나머지
-18개 zone은 import-reachable surface이지만 production call site가 없다.
+import/call graph에 들어오며 `PgyCompilerWorld`는 두 slice의 실제 composition
+boundary다. `direct_mir`, `source_mir` 두 field는 positional order로 실제
+materialize되고 나머지 zone과 root intent는 import-reachable surface다.
 
-재귀 import 감사에서 bootstrap closure는 477개 파일이고 missing import는
-0이다. 그 import-reachable 집합의 선언은 `func` 3,800개, `struct` 204개,
-`enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개, `action` 17개,
-`zone` 19개, `world` 1개, `intent` 14개, `role` 4개, `ability` 4개다.
-`class`/`vessel`/`effect`/`relation`/`party`/`roster`는 0개다. 이 수치는
-import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
+재귀 import closure에는 world 1개와 concrete zone 20개가 있다. 정확한 전체
+declaration census는 gate가 다시 생성하는 관측값이며, import surface의 선언 수를
+실행 증거로 세지 않는다.
 
 | 구성체 | 현재 grade | production 근거 |
 | --- | --- | --- |
 | `struct` | `REACHABLE` supporting construct | production typed 계산에 사용되지만 독립 C-path 대체 등급은 아님 |
-| `class`, `object`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
+| `class`, `object`, `vessel` | `SURFACE` | 두 active action call chain의 소비 없음 |
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | production action의 receipt와 failure가 typed variant로 Main까지 전달되고 양쪽 payload가 후속 판정/진단에 소비된다 |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
-| `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
+| `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR과 source-to-MIR 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그러나 새 C-owned semantic path를 대체한 것은 아니다. |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
 
@@ -90,20 +102,21 @@ self-host compiler 내부에 호출되는 `effect`/`relation` action graph가 �
 
 production declaration과 composition은 다음처럼 나뉜다.
 
-- `compiler/driver_rung2_execution_owner.pgy`: 실제 subject/action 1개와
-  direct-MIR zone 1개;
-- `compiler/world.pgy`: world 1개, target zone 18개, subject/action 16개,
-  object 18개, tobject 1개, intent 10개를 선언하고, world member로는 실제
-  실행되는 direct-MIR zone 하나만 binding;
+- `compiler/driver_rung2_execution_owner.pgy`: 실제 direct-MIR subject/action과
+  zone;
+- `compiler/driver_source_mir_execution_owner.pgy`: 실제 source-to-MIR
+  subject/action/zone, pressure admission, typed receipt/rejection;
+- `compiler/world.pgy`: world 1개와 concrete zone 20개를 선언하고, world
+  member로는 실제 실행되는 `direct_mir`, `source_mir` 둘만 binding;
 - `compiler/stage_intents.pgy`: intent 4개;
 - `compiler/authority_owner.pgy`: role 4개, ability 4개;
 - `compiler/compiler_world_direct_mir_owner.pgy`: 새 world를 선언하지 않고
-  정확한 arity의 `PgyCompilerWorld` direct-MIR root를 inline materialize하는
-  유일한 composition function. 미실행 zone의 aggregate zero-fill은 금지된다.
+  정확한 arity와 순서로 두 executable zone을 한 번 materialize하는 유일한
+  composition function. 미실행 zone의 aggregate zero-fill은 금지된다.
 
-`world.pgy`의 기존 action 16개는 계속 `Compiler*Ready()` 호출/결합만 반환하고
-현재 chain에서 호출되지 않는다. 실제 direct-MIR action 하나만 target admission,
-artifact 검증, write/rejected transition을 수행한다. 따라서 world가 import됐다는
+`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 두 실제
+action만 target 또는 pressure admission과 artifact write/rejected transition을
+수행한다. 따라서 world가 import됐다는
 사실이나 domain 선언 수를 C-owned compiler substitution으로 세지 않는다.
 `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c`는 현재 exit 0이지만,
 semantic compile 성공 역시 production call-site나 대체 증거를 대신하지 않는다.
@@ -148,7 +161,7 @@ negative를 고정한다. runtime identity/token mismatch와 generic direct-subj
 receiver negative는 아직 없다. 호출별 binding fact가 생기기 전에는 지원 범위
 밖 shape를 계속 semantic/codegen boundary에서 명시적으로 거부해야 한다.
 
-### Source-to-MIR action의 선행 blocker
+### Source-to-MIR action의 현재 경계와 남은 증거
 
 source-to-MIR을 lexer/parser/semantic/MIR action 네 개로 쪼개지 않는다. 그
 계산은 기존 typed `func` owner가 계속 소유하고 하나의 compiler-run action만
@@ -168,12 +181,14 @@ clause를 건너뛰어 `Body:`를 찾는 fallback은 없다.
 ActionContract carriage 자체는 기존 production action을 정확히 운반하는 supporting
 semantic seam이며 C-owned compiler path를 새로 대체하지 않는다. Callable contract
 vocabulary는 이미 닫혔고, domain runtime assignment/receiver의 첫 실행 slice도
-별도 `func` owner 경로에서 닫혔다. 그러나 production source mode의
-`Main -> CompileSourceTo*` 직접 호출은 아직 새 subject action으로 이주하지 않았다.
-따라서 direct-MIR world/zone/subject/action은 계속 `REACHABLE`, not
-`SUBSTITUTING`이다. Source-mode action을 `SUBSTITUTING`으로 올리려면 production
-entrypoint가 새 action을 실제 호출하는 변경과 같은 rung에서 그 직접 우회를
-삭제하고 실행/parity/negative gate를 통과해야 한다.
+별도 `func` owner 경로에서 닫혔다. Production source-to-MIR mode는 이제 새
+subject/action을 호출하고 typed outcome을 소비하며 옛 file-helper 우회도 삭제했다.
+그러나 이것은 Pergyra 내부 orchestration 우회를 교체한 것이지 새 C-owned semantic
+compiler path를 대체한 것이 아니다. 따라서 두 world/zone/subject/action slice는
+`REACHABLE`, not `SUBSTITUTING`이고 compiler-root intent는 계속 `SURFACE`다.
+`function_clause_order_minimal`의 실제 production action 실행/parity와 identity,
+topology, pressure mismatch negative를 관측하기 전에는 정적 gate만으로 실행 증거를
+과장하지 않는다.
 
 `struct` hosted-func negative, 호출별 authority binding, runtime identity/token과
 ability authorization은 declaration carriage와 별도인 열린 fact family다.
@@ -370,11 +385,12 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
 4. **zone/world 결속 — green**: 그 action을 subject slot/authority를 소유한
    direct-MIR zone과 기존 `PgyCompilerWorld`에 사실 복제 없이 결속하고
    `Main`이 그 composition boundary를 호출하게 한다.
-5. **다음 실제 action 확장**: 같은 방법으로 source -> MIR 경계의 실제
-   orchestration을 옮긴다. 매 단계에서 migrated mode의 direct bypass를 같은
-   변경으로 삭제한다.
-6. **intent takeover**: 둘 이상의 실제 action/zone과 성공/실패 계약이
-   준비된 시점에만 root intent를 entrypoint에서 호출한다.
+5. **source-to-MIR action 확장 — green**: 같은 방법으로 source -> MIR 경계의
+   실제 orchestration을 옮기고 file-helper 및 Main 직접 commit 우회를 삭제했다.
+6. **intent takeover — open**: 실제 action/zone 개수만으로 승격하지 않는다.
+   한 real-purpose binder가 participant/coordination/authority/effect/boundary/
+   compensation/trace bundle과 성공/실패 의미를 소유하고 production direct
+   bypass를 삭제할 때만 root intent를 entrypoint에서 호출한다.
 
 ## 완료된 direct-MIR action reachability objective card
 
@@ -399,8 +415,8 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
 - Forbidden fallback: `Main`의 직접 backend projection 호출, action 실패 시
   기존 함수 재호출, `Main`의 직접
   `CompilerTargetProjectionFactFromOwner` 호출, C/LLVM별 별도 world/action
-  graph. Source mode의 `CompileSourceTo*` 직접 호출 금지는 source mode가
-  실제 protocol로 이주하는 다음 rung에서 건다.
+  graph. Source-to-MIR mode의 직접 payload compile/file-helper/commit도 금지하며
+  현재 별도 source action gate가 이를 고정한다.
 - Falsifying case: 알 수 없는 `--mir-json-backend=` 값이나 손상된 target fact가
   action을 우회해 artifact를 생성하는 경우.
 - Gate: entrypoint import/call reachability, migrated mode의 direct-call 부재,
@@ -435,6 +451,30 @@ typed atomic commit/rejected outcome 범위**는 현재 source에서 달성됐�
 이 objective도 현재 source에서 달성됐지만 증거 등급은 `REACHABLE`이다.
 `PgyCompilerWorld`는 direct-MIR slice의 실제 bootstrap composition root이지
 runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
+
+## 완료된 source-to-MIR zone/world 결속 objective card
+
+- Objective: production `--emit-mir-json-verified`를 하나의
+  `DriverSourceMirExecution.EmitSourceMir` action으로 통과시키고 옛 file-helper
+  orchestration을 삭제한다.
+- Priority: 기존 typed source/MIR fact identity; pressure admission; 한 payload
+  producer와 한 atomic commit; typed outcome consumption; no fallback.
+- Fact owner: lexer/parser/semantic/MIR 계산은 기존 typed `func` owner가 계속
+  소유한다. 새 subject/action은 admission, stage transition, commit, outcome만
+  소유한다.
+- Last legitimate consumer: `PgyCompilerWorld.EmitSourceMir`이
+  `source_mir.execution.EmitSourceMir`에 한 번 위임하는 call site.
+- Forbidden fallback: `Main`의 직접 source-to-MIR compile/commit, 삭제된
+  `CompileSourceToMirJsonFile*`, action 실패 뒤 기존 함수 재호출, 두 번째 world.
+- Falsifying case: `function_clause_order_minimal`이 production action을 통과하지
+  못하거나 일반 fixture가 pressure request로 성공하거나 subject/topology identity가
+  틀린데 artifact가 생기는 경우.
+- Gate: `driver_source_mir_execution_action_gate.sh`, build-pressure contract,
+  compiler-world topology/contract, focused executable parity.
+
+현재 정적 ownership/no-bypass gate까지 통과한 grade는 `REACHABLE`이다. 이 rung은
+Pergyra 내부 file-helper orchestration을 대체했지만 새 C-owned semantic path를
+대체하지 않았으므로 `SUBSTITUTING`으로 세지 않는다.
 
 ## 완료된 domain runtime assignment 실행 rung objective card
 

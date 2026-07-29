@@ -44,6 +44,8 @@ A valid progress unit must do all of the following:
 3. Fail closed when the required fact is missing.
 4. Prove C/LLVM oracle parity for the bounded path.
 5. Add a negative ratchet that rejects the removed fallback.
+6. Never leave `typed ? text` dual-read authority after migration; missing
+   typed facts fail closed at the last legitimate consumer.
 
 Owner files, gates, documents, and LOC do not increase substitution progress
 unless a real compiler path is replaced.
@@ -109,21 +111,25 @@ The mixed AST-like expression bridge was the active rung on 2026-07-12. It is
 now a retired historical rung; the dated deltas below record its closure and
 must not be read as the live frontier.
 
-The current next executable rung is source -> MIR orchestration through the
+The source -> MIR orchestration boundary has landed through the
 `PgyCompilerWorld` composition boundary and one compiler-run
 zone/subject/action. Existing typed lexer, parser, semantic, DIR, and MIR `func`
-owners keep their computation responsibilities. The action owns request
-admission, the one verified MIR artifact commit, and the typed outcome. In the
-same rung, production `Main` must delete both direct bypasses
+owners keep their computation responsibilities. The action owns subject and
+topology identity admission, full-driver-only pressure admission, exactly one
+verified MIR payload production, one atomic artifact commit, and the typed
+outcome. Production `Main` consumes that outcome, and both direct file helpers
 `CompileSourceToMirJsonFileVerified` and
-`CompileSourceToMirJsonFilePressureObserved`; neither may remain as a fallback
-beside the Pergyra-native path.
+`CompileSourceToMirJsonFilePressureObserved` are deleted. The negative gate
+forbids their definitions or calls from returning beside the Pergyra-native
+path.
 
-The first falsifying fixture is
+The current executable falsifier is
 `examples/function_clause_order_minimal.pgy`. It must traverse the production
 action path, preserve native/self MIR and C/LLVM parity for the bounded slice,
-and fail closed before publication when the admitted source/MIR facts or
-artifact identity are damaged. This rung does not promote the compiler-root
+and fail closed before publication for wrong pressure mode, subject identity,
+topology identity, admitted source/MIR facts, or artifact identity. Static
+ownership/no-bypass evidence is not a substitute for this runtime observation.
+This rung does not promote the compiler-root
 `intent` beyond `SURFACE`; a later canonical real-purpose intent still requires
 its own production call site and direct-bypass deletion.
 

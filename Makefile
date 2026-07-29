@@ -1562,6 +1562,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/machine_layer_manifest.o \
                    $(BUILD_DIR)/compiler/mir_machine_layer.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_lower_request.o \
                    $(BUILD_DIR)/compiler/mir_region_escape_facts.o \
                    $(BUILD_DIR)/compiler/mir_hir_block_projection.o \
                    $(BUILD_DIR)/compiler/mir_hir_fact_transfer.o \
@@ -1646,6 +1647,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_role_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_shape_validate.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_method_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_access.o \
@@ -2607,8 +2609,8 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_async_lambda_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_async_lambda_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)
@@ -2847,7 +2849,8 @@ self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-s
 
 self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
-	"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
 	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
 	"$(BASH)" tests/intent_observability_abi_registry_smoke.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
@@ -2896,7 +2899,7 @@ self-host-preparation-platform-parity-test-smoke: $(PGY)
 
 self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE)
 
-self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-driver-execution-action-optional-within-parity-test-smoke
+self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-driver-execution-action-optional-within-parity-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
@@ -3046,6 +3049,9 @@ self-host-driver-execution-action-optional-within-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	"$(BASH)" tests/self_hosted/parity/driver_execution_action_optional_within_parity.sh
 
+self-host-driver-source-mir-execution-action-test-smoke:
+	"$(BASH)" tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh
+
 self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
@@ -3111,7 +3117,7 @@ self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap
 self-host-one-mir-cfg-air-plan-projection-test-smoke: self-host-one-mir-dual-backend-projection-test-smoke
 	PGY_SELFHOST_CFG_SKIP_SCALAR_GATE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

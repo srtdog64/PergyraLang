@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROBE="$ROOT_DIR/scripts/measure_build_pressure.ps1"
 DRIVER_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
 DRIVER_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+SOURCE_MIR_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
 require() {
@@ -95,12 +96,14 @@ grep -Fq 'self-host-driver-bootstrap-full-pressure-body-test-smoke' "$ROOT_DIR/M
     || { echo "[build-pressure-contract] full driver fixpoint lacks a bounded body target" >&2; exit 1; }
 grep -Fq 'full pressure body requires measure_build_pressure.ps1' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] full driver body can bypass its pressure owner" >&2; exit 1; }
-grep -Fq 'full driver MIR production requires the pressure-owned bootstrap gate' "$DRIVER_MAIN" \
-    || { echo "[build-pressure-contract] full driver binary lacks its direct-call rejection" >&2; exit 1; }
+grep -Fq 'full driver MIR production requires pressure observation' "$SOURCE_MIR_EXECUTION" \
+    || { echo "[build-pressure-contract] source-MIR action lacks its direct-call rejection" >&2; exit 1; }
 grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
-grep -Fq 'CompileSourceToMirJsonFilePressureObserved(' "$DRIVER_MAIN" \
-    || { echo "[build-pressure-contract] full driver binary lacks stage observation" >&2; exit 1; }
+grep -Fq 'SourceMirPressureObserved' "$DRIVER_MAIN" \
+    || { echo "[build-pressure-contract] Main does not request pressure observation" >&2; exit 1; }
+grep -Fq 'CompileSourceToMirJsonPressureObserved(' "$SOURCE_MIR_EXECUTION" \
+    || { echo "[build-pressure-contract] source-MIR action lacks stage observation" >&2; exit 1; }
 grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
     || { echo "[build-pressure-contract] full driver pressure stages are not observable" >&2; exit 1; }
 grep -Fq '[semantic-body-type-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \

@@ -10,6 +10,7 @@ import "abi_layout_row_owner.pgy";
 import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
 import "driver_rung2_execution_owner.pgy";
+import "driver_source_mir_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
     action Read(self, paths: StagePathManifest) -> Bool {
@@ -267,6 +268,7 @@ world PgyCompilerWorld {
     // stay target topology until their production bypass is deleted; missing
     // required world facts may not be supplied by aggregate zero-fill.
     zone direct_mir: DriverRung2DirectMirZone
+    zone source_mir: DriverSourceMirZone
 
     func EmitDirectMir(
         self,
@@ -277,6 +279,18 @@ world PgyCompilerWorld {
     ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
         return self.direct_mir.execution.EmitDirectMir(
             mir_json_path, output_path, machine_declaration, request
+        );
+    }
+
+    func EmitSourceMir(
+        self,
+        source_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverSourceMirRequest
+    ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
+        return self.source_mir.execution.EmitSourceMir(
+            source_path, output_path, machine_declaration, request
         );
     }
 }

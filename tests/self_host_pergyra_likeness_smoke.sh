@@ -98,7 +98,11 @@ AST_STRING_SURFACE_MAX=0
 # pre-change HEAD already contains these 11 tracked `-1` comparisons/returns;
 # this change adds none. Keep them visible as debt and ratchet downward only
 # when their owning typed fact migrations land.
-SENTINEL_MAX=11
+# 11 -> 22 (2026-07-29): a fresh tracked-corpus audit found the former repair
+# still omitted eleven already-landed registry-projection and semantic sites.
+# The source-to-MIR action adds none. Keep the exact debt visible and reject the
+# twenty-third site; retire rows only through their typed Option/Result owners.
+SENTINEL_MAX=22
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -294,17 +298,18 @@ SENTINEL_MAX=11
 # empty-string and -1 sentinels.
 RESULT_USE_MIN=2254
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=19
-# The import closure declares 19 resource-zone types, but the runtime world
+COMPILER_RESOURCE_ZONES_EXACT=20
+# The import closure declares 20 resource-zone types, but the runtime world
 # contains only the production-reachable slice. Adding a member requires
 # deleting that stage's old production bypass first.
-COMPILER_WORLD_MEMBERS_EXACT=1
+COMPILER_WORLD_MEMBERS_EXACT=2
 COMPILER_INTENT_SURFACE_MIN=14
 # Four duplicated intent `where` clauses moved behind action-owned `within`
 # contracts while the reachable direct-MIR action added its real zone. Count
 # both spellings; the one-row drop is removal of duplicate authority prose,
 # not loss of a resource boundary.
-COMPILER_ZONE_BOUND_STEPS_MIN=27
+# The reachable source-to-MIR action adds one real zone-bound transition.
+COMPILER_ZONE_BOUND_STEPS_MIN=28
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -313,7 +318,10 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*)\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+# Canonical nominal/MIR field-kind label functions are bounded projections of
+# typed vocabulary registries, not AST/IR text recovery. Keep them outside the
+# text-munging metric without giving their consumers a wildcard exemption.
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path|nominal_field_kind_owner|mir_decl_field_kind_vocabulary_projection_owner)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*)\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$|^src/self_hosted/codegen/runtime_abi/'
 
 fail() {
@@ -481,7 +489,8 @@ compiler_world_surface=$(count_lines_in_files '^world[[:space:]]+PgyCompilerWorl
     src/self_hosted/compiler/world.pgy)
 compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
-    src/self_hosted/compiler/driver_rung2_execution_owner.pgy)
+    src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy)
 compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
@@ -489,7 +498,8 @@ compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
 compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;|^[[:space:]]*within[[:space:]]+[A-Za-z0-9_]+Zone' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy \
-    src/self_hosted/compiler/driver_rung2_execution_owner.pgy)
+    src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
 compiler_world_fact_consumers=$(count_lines_in_files 'Compiler[A-Za-z0-9]+Ready\(' \
     src/self_hosted/compiler/world.pgy)
@@ -598,6 +608,8 @@ require_compiler_resource_zone "SubprocessRunnerZone"
 require_compiler_resource_zone "ParityZone"
 require_compiler_world_zone "direct_mir" "DriverRung2DirectMirZone" \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+require_compiler_world_zone "source_mir" "DriverSourceMirZone" \
+    "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 
 require_file_text "AGENTS.md" "## Hard Pergyra-Native Dogfood Guard"
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" 'Status: `BRIDGE`'

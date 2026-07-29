@@ -2,6 +2,36 @@
 
 마지막 업데이트: 2026-07-29
 
+## 2026-07-29 source-to-MIR compiler-world action checkpoint
+
+- Production `--emit-mir-json-verified`는 이제 `Main ->
+  EmitSourceMirThroughPgyCompilerWorld -> PgyCompilerWorld.source_mir ->
+  DriverSourceMirExecution.EmitSourceMir` 한 경로를 지난다. World는 기존
+  `direct_mir` 다음에 `source_mir`를 두며 한 composition owner가 두 zone을
+  정확한 positional arity로 한 번 materialize한다.
+- 새 action은 subject/topology identity와 pressure mode를 admit하고, 기존 typed
+  source-to-MIR producer 중 하나를 한 번 호출한 뒤 shared artifact transaction을
+  한 번 commit한다. Full driver만 pressure-observed 요청을 허용하고 일반 fixture의
+  pressure 요청은 fail closed한다.
+- 옛 `CompileSourceToMirJsonFileVerified` 및 pressure variant 정의/호출과 Main의
+  source-MIR 직접 compile/commit은 삭제됐다. Static action/no-bypass,
+  build-pressure, topology, compiler-world, Pergyra-likeness, component, hard
+  self-host, progress-metric contract는 PASS했다.
+- Grade는 `REACHABLE`, not `SUBSTITUTING`이다. Production caller가 action과 typed
+  outcome을 실제 소비하지만 새 C-owned semantic path가 아니라 Pergyra 내부
+  file-helper orchestration을 교체했다. Root intent는 계속 `SURFACE`다.
+- `function_clause_order_minimal` production 실행은 현재 120초 C driver build
+  ceiling에서 산출물 없이 timeout되어 아직 PASS를 주장하지 않는다. 같은 시도 뒤
+  잔류 compiler worker는 없었고 LLVM leg는 C prerequisite가 없어 시작하지 않았다.
+
+- The same checkpoint repaired CI contract drift without restoring old owners:
+  MIR/region link inventories are complete, doc-link census parity is current,
+  intent diagnostics follow their split owners, secure pin evidence requires
+  the typed init ABI, and Windows vocabulary preparation receives the exact
+  configured `PGY_BIN`. Focused gates, `make -j2 test-mir` (157/0), the default
+  50,000,000-iteration evidence benchmark, and the full perf contract pass.
+  The next pushed platform matrix remains the authority for cross-host closure.
+
 ## 2026-07-29 typed intent execution plan v2 admission checkpoint
 
 - Intent 의미는 action 개수로 판정하지 않는다. `docs/01`·`docs/173` 정본대로

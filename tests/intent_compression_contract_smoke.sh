@@ -85,8 +85,15 @@ require_semantic_term "intent_step_derive_who_from_single_participant"
 require_semantic_term "intent_step_derive_who_from_on_receiver"
 require_semantic_term "intent_step_derive_where_from_on_receiver"
 require_semantic_term "ast_intent_step_mark_inherited_where_from_action"
-grep -Fq "intent_step_derive_where_from_on_receiver" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+grep -Fq "intent_step_derive_where_from_on_receiver(ASTNode *intent_decl," \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "intent_step_derive_where_from_on_receiver(node, step, ctx);" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
+if grep -Fq "intent_step_derive_where_from_on_receiver" \
+        "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"; then
+    echo "intent on-receiver where inference must stay with its inference owner" >&2
+    exit 1
+fi
 require_semantic_term "intent_step_inherit_contract_from_on_receiver"
 require_semantic_term "intent_step_authorized_by_alias_from_action"
 require_semantic_term "intent_on_call_arg_for_action_param"
@@ -117,17 +124,17 @@ grep -Fq "action-inherited" \
 grep -Fq "inherited from the intent-level who default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_participants.c"
 grep -Fq "intent_step_where_source_label" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_types.c"
 grep -Fq "this where value came from %s" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
 grep -Fq "compressed using derivation can only bind a named intent participant or value" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
 grep -Fq "using binding points to a different zone than the current where contract" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
 grep -Fq "compressed intent orchestration needs a stable declared intent target" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
 grep -Fq "non-intent callees do not carry intent step provenance into AIR" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_step_sequence.c"
 grep -Fq "transfer target derivation and explicit using binding choose different zones" \
     "$ROOT_DIR/src/semantic/type_checker_intent_transfer.c"
 grep -Fq "explicit or inherited step zone conflicts with the transfer destination" \

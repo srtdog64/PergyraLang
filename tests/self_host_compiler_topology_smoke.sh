@@ -7,6 +7,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORLD="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
 STAGES="$ROOT_DIR/src/self_hosted/compiler/stage_intents.pgy"
 EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+SOURCE_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 COMPOSITION="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 COMPILER_ROOT="$ROOT_DIR/src/self_hosted/compiler"
@@ -20,6 +21,7 @@ fail() {
 [[ -f "$WORLD" ]] || fail "missing compiler world"
 [[ -f "$STAGES" ]] || fail "missing stage intent owner"
 [[ -f "$EXECUTION" ]] || fail "missing direct-MIR execution owner"
+[[ -f "$SOURCE_EXECUTION" ]] || fail "missing source-to-MIR execution owner"
 [[ -f "$COMPOSITION" ]] || fail "missing direct-MIR world composition owner"
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
 [[ -f "$ARCH" ]] || fail "missing compiler world architecture"
@@ -29,6 +31,9 @@ awk '
         zones++
         if ($0 ~ /^(public[[:space:]]+)?zone[[:space:]]+DriverRung2DirectMirZone[[:space:]]*\{/) {
             direct_zone++
+        }
+        if ($0 ~ /^(public[[:space:]]+)?zone[[:space:]]+DriverSourceMirZone[[:space:]]*\{/) {
+            source_zone++
         }
     }
     /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ {
@@ -45,6 +50,13 @@ awk '
         if ($0 ~ /^[[:space:]]+zone[[:space:]]+direct_mir:[[:space:]]+DriverRung2DirectMirZone[[:space:]]*$/) {
             direct_member++
         }
+        if (members == 2 &&
+            $0 ~ /^[[:space:]]+zone[[:space:]]+source_mir:[[:space:]]+DriverSourceMirZone[[:space:]]*$/) {
+            source_member_is_second++
+        }
+        if ($0 ~ /^[[:space:]]+zone[[:space:]]+source_mir:[[:space:]]+DriverSourceMirZone[[:space:]]*$/) {
+            source_member++
+        }
     }
     in_world && /^}/ { in_world = 0 }
     /intent[[:space:]]+CompilePergyraProgram[[:space:]]*\(/ { compile_intent++ }
@@ -55,16 +67,17 @@ awk '
     /step[[:space:]]+SelfProof[[:space:]]*\{/ { self_proof++ }
     /SelfHostCompiler/ { duplicate_aggregate++ }
     END {
-        if (zones != 19 || worlds != 1 || members != 1 ||
-            direct_zone != 1 || direct_member != 1 ||
-            direct_member_is_first != 1 ||
+        if (zones != 20 || worlds != 1 || members != 2 ||
+            direct_zone != 1 || source_zone != 1 ||
+            direct_member != 1 || source_member != 1 ||
+            direct_member_is_first != 1 || source_member_is_second != 1 ||
             compile_intent != 1 || frontend != 1 || middle_end != 1 ||
             evidence != 1 || backend != 1 || self_proof != 1 ||
             duplicate_aggregate != 0) {
             exit 1
         }
     }
-' "$WORLD" "$EXECUTION" || fail "world/resource topology drifted"
+' "$WORLD" "$EXECUTION" "$SOURCE_EXECUTION" || fail "world/resource topology drifted"
 
 first_world_member="$(awk '
     /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ {
@@ -79,6 +92,16 @@ first_world_member="$(awk '
 [[ "$first_world_member" == \
     'direct_mir:|DriverRung2DirectMirZone' ]] ||
     fail "direct_mir must remain PgyCompilerWorld's first positional field"
+
+second_world_member="$(awk '
+    /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ { in_world = 1; next }
+    in_world && /^[[:space:]]+zone[[:space:]]+[A-Za-z0-9_]+:/ {
+        members++
+        if (members == 2) { print $2 "|" $3; exit }
+    }
+' "$WORLD")"
+[[ "$second_world_member" == 'source_mir:|DriverSourceMirZone' ]] ||
+    fail "source_mir must be PgyCompilerWorld's second positional field"
 
 compiler_world_count="$(
     {
@@ -96,15 +119,26 @@ for owner_term in \
     "$EXECUTION|authorized by self" \
     "$EXECUTION|subject slot execution: DriverRung2Execution" \
     "$EXECUTION|authority execution" \
+    "$SOURCE_EXECUTION|public zone DriverSourceMirZone" \
+    "$SOURCE_EXECUTION|within DriverSourceMirZone" \
+    "$SOURCE_EXECUTION|authorized by self" \
+    "$SOURCE_EXECUTION|subject slot execution: DriverSourceMirExecution" \
+    "$SOURCE_EXECUTION|authority execution" \
     "$WORLD|zone direct_mir: DriverRung2DirectMirZone" \
+    "$WORLD|zone source_mir: DriverSourceMirZone" \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
+    "$WORLD|return self.source_mir.execution.EmitSourceMir(" \
     "$COMPOSITION|import \"world.pgy\";" \
+    "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
-    "$COMPOSITION|let compiler_world: PgyCompilerWorld = PgyCompilerWorld(" \
+    "$COMPOSITION|func EmitSourceMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
+    "$COMPOSITION|DriverSourceMirZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
+    "$COMPOSITION|return compiler_world.EmitSourceMir(" \
     "$MAIN|import \"compiler_world_direct_mir_owner.pgy\";" \
-    "$MAIN|EmitDirectMirThroughPgyCompilerWorld("; do
+    "$MAIN|EmitDirectMirThroughPgyCompilerWorld(" \
+    "$MAIN|EmitSourceMirThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
     term="${owner_term#*|}"
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
@@ -112,8 +146,10 @@ for owner_term in \
 done
 
 if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
+    grep -Fq -- 'import "driver_source_mir_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "world.pgy";' "$MAIN" ||
-    grep -Fq -- '.EmitDirectMir(' "$MAIN"; then
+    grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
+    grep -Fq -- '.EmitSourceMir(' "$MAIN"; then
     fail "production Main bypassed the single compiler-world composition path"
 fi
 
@@ -129,6 +165,18 @@ direct_zone_decl_count="$(
 [[ "$(grep -F -c -- 'DriverRung2DirectMirZone' "$WORLD")" -eq 1 ]] ||
     fail "PgyCompilerWorld must bind DriverRung2DirectMirZone exactly once"
 
+source_zone_decl_count="$(
+    {
+        grep -REh --include='*.pgy' \
+            '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+DriverSourceMirZone[[:space:]]*\{' \
+            "$COMPILER_ROOT" || true
+    } | wc -l | tr -d '[:space:]'
+)"
+[[ "$source_zone_decl_count" -eq 1 ]] ||
+    fail "DriverSourceMirZone must have exactly one declaration"
+[[ "$(grep -F -c -- 'DriverSourceMirZone' "$WORLD")" -eq 1 ]] ||
+    fail "PgyCompilerWorld must bind DriverSourceMirZone exactly once"
+
 awk '
     /^intent[[:space:]]+FrontendPipeline[[:space:]]*\(/ { frontend++ }
     /^intent[[:space:]]+MiddleEndPipeline[[:space:]]*\(/ { middle_end++ }
@@ -143,7 +191,7 @@ awk '
 ' "$STAGES" || fail "derived stage-intent topology drifted"
 
 awk '
-    /^Status: `hard-self-host-shape-contract \/ direct-MIR REACHABLE BRIDGE`$/ { status++ }
+    /^Status: `hard-self-host-shape-contract \/ source-MIR REACHABLE BRIDGE`$/ { status++ }
     /## Recursive Topology Rule/ { rule++ }
     /## Target Resource Facade/ { facade++ }
     /resource zone -> intent transition -> typed owner fact -> final consumer/ {
@@ -163,8 +211,10 @@ awk '
     /^\| `BackendResources\.Emission` \| `SymbolFactTableZone`, `EmissionZone` \|$/ { emission++ }
     /^\| `BackendResources\.Artifact` \| `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` \|$/ { artifact++ }
     /^\| `BackendResources\.DirectMIR` \| `DriverRung2DirectMirZone` \|$/ { direct_mir++ }
+    /^\| `BackendResources\.SourceMIR` \| `DriverSourceMirZone` \|$/ { source_mir++ }
     /driver_bootstrap_main\.Main -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
-    /exactly 19 concrete resource zones and one executable world member/ { exact_topology++ }
+    /driver_bootstrap_main\.Main -> EmitSourceMirThroughPgyCompilerWorld/ { reachable_source_path++ }
+    /exactly 20 concrete resource zones and two executable world members/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
         projection++
     }
@@ -174,7 +224,8 @@ awk '
             balance != 1 || intake != 1 || token != 1 || ast != 1 ||
             semantic != 1 || mir != 1 || air != 1 || compatibility != 1 ||
             abi != 1 || target != 1 || emission != 1 || artifact != 1 ||
-            direct_mir != 1 || reachable_path != 1 || exact_topology != 1 ||
+            direct_mir != 1 || source_mir != 1 || reachable_path != 1 ||
+            reachable_source_path != 1 || exact_topology != 1 ||
             projection != 1 || no_bundle != 1) {
             exit 1
         }

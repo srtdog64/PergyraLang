@@ -6,16 +6,6 @@
 import "driver_rung2_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
 
-func DriverBootstrapPathEndsWith(path: String, suffix: String) -> Bool {
-    let path_length: Int = StringLength(path);
-    let suffix_length: Int = StringLength(suffix);
-    return path_length >= suffix_length &&
-        SubEqualsWithLen(
-            path, path_length, path_length - suffix_length,
-            suffix_length, suffix
-        );
-}
-
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     let machine_declaration: SelfHostMachineLayerDeclaration =
@@ -35,28 +25,24 @@ func Main() -> Void with caps env, io_read, io_write {
     }
     if (ArrayLength(args) == 3 || ArrayLength(args) == 4) &&
         args[0] == "--emit-mir-json-verified" {
-        let is_full_driver_source: Bool =
-            args[1] == "src/self_hosted/compiler/driver_bootstrap_main.pgy" ||
-            DriverBootstrapPathEndsWith(
-                args[1],
-                "/src/self_hosted/compiler/driver_bootstrap_main.pgy"
-            );
-        if is_full_driver_source &&
-            (ArrayLength(args) != 4 ||
-             args[3] != "--pressure-owned-full-fixpoint") {
-            Die("full driver MIR production requires the pressure-owned bootstrap gate");
+        let source_request: DriverSourceMirRequest = SourceMirVerified;
+        if ArrayLength(args) == 4 {
+            if args[3] != "--pressure-owned-full-fixpoint" {
+                Die("unknown source MIR pressure token");
+            }
+            source_request = SourceMirPressureObserved;
         }
-        if !is_full_driver_source && ArrayLength(args) != 3 {
-            Die("full-fixpoint pressure token is only valid for the driver source");
-        }
-        if is_full_driver_source {
-            CompileSourceToMirJsonFilePressureObserved(
-                args[1], args[2], machine_declaration
+        let source_outcome: DriverSourceMirExecutionOutcome =
+            EmitSourceMirThroughPgyCompilerWorld(
+                args[1], args[2], machine_declaration, source_request
             );
-        } else {
-            CompileSourceToMirJsonFileVerified(
-                args[1], args[2], machine_declaration
-            );
+        if !DriverSourceMirExecutionOutcomeReadyFor(
+            source_outcome, args[1], args[2], source_request
+        ) {
+            Log(DriverSourceMirExecutionOutcomeDiagnostic(
+                source_outcome, args[1], args[2], source_request
+            ));
+            Exit(1);
         }
         return;
     }

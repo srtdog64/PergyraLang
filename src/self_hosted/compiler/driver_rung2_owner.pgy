@@ -204,18 +204,6 @@ func CompileSourceToMirJsonVerified(
     );
 }
 
-func CompileSourceToMirJsonFileVerified(
-    source_path: String,
-    output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
-) -> Void with caps io_read, io_write {
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
-        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true),
-        machine_declaration, output_path, false
-    );
-}
-
 func CompileSourceToMirJsonPressureObserved(
     source_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
@@ -229,23 +217,6 @@ func CompileSourceToMirJsonPressureObserved(
     DriverRung2PressureStage(true, "semantic:done");
     return CompileArtifactAnalysisToMirJsonVerifiedObserved(
         artifact, analysis, machine_declaration, true
-    );
-}
-
-func CompileSourceToMirJsonFilePressureObserved(
-    source_path: String,
-    output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
-) -> Void with caps io_read, io_write {
-    DriverRung2PressureStage(true, "ast:start");
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    DriverRung2PressureStage(true, "ast:done");
-    DriverRung2PressureStage(true, "semantic:start");
-    let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeTyped(artifact, true);
-    DriverRung2PressureStage(true, "semantic:done");
-    CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
-        artifact, analysis, machine_declaration, output_path, true
     );
 }
 

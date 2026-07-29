@@ -1604,12 +1604,19 @@ inventory must not become a second fact-family owner registry.
   to-target admission, exact emitted-artifact acceptance, output write, and
   execution stage/result facts plus the one-subject direct-MIR authority zone,
   while reusing the existing typed MIR and backend owners unchanged.
+- `src/self_hosted/compiler/driver_source_mir_execution_owner.pgy` -- reachable
+  source-to-MIR subject/action/zone boundary. It owns verified versus pressure-
+  observed request admission, subject/topology identity rejection, exactly one
+  existing source-to-MIR payload-owner call, one atomic artifact commit, and a
+  typed receipt/rejection/failure outcome. It owns no lexer, parser, semantic,
+  DIR, or MIR fact.
 - `src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy` -- active-slice
   composition owner for the single `PgyCompilerWorld`. It constructs the
-  direct-MIR zone and subject in one nested expression so no separate source
-  binding survives, then delegates once through the world method. This is not
-  a physical no-copy claim. It owns no target, MIR, backend, or artifact fact
-  and may not declare another world.
+  ordered direct-MIR and source-to-MIR zones once through
+  `PgyCompilerWorldMaterializeExecutableZones`; the two public wrappers only
+  delegate through world methods. This is not a physical no-copy claim. It owns
+  no target, source, MIR, backend, or artifact fact and may not declare another
+  world.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
   graph, selects the bounded scalar or verified-CFG path, and creates one C or

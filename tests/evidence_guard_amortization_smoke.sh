@@ -93,8 +93,12 @@ if [[ -n "${PGY_BIN:-}" ]]; then
   fi
   "$PGY_BIN" "$SECURE_SRC_ARG" \
     --backend=c --emit-c -o "$SECURE_C_ARG" >/dev/null
-  grep -Fq "pgy_secure_pin_read_Int" "$SECURE_C"
+  grep -Fq "pgy_secure_pin_read_init_Int" "$SECURE_C"
   grep -Fq "pgy_secure_unpin_Int" "$SECURE_C"
+  if grep -Fq "pgy_secure_pin_read_Int(" "$SECURE_C"; then
+    echo "[guard-amortization] secure MIR pin restored the raw return-value ABI" >&2
+    exit 1
+  fi
 fi
 
 case "$UNAME_S" in

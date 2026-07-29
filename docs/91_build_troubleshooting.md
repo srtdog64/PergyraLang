@@ -2538,6 +2538,42 @@ Direct `ArrayPush(result.member, ...)` relies on mutable record-member builder
 semantics that the Pergyra-built driver does not admit. The component gate now
 ratchets that form out of the affected production owners.
 
+### A split owner is correct but a broad contract still names the old file
+
+After a responsibility is extracted, a broad smoke can fail even though the
+new owner compiles and focused gates pass. The July 29 CI run exposed four such
+stale assertions: intent on-receiver inference still pointed at
+`type_checker_intent_decl.c`; MIR pin entry still expected raw `PinRead` /
+`PinWrite`; LLVM enum diagnostics still pointed at the generic constructor
+owner; and C constructor-argument diagnostics still pointed at the domain
+constructor orchestrator.
+
+Do not copy the implementation or diagnostic back into the old file to satisfy
+the grep. Resolve the current fact owner and last consumer, move the positive
+assertion to that owner, and add a negative assertion where the old ABI or
+owner path must not return. For secure MIR pin entry, the executable witness is
+generated C containing `pgy_secure_pin_read_init_Int` plus
+`pgy_secure_unpin_Int`, with no raw `pgy_secure_pin_read_Int(...)` call. The
+default 50,000,000-iteration amortization gate and the full perf contract both
+passed after the gate followed the typed owner.
+
+### A Windows self-host gate launches a stale compiler and exits 127
+
+The Windows preparation target built `$(PGY)` in its configured `BIN_DIR`, but
+the callable-vocabulary script defaulted to `repo/bin/pgy.exe`. In a CI job
+that reuses several build directories, that path may be a stale binary with a
+different runtime dependency set. Its stderr was redirected into the fixture
+directory, so Make reported only `Error 127` immediately after the native
+vocabulary probe.
+
+Executable gates must receive `PGY_BIN="$(abspath $(PGY))"` from the Make
+target, classify that exact binary with `pgy_binary_path_helpers.sh`, prepend
+the owned Windows runtime paths, and convert fixture/output paths through the
+same helper. `build_source_inventory_smoke.sh` now rejects omission of either
+the exact compiler identity or the shared path helper. The focused Make target
+passes locally; a bounded full preparation run progressed past the old failure
+and reached the longer component contract before its 180-second ceiling.
+
 ### Array-only emitted C loses runtime headers
 
 An Array program can use the collection runtime without otherwise using
@@ -2591,3 +2627,50 @@ CPU, I/O, wall time을 중복 지불하므로 full graph 검증 비용을 왜곡
 정상 self-host build의 약 1.1--1.5 GiB 관측과 달리, 20+ GiB 증상은 이미 소유된
 graph proof를 consumer/local row마다 다시 수행한 결함이었다. build target 재구성은
 그와 별도로 중복 전체 컴파일을 없애야 하는 DX/throughput 작업이다.
+
+### Source-to-MIR action을 검증하려는 production driver build가 산출물 없이 끝나는 경우
+
+2026-07-29의 새 source-to-MIR world/action rung에서 C production driver build와
+분리 C emission을 각각 120초로 제한해 실행했다. 두 시도 모두 frontend 진단은
+`0 error(s), 0 warning(s)`였지만 timeout `rc=124` 전에 요청한 `.exe` 또는 `.c`
+산출물을 publish하지 못했다. 두 로그의 SHA-256은
+`1a9ded083816fe692fbfc6a0dafe1f90a7e40e4655706a8a0518e20eab74e3a8`로 같았다.
+그러므로 이 결과는 build PASS도 action runtime FAIL도 아니다. Driver가 없으므로
+`function_clause_order_minimal` 실행, MIR/C 비교, LLVM leg는 시작하지 않았다.
+
+Timeout 뒤 `pgy`/`gcc`/`clang` descendant가 남지 않았음을 확인했다. 이 경우의
+운영 규칙은 다음과 같다.
+
+- frontend 성공 문구만으로 최종 artifact 성공을 주장하지 않는다. 요청 경로의
+  존재, process rc, 다음 실행 leg를 각각 확인한다.
+- C prerequisite artifact가 없으면 LLVM/parity leg를 병렬로 시작하지 않는다.
+- 이 120초 결과를 historical 3 GiB/20+ GiB memory regression으로 분류하지 않는다.
+  pressure-owned process-tree 표본이 없으므로 memory verdict는 `Unknown`이다.
+- 다음 측정은 동일 source와 cache 상태를 기록하고 pressure owner 아래에서 phase,
+  peak working/private bytes, artifact publish 시점을 함께 관측한다. Timeout 상향만으로
+  correctness gate를 green 처리하지 않는다.
+
+### 분리한 C owner는 컴파일되지만 축약 테스트 링크에서만 undefined reference가 나는 경우
+
+2026-07-29 GitHub run `30454762165`의 Linux/Windows/macOS C-only job은
+`mir_lower_request_init`, `mir_lower_request_bind_dir`,
+`mir_validate_decl_method_metadata`를 찾지 못해 `test_mir` 링크에서 실패했다. 함수
+구현과 header 선언은 존재했고 production object inventory에도 source가 있었으므로
+구현 결함이 아니라 `MIR_CORE_OBJECTS`의 축약 링크 인벤토리 누락이었다. 같은 run의
+Linux region unit은 `ast_block_match_event_accessors.c`를 직접 링크하면서 그 파일이
+소비하는 `ast_with_body`와 `ast_select_case*`의 실제 owner
+`ast_async_lambda_accessors.c`를 생략했다.
+
+수정은 consumer에 stub을 넣거나 함수를 다시 정의하지 않는다. 실제 owner 객체
+`mir_lower_request.o`, `mir_decl_header_method_validate.o`를 `MIR_CORE_OBJECTS`에 넣고,
+region unit의 prerequisite와 link input 양쪽에
+`ast_async_lambda_accessors.c`를 넣는다. `build_source_inventory_smoke.sh`는 이 owner를
+다시 빼는 축약 링크가 재도입되지 않도록 고정한다. 로컬 `make -j2 test-mir`에서
+MIR `157 passed, 0 failed`와 후속 topology/type/speculation gate가 통과했다.
+
+같은 CI의 `doc_link_checker` mismatch는 checker 구현 차이가 아니라
+`docs/INDEX.md`가 늘어난 뒤 expected census가 `164/159`에 멈춘 문제였다. 실제 clean
+census `173 total / 168 Markdown / 0 missing`과 같은 입력의 synthetic dead-link
+`168 missing`을 expected artifact에 반영한 뒤 C/LLVM artifact parity와 negative
+fixture가 통과했다. Golden 갱신은 현재 입력 owner를 다시 실행한 관측값과 음성
+fixture가 함께 맞을 때만 허용하며, 단순 byte-equal 맞추기로 실패를 숨기지 않는다.

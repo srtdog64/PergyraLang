@@ -380,6 +380,7 @@ for smoke in \
     tests/abi_pipeline_smoke.sh \
     tests/air_backend_nonimpact_smoke.sh \
     tests/air_json_schema_smoke.sh \
+    tests/callable_contract_vocabulary_smoke.sh \
     tests/cfg_body_dataflow_smoke.sh \
     tests/codegen_determinism_smoke.sh \
     tests/diagnostics_json_smoke.sh \
@@ -417,6 +418,15 @@ do
         fi
     fi
 done
+
+self_host_preparation_recipe="$(sed -n \
+    '/^self-host-preparation-contract-test-smoke:/,/^self-host-preparation-parity-test-smoke:/p' \
+    "$ROOT_DIR/Makefile")"
+if ! printf '%s\n' "$self_host_preparation_recipe" \
+        | grep -Fq 'PGY_BIN="$(abspath $(PGY))"'; then
+    echo "[build-source-inventory] self-host preparation must pass its exact built compiler to executable vocabulary gates" >&2
+    missing=1
+fi
 
 if ! grep -Fq 'run_windows_native_binary_fallback' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare must keep Windows native 126/127 fallback" >&2
@@ -846,6 +856,28 @@ fi
 
 if ! grep -Fq '$(BUILD_DIR)/compiler/mir_cfg_contract_validate_cleanup.o' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] MIR cleanup validator object is not linked by MIR_CORE_OBJECTS" >&2
+    missing=1
+fi
+
+for object in mir_lower_request mir_decl_header_method_validate; do
+    if ! awk -v object="$object" '
+        /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_mir = 1 }
+        /^ALL_BUILD_OBJECTS[[:space:]]*=/ { in_mir = 0 }
+        in_mir && index($0, "$(BUILD_DIR)/compiler/" object ".o") { found = 1 }
+        END { exit found ? 0 : 1 }
+    ' "$ROOT_DIR/Makefile"; then
+        echo "[build-source-inventory] $object object is not linked by MIR_CORE_OBJECTS" >&2
+        missing=1
+    fi
+done
+
+if ! awk '
+    /^REGION_ESCAPE_UNIT_BIN[[:space:]]*:=/ { in_region = 1 }
+    in_region && /src\/parser\/ast_async_lambda_accessors[.]c/ { owner_uses++ }
+    /^\.PHONY: region-escape-unit-test-smoke/ { in_region = 0 }
+    END { exit owner_uses == 2 ? 0 : 1 }
+' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] region escape unit must list the async/lambda accessor owner in prerequisites and link inputs" >&2
     missing=1
 fi
 

@@ -1036,10 +1036,13 @@ grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
-grep -Fq '"PinRead"' \
+grep -Fq 'pin_op = block->pin_view_is_write ? "PinWriteInit" : "PinReadInit";' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
-grep -Fq '"PinWrite"' \
-    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+if grep -Fq 'pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead";' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
+    echo "[perf-contract] C MIR pin enter must not restore raw PinRead/PinWrite rows" >&2
+    exit 1
+fi
 grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 ! grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
@@ -4348,7 +4351,7 @@ grep -Fq "v.alloca" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 ! grep -Fq "LLVMVarEntry *v" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 ! grep -Fq "llvm_scope_lookup(ctx," "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "llvm_constructor_error" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
-grep -Fq "LLVM enum variant constructor could not lower payload argument" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "LLVM enum variant constructor could not lower payload argument" "$ROOT_DIR/src/codegen/llvm_expr_enum_constructor.c"
 grep -Fq "LLVM class constructor could not lower field argument" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "LLVM hosted method call argument allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var)" "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"
@@ -5256,7 +5259,7 @@ if grep -B4 -F "LLVM MIR non-Void return requires a value expression" \
     exit 1
 fi
 grep -Fq "llvm_stmt_infer_expr_type(ctx, arg)" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
-grep -Fq "LLVM enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "LLVM enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/llvm_expr_enum_constructor.c"
 grep -Fq "LLVM call helper cannot pass a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
 grep -Fq "LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_nodes[i])" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
 grep -Fq "LLVM call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
@@ -5290,11 +5293,11 @@ for void_call_owner in \
 done
 grep -Fq "C backend: call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "C backend: hosted method '%s.%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
-grep -Fq "C constructor field '%s' cannot consume a Void expression value" "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
-grep -Fq "C constructor field '%s' could not lower initializer expression" "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
-! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
-! grep -Fq 'arg != NULL ? arg : "0"' "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
-! grep -Fq 'init_expr != NULL ? init_expr : "0"' "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+grep -Fq "C constructor field '%s' cannot consume a Void expression value" "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
+grep -Fq "C constructor field '%s' could not lower initializer expression" "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
+! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
+! grep -Fq 'arg != NULL ? arg : "0"' "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
+! grep -Fq 'init_expr != NULL ? init_expr : "0"' "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
 grep -Fq "C enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/transpiler_enum_constructor_emit.c"
 grep -Fq "C enum variant constructor '%s' could not lower payload %zu" "$ROOT_DIR/src/codegen/transpiler_enum_constructor_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_enum_constructor_emit.c"

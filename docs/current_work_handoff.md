@@ -6,6 +6,103 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - source-to-MIR world/action reachability
+
+- Exact working base is `ab51d69bff88bd433405461aefdea76031155ccd` on
+  `main`. The tree is intentionally dirty for this checkpoint; verify the final
+  revision and clean state after commit rather than treating this snapshot as
+  Git authority.
+- Active seam: production `--emit-mir-json-verified` orchestration. Existing
+  typed lexer/parser/semantic/DIR/MIR functions retain semantic fact ownership;
+  `DriverSourceMirExecution.EmitSourceMir` owns request/identity admission, one
+  payload-owner call, one atomic commit, and the typed outcome.
+- Actual call graph:
+
+  ```text
+  driver_bootstrap_main.Main
+    -> EmitSourceMirThroughPgyCompilerWorld
+    -> PgyCompilerWorld.EmitSourceMir
+    -> PgyCompilerWorld.source_mir
+    -> DriverSourceMirZone.execution
+    -> DriverSourceMirExecution.EmitSourceMir
+    -> CompileSourceToMirJsonVerified | CompileSourceToMirJsonPressureObserved
+    -> SelfMirArtifactCommitPayload
+  ```
+
+- `PgyCompilerWorld` has exactly two ordered executable fields: `direct_mir`
+  first and `source_mir` second. One
+  `PgyCompilerWorldMaterializeExecutableZones` owner constructs both; no second
+  world or partial aggregate materializer exists.
+- Deleted bypass: `CompileSourceToMirJsonFileVerified` and
+  `CompileSourceToMirJsonFilePressureObserved` definitions/calls are absent.
+  `Main` no longer compiles or commits the source-to-MIR artifact directly.
+- Evidence grade is `REACHABLE`, not `SUBSTITUTING`. The production caller
+  invokes the action and consumes its typed outcome, but this replaces a
+  Pergyra-internal file-helper orchestration path, not a new C-owned semantic
+  compiler path. `CompilePergyraProgram` remains `SURFACE`; source-to-C and
+  general MIR-to-C still use direct orchestration.
+- Observed gates at this checkpoint:
+  - `driver_source_mir_execution_action_gate.sh`: PASS;
+  - `build_pressure_contract_smoke.sh`: PASS;
+  - `self_host_compiler_topology_smoke.sh`: PASS;
+  - `self_host_compiler_world_contract_smoke.sh`: PASS;
+  - `self_hosted_component_contract_smoke.sh`: PASS;
+  - `self_host_hard_contract_smoke.sh`: PASS;
+  - `self_host_substitution_velocity_smoke.sh`: PASS; nine blockers remain
+    explicit (five direct, four process/evidence);
+  - `self_host_pergyra_likeness_smoke.sh`: PASS with 20 resource zones, two
+    world members, and 28 zone-bound transitions;
+  - `self_host_progress_metric_smoke.sh`: PASS; implementation volume
+    `17.89%`, default native replacement `0%`, explicit DRV-2 `live`;
+  - `build_source_inventory_smoke.sh`: PASS, including macOS Bash 3.2
+    portability for the new action gate;
+  - `make -j2 test-mir`: PASS; MIR suite `157 passed, 0 failed`, followed by
+    domain-topology, destructure-type, match-binding, and speculation-fact
+    gates. The previously missing `mir_lower_request` and declaration-method
+    validator link owners are now present;
+  - `doc_link_checker_parity.sh`: PASS for C/LLVM artifact equality and the
+    synthetic dead-link negative after refreshing the `docs/INDEX.md` census
+    golden to `173` total links and `168` Markdown links;
+  - `intent_compression_contract_smoke.sh`: PASS after binding on-receiver
+    inference and diagnostics to their split inference/type/sequence owners;
+  - `evidence_guard_amortization_smoke.sh`: PASS with the default 50,000,000
+    iterations; best preflight/per-access ratio `0.200` and best cached
+    preflight/repeated-preflight ratio `0.174`. Generated secure MIR C uses the
+    typed `pgy_secure_pin_read_init_Int` ABI and rejects the old return-value
+    call shape;
+  - `perf_contract_smoke.sh`: PASS; the measured C compile was `301ms` and the
+    static contract now follows the split LLVM enum-constructor, C constructor
+    argument, and typed pin-init owners;
+  - `make -j2 callable-contract-vocabulary-test-smoke`: PASS with the exact
+    Make-built `PGY_BIN`. `build_source_inventory_smoke.sh` ratchets both that
+    binary identity and the shared Windows path helper;
+  - production `driver_bootstrap_main.pgy --ast`: PASS.
+- Runtime evidence is not yet claimed. The current falsifier is
+  `examples/function_clause_order_minimal.pgy`: it must traverse the production
+  action, preserve bounded native/self MIR and C/LLVM parity, and reject wrong
+  pressure mode, subject identity, topology identity, or artifact identity
+  before publication.
+  Two bounded C prerequisites were also attempted: direct production-driver
+  build and split file C emission both timed out at 120 seconds with `rc=124`.
+  Their logs contained `0 error(s), 0 warning(s)` but no requested executable/C
+  artifact; both logs hashed to
+  `1a9ded083816fe692fbfc6a0dafe1f90a7e40e4655706a8a0518e20eab74e3a8`.
+  Fixture execution and LLVM therefore did not start. No compiler worker
+  remained after timeout, and no memory verdict is inferred from these runs.
+
+- Previous GitHub run `30454762165` at the working base exposed additional CI
+  defects that are not self-host substitution evidence: the shortened
+  `test_mir` link omitted `mir_lower_request.o` and
+  `mir_decl_header_method_validate.o`; the region unit omitted
+  `ast_async_lambda_accessors.c`; and the doc-link expected artifacts still
+  described the older index census. Those three owner/inventory defects are
+  fixed and locally falsified in this checkpoint. The same run's stale intent,
+  typed pin/evidence, perf split-owner, and Windows callable-vocabulary gates
+  are also fixed locally. The complete Windows preparation target advanced
+  through those gates and into the long component contract, but the bounded
+  local run ended at its 180-second ceiling; no full platform PASS is claimed
+  until the next pushed CI result is observed.
+
 ## Current checkpoint - Insere/Zeno three-track reachable slices
 
 - Exact working base is `6e1891f54aa7770880ae1b89276adc90895b61b7` on

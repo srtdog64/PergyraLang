@@ -11,13 +11,16 @@ set -euo pipefail
 # projection_drift.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 REGISTRY="$ROOT_DIR/src/semantic/callable_contract_vocabulary.def"
 PROJECTION="$ROOT_DIR/src/self_hosted/lib/callable_contract_vocabulary_projection_owner.pgy"
 RUNTIME_PROJECTION="$ROOT_DIR/src/runtime/pgy_callable_contract_capability_projection.h"
 BUILD_DIR="$ROOT_DIR/.tmp/callable_contract_vocabulary"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 CC_BIN="${CC:-cc}"
-PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
+PGY_BIN="$(pgy_select_optional_exe_binary \
+    "${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}")"
 
 mkdir -p "$BUILD_DIR"
 
@@ -51,14 +54,23 @@ PY
 "$BUILD_DIR/callable_contract_vocabulary_probe.exe"
 
 if [[ -x "$PGY_BIN" ]]; then
+    pgy_require_runnable_binary_here "callable-contract-vocabulary" "$PGY_BIN"
+    pgy_reject_wsl_windows_pgy_parity_mix \
+        "callable-contract-vocabulary" "$PGY_BIN"
+    VALID_SRC_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
+        "$ROOT_DIR/tests/cases/callable_contract_vocabulary/valid_all/main.pgy")"
+    VALID_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
+        "$BUILD_DIR/valid_all.c")"
     (cd "$ROOT_DIR" && "$PGY_BIN" \
-        tests/cases/callable_contract_vocabulary/valid_all/main.pgy \
-        --emit-c -o .tmp/callable_contract_vocabulary/valid_all.c) \
+        "$VALID_SRC_ARG" --emit-c -o "$VALID_OUT_ARG") \
         >"$BUILD_DIR/valid_all.out" 2>"$BUILD_DIR/valid_all.err"
     while IFS='|' read -r case_name diagnostic; do
+        CASE_SRC_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
+            "$ROOT_DIR/tests/cases/callable_contract_vocabulary/$case_name/main.pgy")"
+        CASE_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
+            "$BUILD_DIR/$case_name.c")"
         if (cd "$ROOT_DIR" && "$PGY_BIN" \
-            "tests/cases/callable_contract_vocabulary/$case_name/main.pgy" \
-            --emit-c -o ".tmp/callable_contract_vocabulary/$case_name.c") \
+            "$CASE_SRC_ARG" --emit-c -o "$CASE_OUT_ARG") \
             >"$BUILD_DIR/$case_name.out" 2>"$BUILD_DIR/$case_name.err"; then
             echo "[callable-contract-vocabulary] invalid source accepted: $case_name" >&2
             exit 1

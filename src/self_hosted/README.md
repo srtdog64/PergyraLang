@@ -126,6 +126,13 @@ The executable driver spine is also single-owned.
 DRV-0/DRV-1 add compiler-world and CLI policy, while DRV-2 owns the bounded
 source-to-MIR-to-C verified composition and
 `compiler/driver_bootstrap_main.pgy` is only the fixed-point file boundary.
+Its direct-MIR and source-to-MIR modes both enter the single
+`PgyCompilerWorld`: the former reaches `DriverRung2Execution.EmitDirectMir`,
+and the latter reaches `DriverSourceMirExecution.EmitSourceMir`. The source
+action owns pressure/identity admission and one atomic commit while existing
+typed owners keep the source/MIR calculation. Both outcomes are consumed by
+the production caller, so these slices are `REACHABLE`; neither replaces a new
+C-owned semantic compiler path, so they are not `SUBSTITUTING`.
 `self-host-driver-bootstrap-test-smoke` compares the Pergyra-built integrated
 seed with the native-built same parser/semantic/MIR/codegen driver on a real
 source. Both builds must also produce byte-identical verified MIR for the

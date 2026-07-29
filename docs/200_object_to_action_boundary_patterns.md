@@ -354,22 +354,22 @@ storage sharing은 구현 세부사항이고 nominal kind가 의미 identity다.
 
 ### 실제 corpus 판정
 
-2026-07-28의 `driver_bootstrap_main.pgy` 재귀 import closure는 477개 파일이며
-missing import는 0이다. 이 import-reachable 집합에는 `func` 3,800개,
-`struct` 204개, `enum` 6개, `object` 18개, `tobject` 3개, `subject` 17개,
-`action` 17개, `zone` 19개, `world` 1개, `intent` 14개, `role` 4개,
-`ability` 4개가 선언돼 있다. `class`/`vessel`/`effect`/`relation`/`party`/
-`roster` 선언은 0이다.
+2026-07-29의 `driver_bootstrap_main.pgy` 재귀 import closure에는 world 1개와
+concrete zone 20개가 있다. 전체 declaration census는 gate가 생성하는 관측값이며,
+새 실행 경계의 진척은 선언 수가 아니라 call-site와 outcome 소비로 판정한다.
 
 이 수치는 import 표면 census이지 모든 선언의 실행 call-site 증거가 아니다.
-실제 direct-MIR production call chain은 `PgyCompilerWorld`의 `direct_mir` zone과
-`DriverRung2Execution.EmitDirectMir` action 하나를 지난다. 이 action은
+실제 production call chain은 `PgyCompilerWorld`의 `direct_mir`와 `source_mir`
+zone을 지난다. `DriverRung2Execution.EmitDirectMir`는
 identity admission, target admission, atomic artifact commit을 실제로 소유한다.
 commit은 `tobject SelfMirArtifactReceipt`가 있을 때만 typed success variant로
 전이하며 이 receipt의 payload는 실제 소비된다. `SelfMirArtifactFailure`도 typed
 failure variant로 Main까지 전달되고 exact stage/status/recovery payload가 진단과
 실패 판정을 바꾼다.
 receipt는 atomic visibility만 주장하고 crash durability는 명시적으로 `false`다.
+`DriverSourceMirExecution.EmitSourceMir`는 subject/topology identity, full-driver
+pressure mode, 정확히 한 source-to-MIR payload producer, 한 atomic commit을
+소유한다. Main은 이 action의 typed receipt/rejection/failure outcome을 소비한다.
 `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
 계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
 chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름은 구조
@@ -379,11 +379,11 @@ chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름
 | --- | --- | --- |
 | `struct` | `REACHABLE` supporting construct | production 계산에는 실제 사용되지만 구성체 자체가 C-owned path를 대체했다는 독립 증거는 아님 |
 | `class` | `SURFACE` | bootstrap closure 선언 0, backend fixture만 존재 |
-| `object` | `SURFACE` | world schema 18개, active direct-MIR call chain 소비 0 |
+| `object` | `SURFACE` | active action call chain의 domain-object 소비 없음 |
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | receipt/failure가 production caller까지 typed variant로 전달되고 양쪽 payload가 소비됨 |
 | `vessel` | `SURFACE` | bootstrap closure 선언 0 |
-| `subject` / `action` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR subject/action 1쌍만 production 호출, 나머지 16쌍은 readiness |
-| `zone` / `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 하나만 호출; authority runtime 증거는 presence-only |
+| `subject` / `action` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR과 source-to-MIR subject/action 두 쌍이 production에서 호출되고 outcome이 소비됨 |
+| `zone` / `world` | `REACHABLE`, not `SUBSTITUTING` | 한 world의 ordered executable zone 두 개가 호출됨; authority runtime 증거는 아직 bounded admission |
 | `intent` | `SURFACE` | 14개가 import되지만 production intent call 없음 |
 
 corpus에서 반복되는 유효 패턴도 이 행렬과 일치한다.
@@ -413,23 +413,24 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 - `SUBSTITUTING`은 여기에 더해 실제 C-owned 경로를 대체하고 우회가 삭제됐다는
   뜻이다.
 
-현재 object 18개는 `IMPORTED`에서 멈춘다. Artifact receipt와 failure는 모두
-production direct-MIR action에서 caller까지 typed variant로 전달되고
-`OUTCOME_CONSUMED`에 도달한다.
-subject/action 17쌍 중 `DriverRung2Execution.EmitDirectMir` 한 쌍만
-`INVOKED`와 result consumption에 도달한다. 나머지 readiness/intent 선언과
+현재 domain object는 `IMPORTED`에서 멈춘다. Artifact receipt와 failure는
+production direct-MIR 및 source-to-MIR action에서 caller까지 typed variant로
+전달되고 `OUTCOME_CONSUMED`에 도달한다.
+`DriverRung2Execution.EmitDirectMir`와
+`DriverSourceMirExecution.EmitSourceMir` 두 쌍이 `INVOKED`와 result consumption에
+도달한다. 나머지 readiness/intent 선언과
 문법·lowering fixture는 canonical authoring 예가 아니라 surface 회귀 자료다.
 
 ### 실행 call-site 감사가 보여 준 경계
 
 현재 production 호출 그래프에서 실제로 호출되는 Pergyra-native hosted action은
-`DriverRung2Execution.EmitDirectMir` 하나다. `object` 18개는 schema/slot
+`DriverRung2Execution.EmitDirectMir`와
+`DriverSourceMirExecution.EmitSourceMir`다. domain `object`는 schema/slot
 surface이며 construction, `ToObject`, `refresh` production call이 없다.
 `tobject SelfMirArtifactReceipt`와 `SelfMirArtifactFailure`는 transaction 결과의
 모든 payload field가 bootstrap caller의 성공 판정 또는 실패 진단을 바꾼다.
 `ParityVerdict`는 surface다.
-`subject/action` 17쌍 중 나머지
-16쌍도 호출되지 않는 readiness facade다.
+나머지 compiler action은 호출되지 않는 readiness facade다.
 
 이 경계의 terminal result는 `ok + stage` 중복 tag struct가 아니다.
 `DriverRung2ExecutionOutcome`이 성공 receipt, 일반 rejection, artifact failure를
@@ -438,6 +439,10 @@ atomic visibility와 durability를 검증하고, artifact failure는 stage/statu
 prior-final 보존과 temp 제거 여부를 transaction owner가 검증·render한다. Unknown
 status와 known-but-wrong target도 fail closed한다. Detached payload에는 subject
 authority, source identity/freshness 또는 topology identity를 넣지 않는다.
+Source path는 별도 `DriverSourceMirExecutionOutcome`이 success receipt, admission
+rejection, artifact failure를 구분하고 source path, request mode, final path를
+검증한다. Subject/topology identity는 action admission에만 쓰며 detached receipt가
+권한을 재구성하게 하지 않는다.
 
 따라서 모든 키워드를 한 경로에 억지로 쓰는 것은 개사료가 아니다. 필요한
 경계만 다음 순서로 둔다.
@@ -480,8 +485,9 @@ MIR의 contract byte row를 확인한다. 기존 여섯 field 변조에 더해 u
 duplicate, noncanonical order, `local + nonlocal` 양방향 변조가 backend output 전에
 fail closed한다. 따라서 declaration carriage와 vocabulary fact family는 `CLOSED`다.
 다만 이 closure는 C-owned compiler path를 대체하지 않는 supporting semantic
-seam이다. production source-mode action의 직접 우회 삭제가 남아 있으므로 dogfood
-상태는 계속 `REACHABLE`, not `SUBSTITUTING`이다.
+seam이다. Production source-to-MIR action의 직접 file-helper 우회는 삭제됐지만
+그 변화도 Pergyra 내부 orchestration 교체다. Dogfood 상태는 계속 `REACHABLE`,
+not `SUBSTITUTING`이다.
 
 이 fixture가 드러낸 인접 경계도 같은 규칙을 따른다.
 
@@ -841,7 +847,8 @@ flush/close failure, final publish를 서로 다른 호출로 흩뜨린 호환�
 - compiler artifact는 `CompilerArtifactBegin/Write/Commit/Abort` 내부 ABI를
   사용한다. C-inline과 LLVM-linked runtime은 같은 native core를 include하며,
   self-host owner 한 곳이 scalar status를 typed receipt/failure로 즉시 바꾼다.
-- production MIR writer, direct-MIR action, bootstrap 출력, rung-1 CLI 출력은
+- production MIR writer, direct-MIR action, source-to-MIR action, bootstrap 출력,
+  rung-1 CLI 출력은
   final path raw writer를 사용하지 않는다. 기존 final은 publish 직전까지
   변경되지 않고, 실패한 temp cleanup도 별도 실패 상태로 관측된다.
 
@@ -877,6 +884,10 @@ artifact commit을 실제로 소유한다. Terminal protocol은
 읽히지 않는 intermediate stage local은 삭제됐다. Wrong identity/target은 typed
 rejection으로, transaction failure는 원래 failure payload로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
+`DriverSourceMirExecution.EmitSourceMir`는 별도 typed outcome으로 pressure,
+subject identity, topology identity rejection을 구분하고 기존 source-to-MIR
+payload owner를 정확히 한 번 소비한 뒤 같은 transaction owner를 commit한다.
+Main의 직접 payload compile/file-helper/commit 우회는 없다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
 끝까지 운반된다. Contract vocabulary SoT는 shared registry로 닫혔지만 실행 대체는
 아직 열려 있다.
@@ -970,9 +981,9 @@ subject CompilerExecution {
    일반 parameter ABI closure로 오인하지 않으며, parameter-carriage owner와
    C/LLVM 소비자 migration 전에는 vessel을 free-function default/ref 파라미터로
    넘기지 않고 subject owner 안의 stable storage에서만 호출한다.
-6. production self-host import graph에는 `PgyCompilerWorld`와 19개 zone을 포함한
-   domain 표면이 들어와 있다. 그러나 실제 direct-MIR call chain이 통과하는
-   Pergyra-native 경계는 world 1개, direct-MIR zone 1개, subject/action 1개다.
+6. production self-host import graph에는 `PgyCompilerWorld`와 20개 zone을 포함한
+   domain 표면이 들어와 있다. 실제 call chain이 통과하는 Pergyra-native 경계는
+   world 1개와 ordered direct/source-MIR zone 2개, subject/action 2개다.
    import-reachable 선언 수나 fixture 수를 self-host substitution으로 세지 않는다.
 7. `MakeSubject().Action()` 같은 temporary subject receiver는 backend마다 다른
    lifetime을 만들 수 있다. Self general C는 이제 node-kind를 재추론하지 않고
@@ -1023,9 +1034,9 @@ subject CompilerExecution {
 16. compiler artifact transaction은 shared C/LLVM runtime core, self-host typed
     receipt, generated runtime include, old-final 보존 fault gate까지 닫혔다.
     일반 raw file handle의 MIR/AIR mode fact와 checked close 표면은 별도 호환성
-    부채다. source -> MIR의 완전한 action substitution은 domain
-    declaration/field-kind/runtime ABI closure, production action reachability,
-    `Main -> CompileSourceTo*` 직접 경로 삭제에 계속 막혀 있다.
+    부채다. Source-to-MIR production action reachability와 직접 file-helper 삭제는
+    닫혔지만 이는 Pergyra 내부 orchestration 교체다. Source-to-C/general MIR-to-C
+    직접 경로와 compiler-root purpose bundle은 계속 열려 있다.
 17. `Rejected` enum의 존재가 모든 실패의 반환을 뜻하지 않는다. wrong
     identity/target처럼 action이 직접 반환하는 실패와, 하위 `Die`/`Exit`가
     중단시키는 fatal 실패를 gate와 문서에서 분리한다.
@@ -1134,13 +1145,14 @@ Action 수가 하나인지 여럿인지는 intent의 필요조건도 충분조�
    action에서 `where`, `requires`, `causes`, `authorized by`를 상속한다. participant
    alias mapping이 모호하면 상속하지 않으며, 같은 clause를 명시적으로 반복하는
    현재 동작은 semantic error가 아니라 redundancy warning이다.
-2. **현재 `DriverRung2DirectMirZone`에 한해** zone은 subject slot과 authority/
-   lifetime 경계만 소유한다. 일반 zone은 projection의 실제 owner일 때
+2. **현재 `DriverRung2DirectMirZone`과 `DriverSourceMirZone`에 한해** zone은
+   subject slot과 authority/lifetime 경계만 소유한다. 일반 zone은 projection의 실제 owner일 때
    object/tobject slot, layer, state, refresh/publish를 정당하게 소유할 수 있다.
-   direct-MIR zone은 target, MIR, certificate, projection plan, artifact payload를
+   두 execution zone은 target/source/MIR/certificate/projection/artifact payload를
    다시 복사하지 않는다.
-3. 현재 direct-MIR world method는 zone 내부 action으로 한 번 위임하는
-   composition boundary다. target 판정, backend 호출, artifact commit을 world나
+3. 현재 direct-MIR와 source-to-MIR world method는 각 zone 내부 action으로 한 번
+   위임하는 composition boundary다. target/pressure 판정, backend/payload 호출,
+   artifact commit을 world나
    `Main`으로 끌어올리지 않는다. 일반 world가 여러 실제 zone/action을 조정할
    수 있다는 언어 규칙까지 단일 호출로 제한하지 않는다.
 4. compiler topology의 world 선언은 `PgyCompilerWorld` 하나다. 이는 C/LLVM별
@@ -1156,7 +1168,7 @@ Action 수가 하나인지 여럿인지는 intent의 필요조건도 충분조�
    identity token은 아니다.
 6. 일반 world/zone call ABI는 named argument를 아직 구현하지 않았다. 따라서
    positional constructor는 정확한 arity를 가져야 하고, 현재 world member는
-   실제 실행되는 `direct_mir` 하나뿐이다. 선언만 된 target zone은 production
+   실제 실행되는 `direct_mir`, `source_mir` 둘이다. 선언만 된 target zone은 production
    bypass를 삭제하는 rung에서만 같은 world에 추가한다. 생략된 aggregate
    field의 zero 값, `__zone_active_*`, 가짜 schema/subject로 readiness를
    가장하지 않는다.
@@ -1175,12 +1187,20 @@ driver_bootstrap_main.Main
   -> DriverRung2DirectMirZone.execution
   -> DriverRung2Execution.EmitDirectMir
   -> existing target/projection/emission owners
+
+driver_bootstrap_main.Main
+  -> EmitSourceMirThroughPgyCompilerWorld
+  -> PgyCompilerWorld.EmitSourceMir
+  -> PgyCompilerWorld.source_mir
+  -> DriverSourceMirZone.execution
+  -> DriverSourceMirExecution.EmitSourceMir
+  -> existing typed source/MIR owners + artifact transaction
 ```
 
-이 연결은 기존 C-owned compiler 의미를 대체하지 않으므로 증거 등급은 계속
+이 두 연결은 기존 C-owned compiler 의미를 대체하지 않으므로 증거 등급은 계속
 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 하지만 선언만 존재하던 world와 실제
 production action을 하나의 import/call graph로 합친 실행 경계다. 별도 world
-재도입과 migrated direct-MIR mode의 `Main` 직행은 negative gate가 금지한다.
+재도입과 migrated direct/source-MIR mode의 `Main` 직행은 negative gate가 금지한다.
 
 ### 9.1 현재 action authority ABI 범위
 

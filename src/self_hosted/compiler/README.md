@@ -173,6 +173,14 @@ zone-bound handle, complete consumer migration, old-path deletion, and a
 missing-child negative gate land together. They must not be implemented as a
 second aggregate owner.
 
+The bounded executable topology currently has two ordered members:
+`direct_mir: DriverRung2DirectMirZone` and
+`source_mir: DriverSourceMirZone`. The sole composition owner materializes both
+once. Production `Main` reaches their actions and consumes typed outcomes; it
+does not directly call a backend/source-MIR producer or commit the migrated
+artifact. These two slices are `REACHABLE`, not `SUBSTITUTING`, because they
+replace Pergyra orchestration bypasses rather than a new C-owned semantic path.
+
 ## Pergyra-Style Check
 
 A self-hosted compiler slice is accepted only when it reads as a Pergyra
@@ -216,7 +224,8 @@ boundary for that surface, and `tests/self_hosted/parity/driver_rung1_parity.sh`
 checks stdout and file-output parity across that shared driver fixture frontier
 without moving artifact generation out of the stage owners.
 
-`world.pgy` is the current scaffold. It is parse-gated by
+The root `CompilePergyraProgram` intent in `world.pgy` remains a scaffold, while
+the `direct_mir` and `source_mir` members are production-reachable. The file is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into
 `make self-host-preparation-test-smoke`. That gate also enforces
 **manifest-to-reality conformance**: every stage `StagePathManifest` names must
@@ -224,7 +233,8 @@ own a real `src/self_hosted/<stage>/` directory with `.pgy` facts, and every
 on-disk stage (a dir with `main.pgy`) must be named by the world so the
 architecture manifest cannot silently drift from the stage owners. It does not
 claim that the released compiler is self-hosted; it fixes the shape that hard
-substitution must grow into.
+substitution must grow into and keeps non-reachable target zones out of the
+world value until their bypass is deleted.
 
 ## Growth Rule
 
