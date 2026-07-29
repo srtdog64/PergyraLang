@@ -44,12 +44,28 @@ c_reference_loc="$(count_c_lines \
     fail "compiler-core inventory is smaller than its frontend/backend subset"
 [ "$c_reference_loc" -gt 0 ] || fail "C reference inventory is empty"
 
-grep -Fq "Implementation inventory is live-measured" "$PROGRESS" ||
-    fail "PROGRESS lost the live implementation-inventory rule"
-grep -Fq "Released/native replacement remains 0%" "$PROGRESS" ||
-    fail "PROGRESS must state the current default-path replacement truth"
-grep -Fq "Explicit bounded replacement: DRV-2 is" "$PROGRESS" ||
-    fail "PROGRESS lost the live bounded replacement claim"
+# Prose claims are checked against a whitespace-normalised copy. These are
+# sentences inside wrapped Markdown, so a plain line-oriented grep also asserts
+# where the paragraph happens to wrap: re-flowing a paragraph would drop the
+# claim in the gate's eyes while the document still says it. That is exactly
+# what happened -- "Explicit bounded replacement: DRV-2 is live" wrapped across
+# two lines and this gate had been failing on it. Structural checks below
+# (headings, table rows) stay line-oriented, because there the line IS the fact.
+progress_flat="$(tr '\n' ' ' < "$PROGRESS" | tr -s '[:space:]' ' ')"
+
+require_phrase() {
+    case "$progress_flat" in
+        *"$1"*) : ;;
+        *) fail "$2" ;;
+    esac
+}
+
+require_phrase "Implementation inventory is live-measured" \
+    "PROGRESS lost the live implementation-inventory rule"
+require_phrase "Released/native replacement remains 0%" \
+    "PROGRESS must state the current default-path replacement truth"
+require_phrase "Explicit bounded replacement: DRV-2 is" \
+    "PROGRESS lost the live bounded replacement claim"
 grep -Fq "### Three-axis scorecard" "$PROGRESS" ||
     fail "PROGRESS lost the implementation/bounded/released scorecard"
 grep -Fq "| Bounded executable replacement |" "$PROGRESS" ||

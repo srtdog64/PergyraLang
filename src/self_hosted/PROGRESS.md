@@ -4356,7 +4356,7 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Implementation inventory | 58,954 frontend/backend LOC / 328,645 C-reference LOC = 17.94%; broader Pergyra compiler-core inventory = 112,554 LOC (live-measured 2026-07-29 by `self-host-progress-metric-test-smoke`; the previous 30,720 / 287,406 = 10.69% snapshot went stale while that gate was failing on a re-wrapped paragraph) | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
 | Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The explicit complete-source lane makes the Pergyra-built gen2 produce MIR byte-identical to C-oracle evidence, then produces byte-identical 3,378,704-byte gen2/gen3 C from that Pergyra artifact. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the bounded driver through Pergyra parser/codegen seeds; the complete-source evidence closes Pergyra MIR production and the gen2/gen3 fixed point, not default promotion. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
