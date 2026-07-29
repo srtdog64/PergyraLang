@@ -6,11 +6,12 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current resume checkpoint - self-host consistency closure pending landing
+## Current resume checkpoint - self-host consistency closure
 
-- Baseline: `fbc728f8ac34eed393e97e639376dc767bbdcdd6` on `main`, matching
-  `origin/main` before this session. Replace this pending marker with the exact
-  landing revision after commit/push.
+- Consistency landing: `1044e3eef0ed3f11c6025a43b9d130d6eca47ddb` on
+  `main`. Its verified baseline was
+  `fbc728f8ac34eed393e97e639376dc767bbdcdd6`, matching `origin/main` before
+  this session. Verify the remote tip before resuming.
 - Objective card:
   - objective: close the shared CI inventory/fixture drift and the first real
     self-host codegen bootstrap type-owner failure without adding a source-text,
