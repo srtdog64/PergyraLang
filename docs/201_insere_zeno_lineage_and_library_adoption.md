@@ -26,6 +26,18 @@ architecture/schema/compiler/runtime source는 그 dirty path에 포함되지 �
 이 revision은 provenance 재현용이며 Pergyra 의미 SoT를 외부 저장소에 넘기지
 않는다.
 
+상세 전수 감사 근거는 다음 research dossier에 분리했다.
+
+- `docs/research/insere_reuse_audit.md`: typecheck, Vitest 147개,
+  restart-storm gate와 current-occupant/latest-generation 불변식.
+- `docs/research/zeno_reuse_audit.md`: 26 test files/176 tests, package policy,
+  version consistency와 validate-once/immutable-plan, ABI inspect/diff 후보.
+
+두 track은 2026-07-30에 **research intake를 시작해 완료**했다. 이는 두 구현
+rung을 동시에 활성화했다는 뜻이 아니다. 현재 executable owner는
+`selfhost.semantic_artifact_admission` 하나이며, Insere-derived LSP admission과
+Zeno-derived ABI inspect/diff는 그 rung 뒤의 독립된 eligible slice다.
+
 ## 0. 공통 채택 원칙
 
 ```text
@@ -363,16 +375,22 @@ Pergyra 방식으로 채택하기 시작했지만 compiler 전체나 stdlib가 �
 
 ## 9. 다음 falsifier 순서
 
-1. 실제 host adapter가 `HostTaskSlot` ticket을 publication/cleanup 경계에서
+1. 현재 `selfhost.semantic_artifact_admission`의 2.9MB/5.1MB fixed-cap pressure와
+   immutable-after-admission caller ratchet을 닫는다.
+2. Insere-derived slice로 self-host LSP의 URI별 typed monotonic version,
+   same-version payload conflict, stale diagnostic publication을
+   `A@10/B@3/A@12/stale A@11/conflicting A@12` corpus로 고정한다.
+3. Zeno-derived slice로 기존 `MirAbiLayoutRowCapture` exact tuple에서만 ABI
+   inspect/diff를 파생하고 offset/size/alignment/endian mutation과 ID collision
+   drift를 fail-closed한다. 새 layout IR/hash는 만들지 않는다.
+4. 실제 host adapter가 `HostTaskSlot` ticket을 publication/cleanup 경계에서
    소비하고 key-only direct commit/delete 경로가 없음을 gate로 고정한다.
-2. public `Slot<T>` generation view는 실제 workload가 필요성을 증명할 때만
+5. public `Slot<T>` generation view는 실제 workload가 필요성을 증명할 때만
    설계한다. raw field 노출은 금지한다.
-3. post-failure supervision은 explicit attempt/max/source owner가 생긴 뒤에만
+6. post-failure supervision은 explicit attempt/max/source owner가 생긴 뒤에만
    bounded decision fixture로 연다. Start admission을 retry policy로 재사용하지
    않는다.
-4. manifest는 현재 MIR ABI tuple에서만 파생하고 same-name offset/endian
-   mutation을 breaking으로 출력한다.
-5. 첫 real consumer에서 receipt 없는 direct open/truncate/read를 차단한다.
-6. loss-aware diagnostic은 기존 diagnostic/loss-contract owner에 붙이고 새 오류
+7. 첫 real consumer에서 receipt 없는 direct open/truncate/read를 차단한다.
+8. loss-aware diagnostic은 기존 diagnostic/loss-contract owner에 붙이고 새 오류
    taxonomy나 AST reread를 만들지 않는다.
-7. production consumer와 old bypass 삭제 뒤에만 `SUBSTITUTING`을 검토한다.
+9. production consumer와 old bypass 삭제 뒤에만 `SUBSTITUTING`을 검토한다.
