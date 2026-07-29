@@ -1,6 +1,6 @@
 # Typed Intent Execution Transition Contract
 
-Status: `OPEN / native MIR plan and C/LLVM execution landed; self JSON admission and hard substitution pending`
+Status: `BOUNDED SUBSTITUTING / native C+LLVM and admitted self C landed; compiler-root intent remains SURFACE`
 Date: 2026-07-29
 
 ## Objective card
@@ -25,6 +25,17 @@ Date: 2026-07-29
   source role, or success completion and reject it before execution.
 
 ## Canonical source meaning
+
+This executable rung does not redefine `intent` as a generic multi-action
+orchestration function.  The canonical language meaning remains
+`docs/01_intent_first_design.md` and `docs/173_intent_axis_strengthening.md`:
+an intent closes a real-world purpose and is a source-level cross-axis binder
+that elaborates into verification-plane coordination, authority, effect,
+boundary, compensation, and trace facts.  Those facts keep their axis-specific
+owners; the intent binds and attributes them to one purpose identity.  The
+transition plan below is the bounded executable projection of the coordination,
+boundary, and compensation subset, not a new universal intent owner.  Neither
+one action nor many actions is by itself evidence that an intent is warranted.
 
 The bounded typed form has an explicit intent result and explicit step roles.
 The parser may render these as typed internal rows, but MIR never recovers them
@@ -89,7 +100,8 @@ One `IntentStepTransitionId` binds all of the following:
 - outcome instruction block/ID, result definition, declared action return
   type, and enum definition syntax identity;
 - source-declared success and failure roles, each sealed by
-  `{enum syntax ID, variant index, variant name}` plus payload definition/type;
+  `{enum syntax ID, variant index, variant name}` plus payload definition/type
+  and exact payload tobject declaration syntax ID;
 - exact branch instruction and success/failure successor blocks;
 - completion instruction located only in the success successor;
 - explicit predecessor transition ID plus predecessor step syntax ID/name;
@@ -112,11 +124,12 @@ walks already-completed transitions only.
 Each terminal row binds:
 
 - success/failure role and terminal syntax identity;
-- exact source step transition, source enum variant, and payload
-  definition/type;
+- exact source step transition, source enum variant, payload definition/type,
+  and payload tobject declaration syntax ID;
 - exact result instruction and expression graph identity;
 - result enum definition and `{variant index, variant name}`;
-- result payload definition/type, which must be the carried source payload;
+- result payload definition/type/declaration ID, which must be the carried
+  source payload identity;
 - result type, which must match the enclosing MIR routine return type.
 
 Every step has exactly one failure terminal in the bounded rung.  Only a leaf
@@ -150,34 +163,50 @@ frontend gate is
 
 Native MIR now preserves the exact intent return signature, materializes one
 validated `MIRIntentExecutionPlan`, and projects it as
-`pgy.selfhost.mir-intent-execution-plan.v1`.  Its step and terminal rows bind
+`pgy.selfhost.mir-intent-execution-plan.v2`.  Its step and terminal rows bind
 stable declaration, variant, payload-definition, predecessor, completion and
-compensation identities.  Native C and LLVM return early into target-specific
+compensation identities.  Version 2 adds exact success/failure/source/result
+payload tobject declaration IDs and removes the version-1 name-only payload
+join without a compatibility dual read.  Native C and LLVM return early into target-specific
 projections of that plan; typed mode does not fall through to the legacy Bool
 emitter or rescan the AST.  The native execution gate
 `tests/intent_typed_transition_native_execution_smoke.sh` observes success,
 `failure A`, `failure B`, failure-B compensation of completed A only, and
 reverse traversal of multiple predecessor compensations on both backends.
 
-The self producer also preserves the exact typed routine result signature and
-its target-neutral in-memory fact owner is split into schema, digest and fact
-responsibilities.  The remaining executable boundary is the self top-level MIR
-JSON read/admission: it does not yet cache and cross-seal the native routine
-return and execution plan, so admitted self C parity remains deliberately
-fail-closed rather than borrowing the native plan.
+The self top-level machine admission now reads the native projection exactly
+once, cross-seals the typed routine result and all routine/action/enum/tobject/
+instruction identities, and returns one admitted carrier.  Plan-owned `on`,
+compensation, and terminal expression graphs require the persisted sealed shape
+`{root,digest,nodes}`.  Codegen and compiler consumers cannot call plan
+readiness/digest or reconstruct an expression graph.  The production driver
+reaches the Pergyra plan consumer, and the typed direct branch/rollback bypass
+is absent and statically ratcheted.
 
-This is not substitution evidence yet.  The seam remains `OPEN` until all of
-the following land together:
+The bounded executable seam therefore satisfies the promotion conditions:
 
-1. self MIR JSON admission reads the native projection once into the Pergyra
-   execution-plan owner and cross-seals its routine result signature;
-2. admitted self C consumes that plan without source, AST, name or row-order
-   recovery;
+1. one self MIR JSON admission cross-seals the native plan and routine result;
+2. admitted self C joins by exact carried identity without source, AST,
+   name-only, or row-order recovery;
 3. self C, native C, and native LLVM parity holds for success, `failure A`,
-   `failure B`, and ordered multiple compensation;
-4. valid-MIR mutations are rejected before any partial self C artifact;
-5. the production self-host entrypoint reaches the plan consumer and its old
-   direct branch/rollback bypass is deleted and ratcheted.
+   `failure B`, predecessor-only compensation, reverse multiple compensation,
+   duplicate expression spelling, and zero compensation;
+4. schema, digest, graph-shape, action-target, payload-declaration, and zero-
+   compensation scaffold mutations reject before any partial self C artifact;
+5. the production self-host driver reaches the admitted consumer and the old
+   typed direct/rollback path cannot reappear.
 
-Only then may the two owner rows be promoted to `ACTIVE` and later `CLOSED` in
-`docs/semantics/sot_owner_spine_registry.md`.
+This is `SUBSTITUTING` evidence only for the bounded input-language
+MIR-to-self-C transition slice.  It does not promote `intent` into a universal
+compiler owner and does not prove compiler-root dogfood.  `PgyCompilerWorld`'s
+production entrypoint still calls no real-purpose root intent that elaborates
+the canonical participant, coordination, authority, effect, boundary,
+compensation, and trace bundle.  Compiler organization `intent` therefore
+remains `SURFACE`, and the broader `selfhost.intent_declaration_rows` registry
+row remains `BRIDGE` until that direct root orchestration is replaced.
+
+The active executable gate is
+`tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`; protocol
+admission and mutation ratchets are rooted at
+`tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh` and
+`tests/self_hosted/parity/intent_execution_protocol_static_owner.py`.

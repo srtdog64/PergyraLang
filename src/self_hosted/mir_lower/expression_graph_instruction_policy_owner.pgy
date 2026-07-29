@@ -60,15 +60,13 @@ func MirInstructionRequiresExpr0Graph(
     if instruction_kind == "stmt" &&
         (instruction_name == "IntentCheck" ||
          (instruction_name == "IntentEval" && IsSome(arg0) &&
-          UnwrapOption(arg0) == "compensate")) {
+          (UnwrapOption(arg0) == "on" ||
+           UnwrapOption(arg0) == "compensate"))) {
         return UnwrapOption(expr0) != "";
     }
     if instruction_kind == "stmt" && source == "AST_CALL" {
-        return !IsSome(arg0) || UnwrapOption(arg0) == "" ||
-            UnwrapOption(arg0) == "Log" ||
-            UnwrapOption(arg0) == "ArrayPush" ||
-            UnwrapOption(arg0) == "ArraySet" ||
-            UnwrapOption(arg0) == "Exit";
+        return UnwrapOption(expr0) != "" &&
+            (!IsSome(arg0) || UnwrapOption(arg0) != "ArrayPop");
     }
     return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }

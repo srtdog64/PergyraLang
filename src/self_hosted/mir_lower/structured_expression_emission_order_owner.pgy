@@ -11,6 +11,7 @@ struct MirStructuredExpressionEmissionOrder {
     global_instruction_rows: Array<Int>;
     lanes: Array<Int>;
     derived_ordinals: Array<Int>;
+    covered_producer_rows: Array<Int>;
 }
 
 func MirStructuredExpressionEmissionOrderEmpty(
@@ -18,8 +19,9 @@ func MirStructuredExpressionEmissionOrderEmpty(
     let rows: Array<Int> = [];
     let lanes: Array<Int> = [];
     let ordinals: Array<Int> = [];
+    let covered: Array<Int> = [];
     return MirStructuredExpressionEmissionOrder(
-        true, rows, lanes, ordinals
+        true, rows, lanes, ordinals, covered
     );
 }
 
@@ -41,6 +43,33 @@ func MirStructuredExpressionEmissionOrderReady(
         }
         i = i + 1;
     }
+    i = 0;
+    while i < ArrayLength(order.covered_producer_rows) {
+        if order.covered_producer_rows[i] < 0 { return false; }
+        let prior: Int = 0;
+        while prior < i {
+            if order.covered_producer_rows[prior] ==
+                order.covered_producer_rows[i] { return false; }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func MirStructuredExpressionEmissionOrderCoverProducer(
+    inout order: MirStructuredExpressionEmissionOrder,
+    global_row: Int
+) -> Bool {
+    if !order.ok || global_row < 0 { order.ok = false; return false; }
+    let i: Int = 0;
+    while i < ArrayLength(order.covered_producer_rows) {
+        if order.covered_producer_rows[i] == global_row { return true; }
+        i = i + 1;
+    }
+    let covered: Array<Int> = order.covered_producer_rows;
+    ArrayPush(covered, global_row);
+    order.covered_producer_rows = covered;
     return true;
 }
 
@@ -177,11 +206,7 @@ func MirStructuredExpressionEmissionOrderAppendStatement(
             expression_order, row, AstExpressionLaneAuxiliary(), 0
         );
     }
-    if scalar.arg0 == "" || scalar.arg0 == "Log" ||
-        scalar.arg0 == "Exit" {
-        return MirStructuredExpressionEmissionOrderAppend(
-            expression_order, row, AstExpressionLaneAtom(), 0
-        );
-    }
-    return true;
+    return MirStructuredExpressionEmissionOrderAppend(
+        expression_order, row, AstExpressionLaneAtom(), 0
+    );
 }

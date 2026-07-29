@@ -207,11 +207,15 @@ intent_typed_resolve_tobject_variant(ASTNode *step,
                                      ASTNode *enum_decl,
                                      const char *variant_name,
                                      size_t *variant_index_out,
+                                     uint32_t *payload_decl_syntax_id_out,
                                      SemanticContext *ctx)
 {
     ASTNode *payload_type_ast;
     Type *payload_type;
     ASTNode *payload_decl;
+
+    if (payload_decl_syntax_id_out != NULL)
+        *payload_decl_syntax_id_out = 0;
 
     if (!intent_typed_find_variant(
             enum_decl, variant_name, variant_index_out)
@@ -230,12 +234,15 @@ intent_typed_resolve_tobject_variant(ASTNode *step,
         : NULL;
     if (payload_type == TYPE_UNKNOWN || payload_type->name == NULL
         || payload_decl == NULL
-        || ast_class_nominal_kind(payload_decl) != NOMINAL_DECL_TOBJECT) {
+        || ast_class_nominal_kind(payload_decl) != NOMINAL_DECL_TOBJECT
+        || ast_node_stable_id(payload_decl) == 0) {
         intent_typed_report_invalid(ctx, step,
             "Intent step outcome branch '%s' payload must be an exact tobject type.",
             variant_name);
         return NULL;
     }
+    if (payload_decl_syntax_id_out != NULL)
+        *payload_decl_syntax_id_out = ast_node_stable_id(payload_decl);
     return payload_type;
 }
 
@@ -252,6 +259,8 @@ intent_typed_resolve_step_branches(ASTNode *step,
     size_t success_index = SIZE_MAX;
     size_t failure_index = SIZE_MAX;
     uint32_t enum_syntax_id;
+    uint32_t success_payload_decl_syntax_id = 0;
+    uint32_t failure_payload_decl_syntax_id = 0;
 
     if (success_payload_out != NULL)
         *success_payload_out = NULL;
@@ -271,10 +280,10 @@ intent_typed_resolve_step_branches(ASTNode *step,
     }
     success_payload = intent_typed_resolve_tobject_variant(
         step, enum_decl, ast_intent_step_success_variant_name(step),
-        &success_index, ctx);
+        &success_index, &success_payload_decl_syntax_id, ctx);
     failure_payload = intent_typed_resolve_tobject_variant(
         step, enum_decl, ast_intent_step_failure_variant_name(step),
-        &failure_index, ctx);
+        &failure_index, &failure_payload_decl_syntax_id, ctx);
     if (success_payload == NULL || failure_payload == NULL
         || success_index == failure_index) {
         return false;
@@ -283,10 +292,12 @@ intent_typed_resolve_step_branches(ASTNode *step,
     enum_syntax_id = ast_node_stable_id(enum_decl);
     if (!ast_intent_step_set_outcome_branch_resolution_copy(
             step, true, outcome_type->name, enum_syntax_id,
-            success_index, success_payload->name)
+            success_index, success_payload->name,
+            success_payload_decl_syntax_id)
         || !ast_intent_step_set_outcome_branch_resolution_copy(
             step, false, outcome_type->name, enum_syntax_id,
-            failure_index, failure_payload->name)) {
+            failure_index, failure_payload->name,
+            failure_payload_decl_syntax_id)) {
         semantic_error(ctx, step,
             "Out of memory while sealing typed intent outcome branches");
         return false;
@@ -314,12 +325,17 @@ intent_typed_resolve_terminal_result(ASTNode *intent,
     ASTNode *payload_expr;
     ASTNode *return_enum;
     ASTNode *result_payload_type_ast;
+    ASTNode *result_payload_decl;
     Type *result_payload_type;
     const char *variant_name;
     const char *payload_name = success_terminal
         ? ast_intent_step_success_payload_name(source_step)
         : ast_intent_step_failure_payload_name(source_step);
     size_t variant_index = SIZE_MAX;
+    uint32_t source_payload_decl_syntax_id = success_terminal
+        ? ast_intent_step_success_payload_decl_syntax_id(source_step)
+        : ast_intent_step_failure_payload_decl_syntax_id(source_step);
+    uint32_t result_payload_decl_syntax_id;
 
     if (intent == NULL || source_step == NULL || terminal_expr == NULL
         || return_type == NULL || return_type == TYPE_UNKNOWN
@@ -361,9 +377,20 @@ intent_typed_resolve_terminal_result(ASTNode *intent,
         return_enum, variant_index, 0);
     result_payload_type = intent_normalize_type(
         intent_resolve_type_ref(result_payload_type_ast, ctx));
+    result_payload_decl = result_payload_type != NULL
+        && result_payload_type != TYPE_UNKNOWN
+        && result_payload_type->name != NULL
+            ? semantic_find_class_decl_by_name(ctx, result_payload_type->name)
+            : NULL;
+    result_payload_decl_syntax_id = ast_node_stable_id(result_payload_decl);
     if (result_payload_type == TYPE_UNKNOWN
         || result_payload_type->name == NULL
-        || !type_equals(result_payload_type, source_payload_type)) {
+        || !type_equals(result_payload_type, source_payload_type)
+        || result_payload_decl == NULL
+        || ast_class_nominal_kind(result_payload_decl) != NOMINAL_DECL_TOBJECT
+        || source_payload_decl_syntax_id == 0
+        || result_payload_decl_syntax_id == 0
+        || result_payload_decl_syntax_id != source_payload_decl_syntax_id) {
         return intent_typed_report_invalid(ctx, terminal_expr,
             "Typed intent terminal result payload must exactly match carried type '%s'.",
             source_payload_type->name);
@@ -371,7 +398,8 @@ intent_typed_resolve_terminal_result(ASTNode *intent,
     if (!ast_intent_decl_set_terminal_result_resolution_copy(
             intent, success_terminal, failure_index, return_type->name,
             ast_node_stable_id(return_enum), variant_index, variant_name,
-            payload_name, source_payload_type->name)) {
+            payload_name, source_payload_type->name,
+            result_payload_decl_syntax_id)) {
         semantic_error(ctx, terminal_expr,
             "Out of memory while sealing typed intent terminal result");
         return false;

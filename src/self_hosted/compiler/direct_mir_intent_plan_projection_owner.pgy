@@ -1,0 +1,157 @@
+// Machine-admitted typed-intent plan -> canonical codegen occurrence view.
+//
+// Admission owns wire decoding, plan digest, instruction graph identity, and
+// semantic cross-seals.  This boundary performs only exact producer routine /
+// instruction identity joins into the canonical AST epoch selected by the
+// MIR tree expression order.  It never rebuilds or recursively revalidates an
+// expression graph.
+
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/intent_execution_tree_projection_owner.pgy";
+import "../mir_lower/expression_graph_semantic_occurrence_owner.pgy";
+import "../codegen/input/intent_execution_codegen_view_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
+
+func DirectMirIntentRoutineRowBySyntaxIdentity(
+    ref routines: MirProgramRoutineIndex,
+    syntax_id: Int,
+    expected_kind: String
+) -> Int {
+    if syntax_id <= 0 || expected_kind == "" { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.starts) {
+        if routines.source_syntax_ids[row] == ToString(syntax_id) &&
+            routines.kinds[row] == expected_kind {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirIntentCanonicalRoutineId(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    canonical_routine_source_syntax_ids: Array<String>,
+    producer_routine_syntax_id: Int
+) -> Int {
+    let routine_row: Int = DirectMirIntentRoutineRowBySyntaxIdentity(
+        admitted.routines, producer_routine_syntax_id, "intent"
+    );
+    if routine_row < 0 || routine_row >=
+        ArrayLength(canonical_routine_source_syntax_ids) {
+        return 0 - 1;
+    }
+    let text: String = canonical_routine_source_syntax_ids[routine_row];
+    let canonical_id: Int = ToInt(text);
+    if canonical_id <= 0 || ToString(canonical_id) != text {
+        return 0 - 1;
+    }
+    return canonical_id;
+}
+
+func DirectMirIntentSemanticRootForExactInstruction(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref occurrences: MirExpressionSemanticOccurrenceIndex,
+    producer_routine_syntax_id: Int,
+    block_id: Int,
+    instruction_id: Int
+) -> Int {
+    let routine_row: Int = DirectMirIntentRoutineRowBySyntaxIdentity(
+        admitted.routines, producer_routine_syntax_id, "intent"
+    );
+    if routine_row < 0 { return 0 - 1; }
+    let global_row: Int = MirIntentExecutionInstructionGlobalRow(
+        admitted.routines, routine_row, block_id, instruction_id
+    );
+    if global_row < 0 { return 0 - 1; }
+    return MirExpressionSemanticRootForInstruction(
+        occurrences, global_row, AstExpressionLaneAtom(), 0
+    );
+}
+
+func DirectMirIntentExecutionViewFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref occurrences: MirExpressionSemanticOccurrenceIndex,
+    canonical_routine_source_syntax_ids: Array<String>
+) -> CodegenIntentExecutionView {
+    // The bounded carrier is copied once into the codegen view.  Its complete
+    // readiness/digest was already established by machine admission.
+    let plan: MirIntentExecutionPlan = Clone(
+        admitted.intent_execution_plan
+    );
+    if !plan.present { return CodegenIntentExecutionViewEmpty(true); }
+    if !plan.valid || !occurrences.valid || !expression_surfaces.ok ||
+        ArrayLength(canonical_routine_source_syntax_ids) !=
+            MirProgramRoutineIndexCount(admitted.routines) {
+        return CodegenIntentExecutionViewEmpty(false);
+    }
+    let action_roots: Array<Int> = [];
+    let compensation_roots: Array<Int> = [];
+    let terminal_roots: Array<Int> = [];
+    let canonical_routine_ids: Array<Int> = [];
+    let terminal_canonical_routine_ids: Array<Int> = [];
+    let step: Int = 0;
+    while step < ArrayLength(plan.steps.transition_ids) {
+        let canonical_id: Int = DirectMirIntentCanonicalRoutineId(
+            admitted, canonical_routine_source_syntax_ids,
+            plan.steps.routine_syntax_ids[step]
+        );
+        let root: Int = DirectMirIntentSemanticRootForExactInstruction(
+            admitted, occurrences, plan.steps.routine_syntax_ids[step],
+            plan.steps.outcome_instruction_block_ids[step],
+            plan.steps.outcome_instruction_ids[step]
+        );
+        if canonical_id < 0 || root < 0 {
+            return CodegenIntentExecutionViewEmpty(false);
+        }
+        ArrayPush(canonical_routine_ids, canonical_id);
+        ArrayPush(action_roots, root);
+        let compensation: Int = plan.steps.compensation_starts[step];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step];
+        while compensation < compensation_end {
+            let compensation_root: Int =
+                DirectMirIntentSemanticRootForExactInstruction(
+                    admitted, occurrences,
+                    plan.steps.routine_syntax_ids[step],
+                    plan.steps.compensations.instruction_block_ids[
+                        compensation
+                    ],
+                    plan.steps.compensations.instruction_ids[compensation]
+                );
+            if compensation_root < 0 {
+                return CodegenIntentExecutionViewEmpty(false);
+            }
+            ArrayPush(compensation_roots, compensation_root);
+            compensation = compensation + 1;
+        }
+        step = step + 1;
+    }
+    let terminal: Int = 0;
+    while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
+        let canonical_id: Int = DirectMirIntentCanonicalRoutineId(
+            admitted, canonical_routine_source_syntax_ids,
+            plan.terminals.routine_syntax_ids[terminal]
+        );
+        let root: Int = DirectMirIntentSemanticRootForExactInstruction(
+            admitted, occurrences,
+            plan.terminals.routine_syntax_ids[terminal],
+            plan.terminals.result_instruction_block_ids[terminal],
+            plan.terminals.result_instruction_ids[terminal]
+        );
+        if canonical_id < 0 || root < 0 {
+            return CodegenIntentExecutionViewEmpty(false);
+        }
+        ArrayPush(terminal_canonical_routine_ids, canonical_id);
+        ArrayPush(terminal_roots, root);
+        terminal = terminal + 1;
+    }
+    return CodegenIntentExecutionView(
+        true, true, plan, expression_surfaces.expression_graph,
+        action_roots, compensation_roots, terminal_roots,
+        canonical_routine_ids, terminal_canonical_routine_ids
+    );
+}

@@ -6,6 +6,85 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - admitted typed intent self execution
+
+- Landing parent: `0228cd1161e49ac82c8e4110e7bba4b4265ac8f6` on `main`.
+  Verify the final landing revision and `origin/main` before resuming.
+- Canonical meaning:
+  - `intent` is defined by `docs/01_intent_first_design.md` and
+    `docs/173_intent_axis_strengthening.md`: it closes one real-world purpose
+    and elaborates a participant/coordination/authority/effect/boundary/
+    compensation/trace fact bundle into the verification plane;
+  - action count is neither necessary nor sufficient, and this execution plan
+    is only a bounded coordination/boundary/compensation projection;
+  - `tobject` owns detached immutable payload shape. It does not own intent
+    identity, authority, predecessor topology, completion, or compensation.
+- Objective card:
+  - objective: replace the self-host typed intent MIR-to-C direct/rollback path
+    with one admitted v2 execution plan and exact payload identities;
+  - priority: semantic identity and one admission, exact enum/variant/tobject
+    joins, explicit predecessor/completion evidence, fallback deletion,
+    negative ratchet, then projection size;
+  - fact owner: native `MIRIntentExecutionPlan` owns the wire plan;
+    `MirIntentExecutionPlanReady` is the sole self admission boundary; admitted
+    self projections are consumers rather than second semantic authorities;
+  - last legitimate consumer: the production self C plan emitter reached from
+    `driver_rung2_owner.pgy`;
+  - forbidden fallback: v1/name-only payload joins, Bool outcome collapse,
+    source/AST/row-order recovery, consumer readiness/digest checks, expression
+    graph reconstruction, all-earlier-step rollback, and typed direct emission;
+  - falsifier: cross-wire a valid routine/action/enum/tobject/instruction or
+    persisted graph identity and reject before any partial C artifact.
+- Landed executable slice:
+  - native AST->semantic->DIR->MIR->JSON carries exact success/failure and
+    terminal payload declaration syntax IDs under
+    `pgy.selfhost.mir-intent-execution-plan.v2`;
+  - one machine admission validates schema, digest, topology, exact routine/
+    action/enum/tobject/instruction joins, and sealed plan-owned expression
+    graphs, then supplies a typed carrier to consumers;
+  - production self C codegen consumes the admitted plan; old typed direct and
+    rollback bypasses are removed and statically forbidden;
+  - assignment instructions now carry exact binding mode (`default_param`,
+    `inout_param`, `own_param`, `ref_param`, `local`, or `owner_field`) through
+    the native MIR boundary instead of being re-decided by self codegen;
+  - zero-compensation topology is represented only by an unreachable empty
+    scaffold count owned by structure validation; consumers do not infer
+    meaning from block IDs or row positions.
+- Exact observed evidence:
+  - fresh native compiler build and `test_mir`: `157 passed, 0 failed`;
+  - native typed transition C/LLVM execution: PASS;
+  - v2 canonical digest `1268084794`, multi-routine digest `1173492658`, and
+    41 protocol/schema/identity/topology mutations: PASS/fail-closed as expected;
+  - fresh Pergyra-built driver
+    `.tmp/self_hosted/intent_typed_compensation_final9_20260729_090823_335/driver_rung2_1108.exe`:
+    build PASS with 0 Pergyra errors/warnings (the generated C compiler retained
+    the known unused match-binding warning);
+  - `intent_typed_outcome_compensation_owner.sh`: PASS for success, failure A/B,
+    predecessor-only reverse compensation, multiple/duplicate expression, and
+    zero compensation; malformed digest/graph/target/scaffold variants reject
+    before partial C;
+  - canonical and multi-routine self C compile/runtime output: exact parity;
+  - self-host component contract: PASS;
+  - two fresh driver observations stayed at about 1,530-1,531 MiB aggregate
+    private (`pgy` about 791 MiB, `cc1` about 739 MiB, `gcc` about 1 MiB), not
+    the historical 20+ GiB repeated-graph-validation symptom.
+- Grade:
+  - bounded input-language typed intent MIR-to-self-C is `SUBSTITUTING` because
+    a Pergyra implementation now replaces the real old consumer path;
+  - native plan execution remains `REACHABLE` evidence;
+  - compiler organization `intent` remains `SURFACE`: the production compiler
+    root still does not call a canonical real-purpose intent.
+- Next executable falsifier: use the canonical intent docs to identify one
+  actual compiler purpose and its full fact bundle, make the production root
+  reach that Pergyra intent, and delete exactly one current direct orchestration
+  bypass. Do not invent an intent from stage count or use `tobject` as topology.
+- Preserved concurrent/user work: do not stage or overwrite
+  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, or
+  untracked `docs/self_hosted/18_c_oracle_bootstrap_contract.md` without first
+  reconciling their separate owner/task.
+
 ## Current resume checkpoint - native typed intent plan execution
 
 - Landing parent: `ff7de53c01bbaf6831641a7d6ec52b2dd58c4ec5` on `main`.
@@ -249,7 +328,7 @@ owner, and the named executable gate.
     final caller consume the payload;
   - priority: exact outcome variant; transaction stage/status/recovery facts;
     exact target/path receipt; action/world/caller carriage; authority and
-    freshness negatives; then multi-action intent outcome binding;
+    freshness negatives; then typed intent transition outcome binding;
   - fact owner: `artifact_transaction_owner.pgy` owns receipt/failure facts;
     `DriverRung2Execution.EmitDirectMir` owns the terminal transition;
     world/composition only carries it and Main is the last consumer;
@@ -383,8 +462,8 @@ owner, and the named executable gate.
   compiler-organization grade of `object`, `tobject`, `zone`, `world`, or
   `intent`; their independently recorded grades remain unchanged.
 - This next falsifier is completed by the newer fallible action outcome
-  checkpoint at the top of this handoff. Multi-action intent outcome binding
-  remains open.
+  checkpoint at the top of this handoff. Typed intent transition outcome
+  binding remains open.
 - The stale tracked `testall_run.txt` transcript was removed and is ignored;
   generated builders remain under `.tmp/`.
 - Preserve and do not stage the three concurrent parity edits
@@ -441,11 +520,12 @@ owner, and the named executable gate.
   whole-intent `SUBSTITUTING`. Fallible `expect`, compensation/effect outcome and
   `PgyCompilerWorld` root intent takeover remain open. Compiler-organization
   intent remains `SURFACE` because the real bootstrap entrypoint does not call
-  a multi-action root intent.
+  a production root intent with a real purpose/fact bundle.
 - Next executable falsifier: carry an actual fallible `expect` result, branch to
   explicit failure/compensation, observe the effect/outcome, and reject missing
-  predecessor/rollback evidence. Only after two real compiler actions exist may
-  the root intent replace their direct bootstrap bypass.
+  predecessor/rollback evidence. The root intent may replace the direct
+  bootstrap bypass only after a real compiler purpose and its elaborated fact
+  bundle reach that production path; action count is not the criterion.
 - `tobject` owns only immutable materialized payload. Source identity, freshness,
   edge and authority remain with the enclosing directive plus
   `dir.domain_graph`; zone constructors accept only subject/binding inputs.
@@ -527,8 +607,8 @@ owner, and the named executable gate.
   semantic identity -> typed fact -> lossless carrier -> one admission receipt
   -> last production consumer -> negative ratchet. `effect`/`relation` bind
   exact destination roles and projection members; `zone` owns resource/lifetime
-  frontier; `action` owns the observable transition; `intent` only composes
-  multiple real actions.
+  frontier; `action` owns the observable transition; `intent` closes a real
+  purpose and attributes its elaborated cross-axis facts.
 - The next executable falsifier is
   `world_zone_projection_visibility`. Its renamed maps (`label <- displayName`,
   `user <- displayName`) must first become reachable through the self semantic
@@ -1100,7 +1180,8 @@ historical context; the current executable state is the section above.
   subject/action/zone/world slice are reachable. The next
   source-to-MIR action must reuse/generalize the active execution boundary
   rather than mechanically add a zone per compiler stage. Root `intent`
-  takeover follows only after a real multi-action graph is executable.
+  takeover follows only when a real compiler purpose binder and its fact
+  bundle are executable through production and replace the direct bypass.
 - Raw file-handle I/O had a real capability escape. Semantic analysis now
   refines literal `FileOpen` modes (`r`/`w`/`a`/`+`) and conservatively requires
   read+write for dynamic modes. Native C-inline and LLVM-linked runtime twins

@@ -1,0 +1,405 @@
+// Semantic admission owner for the optional pgy.mir.v1 intent_execution plan.
+// Exact wire decoding and stable identity inventories are separate owners;
+// this file owns their fail-closed joins and the admitted plan carrier.
+
+import "intent_execution_json_rows_owner.pgy";
+import "intent_execution_identity_index_owner.pgy";
+import "expression_graph_persisted_shape_owner.pgy";
+import "../mir/intent_execution_fact_owner.pgy";
+
+func MirIntentExecutionRoutineBlockRowById(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, block_id: Int
+) -> Int {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) || block_id < 0 {
+        return 0 - 1;
+    }
+    let found: Int = 0 - 1;
+    let local_row: Int = 0;
+    while local_row < routines.routine_block_counts[routine_row] {
+        let block_row: Int =
+            routines.routine_block_starts[routine_row] + local_row;
+        let id: MirIntentExecutionIntValue = MirIntentExecutionUniqueIntField(
+            routines.source_json, routines.block_starts[block_row],
+            routines.block_ends[block_row], "id"
+        );
+        if !id.valid { return 0 - 1; }
+        if id.value == block_id {
+            if found >= 0 { return 0 - 1; }
+            found = block_row;
+        }
+        local_row = local_row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionInstructionReady(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, block_id: Int, instruction_id: Int,
+    expected_kind: String, expected_name: String,
+    expected_result: String, expected_arg0: String,
+    graph_required: Bool,
+    graph_root_id: Int, graph_digest: Int
+) -> Bool {
+    let block_row: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, block_id
+    );
+    if block_row < 0 || instruction_id < 0 || expected_kind == "" ||
+        expected_name == "" { return false; }
+    let matches: Int = 0;
+    let local_row: Int = 0;
+    while local_row < routines.block_instruction_counts[block_row] {
+        let instruction_row: Int =
+            routines.block_instruction_starts[block_row] + local_row;
+        let start: Int = routines.instruction_starts[instruction_row];
+        let end: Int = routines.instruction_ends[instruction_row];
+        let id: MirIntentExecutionIntValue = MirIntentExecutionUniqueIntField(
+            routines.source_json, start, end, "id"
+        );
+        let kind: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                routines.source_json, start, end, "kind"
+            );
+        let name: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                routines.source_json, start, end, "name"
+            );
+        if !id.valid || !kind.valid || !name.valid { return false; }
+        if id.value == instruction_id && kind.value == expected_kind &&
+            name.value == expected_name {
+            if expected_result != "" {
+                let result: MirIntentExecutionStringValue =
+                    MirIntentExecutionUniqueStringField(
+                        routines.source_json, start, end, "result"
+                    );
+                if !result.valid || result.value != expected_result {
+                    return false;
+                }
+            }
+            if expected_arg0 != "" {
+                let arg0: MirIntentExecutionStringValue =
+                    MirIntentExecutionUniqueStringField(
+                        routines.source_json, start, end, "arg0"
+                    );
+                if !arg0.valid || arg0.value != expected_arg0 {
+                    return false;
+                }
+            }
+            if graph_required {
+                let graph_bounds: Array<Int> = [0, 0];
+                if MirIntentExecutionObjectFieldOccurrenceCount(
+                    routines.source_json, start, end, "expr0_graph"
+                ) != 1 || !JsonObjectFieldValueBoundsWithin(
+                    routines.source_json, start, end,
+                    "expr0_graph", graph_bounds
+                ) || graph_bounds[0] >= graph_bounds[1] ||
+                    JsonCharCodeAt(
+                        routines.source_json, graph_bounds[1], graph_bounds[0]
+                    ) != JsonAsciiCode("{") {
+                    return false;
+                }
+                let graph: JsonObjectFactTable =
+                    JsonObjectFactTableFromBounds(
+                        routines.source_json, graph_bounds[0], graph_bounds[1]
+                    );
+                if !MirExpressionGraphPersistedSealedShapeReady(graph) {
+                    return false;
+                }
+                let root: MirIntentExecutionIntValue =
+                    MirIntentExecutionUniqueIntField(
+                        routines.source_json, graph_bounds[0], graph_bounds[1],
+                        "root"
+                    );
+                let digest: MirIntentExecutionIntValue =
+                    MirIntentExecutionUniqueIntField(
+                        routines.source_json, graph_bounds[0], graph_bounds[1],
+                        "digest"
+                    );
+                if !root.valid || !digest.valid || root.value < 0 ||
+                    digest.value <= 0 ||
+                    (graph_digest > 0 &&
+                        (root.value != graph_root_id ||
+                         digest.value != graph_digest)) {
+                    return false;
+                }
+            }
+            matches = matches + 1;
+        }
+        local_row = local_row + 1;
+    }
+    return matches == 1;
+}
+
+func MirIntentExecutionPayloadDefinitionReady(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int, block_id: Int, instruction_name: String,
+    result_name: String, variant_name: String
+) -> Bool {
+    let block_row: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, block_id
+    );
+    if block_row < 0 || instruction_name == "" || result_name == "" ||
+        variant_name == "" { return false; }
+    let matches: Int = 0;
+    let local_row: Int = 0;
+    while local_row < routines.block_instruction_counts[block_row] {
+        let instruction_row: Int =
+            routines.block_instruction_starts[block_row] + local_row;
+        let start: Int = routines.instruction_starts[instruction_row];
+        let end: Int = routines.instruction_ends[instruction_row];
+        let kind: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                routines.source_json, start, end, "kind"
+            );
+        let name: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                routines.source_json, start, end, "name"
+            );
+        if kind.valid && name.valid && kind.value == "def" &&
+            name.value == instruction_name {
+            let result: MirIntentExecutionStringValue =
+                MirIntentExecutionUniqueStringField(
+                    routines.source_json, start, end, "result"
+                );
+            let arg0: MirIntentExecutionStringValue =
+                MirIntentExecutionUniqueStringField(
+                    routines.source_json, start, end, "arg0"
+                );
+            if !result.valid || !arg0.valid { return false; }
+            if result.value == result_name && arg0.value == variant_name {
+                matches = matches + 1;
+            }
+        }
+        local_row = local_row + 1;
+    }
+    return matches == 1;
+}
+
+func MirIntentExecutionPlanSemanticCrossSeal(
+    ref plan: MirIntentExecutionPlan,
+    ref routines: MirProgramRoutineIndex,
+    ref signatures: MirIntentExecutionRoutineSignatureIndex,
+    ref declarations: MirIntentExecutionDeclarationIndex
+) -> Bool {
+    if !plan.valid || !plan.present ||
+        plan.schema != MirIntentExecutionPlanSchema() ||
+        !MirProgramRoutineIndexStructureReady(routines) ||
+        !signatures.valid || !declarations.valid {
+        return false;
+    }
+    let step: Int = 0;
+    while step < ArrayLength(plan.steps.transition_ids) {
+        let routine_row: Int = MirIntentExecutionRoutineRowByIdentity(
+            signatures, plan.steps.routine_syntax_ids[step], "intent"
+        );
+        if routine_row < 0 ||
+            signatures.return_type_names[routine_row] == "Bool" ||
+            !MirIntentExecutionCallableReturnReady(
+                signatures, plan.steps.action_syntax_ids[step],
+                plan.steps.outcome_type_names[step]
+            ) ||
+            !MirIntentExecutionEnumVariantReady(
+                declarations, plan.steps.outcome_enum_names[step],
+                plan.steps.outcome_enum_syntax_ids[step],
+                plan.steps.success_variant_indices[step],
+                plan.steps.success_variant_names[step],
+                plan.steps.success_payload_type_names[step],
+                plan.steps.success_payload_decl_syntax_ids[step]
+            ) ||
+            !MirIntentExecutionEnumVariantReady(
+                declarations, plan.steps.outcome_enum_names[step],
+                plan.steps.outcome_enum_syntax_ids[step],
+                plan.steps.failure_variant_indices[step],
+                plan.steps.failure_variant_names[step],
+                plan.steps.failure_payload_type_names[step],
+                plan.steps.failure_payload_decl_syntax_ids[step]
+            ) ||
+            !MirIntentExecutionInstructionReady(
+                routines, routine_row,
+                plan.steps.outcome_instruction_block_ids[step],
+                plan.steps.outcome_instruction_ids[step],
+                "stmt", "IntentEval", plan.steps.outcome_result_names[step],
+                "on", true, 0, 0
+            ) ||
+            !MirIntentExecutionInstructionReady(
+                routines, routine_row, plan.steps.branch_block_ids[step],
+                plan.steps.branch_instruction_ids[step], "branch",
+                "IntentOutcomeBranch", "",
+                plan.steps.success_variant_names[step], false, 0, 0
+            ) ||
+            !MirIntentExecutionPayloadDefinitionReady(
+                routines, routine_row,
+                plan.steps.success_successor_block_ids[step],
+                "IntentSuccessPayload", plan.steps.success_payload_names[step],
+                plan.steps.success_variant_names[step]
+            ) ||
+            !MirIntentExecutionPayloadDefinitionReady(
+                routines, routine_row,
+                plan.steps.failure_successor_block_ids[step],
+                "IntentFailurePayload", plan.steps.failure_payload_names[step],
+                plan.steps.failure_variant_names[step]
+            ) ||
+            !MirIntentExecutionInstructionReady(
+                routines, routine_row, plan.steps.completion_block_ids[step],
+                plan.steps.completion_instruction_ids[step], "stmt",
+                "IntentStepCompleted", "",
+                plan.steps.success_variant_names[step], false, 0, 0
+            ) {
+            return false;
+        }
+        let compensation: Int = plan.steps.compensation_starts[step];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step];
+        while compensation < compensation_end {
+            if MirIntentExecutionCallableRowByIdentity(
+                    signatures,
+                    plan.steps.compensations.call_target_syntax_ids[compensation],
+                    plan.steps.compensations.call_target_names[compensation],
+                    "Void"
+                ) < 0 {
+                return false;
+            }
+            if !MirIntentExecutionInstructionReady(
+                routines, routine_row,
+                plan.steps.compensations.instruction_block_ids[compensation],
+                plan.steps.compensations.instruction_ids[compensation],
+                "stmt", "IntentEval", "", "compensate",
+                true,
+                plan.steps.compensations.graph_root_ids[compensation],
+                plan.steps.compensations.graph_digests[compensation]
+            ) { return false; }
+            compensation = compensation + 1;
+        }
+        step = step + 1;
+    }
+    let terminal: Int = 0;
+    while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
+        let routine_row: Int = MirIntentExecutionRoutineRowByIdentity(
+            signatures, plan.terminals.routine_syntax_ids[terminal], "intent"
+        );
+        if routine_row < 0 ||
+            signatures.return_type_names[routine_row] !=
+                plan.terminals.result_type_names[terminal] ||
+            !MirIntentExecutionEnumVariantReady(
+                declarations, plan.terminals.result_enum_names[terminal],
+                plan.terminals.result_enum_syntax_ids[terminal],
+                plan.terminals.result_variant_indices[terminal],
+                plan.terminals.result_variant_names[terminal],
+                plan.terminals.result_payload_type_names[terminal],
+                plan.terminals.result_payload_decl_syntax_ids[terminal]
+            ) ||
+            !MirIntentExecutionInstructionReady(
+                routines, routine_row,
+                plan.terminals.result_instruction_block_ids[terminal],
+                plan.terminals.result_instruction_ids[terminal], "return",
+                "IntentTerminalResult",
+                plan.terminals.result_definition_names[terminal],
+                plan.terminals.result_variant_names[terminal],
+                true,
+                plan.terminals.graph_root_ids[terminal],
+                plan.terminals.graph_digests[terminal]
+            ) {
+            return false;
+        }
+        terminal = terminal + 1;
+    }
+    let routine_row: Int = 0;
+    while routine_row < ArrayLength(signatures.source_syntax_ids) {
+        if signatures.kinds[routine_row] == "intent" {
+            let typed: Bool =
+                signatures.return_type_names[routine_row] != "Bool";
+            let routine_step_count: Int = 0;
+            step = 0;
+            while step < ArrayLength(plan.steps.transition_ids) {
+                if plan.steps.routine_syntax_ids[step] ==
+                    signatures.source_syntax_ids[routine_row] {
+                    routine_step_count = routine_step_count + 1;
+                }
+                step = step + 1;
+            }
+            let routine_terminal_count: Int = 0;
+            terminal = 0;
+            while terminal <
+                ArrayLength(plan.terminals.terminal_transition_ids) {
+                if plan.terminals.routine_syntax_ids[terminal] ==
+                    signatures.source_syntax_ids[routine_row] {
+                    routine_terminal_count = routine_terminal_count + 1;
+                }
+                terminal = terminal + 1;
+            }
+            if (!typed &&
+                    (routine_step_count != 0 || routine_terminal_count != 0)) ||
+                (typed &&
+                    (routine_step_count <= 0 ||
+                     routine_terminal_count != routine_step_count + 1)) {
+                return false;
+            }
+        }
+        routine_row = routine_row + 1;
+    }
+    return true;
+}
+
+func MirIntentExecutionPlanSemanticCrossSealFromDocument(
+    ref plan: MirIntentExecutionPlan,
+    ref document: MirDocumentFactIndex,
+    ref routines: MirProgramRoutineIndex
+) -> Bool {
+    let signatures: MirIntentExecutionRoutineSignatureIndex =
+        MirIntentExecutionRoutineSignatureIndexFromRoutines(routines);
+    let declarations: MirIntentExecutionDeclarationIndex =
+        MirIntentExecutionDeclarationIndexFromDocument(document);
+    return MirIntentExecutionPlanSemanticCrossSeal(
+        plan, routines, signatures, declarations
+    );
+}
+
+func MirIntentExecutionPlanFromDocument(
+    ref document: MirDocumentFactIndex,
+    ref routines: MirProgramRoutineIndex
+) -> MirIntentExecutionPlan {
+    let signatures: MirIntentExecutionRoutineSignatureIndex =
+        MirIntentExecutionRoutineSignatureIndexFromRoutines(routines);
+    if !document.valid || !signatures.valid {
+        return MirIntentExecutionPlanEmpty(false, false);
+    }
+    if !JsonObjectFactTableReady(document.intent_execution) {
+        let routine_row: Int = 0;
+        while routine_row < ArrayLength(signatures.source_syntax_ids) {
+            if signatures.kinds[routine_row] == "intent" &&
+                signatures.return_type_names[routine_row] != "Bool" {
+                return MirIntentExecutionPlanEmpty(false, false);
+            }
+            routine_row = routine_row + 1;
+        }
+        return MirIntentExecutionPlanEmpty(true, false);
+    }
+    let json: String = document.intent_execution.json;
+    let expected: Array<String> = [
+        "schema", "plan_digest", "steps", "terminals"
+    ];
+    let fields: MirIntentExecutionExactFields =
+        MirIntentExecutionExactObjectFields(
+            json, document.intent_execution.start,
+            document.intent_execution.end, expected
+        );
+    let schema: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 0, false);
+    let wire_digest: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 1);
+    let steps: MirIntentStepTransitionFacts =
+        MirIntentStepTransitionFactsEmpty();
+    let terminals: MirIntentTerminalTransitionFacts =
+        MirIntentTerminalTransitionFactsEmpty();
+    if !fields.valid || !schema.valid ||
+        schema.value != MirIntentExecutionPlanSchema() ||
+        !wire_digest.valid || wire_digest.value <= 0 ||
+        !MirIntentExecutionPlanRowsFromExactFields(
+            json, fields, steps, terminals
+        ) {
+        return MirIntentExecutionPlanEmpty(false, true);
+    }
+    return MirIntentExecutionPlan(
+        true, true, schema.value, wire_digest.value, steps, terminals
+    );
+}

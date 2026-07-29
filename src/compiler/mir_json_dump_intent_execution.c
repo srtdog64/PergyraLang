@@ -93,9 +93,11 @@ mir_json_emit_intent_step(FILE *out,
     fputs(",\"success_payload_type_name\":", out);
     mir_json_emit_str_or_null(out, row->success.payload_type_name);
     fprintf(out,
+        ",\"success_payload_decl_syntax_id\":%" PRIu32
         ",\"success_successor_block_id\":%zu"
         ",\"failure_variant_index\":%zu"
         ",\"failure_variant_name\":",
+        row->success.payload_decl_syntax_id,
         row->success.successor_block_id,
         row->failure.variant_index);
     mir_json_emit_str_or_null(out, row->failure.variant_name);
@@ -104,10 +106,12 @@ mir_json_emit_intent_step(FILE *out,
     fputs(",\"failure_payload_type_name\":", out);
     mir_json_emit_str_or_null(out, row->failure.payload_type_name);
     fprintf(out,
+        ",\"failure_payload_decl_syntax_id\":%" PRIu32
         ",\"failure_successor_block_id\":%zu"
         ",\"completion_block_id\":%zu"
         ",\"completion_instruction_id\":%zu"
         ",\"compensations\":[",
+        row->failure.payload_decl_syntax_id,
         row->failure.successor_block_id,
         row->completion_block_id,
         row->completion_instruction_id);
@@ -144,9 +148,11 @@ mir_json_emit_intent_terminal(
     fputs(",\"source_payload_type_name\":", out);
     mir_json_emit_str_or_null(out, row->source_payload_type_name);
     fprintf(out,
+        ",\"source_payload_decl_syntax_id\":%" PRIu32
         ",\"result_instruction_block_id\":%zu"
         ",\"result_instruction_id\":%zu"
         ",\"result_definition_name\":",
+        row->source_payload_decl_syntax_id,
         row->result_instruction_block_id,
         row->result_instruction_id);
     mir_json_emit_str_or_null(out, row->result_definition_name);
@@ -166,9 +172,11 @@ mir_json_emit_intent_terminal(
     fputs(",\"result_payload_type_name\":", out);
     mir_json_emit_str_or_null(out, row->result_payload_type_name);
     fprintf(out,
+        ",\"result_payload_decl_syntax_id\":%" PRIu32
         ",\"expression_syntax_id\":%" PRIu32
         ",\"graph_root_id\":%zu"
         ",\"graph_digest\":%" PRIu32 "}",
+        row->result_payload_decl_syntax_id,
         row->expression_syntax_id,
         row->graph_root_id,
         row->graph_digest);

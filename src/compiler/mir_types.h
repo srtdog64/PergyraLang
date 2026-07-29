@@ -13,6 +13,8 @@
 #include "../semantic/destructure_type_fact.h"
 #include "../semantic/match_binding_type_fact.h"
 
+struct MIRProgram;
+
 typedef enum
 {
     MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY,
@@ -367,6 +369,7 @@ typedef struct
     const char *variant_name;
     const char *payload_name;
     const char *payload_type_name;
+    uint32_t    payload_decl_syntax_id;
     size_t      successor_block_id;
 } MIRIntentOutcomeBranchFact;
 
@@ -415,6 +418,7 @@ typedef struct
     const char *source_variant_name;
     const char *source_payload_name;
     const char *source_payload_type_name;
+    uint32_t    source_payload_decl_syntax_id;
     size_t      result_instruction_block_id;
     size_t      result_instruction_id;
     const char *result_definition_name;
@@ -425,6 +429,7 @@ typedef struct
     const char *result_variant_name;
     const char *result_payload_name;
     const char *result_payload_type_name;
+    uint32_t    result_payload_decl_syntax_id;
     uint32_t    expression_syntax_id;
     size_t      graph_root_id;
     uint32_t    graph_digest;
@@ -433,6 +438,9 @@ typedef struct
 
 typedef struct
 {
+    /* Owning program inventory for exact cross-owner joins such as method
+     * assignment roots -> declaration-header field rows. */
+    const struct MIRProgram *program;
     size_t             id;
     MIRScopeKind       kind;
     const char        *owner_name;

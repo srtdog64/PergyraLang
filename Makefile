@@ -3205,6 +3205,9 @@ self-host-mir-json-parity-test-smoke: $(PGY)
 self-host-domain-topology-admission-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/domain_topology_admission_owner.sh
 
+self-host-intent-execution-plan-admission-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh
+
 self-host-domain-runtime-assignment-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
 		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
@@ -3221,7 +3224,7 @@ self-host-json-bounded-string-test-smoke: $(PGY)
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
 
-.PHONY: self-host-domain-topology-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
+.PHONY: self-host-domain-topology-admission-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
@@ -3377,6 +3380,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-callable-execution-test-smoke \
 	self-host-intent-outcome-frontend-test-smoke \
 	self-host-intent-typed-outcome-execution-test-smoke \
+	self-host-intent-typed-compensation-test-smoke \
 	self-host-intent-guard-post-compensation-execution-test-smoke \
 	self-host-intent-phase-carrier-negative-test-smoke \
 	self-host-intent-execution-fact-contract-test-smoke \
@@ -3414,6 +3418,9 @@ self-host-intent-outcome-frontend-test-smoke: $(PGY)
 self-host-intent-typed-outcome-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh
+
+self-host-intent-typed-compensation-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh
 
 self-host-intent-guard-post-compensation-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

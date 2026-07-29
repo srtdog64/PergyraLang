@@ -281,6 +281,8 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             ast_intent_step_success_payload_name(step_node);
         step.success_branch.payload_type_name =
             ast_intent_step_success_payload_type_name(step_node);
+        step.success_branch.payload_decl_syntax_id =
+            ast_intent_step_success_payload_decl_syntax_id(step_node);
         step.success_branch.enum_type_name =
             ast_intent_step_outcome_enum_type_name(step_node);
         step.success_branch.enum_decl_syntax_id =
@@ -293,6 +295,8 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             ast_intent_step_failure_payload_name(step_node);
         step.failure_branch.payload_type_name =
             ast_intent_step_failure_payload_type_name(step_node);
+        step.failure_branch.payload_decl_syntax_id =
+            ast_intent_step_failure_payload_decl_syntax_id(step_node);
         step.failure_branch.enum_type_name =
             ast_intent_step_outcome_enum_type_name(step_node);
         step.failure_branch.enum_decl_syntax_id =
@@ -406,6 +410,9 @@ step_oom:
             ast_intent_decl_terminal_result_payload_name(node, true, 0);
         info.success_terminal.result_payload_type_name =
             ast_intent_decl_terminal_result_payload_type_name(node, true, 0);
+        info.success_terminal.result_payload_decl_syntax_id =
+            ast_intent_decl_terminal_result_payload_decl_syntax_id(
+                node, true, 0);
         info.failure_terminal_count =
             ast_intent_decl_failure_terminal_count(node);
         info.failure_terminals = calloc(
@@ -436,6 +443,9 @@ step_oom:
                 ast_intent_decl_terminal_result_payload_name(node, false, i);
             terminal->result_payload_type_name =
                 ast_intent_decl_terminal_result_payload_type_name(
+                    node, false, i);
+            terminal->result_payload_decl_syntax_id =
+                ast_intent_decl_terminal_result_payload_decl_syntax_id(
                     node, false, i);
         }
     }

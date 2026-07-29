@@ -12,6 +12,7 @@ import "domain_topology_graph_plan_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
 import "domain_runtime_plan_owner.pgy";
 import "program_routine_index_owner.pgy";
+import "intent_execution_plan_fact_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 
@@ -26,6 +27,7 @@ struct MirMachineLayerAdmittedJsonInput {
     let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts;
     let domain_runtime_plan: MirDomainRuntimePlan;
     let routines: MirProgramRoutineIndex;
+    let intent_execution_plan: MirIntentExecutionPlan;
 }
 
 func MirMachineLayerPressureStage(enabled: Bool, stage: String) -> Void {
@@ -303,10 +305,21 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:instruction-scan:done"
     );
+    let intent_execution_plan: MirIntentExecutionPlan =
+        MirIntentExecutionPlanFromDocument(document, routines);
+    if !MirIntentExecutionPlanReady(intent_execution_plan) {
+        return None;
+    }
+    if intent_execution_plan.present &&
+        !MirIntentExecutionPlanSemanticCrossSealFromDocument(
+            intent_execution_plan, document, routines
+        ) {
+        return None;
+    }
     return Some(MirMachineLayerAdmittedJsonInput(
         machine_declaration, document, domain_topology,
         domain_topology_plan, domain_runtime_assignments,
-        domain_runtime_plan, routines
+        domain_runtime_plan, routines, intent_execution_plan
     ));
 }
 

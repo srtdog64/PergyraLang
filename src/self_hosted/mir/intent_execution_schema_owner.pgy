@@ -32,11 +32,13 @@ struct MirIntentStepTransitionFacts {
     success_variant_names: Array<String>;
     success_payload_names: Array<String>;
     success_payload_type_names: Array<String>;
+    success_payload_decl_syntax_ids: Array<Int>;
     success_successor_block_ids: Array<Int>;
     failure_variant_indices: Array<Int>;
     failure_variant_names: Array<String>;
     failure_payload_names: Array<String>;
     failure_payload_type_names: Array<String>;
+    failure_payload_decl_syntax_ids: Array<Int>;
     failure_successor_block_ids: Array<Int>;
     completion_block_ids: Array<Int>;
     completion_instruction_ids: Array<Int>;
@@ -56,6 +58,7 @@ struct MirIntentTerminalTransitionFacts {
     source_variant_names: Array<String>;
     source_payload_names: Array<String>;
     source_payload_type_names: Array<String>;
+    source_payload_decl_syntax_ids: Array<Int>;
     result_instruction_block_ids: Array<Int>;
     result_instruction_ids: Array<Int>;
     result_definition_names: Array<String>;
@@ -66,6 +69,7 @@ struct MirIntentTerminalTransitionFacts {
     result_variant_names: Array<String>;
     result_payload_names: Array<String>;
     result_payload_type_names: Array<String>;
+    result_payload_decl_syntax_ids: Array<Int>;
     expression_syntax_ids: Array<Int>;
     graph_root_ids: Array<Int>;
     graph_digests: Array<Int>;
@@ -81,7 +85,7 @@ struct MirIntentExecutionPlan {
 }
 
 func MirIntentExecutionPlanSchema() -> String {
-    return "pgy.selfhost.mir-intent-execution-plan.v1";
+    return "pgy.selfhost.mir-intent-execution-plan.v2";
 }
 
 func MirIntentCompensationFactsEmpty() -> MirIntentCompensationFacts {
@@ -122,11 +126,13 @@ func MirIntentStepTransitionFactsEmpty(
     let success_variant_names: Array<String> = [];
     let success_payload_names: Array<String> = [];
     let success_payload_type_names: Array<String> = [];
+    let success_payload_decl_syntax_ids: Array<Int> = [];
     let success_successor_block_ids: Array<Int> = [];
     let failure_variant_indices: Array<Int> = [];
     let failure_variant_names: Array<String> = [];
     let failure_payload_names: Array<String> = [];
     let failure_payload_type_names: Array<String> = [];
+    let failure_payload_decl_syntax_ids: Array<Int> = [];
     let failure_successor_block_ids: Array<Int> = [];
     let completion_block_ids: Array<Int> = [];
     let completion_instruction_ids: Array<Int> = [];
@@ -140,9 +146,11 @@ func MirIntentStepTransitionFactsEmpty(
         outcome_result_names, outcome_type_names, outcome_enum_names,
         outcome_enum_syntax_ids, branch_block_ids, branch_instruction_ids,
         success_variant_indices, success_variant_names, success_payload_names,
-        success_payload_type_names, success_successor_block_ids,
+        success_payload_type_names, success_payload_decl_syntax_ids,
+        success_successor_block_ids,
         failure_variant_indices, failure_variant_names, failure_payload_names,
-        failure_payload_type_names, failure_successor_block_ids,
+        failure_payload_type_names, failure_payload_decl_syntax_ids,
+        failure_successor_block_ids,
         completion_block_ids, completion_instruction_ids,
         compensation_starts, compensation_counts,
         MirIntentCompensationFactsEmpty()
@@ -161,6 +169,7 @@ func MirIntentTerminalTransitionFactsEmpty(
     let source_variant_names: Array<String> = [];
     let source_payload_names: Array<String> = [];
     let source_payload_type_names: Array<String> = [];
+    let source_payload_decl_syntax_ids: Array<Int> = [];
     let result_instruction_block_ids: Array<Int> = [];
     let result_instruction_ids: Array<Int> = [];
     let result_definition_names: Array<String> = [];
@@ -171,6 +180,7 @@ func MirIntentTerminalTransitionFactsEmpty(
     let result_variant_names: Array<String> = [];
     let result_payload_names: Array<String> = [];
     let result_payload_type_names: Array<String> = [];
+    let result_payload_decl_syntax_ids: Array<Int> = [];
     let expression_syntax_ids: Array<Int> = [];
     let graph_root_ids: Array<Int> = [];
     let graph_digests: Array<Int> = [];
@@ -178,10 +188,12 @@ func MirIntentTerminalTransitionFactsEmpty(
         terminal_transition_ids, routine_syntax_ids, roles,
         source_transition_ids, source_step_syntax_ids, source_step_names,
         source_variant_indices, source_variant_names, source_payload_names,
-        source_payload_type_names, result_instruction_block_ids,
+        source_payload_type_names, source_payload_decl_syntax_ids,
+        result_instruction_block_ids,
         result_instruction_ids, result_definition_names, result_type_names,
         result_enum_names, result_enum_syntax_ids, result_variant_indices,
         result_variant_names, result_payload_names, result_payload_type_names,
+        result_payload_decl_syntax_ids,
         expression_syntax_ids, graph_root_ids, graph_digests
     );
 }

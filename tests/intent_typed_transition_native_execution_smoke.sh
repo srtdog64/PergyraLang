@@ -72,7 +72,7 @@ import sys
 
 document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 plan = document["intent_execution"]
-assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v1", plan
+assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v2", plan
 assert isinstance(plan["plan_digest"], int) and plan["plan_digest"] != 0
 assert len(plan["steps"]) == 2, plan["steps"]
 assert len(plan["terminals"]) == 3, plan["terminals"]
@@ -90,6 +90,8 @@ assert b["predecessor_step_syntax_id"] == a["step_syntax_id"], b
 assert b["predecessor_step_name"] == "A", b
 for row in (a, b):
     assert row["outcome_enum_syntax_id"] != 0, row
+    assert row["success_payload_decl_syntax_id"] != 0, row
+    assert row["failure_payload_decl_syntax_id"] != 0, row
     assert row["success_variant_index"] != row["failure_variant_index"], row
     assert row["success_payload_name"], row
     assert row["failure_payload_name"], row
@@ -107,6 +109,9 @@ assert set(terminal_by_role_source) == {
 for row in plan["terminals"]:
     assert row["terminal_transition_id"] != 0, row
     assert row["result_enum_syntax_id"] != 0, row
+    assert row["source_payload_decl_syntax_id"] != 0, row
+    assert row["result_payload_decl_syntax_id"] == \
+        row["source_payload_decl_syntax_id"], row
     assert row["result_variant_index"] >= 0, row
     assert row["expression_syntax_id"] != 0, row
 

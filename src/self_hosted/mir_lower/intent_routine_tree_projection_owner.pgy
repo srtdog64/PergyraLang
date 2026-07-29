@@ -1,0 +1,238 @@
+// Executable intent MIR -> compact AST routine tree projection owner.
+//
+// This consumer reconstructs intent syntax only from admitted MIR carrier
+// rows.  It never reads source text or searches the original AST.
+
+import "routine_fact_index_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "intent_action_contract_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
+import "intent_phase_projection_owner.pgy";
+import "intent_phase_tree_owner.pgy";
+import "intent_cleanup_contract_owner.pgy";
+import "intent_execution_structure_owner.pgy";
+import "intent_execution_tree_projection_owner.pgy";
+import "intent_execution_graph_mirror_owner.pgy";
+import "intent_execution_carrier_projection_owner.pgy";
+import "intent_routine_carrier_projection_owner.pgy";
+import "intent_routine_step_projection_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+func EmitMirIntentTreeAtRowWithExecutionPlan(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    inout expression_order: MirStructuredExpressionEmissionOrder,
+    ref intent_execution_plan: MirIntentExecutionPlan
+) -> String {
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        routines, routine_row
+    );
+    if !MirIntentExecutionRoutineStructureReady(
+        routines, index, routine_row, intent_execution_plan
+    ) {
+        MirLowerFailClosed("MIR intent routine structure is invalid");
+    }
+    let intent_name: String = routines.names[routine_row];
+    if intent_name == "" { MirLowerFailClosed("MIR intent name is missing"); }
+    let routine_syntax_id: Int = MirIntentRoutineSyntaxIdAt(
+        routines, routine_row
+    );
+    let typed_execution: Bool = MirIntentExecutionPlanOwnsRoutine(
+        intent_execution_plan, routine_syntax_id
+    );
+    let topology_rows: Array<Int> = [];
+    if typed_execution {
+        topology_rows = MirIntentExecutionRoutineStepRows(
+            intent_execution_plan, routine_syntax_id
+        );
+        if ArrayLength(topology_rows) == 0 {
+            MirLowerFailClosed("typed MIR intent topology is invalid");
+        }
+    }
+
+    let routine_carriers: MirIntentRoutineCarrierProjection =
+        MirIntentRoutineCarrierProjectionFromBlockZero(
+            routines, index, routine_row, intent_name
+        );
+    if !routine_carriers.valid {
+        MirLowerFailClosed(routine_carriers.diagnostic_message);
+    }
+    if typed_execution {
+        let typed_carriers: MirIntentExecutionCarrierProjection =
+            MirIntentExecutionCarrierProjectionFromPlan(
+                routines, index, routine_row, intent_execution_plan,
+                topology_rows
+            );
+        if !typed_carriers.valid {
+            MirLowerFailClosed(
+                "typed MIR intent execution carriers are inconsistent"
+            );
+        }
+        let carrier_names: Array<String> = routine_carriers.carrier_names;
+        let carrier_arg0s: Array<String> = routine_carriers.carrier_arg0s;
+        let carrier_arg1s: Array<String> = routine_carriers.carrier_arg1s;
+        let carrier_slots: Array<String> = routine_carriers.carrier_slots;
+        let carrier_results: Array<String> = routine_carriers.carrier_results;
+        let carrier_abi_type_names: Array<String> =
+            routine_carriers.carrier_abi_type_names;
+        let carrier_source_types: Array<String> =
+            routine_carriers.carrier_source_types;
+        let carrier_expr0s: Array<String> = routine_carriers.carrier_expr0s;
+        let carrier_rows: Array<Int> = routine_carriers.carrier_rows;
+        let typed_carrier: Int = 0;
+        while typed_carrier < ArrayLength(typed_carriers.names) {
+            ArrayPush(carrier_names, typed_carriers.names[typed_carrier]);
+            ArrayPush(carrier_arg0s, typed_carriers.arg0s[typed_carrier]);
+            ArrayPush(carrier_arg1s, typed_carriers.arg1s[typed_carrier]);
+            ArrayPush(carrier_slots, typed_carriers.slots[typed_carrier]);
+            ArrayPush(carrier_results, typed_carriers.results[typed_carrier]);
+            ArrayPush(
+                carrier_abi_type_names,
+                typed_carriers.abi_type_names[typed_carrier]
+            );
+            ArrayPush(
+                carrier_source_types,
+                typed_carriers.source_types[typed_carrier]
+            );
+            ArrayPush(carrier_expr0s, typed_carriers.expr0s[typed_carrier]);
+            ArrayPush(carrier_rows, typed_carriers.global_rows[typed_carrier]);
+            typed_carrier = typed_carrier + 1;
+        }
+        routine_carriers.carrier_names = carrier_names;
+        routine_carriers.carrier_arg0s = carrier_arg0s;
+        routine_carriers.carrier_arg1s = carrier_arg1s;
+        routine_carriers.carrier_slots = carrier_slots;
+        routine_carriers.carrier_results = carrier_results;
+        routine_carriers.carrier_abi_type_names = carrier_abi_type_names;
+        routine_carriers.carrier_source_types = carrier_source_types;
+        routine_carriers.carrier_expr0s = carrier_expr0s;
+        routine_carriers.carrier_rows = carrier_rows;
+    }
+    let binding_projection: MirIntentBindingProjection =
+        MirIntentBindingProjectionFromCarriers(
+            routine_carriers.carrier_names, routine_carriers.carrier_arg0s, routine_carriers.carrier_arg1s, routine_carriers.carrier_slots,
+            intent_name
+        );
+    if !binding_projection.ok {
+        MirLowerFailClosed("MIR intent bindings or steps are missing");
+    }
+    let step_names: Array<String> = [];
+    if typed_execution {
+        let topology_i: Int = 0;
+        while topology_i < ArrayLength(topology_rows) {
+            ArrayPush(
+                step_names,
+                intent_execution_plan.steps.step_names[topology_rows[
+                    topology_i
+                ]]
+            );
+            topology_i = topology_i + 1;
+        }
+    } else {
+        let legacy_step_i: Int = 0;
+        while legacy_step_i < ArrayLength(binding_projection.step_names) {
+            ArrayPush(
+                step_names, binding_projection.step_names[legacy_step_i]
+            );
+            legacy_step_i = legacy_step_i + 1;
+        }
+    }
+    let phase_projection: MirIntentPhaseProjection =
+        MirIntentPhaseProjectionFromCarriers(
+            routines, step_names, routine_carriers.carrier_names, routine_carriers.carrier_arg0s,
+            routine_carriers.carrier_arg1s, routine_carriers.carrier_slots, routine_carriers.carrier_results,
+            routine_carriers.carrier_abi_type_names, routine_carriers.carrier_source_types, routine_carriers.carrier_expr0s,
+            routine_carriers.carrier_rows
+        );
+    if !phase_projection.ok {
+        MirLowerFailClosed(phase_projection.diagnostic_message);
+    }
+    if typed_execution && !MirIntentExecutionCoverLegacyGraphMirrors(
+        routines, routine_row, intent_execution_plan, routine_syntax_id,
+        expression_order
+    ) {
+        MirLowerFailClosed(
+            "typed MIR intent legacy graph mirror multiset is inconsistent"
+        );
+    }
+    let tree: String = MirIntentTreeAppendLine(
+        "", Concat("  Intent: ", intent_name)
+    );
+    if typed_execution {
+        let return_type: String = MirIntentExecutionReturnTypeForRoutine(
+            intent_execution_plan, routine_syntax_id
+        );
+        if return_type == "" {
+            MirLowerFailClosed("typed MIR intent result type is missing");
+        }
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("    IntentReturns: ", return_type)
+        );
+    }
+    tree = MirIntentTreeAppendLine(tree, "    IntentMode: exclusive");
+
+    let rollback_block_id: Int = MirIntentExecutionRollbackBlockId(
+        intent_execution_plan, routine_syntax_id
+    );
+    let rollback_error: String = "";
+    if rollback_block_id == 2 {
+        rollback_error = MirIntentRollbackContractError(
+            routines, index, routine_row, intent_name
+        );
+    } else {
+        rollback_error = MirIntentRollbackContractErrorAtBlockId(
+            routines, index, routine_row, intent_name, rollback_block_id,
+            intent_execution_plan, routine_syntax_id
+        );
+    }
+    if rollback_error != "" { MirLowerFailClosed(rollback_error); }
+    tree = MirIntentTreeAppendLine(tree, "    IntentRollback: full");
+    tree = Concat(tree, binding_projection.tree_lines);
+
+    let step_tree: String = MirIntentRoutineStepTreeLines(
+        routines, routine_row, typed_execution, intent_execution_plan,
+        routine_syntax_id, topology_rows, routine_carriers,
+        binding_projection, step_names, phase_projection, expression_order
+    );
+    tree = Concat(tree, step_tree);
+
+    if typed_execution {
+        let terminal_lines: String = MirIntentExecutionAppendTerminalLines(
+            routines, routine_row, intent_execution_plan,
+            routine_syntax_id, expression_order
+        );
+        if terminal_lines == "" {
+            MirLowerFailClosed("typed MIR intent terminals are incomplete");
+        }
+        tree = Concat(tree, terminal_lines);
+    }
+
+    let invalidation_block_id: Int = MirIntentExecutionInvalidationBlockId(
+        intent_execution_plan, routine_syntax_id
+    );
+    let invalidation_error: String = "";
+    if invalidation_block_id == 3 {
+        invalidation_error = MirIntentInvalidationContractError(
+            routines, index, routine_row
+        );
+    } else {
+        invalidation_error = MirIntentInvalidationContractErrorAtBlockId(
+            routines, index, routine_row, invalidation_block_id
+        );
+    }
+    if invalidation_error != "" { MirLowerFailClosed(invalidation_error); }
+    return tree;
+}
+
+func EmitMirIntentTreeAtRow(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
+    let plan: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(
+        true, false
+    );
+    return EmitMirIntentTreeAtRowWithExecutionPlan(
+        routines, routine_row, expression_order, plan
+    );
+}

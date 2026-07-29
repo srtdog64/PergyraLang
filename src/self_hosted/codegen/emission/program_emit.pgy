@@ -35,6 +35,7 @@ import "role_dispatch_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 import "program_statement_shape_owner.pgy";
 import "intent_emit_owner.pgy";
+import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
@@ -200,6 +201,7 @@ func GenerateCUnitFromSemanticFacts(
     own body_types: CodegenSemanticBodyTypeFacts,
     receiver_facts: CodegenCallableReceiverFacts,
     ref domain_runtime: CodegenDomainRuntimeFacts,
+    ref intent_execution: CodegenIntentExecutionView,
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
@@ -421,8 +423,12 @@ func GenerateCUnitFromSemanticFacts(
     );
     let intent_definition_block: String = CodegenIntentDefinitionBlock(
         artifact, semantic_analysis.intent_signatures,
-        semantic_analysis.expression_surfaces, base_env
+        semantic_analysis.expression_surfaces, base_env, intent_execution
     );
+    let admitted_intent_definition_block: String =
+        CodegenIntentExecutionPlanDefinitionBlock(
+            intent_execution, semantic_analysis.intent_signatures, base_env
+        );
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
@@ -458,7 +464,7 @@ func GenerateCUnitFromSemanticFacts(
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
     let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction);
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_artifact_transaction || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_artifact_transaction || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn || intent_execution.present;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "#include <stdio.h>\n");
@@ -581,6 +587,7 @@ func GenerateCUnitFromSemanticFacts(
     TextBuilderAppend(output, proto_block);
     TextBuilderAppend(output, intent_proto_block);
     TextBuilderAppend(output, intent_definition_block);
+    TextBuilderAppend(output, admitted_intent_definition_block);
     let definition_index: Int = 0;
     while definition_index < ArrayLength(defs) {
         TextBuilderAppend(output, defs[definition_index]);

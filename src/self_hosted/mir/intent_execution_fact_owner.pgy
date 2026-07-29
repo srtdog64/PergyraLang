@@ -11,16 +11,16 @@ import "intent_execution_schema_owner.pgy";
 import "intent_execution_digest_owner.pgy";
 
 func MirIntentCompensationFactsAligned(
-    ref rows: MirIntentCompensationFacts
+    ref facts: MirIntentCompensationFacts
 ) -> Bool {
-    let count: Int = ArrayLength(rows.transition_ids);
-    return count == ArrayLength(rows.expression_syntax_ids) &&
-        count == ArrayLength(rows.instruction_block_ids) &&
-        count == ArrayLength(rows.instruction_ids) &&
-        count == ArrayLength(rows.graph_root_ids) &&
-        count == ArrayLength(rows.graph_digests) &&
-        count == ArrayLength(rows.call_target_names) &&
-        count == ArrayLength(rows.call_target_syntax_ids);
+    let count: Int = ArrayLength(facts.transition_ids);
+    return count == ArrayLength(facts.expression_syntax_ids) &&
+        count == ArrayLength(facts.instruction_block_ids) &&
+        count == ArrayLength(facts.instruction_ids) &&
+        count == ArrayLength(facts.graph_root_ids) &&
+        count == ArrayLength(facts.graph_digests) &&
+        count == ArrayLength(facts.call_target_names) &&
+        count == ArrayLength(facts.call_target_syntax_ids);
 }
 
 func MirIntentStepTransitionFactsAligned(
@@ -46,11 +46,13 @@ func MirIntentStepTransitionFactsAligned(
         count == ArrayLength(rows.success_variant_names) &&
         count == ArrayLength(rows.success_payload_names) &&
         count == ArrayLength(rows.success_payload_type_names) &&
+        count == ArrayLength(rows.success_payload_decl_syntax_ids) &&
         count == ArrayLength(rows.success_successor_block_ids) &&
         count == ArrayLength(rows.failure_variant_indices) &&
         count == ArrayLength(rows.failure_variant_names) &&
         count == ArrayLength(rows.failure_payload_names) &&
         count == ArrayLength(rows.failure_payload_type_names) &&
+        count == ArrayLength(rows.failure_payload_decl_syntax_ids) &&
         count == ArrayLength(rows.failure_successor_block_ids) &&
         count == ArrayLength(rows.completion_block_ids) &&
         count == ArrayLength(rows.completion_instruction_ids) &&
@@ -72,6 +74,7 @@ func MirIntentTerminalTransitionFactsAligned(
         count == ArrayLength(rows.source_variant_names) &&
         count == ArrayLength(rows.source_payload_names) &&
         count == ArrayLength(rows.source_payload_type_names) &&
+        count == ArrayLength(rows.source_payload_decl_syntax_ids) &&
         count == ArrayLength(rows.result_instruction_block_ids) &&
         count == ArrayLength(rows.result_instruction_ids) &&
         count == ArrayLength(rows.result_definition_names) &&
@@ -82,6 +85,7 @@ func MirIntentTerminalTransitionFactsAligned(
         count == ArrayLength(rows.result_variant_names) &&
         count == ArrayLength(rows.result_payload_names) &&
         count == ArrayLength(rows.result_payload_type_names) &&
+        count == ArrayLength(rows.result_payload_decl_syntax_ids) &&
         count == ArrayLength(rows.expression_syntax_ids) &&
         count == ArrayLength(rows.graph_root_ids) &&
         count == ArrayLength(rows.graph_digests);
@@ -175,11 +179,13 @@ func MirIntentStepTransitionFactsReady(
             rows.success_variant_names[row] == "" ||
             rows.success_payload_names[row] == "" ||
             rows.success_payload_type_names[row] == "" ||
+            rows.success_payload_decl_syntax_ids[row] <= 0 ||
             rows.success_successor_block_ids[row] < 0 ||
             rows.failure_variant_indices[row] < 0 ||
             rows.failure_variant_names[row] == "" ||
             rows.failure_payload_names[row] == "" ||
             rows.failure_payload_type_names[row] == "" ||
+            rows.failure_payload_decl_syntax_ids[row] <= 0 ||
             rows.failure_successor_block_ids[row] < 0 ||
             rows.success_variant_indices[row] ==
                 rows.failure_variant_indices[row] ||
@@ -239,6 +245,17 @@ func MirIntentStepTransitionFactsReady(
                 rows.compensations.call_target_names[compensation_at] == "" ||
                 rows.compensations.call_target_syntax_ids[compensation_at] <= 0 {
                 return false;
+            }
+            let prior_compensation: Int = 0;
+            while prior_compensation < compensation_at {
+                if rows.compensations.expression_syntax_ids[
+                        prior_compensation
+                    ] == rows.compensations.expression_syntax_ids[
+                        compensation_at
+                    ] {
+                    return false;
+                }
+                prior_compensation = prior_compensation + 1;
             }
             compensation_at = compensation_at + 1;
         }
@@ -321,7 +338,9 @@ func MirIntentTerminalSourceMatchesStep(
             terminals.source_payload_names[terminal_row] ==
                 steps.success_payload_names[step_row] &&
             terminals.source_payload_type_names[terminal_row] ==
-                steps.success_payload_type_names[step_row];
+                steps.success_payload_type_names[step_row] &&
+            terminals.source_payload_decl_syntax_ids[terminal_row] ==
+                steps.success_payload_decl_syntax_ids[step_row];
     }
     if terminals.roles[terminal_row] == "failure" {
         return terminals.source_variant_indices[terminal_row] ==
@@ -331,7 +350,9 @@ func MirIntentTerminalSourceMatchesStep(
             terminals.source_payload_names[terminal_row] ==
                 steps.failure_payload_names[step_row] &&
             terminals.source_payload_type_names[terminal_row] ==
-                steps.failure_payload_type_names[step_row];
+                steps.failure_payload_type_names[step_row] &&
+            terminals.source_payload_decl_syntax_ids[terminal_row] ==
+                steps.failure_payload_decl_syntax_ids[step_row];
     }
     return false;
 }
@@ -349,6 +370,8 @@ func MirIntentTerminalTransitionFactsReady(
             rows.source_step_syntax_ids[row], rows.source_step_names[row]
         );
         if rows.terminal_transition_ids[row] <= 0 ||
+            rows.terminal_transition_ids[row] !=
+                rows.expression_syntax_ids[row] ||
             rows.routine_syntax_ids[row] <= 0 ||
             (rows.roles[row] != "success" && rows.roles[row] != "failure") ||
             step_row < 0 ||
@@ -371,6 +394,10 @@ func MirIntentTerminalTransitionFactsReady(
                 rows.source_payload_names[row] ||
             rows.result_payload_type_names[row] !=
                 rows.source_payload_type_names[row] ||
+            rows.source_payload_decl_syntax_ids[row] <= 0 ||
+            rows.result_payload_decl_syntax_ids[row] <= 0 ||
+            rows.result_payload_decl_syntax_ids[row] !=
+                rows.source_payload_decl_syntax_ids[row] ||
             rows.expression_syntax_ids[row] <= 0 ||
             rows.graph_root_ids[row] < 0 || rows.graph_digests[row] <= 0 {
             return false;
@@ -381,12 +408,16 @@ func MirIntentTerminalTransitionFactsReady(
                     rows.terminal_transition_ids[row] ||
                 rows.expression_syntax_ids[prior] ==
                     rows.expression_syntax_ids[row] ||
-                rows.result_definition_names[prior] ==
-                    rows.result_definition_names[row] ||
+                (rows.routine_syntax_ids[prior] ==
+                    rows.routine_syntax_ids[row] &&
+                 rows.result_definition_names[prior] ==
+                    rows.result_definition_names[row]) ||
                 (rows.source_transition_ids[prior] ==
                     rows.source_transition_ids[row] &&
                  rows.roles[prior] == rows.roles[row]) ||
-                (rows.result_enum_syntax_ids[prior] ==
+                (rows.routine_syntax_ids[prior] ==
+                    rows.routine_syntax_ids[row] &&
+                 rows.result_enum_syntax_ids[prior] ==
                     rows.result_enum_syntax_ids[row] &&
                  rows.result_variant_indices[prior] ==
                     rows.result_variant_indices[row] &&

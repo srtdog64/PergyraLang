@@ -3,6 +3,8 @@
 // The producer already owns each pattern binding's type.  This owner validates
 // the parallel binding/type rows and admits them into the routine-local view so
 // nested lowering never infers a type from pattern spelling or source text.
+// Same-spelled bindings in distinct arms remain distinct rows; a routine-wide
+// lookup must report them as ambiguous when their carried types differ.
 
 import "json_fact_read.pgy";
 import "program_routine_index_owner.pgy";
@@ -12,6 +14,22 @@ struct MirMatchBindingLocalFacts {
     validation_stage: String;
     names: Array<String>;
     types: Array<String>;
+}
+
+func MirMatchBindingRoutineWideType(
+    names: Array<String>, types: Array<String>, wanted: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(types) { return ""; }
+    let found: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == wanted && found != "" && found != types[row] {
+            return "";
+        }
+        if names[row] == wanted { found = types[row]; }
+        row = row + 1;
+    }
+    return found;
 }
 
 func BuildMirMatchBindingLocalFacts(
@@ -139,8 +157,8 @@ func BuildMirMatchBindingLocalFacts(
                             ArrayPush(names, name);
                             ArrayPush(types, type_name);
                         } else if existing != type_name {
-                            valid = false;
-                            validation_stage = "match_binding_type_conflict";
+                            ArrayPush(names, name);
+                            ArrayPush(types, type_name);
                         }
                     }
                     binding = binding + 1;

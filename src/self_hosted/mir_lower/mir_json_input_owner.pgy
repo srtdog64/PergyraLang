@@ -71,6 +71,11 @@ func MirJsonReadMachineAdmittedInputObserved(
             declaration, document, topology, observe_pressure
         );
     if !IsSome(admitted_opt) {
+        if JsonObjectFactTableReady(document.intent_execution) {
+            MirLowerFailClosed(
+                "MIR intent execution facts are missing or invalid"
+            );
+        }
         MirLowerFailClosed("MIR machine-layer facts are missing or invalid");
     }
     MirJsonInputPressureStage(

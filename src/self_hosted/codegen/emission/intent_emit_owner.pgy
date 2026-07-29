@@ -7,6 +7,7 @@
 // immutable value available to the same step predicates and compensation.
 
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../input/intent_execution_codegen_view_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
@@ -22,12 +23,19 @@ func CodegenIntentDefinitionBlock(
     artifact: AstTreeArtifact,
     ref intents: SemanticAstIntentSignatureFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    base_env: CodegenTypeEnv
+    base_env: CodegenTypeEnv,
+    ref intent_execution: CodegenIntentExecutionView
 ) -> String {
     let definitions: Array<String> = [];
     let intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         let intent_node: Int = intents.intent_node_ids[intent_index];
+        if CodegenIntentExecutionViewOwnsRoutine(
+            intent_execution, intent_node
+        ) {
+            intent_index = intent_index + 1;
+            continue;
+        }
         let env: CodegenTypeEnv = CodegenIntentLocalEnv(
             intents, intent_index, base_env
         );
@@ -289,7 +297,8 @@ func CodegenIntentDefinitionBlock(
             step_writeback_expressions
         );
         ArrayPush(definitions, Concat(
-            "bool ", Concat(
+            CodegenIntentCReturnType(intents, intent_index, base_env),
+            Concat(" ", Concat(
                 CompilerSymbolCIdentifier(intents.names[intent_index]),
                 Concat("(", Concat(
                     CodegenIntentParameterList(intents, intent_index, base_env),
@@ -297,7 +306,7 @@ func CodegenIntentDefinitionBlock(
                         StringJoin(body, ""), "}\n\n"
                     ))
                 ))
-            )
+            ))
         ));
         intent_index = intent_index + 1;
     }

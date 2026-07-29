@@ -4,6 +4,7 @@ import "../text/text_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/target_projection_fact_owner.pgy";
+import "../input/intent_execution_codegen_view_owner.pgy";
 func GenerateCUnitFromSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
@@ -24,20 +25,22 @@ func GenerateCUnitFromSemanticArtifact(
         );
     let domain_runtime: CodegenDomainRuntimeFacts =
         CodegenDomainRuntimeFactsEmpty(true);
+    let intent_execution: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewEmpty(true);
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
-        domain_runtime,
+        domain_runtime, intent_execution,
         require_entrypoint,
         machine_declaration
     );
 }
-
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
     receiver_facts: CodegenCallableReceiverFacts,
     ref domain_runtime: CodegenDomainRuntimeFacts,
+    ref intent_execution: CodegenIntentExecutionView,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
@@ -48,17 +51,15 @@ func GenerateCFromVerifiedSemanticArtifact(
     }
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
-        domain_runtime,
+        domain_runtime, intent_execution,
         true, machine_declaration
     );
 }
-
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     return GenerateCUnitFromAstArtifact(
         AstTreeArtifactFromText(tree_text), require_entrypoint
     );
 }
-
 func GenerateCUnitFromAstArtifact(
     artifact: AstTreeArtifact,
     require_entrypoint: Bool
@@ -72,7 +73,6 @@ func GenerateCUnitFromAstArtifact(
         SelfHostMachineLayerDeclarationEmpty()
     );
 }
-
 func GenerateCUnitFromTypedAstArtifact(
     artifact: AstTreeArtifact,
     require_entrypoint: Bool
@@ -84,7 +84,6 @@ func GenerateCUnitFromTypedAstArtifact(
         SelfHostMachineLayerDeclarationEmpty()
     );
 }
-
 func GenerateCFromSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis

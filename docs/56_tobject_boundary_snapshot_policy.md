@@ -1,6 +1,76 @@
 # `tobject` Boundary Contract and Snapshot Policy
 
-마지막 업데이트: 2026-07-28
+마지막 업데이트: 2026-07-29
+
+## 2026-07-29 implementation audit
+
+현재 구현은 `tobject`를 단순 `struct` 철자 별칭으로만 다루지는 않는다.
+
+- native parser AST는 `NOMINAL_DECL_TOBJECT`를 별도 nominal identity로 보존한다.
+- `ToTObject(Target, source)` semantic은 target이 exact `tobject` 선언인지,
+  source가 `subject`인지, target field가 source에 유일하고 assignable하게
+  존재하는지 검사한다.
+- 직접 `tobject` member write는 immutable-transfer 진단으로 거부된다.
+- typed intent semantic은 action outcome enum의 success/failure variant가 각각
+  하나의 exact `tobject` payload를 가지는지 declaration/variant identity로
+  봉인한다. MIR execution plan이 step, predecessor, completion, compensation,
+  terminal control flow를 소유하고 `tobject`는 payload shape만 소유한다.
+- self-host production code는 artifact commit receipt/failure와 direct-MIR
+  execution receipt/rejection을 method-free data-only `tobject`로 실제 소비한다.
+
+아직 완전히 닫히지 않은 구현 계약도 있다.
+
+- parser/semantic은 호환 표면으로 `tobject` 안의 passive helper `func`를
+  허용한다.
+- declaration grammar는 bare field, `let mut`, default/destructure 표면을
+  공통 value/projection parser에서 받는다. 단순 member assignment 거부만으로
+  bare/nested/indexed mutation 전체가 fail-closed라고 주장할 수 없다.
+- typed intent execution wire v2는 enum declaration뿐 아니라 success/failure와
+  terminal의 payload `tobject` declaration stable ID도 운반하고, name/kind/ID를
+  함께 cross-seal한다. v1의 name-only join은 호환 fallback 없이 제거했다.
+- 따라서 현재 등급은 detached transfer payload로는 `REACHABLE`이지만,
+  canonical method-free/fully immutable nominal 전체가 닫힌 것은 아니다.
+
+이 debt를 해결할 때도 intent 실행 topology나 authority를 `tobject`로 옮기지
+않는다. 별도 semantic closure에서 method-free declaration, 모든 write shape,
+constructor/materialization 허용 범위를 함께 고정하고 negative gate를 둔다.
+
+여기서 `intent`를 단순히 "여러 action을 호출하는 함수"로 축약하지 않는다.
+`docs/01_intent_first_design.md`의 최상위 목적 축과
+`docs/173_intent_axis_strengthening.md`의 정본에 따라, intent는 목적을 닫고 다른
+언어 경계를 유도하는 source-level cross-axis binder다. Verification plane에서는
+하나의 거대한 intent fact가 아니라 participant, coordination, boundary,
+authority, effect, compensation, trace owner fact로 전개된다. `tobject`는 그중
+boundary를 통과하는 값일 수 있지만 다른 fact의 owner가 아니다.
+
+### 구현 closure 전략
+
+`tobject` 강화는 parser, intent, backend가 각각 별도 규칙을 갖는 방식으로 하지
+않는다. semantic nominal contract 한 곳이 다음 사실을 소유하고 나머지는 그
+판정만 소비한다.
+
+- declaration identity가 exact `tobject`인가;
+- method/action/slot/authority를 갖지 않는 data-only nominal인가;
+- 모든 field가 construction 뒤 immutable이며 nested/indexed/alias/inout write도
+  같은 계약으로 거부되는가;
+- field type이 경계를 넘길 수 있는 owned value인가. `subject`, `zone`, borrowed
+  reference, authority handle, growable storage의 raw alias는 허용하지 않는다;
+- 생성은 explicit literal/move 또는 `ToTObject(exact_target, subject_source)`
+  materialization인가;
+- enum payload가 이 declaration identity를 정확히 한 번 참조하는가.
+
+마지막 소비자는 `ToTObject` materializer, publish/transport, action/intent enum
+payload emitter다. 이 소비자들이 nominal spelling이나 `struct-like` shape로 같은
+규칙을 재구성하면 안 된다. Backend는 semantic-admitted contract를 투영하고,
+MIR은 stable declaration identity만 운반한다.
+
+최소 negative gate는 method, `let mut`/bare mutable field, destructured/default
+mutable storage, direct/nested/indexed/alias write, non-transfer-safe field type,
+`object`/`struct` payload 대체, enum zero/multiple payload, 같은 이름의 foreign
+declaration ID를 각각 거부해야 한다. Positive gate는
+`subject -> ToTObject -> tobject slot -> publish`와
+`action -> enum<tobject> -> intent terminal -> receipt/failure` 두 실행 경로를
+같은 semantic contract로 통과시킨다.
 
 ## 한 줄 결론
 
@@ -221,7 +291,7 @@ tobject CameraFrame {
 - `object`: local/internal passive projection
 - `tobject`: boundary transfer/publish contract
 - `slot`: ownership/capability/lifecycle
-- `intent`: cross-domain orchestration
+- `intent`: 현실 목적을 닫고 검증 평면의 cross-axis fact를 귀속하는 source-level binder
 - `parallel`: execution contract
 
 향후 필요하면 telemetry snapshot은 별도 표면으로 추가한다.

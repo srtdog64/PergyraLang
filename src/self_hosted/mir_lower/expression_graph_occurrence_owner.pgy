@@ -109,9 +109,7 @@ func MirExpressionGraphOccurrenceGraphSlot(
             }
         }
         if lane == AstExpressionLaneAtom() &&
-            (!IsSome(arg0_opt) || UnwrapOption(arg0_opt) == "" ||
-                UnwrapOption(arg0_opt) == "Log" ||
-                UnwrapOption(arg0_opt) == "Exit") {
+            (!IsSome(arg0_opt) || UnwrapOption(arg0_opt) != "ArrayPop") {
             return MirExpressionGraphSlotExpr0();
         }
     }
@@ -123,7 +121,8 @@ func MirExpressionGraphOccurrenceGraphSlot(
         let name: String = UnwrapOption(name_opt);
         if name == "IntentCheck" ||
             (name == "IntentEval" && IsSome(arg0_opt) &&
-             UnwrapOption(arg0_opt) == "compensate") {
+             (UnwrapOption(arg0_opt) == "on" ||
+              UnwrapOption(arg0_opt) == "compensate")) {
             return MirExpressionGraphSlotExpr0();
         }
     }

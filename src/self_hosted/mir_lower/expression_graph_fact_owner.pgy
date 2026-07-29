@@ -6,11 +6,13 @@ import "program_routine_index_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "expression_graph_occurrence_owner.pgy";
 import "expression_graph_parser_bridge_owner.pgy";
+import "intent_execution_graph_target_owner.pgy";
 
 func MirExpressionGraphFactsForArtifact(
     ref routines: MirProgramRoutineIndex,
     artifact: AstTreeArtifact,
-    ref order: MirStructuredExpressionEmissionOrder
+    ref order: MirStructuredExpressionEmissionOrder,
+    ref intent_execution_plan: MirIntentExecutionPlan
 ) -> SemanticExpressionGraphFacts {
     let surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
@@ -30,6 +32,27 @@ func MirExpressionGraphFactsForArtifact(
         ArrayPush(expr0_seen, false);
         ArrayPush(expr1_seen, false);
         seen_i = seen_i + 1;
+    }
+    let covered_i: Int = 0;
+    while covered_i < ArrayLength(order.covered_producer_rows) {
+        let covered_row: Int = order.covered_producer_rows[covered_i];
+        if covered_row < 0 || covered_row >= instruction_count {
+            valid = false;
+        } else {
+            let covered_instruction: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                    routines.source_json,
+                    routines.instruction_starts[covered_row],
+                    routines.instruction_ends[covered_row]
+                );
+            if !MirInstructionRequiresExpr0Graph(covered_instruction) ||
+                MirInstructionRequiresExpr1Graph(covered_instruction) {
+                valid = false;
+            } else {
+                ArraySet(expr0_seen, covered_row, true);
+            }
+        }
+        covered_i = covered_i + 1;
     }
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
@@ -84,6 +107,10 @@ func MirExpressionGraphFactsForArtifact(
                             );
                         let prior_root_count: Int =
                             ArrayLength(sequence.roots);
+                        let prior_node_count: Int =
+                            SemanticExpressionGraphArenaNodeCount(
+                                sequence.arena
+                            );
                         let graph_slot: Int = MirExpressionGraphSlotNone();
                         if producer_only {
                             if !MirExpressionGraphProducerOnlyOccurrenceAllowed(
@@ -102,6 +129,27 @@ func MirExpressionGraphFactsForArtifact(
                             );
                             sequence = MirExpressionGraphSequenceAppendOccurrence(
                                 sequence, instruction, lane, ordinal
+                            );
+                            let target_projection:
+                                MirIntentExecutionGraphTargetProjection =
+                                    MirIntentExecutionGraphTargetProjection(
+                                        true, false, "", ""
+                                    );
+                            let instruction_name: Option<String> =
+                                JsonObjectFactStringFieldOpt(
+                                    instruction, "name"
+                                );
+                            if IsSome(instruction_name) &&
+                                UnwrapOption(instruction_name) == "IntentEval" {
+                                target_projection =
+                                    MirIntentExecutionGraphTargetForInstruction(
+                                        routines, intent_execution_plan,
+                                        global_row
+                                    );
+                            }
+                            sequence = MirIntentExecutionGraphTargetProject(
+                                sequence, prior_node_count,
+                                target_projection
                             );
                         }
                         if !sequence.ok ||

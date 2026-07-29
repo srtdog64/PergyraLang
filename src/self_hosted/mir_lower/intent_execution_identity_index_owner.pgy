@@ -1,0 +1,322 @@
+// Stable routine/declaration identity index for typed-intent admission.
+// Name-only lookup is forbidden: enum identity includes its source syntax ID
+// and exact ordinal/name/single-payload variant row.
+
+import "intent_execution_json_decode_owner.pgy";
+import "program_routine_index_owner.pgy";
+
+struct MirIntentExecutionDeclarationIndex {
+    valid: Bool;
+    kinds: Array<String>;
+    nominal_kinds: Array<String>;
+    names: Array<String>;
+    source_syntax_ids: Array<Int>;
+    variant_starts: Array<Int>;
+    variant_counts: Array<Int>;
+    variant_names: Array<String>;
+    variant_param_counts: Array<Int>;
+    variant_single_param_types: Array<String>;
+}
+
+struct MirIntentExecutionRoutineSignatureIndex {
+    valid: Bool;
+    kinds: Array<String>;
+    names: Array<String>;
+    source_syntax_ids: Array<Int>;
+    return_type_names: Array<String>;
+}
+
+func MirIntentExecutionDeclarationIndexFromDocument(
+    ref document: MirDocumentFactIndex
+) -> MirIntentExecutionDeclarationIndex {
+    let kinds: Array<String> = [];
+    let nominal_kinds: Array<String> = [];
+    let names: Array<String> = [];
+    let source_syntax_ids: Array<Int> = [];
+    let variant_starts: Array<Int> = [];
+    let variant_counts: Array<Int> = [];
+    let variant_names: Array<String> = [];
+    let variant_param_counts: Array<Int> = [];
+    let variant_single_param_types: Array<String> = [];
+    if !document.valid ||
+        !JsonArrayObjectFactTableReady(document.declarations) {
+        return MirIntentExecutionDeclarationIndex(
+            false, kinds, nominal_kinds, names, source_syntax_ids,
+            variant_starts, variant_counts, variant_names,
+            variant_param_counts, variant_single_param_types
+        );
+    }
+    let json: String = document.declarations.json;
+    let valid: Bool = true;
+    let cursor: Int = document.declarations.start + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(
+        json, cursor, document.declarations.end, bounds
+    ) {
+        let kind: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                json, bounds[0], bounds[1], "kind"
+            );
+        let name: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                json, bounds[0], bounds[1], "name"
+            );
+        let syntax_id: MirIntentExecutionIntValue =
+            MirIntentExecutionUniqueIntField(
+                json, bounds[0], bounds[1], "source_syntax_id"
+            );
+        let nominal_kind: String = "";
+        let nominal_count: Int = MirIntentExecutionObjectFieldOccurrenceCount(
+            json, bounds[0], bounds[1], "nominal_kind"
+        );
+        if nominal_count > 1 { valid = false; }
+        if nominal_count == 1 {
+            let nominal: MirIntentExecutionStringValue =
+                MirIntentExecutionUniqueStringField(
+                    json, bounds[0], bounds[1], "nominal_kind"
+                );
+            if !nominal.valid { valid = false; }
+            nominal_kind = nominal.value;
+        }
+        if !kind.valid || kind.value == "" || !name.valid ||
+            name.value == "" || !syntax_id.valid || syntax_id.value <= 0 {
+            valid = false;
+        }
+        let prior: Int = 0;
+        while prior < ArrayLength(source_syntax_ids) {
+            if source_syntax_ids[prior] == syntax_id.value {
+                valid = false;
+            }
+            prior = prior + 1;
+        }
+        ArrayPush(kinds, kind.value);
+        ArrayPush(nominal_kinds, nominal_kind);
+        ArrayPush(names, name.value);
+        ArrayPush(source_syntax_ids, syntax_id.value);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        let variant_count: Int = 0;
+        let variants_occurrences: Int =
+            MirIntentExecutionObjectFieldOccurrenceCount(
+                json, bounds[0], bounds[1], "variants"
+            );
+        if variants_occurrences > 1 ||
+            (kind.value == "enum" && variants_occurrences != 1) ||
+            (kind.value != "enum" && variants_occurrences != 0) {
+            valid = false;
+        }
+        if variants_occurrences == 1 {
+            let variants_bounds: Array<Int> = [0, 0];
+            if !MirObjectArrayBoundsAtBounds(
+                json, bounds[0], bounds[1], "variants", variants_bounds
+            ) {
+                valid = false;
+            } else {
+                let variant_cursor: Int = variants_bounds[0] + 1;
+                let variant_bounds: Array<Int> = [0, 0];
+                while JsonArrayNextObjectBounds(
+                    json, variant_cursor, variants_bounds[1], variant_bounds
+                ) {
+                    let expected: Array<String> = [
+                        "name", "param_count", "param_types"
+                    ];
+                    let fields: MirIntentExecutionExactFields =
+                        MirIntentExecutionExactObjectFields(
+                            json, variant_bounds[0], variant_bounds[1], expected
+                        );
+                    let variant_name: MirIntentExecutionStringValue =
+                        MirIntentExecutionStringAt(json, fields, 0, false);
+                    let param_count: MirIntentExecutionIntValue =
+                        MirIntentExecutionIntAt(json, fields, 1);
+                    let param_types: MirIntentExecutionStringArray =
+                        MirIntentExecutionStringArrayAt(json, fields, 2);
+                    if !fields.valid || !variant_name.valid ||
+                        variant_name.value == "" || !param_count.valid ||
+                        !param_types.valid || param_count.value !=
+                            ArrayLength(param_types.values) {
+                        valid = false;
+                    }
+                    let single_param_type: String = "";
+                    if ArrayLength(param_types.values) == 1 {
+                        single_param_type = param_types.values[0];
+                    }
+                    ArrayPush(variant_names, variant_name.value);
+                    ArrayPush(variant_param_counts, param_count.value);
+                    ArrayPush(variant_single_param_types, single_param_type);
+                    variant_count = variant_count + 1;
+                    variant_cursor = variant_bounds[1];
+                }
+                if !MirProgramRoutineArrayCursorAtEnd(
+                    json, variant_cursor, variants_bounds[1]
+                ) {
+                    valid = false;
+                }
+            }
+        }
+        ArrayPush(variant_counts, variant_count);
+        cursor = bounds[1];
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(
+        json, cursor, document.declarations.end
+    ) {
+        valid = false;
+    }
+    return MirIntentExecutionDeclarationIndex(
+        valid, kinds, nominal_kinds, names, source_syntax_ids,
+        variant_starts, variant_counts, variant_names,
+        variant_param_counts, variant_single_param_types
+    );
+}
+
+func MirIntentExecutionRoutineSignatureIndexFromRoutines(
+    ref routines: MirProgramRoutineIndex
+) -> MirIntentExecutionRoutineSignatureIndex {
+    let kinds: Array<String> = [];
+    let names: Array<String> = [];
+    let source_syntax_ids: Array<Int> = [];
+    let return_type_names: Array<String> = [];
+    let valid: Bool = MirProgramRoutineIndexStructureReady(routines);
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        let source_id_text: String = routines.source_syntax_ids[row];
+        let return_type: MirIntentExecutionStringValue =
+            MirIntentExecutionUniqueStringField(
+                routines.source_json, routines.starts[row], routines.ends[row],
+                "return"
+            );
+        if source_id_text == "" ||
+            ToString(ToInt(source_id_text)) != source_id_text ||
+            ToInt(source_id_text) <= 0 || !return_type.valid ||
+            return_type.value == "" {
+            valid = false;
+        }
+        ArrayPush(kinds, routines.kinds[row]);
+        ArrayPush(names, routines.names[row]);
+        ArrayPush(source_syntax_ids, ToInt(source_id_text));
+        ArrayPush(return_type_names, return_type.value);
+        row = row + 1;
+    }
+    return MirIntentExecutionRoutineSignatureIndex(
+        valid, kinds, names, source_syntax_ids, return_type_names
+    );
+}
+
+func MirIntentExecutionRoutineRowByIdentity(
+    ref routines: MirIntentExecutionRoutineSignatureIndex,
+    syntax_id: Int, kind: String
+) -> Int {
+    if !routines.valid || syntax_id <= 0 || kind == "" { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.source_syntax_ids) {
+        if routines.source_syntax_ids[row] == syntax_id &&
+            routines.kinds[row] == kind {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionCallableRowByIdentity(
+    ref routines: MirIntentExecutionRoutineSignatureIndex,
+    syntax_id: Int, expected_name: String, expected_return: String
+) -> Int {
+    if !routines.valid || syntax_id <= 0 || expected_name == "" ||
+        expected_return == "" { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.source_syntax_ids) {
+        if routines.source_syntax_ids[row] == syntax_id &&
+            routines.names[row] == expected_name &&
+            routines.return_type_names[row] == expected_return &&
+            (routines.kinds[row] == "method" ||
+             routines.kinds[row] == "action") {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionCallableReturnReady(
+    ref routines: MirIntentExecutionRoutineSignatureIndex,
+    syntax_id: Int, expected_return: String
+) -> Bool {
+    if !routines.valid || syntax_id <= 0 || expected_return == "" {
+        return false;
+    }
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(routines.source_syntax_ids) {
+        if routines.source_syntax_ids[row] == syntax_id &&
+            routines.return_type_names[row] == expected_return &&
+            (routines.kinds[row] == "method" ||
+             routines.kinds[row] == "action") {
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
+func MirIntentExecutionTobjectDeclarationReady(
+    ref declarations: MirIntentExecutionDeclarationIndex,
+    name: String, source_syntax_id: Int
+) -> Bool {
+    if !declarations.valid || name == "" || source_syntax_id <= 0 {
+        return false;
+    }
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(declarations.names) {
+        if declarations.kinds[row] == "class" &&
+            declarations.nominal_kinds[row] == "tobject" &&
+            declarations.names[row] == name &&
+            declarations.source_syntax_ids[row] == source_syntax_id {
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
+func MirIntentExecutionEnumVariantReady(
+    ref declarations: MirIntentExecutionDeclarationIndex,
+    enum_name: String, enum_syntax_id: Int, variant_index: Int,
+    variant_name: String, payload_type_name: String,
+    payload_decl_syntax_id: Int
+) -> Bool {
+    if !declarations.valid || enum_name == "" || enum_syntax_id <= 0 ||
+        variant_index < 0 || variant_name == "" || payload_type_name == "" ||
+        payload_decl_syntax_id <= 0 {
+        return false;
+    }
+    let declaration_row: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(declarations.names) {
+        if declarations.kinds[row] == "enum" &&
+            declarations.names[row] == enum_name &&
+            declarations.source_syntax_ids[row] == enum_syntax_id {
+            if declaration_row >= 0 { return false; }
+            declaration_row = row;
+        }
+        row = row + 1;
+    }
+    if declaration_row < 0 ||
+        variant_index >= declarations.variant_counts[declaration_row] {
+        return false;
+    }
+    let variant_row: Int = declarations.variant_starts[declaration_row] +
+        variant_index;
+    return variant_row >= 0 &&
+        variant_row < ArrayLength(declarations.variant_names) &&
+        declarations.variant_names[variant_row] == variant_name &&
+        declarations.variant_param_counts[variant_row] == 1 &&
+        declarations.variant_single_param_types[variant_row] ==
+            payload_type_name &&
+        MirIntentExecutionTobjectDeclarationReady(
+            declarations, payload_type_name, payload_decl_syntax_id
+        );
+}

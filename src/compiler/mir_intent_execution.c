@@ -585,14 +585,18 @@ intent_execution_materialize_terminal(
         || terminal->result_variant_index == SIZE_MAX
         || terminal->result_variant_name == NULL
         || terminal->result_payload_name == NULL
-        || terminal->result_payload_type_name == NULL) {
+        || terminal->result_payload_type_name == NULL
+        || terminal->result_payload_decl_syntax_id == 0) {
         return false;
     }
     branch = role == MIR_INTENT_TERMINAL_SUCCESS
         ? &source->success : &source->failure;
     if (strcmp(terminal->result_payload_name, branch->payload_name) != 0
         || strcmp(terminal->result_payload_type_name,
-                  branch->payload_type_name) != 0) {
+                  branch->payload_type_name) != 0
+        || branch->payload_decl_syntax_id == 0
+        || terminal->result_payload_decl_syntax_id
+            != branch->payload_decl_syntax_id) {
         return false;
     }
     definition = mir_strdup_fmt(
@@ -620,6 +624,7 @@ intent_execution_materialize_terminal(
     row->source_variant_name = branch->variant_name;
     row->source_payload_name = branch->payload_name;
     row->source_payload_type_name = branch->payload_type_name;
+    row->source_payload_decl_syntax_id = branch->payload_decl_syntax_id;
     row->result_instruction_block_id = block_id;
     row->result_type_name = terminal->result_type_name;
     row->result_enum_name = terminal->result_type_name;
@@ -628,6 +633,8 @@ intent_execution_materialize_terminal(
     row->result_variant_name = terminal->result_variant_name;
     row->result_payload_name = terminal->result_payload_name;
     row->result_payload_type_name = terminal->result_payload_type_name;
+    row->result_payload_decl_syntax_id =
+        terminal->result_payload_decl_syntax_id;
     row->expression_syntax_id = ast_node_stable_id(terminal->expr);
     row->expression = terminal->expr;
     row->sealed = true;
@@ -709,6 +716,8 @@ mir_materialize_intent_execution_plan(MIRRoutine *routine,
             || step->outcome_binding_type_name == NULL
             || step->outcome_action_decl_syntax_id == 0
             || step->success_branch.enum_decl_syntax_id == 0
+            || step->success_branch.payload_decl_syntax_id == 0
+            || step->failure_branch.payload_decl_syntax_id == 0
             || step->success_branch.enum_decl_syntax_id
                 != step->failure_branch.enum_decl_syntax_id
             || !intent_execution_append_block(
@@ -740,11 +749,15 @@ mir_materialize_intent_execution_plan(MIRRoutine *routine,
         row->success.payload_name = step->success_branch.payload_name;
         row->success.payload_type_name =
             step->success_branch.payload_type_name;
+        row->success.payload_decl_syntax_id =
+            step->success_branch.payload_decl_syntax_id;
         row->failure.variant_index = step->failure_branch.variant_index;
         row->failure.variant_name = step->failure_branch.variant_name;
         row->failure.payload_name = step->failure_branch.payload_name;
         row->failure.payload_type_name =
             step->failure_branch.payload_type_name;
+        row->failure.payload_decl_syntax_id =
+            step->failure_branch.payload_decl_syntax_id;
         if (!intent_execution_materialize_step(
                 routine, step, row, compensation_blocks[i])) {
             goto fail;
@@ -906,6 +919,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
         hash = intent_execution_hash_string(
             hash, row->success.payload_type_name);
         hash = intent_execution_hash_int(
+            hash, row->success.payload_decl_syntax_id);
+        hash = intent_execution_hash_int(
             hash, (uint32_t)row->success.successor_block_id);
         hash = intent_execution_hash_int(
             hash, (uint32_t)row->failure.variant_index);
@@ -914,6 +929,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
             hash, row->failure.payload_name);
         hash = intent_execution_hash_string(
             hash, row->failure.payload_type_name);
+        hash = intent_execution_hash_int(
+            hash, row->failure.payload_decl_syntax_id);
         hash = intent_execution_hash_int(
             hash, (uint32_t)row->failure.successor_block_id);
         hash = intent_execution_hash_int(
@@ -960,6 +977,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
         hash = intent_execution_hash_string(
             hash, row->source_payload_type_name);
         hash = intent_execution_hash_int(
+            hash, row->source_payload_decl_syntax_id);
+        hash = intent_execution_hash_int(
             hash, (uint32_t)row->result_instruction_block_id);
         hash = intent_execution_hash_int(
             hash, (uint32_t)row->result_instruction_id);
@@ -975,6 +994,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
             hash, row->result_payload_name);
         hash = intent_execution_hash_string(
             hash, row->result_payload_type_name);
+        hash = intent_execution_hash_int(
+            hash, row->result_payload_decl_syntax_id);
         hash = intent_execution_hash_int(hash, row->expression_syntax_id);
         hash = intent_execution_hash_int(
             hash, (uint32_t)row->graph_root_id);

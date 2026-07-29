@@ -2,6 +2,40 @@
 
 마지막 업데이트: 2026-07-29
 
+## 2026-07-29 typed intent execution plan v2 admission checkpoint
+
+- Intent 의미는 action 개수로 판정하지 않는다. `docs/01`·`docs/173` 정본대로
+  현실 목적을 닫고 participant/coordination/authority/effect/boundary/
+  compensation/trace fact를 검증 평면에 귀속하는 source-level binder다. 이번
+  plan은 그중 coordination/boundary/compensation 실행 subfact의 bounded
+  projection이며 universal intent owner가 아니다.
+- Native semantic→AST→DIR→MIR→JSON과 self admission 전 구간이 step success/
+  failure 및 terminal source/result의 payload `tobject` declaration syntax ID를
+  운반한다. Schema는 `pgy.selfhost.mir-intent-execution-plan.v2`이며 v1 name-only
+  payload join은 dual-read fallback 없이 제거했다.
+- Canonical v2 plan은 2 steps/3 terminals, digest `1268084794`; multi-routine
+  plan은 digest `1173492658`이다. Fresh native build와 MIR 157/157, native C/LLVM
+  typed transition execution, self in-memory fact gate, canonical/multi JSON
+  admission이 PASS했고 41개 schema/identity/topology mutation이 partial C 전에
+  fail-closed했다.
+- `MirIntentExecutionPlanReady` full validation은 machine admission에서 한 번만
+  실행된다. Codegen/compiler consumer의 Ready/Digest/step/terminal 재검증과
+  recursive expression-graph 재구성은 static gate가 거부한다. Fresh self-driver
+  rebuild의 관측 동시 private 표본은 `pgy` 약 791MiB + `cc1` 약 739MiB +
+  `gcc` 약 1MiB, 합계 약 1,531MiB였다. 두 fresh 반복 모두 같은 범위였으며
+  20GiB 회귀는 없었다.
+- Admitted general self C는 production driver의 단일 admission receipt에서 v2
+  plan을 소비한다. Persisted plan graph는 `{root,digest,nodes}` exact seal을
+  요구하고, action/enum/tobject/instruction은 syntax ID와 nominal kind까지
+  exact-join한다. 동명 foreign subject action, digest 누락/zero/extra, missing
+  target, reachable zero-compensation scaffold를 모두 partial C 전에 거부했다.
+- Fresh Pergyra-built driver에서 success, failure A/B, predecessor-only reverse
+  compensation, multiple/duplicate expression, zero compensation의 direct/admitted
+  self C parity가 PASS했다. 이 bounded input-language MIR→self C 경로는 실제
+  옛 typed direct/rollback 우회를 제거했으므로 `SUBSTITUTING`이다. 그러나 실제
+  compiler 목적을 닫는 production root intent는 아직 entrypoint에서 호출되지
+  않으므로 compiler 조직으로서의 `intent`는 계속 `SURFACE`다.
+
 ## 2026-07-29 native typed intent plan 실행 checkpoint
 
 - `tobject`는 이번 경계의 해법이 맞지만 역할은 명확히 제한했다. Action은
@@ -144,7 +178,7 @@
   `dir.domain_graph` registry row에는 실행·negative gate를 추가했지만, 남은
   vessel/lifecycle/epoch/shared-plan 범위 때문에 세 family 모두 `BRIDGE`를 유지한다.
 - 이때 기록한 다음 falsifier는 최신 fallible action tobject outcome checkpoint에서
-  완료됐다. Multi-action intent의 outcome binding/compensation은 계속 열린다.
+  완료됐다. Typed intent transition의 outcome binding/compensation은 계속 열린다.
 - Hard self-host contract의 stale owner anchor도 현재 구조로 맞췄다. MIR fixture
   inventory는 `driver_rung2_mir_manifest_owner.pgy`, body call environment는 shared
   environment owner, graph traversal은 accessor가 소유한다. Collection mutation은

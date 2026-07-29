@@ -73,24 +73,15 @@ intent_execution_decl_by_identity(const MIRProgram *mir,
 }
 
 static const MIRDeclHeader *
-intent_execution_tobject_by_name(const MIRProgram *mir, const char *name)
+intent_execution_tobject_by_identity(const MIRProgram *mir,
+                                     uint32_t source_syntax_id,
+                                     const char *name)
 {
-    const MIRDeclHeader *found = NULL;
+    const MIRDeclHeader *header = intent_execution_decl_by_identity(
+        mir, source_syntax_id, AST_CLASS_DECL, name);
 
-    if (mir == NULL || name == NULL)
-        return NULL;
-    for (size_t i = 0; i < mir->decl_header_count; i++) {
-        const MIRDeclHeader *candidate = &mir->decl_headers[i];
-        if (candidate->ast_type == AST_CLASS_DECL
-            && candidate->nominal_kind == NOMINAL_DECL_TOBJECT
-            && candidate->name != NULL
-            && strcmp(candidate->name, name) == 0) {
-            if (found != NULL)
-                return NULL;
-            found = candidate;
-        }
-    }
-    return found;
+    return header != NULL && header->nominal_kind == NOMINAL_DECL_TOBJECT
+        ? header : NULL;
 }
 
 static bool
@@ -118,7 +109,8 @@ intent_execution_enum_branch_is_sealed(
         && mir_decl_enum_variant_param_count(variant) == 1
         && payload_type != NULL
         && strcmp(payload_type, branch->payload_type_name) == 0
-        && intent_execution_tobject_by_name(mir, payload_type) != NULL;
+        && intent_execution_tobject_by_identity(
+            mir, branch->payload_decl_syntax_id, payload_type) != NULL;
 }
 
 static bool
@@ -149,7 +141,8 @@ intent_execution_terminal_result_is_sealed(
         && mir_decl_enum_variant_param_count(variant) == 1
         && payload_type != NULL
         && strcmp(payload_type, row->result_payload_type_name) == 0
-        && intent_execution_tobject_by_name(mir, payload_type) != NULL;
+        && intent_execution_tobject_by_identity(
+            mir, row->result_payload_decl_syntax_id, payload_type) != NULL;
 }
 
 static const MIRInstruction *
@@ -215,7 +208,8 @@ intent_execution_branch_row_ready(const MIRIntentOutcomeBranchFact *branch)
         && branch->variant_name != NULL && branch->variant_name[0] != '\0'
         && branch->payload_name != NULL && branch->payload_name[0] != '\0'
         && branch->payload_type_name != NULL
-        && branch->payload_type_name[0] != '\0';
+        && branch->payload_type_name[0] != '\0'
+        && branch->payload_decl_syntax_id != 0;
 }
 
 static bool
@@ -429,6 +423,7 @@ intent_execution_validate_terminal(
         || row->result_variant_name == NULL
         || row->result_payload_name == NULL
         || row->result_payload_type_name == NULL
+        || row->result_payload_decl_syntax_id == 0
         || row->expression == NULL
         || ast_node_stable_id(row->expression)
             != row->expression_syntax_id
@@ -451,10 +446,15 @@ intent_execution_validate_terminal(
         || row->source_payload_type_name == NULL
         || strcmp(row->source_payload_type_name,
                   branch->payload_type_name) != 0
+        || row->source_payload_decl_syntax_id == 0
+        || row->source_payload_decl_syntax_id
+            != branch->payload_decl_syntax_id
         || strcmp(row->result_payload_name,
                   row->source_payload_name) != 0
         || strcmp(row->result_payload_type_name,
                   row->source_payload_type_name) != 0
+        || row->result_payload_decl_syntax_id
+            != row->source_payload_decl_syntax_id
         || (row->role == MIR_INTENT_TERMINAL_SUCCESS
             && intent_execution_has_child(
                 routine, row->source_transition_id))) {

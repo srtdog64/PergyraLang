@@ -1,0 +1,138 @@
+// Numeric identity lookup and expression/name projection for typed intent C emission.
+
+import "../input/intent_execution_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenIntentPlanRoutineStepCount(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[row] == routine_syntax_id {
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
+func CodegenIntentPlanStepRowByTransition(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    transition_id: Int
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
+            view.plan.steps.transition_ids[row] == transition_id {
+            if found >= 0 { return 0 - 2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func CodegenIntentPlanRootStepRow(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
+            view.plan.steps.predecessor_transition_ids[row] == 0 {
+            if found >= 0 { return 0 - 2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func CodegenIntentPlanChildStepRow(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    predecessor_transition_id: Int
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[row] == routine_syntax_id &&
+            view.plan.steps.predecessor_transition_ids[row] ==
+                predecessor_transition_id {
+            if found >= 0 { return 0 - 2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func CodegenIntentPlanTerminalRow(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    source_transition_id: Int,
+    role: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(
+        view.plan.terminals.terminal_transition_ids
+    ) {
+        if view.terminal_routine_canonical_syntax_ids[row] ==
+                routine_syntax_id &&
+            view.plan.terminals.source_transition_ids[row] ==
+                source_transition_id &&
+            view.plan.terminals.roles[row] == role {
+            if found >= 0 { return 0 - 2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func CodegenIntentPlanExpression(
+    ref view: CodegenIntentExecutionView,
+    root: Int,
+    env: CodegenTypeEnv
+) -> String {
+    if root < 0 || root >= SemanticExpressionGraphArenaNodeCount(
+        view.expression_graphs.arena
+    ) {
+        Die("typed intent expression graph root is invalid");
+    }
+    return RewriteExprFromSemanticGraph(
+        view.expression_graphs, root, env
+    );
+}
+
+func CodegenIntentPlanCompletedName(transition_id: Int) -> String {
+    if transition_id <= 0 {
+        Die("typed intent completion transition identity is invalid");
+    }
+    return Concat("__intent_completed_", ToString(transition_id));
+}
+
+func CodegenIntentPlanTransitionLabel(transition_id: Int) -> String {
+    if transition_id <= 0 {
+        Die("typed intent transition identity is invalid");
+    }
+    return Concat("__intent_transition_", ToString(transition_id));
+}
+
+func CodegenIntentPlanTerminalLabel(terminal_transition_id: Int) -> String {
+    if terminal_transition_id <= 0 {
+        Die("typed intent terminal identity is invalid");
+    }
+    return Concat("__intent_terminal_", ToString(terminal_transition_id));
+}

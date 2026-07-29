@@ -1,0 +1,38 @@
+// Focused executable probe for the exact typed-intent pgy.mir.v1 carrier.
+
+import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 || args[0] != "--verify-input" {
+        Die("usage: intent_execution_plan_json_admission_probe --verify-input <mir-json>");
+    }
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            args[1], SelfHostMachineLayerDeclarationEmpty()
+        );
+    Log("pgy.mir.v1 input verified");
+    if admitted.intent_execution_plan.present {
+        Log(Concat(
+            "intent execution admission: present digest=",
+            Concat(
+                ToString(admitted.intent_execution_plan.plan_digest),
+                Concat(
+                    " steps=", Concat(
+                        ToString(ArrayLength(
+                            admitted.intent_execution_plan.steps.transition_ids
+                        )),
+                        Concat(
+                            " terminals=", ToString(ArrayLength(
+                                admitted.intent_execution_plan.terminals.terminal_transition_ids
+                            ))
+                        )
+                    )
+                )
+            )
+        ));
+        return;
+    }
+    Log("intent execution admission: absent");
+}

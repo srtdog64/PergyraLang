@@ -385,7 +385,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                     artifact.arena, terminal_node_id
                 );
                 let terminal_step: Option<String> =
-                    TypedAstArenaAuxValueText(
+                    TypedAstIntentTerminalSourceStepName(
                         artifact.arena, terminal_node_id
                     );
                 if !IsSome(terminal_atom) || !IsSome(terminal_step) {

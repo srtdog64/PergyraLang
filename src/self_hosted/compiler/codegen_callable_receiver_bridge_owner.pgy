@@ -7,11 +7,13 @@ import "../codegen/input/callable_receiver_codegen_view_owner.pgy";
 import "../codegen/input/semantic_body_type_codegen_view_owner.pgy";
 import "../codegen/input/domain_runtime_codegen_view_owner.pgy";
 import "domain_runtime_c_codegen_bridge_owner.pgy";
+import "direct_mir_intent_plan_projection_owner.pgy";
 
 struct CodegenAdmittedCView {
     receivers: CodegenCallableReceiverFacts;
     body_types: CodegenSemanticBodyTypeFacts;
     domain_runtime: CodegenDomainRuntimeFacts;
+    intent_execution: CodegenIntentExecutionView;
 }
 
 func CodegenCallableReceiverFactsFromAdmittedOrDie(
@@ -36,6 +38,7 @@ func CodegenAdmittedCViewFromFactsOrDie(
     artifact: AstTreeArtifact,
     own semantic_body_types: SemanticAstBodyTypeBundle,
     own generic_specializations: CodegenGenericSpecializationFacts,
+    ref intent_expression_occurrences: MirExpressionSemanticOccurrenceIndex,
     canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenAdmittedCView {
     let receivers: CodegenCallableReceiverFacts =
@@ -51,5 +54,16 @@ func CodegenAdmittedCViewFromFactsOrDie(
         );
     let domain_runtime: CodegenDomainRuntimeFacts =
         CodegenDomainRuntimeFactsFromAdmittedOrDie(admitted);
-    return CodegenAdmittedCView(receivers, body_types, domain_runtime);
+    let intent_execution: CodegenIntentExecutionView =
+        DirectMirIntentExecutionViewFromAdmitted(
+            admitted, analysis.expression_surfaces,
+            intent_expression_occurrences,
+            canonical_routine_source_syntax_ids
+        );
+    if !CodegenIntentExecutionViewReady(intent_execution) {
+        Die("MIR typed intent execution plan did not cross machine admission");
+    }
+    return CodegenAdmittedCView(
+        receivers, body_types, domain_runtime, intent_execution
+    );
 }

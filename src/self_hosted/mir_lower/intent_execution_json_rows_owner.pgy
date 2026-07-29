@@ -1,0 +1,556 @@
+// Exact step, compensation, and terminal row decoder for intent_execution.
+// Native field order is a wire contract. Unknown, missing, duplicate, or
+// reordered fields are rejected before semantic plan construction.
+
+import "intent_execution_json_decode_owner.pgy";
+import "../mir/intent_execution_fact_owner.pgy";
+
+func MirIntentExecutionCaptureCompensations(
+    json: String, array_start: Int, array_end: Int,
+    owner_transition_id: Int,
+    inout rows: MirIntentCompensationFacts
+) -> Int {
+    if array_start < 0 || array_end <= array_start ||
+        JsonCharCodeAt(json, array_end, array_start) != JsonAsciiCode("[") {
+        return 0 - 1;
+    }
+    let count: Int = 0;
+    let cursor: Int = array_start + 1;
+    let bounds: Array<Int> = [0, 0];
+    let transition_ids: Array<Int> = rows.transition_ids;
+    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    let instruction_block_ids: Array<Int> = rows.instruction_block_ids;
+    let instruction_ids: Array<Int> = rows.instruction_ids;
+    let graph_root_ids: Array<Int> = rows.graph_root_ids;
+    let graph_digests: Array<Int> = rows.graph_digests;
+    let call_target_names: Array<String> = rows.call_target_names;
+    let call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
+    while JsonArrayNextObjectBounds(json, cursor, array_end, bounds) {
+        let expected: Array<String> = [
+            "transition_id", "expression_syntax_id",
+            "instruction_block_id", "instruction_id", "graph_root_id",
+            "graph_digest", "call_target_name", "call_target_syntax_id"
+        ];
+        let fields: MirIntentExecutionExactFields =
+            MirIntentExecutionExactObjectFields(
+                json, bounds[0], bounds[1], expected
+            );
+        let transition_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 0);
+        let expression_syntax_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 1);
+        let instruction_block_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 2);
+        let instruction_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 3);
+        let graph_root_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 4);
+        let graph_digest: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 5);
+        let call_target_name: MirIntentExecutionStringValue =
+            MirIntentExecutionStringAt(json, fields, 6, false);
+        let call_target_syntax_id: MirIntentExecutionIntValue =
+            MirIntentExecutionIntAt(json, fields, 7);
+        if !fields.valid || !transition_id.valid ||
+            transition_id.value != owner_transition_id ||
+            !expression_syntax_id.valid || expression_syntax_id.value <= 0 ||
+            !instruction_block_id.valid || !instruction_id.valid ||
+            !graph_root_id.valid || !graph_digest.valid ||
+            graph_digest.value <= 0 || !call_target_name.valid ||
+            call_target_name.value == "" || !call_target_syntax_id.valid ||
+            call_target_syntax_id.value <= 0 {
+            return 0 - 1;
+        }
+        ArrayPush(transition_ids, transition_id.value);
+        ArrayPush(expression_syntax_ids, expression_syntax_id.value);
+        ArrayPush(instruction_block_ids, instruction_block_id.value);
+        ArrayPush(instruction_ids, instruction_id.value);
+        ArrayPush(graph_root_ids, graph_root_id.value);
+        ArrayPush(graph_digests, graph_digest.value);
+        ArrayPush(call_target_names, call_target_name.value);
+        ArrayPush(call_target_syntax_ids, call_target_syntax_id.value);
+        count = count + 1;
+        cursor = bounds[1];
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(json, cursor, array_end) {
+        return 0 - 1;
+    }
+    rows.transition_ids = transition_ids;
+    rows.expression_syntax_ids = expression_syntax_ids;
+    rows.instruction_block_ids = instruction_block_ids;
+    rows.instruction_ids = instruction_ids;
+    rows.graph_root_ids = graph_root_ids;
+    rows.graph_digests = graph_digests;
+    rows.call_target_names = call_target_names;
+    rows.call_target_syntax_ids = call_target_syntax_ids;
+    return count;
+}
+
+func MirIntentExecutionCaptureStep(
+    json: String, start: Int, end: Int,
+    inout rows: MirIntentStepTransitionFacts
+) -> Bool {
+    let expected: Array<String> = [
+        "transition_id", "routine_syntax_id", "step_syntax_id", "step_name",
+        "has_predecessor", "predecessor_transition_id",
+        "predecessor_step_syntax_id", "predecessor_step_name",
+        "action_syntax_id", "outcome_instruction_block_id",
+        "outcome_instruction_id", "outcome_result_name", "outcome_type_name",
+        "outcome_enum_name", "outcome_enum_syntax_id", "branch_block_id",
+        "branch_instruction_id", "success_variant_index",
+        "success_variant_name", "success_payload_name",
+        "success_payload_type_name", "success_payload_decl_syntax_id",
+        "success_successor_block_id",
+        "failure_variant_index", "failure_variant_name",
+        "failure_payload_name", "failure_payload_type_name",
+        "failure_payload_decl_syntax_id",
+        "failure_successor_block_id", "completion_block_id",
+        "completion_instruction_id", "compensations"
+    ];
+    let fields: MirIntentExecutionExactFields =
+        MirIntentExecutionExactObjectFields(json, start, end, expected);
+    let transition_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 0);
+    let routine_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 1);
+    let step_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 2);
+    let step_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 3, false);
+    let has_predecessor: MirIntentExecutionBoolValue =
+        MirIntentExecutionBoolAt(json, fields, 4);
+    let predecessor_transition_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 5);
+    let predecessor_step_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 6);
+    let predecessor_step_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 7, true);
+    let action_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 8);
+    let outcome_instruction_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 9);
+    let outcome_instruction_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 10);
+    let outcome_result_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 11, false);
+    let outcome_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 12, false);
+    let outcome_enum_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 13, false);
+    let outcome_enum_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 14);
+    let branch_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 15);
+    let branch_instruction_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 16);
+    let success_variant_index: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 17);
+    let success_variant_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 18, false);
+    let success_payload_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 19, false);
+    let success_payload_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 20, false);
+    let success_payload_decl_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 21);
+    let success_successor_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 22);
+    let failure_variant_index: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 23);
+    let failure_variant_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 24, false);
+    let failure_payload_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 25, false);
+    let failure_payload_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 26, false);
+    let failure_payload_decl_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 27);
+    let failure_successor_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 28);
+    let completion_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 29);
+    let completion_instruction_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 30);
+    if !fields.valid || !transition_id.valid || transition_id.value <= 0 ||
+        !routine_syntax_id.valid || routine_syntax_id.value <= 0 ||
+        !step_syntax_id.valid || step_syntax_id.value <= 0 ||
+        !step_name.valid || step_name.value == "" ||
+        !has_predecessor.valid || !predecessor_transition_id.valid ||
+        !predecessor_step_syntax_id.valid || !predecessor_step_name.valid ||
+        has_predecessor.value != (predecessor_transition_id.value != 0) ||
+        (has_predecessor.value &&
+            (predecessor_step_syntax_id.value <= 0 ||
+             predecessor_step_name.value == "")) ||
+        (!has_predecessor.value &&
+            (predecessor_step_syntax_id.value != 0 ||
+             predecessor_step_name.value != "")) ||
+        !action_syntax_id.valid || action_syntax_id.value <= 0 ||
+        !outcome_instruction_block_id.valid || !outcome_instruction_id.valid ||
+        !outcome_result_name.valid || !outcome_type_name.valid ||
+        !outcome_enum_name.valid || !outcome_enum_syntax_id.valid ||
+        !branch_block_id.valid || !branch_instruction_id.valid ||
+        !success_variant_index.valid || !success_variant_name.valid ||
+        !success_payload_name.valid || !success_payload_type_name.valid ||
+        !success_payload_decl_syntax_id.valid ||
+        success_payload_decl_syntax_id.value <= 0 ||
+        !success_successor_block_id.valid || !failure_variant_index.valid ||
+        !failure_variant_name.valid || !failure_payload_name.valid ||
+        !failure_payload_type_name.valid ||
+        !failure_payload_decl_syntax_id.valid ||
+        failure_payload_decl_syntax_id.value <= 0 ||
+        !failure_successor_block_id.valid ||
+        !completion_block_id.valid || !completion_instruction_id.valid ||
+        fields.starts[31] >= fields.ends[31] ||
+        JsonCharCodeAt(json, fields.ends[31], fields.starts[31]) !=
+            JsonAsciiCode("[") {
+        return false;
+    }
+    let compensations: MirIntentCompensationFacts = rows.compensations;
+    let compensation_start: Int =
+        ArrayLength(compensations.transition_ids);
+    let compensation_count: Int = MirIntentExecutionCaptureCompensations(
+        json, fields.starts[31], fields.ends[31], transition_id.value,
+        compensations
+    );
+    if compensation_count < 0 { return false; }
+    rows.compensations = compensations;
+    let transition_ids: Array<Int> = rows.transition_ids;
+    let routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
+    let step_syntax_ids: Array<Int> = rows.step_syntax_ids;
+    let step_names: Array<String> = rows.step_names;
+    let predecessor_transition_ids: Array<Int> =
+        rows.predecessor_transition_ids;
+    let predecessor_step_syntax_ids: Array<Int> =
+        rows.predecessor_step_syntax_ids;
+    let predecessor_step_names: Array<String> = rows.predecessor_step_names;
+    let action_syntax_ids: Array<Int> = rows.action_syntax_ids;
+    let outcome_instruction_block_ids: Array<Int> =
+        rows.outcome_instruction_block_ids;
+    let outcome_instruction_ids: Array<Int> = rows.outcome_instruction_ids;
+    let outcome_result_names: Array<String> = rows.outcome_result_names;
+    let outcome_type_names: Array<String> = rows.outcome_type_names;
+    let outcome_enum_names: Array<String> = rows.outcome_enum_names;
+    let outcome_enum_syntax_ids: Array<Int> = rows.outcome_enum_syntax_ids;
+    let branch_block_ids: Array<Int> = rows.branch_block_ids;
+    let branch_instruction_ids: Array<Int> = rows.branch_instruction_ids;
+    let success_variant_indices: Array<Int> = rows.success_variant_indices;
+    let success_variant_names: Array<String> = rows.success_variant_names;
+    let success_payload_names: Array<String> = rows.success_payload_names;
+    let success_payload_type_names: Array<String> =
+        rows.success_payload_type_names;
+    let success_payload_decl_syntax_ids: Array<Int> =
+        rows.success_payload_decl_syntax_ids;
+    let success_successor_block_ids: Array<Int> =
+        rows.success_successor_block_ids;
+    let failure_variant_indices: Array<Int> = rows.failure_variant_indices;
+    let failure_variant_names: Array<String> = rows.failure_variant_names;
+    let failure_payload_names: Array<String> = rows.failure_payload_names;
+    let failure_payload_type_names: Array<String> =
+        rows.failure_payload_type_names;
+    let failure_payload_decl_syntax_ids: Array<Int> =
+        rows.failure_payload_decl_syntax_ids;
+    let failure_successor_block_ids: Array<Int> =
+        rows.failure_successor_block_ids;
+    let completion_block_ids: Array<Int> = rows.completion_block_ids;
+    let completion_instruction_ids: Array<Int> =
+        rows.completion_instruction_ids;
+    let compensation_starts: Array<Int> = rows.compensation_starts;
+    let compensation_counts: Array<Int> = rows.compensation_counts;
+    ArrayPush(transition_ids, transition_id.value);
+    ArrayPush(routine_syntax_ids, routine_syntax_id.value);
+    ArrayPush(step_syntax_ids, step_syntax_id.value);
+    ArrayPush(step_names, step_name.value);
+    ArrayPush(predecessor_transition_ids,
+        predecessor_transition_id.value);
+    ArrayPush(predecessor_step_syntax_ids,
+        predecessor_step_syntax_id.value);
+    ArrayPush(predecessor_step_names, predecessor_step_name.value);
+    ArrayPush(action_syntax_ids, action_syntax_id.value);
+    ArrayPush(outcome_instruction_block_ids,
+        outcome_instruction_block_id.value);
+    ArrayPush(outcome_instruction_ids, outcome_instruction_id.value);
+    ArrayPush(outcome_result_names, outcome_result_name.value);
+    ArrayPush(outcome_type_names, outcome_type_name.value);
+    ArrayPush(outcome_enum_names, outcome_enum_name.value);
+    ArrayPush(outcome_enum_syntax_ids, outcome_enum_syntax_id.value);
+    ArrayPush(branch_block_ids, branch_block_id.value);
+    ArrayPush(branch_instruction_ids, branch_instruction_id.value);
+    ArrayPush(success_variant_indices, success_variant_index.value);
+    ArrayPush(success_variant_names, success_variant_name.value);
+    ArrayPush(success_payload_names, success_payload_name.value);
+    ArrayPush(success_payload_type_names,
+        success_payload_type_name.value);
+    ArrayPush(success_payload_decl_syntax_ids,
+        success_payload_decl_syntax_id.value);
+    ArrayPush(success_successor_block_ids,
+        success_successor_block_id.value);
+    ArrayPush(failure_variant_indices, failure_variant_index.value);
+    ArrayPush(failure_variant_names, failure_variant_name.value);
+    ArrayPush(failure_payload_names, failure_payload_name.value);
+    ArrayPush(failure_payload_type_names,
+        failure_payload_type_name.value);
+    ArrayPush(failure_payload_decl_syntax_ids,
+        failure_payload_decl_syntax_id.value);
+    ArrayPush(failure_successor_block_ids,
+        failure_successor_block_id.value);
+    ArrayPush(completion_block_ids, completion_block_id.value);
+    ArrayPush(completion_instruction_ids, completion_instruction_id.value);
+    ArrayPush(compensation_starts, compensation_start);
+    ArrayPush(compensation_counts, compensation_count);
+    rows.transition_ids = transition_ids;
+    rows.routine_syntax_ids = routine_syntax_ids;
+    rows.step_syntax_ids = step_syntax_ids;
+    rows.step_names = step_names;
+    rows.predecessor_transition_ids = predecessor_transition_ids;
+    rows.predecessor_step_syntax_ids = predecessor_step_syntax_ids;
+    rows.predecessor_step_names = predecessor_step_names;
+    rows.action_syntax_ids = action_syntax_ids;
+    rows.outcome_instruction_block_ids = outcome_instruction_block_ids;
+    rows.outcome_instruction_ids = outcome_instruction_ids;
+    rows.outcome_result_names = outcome_result_names;
+    rows.outcome_type_names = outcome_type_names;
+    rows.outcome_enum_names = outcome_enum_names;
+    rows.outcome_enum_syntax_ids = outcome_enum_syntax_ids;
+    rows.branch_block_ids = branch_block_ids;
+    rows.branch_instruction_ids = branch_instruction_ids;
+    rows.success_variant_indices = success_variant_indices;
+    rows.success_variant_names = success_variant_names;
+    rows.success_payload_names = success_payload_names;
+    rows.success_payload_type_names = success_payload_type_names;
+    rows.success_payload_decl_syntax_ids = success_payload_decl_syntax_ids;
+    rows.success_successor_block_ids = success_successor_block_ids;
+    rows.failure_variant_indices = failure_variant_indices;
+    rows.failure_variant_names = failure_variant_names;
+    rows.failure_payload_names = failure_payload_names;
+    rows.failure_payload_type_names = failure_payload_type_names;
+    rows.failure_payload_decl_syntax_ids = failure_payload_decl_syntax_ids;
+    rows.failure_successor_block_ids = failure_successor_block_ids;
+    rows.completion_block_ids = completion_block_ids;
+    rows.completion_instruction_ids = completion_instruction_ids;
+    rows.compensation_starts = compensation_starts;
+    rows.compensation_counts = compensation_counts;
+    return true;
+}
+
+func MirIntentExecutionCaptureTerminal(
+    json: String, start: Int, end: Int,
+    inout rows: MirIntentTerminalTransitionFacts
+) -> Bool {
+    let expected: Array<String> = [
+        "terminal_transition_id", "routine_syntax_id", "role",
+        "source_transition_id", "source_step_syntax_id", "source_step_name",
+        "source_variant_index", "source_variant_name", "source_payload_name",
+        "source_payload_type_name", "source_payload_decl_syntax_id",
+        "result_instruction_block_id",
+        "result_instruction_id", "result_definition_name", "result_type_name",
+        "result_enum_name", "result_enum_syntax_id", "result_variant_index",
+        "result_variant_name", "result_payload_name",
+        "result_payload_type_name", "result_payload_decl_syntax_id",
+        "expression_syntax_id", "graph_root_id",
+        "graph_digest"
+    ];
+    let fields: MirIntentExecutionExactFields =
+        MirIntentExecutionExactObjectFields(json, start, end, expected);
+    let terminal_transition_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 0);
+    let routine_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 1);
+    let role: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 2, false);
+    let source_transition_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 3);
+    let source_step_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 4);
+    let source_step_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 5, false);
+    let source_variant_index: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 6);
+    let source_variant_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 7, false);
+    let source_payload_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 8, false);
+    let source_payload_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 9, false);
+    let source_payload_decl_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 10);
+    let result_instruction_block_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 11);
+    let result_instruction_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 12);
+    let result_definition_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 13, false);
+    let result_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 14, false);
+    let result_enum_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 15, false);
+    let result_enum_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 16);
+    let result_variant_index: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 17);
+    let result_variant_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 18, false);
+    let result_payload_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 19, false);
+    let result_payload_type_name: MirIntentExecutionStringValue =
+        MirIntentExecutionStringAt(json, fields, 20, false);
+    let result_payload_decl_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 21);
+    let expression_syntax_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 22);
+    let graph_root_id: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 23);
+    let graph_digest: MirIntentExecutionIntValue =
+        MirIntentExecutionIntAt(json, fields, 24);
+    if !fields.valid || !terminal_transition_id.valid ||
+        terminal_transition_id.value <= 0 || !routine_syntax_id.valid ||
+        routine_syntax_id.value <= 0 || !role.valid ||
+        (role.value != "success" && role.value != "failure") ||
+        !source_transition_id.valid || source_transition_id.value <= 0 ||
+        !source_step_syntax_id.valid || source_step_syntax_id.value <= 0 ||
+        !source_step_name.valid || source_step_name.value == "" ||
+        !source_variant_index.valid || !source_variant_name.valid ||
+        !source_payload_name.valid || !source_payload_type_name.valid ||
+        !source_payload_decl_syntax_id.valid ||
+        source_payload_decl_syntax_id.value <= 0 ||
+        !result_instruction_block_id.valid || !result_instruction_id.valid ||
+        !result_definition_name.valid || result_definition_name.value == "" ||
+        !result_type_name.valid || result_type_name.value == "" ||
+        !result_enum_name.valid || result_enum_name.value == "" ||
+        !result_enum_syntax_id.valid || result_enum_syntax_id.value <= 0 ||
+        !result_variant_index.valid || !result_variant_name.valid ||
+        !result_payload_name.valid || !result_payload_type_name.valid ||
+        !result_payload_decl_syntax_id.valid ||
+        result_payload_decl_syntax_id.value <= 0 ||
+        !expression_syntax_id.valid || expression_syntax_id.value <= 0 ||
+        !graph_root_id.valid || !graph_digest.valid || graph_digest.value <= 0 {
+        return false;
+    }
+    let terminal_transition_ids: Array<Int> = rows.terminal_transition_ids;
+    let routine_syntax_ids: Array<Int> = rows.routine_syntax_ids;
+    let roles: Array<String> = rows.roles;
+    let source_transition_ids: Array<Int> = rows.source_transition_ids;
+    let source_step_syntax_ids: Array<Int> = rows.source_step_syntax_ids;
+    let source_step_names: Array<String> = rows.source_step_names;
+    let source_variant_indices: Array<Int> = rows.source_variant_indices;
+    let source_variant_names: Array<String> = rows.source_variant_names;
+    let source_payload_names: Array<String> = rows.source_payload_names;
+    let source_payload_type_names: Array<String> =
+        rows.source_payload_type_names;
+    let source_payload_decl_syntax_ids: Array<Int> =
+        rows.source_payload_decl_syntax_ids;
+    let result_instruction_block_ids: Array<Int> =
+        rows.result_instruction_block_ids;
+    let result_instruction_ids: Array<Int> = rows.result_instruction_ids;
+    let result_definition_names: Array<String> = rows.result_definition_names;
+    let result_type_names: Array<String> = rows.result_type_names;
+    let result_enum_names: Array<String> = rows.result_enum_names;
+    let result_enum_syntax_ids: Array<Int> = rows.result_enum_syntax_ids;
+    let result_variant_indices: Array<Int> = rows.result_variant_indices;
+    let result_variant_names: Array<String> = rows.result_variant_names;
+    let result_payload_names: Array<String> = rows.result_payload_names;
+    let result_payload_type_names: Array<String> =
+        rows.result_payload_type_names;
+    let result_payload_decl_syntax_ids: Array<Int> =
+        rows.result_payload_decl_syntax_ids;
+    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    let graph_root_ids: Array<Int> = rows.graph_root_ids;
+    let graph_digests: Array<Int> = rows.graph_digests;
+    ArrayPush(terminal_transition_ids, terminal_transition_id.value);
+    ArrayPush(routine_syntax_ids, routine_syntax_id.value);
+    ArrayPush(roles, role.value);
+    ArrayPush(source_transition_ids, source_transition_id.value);
+    ArrayPush(source_step_syntax_ids, source_step_syntax_id.value);
+    ArrayPush(source_step_names, source_step_name.value);
+    ArrayPush(source_variant_indices, source_variant_index.value);
+    ArrayPush(source_variant_names, source_variant_name.value);
+    ArrayPush(source_payload_names, source_payload_name.value);
+    ArrayPush(source_payload_type_names, source_payload_type_name.value);
+    ArrayPush(source_payload_decl_syntax_ids,
+        source_payload_decl_syntax_id.value);
+    ArrayPush(result_instruction_block_ids,
+        result_instruction_block_id.value);
+    ArrayPush(result_instruction_ids, result_instruction_id.value);
+    ArrayPush(result_definition_names, result_definition_name.value);
+    ArrayPush(result_type_names, result_type_name.value);
+    ArrayPush(result_enum_names, result_enum_name.value);
+    ArrayPush(result_enum_syntax_ids, result_enum_syntax_id.value);
+    ArrayPush(result_variant_indices, result_variant_index.value);
+    ArrayPush(result_variant_names, result_variant_name.value);
+    ArrayPush(result_payload_names, result_payload_name.value);
+    ArrayPush(result_payload_type_names, result_payload_type_name.value);
+    ArrayPush(result_payload_decl_syntax_ids,
+        result_payload_decl_syntax_id.value);
+    ArrayPush(expression_syntax_ids, expression_syntax_id.value);
+    ArrayPush(graph_root_ids, graph_root_id.value);
+    ArrayPush(graph_digests, graph_digest.value);
+    rows.terminal_transition_ids = terminal_transition_ids;
+    rows.routine_syntax_ids = routine_syntax_ids;
+    rows.roles = roles;
+    rows.source_transition_ids = source_transition_ids;
+    rows.source_step_syntax_ids = source_step_syntax_ids;
+    rows.source_step_names = source_step_names;
+    rows.source_variant_indices = source_variant_indices;
+    rows.source_variant_names = source_variant_names;
+    rows.source_payload_names = source_payload_names;
+    rows.source_payload_type_names = source_payload_type_names;
+    rows.source_payload_decl_syntax_ids = source_payload_decl_syntax_ids;
+    rows.result_instruction_block_ids = result_instruction_block_ids;
+    rows.result_instruction_ids = result_instruction_ids;
+    rows.result_definition_names = result_definition_names;
+    rows.result_type_names = result_type_names;
+    rows.result_enum_names = result_enum_names;
+    rows.result_enum_syntax_ids = result_enum_syntax_ids;
+    rows.result_variant_indices = result_variant_indices;
+    rows.result_variant_names = result_variant_names;
+    rows.result_payload_names = result_payload_names;
+    rows.result_payload_type_names = result_payload_type_names;
+    rows.result_payload_decl_syntax_ids = result_payload_decl_syntax_ids;
+    rows.expression_syntax_ids = expression_syntax_ids;
+    rows.graph_root_ids = graph_root_ids;
+    rows.graph_digests = graph_digests;
+    return true;
+}
+
+func MirIntentExecutionPlanRowsFromExactFields(
+    json: String, ref fields: MirIntentExecutionExactFields,
+    inout steps: MirIntentStepTransitionFacts,
+    inout terminals: MirIntentTerminalTransitionFacts
+) -> Bool {
+    if !fields.valid || fields.starts[2] >= fields.ends[2] ||
+        fields.starts[3] >= fields.ends[3] ||
+        JsonCharCodeAt(json, fields.ends[2], fields.starts[2]) !=
+            JsonAsciiCode("[") ||
+        JsonCharCodeAt(json, fields.ends[3], fields.starts[3]) !=
+            JsonAsciiCode("[") {
+        return false;
+    }
+    let cursor: Int = fields.starts[2] + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(
+        json, cursor, fields.ends[2], bounds
+    ) {
+        if !MirIntentExecutionCaptureStep(
+            json, bounds[0], bounds[1], steps
+        ) {
+            return false;
+        }
+        cursor = bounds[1];
+    }
+    if !MirProgramRoutineArrayCursorAtEnd(
+        json, cursor, fields.ends[2]
+    ) { return false; }
+    cursor = fields.starts[3] + 1;
+    while JsonArrayNextObjectBounds(
+        json, cursor, fields.ends[3], bounds
+    ) {
+        if !MirIntentExecutionCaptureTerminal(
+            json, bounds[0], bounds[1], terminals
+        ) {
+            return false;
+        }
+        cursor = bounds[1];
+    }
+    return MirProgramRoutineArrayCursorAtEnd(
+        json, cursor, fields.ends[3]
+    );
+}

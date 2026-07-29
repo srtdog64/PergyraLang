@@ -1,0 +1,26 @@
+// Exact persisted expression-graph object shape.
+//
+// The optional digest is owner-provided identity. Consumers validate its
+// canonical presence but do not re-hash graph nodes at every read boundary.
+
+import "../lib/json_fact_table.pgy";
+
+func MirExpressionGraphPersistedShapeReady(
+    graph: JsonObjectFactTable
+) -> Bool {
+    let field_count: Int = JsonObjectFactCount(graph);
+    if field_count == 2 { return true; }
+    if field_count != 3 { return false; }
+    let digest: Option<String> = JsonObjectFactNumberFieldOpt(
+        graph, "digest"
+    );
+    return IsSome(digest) && ToInt(UnwrapOption(digest)) > 0 &&
+        ToString(ToInt(UnwrapOption(digest))) == UnwrapOption(digest);
+}
+
+func MirExpressionGraphPersistedSealedShapeReady(
+    graph: JsonObjectFactTable
+) -> Bool {
+    return JsonObjectFactCount(graph) == 3 &&
+        MirExpressionGraphPersistedShapeReady(graph);
+}

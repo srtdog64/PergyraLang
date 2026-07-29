@@ -267,6 +267,22 @@ ast_intent_step_failure_variant_index(const ASTNode* node)
     return node->data.intent_step.failure_branch.variant_index;
 }
 
+uint32_t
+ast_intent_step_success_payload_decl_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.success_branch.payload_decl_syntax_id;
+}
+
+uint32_t
+ast_intent_step_failure_payload_decl_syntax_id(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.failure_branch.payload_decl_syntax_id;
+}
+
 bool
 ast_intent_step_set_outcome_branch_resolution_copy(
     ASTNode* node,
@@ -274,7 +290,8 @@ ast_intent_step_set_outcome_branch_resolution_copy(
     const char* enum_type_name,
     uint32_t enum_decl_syntax_id,
     size_t variant_index,
-    const char* payload_type_name)
+    const char* payload_type_name,
+    uint32_t payload_decl_syntax_id)
 {
     ASTIntentOutcomeBranchData *branch;
     char *enum_copy;
@@ -283,7 +300,8 @@ ast_intent_step_set_outcome_branch_resolution_copy(
     if (node == NULL || node->type != AST_INTENT_STEP
         || enum_type_name == NULL || enum_type_name[0] == '\0'
         || enum_decl_syntax_id == 0 || variant_index == SIZE_MAX
-        || payload_type_name == NULL || payload_type_name[0] == '\0') {
+        || payload_type_name == NULL || payload_type_name[0] == '\0'
+        || payload_decl_syntax_id == 0) {
         return false;
     }
     enum_copy = pergyra_strdup(enum_type_name);
@@ -302,6 +320,7 @@ ast_intent_step_set_outcome_branch_resolution_copy(
     branch->enum_decl_syntax_id = enum_decl_syntax_id;
     branch->variant_index = variant_index;
     branch->payload_type_name = payload_copy;
+    branch->payload_decl_syntax_id = payload_decl_syntax_id;
     return true;
 }
 

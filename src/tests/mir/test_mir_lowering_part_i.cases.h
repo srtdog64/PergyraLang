@@ -224,8 +224,11 @@ test_mir_lowering_part_i(void)
         MIRInstruction *assign_inst = NULL;
         ASTNode *saved_ast = NULL;
         ASTNode *saved_target = NULL;
+        const char *saved_binding_mode = NULL;
         char *mir_error = NULL;
         bool rejected_missing_expr_fact = false;
+        bool rejected_missing_binding_mode = false;
+        bool rejected_wrong_binding_mode = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine_mut(mir, "AssignmentFact",
@@ -245,6 +248,24 @@ test_mir_lowering_part_i(void)
             }
         }
         if (assign_inst != NULL) {
+            saved_binding_mode = assign_inst->arg1;
+            assign_inst->arg1 = NULL;
+            rejected_missing_binding_mode =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "ASSIGN target-root binding mode is missing or inconsistent") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            assign_inst->arg1 = "default_param";
+            rejected_wrong_binding_mode =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "ASSIGN target-root binding mode is missing or inconsistent") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            assign_inst->arg1 = saved_binding_mode;
             saved_ast = assign_inst->ast;
             saved_target = assign_inst->expr0;
             assign_inst->ast = NULL;
@@ -266,6 +287,10 @@ test_mir_lowering_part_i(void)
                && assign_inst->expr0->type == AST_IDENTIFIER
                && assign_inst->arg0 != NULL
                && strcmp(assign_inst->arg0, "x") == 0
+               && saved_binding_mode != NULL
+               && strcmp(saved_binding_mode, "local") == 0
+               && rejected_missing_binding_mode
+               && rejected_wrong_binding_mode
                && rejected_missing_expr_fact
                && mir_validate(mir, NULL));
         if (assign_inst != NULL)

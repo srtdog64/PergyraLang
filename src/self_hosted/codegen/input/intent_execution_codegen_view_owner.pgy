@@ -1,0 +1,113 @@
+// Codegen-facing view of one machine-admitted typed intent execution plan.
+//
+// The MIR owner retains transition and terminal identity.  This view only
+// carries the exact expression graphs selected by those identities; codegen
+// must not recover topology from AST children, spelling, or row order.
+
+import "../../mir/intent_execution_fact_owner.pgy";
+import "../../semantic/ast_expression_graph_fact_owner.pgy";
+import "../../semantic/ast_expression_place_fact_owner.pgy";
+
+struct CodegenIntentExecutionView {
+    valid: Bool;
+    present: Bool;
+    plan: MirIntentExecutionPlan;
+    expression_graphs: SemanticExpressionGraphFacts;
+    action_graph_roots: Array<Int>;
+    compensation_graph_roots: Array<Int>;
+    terminal_graph_roots: Array<Int>;
+    routine_canonical_syntax_ids: Array<Int>;
+    terminal_routine_canonical_syntax_ids: Array<Int>;
+}
+
+func CodegenIntentExecutionViewEmpty(
+    valid: Bool
+) -> CodegenIntentExecutionView {
+    let plan: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(
+        valid, false
+    );
+    let action_graph_roots: Array<Int> = [];
+    let compensation_graph_roots: Array<Int> = [];
+    let terminal_graph_roots: Array<Int> = [];
+    let routine_canonical_syntax_ids: Array<Int> = [];
+    let terminal_routine_canonical_syntax_ids: Array<Int> = [];
+    return CodegenIntentExecutionView(
+        valid, false, plan, SemanticExpressionGraphFactsEmpty(),
+        action_graph_roots, compensation_graph_roots, terminal_graph_roots,
+        routine_canonical_syntax_ids,
+        terminal_routine_canonical_syntax_ids
+    );
+}
+
+func CodegenIntentExecutionViewReady(
+    ref view: CodegenIntentExecutionView
+) -> Bool {
+    if !view.valid || view.present != view.plan.present {
+        return false;
+    }
+    if !view.present {
+        return ArrayLength(view.action_graph_roots) == 0 &&
+            ArrayLength(view.compensation_graph_roots) == 0 &&
+            ArrayLength(view.terminal_graph_roots) == 0 &&
+            ArrayLength(view.routine_canonical_syntax_ids) == 0 &&
+            ArrayLength(view.terminal_routine_canonical_syntax_ids) == 0 &&
+            SemanticExpressionGraphArenaNodeCount(
+                view.expression_graphs.arena
+            ) == 0;
+    }
+    if ArrayLength(view.action_graph_roots) !=
+            ArrayLength(view.plan.steps.transition_ids) ||
+        ArrayLength(view.routine_canonical_syntax_ids) !=
+            ArrayLength(view.plan.steps.transition_ids) ||
+        ArrayLength(view.compensation_graph_roots) !=
+            ArrayLength(view.plan.steps.compensations.transition_ids) ||
+        ArrayLength(view.terminal_graph_roots) !=
+            ArrayLength(view.plan.terminals.terminal_transition_ids) {
+        return false;
+    }
+    if ArrayLength(view.terminal_routine_canonical_syntax_ids) !=
+        ArrayLength(view.plan.terminals.terminal_transition_ids) {
+        return false;
+    }
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        view.expression_graphs.arena
+    );
+    let row: Int = 0;
+    while row < ArrayLength(view.action_graph_roots) {
+        if view.action_graph_roots[row] < 0 ||
+            view.action_graph_roots[row] >= node_count ||
+            view.routine_canonical_syntax_ids[row] <= 0 { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(view.compensation_graph_roots) {
+        if view.compensation_graph_roots[row] < 0 ||
+            view.compensation_graph_roots[row] >= node_count { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(view.terminal_graph_roots) {
+        if view.terminal_graph_roots[row] < 0 ||
+            view.terminal_graph_roots[row] >= node_count ||
+            view.terminal_routine_canonical_syntax_ids[row] <= 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CodegenIntentExecutionViewOwnsRoutine(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int
+) -> Bool {
+    if !view.present || routine_syntax_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(view.routine_canonical_syntax_ids) {
+        if view.routine_canonical_syntax_ids[row] == routine_syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}

@@ -65,6 +65,10 @@ dir_intent_branch_matches_ast(const DIRIntentOutcomeBranch *branch,
         && dir_nullable_string_equal(branch->payload_name, payload)
         && dir_nullable_string_equal(
             branch->payload_type_name, payload_type)
+        && branch->payload_decl_syntax_id
+            == (success
+                ? ast_intent_step_success_payload_decl_syntax_id(step)
+                : ast_intent_step_failure_payload_decl_syntax_id(step))
         && dir_nullable_string_equal(
             branch->enum_type_name,
             ast_intent_step_outcome_enum_type_name(step))
@@ -100,7 +104,10 @@ dir_intent_terminal_matches_ast(const DIRIntentTerminal *terminal,
         && dir_nullable_string_equal(
             terminal->result_payload_type_name,
             ast_intent_decl_terminal_result_payload_type_name(
-                intent, success, failure_index));
+                intent, success, failure_index))
+        && terminal->result_payload_decl_syntax_id
+            == ast_intent_decl_terminal_result_payload_decl_syntax_id(
+                intent, success, failure_index);
 }
 
 static bool
@@ -114,6 +121,9 @@ dir_intent_terminal_matches_source(
         && terminal->result_enum_decl_syntax_id != 0
         && terminal->result_enum_decl_syntax_id
             == result_enum_decl_syntax_id
+        && terminal->result_payload_decl_syntax_id != 0
+        && terminal->result_payload_decl_syntax_id
+            == source_branch->payload_decl_syntax_id
         && terminal->result_variant_index != SIZE_MAX
         && terminal->result_variant_name != NULL
         && terminal->result_variant_name[0] != '\0'

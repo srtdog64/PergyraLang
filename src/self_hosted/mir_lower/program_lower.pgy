@@ -23,8 +23,9 @@ func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
     }
 }
 
-func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
+func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     ref routines: MirProgramRoutineIndex,
+    ref intent_execution_plan: MirIntentExecutionPlan,
     observe_pressure: Bool
 ) -> MirProgramTreeEmission {
     if !routines.valid {
@@ -51,8 +52,8 @@ func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
         let kind: String = routines.kinds[row];
         let owner: String = routines.owners[row];
         if kind == "intent" {
-            ArrayPush(chunks, EmitMirIntentTreeAtRow(
-                routines, row, expression_order
+            ArrayPush(chunks, EmitMirIntentTreeAtRowWithExecutionPlan(
+                routines, row, expression_order, intent_execution_plan
             ));
             total = total + 1;
         } else if kind == "function" || StringLength(owner) == 0 {
@@ -139,6 +140,18 @@ func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
     );
     return MirProgramTreeEmission(
         projection_ready, StringJoin(chunks, ""), expression_order
+    );
+}
+
+func EmitMirProgramTreeProjectionFromRoutineIndexObserved(
+    ref routines: MirProgramRoutineIndex,
+    observe_pressure: Bool
+) -> MirProgramTreeEmission {
+    let plan: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(
+        true, false
+    );
+    return EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
+        routines, plan, observe_pressure
     );
 }
 

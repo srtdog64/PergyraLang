@@ -1,0 +1,151 @@
+// Exact typed-intent action target projection for the shared semantic graph.
+// The wire carries the source member name while generic semantic verification
+// consumes the canonical declared member name.  Only an admitted transition
+// instruction and its callable syntax identity may bridge those two axes.
+
+import "intent_execution_tree_projection_owner.pgy";
+import "../semantic/callable_resolution_owner.pgy";
+
+struct MirIntentExecutionGraphTargetProjection {
+    valid: Bool;
+    applies: Bool;
+    source_name: String;
+    canonical_name: String;
+}
+
+func MirIntentExecutionGraphTargetRoutineRow(
+    ref routines: MirProgramRoutineIndex, syntax_id: Int
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.names) {
+        if routines.kinds[row] == "intent" &&
+            routines.source_syntax_ids[row] == ToString(syntax_id) {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionGraphTargetForInstruction(
+    ref routines: MirProgramRoutineIndex,
+    ref plan: MirIntentExecutionPlan,
+    global_row: Int
+) -> MirIntentExecutionGraphTargetProjection {
+    if !MirProgramRoutineIndexStructureReady(routines) ||
+        !plan.valid || global_row < 0 ||
+        global_row >= ArrayLength(routines.instruction_starts) {
+        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+    }
+    if !plan.present {
+        return MirIntentExecutionGraphTargetProjection(true, false, "", "");
+    }
+    let syntax_id: Int = 0;
+    let expected_name: String = "";
+    let matches: Int = 0;
+    let step: Int = 0;
+    while step < ArrayLength(plan.steps.transition_ids) {
+        let routine_row: Int = MirIntentExecutionGraphTargetRoutineRow(
+            routines, plan.steps.routine_syntax_ids[step]
+        );
+        if routine_row >= 0 &&
+            MirIntentExecutionInstructionGlobalRow(
+                routines, routine_row,
+                plan.steps.outcome_instruction_block_ids[step],
+                plan.steps.outcome_instruction_ids[step]
+            ) == global_row {
+            syntax_id = plan.steps.action_syntax_ids[step];
+            matches = matches + 1;
+        }
+        let compensation: Int = plan.steps.compensation_starts[step];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step];
+        while compensation < compensation_end {
+            if routine_row >= 0 &&
+                MirIntentExecutionInstructionGlobalRow(
+                    routines, routine_row,
+                    plan.steps.compensations.instruction_block_ids[compensation],
+                    plan.steps.compensations.instruction_ids[compensation]
+                ) == global_row {
+                syntax_id = plan.steps.compensations.call_target_syntax_ids[
+                    compensation
+                ];
+                expected_name = plan.steps.compensations.call_target_names[
+                    compensation
+                ];
+                matches = matches + 1;
+            }
+            compensation = compensation + 1;
+        }
+        step = step + 1;
+    }
+    if matches == 0 {
+        return MirIntentExecutionGraphTargetProjection(true, false, "", "");
+    }
+    if matches != 1 || syntax_id <= 0 {
+        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+    }
+    let callable_row: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.names) {
+        if routines.kinds[row] == "method" && routines.owners[row] != "" &&
+            routines.source_syntax_ids[row] == ToString(syntax_id) &&
+            (expected_name == "" || routines.names[row] == expected_name) {
+            if callable_row >= 0 {
+                return MirIntentExecutionGraphTargetProjection(
+                    false, false, "", ""
+                );
+            }
+            callable_row = row;
+        }
+        row = row + 1;
+    }
+    if callable_row < 0 {
+        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+    }
+    let source_name: String = routines.names[callable_row];
+    return MirIntentExecutionGraphTargetProjection(
+        true, true, source_name,
+        SemanticCallableCanonicalDeclaredName(
+            routines.owners[callable_row], source_name
+        )
+    );
+}
+
+func MirIntentExecutionGraphTargetProject(
+    sequence: MirExpressionGraphSequence,
+    first_new_node: Int,
+    projection: MirIntentExecutionGraphTargetProjection
+) -> MirExpressionGraphSequence {
+    if !sequence.ok || !projection.valid || first_new_node < 0 ||
+        first_new_node > SemanticExpressionGraphArenaNodeCount(sequence.arena) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    if !projection.applies { return sequence; }
+    let target_names: Array<String> = sequence.arena.call_target_names;
+    let matches: Int = 0;
+    let node: Int = first_new_node;
+    while node < SemanticExpressionGraphArenaNodeCount(sequence.arena) {
+        if sequence.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+            sequence.arena.call_target_kinds[node] ==
+                SemanticCallTargetMember() &&
+            target_names[node] == projection.source_name {
+            ArraySet(target_names, node, projection.canonical_name);
+            matches = matches + 1;
+        }
+        node = node + 1;
+    }
+    if matches != 1 { return MirExpressionGraphSequenceError(sequence); }
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+            sequence.arena.topology, sequence.arena.node_texts,
+            sequence.arena.call_target_kinds, target_names,
+            sequence.arena.place_kinds
+        );
+    return MirExpressionGraphSequence(
+        SemanticExpressionGraphArenaReady(arena), sequence.ready_node_count,
+        sequence.roots, arena
+    );
+}

@@ -1,0 +1,210 @@
+// Typed intent transition, terminal, and compensation control-flow emission.
+//
+// A failed current transition is never self-compensated. Only success-complete
+// predecessors are visited, predecessor-first and compensation-last-first.
+
+import "intent_execution_plan_index_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenIntentPlanEmitTransition(
+    inout body: Array<String>,
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    step: Int,
+    env: CodegenTypeEnv
+) -> Void {
+    let transition_id: Int = view.plan.steps.transition_ids[step];
+    let child: Int = CodegenIntentPlanChildStepRow(
+        view, routine_syntax_id, transition_id
+    );
+    if child == 0 - 2 {
+        Die("typed intent transition has multiple successor steps");
+    }
+    let success_terminal: Int = CodegenIntentPlanTerminalRow(
+        view, routine_syntax_id, transition_id, "success"
+    );
+    let failure_terminal: Int = CodegenIntentPlanTerminalRow(
+        view, routine_syntax_id, transition_id, "failure"
+    );
+    if failure_terminal < 0 ||
+        (child >= 0 && success_terminal >= 0) ||
+        (child < 0 && success_terminal < 0) {
+        Die("typed intent successor/terminal identity is incomplete");
+    }
+    let outcome_name: String = CompilerSymbolCBindingName(
+        view.plan.steps.outcome_result_names[step]
+    );
+    let outcome_enum: String = CompilerSymbolCIdentifier(
+        view.plan.steps.outcome_enum_names[step]
+    );
+    let success_payload: String = CompilerSymbolCBindingName(
+        view.plan.steps.success_payload_names[step]
+    );
+    let failure_payload: String = CompilerSymbolCBindingName(
+        view.plan.steps.failure_payload_names[step]
+    );
+    let success_variant: String = CompilerSymbolCFieldName(
+        view.plan.steps.success_variant_names[step]
+    );
+    let failure_variant: String = CompilerSymbolCFieldName(
+        view.plan.steps.failure_variant_names[step]
+    );
+    ArrayPush(body, Concat(
+        CodegenIntentPlanTransitionLabel(transition_id), ":\n"
+    ));
+    ArrayPush(body, Concat(
+        "    ", Concat(outcome_name, Concat(" = ", Concat(
+            CodegenIntentPlanExpression(
+                view, view.action_graph_roots[step], env
+            ), ";\n"
+        )))
+    ));
+    ArrayPush(body, Concat(
+        "    if (", Concat(outcome_name, Concat(
+            ".tag == (", Concat(outcome_enum, Concat(
+                "_Tag)", Concat(ToString(
+                    view.plan.steps.success_variant_indices[step]
+                ), ") {\n")
+            ))
+        ))
+    ));
+    ArrayPush(body, Concat(
+        "        ", Concat(success_payload, Concat(" = ", Concat(
+            outcome_name, Concat(".", Concat(success_variant, "._0;\n"))
+        )))
+    ));
+    ArrayPush(body, Concat(
+        "        ", Concat(CodegenIntentPlanCompletedName(transition_id),
+            " = true;\n")
+    ));
+    let success_label: String = "";
+    if child >= 0 {
+        success_label = CodegenIntentPlanTransitionLabel(
+            view.plan.steps.transition_ids[child]
+        );
+    } else {
+        success_label = CodegenIntentPlanTerminalLabel(
+            view.plan.terminals.terminal_transition_ids[success_terminal]
+        );
+    }
+    ArrayPush(body, Concat(
+        "        goto ", Concat(success_label, ";\n    }\n")
+    ));
+    ArrayPush(body, Concat(
+        "    if (", Concat(outcome_name, Concat(
+            ".tag == (", Concat(outcome_enum, Concat(
+                "_Tag)", Concat(ToString(
+                    view.plan.steps.failure_variant_indices[step]
+                ), ") {\n")
+            ))
+        ))
+    ));
+    ArrayPush(body, Concat(
+        "        ", Concat(failure_payload, Concat(" = ", Concat(
+            outcome_name, Concat(".", Concat(failure_variant, "._0;\n"))
+        )))
+    ));
+    ArrayPush(body, Concat(
+        "        goto ", Concat(CodegenIntentPlanTerminalLabel(
+            view.plan.terminals.terminal_transition_ids[failure_terminal]
+        ), ";\n    }\n")
+    ));
+    ArrayPush(body,
+        "    fputs(\"typed intent outcome tag escaped admitted branches\\n\", stderr);\n"
+    );
+    ArrayPush(body, "    abort();\n");
+}
+
+func CodegenIntentPlanEmitPredecessorCompensation(
+    inout body: Array<String>,
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    failed_step: Int,
+    env: CodegenTypeEnv
+) -> Void {
+    // Start at the explicit predecessor: the failed current step is never
+    // compensated because it never crossed its success-only completion edge.
+    let predecessor_id: Int =
+        view.plan.steps.predecessor_transition_ids[failed_step];
+    let depth: Int = 0;
+    while predecessor_id != 0 {
+        if depth >= CodegenIntentPlanRoutineStepCount(
+            view, routine_syntax_id
+        ) {
+            Die("typed intent compensation predecessor chain is cyclic");
+        }
+        let predecessor: Int = CodegenIntentPlanStepRowByTransition(
+            view, routine_syntax_id, predecessor_id
+        );
+        if predecessor < 0 {
+            Die("typed intent compensation predecessor is missing");
+        }
+        let start: Int = view.plan.steps.compensation_starts[predecessor];
+        let count: Int = view.plan.steps.compensation_counts[predecessor];
+        if start < 0 || count < 0 ||
+            start + count > ArrayLength(view.compensation_graph_roots) {
+            Die("typed intent compensation range is invalid");
+        }
+        if count > 0 {
+            ArrayPush(body, Concat(
+                "    if (", Concat(CodegenIntentPlanCompletedName(
+                    predecessor_id
+                ), ") {\n")
+            ));
+            let compensation_offset: Int = count;
+            while compensation_offset > 0 {
+                compensation_offset = compensation_offset - 1;
+                let compensation: Int = start + compensation_offset;
+                ArrayPush(body, Concat(
+                    "        ", Concat(CodegenIntentPlanExpression(
+                        view,
+                        view.compensation_graph_roots[compensation], env
+                    ), ";\n")
+                ));
+            }
+            ArrayPush(body, "    }\n");
+        }
+        predecessor_id =
+            view.plan.steps.predecessor_transition_ids[predecessor];
+        depth = depth + 1;
+    }
+}
+
+func CodegenIntentPlanEmitTerminals(
+    inout body: Array<String>,
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    env: CodegenTypeEnv
+) -> Void {
+    let terminal: Int = 0;
+    while terminal < ArrayLength(
+        view.plan.terminals.terminal_transition_ids
+    ) {
+        if view.terminal_routine_canonical_syntax_ids[terminal] ==
+            routine_syntax_id {
+            let source_step: Int = CodegenIntentPlanStepRowByTransition(
+                view, routine_syntax_id,
+                view.plan.terminals.source_transition_ids[terminal]
+            );
+            if source_step < 0 {
+                Die("typed intent terminal source transition is missing");
+            }
+            ArrayPush(body, Concat(CodegenIntentPlanTerminalLabel(
+                view.plan.terminals.terminal_transition_ids[terminal]
+            ), ":\n"));
+            if view.plan.terminals.roles[terminal] == "failure" {
+                CodegenIntentPlanEmitPredecessorCompensation(
+                    body, view, routine_syntax_id, source_step, env
+                );
+            } else if view.plan.terminals.roles[terminal] != "success" {
+                Die("typed intent terminal role is invalid");
+            }
+            ArrayPush(body, Concat(
+                "    return ", Concat(CodegenIntentPlanExpression(
+                    view, view.terminal_graph_roots[terminal], env
+                ), ";\n")
+            ));
+        }
+        terminal = terminal + 1;
+    }
+}

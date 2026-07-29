@@ -591,10 +591,7 @@ func MirRoutineFactIndexResultExists(ref index: MirRoutineFactIndex, wanted: Str
 }
 
 func MirRoutineFactIndexSourceLocalType(ref index: MirRoutineFactIndex, name: String) -> String {
-    let row: Int = 0;
-    while row < ArrayLength(index.source_local_names) {
-        if index.source_local_names[row] == name { return index.source_local_types[row]; }
-        row = row + 1;
-    }
-    return "";
+    return MirMatchBindingRoutineWideType(
+        index.source_local_names, index.source_local_types, name
+    );
 }

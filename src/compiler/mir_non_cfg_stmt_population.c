@@ -86,6 +86,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             MIRInstruction inst = mir_make_assignment_instruction(NULL,
                                                                   stmt,
                                                                   i);
+            inst.arg1 = mir_assignment_target_root_binding_mode(
+                routine, ast_assignment_target(stmt));
             if (!mir_commit_non_cfg_instruction(routine, entry, &inst)) {
                 return false;
             }
@@ -136,6 +138,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             MIRInstruction inst = mir_make_assignment_instruction(NULL,
                                                                   stmt,
                                                                   i);
+            inst.arg1 = mir_assignment_target_root_binding_mode(
+                routine, ast_assignment_target(stmt));
             if (!mir_commit_non_cfg_instruction(routine, entry, &inst))
                 return false;
             mir_record_non_cfg_body_fallback(routine);

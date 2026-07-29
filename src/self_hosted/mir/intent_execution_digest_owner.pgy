@@ -15,9 +15,149 @@ func MirIntentExecutionHashString(hash: Long, value: String) -> Long {
     }
     return out;
 }
-
 func MirIntentExecutionHashInt(hash: Long, value: Int) -> Long {
     return (hash * 131L + ((value + 2) as Long)) % 268435456L;
+}
+
+func MirIntentExecutionHashStepRow(
+    hash: Long, ref plan: MirIntentExecutionPlan, step: Int) -> Long {
+    hash = MirIntentExecutionHashInt(hash, plan.steps.transition_ids[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.routine_syntax_ids[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.step_syntax_ids[step]);
+    hash = MirIntentExecutionHashString(hash, plan.steps.step_names[step]);
+    let has_predecessor: Int = 0;
+    if plan.steps.predecessor_transition_ids[step] != 0 {
+        has_predecessor = 1;
+    }
+    hash = MirIntentExecutionHashInt(hash, has_predecessor);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.predecessor_transition_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.predecessor_step_syntax_ids[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.predecessor_step_names[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.action_syntax_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.outcome_instruction_block_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.outcome_instruction_ids[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.outcome_result_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.outcome_type_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.outcome_enum_names[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.outcome_enum_syntax_ids[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.branch_block_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.branch_instruction_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.success_variant_indices[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.success_variant_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.success_payload_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.success_payload_type_names[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.success_payload_decl_syntax_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.success_successor_block_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.failure_variant_indices[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.failure_variant_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.failure_payload_names[step]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.failure_payload_type_names[step]);
+    hash = MirIntentExecutionHashInt(hash, plan.steps.failure_payload_decl_syntax_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.failure_successor_block_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.completion_block_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.completion_instruction_ids[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.compensation_counts[step]);
+    let compensation: Int = plan.steps.compensation_starts[step];
+    let compensation_end: Int = compensation +
+        plan.steps.compensation_counts[step];
+    while compensation < compensation_end {
+        hash = MirIntentExecutionHashInt(hash,
+            plan.steps.compensations.transition_ids[compensation]);
+        hash = MirIntentExecutionHashInt(hash,
+            plan.steps.compensations.expression_syntax_ids[compensation]);
+        hash = MirIntentExecutionHashInt(hash,
+            plan.steps.compensations.instruction_block_ids[compensation]);
+        hash = MirIntentExecutionHashInt(
+            hash, plan.steps.compensations.instruction_ids[compensation]);
+        hash = MirIntentExecutionHashInt(
+            hash, plan.steps.compensations.graph_root_ids[compensation]);
+        hash = MirIntentExecutionHashInt(
+            hash, plan.steps.compensations.graph_digests[compensation]);
+        hash = MirIntentExecutionHashString(hash,
+            plan.steps.compensations.call_target_names[compensation]);
+        hash = MirIntentExecutionHashInt(hash,
+            plan.steps.compensations.call_target_syntax_ids[compensation]);
+        compensation = compensation + 1;
+    }
+
+    return hash;
+}
+
+func MirIntentExecutionHashTerminalRow(
+    hash: Long, ref plan: MirIntentExecutionPlan, terminal: Int
+) -> Long {
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.terminal_transition_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.routine_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashString(hash, plan.terminals.roles[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.source_transition_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.source_step_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.source_step_names[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.source_variant_indices[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.source_variant_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.source_payload_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.source_payload_type_names[terminal]);
+    hash = MirIntentExecutionHashInt(hash, plan.terminals.source_payload_decl_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.result_instruction_block_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.result_instruction_ids[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_definition_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_type_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_enum_names[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.result_enum_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.result_variant_indices[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_variant_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_payload_names[terminal]);
+    hash = MirIntentExecutionHashString(hash,
+        plan.terminals.result_payload_type_names[terminal]);
+    hash = MirIntentExecutionHashInt(hash, plan.terminals.result_payload_decl_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.expression_syntax_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.graph_root_ids[terminal]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.terminals.graph_digests[terminal]);
+
+    return hash;
 }
 
 func MirIntentExecutionPlanDigest(
@@ -25,161 +165,42 @@ func MirIntentExecutionPlanDigest(
 ) -> Int {
     if !plan.valid { return 0; }
     let hash: Long = MirIntentExecutionHashString(71L, plan.schema);
-    let step: Int = 0;
-    while step < ArrayLength(plan.steps.transition_ids) {
-        hash = MirIntentExecutionHashInt(hash, plan.steps.transition_ids[step]);
-        hash = MirIntentExecutionHashInt(hash, plan.steps.routine_syntax_ids[step]);
-        hash = MirIntentExecutionHashInt(hash, plan.steps.step_syntax_ids[step]);
-        hash = MirIntentExecutionHashString(hash, plan.steps.step_names[step]);
-        let has_predecessor: Int = 0;
-        if plan.steps.predecessor_transition_ids[step] != 0 {
-            has_predecessor = 1;
+    // Native hashes each routine's steps then terminals. First occurrence
+    // supplies routine order; cross-routine adjacency is not authority.
+    let routine_anchor: Int = 0;
+    while routine_anchor < ArrayLength(plan.steps.transition_ids) {
+        let routine_syntax_id: Int =
+            plan.steps.routine_syntax_ids[routine_anchor];
+        let first_for_routine: Bool = true;
+        let prior_anchor: Int = 0;
+        while prior_anchor < routine_anchor {
+            if plan.steps.routine_syntax_ids[prior_anchor] ==
+                    routine_syntax_id {
+                first_for_routine = false;
+            }
+            prior_anchor = prior_anchor + 1;
         }
-        hash = MirIntentExecutionHashInt(hash, has_predecessor);
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.predecessor_transition_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.predecessor_step_syntax_ids[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.predecessor_step_names[step]
-        );
-        hash = MirIntentExecutionHashInt(hash, plan.steps.action_syntax_ids[step]);
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.outcome_instruction_block_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.outcome_instruction_ids[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.outcome_result_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.outcome_type_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.outcome_enum_names[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.outcome_enum_syntax_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(hash, plan.steps.branch_block_ids[step]);
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.branch_instruction_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.success_variant_indices[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.success_variant_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.success_payload_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.success_payload_type_names[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.success_successor_block_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.failure_variant_indices[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.failure_variant_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.failure_payload_names[step]
-        );
-        hash = MirIntentExecutionHashString(
-            hash, plan.steps.failure_payload_type_names[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.failure_successor_block_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.completion_block_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.completion_instruction_ids[step]
-        );
-        hash = MirIntentExecutionHashInt(
-            hash, plan.steps.compensation_counts[step]
-        );
-        let compensation: Int = plan.steps.compensation_starts[step];
-        let compensation_end: Int = compensation +
-            plan.steps.compensation_counts[step];
-        while compensation < compensation_end {
-            hash = MirIntentExecutionHashInt(
-                hash, plan.steps.compensations.transition_ids[compensation]
-            );
-            hash = MirIntentExecutionHashInt(hash,
-                plan.steps.compensations.expression_syntax_ids[compensation]);
-            hash = MirIntentExecutionHashInt(hash,
-                plan.steps.compensations.instruction_block_ids[compensation]);
-            hash = MirIntentExecutionHashInt(
-                hash, plan.steps.compensations.instruction_ids[compensation]);
-            hash = MirIntentExecutionHashInt(
-                hash, plan.steps.compensations.graph_root_ids[compensation]);
-            hash = MirIntentExecutionHashInt(
-                hash, plan.steps.compensations.graph_digests[compensation]);
-            hash = MirIntentExecutionHashString(hash,
-                plan.steps.compensations.call_target_names[compensation]);
-            hash = MirIntentExecutionHashInt(hash,
-                plan.steps.compensations.call_target_syntax_ids[compensation]);
-            compensation = compensation + 1;
+        if first_for_routine {
+            let step: Int = 0;
+            while step < ArrayLength(plan.steps.transition_ids) {
+                if plan.steps.routine_syntax_ids[step] == routine_syntax_id {
+                    hash = MirIntentExecutionHashStepRow(hash, plan, step);
+                }
+                step = step + 1;
+            }
+            let terminal: Int = 0;
+            while terminal <
+                    ArrayLength(plan.terminals.terminal_transition_ids) {
+                if plan.terminals.routine_syntax_ids[terminal] ==
+                        routine_syntax_id {
+                    hash = MirIntentExecutionHashTerminalRow(
+                        hash, plan, terminal
+                    );
+                }
+                terminal = terminal + 1;
+            }
         }
-        step = step + 1;
-    }
-    let terminal: Int = 0;
-    while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.terminal_transition_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.routine_syntax_ids[terminal]);
-        hash = MirIntentExecutionHashString(hash, plan.terminals.roles[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.source_transition_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.source_step_syntax_ids[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.source_step_names[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.source_variant_indices[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.source_variant_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.source_payload_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.source_payload_type_names[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.result_instruction_block_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.result_instruction_ids[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_definition_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_type_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_enum_names[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.result_enum_syntax_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.result_variant_indices[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_variant_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_payload_names[terminal]);
-        hash = MirIntentExecutionHashString(hash,
-            plan.terminals.result_payload_type_names[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.expression_syntax_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.graph_root_ids[terminal]);
-        hash = MirIntentExecutionHashInt(hash,
-            plan.terminals.graph_digests[terminal]);
-        terminal = terminal + 1;
+        routine_anchor = routine_anchor + 1;
     }
     return (1073741824L + hash) as Int;
 }

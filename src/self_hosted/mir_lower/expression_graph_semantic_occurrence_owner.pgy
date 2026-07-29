@@ -1,0 +1,109 @@
+// Exact MIR instruction occurrence -> canonical semantic expression root.
+// The tree emitter owns occurrence order; this fact records the canonical AST
+// epoch selected by that order after semantic place/call-target analysis.
+
+import "structured_expression_emission_order_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
+
+struct MirExpressionSemanticOccurrenceIndex {
+    valid: Bool;
+    global_instruction_rows: Array<Int>;
+    lanes: Array<Int>;
+    derived_ordinals: Array<Int>;
+    canonical_node_ids: Array<Int>;
+    semantic_graph_roots: Array<Int>;
+}
+
+func MirExpressionSemanticOccurrenceIndexFromFacts(
+    artifact: AstTreeArtifact,
+    ref order: MirStructuredExpressionEmissionOrder,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> MirExpressionSemanticOccurrenceIndex {
+    let rows: Array<Int> = [];
+    let lanes: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let node_ids: Array<Int> = [];
+    let roots: Array<Int> = [];
+    let valid: Bool = MirStructuredExpressionEmissionOrderReady(order) &&
+        surfaces.ok && surfaces.artifact_node_count == artifact.count;
+    let occurrence: Int = 0;
+    let surface: Int = 0;
+    while surface < SemanticAstExpressionSurfaceCount(surfaces) {
+        let node_id: Int = surfaces.node_ids[surface];
+        let lane: Int = AstExpressionLaneAtom();
+        while lane <= AstExpressionLaneAuxiliary() {
+            let required: Bool = false;
+            if lane == AstExpressionLaneAtom() {
+                required = surfaces.has_atoms[surface] &&
+                    (SemanticAstExpressionGraphAtomLaneRequired(
+                        artifact, node_id
+                     ) || SemanticAstExpressionGraphAtomLaneProducerOnly(
+                        artifact, node_id
+                     ));
+            } else if lane == AstExpressionLaneValue() {
+                required = surfaces.has_values[surface] &&
+                    SemanticAstExpressionGraphValueLaneRequired(
+                        artifact, node_id
+                    );
+            } else {
+                required = surfaces.has_auxiliary_values[surface] &&
+                    SemanticAstExpressionGraphAuxiliaryLaneRequired(
+                        artifact, node_id
+                    );
+            }
+            if required {
+                let slot: Int = surface * 3 + lane;
+                if occurrence >=
+                        ArrayLength(order.global_instruction_rows) ||
+                    slot < 0 || slot >=
+                        ArrayLength(surfaces.expression_graph.roots) ||
+                    !surfaces.expression_graph.has_roots[slot] ||
+                    order.lanes[occurrence] != lane {
+                    valid = false;
+                } else {
+                    ArrayPush(
+                        rows, order.global_instruction_rows[occurrence]
+                    );
+                    ArrayPush(lanes, lane);
+                    ArrayPush(
+                        ordinals, order.derived_ordinals[occurrence]
+                    );
+                    ArrayPush(node_ids, node_id);
+                    ArrayPush(
+                        roots, surfaces.expression_graph.roots[slot]
+                    );
+                }
+                occurrence = occurrence + 1;
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    if occurrence != ArrayLength(order.global_instruction_rows) {
+        valid = false;
+    }
+    return MirExpressionSemanticOccurrenceIndex(
+        valid, rows, lanes, ordinals, node_ids, roots
+    );
+}
+
+func MirExpressionSemanticRootForInstruction(
+    ref index: MirExpressionSemanticOccurrenceIndex,
+    global_row: Int,
+    lane: Int,
+    ordinal: Int
+) -> Int {
+    if !index.valid { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let i: Int = 0;
+    while i < ArrayLength(index.global_instruction_rows) {
+        if index.global_instruction_rows[i] == global_row &&
+            index.lanes[i] == lane &&
+            index.derived_ordinals[i] == ordinal {
+            if found >= 0 { return 0 - 1; }
+            found = index.semantic_graph_roots[i];
+        }
+        i = i + 1;
+    }
+    return found;
+}

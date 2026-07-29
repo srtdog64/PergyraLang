@@ -2,7 +2,7 @@
 
 import "../lib/json_fact_table.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
-
+import "expression_graph_persisted_shape_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;
     ready_node_count: Int;
@@ -121,7 +121,7 @@ func MirExpressionGraphSequenceAppend(
     graph: JsonObjectFactTable
 ) -> MirExpressionGraphSequence {
     if !sequence.ok || !JsonObjectFactTableReady(graph) ||
-        JsonObjectFactCount(graph) != 2 {
+        !MirExpressionGraphPersistedShapeReady(graph) {
         return MirExpressionGraphSequenceError(sequence);
     }
     let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(

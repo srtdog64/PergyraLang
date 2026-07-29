@@ -32,8 +32,10 @@ production direct-MIR entrypoint now reaches one bounded world slice after its
 old direct subject call was deleted. The wider source-to-artifact modes still
 bypass the declared root intent through `Main -> CompileSourceTo*` calls. The
 next executable rung moves the source-to-MIR boundary into a second real
-subject/action/zone slice; root-intent takeover follows only after that
-multi-action graph earns the same replacement evidence.
+subject/action/zone slice. Root-intent takeover follows when a real compiler
+purpose binder and its cross-axis fact bundle reach the production call graph,
+delete the direct bypass, and earn the same replacement evidence. The number
+of actions is not the takeover criterion.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
 - The import closure declares exactly 19 concrete resource-zone types, while

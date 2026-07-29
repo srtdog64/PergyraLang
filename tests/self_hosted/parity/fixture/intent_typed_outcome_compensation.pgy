@@ -90,6 +90,14 @@ subject WorkflowActor {
     }
 }
 
+// The transition owner must bind actions by syntax identity, not by the
+// routine-local spelling. This same-name method is intentionally unrelated.
+subject ForeignWorkflowActor {
+    action ForwardA(self, succeed: Bool) -> WorkflowOutcomeA {
+        return WorkflowAFailed(WorkflowProblemA(909));
+    }
+}
+
 role WorkflowActorRunnable for WorkflowActor {
     impl ability WorkflowRunnable {
         func CanRun() -> Bool {

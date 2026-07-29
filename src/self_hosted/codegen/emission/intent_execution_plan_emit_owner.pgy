@@ -1,0 +1,125 @@
+// C emission for machine-admitted typed intent transition plans.
+//
+// Transition selection is numeric and predecessor-owned.  Names are used only
+// after admission for C ABI spelling (locals, enum payload members, symbols).
+
+import "../input/intent_execution_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+import "intent_signature_emit_owner.pgy";
+import "../text/text_owner.pgy";
+
+import "intent_execution_plan_index_owner.pgy";
+import "intent_execution_plan_local_emit_owner.pgy";
+import "intent_execution_plan_control_emit_owner.pgy";
+
+func CodegenIntentExecutionPlanDefinitionBlock(
+    ref view: CodegenIntentExecutionView,
+    ref intents: SemanticAstIntentSignatureFacts,
+    base_env: CodegenTypeEnv
+) -> String {
+    if !view.valid {
+        Die("typed intent codegen view is invalid");
+    }
+    if !view.present { return ""; }
+    let definitions: Array<String> = [];
+    let emitted_steps: Int = 0;
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        let routine_syntax_id: Int = intents.intent_node_ids[intent_index];
+        if !CodegenIntentExecutionViewOwnsRoutine(
+            view, routine_syntax_id
+        ) {
+            intent_index = intent_index + 1;
+            continue;
+        }
+        if intents.result_modes[intent_index] != "typed_enum" {
+            Die("admitted typed intent plan targets a legacy Bool intent");
+        }
+        let root_step: Int = CodegenIntentPlanRootStepRow(
+            view, routine_syntax_id
+        );
+        let routine_step_count: Int = CodegenIntentPlanRoutineStepCount(
+            view, routine_syntax_id
+        );
+        if root_step < 0 || routine_step_count <= 0 {
+            Die("admitted typed intent plan has no unique root transition");
+        }
+        let env: CodegenTypeEnv = CodegenIntentPlanLocalEnv(
+            view, routine_syntax_id,
+            CodegenIntentLocalEnv(intents, intent_index, base_env)
+        );
+        let body: Array<String> = [];
+        CodegenIntentPlanEmitLocals(
+            body, view, routine_syntax_id, env
+        );
+        ArrayPush(body, Concat(
+            "    goto ", Concat(CodegenIntentPlanTransitionLabel(
+                view.plan.steps.transition_ids[root_step]
+            ), ";\n")
+        ));
+        let step: Int = root_step;
+        let visited: Int = 0;
+        while step >= 0 {
+            if visited >= routine_step_count {
+                Die("typed intent transition chain is cyclic");
+            }
+            CodegenIntentPlanEmitTransition(
+                body, view, routine_syntax_id, step, env
+            );
+            emitted_steps = emitted_steps + 1;
+            visited = visited + 1;
+            let child: Int = CodegenIntentPlanChildStepRow(
+                view, routine_syntax_id,
+                view.plan.steps.transition_ids[step]
+            );
+            if child == 0 - 2 {
+                Die("typed intent transition chain branches ambiguously");
+            }
+            step = child;
+        }
+        if visited != routine_step_count {
+            Die("typed intent predecessor chain does not cover its steps");
+        }
+        CodegenIntentPlanEmitTerminals(
+            body, view, routine_syntax_id, env
+        );
+        let plan_result_type: String = "";
+        let terminal: Int = 0;
+        while terminal < ArrayLength(
+            view.plan.terminals.terminal_transition_ids
+        ) {
+            if view.terminal_routine_canonical_syntax_ids[terminal] ==
+                routine_syntax_id {
+                if plan_result_type == "" {
+                    plan_result_type =
+                        view.plan.terminals.result_type_names[terminal];
+                } else if plan_result_type !=
+                    view.plan.terminals.result_type_names[terminal] {
+                    Die("typed intent terminal result types disagree");
+                }
+            }
+            terminal = terminal + 1;
+        }
+        if plan_result_type == "" || plan_result_type !=
+            intents.return_type_names[intent_index] {
+            Die("typed intent signature and terminal result type disagree");
+        }
+        ArrayPush(definitions, Concat(
+            CodegenIntentCReturnType(intents, intent_index, base_env),
+            Concat(" ", Concat(CompilerSymbolCIdentifier(
+                intents.names[intent_index]
+            ), Concat("(", Concat(CodegenIntentParameterList(
+                intents, intent_index, base_env
+            ), Concat(")\n{\n", Concat(StringJoin(body, ""), "}\n\n"))))))
+        ));
+        intent_index = intent_index + 1;
+    }
+    if emitted_steps != ArrayLength(view.plan.steps.transition_ids) {
+        Die("typed intent plan has no exact semantic signature consumer");
+    }
+    return StringJoin(definitions, "");
+}

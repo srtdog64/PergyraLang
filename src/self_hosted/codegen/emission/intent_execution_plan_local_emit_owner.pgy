@@ -1,0 +1,89 @@
+// Typed intent local environment and declaration emission.
+
+import "intent_execution_plan_index_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "function_binding_env_owner.pgy";
+
+func CodegenIntentPlanLocalEnv(
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    base_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
+    let env: CodegenTypeEnv = base_env;
+    let step: Int = 0;
+    while step < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[step] == routine_syntax_id {
+            let outcome_name: String =
+                view.plan.steps.outcome_result_names[step];
+            let success_name: String =
+                view.plan.steps.success_payload_names[step];
+            let failure_name: String =
+                view.plan.steps.failure_payload_names[step];
+            env = TypeEnvAppendLocalRows(
+                env, CodegenFunctionValueBindingFactForCExpression(
+                    outcome_name, view.plan.steps.outcome_type_names[step],
+                    env.global_rows,
+                    CompilerSymbolCBindingName(outcome_name)
+                ).env_rows
+            );
+            env = TypeEnvAppendLocalRows(
+                env, CodegenFunctionValueBindingFactForCExpression(
+                    success_name,
+                    view.plan.steps.success_payload_type_names[step],
+                    env.global_rows,
+                    CompilerSymbolCBindingName(success_name)
+                ).env_rows
+            );
+            env = TypeEnvAppendLocalRows(
+                env, CodegenFunctionValueBindingFactForCExpression(
+                    failure_name,
+                    view.plan.steps.failure_payload_type_names[step],
+                    env.global_rows,
+                    CompilerSymbolCBindingName(failure_name)
+                ).env_rows
+            );
+        }
+        step = step + 1;
+    }
+    return env;
+}
+func CodegenIntentPlanEmitLocals(
+    inout body: Array<String>,
+    ref view: CodegenIntentExecutionView,
+    routine_syntax_id: Int,
+    env: CodegenTypeEnv
+) -> Void {
+    let step: Int = 0;
+    while step < ArrayLength(view.plan.steps.transition_ids) {
+        if view.routine_canonical_syntax_ids[step] == routine_syntax_id {
+            ArrayPush(body, Concat(
+                "    ", Concat(AbiLayoutCLocalType(
+                    view.plan.steps.outcome_type_names[step], env
+                ), Concat(" ", Concat(CompilerSymbolCBindingName(
+                    view.plan.steps.outcome_result_names[step]
+                ), ";\n")))
+            ));
+            ArrayPush(body, Concat(
+                "    ", Concat(AbiLayoutCLocalType(
+                    view.plan.steps.success_payload_type_names[step], env
+                ), Concat(" ", Concat(CompilerSymbolCBindingName(
+                    view.plan.steps.success_payload_names[step]
+                ), ";\n")))
+            ));
+            ArrayPush(body, Concat(
+                "    ", Concat(AbiLayoutCLocalType(
+                    view.plan.steps.failure_payload_type_names[step], env
+                ), Concat(" ", Concat(CompilerSymbolCBindingName(
+                    view.plan.steps.failure_payload_names[step]
+                ), ";\n")))
+            ));
+            ArrayPush(body, Concat(
+                "    bool ", Concat(CodegenIntentPlanCompletedName(
+                    view.plan.steps.transition_ids[step]
+                ), " = false;\n")
+            ));
+        }
+        step = step + 1;
+    }
+}

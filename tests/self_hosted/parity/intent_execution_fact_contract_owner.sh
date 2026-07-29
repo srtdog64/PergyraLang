@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Focused MIR fact-family gate.  Full typed intent runtime/parity remains owned
-# by intent_typed_outcome_compensation_owner.sh.todo until the frontend, DIR,
-# JSON carrier, and production consumer all reach this plan.
+# Focused MIR fact-family gate. Full typed-intent runtime/parity is owned by
+# intent_typed_outcome_compensation_owner.sh; this gate keeps the target-neutral
+# in-memory fact family independently falsifiable.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"

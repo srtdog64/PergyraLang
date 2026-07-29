@@ -735,6 +735,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy` --
   stable MIR instruction/lane/derived-ordinal occurrence order captured at the
   structured AST emission boundary; repeated CFG visits remain distinct rows.
+- `src/self_hosted/mir_lower/expression_graph_semantic_occurrence_owner.pgy` --
+  exact emitted MIR instruction occurrence to canonical semantic NodeId/root
+  mapping after call-target and place analysis; producer IDs never alias the
+  reconstructed AST identity epoch.
 - `src/self_hosted/mir_lower/structured_condition_emission_owner.pgy` --
   CFG-owned branch conditions, `for` value/auxiliary lane identity, and derived
   match-binding occurrence order recorded at their actual AST emission point.
@@ -747,6 +751,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   one-pass MIR JSON graph decoding, exact graph/node schema validation, and
   ordered graph-sequence construction.
+- `src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy` --
+  exact legacy/sealed persisted graph object shape and canonical digest-presence
+  validation without consumer-side graph re-hashing.
 - `src/self_hosted/mir_lower/expression_graph_match_owner.pgy` -- derived
   match-kind dispatch from carried MIR facts.
 - `src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy` --
@@ -775,6 +782,24 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
+- `src/self_hosted/mir_lower/intent_execution_json_decode_owner.pgy` --
+  exact-field-order object/scalar/string-array decoding for the native
+  `intent_execution` wire format; it owns wire shape only, not semantic
+  readiness.
+- `src/self_hosted/mir_lower/intent_execution_json_rows_owner.pgy` -- exact
+  step, ordered-compensation, and terminal wire-row capture, including the
+  `has_predecessor` boolean-to-identity seal.
+- `src/self_hosted/mir_lower/intent_execution_identity_index_owner.pgy` --
+  one document identity index for routines, callable declarations, enum
+  variants, and uniquely named `tobject` payload declarations.
+- `src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy` -- unchecked
+  exact-wire plan carriage plus stable routine/declaration/instruction
+  semantic joins. Full plan readiness belongs only to machine admission.
+  Its focused executable evidence is
+  `tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy`;
+  `tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh`
+  delegates present/multi/interleaved/mutation evidence to
+  `tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh`.
 - `src/self_hosted/dir/domain_graph_fact_owner.pgy` -- bounded DIR census,
   graph-anchor identity, and topology-producer orchestration.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
@@ -871,8 +896,32 @@ inventory must not become a second fact-family owner registry.
   assignment type facts; the named C-oracle bridge is excluded.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
 - `src/self_hosted/mir_lower/intent_lower_owner.pgy` -- exact intent MIR
-  admission and AST reconstruction for the bounded action/contract/compensation
-  path; malformed cross-carrier identity fails before code generation.
+  stable import surface for the split intent routine-tree projection.
+- `src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy` -- exact
+  admitted legacy/typed intent routine AST reconstruction orchestration;
+  malformed cross-carrier identity fails before code generation.
+- `src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy` --
+  one bounded block-zero projection of legacy semantic/resource carriers and
+  temporary executable mirrors; typed transition facts are not inferred here.
+- `src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy` --
+  per-step participant/action/outcome contract validation and legacy/typed AST
+  step rows over already-admitted routine carriers and transition identities.
+- `src/self_hosted/mir_lower/intent_execution_structure_owner.pgy` -- typed
+  intent legacy-spine and admitted-plan block ownership; unknown extra block
+  IDs fail closed while legacy Bool retains its four-block contract.
+- `src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy` --
+  predecessor-owned typed step/terminal tree rows and exact plan instruction
+  occurrence order, without source or row-order topology recovery.
+- `src/self_hosted/mir_lower/intent_execution_carrier_projection_owner.pgy` --
+  plan-ordered step/outcome/compensation semantic carriers selected by exact
+  block and instruction identities.
+- `src/self_hosted/mir_lower/intent_execution_graph_mirror_owner.pgy` -- exact
+  routine-local `{graph root,digest}` multiset seal between temporary legacy
+  statement graphs and plan-owned on/compensation graphs, including duplicate
+  identical expressions.
+- `src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy` -- exact
+  `action_syntax_id`/compensation target identity projection from source member
+  spelling to the canonical declared member name consumed by semantic graphs.
 - `src/self_hosted/mir_lower/intent_action_contract_owner.pgy` -- exact intent
   `on` expression-graph identity, subject-action declaration join, return type,
   and stable action syntax-ID contract consumed by intent admission.
@@ -932,6 +981,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
 
 ## Codegen
+
+- `src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy` --
+  bounded codegen view of one admitted typed intent plan, canonical routine
+  identity epoch, and its exact semantic expression roots.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
@@ -1134,6 +1187,17 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/intent_outcome_emit_owner.pgy` -- exact
   typed immutable C binding for one intent action result and step-local Bool
   `expect` dispatch through the shared intent control-flow owner.
+- `src/self_hosted/codegen/emission/intent_execution_plan_emit_owner.pgy` --
+  top-level typed intent definition assembly and exact semantic-signature
+  consumption, with no legacy Bool fallback.
+- `src/self_hosted/codegen/emission/intent_execution_plan_index_owner.pgy` --
+  routine-local numeric transition/terminal lookup and admitted semantic graph
+  expression/name projection for typed intent C emission.
+- `src/self_hosted/codegen/emission/intent_execution_plan_local_emit_owner.pgy`
+  -- typed intent local environment and C declaration materialization.
+- `src/self_hosted/codegen/emission/intent_execution_plan_control_emit_owner.pgy`
+  -- success-only completion, predecessor-only reverse compensation, numeric
+  transition dispatch, and typed terminal result returns.
 - `src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy` -- ability
   vtable types and instances, role method ABI declarations, party bind
   boundaries, and value-to-receiver operator adapters from semantic role facts.
@@ -1287,6 +1351,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy` --
   one-way bridge from the machine-admitted MIR routine inventory to the
   codegen callable-receiver fact; codegen never reopens MIR JSON.
+- `src/self_hosted/compiler/direct_mir_intent_plan_projection_owner.pgy` --
+  exact producer routine/instruction identity join to canonical semantic
+  occurrence roots; it performs no graph or plan revalidation.
 - `src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy` --
   one-way renderer from the admitted target-neutral runtime plan to exact C
   role binding and projection-sync prologues; it owns no source, JSON, ordinal,
@@ -1628,6 +1695,9 @@ inventory must not become a second fact-family owner registry.
   semantic source/MIR-to-C owner; joins initializer, iteration, assignment,
   expression-use, call, return, and condition evidence after source and MIR
   JSON inputs converge on one `AstTreeArtifact` verifier.
+- `src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy` -- one
+  admitted typed-intent plan tree projection and exact post-semantic expression
+  occurrence remap boundary for the DRV-2 consumer.
 - `src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy` --
   canonical MIR tree/directive identity adapter and program-level atomic
   composition boundary; rebinds nominal owners and topology directives into

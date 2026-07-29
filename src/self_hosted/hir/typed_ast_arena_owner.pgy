@@ -282,6 +282,22 @@ func TypedAstArenaAuxValueText(arena: AstArena, node_id: Int) -> Option<String> 
     return Some(arena.atom_table[value_atom]);
 }
 
+// Intent terminal source-step identity is a typed AST edge, not an enum
+// consumer's license to inspect the arena's generic auxiliary lane.
+func TypedAstIntentTerminalSourceStepName(
+    arena: AstArena,
+    node_id: Int
+) -> Option<String> {
+    if !TypedAstArenaNodeKindIs(
+            arena, node_id, TypedAstKindIntentTerminalSuccessTag()
+        ) && !TypedAstArenaNodeKindIs(
+            arena, node_id, TypedAstKindIntentTerminalFailureTag()
+        ) {
+        return None;
+    }
+    return TypedAstArenaAuxValueText(arena, node_id);
+}
+
 func ChildAtFromEdges(children: Array<Int>, first_child: Int, child_count: Int, i: Int) -> Option<Int> {
     if i < 0 {
         return None;

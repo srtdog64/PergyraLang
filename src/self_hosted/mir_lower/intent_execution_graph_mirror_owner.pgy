@@ -1,0 +1,190 @@
+// Exact typed-intent legacy graph mirror coverage.
+//
+// Native MIR temporarily carries the original routine-local AST statement
+// graph beside the plan-owned on/compensation instruction graph.  This owner
+// proves multiset equality by persisted {root,digest} identity, including
+// multiplicity.  It never joins by expression text, source position, name, or
+// block row order.
+
+import "intent_execution_tree_projection_owner.pgy";
+import "expression_graph_instruction_policy_owner.pgy";
+
+struct MirIntentExecutionGraphIdentity {
+    valid: Bool;
+    root_id: Int;
+    digest: Int;
+}
+
+func MirIntentExecutionGraphIdentityAt(
+    ref routines: MirProgramRoutineIndex,
+    global_row: Int
+) -> MirIntentExecutionGraphIdentity {
+    if global_row < 0 || global_row >=
+        ArrayLength(routines.instruction_starts) {
+        return MirIntentExecutionGraphIdentity(false, -1, 0);
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.instruction_starts[global_row],
+        routines.instruction_ends[global_row]
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let root: Option<String> = JsonObjectFactNumberFieldOpt(graph, "root");
+    let digest: Option<String> = JsonObjectFactNumberFieldOpt(
+        graph, "digest"
+    );
+    if !JsonObjectFactTableReady(instruction) ||
+        !JsonObjectFactTableReady(graph) || !IsSome(root) ||
+        !IsSome(digest) {
+        return MirIntentExecutionGraphIdentity(false, -1, 0);
+    }
+    let root_id: Int = ToInt(UnwrapOption(root));
+    let digest_value: Int = ToInt(UnwrapOption(digest));
+    return MirIntentExecutionGraphIdentity(
+        root_id >= 0 && digest_value > 0 &&
+            ToString(root_id) == UnwrapOption(root) &&
+            ToString(digest_value) == UnwrapOption(digest),
+        root_id, digest_value
+    );
+}
+
+func MirIntentExecutionAppendSelectedGraphIdentity(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    block_id: Int,
+    instruction_id: Int,
+    inout roots: Array<Int>,
+    inout digests: Array<Int>
+) -> Bool {
+    let global_row: Int = MirIntentExecutionInstructionGlobalRow(
+        routines, routine_row, block_id, instruction_id
+    );
+    let identity: MirIntentExecutionGraphIdentity =
+        MirIntentExecutionGraphIdentityAt(routines, global_row);
+    if !identity.valid { return false; }
+    ArrayPush(roots, identity.root_id);
+    ArrayPush(digests, identity.digest);
+    return true;
+}
+
+func MirIntentExecutionCoverLegacyGraphMirrors(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int,
+    inout order: MirStructuredExpressionEmissionOrder
+) -> Bool {
+    let selected_roots: Array<Int> = [];
+    let selected_digests: Array<Int> = [];
+    let topology: Array<Int> = MirIntentExecutionRoutineStepRows(
+        plan, routine_syntax_id
+    );
+    if ArrayLength(topology) == 0 { return false; }
+    let topology_i: Int = 0;
+    while topology_i < ArrayLength(topology) {
+        let step: Int = topology[topology_i];
+        if !MirIntentExecutionAppendSelectedGraphIdentity(
+            routines, routine_row,
+            plan.steps.outcome_instruction_block_ids[step],
+            plan.steps.outcome_instruction_ids[step],
+            selected_roots, selected_digests
+        ) { return false; }
+        let compensation: Int = plan.steps.compensation_starts[step];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step];
+        while compensation < compensation_end {
+            if !MirIntentExecutionAppendSelectedGraphIdentity(
+                routines, routine_row,
+                plan.steps.compensations.instruction_block_ids[
+                    compensation
+                ],
+                plan.steps.compensations.instruction_ids[compensation],
+                selected_roots, selected_digests
+            ) { return false; }
+            compensation = compensation + 1;
+        }
+        topology_i = topology_i + 1;
+    }
+
+    let mirror_rows: Array<Int> = [];
+    let mirror_roots: Array<Int> = [];
+    let mirror_digests: Array<Int> = [];
+    let local_block: Int = 0;
+    while local_block < routines.routine_block_counts[routine_row] {
+        let block_row: Int = routines.routine_block_starts[routine_row] +
+            local_block;
+        let block_id_text: String = MirObjectNumberFactAtBounds(
+            routines.source_json, routines.block_starts[block_row],
+            routines.block_ends[block_row], "id"
+        );
+        let block_id: Int = ToInt(block_id_text);
+        if (block_id == 0 || block_id == 1) &&
+            ToString(block_id) == block_id_text {
+            let local_instruction: Int = 0;
+            while local_instruction <
+                    routines.block_instruction_counts[block_row] {
+                let global_row: Int =
+                    routines.block_instruction_starts[block_row] +
+                    local_instruction;
+                let instruction: JsonObjectFactTable =
+                    JsonObjectFactTableFromBounds(
+                        routines.source_json,
+                        routines.instruction_starts[global_row],
+                        routines.instruction_ends[global_row]
+                    );
+                let kind: Option<String> = JsonObjectFactStringFieldOpt(
+                    instruction, "kind"
+                );
+                let name: Option<String> = JsonObjectFactStringFieldOpt(
+                    instruction, "name"
+                );
+                if IsSome(kind) && IsSome(name) &&
+                    UnwrapOption(kind) == "stmt" &&
+                    UnwrapOption(name) == "stmt" &&
+                    MirInstructionRequiresExpr0Graph(instruction) {
+                    let identity: MirIntentExecutionGraphIdentity =
+                        MirIntentExecutionGraphIdentityAt(
+                            routines, global_row
+                        );
+                    if !identity.valid { return false; }
+                    ArrayPush(mirror_rows, global_row);
+                    ArrayPush(mirror_roots, identity.root_id);
+                    ArrayPush(mirror_digests, identity.digest);
+                }
+                local_instruction = local_instruction + 1;
+            }
+        }
+        local_block = local_block + 1;
+    }
+    if ArrayLength(mirror_rows) != ArrayLength(selected_roots) {
+        return false;
+    }
+    let matched: Array<Bool> = [];
+    let i: Int = 0;
+    while i < ArrayLength(selected_roots) {
+        ArrayPush(matched, false);
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(mirror_rows) {
+        let selected: Int = 0 - 1;
+        let candidate: Int = 0;
+        while candidate < ArrayLength(selected_roots) {
+            if !matched[candidate] &&
+                selected_roots[candidate] == mirror_roots[i] &&
+                selected_digests[candidate] == mirror_digests[i] {
+                selected = candidate;
+                break;
+            }
+            candidate = candidate + 1;
+        }
+        if selected < 0 { return false; }
+        ArraySet(matched, selected, true);
+        if !MirStructuredExpressionEmissionOrderCoverProducer(
+            order, mirror_rows[i]
+        ) { return false; }
+        i = i + 1;
+    }
+    return true;
+}

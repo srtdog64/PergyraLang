@@ -147,6 +147,8 @@ const char* ast_intent_decl_terminal_result_payload_name(
     const ASTNode* node, bool success_terminal, size_t failure_index);
 const char* ast_intent_decl_terminal_result_payload_type_name(
     const ASTNode* node, bool success_terminal, size_t failure_index);
+uint32_t ast_intent_decl_terminal_result_payload_decl_syntax_id(
+    const ASTNode* node, bool success_terminal, size_t failure_index);
 bool ast_intent_decl_set_terminal_result_resolution_copy(
     ASTNode* node,
     bool success_terminal,
@@ -156,7 +158,8 @@ bool ast_intent_decl_set_terminal_result_resolution_copy(
     size_t result_variant_index,
     const char* result_variant_name,
     const char* result_payload_name,
-    const char* result_payload_type_name);
+    const char* result_payload_type_name,
+    uint32_t result_payload_decl_syntax_id);
 char** ast_intent_decl_default_who_names(const ASTNode* node, size_t* count_out);
 size_t ast_intent_decl_default_who_count(const ASTNode* node);
 ASTNode* ast_intent_decl_default_where_type(const ASTNode* node);
@@ -192,6 +195,8 @@ const char* ast_intent_step_failure_variant_name(const ASTNode* node);
 const char* ast_intent_step_failure_payload_name(const ASTNode* node);
 const char* ast_intent_step_success_payload_type_name(const ASTNode* node);
 const char* ast_intent_step_failure_payload_type_name(const ASTNode* node);
+uint32_t ast_intent_step_success_payload_decl_syntax_id(const ASTNode* node);
+uint32_t ast_intent_step_failure_payload_decl_syntax_id(const ASTNode* node);
 const char* ast_intent_step_outcome_enum_type_name(const ASTNode* node);
 uint32_t ast_intent_step_outcome_enum_decl_syntax_id(const ASTNode* node);
 size_t ast_intent_step_success_variant_index(const ASTNode* node);
@@ -202,7 +207,8 @@ bool ast_intent_step_set_outcome_branch_resolution_copy(
     const char* enum_type_name,
     uint32_t enum_decl_syntax_id,
     size_t variant_index,
-    const char* payload_type_name);
+    const char* payload_type_name,
+    uint32_t payload_decl_syntax_id);
 bool ast_intent_step_set_outcome_binding_copy(ASTNode* node,
                                               const char* name,
                                               size_t length,

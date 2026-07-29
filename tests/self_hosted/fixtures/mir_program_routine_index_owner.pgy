@@ -153,6 +153,43 @@ func Main() -> Void {
         failures = failures + 1;
     }
 
+    let second_arm_match_instruction: String =
+        "{\"kind\":\"branch\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"bound\"],\"match_binding_types\":[\"String\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
+    let distinct_arm_first_block: String = Concat(
+        "{\"id\":0,\"reachable\":true,\"instructions\":[",
+        Concat(match_binding_instruction, "]}")
+    );
+    let distinct_arm_second_block: String = Concat(
+        "{\"id\":1,\"reachable\":true,\"instructions\":[",
+        Concat(second_arm_match_instruction, "]}")
+    );
+    let distinct_arm_routine: String = Concat(
+        match_binding_routine_prefix, Concat(
+            distinct_arm_first_block, Concat(",", Concat(
+                distinct_arm_second_block, "]}"
+            ))
+        )
+    );
+    let distinct_arm_json: String = Concat(
+        prefix, Concat(distinct_arm_routine, "]}")
+    );
+    let distinct_arm_program: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(distinct_arm_json);
+    let distinct_arm_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(distinct_arm_program, 0);
+    if !distinct_arm_index.valid {
+        Log(Concat(
+            "mir-program-routine-index-owner-distinct-arm-invalid=",
+            distinct_arm_index.validation_stage
+        ));
+        failures = failures + 1;
+    } else if MirRoutineFactIndexSourceLocalType(
+        distinct_arm_index, "bound"
+    ) != "" {
+        Log("mir-program-routine-index-owner-distinct-arm-scope-failed");
+        failures = failures + 1;
+    }
+
     let forged_stmt_match_instruction: String =
         "{\"kind\":\"stmt\",\"source_type\":\"AST_MATCH_CASE\",\"match_bindings\":[\"forged\"],\"match_binding_types\":[\"Int\"],\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null,\"machine_contact_kind\":null,\"machine_layer\":null}";
     let forged_stmt_match_block: String = Concat(

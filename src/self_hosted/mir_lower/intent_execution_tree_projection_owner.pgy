@@ -1,0 +1,264 @@
+// Compact tree/order projection from an already admitted typed-intent plan.
+// Numeric transition and instruction identities remain authoritative here;
+// names are used only as cross-seals carried by those identities.
+
+import "intent_execution_structure_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "intent_action_contract_owner.pgy";
+import "intent_phase_projection_owner.pgy";
+
+func MirIntentExecutionInstructionGlobalRow(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    block_id: Int,
+    instruction_id: Int
+) -> Int {
+    let block_row: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, block_id
+    );
+    if block_row < 0 || instruction_id < 0 { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let local_row: Int = 0;
+    while local_row < routines.block_instruction_counts[block_row] {
+        let global_row: Int = routines.block_instruction_starts[block_row] +
+            local_row;
+        let id_text: String = MirObjectNumberFactAtBounds(
+            routines.source_json, routines.instruction_starts[global_row],
+            routines.instruction_ends[global_row], "id"
+        );
+        if id_text == ToString(instruction_id) {
+            if found >= 0 { return 0 - 1; }
+            found = global_row;
+        }
+        local_row = local_row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionRoutineStepRows(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> Array<Int> {
+    let rows: Array<Int> = [];
+    let expected_count: Int = 0;
+    let root: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.steps.transition_ids) {
+        if plan.steps.routine_syntax_ids[row] == routine_syntax_id {
+            expected_count = expected_count + 1;
+            if plan.steps.predecessor_transition_ids[row] == 0 {
+                if root >= 0 { return []; }
+                root = row;
+            }
+        }
+        row = row + 1;
+    }
+    if root < 0 { return rows; }
+    let current: Int = root;
+    while current >= 0 {
+        ArrayPush(rows, current);
+        let child: Int = 0 - 1;
+        row = 0;
+        while row < ArrayLength(plan.steps.transition_ids) {
+            if plan.steps.routine_syntax_ids[row] == routine_syntax_id &&
+                plan.steps.predecessor_transition_ids[row] ==
+                    plan.steps.transition_ids[current] {
+                if child >= 0 { return []; }
+                child = row;
+            }
+            row = row + 1;
+        }
+        current = child;
+    }
+    if ArrayLength(rows) != expected_count { return []; }
+    return rows;
+}
+
+func MirIntentExecutionReturnTypeForRoutine(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> String {
+    let result_type: String = "";
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.terminals.terminal_transition_ids) {
+        if plan.terminals.routine_syntax_ids[row] == routine_syntax_id {
+            if result_type != "" && result_type !=
+                plan.terminals.result_type_names[row] {
+                return "";
+            }
+            result_type = plan.terminals.result_type_names[row];
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    if count == 0 { return ""; }
+    return result_type;
+}
+
+func MirIntentExecutionStepRowForCarrier(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int,
+    step_name: String,
+    action_syntax_id: Int,
+    outcome_name: String,
+    outcome_type: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.steps.transition_ids) {
+        if plan.steps.routine_syntax_ids[row] == routine_syntax_id &&
+            plan.steps.step_names[row] == step_name &&
+            plan.steps.action_syntax_ids[row] == action_syntax_id &&
+            plan.steps.outcome_result_names[row] == outcome_name &&
+            plan.steps.outcome_type_names[row] == outcome_type {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func MirIntentExecutionStepHeader(
+    ref plan: MirIntentExecutionPlan,
+    step_row: Int,
+    zone_alias: String
+) -> String {
+    if step_row < 0 || step_row >= ArrayLength(plan.steps.transition_ids) ||
+        zone_alias == "" { return ""; }
+    let header: String = Concat(
+        "    IntentStep: ", plan.steps.step_names[step_row]
+    );
+    if plan.steps.predecessor_transition_ids[step_row] != 0 {
+        header = Concat(header, Concat(
+            " after ", plan.steps.predecessor_step_names[step_row]
+        ));
+    }
+    return Concat(header, Concat(" using ", zone_alias));
+}
+
+func MirIntentExecutionStepBranchLines(
+    ref plan: MirIntentExecutionPlan,
+    step_row: Int
+) -> String {
+    if step_row < 0 || step_row >= ArrayLength(plan.steps.transition_ids) {
+        return "";
+    }
+    let success: String = Concat(
+        plan.steps.success_variant_names[step_row], Concat(
+            "(", Concat(plan.steps.success_payload_names[step_row], ")")
+        )
+    );
+    let failure: String = Concat(
+        plan.steps.failure_variant_names[step_row], Concat(
+            "(", Concat(plan.steps.failure_payload_names[step_row], ")")
+        )
+    );
+    return Concat(
+        Concat("      IntentStepSuccess: ", Concat(success, "\n")),
+        Concat("      IntentStepFailure: ", Concat(failure, "\n"))
+    );
+}
+
+func MirIntentExecutionPhaseTreeLines(
+    ref phases: MirIntentPhaseProjection,
+    step_index: Int,
+    ref plan: MirIntentExecutionPlan,
+    step_row: Int
+) -> String {
+    if !phases.ok || step_index < 0 ||
+        step_index >= ArrayLength(phases.on_texts) ||
+        step_index >= ArrayLength(phases.compensate_starts) ||
+        step_index >= ArrayLength(phases.compensate_counts) {
+        return "";
+    }
+    let tree: String = MirIntentTreeAppendLine(
+        "", Concat("      On: ", phases.on_texts[step_index])
+    );
+    tree = Concat(tree, MirIntentExecutionStepBranchLines(plan, step_row));
+    let compensation: Int = 0;
+    while compensation < phases.compensate_counts[step_index] {
+        let row: Int = phases.compensate_starts[step_index] + compensation;
+        if row < 0 || row >= ArrayLength(phases.compensate_texts) {
+            return "";
+        }
+        tree = MirIntentTreeAppendLine(
+            tree, Concat(
+                "      Compensate: ", phases.compensate_texts[row]
+            )
+        );
+        compensation = compensation + 1;
+    }
+    if phases.guard_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Guard: ", phases.guard_texts[step_index])
+        );
+    }
+    if phases.post_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Post: ", phases.post_texts[step_index])
+        );
+    }
+    if phases.expect_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Expect: ", phases.expect_texts[step_index])
+        );
+    }
+    return tree;
+}
+
+func MirIntentExecutionAppendTerminalLines(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int,
+    inout order: MirStructuredExpressionEmissionOrder
+) -> String {
+    let success_lines: String = "";
+    let failure_lines: String = "";
+    let success_count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.terminals.terminal_transition_ids) {
+        if plan.terminals.routine_syntax_ids[row] == routine_syntax_id {
+            let global_row: Int = MirIntentExecutionInstructionGlobalRow(
+                routines, routine_row,
+                plan.terminals.result_instruction_block_ids[row],
+                plan.terminals.result_instruction_ids[row]
+            );
+            if global_row < 0 ||
+                !MirStructuredExpressionEmissionOrderAppend(
+                    order, global_row, AstExpressionLaneAtom(), 0
+                ) {
+                return "";
+            }
+            let expression: String = Concat(
+                plan.terminals.result_variant_names[row], Concat(
+                    "(", Concat(
+                        plan.terminals.result_payload_names[row], ")"
+                    )
+                )
+            );
+            let line: String = Concat(
+                plan.terminals.source_step_names[row], Concat(
+                    " => ", expression
+                )
+            );
+            if plan.terminals.roles[row] == "success" {
+                success_lines = MirIntentTreeAppendLine(
+                    success_lines,
+                    Concat("    IntentTerminalSuccess: ", line)
+                );
+                success_count = success_count + 1;
+            } else if plan.terminals.roles[row] == "failure" {
+                failure_lines = MirIntentTreeAppendLine(
+                    failure_lines,
+                    Concat("    IntentTerminalFailure: ", line)
+                );
+            } else { return ""; }
+        }
+        row = row + 1;
+    }
+    if success_count != 1 || failure_lines == "" { return ""; }
+    return Concat(success_lines, failure_lines);
+}

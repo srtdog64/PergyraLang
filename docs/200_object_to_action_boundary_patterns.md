@@ -96,7 +96,7 @@ fact를 재추론하지 않는다. 특히 `ReceiverCarriage`를 일반 parameter
 | `effect` | participant에 적용·유지되는 시간적 상태 layer | apply/maintain/detach | 로그나 generic compiler effect mask의 다른 이름일 때 |
 | `relation` | 두 participant identity 사이의 materialized edge | link/unlink/publish | 두 값을 잠시 함께 계산하기만 할 때 |
 | `zone` | slot, authority, lifecycle, frontier의 실제 경계 | admit/refresh/publish/maintain/link | 함수 묶음이나 이름공간만 필요할 때 |
-| `intent` | 여러 실제 action의 성공·실패·보상 목적 | ordered step protocol | 호출할 production action이 하나뿐일 때 |
+| `intent` | 현실의 목적을 닫고 coordination/authority/effect/boundary/compensation/trace fact를 한 선언 identity에 귀속하는 source-level binder | 목적에 필요한 step protocol과 검증 fact elaboration | action 호출을 묶기만 하고 독립적인 "왜"와 번들 의무가 없을 때 |
 | `world` | 여러 실제 zone을 한 사실 그래프로 합성하는 root | zone/action composition | backend별 mini-world나 readiness dashboard가 필요할 때 |
 
 이 사다리의 best practice는 키워드를 많이 쓰는 것이 아니라 **새 의미 경계가
@@ -136,7 +136,7 @@ production call, 삭제된 bypass, 소비되는 result, negative gate가 있을 
 | boundary publication | `subject source -> tobject slot -> publish -> transfer/receipt` | tobject는 materialized payload만 소유한다. source identity/freshness/edge는 enclosing directive와 `dir.domain_graph`, 전송 성공은 action/transaction result가 소유한다 | borrowed pointer·live slot·authority를 tobject에 싣기, mutable DTO, publish 없는 암묵 복사, receipt를 새 projection source로 재사용 |
 | encapsulated state | `subject -> owned vessel -> hosted func` | actor identity/승인은 subject, 내부 state/resource는 vessel | vessel이 action/authority를 소유, free-function parameter ABI를 hosted receiver ABI에서 추정 |
 | observable transition | `typed input fact -> subject.action -> Result/stage/tobject receipt` | action contract와 transition result, 하위 계산은 기존 typed owner | `*Ready()`/`return true` wrapper, action body의 semantic 재계산, 실패 시 old path 재진입 |
-| domain orchestration | `action causes effect`; `zone apply/link/refresh/publish`; 여러 action이면 `intent` | effect/relation identity는 각 declaration, membership/lifetime/topology는 zone, 목적·보상은 intent | clause를 장식으로 추가, zone이 subject 내부를 직접 수정, 단일 action용 intent, backend별 world |
+| intent-first domain purpose | 현실 목적을 `intent`로 먼저 닫고 participant/coordination/authority/effect/boundary/compensation/trace fact로 elaborate한 뒤 필요한 action/zone/world 경계를 유도 | intent는 binder와 attribution, 각 subfact의 최종 owner는 participant/zone/ability/authority/effect/coordination/compensation/trace 축에 유지 | action 개수로 intent 필요성을 판정, clause를 장식으로 추가, intent가 축별 사실을 재소유, backend별 world |
 
 이 표에서 `object`와 `tobject`는 subject의 약한 버전이 아니고, `vessel`은 subject로
 승격되기 전 단계가 아니다. `action`도 effect/relation/zone을 포괄하는 상위 타입이
@@ -152,7 +152,8 @@ enclosing effect/relation/zone의 `refresh`/`publish`/`bind` directive와
 Self-host 구현도 같은 판정법을 사용한다. 올바른 Pergyra 컴파일러 파일 대부분이
 `func`와 `struct`로 남는 것은 정상이다. 실제 source lifecycle 분리에는
 `tobject`, identity-bearing 승인에는 `subject/action`, resource/lifetime frontier에는
-`zone`, 여러 production action의 성공·실패·보상에는 `intent`를 쓴다. 단어가
+`zone`, 현실 목적과 그 목적의 bundle-level 정적 의무에는 `intent`를 쓴다. action
+개수는 intent 여부의 semantic 기준이 아니다. 단어가
 import되거나 parser fixture에 나온다는 사실은 이 패턴이 실행된 증거가 아니다.
 
 각 패턴의 구현 순서는 다음으로 고정한다.
@@ -200,7 +201,7 @@ typed computation facts (struct/class/func)
   -> 장기 내부 상태가 필요할 때만 subject-owned vessel + hosted func
   -> identity-bearing 승인/commit/reject가 필요할 때만 subject.action
   -> resource/lifetime frontier가 실제로 있을 때만 zone
-  -> 여러 production action의 목적/보상이 생길 때만 intent
+  -> 현실 목적과 cross-axis 번들 의무가 있을 때 intent
 ```
 
 따라서 Pergyra다운 구현은 키워드를 많이 쓰는 구현이 아니라, 실제 경계마다
@@ -449,8 +450,14 @@ typed struct/enum request + existing owner facts
   -> tobject receipt/failure
   -> one real zone
   -> one PgyCompilerWorld
-  -> intent only after multiple real actions exist
+  -> intent when a real-world purpose and its bundle obligations exist
 ```
+
+이 순서는 컴파일러 구현의 하향식 call graph가 아니라 경계 구현 체크리스트다.
+언어 설계·문서 읽기 순서는 `intent -> world -> zone -> subject`가 정본이다.
+단 하나의 action만 호출하더라도 참여자·권한·경계·효과·보상·추적을 한 목적
+identity에 귀속하고 bundle-level 검증 의무를 방출한다면 intent일 수 있다. 반대로
+action이 여러 개라는 이유만으로 intent를 만들면 단순 orchestration wrapper다.
 
 action 선언의 **typed carriage**는 이제 구현돼 있다. self-host typed arena는
 `Action:`과 `Function:`을 서로 다른 callable kind로 보존하고,
@@ -538,9 +545,11 @@ escape 문제이고, `Slot<T>`는 자원 규율이다. `subject != heap`,
 
 ### 3.2 `func`와 `action` 선택
 
-순수 라이브러리나 단일 계산은 intent/world를 먼저 만들지 않고 필요한
-`struct`/`class`와 `func`에서 시작한다. 도메인 전이가 생겼을 때 subject를,
-여러 action/zone의 성공·실패·보상 프로토콜이 생겼을 때 intent를 추가한다.
+순수 라이브러리나 단일 계산에는 목적 binder를 의식적으로 만들지 않고 필요한
+`struct`/`class`와 `func`만 둔다. 반대로 도메인을 설계할 때는 intent가 닫을 현실
+목적을 먼저 판정하고 그 목적에서 world/zone/subject/action 경계를 유도한다.
+Action 수가 아니라 participant·coordination·authority·effect·boundary·
+compensation·trace의 bundle-level 귀속과 검증 의무가 intent 추가 기준이다.
 
 `func`를 기본값으로 사용한다. `func`도 visibility, `with caps`,
 `with effects`를 가질 수 있으므로 `func == pure`, `action == impure`로 나누지
@@ -1056,11 +1065,11 @@ subject CompilerExecution {
     unresolved라 C emit 전에 실패한다. Synthetic call이나 local emitter gate를
     `SUBSTITUTING`으로 세지 말고 role callable identity epoch, production
     call-target resolution, role-body field type fact를 먼저 닫아야 한다.
-27. Legacy intent의 `guard`/`expect`/`post`와 ordered `compensate`는 이제 self
-    DIR/MIR/general C까지 무손실로 실행되지만, `intent_lower_owner.pgy`의 `on`
-    carrier join은 아직 expression text 전역 equality에 의존한다. 서로 다른 step이
-    동일한 action expression text를 사용해도 stable step/action identity로 join해야
-    하며, 현재 경로의 거부를 언어 제한으로 승격하지 않는다.
+27. Legacy intent의 `guard`/`expect`/`post`와 ordered `compensate`는 self
+    DIR/MIR/general C까지 무손실로 실행된다. v2 transition carrier는 stable
+    expression/graph occurrence identity로 compensation을 결속하며, executable gate는
+    동일한 compensate expression의 여러 occurrence도 순서를 보존해 실행한다.
+    Expression text 전역 equality를 join authority로 재도입하지 않는다.
 28. 합법적인 empty domain topology가 현재 self machine admission에서 거부된다.
     Intent runtime fixture의 최소 `object`/`tobject` refresh/publish scaffold는 이
     admission 제약을 통과시키는 실제 domain plan이지, tobject가 rollback owner라는
@@ -1111,10 +1120,14 @@ struct/class/object/tobject value facts
   -> action (transition + explicit result)
   -> direct-MIR zone (subject slot + authority/lifetime boundary)
   -> the single PgyCompilerWorld declaration graph
-  -> intent only after multiple real actions form one purpose
+  -> intent when a real-world purpose binds the required cross-axis facts
 ```
 
 구현 규칙은 다음과 같다.
+
+이 흐름은 구현 경계의 소비 순서를 보인 것이며 intent를 마지막에 발명한다는
+뜻이 아니다. 설계에서는 목적을 먼저 정하고 필요한 fact와 구성체를 유도한다.
+Action 수가 하나인지 여럿인지는 intent의 필요조건도 충분조건도 아니다.
 
 1. `action` 선언이 `requires`, `within`, `authorized by`, `causes`, caps/effects와
    transition 계약의 source surface를 소유한다. intent step은 유일하게 matching한
@@ -1226,10 +1239,11 @@ owner 아래에서 검증해야 한다.
 ## 10. Typed action outcome을 소비하는 intent 경계
 
 단일 step의 exact action 결과 binding과 legacy `guard`/`expect`/`post` predicate,
-ordered `compensate` 실행은 2026-07-29에 닫혔다. 두 action의 typed variant branch,
-success-only completion과 failure payload-driven predecessor compensation은 계속
-`PLANNED/OPEN`이다. 따라서 입력 언어의 bounded intent 실행 slice는
-`REACHABLE`이지만 production compiler `intent` 등급은 계속 `SURFACE`다.
+ordered `compensate` 실행은 2026-07-29에 닫혔다. Typed variant branch,
+success-only completion과 failure payload-driven predecessor compensation도 v2
+execution plan과 executable owner gate까지 구현돼 있다. 두 action은 predecessor
+rollback을 드러내는 fixture shape일 뿐 intent의 정의가 아니다. Production compiler
+`intent`의 최종 등급 판정은 이 구현 사실과 별개다.
 
 ### 10.1 완료된 binding 및 legacy predicate/compensation rung
 
@@ -1273,14 +1287,14 @@ parity와 self/native C/native LLVM runtime parity를 고정한다.
 `intent_phase_carrier_negative_owner.sh`는 phase/step/slot/graph 및 result/type
 cross-wire를 partial C 전에 거부한다. 이 legacy predicate 의미는 typed action failure
 분기와 다르다. 후자는 현재 step을 completed로 만들지 않고 completed predecessor만
-보상해야 하므로 10.2의 별도 transition owner에서 닫는다. `tobject`는 여전히
+보상해야 하므로 10.2의 별도 transition owner에서 닫혔다. `tobject`는 여전히
 receipt/failure payload일 뿐 completion/rollback owner가 아니다.
 
-### 10.2 PLANNED/OPEN compensation objective card
+### 10.2 구현된 v2 typed-transition objective card
 
-- **Objective:** 두 개의 실제 forward `subject.action` 결과를 intent step에서 typed
-  binding하고, source가 선언한 enum variant branch에서 success/failure payload를
-  소비하며, 두 번째 action 실패 시 완료된 predecessor의 compensation만 실행한다.
+- **Objective:** `subject.action` 결과를 intent step에서 typed binding하고, source가
+  선언한 enum variant branch에서 success/failure payload를 소비한다. Predecessor가
+  있는 후속 action이 실패하면 완료된 predecessor의 compensation만 실행한다.
 - **Priority:** exact step/outcome identity, payload type/definition, branch successor,
   success-only completion evidence, predecessor edge, compensation target, runtime
   payload consumption, direct bypass 삭제 순서다.
@@ -1295,17 +1309,18 @@ receipt/failure payload일 뿐 completion/rollback owner가 아니다.
   `step_index - 1` 또는 source order에서 재생성, action 호출 직후 무조건 completed,
   모든 이전 step을 역순 보상, compensate AST/source 재스캔, native MIR graft,
   missing carrier 성공, 기존 `Main -> action` 직행 orchestration 병존이다.
-- **Planned gate:**
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`는
-  실행 producer/admission/consumer가 닫힐 때까지 unconditional failure인 실행 설계
-  초안이며 aggregate gate에 등록하지 않는다. 반면
-  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy`는 이제
-  frontend/DIR/fact validation의 활성 fixture다. 이 fixture가 parse된다는 사실은
-  runtime 또는 substitution 증거가 아니다.
-- **First falsifier:** action A가 typed success payload를 반환하고 그 payload가 action
+- **Executable gate:**
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`는
+  `intent_typed_outcome_compensation.pgy`를 MIR로 내리고
+  `pgy.selfhost.mir-intent-execution-plan.v2`를 admission한 뒤 general self C를
+  실행한다. success, first-step failure, predecessor-only compensation과
+  multiple/duplicate/zero compensation shape를 결과와 호출 횟수로 관측한다.
+- **Falsifying fixture:** action A가 typed success payload를 반환하고 그 payload가 action
   B의 입력이나 후속 결정을 바꾼다. B의 typed failure payload는 exact failure
   diagnostic 또는 관측 상태를 바꾼다. B는 completed가 아니므로 B compensation은
   0회, predecessor A compensation은 정확히 1회이며 최종 상태가 복구돼야 한다.
+  여기서 두 action은 predecessor 관계를 falsify하기 위한 테스트 모양이지 intent
+  사용 조건이 아니다.
 
 ### 10.3 compensation 최소 negative ratchet
 
@@ -1314,28 +1329,29 @@ schema/hash를 깨뜨리지 않도록 다른 유효 step/type/definition/block i
 cross-wire하고, 모두 C artifact 첫 줄 전에 거부한다.
 
 1. outcome binding의 result definition 또는 declared outcome type을 다른 유효
-   identity로 바꾼다: `MIR intent step outcome binding is invalid`.
+   identity로 바꾸고 admission이 해당 결속을 거부하는지 확인한다.
 2. success/failure variant 또는 successor block identity를 서로 바꾼다:
-   `MIR intent step outcome branch identity is invalid`.
+   branch와 successor의 exact identity 불일치로 거부해야 한다.
 3. B의 predecessor를 B 자신이나 future step으로 바꾸거나 predecessor name/identity
-   쌍을 교차시킨다:
-   `MIR intent compensation predecessor evidence is invalid`.
+   쌍을 교차시킨다. Row order 추정 없이 predecessor identity 불일치로 거부해야 한다.
 4. A의 compensation row는 남기고 success-only completion evidence를 제거한다:
-   `MIR intent step completion evidence is missing`.
+   compensation 존재를 completion으로 추정하지 않고 거부해야 한다.
 
-위 문구는 planned admission diagnostic 계약이다. 현재 generic
-`MIR intent step semantic carriers are incomplete` 또는
-`MIR intent rollback facts are incomplete`가 우연히 발생하는 것을 이 rung의
-완료 증거로 세지 않는다.
+이 ratchet은 v2 admission에서 variant/payload, predecessor, completion,
+compensation identity의 cross-wire를 거부해야 한다는 의미 계약이다. 세부 문구를
+별도 stable diagnostic owner에 등록하기 전에는 우연히 발생한 내부 diagnostic
+문자열을 공개 exact 계약이나 이 rung의 완료 증거로 세지 않는다.
 
 ### 10.4 등급 조건
 
 - 별도 test subject의 source -> DIR -> MIR -> admission -> general C 실행과 native
   C/LLVM parity가 성공하고 같은 bounded feature의 old path가 없으면 그 **입력 언어
   기능 slice**만 `SUBSTITUTING`으로 올릴 수 있다.
-- 실제 compiler production entrypoint가 두 개의 실제 production action을 이
-  intent로 호출하면 compiler `intent`는 `REACHABLE`이다. readiness facade 또는
-  순수 계산 `func`를 action으로 이름만 바꾼 경로는 이 조건을 만족하지 않는다.
+- 실제 compiler production entrypoint가 독립적인 compiler 목적과 bundle-level
+  의무를 소유한 intent를 호출하고 그 intent가 production action transition을
+  실행하면 compiler `intent`는 `REACHABLE`이다. Action 수는 판정 기준이 아니다.
+  Readiness facade 또는 순수 계산 `func`를 action으로 이름만 바꾼 경로는 이 조건을
+  만족하지 않는다.
 - 기존 `Main -> action(s)` 직행 우회가 삭제되고 success/failure payload와 실제
   compensation을 production caller가 관측하며 위 negative가 fail closed한 뒤에만
   compiler `intent`를 `SUBSTITUTING`으로 올릴 수 있다.

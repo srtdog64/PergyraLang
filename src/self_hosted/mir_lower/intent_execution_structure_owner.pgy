@@ -1,0 +1,189 @@
+// Typed-intent MIR block ownership at the MIR -> AST boundary.
+//
+// Machine admission has already validated the execution plan.  This owner
+// only proves that the routine contains the legacy carrier spine plus exactly
+// the blocks named by that admitted plan.  It never re-digests or revalidates
+// the complete plan.
+
+import "intent_execution_plan_fact_owner.pgy";
+import "routine_fact_index_owner.pgy";
+import "intent_cleanup_contract_owner.pgy";
+
+func MirIntentExecutionPlanOwnsRoutine(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> Bool {
+    if !plan.present || routine_syntax_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(plan.steps.transition_ids) {
+        if plan.steps.routine_syntax_ids[row] == routine_syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func MirIntentRoutineSyntaxIdAt(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int
+) -> Int {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        routine_row >= ArrayLength(routines.source_syntax_ids) {
+        return 0 - 1;
+    }
+    let text: String = routines.source_syntax_ids[routine_row];
+    let syntax_id: Int = ToInt(text);
+    if syntax_id <= 0 || ToString(syntax_id) != text { return 0 - 1; }
+    return syntax_id;
+}
+
+func MirIntentExecutionBlockOwnedByRoutinePlan(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int,
+    block_id: Int
+) -> Bool {
+    let step: Int = 0;
+    while step < ArrayLength(plan.steps.transition_ids) {
+        if plan.steps.routine_syntax_ids[step] == routine_syntax_id &&
+            (plan.steps.outcome_instruction_block_ids[step] == block_id ||
+             plan.steps.branch_block_ids[step] == block_id ||
+             plan.steps.success_successor_block_ids[step] == block_id ||
+             plan.steps.failure_successor_block_ids[step] == block_id ||
+             plan.steps.completion_block_ids[step] == block_id) {
+            return true;
+        }
+        let compensation: Int = plan.steps.compensation_starts[step];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step];
+        while compensation < compensation_end {
+            if plan.steps.routine_syntax_ids[step] == routine_syntax_id &&
+                plan.steps.compensations.instruction_block_ids[
+                    compensation
+                ] == block_id {
+                return true;
+            }
+            compensation = compensation + 1;
+        }
+        step = step + 1;
+    }
+    let terminal: Int = 0;
+    while terminal < ArrayLength(plan.terminals.terminal_transition_ids) {
+        if plan.terminals.routine_syntax_ids[terminal] ==
+                routine_syntax_id &&
+            plan.terminals.result_instruction_block_ids[terminal] ==
+                block_id {
+            return true;
+        }
+        terminal = terminal + 1;
+    }
+    return false;
+}
+
+func MirIntentExecutionZeroCompensationScaffoldCount(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> Int {
+    let count: Int = 0;
+    let step: Int = 0;
+    while step < ArrayLength(plan.steps.transition_ids) {
+        if plan.steps.routine_syntax_ids[step] == routine_syntax_id &&
+            plan.steps.compensation_counts[step] == 0 {
+            count = count + 1;
+        }
+        step = step + 1;
+    }
+    return count;
+}
+
+func MirIntentExecutionRoutineStructureReady(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int,
+    ref plan: MirIntentExecutionPlan
+) -> Bool {
+    let routine_syntax_id: Int = MirIntentRoutineSyntaxIdAt(
+        routines, routine_row
+    );
+    if routine_syntax_id <= 0 ||
+        routines.kinds[routine_row] != "intent" ||
+        routines.owners[routine_row] != "" ||
+        routines.receiver_carriages[routine_row] != "none" {
+        return false;
+    }
+    if !MirIntentExecutionPlanOwnsRoutine(plan, routine_syntax_id) {
+        return MirIntentRoutineStructureReady(routines, index, routine_row);
+    }
+    if !MirRoutineInstructionFactBundleReady(
+        index.instruction_facts,
+        routines.routine_block_counts[routine_row]
+    ) { return false; }
+    let block0: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, 0
+    );
+    let block1: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, 1
+    );
+    let block2: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, 2
+    );
+    let block3: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, 3
+    );
+    let block4: Int = MirIntentExecutionRoutineBlockRowById(
+        routines, routine_row, 4
+    );
+    if block0 < 0 || block1 < 0 || block2 < 0 || block3 < 0 || block4 < 0 ||
+        routines.block_instruction_counts[block0] <= 0 ||
+        routines.block_instruction_counts[block1] <= 0 ||
+        routines.block_instruction_counts[block2] != 0 ||
+        routines.block_instruction_counts[block3] < 3 ||
+        routines.block_instruction_counts[block4] < 2 {
+        return false;
+    }
+    let zero_compensation_scaffolds: Int = 0;
+    let local_block: Int = 0;
+    while local_block < routines.routine_block_counts[routine_row] {
+        let block_row: Int = routines.routine_block_starts[routine_row] +
+            local_block;
+        let block_id_text: String = MirObjectNumberFactAtBounds(
+            routines.source_json, routines.block_starts[block_row],
+            routines.block_ends[block_row], "id"
+        );
+        let block_id: Int = ToInt(block_id_text);
+        if block_id < 0 || ToString(block_id) != block_id_text {
+            return false;
+        }
+        if block_id > 4 && !MirIntentExecutionBlockOwnedByRoutinePlan(
+                plan, routine_syntax_id, block_id
+            ) {
+            if index.block_reachable[local_block] ||
+                index.block_instruction_counts[local_block] != 0 {
+                return false;
+            }
+            zero_compensation_scaffolds =
+                zero_compensation_scaffolds + 1;
+        }
+        local_block = local_block + 1;
+    }
+    return zero_compensation_scaffolds ==
+        MirIntentExecutionZeroCompensationScaffoldCount(
+            plan, routine_syntax_id
+        );
+}
+
+func MirIntentExecutionRollbackBlockId(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> Int {
+    if MirIntentExecutionPlanOwnsRoutine(plan, routine_syntax_id) { return 3; }
+    return 2;
+}
+
+func MirIntentExecutionInvalidationBlockId(
+    ref plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int
+) -> Int {
+    if MirIntentExecutionPlanOwnsRoutine(plan, routine_syntax_id) { return 4; }
+    return 3;
+}

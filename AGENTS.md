@@ -113,8 +113,14 @@ cosmetic reshuffling.
   evidence.
 - Keep pure computation and value facts in `func`/`struct` when that is their
   responsibility. Use `subject/action` for identity-bearing authority or
-  state/stage transitions, `zone` for real resource boundaries, and `intent`
-  for a multi-action purpose with explicit success/failure semantics.
+  state/stage transitions and `zone` for real resource boundaries. Use
+  `intent` only when one real-world purpose is closed with explicit
+  success/failure meaning and its participant, coordination, authority,
+  effect, boundary, compensation, and trace obligations must be attributed to
+  one source-level binder. Action count is neither necessary nor sufficient;
+  follow `docs/01_intent_first_design.md` and
+  `docs/173_intent_axis_strengthening.md` instead of inferring intent from a
+  fixture's number of steps or actions.
 - Each migration rung names the production entrypoint, the direct bypass being
   deleted, the existing fact owner, the last orchestration consumer, and one
   execution/parity/negative gate. Do not leave `Main -> old function` as a

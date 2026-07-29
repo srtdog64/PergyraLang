@@ -30,6 +30,9 @@ MIRInstruction mir_make_destructure_instruction(MIRRoutine *routine,
 MIRInstruction mir_make_assignment_instruction(MIRRoutine *routine,
                                                ASTNode *stmt,
                                                size_t source_statement_index);
+const char *mir_assignment_target_root_binding_mode(
+    const MIRRoutine *routine,
+    const ASTNode *target);
 MIRInstruction mir_make_loop_init_instruction(MIRRoutine *routine,
                                               ASTNode *stmt,
                                               size_t source_statement_index);

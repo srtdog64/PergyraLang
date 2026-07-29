@@ -14,6 +14,7 @@ struct MirDocumentFactIndex {
     let declarations: JsonArrayObjectFactTable;
     let domain_topology: JsonObjectFactTable;
     let domain_runtime_assignments: JsonObjectFactTable;
+    let intent_execution: JsonObjectFactTable;
     let routines: JsonArrayObjectFactTable;
     let parallel_capture_boundaries: JsonArrayObjectFactTable;
 }
@@ -25,14 +26,16 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
     let domain_topology: JsonObjectFactTable = EmptyJsonObjectFactTable();
     let domain_runtime_assignments: JsonObjectFactTable =
         EmptyJsonObjectFactTable();
+    let intent_execution: JsonObjectFactTable = EmptyJsonObjectFactTable();
     let routines: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
     let boundaries: JsonArrayObjectFactTable =
         EmptyJsonArrayObjectFactTable();
+    let intent_execution_seen: Bool = false;
     let n: Int = StringLength(json);
     if n <= 0 || JsonCharCodeAt(json, n, 0) != JsonAsciiCode("{") {
         return MirDocumentFactIndex(
             false, root, declarations, domain_topology,
-            domain_runtime_assignments, routines, boundaries
+            domain_runtime_assignments, intent_execution, routines, boundaries
         );
     }
     let cursor: Int = 1;
@@ -44,7 +47,7 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
             root = JsonObjectFactTable(true, json, 0, cursor + 1);
             return MirDocumentFactIndex(
                 true, root, declarations, domain_topology,
-                domain_runtime_assignments, routines, boundaries
+                domain_runtime_assignments, intent_execution, routines, boundaries
             );
         }
         if code == JsonAsciiCode(",") {
@@ -71,6 +74,12 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
         );
         if !IsSome(value_end_opt) { break; }
         let value_end: Int = UnwrapOption(value_end_opt);
+        let is_intent_execution: Bool = JsonObjectKeyEqualsWithin(
+            json, key_start, key_end, "intent_execution"
+        );
+        if is_intent_execution && intent_execution_seen {
+            break;
+        }
         if value_start < value_end &&
             JsonCharCodeAt(json, value_end, value_start) ==
                 JsonAsciiCode("[") {
@@ -105,13 +114,20 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
                 domain_runtime_assignments = JsonObjectFactTableFromBounds(
                     json, value_start, value_end
                 );
+            } else if is_intent_execution {
+                intent_execution = JsonObjectFactTableFromBounds(
+                    json, value_start, value_end
+                );
+                intent_execution_seen = true;
             }
+        } else if is_intent_execution {
+            break;
         }
         cursor = value_end;
     }
     return MirDocumentFactIndex(
         false, root, declarations, domain_topology,
-        domain_runtime_assignments, routines, boundaries
+        domain_runtime_assignments, intent_execution, routines, boundaries
     );
 }
 

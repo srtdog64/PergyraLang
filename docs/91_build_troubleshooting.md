@@ -1222,6 +1222,38 @@ fresh 20 GiB observation is a regression, overlapping process, or measurement
 scope problem until proven otherwise; it is not an accepted cost of the
 oracle or self-host lane.
 
+The 2026-07-29 typed-intent execution slice applies the same rule explicitly.
+`MirIntentExecutionPlanReady` performs full schema/topology/digest validation
+exactly once in `machine_layer_fact_owner.pgy`. Codegen and compiler consumers
+receive the admitted carrier and must not call plan readiness/digest, step or
+terminal readiness, or recursively rebuild an expression graph. The static
+protocol gate scans every self-host consumer and rejects a second validation
+call or a restored `SemanticAstExpressionGraphForNode` projection read. The
+canonical v2 fixture admitted 2 steps/3 terminals at digest `1268084794`; the
+multi-routine fixture admitted at `1173492658`; 41 wire/identity mutations
+failed before partial C. During the fresh production-like self-driver rebuild,
+the observed concurrent high point was about 791 MiB private for `pgy`, 739 MiB
+for its `cc1` child, and 1 MiB for `gcc` (about 1,531 MiB process-tree private),
+not 20 GiB. A second fresh rebuild observed about 1,531 MiB again. This is a
+sampled concurrent high point, not a new general memory allowance.
+
+The final production-consumer gate also proved that a single admission cannot
+be weakened after the memory fix. Plan-owned `on`, compensation, and terminal
+graphs require the sealed persisted shape `{root,digest,nodes}` with a positive
+digest. Missing/zero/extra digest fields, foreign or missing exact action
+targets, missing named graph targets, and reachable/non-empty zero-compensation
+scaffolds all fail before partial C. A consumer-side revalidation or graph
+rebuild is therefore both a correctness regression and the first suspect for
+another multi-GiB observation.
+
+If this slice regresses, do not raise the cap or add a consumer cache. First
+run `intent_execution_protocol_static_owner.py` and inspect whether admission
+lost its sole `MirIntentExecutionPlanReady` call, whether a consumer restored
+`MirIntentExecutionPlanDigest`/step/terminal readiness, or whether projection
+started reparsing graph subtrees. Validate once at the owner boundary, carry
+the receipt, and join later consumers by exact routine/block/instruction and
+declaration identities.
+
 v58 (`195d9b64`) closes one concrete repetition. Loop-summary projection used
 to call branch selection twice for every block and scalar capture twice for
 every branch-bearing block. On the fixed artifact that meant 40,044 branch

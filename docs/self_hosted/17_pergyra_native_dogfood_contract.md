@@ -278,10 +278,12 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 
 ### `intent`
 
-- 여러 action/zone을 하나의 목적과 성공/실패 계약으로 닫는 실행
-  프로토콜이다.
-- 한 함수 호출을 감싼 intent나 전체 컴파일을 설명만 하는 거대 call
-  list는 금지한다.
+- 현실의 목적과 성공/실패 경계를 닫고 coordination, authority, effect,
+  boundary, compensation, trace fact를 owner에 결속하는 source-level binder다.
+  action/zone 개수는 intent 판정 기준이 아니다.
+- 한 action만 있어도 독립적인 목적과 bundle-level 의무를 실제로 결속하면
+  intent가 될 수 있다. 반대로 여러 호출을 묶었을 뿐인 wrapper나 전체 컴파일을
+  설명만 하는 거대 call list는 intent가 아니다.
 - `step`, `pre`, `expect`/`post`, `failure`, `compensate`는 실제 실패 및
   복구 의미가 있을 때 owner fact에 결속한다.
 - entrypoint가 호출하지 않는 intent는 아키텍처 표면이며 실행 개사료
@@ -343,7 +345,7 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 ```text
 driver Main
   -> reachable Pergyra-native compiler subject/action
-  -> compiler intent at a real multi-stage boundary
+  -> compiler intent where a real compiler purpose binds cross-axis facts
   -> existing typed source/MIR/type/ABI/target owners
   -> one target-neutral projection decision
   -> selected C or LLVM emitter
@@ -566,7 +568,8 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   organization grades for `object`, `tobject`, `zone`, `world`, and `intent`,
   and the separate world/tobject query rung, remain unchanged.
 - The next falsifier named here is completed by the bounded action outcome rung
-  below. Multi-action fallible intent consumption remains a separate rung.
+  below. Typed fallible intent transition consumption remains a separate rung;
+  its legitimacy comes from a real purpose/fact bundle, not action count.
 
 ## Completed fallible action tobject outcome rung objective card
 
@@ -616,17 +619,20 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   print `buyer.total=3`, `payment.total=3`, ready projections, `Mina`, and ready
   world state. Six intent identity/type mutations reject before C.
 - Grade: the bounded successful intent path is `REACHABLE`, not whole-intent
-  `SUBSTITUTING`. Fallible `expect`, compensation/effect outcome and the actual
-  compiler root remain open. `PgyCompilerWorld` still does not call a root
-  multi-action intent, so compiler-organization grade for `intent` remains
-  `SURFACE` even though the language/compiler pipeline can now execute an input
-  program intent.
+  `SUBSTITUTING`. The bounded fallible transition/compensation evidence below
+  does not change this successful-path grade, and the actual compiler root
+  remains open. `PgyCompilerWorld` still does not call a root
+  production compiler intent through the observed root call graph, so
+  compiler-organization grade for `intent` remains `SURFACE` even though the
+  language/compiler pipeline can now execute an input program intent. Action
+  count is not the criterion: the missing evidence is a real purpose binder,
+  its elaborated fact bundle, deleted bypass, and consumed outcome.
 - TObject boundary gate: zone constructors consume only subject/binding inputs;
   native C/LLVM preserve their declaration source order. Native source, self
   source and valid-ID malformed MIR all reject a detached tobject as a fresh
   projection source.
 
-### Completed intent DIR/MIR predicate boundary and next typed transition boundary
+### Completed intent DIR/MIR predicate and typed transition boundaries
 
 - Completed owner: `intent_fact_owner.pgy` owns declaration/participant/step
   ranges and edge census; `intent_step_fact_owner.pgy` consumes semantic action
@@ -651,16 +657,18 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   reverse order and each step's compensation rows in reverse order. First-step
   failure excludes future steps and successful execution compensates nothing.
   Phase/step/slot/graph/result/type mutations reject before partial C.
-- Next falsifier: two real actions with typed success/failure variant branches,
-  success-only completion evidence, exact predecessor carriage, and failure-
-  payload-driven compensation. Participant/action/outcome/step mutations must
-  continue to reject before any partial C artifact.
+- The previously named two-action falsifier now has an executable owner gate at
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`. Its two
+  actions expose predecessor-only rollback; they are a fixture shape, not the
+  definition of `intent`. The v2 plan admits exact typed branches, success-only
+  completion and predecessor carriage, while malformed plans must still reject
+  before any partial C artifact.
 
-Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 위 다음
-rung은 runtime feature substitution을 넓히는 작업이고, source-mode orchestration을
-subject/action으로 이주하는 작업은 그 뒤 별도 executable rung으로 유지한다.
+Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 아래 typed
+transition evidence는 bounded runtime feature를 넓힌 것이고, source-mode
+orchestration을 subject/action으로 이주하는 작업은 별도 executable rung으로 유지한다.
 
-## REACHABLE outcome binding and legacy compensation / PLANNED typed transition rung
+## REACHABLE outcome binding, legacy compensation, and typed transition evidence
 
 단일 step의 `on outcome: subject.Action(...)` binding은 구현·실행됐다. Native와
 self semantic/DIR은 exact action return type과 stable action identity를 한 번
@@ -690,17 +698,18 @@ substitution은 아니다.
 
 Fixture의 최소 object/tobject refresh/publish topology는 현재 self machine admission이
 non-empty admitted domain runtime plan을 요구하기 때문에 필요하다. 합법적인 empty
-topology 거부는 별도 blocker이며 tobject가 rollback owner라는 뜻이 아니다. 또한
-서로 다른 step의 동일 action expression text를 stable identity 대신 전역 문자열
-equality로 join하는 기존 mir_lower seam이 후속 negative debt로 남는다.
+topology 거부는 별도 blocker이며 tobject가 rollback owner라는 뜻이 아니다. 기존의
+expression-text unique join은 v2 carrier의 stable expression/graph occurrence identity로
+교체됐고, executable gate가 동일한 compensate expression의 중복 occurrence를 허용한다.
+이 폐쇄를 empty-topology admission 증거로 확장하지 않는다.
 
-다음 objective card는 typed variant branch, success-only completion과 failure
-payload-driven predecessor compensation 경계를 고정할 뿐 완료를 주장하지 않는다.
-Legacy compensation expression은 마지막 emitter까지 운반되지만 typed failure의
-explicit predecessor/branch/completion fact는 아직 존재하지 않는다.
+이전 objective card가 요구한 typed variant branch, success-only completion과
+failure payload-driven predecessor compensation의 구현 증거는 이제 v2 execution
+plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor rollback을
+관측하기 위한 최소 falsifier이며 intent의 semantic cardinality 요구사항이 아니다.
 
-- Objective: 두 개의 실제 forward action 결과를 intent가 typed binding/case로
-  소비하고, 두 번째 action의 typed failure에서 완료된 predecessor action만
+- Objective: intent가 typed action 결과를 binding/case로 소비하고, predecessor가
+  있는 후속 transition의 typed failure에서는 완료된 predecessor action만
   compensate한다.
 - Fact owner: semantic은 exact action outcome/variant/payload binding, DIR은 exact
   step/dependency identity, MIR은 branch successor와 success-only completion 및
@@ -711,19 +720,16 @@ explicit predecessor/branch/completion fact는 아직 존재하지 않는다.
   classification, payload type 재추론, subject/global side channel, positional
   predecessor, call-implies-completed, source-order rollback scan, AST/source
   compensate 재조회, native graft, old direct orchestration 병존이다.
-- Planned evidence: success run은 action A/B의 success payload를 모두 실제 후속
-  결정에 사용하고 compensation 0회를 관측한다. Failure run은 A success 뒤 B의
-  failure payload를 진단/상태에 사용하며 A compensation 1회, B compensation 0회,
-  복구된 최종 상태를 관측한다.
-- Planned negatives: valid foreign outcome definition/type, swapped variant/successor,
-  self/future or mixed-identity predecessor, missing success completion evidence를
-  각각 주입하고 partial C 전에 exact admission diagnostic으로 거부한다.
-- Draft execution file:
-  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh.todo`는
-  aggregate gate에 등록되지 않은 unconditional-failure 실행 설계다.
-  `tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy`는
-  frontend/DIR/fact validation에 활성화됐지만 runtime 또는 substitution 증거는
-  아니다.
+- Executable evidence:
+  `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`는 fixture를
+  MIR로 내리고 `pgy.selfhost.mir-intent-execution-plan.v2`를 admission한 뒤 self C를
+  실행한다. Success는 A/B success payload와 compensation 0회를, A failure는 미래
+  step 미실행을, B failure는 A compensation 1회와 B compensation 0회를 관측한다.
+  multiple/duplicate/zero compensation shape도 같은 consumer에서 실행한다.
+- Negative evidence: 같은 gate는 plan/graph digest와 named-call graph carrier를
+  변조하고 partial C artifact 전에 admission 거부를 요구한다. v2 protocol corpus와
+  admission gate는 variant/payload, predecessor, completion, compensation stable
+  identity를 포함한 더 넓은 cross-wire를 fail closed한다.
 - Grade: draft/owner/document/fixture 수는 진척이 아니다. 현재 single-step typed
   binding은 general self C와 native C/LLVM에서 `REACHABLE`이지만 C-owned compiler
   path를 대체하지 않았다. Production root가 intent를 호출하되 direct bypass가
@@ -731,12 +737,13 @@ explicit predecessor/branch/completion fact는 아직 존재하지 않는다.
   failure/compensation 관측까지 끝나야 compiler `intent`가 `SUBSTITUTING`이다.
   그 전 compiler intent 등급은 계속 `SURFACE`다.
 
-SoT seam은 `selfhost.intent_declaration_rows`에 새 typed transition authority를 섞지
+SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지
 않는다. 해당 row는 source declaration/signature와 현재 legacy phase carrier bridge로
 유지하고, typed outcome case, success-only completion, carried predecessor와
-failure-driven compensation은 planned `mir.intent_step_transition` 실행 fact family로
-분리한다. 실제 authority path, Coq fact/owner, producer와 모든 last consumer,
-missing-fact gate가 착지하기 전에는 정식 registry row나 `CLOSED`로 승격하지 않는다.
+failure-driven compensation은 별도 `mir.intent_step_transition` 실행 fact family로
+분리한다. v2 plan과 admission/consumer gate의 존재만으로 정식 registry row나
+`CLOSED`를 추론하지 않는다. 그 판정은 실제 authority path, Coq fact/owner,
+producer와 모든 last consumer, missing-fact gate를 함께 확인한 owner가 갱신한다.
 
 ## 세션 메모리와 handoff 규칙
 

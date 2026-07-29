@@ -26,11 +26,13 @@ func AppendIntentStepA(
     ArrayPush(steps.success_variant_names, "ACommitted");
     ArrayPush(steps.success_payload_names, "receiptA");
     ArrayPush(steps.success_payload_type_names, "ReceiptA");
+    ArrayPush(steps.success_payload_decl_syntax_ids, 801);
     ArrayPush(steps.success_successor_block_ids, 1);
     ArrayPush(steps.failure_variant_indices, 1);
     ArrayPush(steps.failure_variant_names, "ARejected");
     ArrayPush(steps.failure_payload_names, "problemA");
     ArrayPush(steps.failure_payload_type_names, "ProblemA");
+    ArrayPush(steps.failure_payload_decl_syntax_ids, 802);
     ArrayPush(steps.failure_successor_block_ids, 2);
     ArrayPush(steps.completion_block_ids, 1);
     ArrayPush(steps.completion_instruction_ids, 12);
@@ -70,11 +72,13 @@ func AppendIntentStepB(
     ArrayPush(steps.success_variant_names, "BCommitted");
     ArrayPush(steps.success_payload_names, "receiptB");
     ArrayPush(steps.success_payload_type_names, "ReceiptB");
+    ArrayPush(steps.success_payload_decl_syntax_ids, 803);
     ArrayPush(steps.success_successor_block_ids, 4);
     ArrayPush(steps.failure_variant_indices, 1);
     ArrayPush(steps.failure_variant_names, "BRejected");
     ArrayPush(steps.failure_payload_names, "problemB");
     ArrayPush(steps.failure_payload_type_names, "ProblemB");
+    ArrayPush(steps.failure_payload_decl_syntax_ids, 804);
     ArrayPush(steps.failure_successor_block_ids, 5);
     ArrayPush(steps.completion_block_ids, 4);
     ArrayPush(steps.completion_instruction_ids, 22);
@@ -101,6 +105,7 @@ func AppendIntentTerminal(
     source_variant_name: String,
     source_payload_name: String,
     source_payload_type: String,
+    source_payload_decl_syntax_id: Int,
     result_variant_index: Int,
     result_variant_name: String,
     result_block_id: Int
@@ -115,6 +120,8 @@ func AppendIntentTerminal(
     ArrayPush(rows.source_variant_names, source_variant_name);
     ArrayPush(rows.source_payload_names, source_payload_name);
     ArrayPush(rows.source_payload_type_names, source_payload_type);
+    ArrayPush(rows.source_payload_decl_syntax_ids,
+        source_payload_decl_syntax_id);
     ArrayPush(rows.result_instruction_block_ids, result_block_id);
     ArrayPush(rows.result_instruction_ids, terminal_id + 1000);
     ArrayPush(rows.result_definition_names, Concat("intentResult", ToString(terminal_id)));
@@ -125,7 +132,9 @@ func AppendIntentTerminal(
     ArrayPush(rows.result_variant_names, result_variant_name);
     ArrayPush(rows.result_payload_names, source_payload_name);
     ArrayPush(rows.result_payload_type_names, source_payload_type);
-    ArrayPush(rows.expression_syntax_ids, terminal_id + 2000);
+    ArrayPush(rows.result_payload_decl_syntax_ids,
+        source_payload_decl_syntax_id);
+    ArrayPush(rows.expression_syntax_ids, terminal_id);
     ArrayPush(rows.graph_root_ids, 1);
     ArrayPush(rows.graph_digests, terminal_id + 3000);
     return rows;
@@ -141,17 +150,37 @@ func IntentExecutionFactsForProbe(
         MirIntentTerminalTransitionFactsEmpty();
     terminals = AppendIntentTerminal(
         terminals, 501, "failure", 101, "A", 1, "ARejected",
-        "problemA", "ProblemA", 1, "WorkflowFailedA", 2
+        "problemA", "ProblemA", 802, 1, "WorkflowFailedA", 2
     );
     terminals = AppendIntentTerminal(
         terminals, 502, "success", 102, "B", 0, "BCommitted",
-        "receiptB", "ReceiptB", 0, "WorkflowCommitted", 4
+        "receiptB", "ReceiptB", 803, 0, "WorkflowCommitted", 4
     );
     terminals = AppendIntentTerminal(
         terminals, 503, "failure", 102, "B", 1, "BRejected",
-        "problemB", "ProblemB", 2, "WorkflowFailedB", 5
+        "problemB", "ProblemB", 804, 2, "WorkflowFailedB", 5
     );
     return MirIntentExecutionPlanFromFacts(steps, terminals);
+}
+
+func IntentExecutionTwoRoutineFactsForProbe(
+) -> MirIntentExecutionPlan {
+    let plan: MirIntentExecutionPlan = IntentExecutionFactsForProbe();
+    ArraySet(plan.steps.routine_syntax_ids, 1, 20);
+    ArraySet(plan.steps.predecessor_transition_ids, 1, 0);
+    ArraySet(plan.steps.predecessor_step_syntax_ids, 1, 0);
+    ArraySet(plan.steps.predecessor_step_names, 1, "");
+    ArraySet(plan.terminals.routine_syntax_ids, 1, 20);
+    ArraySet(plan.terminals.routine_syntax_ids, 2, 20);
+    plan.terminals = AppendIntentTerminal(
+        plan.terminals, 504, "success", 101, "A", 0, "ACommitted",
+        "receiptA", "ReceiptA", 801, 0, "WorkflowCommitted", 1
+    );
+    ArraySet(
+        plan.terminals.result_definition_names, 3,
+        plan.terminals.result_definition_names[1]
+    );
+    return MirIntentExecutionPlanFromFacts(plan.steps, plan.terminals);
 }
 
 func Main() -> Void {
@@ -215,6 +244,86 @@ func Main() -> Void {
     );
     if tobject_crosswire.valid {
         MirLowerFailClosed("tobject payload type crosswire was accepted");
+    }
+
+    let tobject_identity_crosswire: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(
+        tobject_identity_crosswire.terminals.source_payload_decl_syntax_ids,
+        2, 802
+    );
+    tobject_identity_crosswire = MirIntentExecutionPlanFromFacts(
+        tobject_identity_crosswire.steps, tobject_identity_crosswire.terminals
+    );
+    if tobject_identity_crosswire.valid {
+        MirLowerFailClosed("tobject payload identity crosswire was accepted");
+    }
+
+    let two_routine: MirIntentExecutionPlan =
+        IntentExecutionTwoRoutineFactsForProbe();
+    if !MirIntentExecutionPlanReady(two_routine) {
+        MirLowerFailClosed(
+            "different routines could not reuse result local/variant identity"
+        );
+    }
+
+    let local_duplicate: MirIntentExecutionPlan =
+        IntentExecutionTwoRoutineFactsForProbe();
+    ArraySet(
+        local_duplicate.terminals.result_definition_names, 2,
+        local_duplicate.terminals.result_definition_names[1]
+    );
+    local_duplicate = MirIntentExecutionPlanFromFacts(
+        local_duplicate.steps, local_duplicate.terminals
+    );
+    if local_duplicate.valid {
+        MirLowerFailClosed("same-routine result local duplicate was accepted");
+    }
+
+    let variant_duplicate: MirIntentExecutionPlan =
+        IntentExecutionTwoRoutineFactsForProbe();
+    ArraySet(
+        variant_duplicate.terminals.result_variant_indices, 2,
+        variant_duplicate.terminals.result_variant_indices[1]
+    );
+    ArraySet(
+        variant_duplicate.terminals.result_variant_names, 2,
+        variant_duplicate.terminals.result_variant_names[1]
+    );
+    variant_duplicate = MirIntentExecutionPlanFromFacts(
+        variant_duplicate.steps, variant_duplicate.terminals
+    );
+    if variant_duplicate.valid {
+        MirLowerFailClosed("same-routine result variant duplicate was accepted");
+    }
+
+    let compensation_expression_duplicate: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(
+        compensation_expression_duplicate.steps.compensations.expression_syntax_ids,
+        1,
+        compensation_expression_duplicate.steps.compensations.expression_syntax_ids[0]
+    );
+    compensation_expression_duplicate = MirIntentExecutionPlanFromFacts(
+        compensation_expression_duplicate.steps,
+        compensation_expression_duplicate.terminals
+    );
+    if compensation_expression_duplicate.valid {
+        MirLowerFailClosed(
+            "duplicate compensation expression syntax identity was accepted"
+        );
+    }
+
+    let terminal_identity_drift: MirIntentExecutionPlan =
+        IntentExecutionFactsForProbe();
+    ArraySet(
+        terminal_identity_drift.terminals.terminal_transition_ids, 2, 999
+    );
+    terminal_identity_drift = MirIntentExecutionPlanFromFacts(
+        terminal_identity_drift.steps, terminal_identity_drift.terminals
+    );
+    if terminal_identity_drift.valid {
+        MirLowerFailClosed("terminal transition/expression drift was accepted");
     }
 
     let stale: MirIntentExecutionPlan = IntentExecutionFactsForProbe();

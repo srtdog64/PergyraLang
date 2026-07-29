@@ -361,6 +361,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         }
         memset(&routine, 0, sizeof(routine));
         pgy_arena_init_named(&routine.scratch, 0, "mir-routine-scratch");
+        routine.program = mir;
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
         routine.name = hir_routine->name;

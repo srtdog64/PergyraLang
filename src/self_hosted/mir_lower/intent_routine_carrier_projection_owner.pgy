@@ -1,0 +1,141 @@
+// Routine block-zero carrier projection for MIR intent reconstruction.
+//
+// This owner admits the legacy semantic/resource carrier spine and temporary
+// executable statement mirrors exactly once. Typed plan carriers are appended
+// later by the execution-plan owner; this projection never interprets them.
+
+import "routine_fact_index_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
+
+struct MirIntentRoutineCarrierProjection {
+    valid: Bool;
+    diagnostic_message: String;
+    carrier_names: Array<String>;
+    carrier_arg0s: Array<String>;
+    carrier_arg1s: Array<String>;
+    carrier_slots: Array<String>;
+    carrier_results: Array<String>;
+    carrier_abi_type_names: Array<String>;
+    carrier_source_types: Array<String>;
+    carrier_expr0s: Array<String>;
+    carrier_rows: Array<Int>;
+    resource_names: Array<String>;
+    resource_arg0s: Array<String>;
+    resource_arg1s: Array<String>;
+    resource_slots: Array<String>;
+    executable_step_exprs: Array<String>;
+    executable_step_rows: Array<Int>;
+}
+
+func MirIntentRoutineCarrierProjectionFromBlockZero(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int,
+    intent_name: String
+) -> MirIntentRoutineCarrierProjection {
+    let carrier_names: Array<String> = [];
+    let carrier_arg0s: Array<String> = [];
+    let carrier_arg1s: Array<String> = [];
+    let carrier_slots: Array<String> = [];
+    let carrier_results: Array<String> = [];
+    let carrier_abi_type_names: Array<String> = [];
+    let carrier_source_types: Array<String> = [];
+    let carrier_expr0s: Array<String> = [];
+    let carrier_rows: Array<Int> = [];
+    let resource_names: Array<String> = [];
+    let resource_arg0s: Array<String> = [];
+    let resource_arg1s: Array<String> = [];
+    let resource_slots: Array<String> = [];
+    let executable_step_exprs: Array<String> = [];
+    let executable_step_rows: Array<Int> = [];
+    let valid: Bool = true;
+    let diagnostic_message: String = "";
+    let commit_count: Int = 0;
+    let block0_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
+        routines, routine_row, 0
+    );
+    let instruction_row: Int = 0;
+    while instruction_row < block0_count && valid {
+        let instruction: MirRoutineInstructionView =
+            MirRoutineInstructionViewAt(
+                routines, routine_row, 0, instruction_row
+            );
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirIntentScalarAt(index, instruction);
+        if !instruction.valid || !scalar.valid {
+            valid = false;
+            diagnostic_message = "MIR intent instruction facts are invalid";
+        } else if instruction.kind == "resource-op" {
+            if scalar.name != "CommitIntent" && scalar.name != "Read" &&
+                scalar.name != "AttachEffect" &&
+                scalar.name != "Authorize" {
+                valid = false;
+                diagnostic_message = "MIR intent resource carrier is unknown";
+            } else {
+                if scalar.name == "CommitIntent" {
+                    commit_count = commit_count + 1;
+                    if scalar.arg0 != intent_name ||
+                        scalar.slot_anchor != intent_name {
+                        valid = false;
+                        diagnostic_message =
+                            "MIR intent commit identity is invalid";
+                    }
+                }
+                ArrayPush(resource_names, scalar.name);
+                ArrayPush(resource_arg0s, scalar.arg0);
+                ArrayPush(resource_arg1s, scalar.arg1);
+                ArrayPush(resource_slots, scalar.slot_anchor);
+            }
+        } else if instruction.kind == "stmt" &&
+            MirIntentKnownSemanticCarrier(scalar.name) {
+            ArrayPush(carrier_names, scalar.name);
+            ArrayPush(carrier_arg0s, scalar.arg0);
+            ArrayPush(carrier_arg1s, scalar.arg1);
+            ArrayPush(carrier_slots, scalar.slot_anchor);
+            ArrayPush(carrier_results, scalar.result);
+            ArrayPush(carrier_abi_type_names, scalar.abi_type_name);
+            ArrayPush(carrier_source_types, instruction.source_type);
+            ArrayPush(carrier_expr0s, scalar.expr0);
+            ArrayPush(carrier_rows, instruction.global_row);
+        } else if instruction.kind == "stmt" && scalar.name == "stmt" {
+            if scalar.expr0 == "" &&
+                instruction.source_type != "AST_INTENT_STEP" {
+                valid = false;
+                diagnostic_message =
+                    "MIR intent executable step row is invalid";
+            } else if scalar.expr0 != "" {
+                if instruction.source_type == "" {
+                    valid = false;
+                    diagnostic_message =
+                        "MIR intent executable expression type is missing";
+                } else {
+                    ArrayPush(executable_step_exprs, scalar.expr0);
+                    ArrayPush(executable_step_rows, instruction.global_row);
+                }
+            }
+        } else if instruction.kind == "cleanup" &&
+            scalar.name == "cleanup-edge" {
+            if instruction_row + 1 != block0_count {
+                valid = false;
+                diagnostic_message =
+                    "MIR intent cleanup edge is not terminal";
+            }
+        } else {
+            valid = false;
+            diagnostic_message = "MIR intent block contains an unknown row";
+        }
+        instruction_row = instruction_row + 1;
+    }
+    if valid && commit_count != 1 {
+        valid = false;
+        diagnostic_message =
+            "MIR intent commit carrier is missing or duplicated";
+    }
+    return MirIntentRoutineCarrierProjection(
+        valid, diagnostic_message, carrier_names, carrier_arg0s,
+        carrier_arg1s, carrier_slots, carrier_results,
+        carrier_abi_type_names, carrier_source_types, carrier_expr0s,
+        carrier_rows, resource_names, resource_arg0s, resource_arg1s,
+        resource_slots, executable_step_exprs, executable_step_rows
+    );
+}

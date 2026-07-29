@@ -130,6 +130,7 @@ typedef struct
     size_t      variant_index;
     const char *payload_name;
     const char *payload_type_name;
+    uint32_t    payload_decl_syntax_id;
     const char *enum_type_name;
     uint32_t    enum_decl_syntax_id;
 } DIRIntentOutcomeBranch;
@@ -146,6 +147,7 @@ typedef struct
     const char *result_variant_name;
     const char *result_payload_name;
     const char *result_payload_type_name;
+    uint32_t    result_payload_decl_syntax_id;
 } DIRIntentTerminal;
 
 typedef struct

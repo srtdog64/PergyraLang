@@ -1,0 +1,163 @@
+// Plan-ordered typed intent semantic carriers for MIR -> AST projection.
+// The admitted plan owns step topology and compensation order.  This owner
+// selects each exact instruction by numeric identity and exposes the existing
+// carrier vocabulary consumed by the shared intent tree projection.
+
+import "intent_execution_tree_projection_owner.pgy";
+import "routine_fact_index_owner.pgy";
+
+struct MirIntentExecutionCarrierProjection {
+    valid: Bool;
+    names: Array<String>;
+    arg0s: Array<String>;
+    arg1s: Array<String>;
+    slots: Array<String>;
+    results: Array<String>;
+    abi_type_names: Array<String>;
+    source_types: Array<String>;
+    expr0s: Array<String>;
+    global_rows: Array<Int>;
+}
+
+func MirIntentExecutionCarrierProjectionEmpty(
+    valid: Bool
+) -> MirIntentExecutionCarrierProjection {
+    let names: Array<String> = [];
+    let arg0s: Array<String> = [];
+    let arg1s: Array<String> = [];
+    let slots: Array<String> = [];
+    let results: Array<String> = [];
+    let abi_type_names: Array<String> = [];
+    let source_types: Array<String> = [];
+    let expr0s: Array<String> = [];
+    let rows: Array<Int> = [];
+    return MirIntentExecutionCarrierProjection(
+        valid, names, arg0s, arg1s, slots, results, abi_type_names,
+        source_types, expr0s, rows
+    );
+}
+
+func MirIntentExecutionCarrierProjectionAppend(
+    inout projection: MirIntentExecutionCarrierProjection,
+    name: String,
+    arg0: String,
+    arg1: String,
+    slot: String,
+    result: String,
+    abi_type_name: String,
+    source_type: String,
+    expr0: String,
+    global_row: Int
+) -> Bool {
+    if !projection.valid || name == "" || global_row < 0 {
+        projection.valid = false;
+        return false;
+    }
+    let names: Array<String> = projection.names;
+    let arg0s: Array<String> = projection.arg0s;
+    let arg1s: Array<String> = projection.arg1s;
+    let slots: Array<String> = projection.slots;
+    let results: Array<String> = projection.results;
+    let abi_type_names: Array<String> = projection.abi_type_names;
+    let source_types: Array<String> = projection.source_types;
+    let expr0s: Array<String> = projection.expr0s;
+    let global_rows: Array<Int> = projection.global_rows;
+    ArrayPush(names, name);
+    ArrayPush(arg0s, arg0);
+    ArrayPush(arg1s, arg1);
+    ArrayPush(slots, slot);
+    ArrayPush(results, result);
+    ArrayPush(abi_type_names, abi_type_name);
+    ArrayPush(source_types, source_type);
+    ArrayPush(expr0s, expr0);
+    ArrayPush(global_rows, global_row);
+    projection.names = names;
+    projection.arg0s = arg0s;
+    projection.arg1s = arg1s;
+    projection.slots = slots;
+    projection.results = results;
+    projection.abi_type_names = abi_type_names;
+    projection.source_types = source_types;
+    projection.expr0s = expr0s;
+    projection.global_rows = global_rows;
+    return true;
+}
+
+func MirIntentExecutionCarrierProjectionFromPlan(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int,
+    ref plan: MirIntentExecutionPlan,
+    topology_rows: Array<Int>
+) -> MirIntentExecutionCarrierProjection {
+    let projection: MirIntentExecutionCarrierProjection =
+        MirIntentExecutionCarrierProjectionEmpty(true);
+    let topology_i: Int = 0;
+    while topology_i < ArrayLength(topology_rows) {
+        let step_row: Int = topology_rows[topology_i];
+        let step_name: String = plan.steps.step_names[step_row];
+        let outcome_row: Int = MirIntentExecutionInstructionGlobalRow(
+            routines, routine_row,
+            plan.steps.outcome_instruction_block_ids[step_row],
+            plan.steps.outcome_instruction_ids[step_row]
+        );
+        let outcome: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, outcome_row
+            );
+        if outcome_row < 0 || !outcome.valid ||
+            outcome.name != "IntentEval" || outcome.arg0 != "on" ||
+            outcome.arg1 != step_name ||
+            !MirIntentExecutionCarrierProjectionAppend(
+                projection, "IntentStep", step_name, step_name, step_name,
+                "", "", "AST_INTENT_STEP", "", outcome_row
+            ) ||
+            !MirIntentExecutionCarrierProjectionAppend(
+                projection, "IntentOutcomeBinding",
+                ToString(plan.steps.action_syntax_ids[step_row]), step_name,
+                plan.steps.outcome_result_names[step_row],
+                plan.steps.outcome_result_names[step_row],
+                plan.steps.outcome_type_names[step_row],
+                "AST_INTENT_STEP", "", outcome_row
+            ) ||
+            !MirIntentExecutionCarrierProjectionAppend(
+                projection, outcome.name, outcome.arg0, outcome.arg1,
+                outcome.slot_anchor, outcome.result, outcome.abi_type_name,
+                routines.instruction_source_types[outcome_row],
+                outcome.expr0, outcome_row
+            ) {
+            return MirIntentExecutionCarrierProjectionEmpty(false);
+        }
+        let compensation: Int = plan.steps.compensation_starts[step_row];
+        let compensation_end: Int = compensation +
+            plan.steps.compensation_counts[step_row];
+        while compensation < compensation_end {
+            let compensation_row: Int =
+                MirIntentExecutionInstructionGlobalRow(
+                    routines, routine_row,
+                    plan.steps.compensations.instruction_block_ids[
+                        compensation
+                    ],
+                    plan.steps.compensations.instruction_ids[compensation]
+                );
+            let row: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, compensation_row
+                );
+            if compensation_row < 0 || !row.valid ||
+                row.name != "IntentEval" || row.arg0 != "compensate" ||
+                row.arg1 != step_name ||
+                !MirIntentExecutionCarrierProjectionAppend(
+                    projection, row.name, row.arg0, row.arg1,
+                    row.slot_anchor, row.result, row.abi_type_name,
+                    routines.instruction_source_types[compensation_row],
+                    row.expr0, compensation_row
+                ) {
+                return MirIntentExecutionCarrierProjectionEmpty(false);
+            }
+            compensation = compensation + 1;
+        }
+        topology_i = topology_i + 1;
+    }
+    return projection;
+}

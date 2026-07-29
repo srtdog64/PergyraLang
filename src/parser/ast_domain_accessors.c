@@ -318,6 +318,15 @@ ast_intent_decl_terminal_result_payload_type_name(
     return terminal != NULL ? terminal->result_payload_type_name : NULL;
 }
 
+uint32_t
+ast_intent_decl_terminal_result_payload_decl_syntax_id(
+    const ASTNode* node, bool success_terminal, size_t failure_index)
+{
+    ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
+        (ASTNode*)node, success_terminal, failure_index);
+    return terminal != NULL ? terminal->result_payload_decl_syntax_id : 0;
+}
+
 bool
 ast_intent_decl_set_terminal_result_resolution_copy(
     ASTNode* node,
@@ -328,7 +337,8 @@ ast_intent_decl_set_terminal_result_resolution_copy(
     size_t result_variant_index,
     const char* result_variant_name,
     const char* result_payload_name,
-    const char* result_payload_type_name)
+    const char* result_payload_type_name,
+    uint32_t result_payload_decl_syntax_id)
 {
     ASTIntentTerminalData* terminal = ast_intent_decl_terminal(
         node, success_terminal, failure_index);
@@ -342,7 +352,8 @@ ast_intent_decl_set_terminal_result_resolution_copy(
         || result_variant_index == SIZE_MAX || result_variant_name == NULL
         || result_variant_name[0] == '\0' || result_payload_name == NULL
         || result_payload_name[0] == '\0' || result_payload_type_name == NULL
-        || result_payload_type_name[0] == '\0') {
+        || result_payload_type_name[0] == '\0'
+        || result_payload_decl_syntax_id == 0) {
         return false;
     }
     type_copy = pergyra_strdup(result_type_name);
@@ -367,6 +378,8 @@ ast_intent_decl_set_terminal_result_resolution_copy(
     terminal->result_variant_name = variant_copy;
     terminal->result_payload_name = payload_copy;
     terminal->result_payload_type_name = payload_type_copy;
+    terminal->result_payload_decl_syntax_id =
+        result_payload_decl_syntax_id;
     return true;
 }
 

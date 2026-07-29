@@ -1102,6 +1102,10 @@ require_text "Makefile" \
     'tests/self_hosted/parity/intent_callable_reachability_owner.sh'
 require_file "tests/self_hosted/parity/intent_callable_execution_owner.sh"
 require_max_lines "tests/self_hosted/parity/intent_callable_execution_owner.sh" 220
+require_max_lines \
+    "tests/self_hosted/parity/intent_execution_graph_target_mutation_owner.py" 100
+require_max_lines \
+    "tests/self_hosted/parity/intent_execution_zero_compensation_mutation_owner.py" 80
 require_text "Makefile" \
     'tests/self_hosted/parity/intent_callable_execution_owner.sh'
 require_file "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy"
@@ -1157,6 +1161,100 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_execution_schema_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_execution_digest_owner.pgy"
+for owner in \
+    intent_execution_json_decode_owner.pgy \
+    intent_execution_json_rows_owner.pgy \
+    intent_execution_identity_index_owner.pgy \
+    intent_execution_plan_fact_owner.pgy; do
+    require_file "src/self_hosted/mir_lower/$owner"
+    require_max_lines "src/self_hosted/mir_lower/$owner" 600
+    require_text "src/self_hosted/OWNERS.md" \
+        "src/self_hosted/mir_lower/$owner"
+done
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "let intent_execution: JsonObjectFactTable;"
+require_text "src/self_hosted/mir_lower/intent_execution_json_rows_owner.pgy" \
+    'import "intent_execution_json_decode_owner.pgy";'
+require_text \
+    "src/self_hosted/mir_lower/intent_execution_identity_index_owner.pgy" \
+    "func MirIntentExecutionTobjectDeclarationReady("
+require_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "func MirIntentExecutionPlanSemanticCrossSealFromDocument("
+require_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    'MirExpressionGraphPersistedSealedShapeReady(graph)'
+require_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    '"on", true, 0, 0'
+require_text "src/self_hosted/mir_lower/intent_execution_structure_owner.pgy" \
+    'MirIntentExecutionZeroCompensationScaffoldCount('
+require_text "src/self_hosted/mir_lower/intent_execution_structure_owner.pgy" \
+    'index.block_instruction_counts[local_block] != 0'
+reject_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "MirIntentExecutionPlanFromFacts("
+reject_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "MirIntentExecutionPlanDigest("
+reject_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "MirIntentExecutionPlanReady("
+reject_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "MirIntentStepTransitionFactsReady("
+reject_text "src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy" \
+    "MirIntentTerminalTransitionFactsReady("
+require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "MirIntentExecutionPlanReady(intent_execution_plan)"
+require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "MirIntentExecutionPlanSemanticCrossSealFromDocument("
+
+intent_plan_ready_calls="$(
+    grep -RFn --include='*.pgy' "MirIntentExecutionPlanReady(" \
+        "$SELF_HOST_DIR" |
+        grep -Fv "func MirIntentExecutionPlanReady(" || true
+)"
+intent_plan_ready_call_count="$(
+    printf '%s\n' "$intent_plan_ready_calls" | sed '/^$/d' | wc -l
+)"
+[[ "$intent_plan_ready_call_count" -eq 1 ]] ||
+    fail "MirIntentExecutionPlanReady must have one production call: $intent_plan_ready_calls"
+[[ "$intent_plan_ready_calls" == *"machine_layer_fact_owner.pgy"* ]] ||
+    fail "MirIntentExecutionPlanReady call must belong to machine admission"
+
+require_file \
+    "tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy"
+require_file \
+    "tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh"
+require_file \
+    "tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh"
+require_file \
+    "tests/self_hosted/parity/intent_execution_protocol_static_owner.py"
+require_file \
+    "tests/self_hosted/parity/intent_execution_protocol_corpus_owner.py"
+require_file \
+    "tests/self_hosted/parity/intent_execution_protocol_admission_runner.sh"
+require_text \
+    "tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy" \
+    "MirJsonReadMachineAdmittedInput("
+require_text \
+    "tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy" \
+    "pgy.mir.v1 input verified"
+reject_text \
+    "tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy" \
+    "MirIntentExecutionPlanReady("
+require_text \
+    "tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh" \
+    "intent_execution_protocol_mutation_owner.sh"
+require_text \
+    "tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh" \
+    "PGY_SELFHOST_INTENT_EXECUTION_ADMISSION_BIN"
+reject_text \
+    "tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh" \
+    "intent_execution_plan_json_admission_owner.sh"
+require_text \
+    "tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh" \
+    '"$PYTHON_BIN" "$STATIC_OWNER" "$ROOT_DIR"'
+require_text \
+    "tests/self_hosted/parity/intent_execution_protocol_static_owner.py" \
+    "assert len(calls) == 1"
+require_make_target_recipe_line \
+    "self-host-intent-execution-plan-admission-test-smoke" \
+    'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh'
 require_file "src/self_hosted/mir/intent_phase_contract_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_phase_contract_owner.pgy" 80
 require_file "src/self_hosted/mir/intent_phase_emission_owner.pgy"
@@ -1169,6 +1267,79 @@ require_file "src/self_hosted/mir_lower/intent_lower_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_lower_owner.pgy" 430
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_lower_owner.pgy"
+for owner_cap in \
+    "intent_routine_tree_projection_owner.pgy:430" \
+    "intent_routine_carrier_projection_owner.pgy:180" \
+    "intent_routine_step_projection_owner.pgy:360" \
+    "intent_execution_carrier_projection_owner.pgy:180" \
+    "intent_execution_structure_owner.pgy:220" \
+    "intent_execution_tree_projection_owner.pgy:320" \
+    "expression_graph_semantic_occurrence_owner.pgy:160" \
+    "intent_execution_graph_mirror_owner.pgy:240" \
+    "intent_execution_graph_target_owner.pgy:180"; do
+    owner="${owner_cap%%:*}"
+    cap="${owner_cap##*:}"
+    require_file "src/self_hosted/mir_lower/$owner"
+    require_max_lines "src/self_hosted/mir_lower/$owner" "$cap"
+    require_text "src/self_hosted/OWNERS.md" \
+        "src/self_hosted/mir_lower/$owner"
+done
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'import "intent_execution_graph_target_owner.pgy";'
+require_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    'plan.steps.action_syntax_ids[step]'
+reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    'Concat(routines.owners[callable_row], Concat("_", source_name))'
+for forbidden in MirIntentExecutionPlanReady MirIntentExecutionPlanDigest \
+    JsonObjectFactTableFromBounds source_json; do
+    reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+        "$forbidden"
+done
+reject_text \
+    "src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy" \
+    "candidate_texts"
+reject_text \
+    "src/self_hosted/mir_lower/intent_execution_graph_mirror_owner.pgy" \
+    "selected_text"
+reject_text \
+    "src/self_hosted/mir_lower/intent_execution_carrier_projection_owner.pgy" \
+    "let strings: Array<String> = [];"
+require_text \
+    "src/self_hosted/mir_lower/intent_execution_carrier_projection_owner.pgy" \
+    "let names: Array<String> = [];"
+require_text \
+    "src/self_hosted/mir_lower/intent_execution_carrier_projection_owner.pgy" \
+    "let rows: Array<Int> = [];"
+require_file \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy"
+require_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" \
+    "if field_count != 3 { return false; }"
+require_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" \
+    'JsonObjectFactNumberFieldOpt('
+require_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" \
+    'graph, "digest"'
+reject_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy" \
+    "MirExpressionGraphDigest("
+require_file \
+    "src/self_hosted/compiler/direct_mir_intent_plan_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_intent_plan_projection_owner.pgy" 220
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_intent_plan_projection_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" 160
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
@@ -1180,6 +1351,18 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
 require_file \
     "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh"
+require_file \
+    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" 220
+require_text "Makefile" \
+    "self-host-intent-typed-compensation-test-smoke"
+require_make_target_recipe_line \
+    "self-host-intent-typed-compensation-test-smoke" \
+    'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh'
+require_text \
+    "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" \
+    'plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v2"'
 require_text "Makefile" \
     "self-host-intent-guard-post-compensation-execution-test-smoke"
 require_file "tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh"
@@ -1212,6 +1395,21 @@ require_max_lines \
     "src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy" 180
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy"
+for owner_cap in \
+    "intent_execution_plan_emit_owner.pgy:180" \
+    "intent_execution_plan_index_owner.pgy:180" \
+    "intent_execution_plan_local_emit_owner.pgy:120" \
+    "intent_execution_plan_control_emit_owner.pgy:260"; do
+    owner="${owner_cap%%:*}"
+    cap="${owner_cap##*:}"
+    require_file "src/self_hosted/codegen/emission/$owner"
+    require_max_lines "src/self_hosted/codegen/emission/$owner" "$cap"
+    require_text "src/self_hosted/OWNERS.md" \
+        "src/self_hosted/codegen/emission/$owner"
+done
+reject_text \
+    "src/self_hosted/codegen/emission/intent_execution_plan_emit_owner.pgy" \
+    "intent_emit_owner"
 require_file \
     "src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy"
 require_max_lines \
@@ -3659,6 +3857,11 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSo
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
+require_file "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy"
 require_file "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy"
 require_max_lines "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" 600
 require_file "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy"
@@ -4114,7 +4317,10 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MirJsonReadMachineAdmittedInput("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MirJsonReadInput("
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "DriverRung2IntentTreeEmissionOrDie("
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "EmitMirProgramTree(json)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonToCVerifiedObserved("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4140,7 +4346,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
+    "DriverRung2IntentTreeEmissionOrDie("
 reject_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(" \
     "MirMachineLayerFactsReady("
@@ -5115,8 +5321,10 @@ require_text "src/self_hosted/mir/routine_if_owner.pgy" \
     'entry_versions[merge_local_i] == 0'
 require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
     'entry_versions[local_i] == 0'
-require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     'validation_stage = "match_binding_type_conflict"'
+require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    'found != types[row]'
 require_text "src/self_hosted/codegen/runtime_abi/result_runtime_owner.pgy" \
     "func ResultRuntimeFactForType"
 require_text "src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy" \
@@ -7328,7 +7536,11 @@ require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     $'rows.arg0s[i] == "ArraySet" ||\n             rows.arg0s[i] == "Exit") &&'
 require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
-    $'UnwrapOption(arg0) == "ArraySet" ||\n            UnwrapOption(arg0) == "Exit";'
+    $'return UnwrapOption(expr0) != "" &&\n            (!IsSome(arg0) || UnwrapOption(arg0) != "ArrayPop");'
+reject_text "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" \
+    'scalar.arg0 == "" || scalar.arg0 == "Log"'
+require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
+    '(!IsSome(arg0_opt) || UnwrapOption(arg0_opt) != "ArrayPop")'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
@@ -7368,8 +7580,10 @@ require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     "if kind == TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "Log"'
-require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" \
-    'UnwrapOption(arg0) == "Log"'
+require_text "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" \
+    'named-call-graph-missing'
+require_text "tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh" \
+    'named-call-target-missing'
 reject_file "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy"
 reject_text "src/self_hosted/codegen/main.pgy" \
     'import "emission/expr_semantic_shape_emit_owner.pgy";'
@@ -10993,7 +11207,7 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "total == 191 || total == 242)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
+    "DriverRung2IntentTreeEmissionOrDie("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitRoutineTreeWithContractAtRowWithExpressionOrder("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -12240,7 +12454,7 @@ reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'BuildMirDocumentFactIndex('
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    'JsonObjectFactCount(graph) != 2'
+    'MirExpressionGraphPersistedShapeReady(graph)'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'JsonObjectFactCount(node) != 6'
 for forbidden_one_mir_bridge_term in \

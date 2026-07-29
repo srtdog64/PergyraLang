@@ -72,6 +72,7 @@ test_mir_lowering_part_b_3(void)
         bool exact_shape = false;
         bool rejected_variant = false;
         bool rejected_payload = false;
+        bool rejected_payload_identity = false;
         bool rejected_action_identity = false;
         bool rejected_predecessor = false;
         bool rejected_completion = false;
@@ -148,6 +149,8 @@ test_mir_lowering_part_b_3(void)
             && routine->intent_terminal_transition_count == 3) {
             size_t saved_variant = root->success.variant_index;
             const char *saved_payload = root->success.payload_type_name;
+            uint32_t saved_payload_identity =
+                root->success.payload_decl_syntax_id;
             uint32_t saved_action_identity = root->action_syntax_id;
             uint32_t saved_predecessor =
                 child->predecessor_transition_id;
@@ -174,6 +177,17 @@ test_mir_lowering_part_b_3(void)
             free(mir_error);
             mir_error = NULL;
             root->success.payload_type_name = saved_payload;
+
+            root->success.payload_decl_syntax_id =
+                root->failure.payload_decl_syntax_id;
+            routine->intent_execution_plan_digest =
+                mir_intent_execution_routine_digest(routine);
+            rejected_payload_identity = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "payload tobject cross-seal") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            root->success.payload_decl_syntax_id = saved_payload_identity;
 
             root->action_syntax_id = UINT32_MAX;
             routine->intent_execution_plan_digest =
@@ -214,6 +228,7 @@ test_mir_lowering_part_b_3(void)
         }
         EXPECT(ok && routine != NULL && exact_shape
                && rejected_variant && rejected_payload
+               && rejected_payload_identity
                && rejected_action_identity
                && rejected_predecessor && rejected_completion
                && rejected_terminal_variant

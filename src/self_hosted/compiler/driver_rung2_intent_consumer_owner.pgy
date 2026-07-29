@@ -1,0 +1,39 @@
+// DRV-2 typed-intent consumer projection boundary.
+//
+// Tree reconstruction consumes the admitted plan once. After semantic
+// analysis, exact expression occurrences remap producer instruction identity
+// into the reconstructed AST epoch without graph or source-text fallback.
+
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/program_lower.pgy";
+import "../mir_lower/expression_graph_semantic_occurrence_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+
+func DriverRung2IntentTreeEmissionOrDie(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    observe_pressure: Bool
+) -> MirProgramTreeEmission {
+    let emission: MirProgramTreeEmission =
+        EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
+        admitted.routines, admitted.intent_execution_plan, observe_pressure
+    );
+    if !emission.ok {
+        Die("MIR program tree emission projection is invalid");
+    }
+    return emission;
+}
+
+func DriverRung2IntentExpressionOccurrencesOrDie(
+    artifact: AstTreeArtifact,
+    ref order: MirStructuredExpressionEmissionOrder,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> MirExpressionSemanticOccurrenceIndex {
+    let occurrences: MirExpressionSemanticOccurrenceIndex =
+        MirExpressionSemanticOccurrenceIndexFromFacts(
+            artifact, order, surfaces
+        );
+    if !occurrences.valid {
+        Die("MIR expression occurrence identity epoch remap is invalid");
+    }
+    return occurrences;
+}

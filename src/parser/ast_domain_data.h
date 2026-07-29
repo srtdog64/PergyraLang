@@ -150,6 +150,7 @@ typedef struct {
     char* result_variant_name;
     char* result_payload_name;
     char* result_payload_type_name;
+    uint32_t result_payload_decl_syntax_id;
 } ASTIntentTerminalData;
 
 /* Step-local typed outcome pattern.  `variant_name` and `payload_name` are
@@ -162,6 +163,7 @@ typedef struct {
     uint32_t enum_decl_syntax_id;
     size_t variant_index;
     char* payload_type_name;
+    uint32_t payload_decl_syntax_id;
 } ASTIntentOutcomeBranchData;
 
 typedef struct {

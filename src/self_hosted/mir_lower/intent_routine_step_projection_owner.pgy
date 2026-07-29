@@ -1,0 +1,323 @@
+// Per-step MIR intent AST projection from already-admitted routine facts.
+//
+// This owner validates participant/action/outcome identity and emits each
+// legacy or typed step tree. It does not discover routine carriers, own typed
+// transition topology, or emit terminal transitions.
+
+import "intent_routine_carrier_projection_owner.pgy";
+import "intent_execution_tree_projection_owner.pgy";
+import "intent_action_contract_owner.pgy";
+import "intent_phase_projection_owner.pgy";
+import "intent_phase_tree_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+func MirIntentRoutineStepTreeLines(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    typed_execution: Bool,
+    ref intent_execution_plan: MirIntentExecutionPlan,
+    routine_syntax_id: Int,
+    topology_rows: Array<Int>,
+    ref routine_carriers: MirIntentRoutineCarrierProjection,
+    ref binding_projection: MirIntentBindingProjection,
+    step_names: Array<String>,
+    ref phase_projection: MirIntentPhaseProjection,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> String {
+    let tree: String = "";
+    let carrier_row: Int = 0;
+    let total_outcome_carrier_count: Int = MirIntentCarrierCount(
+        routine_carriers.carrier_names, "IntentOutcomeBinding"
+    );
+    let outcome_result_names: Array<String> = [];
+    let step_index: Int = 0;
+    while step_index < ArrayLength(step_names) {
+        let step_name: String = step_names[step_index];
+        let zone_name: String = "";
+        let zone_alias: String = "";
+        let who_name: String = "";
+        let authority_name: String = "";
+        let eval_text: String = phase_projection.on_texts[step_index];
+        let outcome_name: String = "";
+        let outcome_type_name: String = "";
+        let outcome_action_syntax_id: String = "";
+        let eval_result: String = phase_projection.on_results[step_index];
+        let eval_type_name: String =
+            phase_projection.on_type_names[step_index];
+        let eval_row: Int = phase_projection.on_rows[step_index];
+        let typed_step_row: Int = 0 - 1;
+        let zone_count: Int = 0;
+        let alias_count: Int = 0;
+        let invalidation_count: Int = 0;
+        let who_count: Int = 0;
+        let authority_count: Int = 0;
+        let cause_count: Int = 0;
+        let outcome_count: Int = 0;
+        carrier_row = 0;
+        while carrier_row < ArrayLength(routine_carriers.carrier_names) {
+            let carrier_name: String = routine_carriers.carrier_names[carrier_row];
+            let carrier_belongs_to_step: Bool =
+                routine_carriers.carrier_arg1s[carrier_row] == step_name &&
+                ((carrier_name == "IntentOutcomeBinding" &&
+                  routine_carriers.carrier_slots[carrier_row] ==
+                    routine_carriers.carrier_results[carrier_row]) ||
+                 (carrier_name != "IntentOutcomeBinding" &&
+                  routine_carriers.carrier_slots[carrier_row] == step_name));
+            if carrier_belongs_to_step {
+                if carrier_name == "IntentZoneWhere" {
+                    zone_count = zone_count + 1;
+                    zone_name = routine_carriers.carrier_arg0s[carrier_row];
+                } else if carrier_name == "IntentZoneAlias" {
+                    alias_count = alias_count + 1;
+                    zone_alias = routine_carriers.carrier_arg0s[carrier_row];
+                } else if carrier_name == "IntentInvalidationTarget" {
+                    invalidation_count = invalidation_count + 1;
+                } else if carrier_name == "IntentWho" {
+                    who_count = who_count + 1;
+                    who_name = routine_carriers.carrier_arg0s[carrier_row];
+                } else if carrier_name == "IntentAuthorizedBy" {
+                    authority_count = authority_count + 1;
+                    authority_name = routine_carriers.carrier_arg0s[carrier_row];
+                } else if carrier_name == "IntentCauses" {
+                    cause_count = cause_count + 1;
+                } else if carrier_name == "IntentOutcomeBinding" {
+                    if routine_carriers.carrier_source_types[carrier_row] !=
+                            "AST_INTENT_STEP" ||
+                        routine_carriers.carrier_expr0s[carrier_row] != "" ||
+                        routine_carriers.carrier_arg0s[carrier_row] == "" ||
+                        ToInt(routine_carriers.carrier_arg0s[carrier_row]) <= 0 ||
+                        ToString(ToInt(routine_carriers.carrier_arg0s[carrier_row])) !=
+                            routine_carriers.carrier_arg0s[carrier_row] ||
+                        MirObjectArrayStringFactCount(
+                            routines.source_json,
+                            routines.instruction_starts[
+                                routine_carriers.carrier_rows[carrier_row]
+                            ],
+                            routines.instruction_ends[
+                                routine_carriers.carrier_rows[carrier_row]
+                            ],
+                            "uses"
+                        ) != 0 {
+                        MirLowerFailClosed(
+                            "MIR intent outcome carrier shape is invalid"
+                        );
+                    }
+                    outcome_count = outcome_count + 1;
+                    outcome_name = routine_carriers.carrier_results[carrier_row];
+                    outcome_type_name =
+                        routine_carriers.carrier_abi_type_names[carrier_row];
+                    outcome_action_syntax_id = routine_carriers.carrier_arg0s[carrier_row];
+                }
+            }
+            carrier_row = carrier_row + 1;
+        }
+        if zone_count != 1 || alias_count != 1 ||
+            invalidation_count != 1 || who_count != 1 ||
+            authority_count != 1 || who_name == "" ||
+            authority_name != who_name || cause_count > 1 ||
+            zone_name == "" || zone_alias == "" ||
+            eval_text == "" || eval_row < 0 {
+            MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
+        }
+        if outcome_count > 1 ||
+            (outcome_count == 0 && eval_result != "") ||
+            (outcome_count == 1 &&
+                (!IsIdentifier(outcome_name) || outcome_type_name == "" ||
+                 outcome_type_name == "Unknown" ||
+                 outcome_type_name == "Void" ||
+                 eval_result != outcome_name ||
+                 eval_type_name != outcome_type_name)) {
+            MirLowerFailClosed("MIR intent step outcome binding is invalid");
+        }
+        if outcome_count == 0 {
+            if eval_type_name != "" {
+                MirLowerFailClosed(
+                    "MIR legacy intent step carries outcome type"
+                );
+            }
+        } else {
+            let prior_outcome: Int = 0;
+            while prior_outcome < ArrayLength(outcome_result_names) {
+                if outcome_result_names[prior_outcome] == outcome_name {
+                    MirLowerFailClosed(
+                        "MIR intent outcome result name is duplicated"
+                    );
+                }
+                prior_outcome = prior_outcome + 1;
+            }
+            ArrayPush(outcome_result_names, outcome_name);
+        }
+        let read_count: Int = 0;
+        let authorize_count: Int = 0;
+        let resource_row: Int = 0;
+        while resource_row < ArrayLength(routine_carriers.resource_names) {
+            if routine_carriers.resource_names[resource_row] == "Read" &&
+                routine_carriers.resource_arg0s[resource_row] == zone_alias &&
+                routine_carriers.resource_arg1s[resource_row] == step_name &&
+                routine_carriers.resource_slots[resource_row] == zone_alias {
+                read_count = read_count + 1;
+            }
+            if routine_carriers.resource_names[resource_row] == "Authorize" &&
+                routine_carriers.resource_arg0s[resource_row] == authority_name &&
+                routine_carriers.resource_arg1s[resource_row] == step_name &&
+                routine_carriers.resource_slots[resource_row] == authority_name {
+                authorize_count = authorize_count + 1;
+            }
+            resource_row = resource_row + 1;
+        }
+        if read_count != 1 || authorize_count != 1 {
+            MirLowerFailClosed("MIR intent step resource carrier is incomplete");
+        }
+        let executable_count: Int = 0;
+        let executable_row: Int = 0 - 1;
+        if typed_execution {
+            executable_count = 1;
+            executable_row = eval_row;
+        } else {
+            let executable_index: Int = 0;
+            while executable_index < ArrayLength(routine_carriers.executable_step_exprs) {
+                if routine_carriers.executable_step_exprs[executable_index] == eval_text {
+                    executable_count = executable_count + 1;
+                    executable_row = routine_carriers.executable_step_rows[executable_index];
+                }
+                executable_index = executable_index + 1;
+            }
+        }
+        if executable_count != 1 {
+            MirLowerFailClosed(
+                "MIR intent executable and semantic step facts disagree"
+            );
+        }
+        let eval_action: MirIntentActionGraphFact =
+            MirIntentActionGraphFromInstruction(
+                routines, eval_row, eval_text
+            );
+        let executable_action: MirIntentActionGraphFact =
+            MirIntentActionGraphFromInstruction(
+                routines, executable_row, eval_text
+            );
+        if !eval_action.ok || !executable_action.ok ||
+            eval_action.receiver_alias != executable_action.receiver_alias ||
+            eval_action.action_name != executable_action.action_name ||
+            eval_action.call_target_name !=
+                executable_action.call_target_name {
+            MirLowerFailClosed(
+                "MIR intent action expression graph identity is invalid"
+            );
+        }
+        let receiver_binding_row: Int = 0 - 1;
+        let receiver_match_count: Int = 0;
+        let binding_scan: Int = 0;
+        while binding_scan < ArrayLength(binding_projection.aliases) {
+            if binding_projection.aliases[binding_scan] == eval_action.receiver_alias {
+                receiver_match_count = receiver_match_count + 1;
+                receiver_binding_row = binding_scan;
+            }
+            if outcome_count == 1 &&
+                binding_projection.aliases[binding_scan] == outcome_name {
+                MirLowerFailClosed(
+                    "MIR intent outcome binding collides with a participant"
+                );
+            }
+            binding_scan = binding_scan + 1;
+        }
+        if receiver_match_count != 1 || receiver_binding_row < 0 ||
+            binding_projection.kinds[receiver_binding_row] != "participant" {
+            MirLowerFailClosed(
+                "MIR intent action receiver binding is invalid"
+            );
+        }
+        let receiver_type: String = binding_projection.type_names[receiver_binding_row];
+        if !typed_execution && eval_action.call_target_name != Concat(
+            receiver_type, Concat("_", eval_action.action_name)
+        ) {
+            MirLowerFailClosed(
+                "MIR intent action call target identity is invalid"
+            );
+        }
+        let action_contract: MirIntentActionContractFact =
+            MirIntentActionContract(
+                routines, receiver_type, eval_action.action_name
+            );
+        if !action_contract.ok ||
+            (outcome_count == 1 && action_contract.return_type_name !=
+                outcome_type_name) ||
+            (outcome_count == 1 && action_contract.action_syntax_id !=
+                outcome_action_syntax_id) {
+            MirLowerFailClosed(
+                "MIR intent action outcome contract is invalid"
+            );
+        }
+        if typed_execution {
+            typed_step_row = MirIntentExecutionStepRowForCarrier(
+                intent_execution_plan, routine_syntax_id, step_name,
+                ToInt(action_contract.action_syntax_id), outcome_name,
+                outcome_type_name
+            );
+            if typed_step_row < 0 ||
+                typed_step_row != topology_rows[step_index] {
+                MirLowerFailClosed(
+                    "typed MIR intent step identity is inconsistent"
+                );
+            }
+            let step_header: String = MirIntentExecutionStepHeader(
+                intent_execution_plan, typed_step_row, zone_alias
+            );
+            if step_header == "" {
+                MirLowerFailClosed("typed MIR intent step header is invalid");
+            }
+            tree = MirIntentTreeAppendLine(tree, step_header);
+        } else {
+            tree = MirIntentTreeAppendLine(
+                tree, Concat("    IntentStep: ", step_name)
+            );
+            tree = MirIntentTreeAppendLine(
+                tree, Concat("      Who: ", who_name)
+            );
+        }
+        tree = MirIntentTreeAppendLine(
+            tree, Concat("      Using: ", zone_alias)
+        );
+        if !typed_execution {
+            tree = MirIntentTreeAppendLine(
+                tree, Concat("      AuthorizedBy: ", authority_name)
+            );
+        }
+        if outcome_count == 1 {
+            tree = MirIntentTreeAppendLine(
+                tree, Concat("      Outcome: ", outcome_name)
+            );
+        }
+        let phase_tree: String = "";
+        let expression_on_row: Int = executable_row;
+        if typed_execution {
+            phase_tree = MirIntentExecutionPhaseTreeLines(
+                phase_projection, step_index, intent_execution_plan,
+                typed_step_row
+            );
+            expression_on_row = eval_row;
+        } else {
+            phase_tree = MirIntentPhaseTreeLines(
+                phase_projection, step_index
+            );
+        }
+        if phase_tree == "" ||
+            !MirIntentPhaseAppendExpressionOrder(
+                phase_projection, step_index, expression_on_row,
+                expression_order
+            ) {
+            MirLowerFailClosed(
+                "MIR intent phase tree projection is invalid"
+            );
+        }
+        tree = Concat(tree, phase_tree);
+        step_index = step_index + 1;
+    }
+    if ArrayLength(outcome_result_names) != total_outcome_carrier_count {
+        MirLowerFailClosed(
+            "MIR intent outcome carrier step identity is invalid"
+        );
+    }
+    return tree;
+}

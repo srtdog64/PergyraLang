@@ -1,6 +1,7 @@
 #include "mir_fact_validate_internal.h"
 #include "mir_abi_layout.h"
 #include "mir_machine_layer.h"
+#include "mir_stmt_population_internal.h"
 
 #include <string.h>
 
@@ -339,6 +340,23 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                     i);
             }
             return false;
+        }
+        if (inst->kind == MIR_INST_ASSIGN
+            && mir_instruction_source_is_assignment(inst)) {
+            const char *expected_mode =
+                mir_assignment_target_root_binding_mode(routine,
+                                                        inst->expr0);
+            if (expected_mode == NULL || inst->arg1 == NULL
+                || strcmp(inst->arg1, expected_mode) != 0) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] ASSIGN target-root binding mode is missing or inconsistent",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
         }
         if (mir_instruction_resource_op_is_write(inst)
             && mir_instruction_source_matches_ast_type(inst, AST_CALL)

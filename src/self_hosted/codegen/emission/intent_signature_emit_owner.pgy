@@ -1,6 +1,7 @@
 // Intent callable environment, parameter, prototype, and local-binding C facts.
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../text/text_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "function_binding_env_owner.pgy";
@@ -29,14 +30,33 @@ func CodegenIntentCallableEnvRows(
             types = Concat(types, intents.param_types[row]);
             p = p + 1;
         }
-        ArrayPush(rows, Concat(name, Concat("=f:Bool|", Concat(
+        ArrayPush(rows, Concat(name, Concat("=f:", Concat(
+            intents.return_type_names[intent_index], Concat("|", Concat(
             name, Concat("=pm:", Concat(modes, Concat("|", Concat(
                 name, Concat("=pt:", Concat(types, "|"))
             ))))
-        ))));
+        ))))));
         intent_index = intent_index + 1;
     }
     return StringJoin(rows, "");
+}
+
+func CodegenIntentCReturnType(
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    env: CodegenTypeEnv
+) -> String {
+    if intent_index < 0 ||
+        intent_index >= ArrayLength(intents.return_type_names) {
+        Die("self-host intent return type row is missing");
+    }
+    let return_type: String = AbiLayoutCValueType(
+        intents.return_type_names[intent_index], env
+    );
+    if return_type == "" {
+        Die("self-host intent C return type is missing");
+    }
+    return return_type;
 }
 
 func CodegenIntentParameterList(
@@ -74,13 +94,14 @@ func CodegenIntentPrototypeBlock(
     let intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         ArrayPush(rows, Concat(
-            "bool ", Concat(
+            CodegenIntentCReturnType(intents, intent_index, env), Concat(
+                " ", Concat(
                 CompilerSymbolCIdentifier(intents.names[intent_index]),
                 Concat("(", Concat(
                     CodegenIntentParameterList(intents, intent_index, env),
                     ");\n"
                 ))
-            )
+            ))
         ));
         intent_index = intent_index + 1;
     }
