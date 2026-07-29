@@ -1,4 +1,9 @@
 #include "pgy_runtime_linkage.h"
+/* `max_align_t` is used by pgy_realloc below. Include its header here rather
+ * than relying on the including translation unit to have pulled it in: the
+ * self-host codegen bootstrap compiles emitted C that does not, and the header
+ * failed there while the ordinary build path happened to work. */
+#include <stddef.h>
 /* =================================================================
  * Allocator Interface
  * ================================================================= */
